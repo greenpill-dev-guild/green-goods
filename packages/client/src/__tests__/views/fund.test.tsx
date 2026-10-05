@@ -11,6 +11,9 @@
  * @vitest-environment happy-dom
  */
 
+import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, Fragment, type ReactNode } from "react";
@@ -28,7 +31,7 @@ const mockGardens = [
     description: "A solar-powered community garden",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 1,
     lastActivityAt: 1700000000,
     stewards: [],
@@ -42,7 +45,7 @@ const mockGardens = [
     description: "Turning waste into soil",
     location: "Portland, OR",
     bannerImage: "",
-    contributorCount: 1,
+    gardenerCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
     stewards: [],
@@ -70,10 +73,6 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 
 vi.mock("@green-goods/shared/utils/blockchain/aave", () => ({
   formatApy: (value: number) => `${value.toFixed(2)}%`,
-}));
-
-vi.mock("@green-goods/shared/utils/relativeTime", () => ({
-  formatRelativeTime: () => "recently",
 }));
 
 vi.mock("@green-goods/shared/utils/blockchain/vaults", () => {
@@ -193,7 +192,7 @@ import FundPage from "../../views/Public/Fund";
 
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
-  "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
+  "public.fund.heroTitle": "A small gesture today, growing over many seasons",
   "public.fund.heroLede": "Endow a Garden Vault so yield can support the Garden over many seasons.",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.endow.title": "Endow",
@@ -215,7 +214,12 @@ function LocationSearchProbe() {
 
 function renderView(
   initialEntries: string[] = ["/fund"],
-  options: { initialIndex?: number; extra?: ReactNode } = {}
+  options: {
+    initialIndex?: number;
+    extra?: ReactNode;
+    locale?: string;
+    catalog?: Record<string, string>;
+  } = {}
 ) {
   return render(
     createElement(
@@ -223,12 +227,22 @@ function renderView(
       { initialEntries, initialIndex: options.initialIndex },
       createElement(
         IntlProvider,
-        { locale: "en", messages },
+        { locale: options.locale ?? "en", messages: options.catalog ?? messages },
         createElement(Fragment, null, options.extra, createElement(FundPage))
       )
     )
   );
 }
+
+/**
+ * What the mock Garden rows say in each language: the first one five months after its last
+ * activity, then the second one's counts.
+ */
+const rowCopy: Array<[string, Record<string, string>, string[], string[]]> = [
+  ["en", en, ["2 gardeners", "1 entry", "Active 5 months ago"], ["1 gardener", "0 entries"]],
+  ["es", es, ["2 jardineros", "1 entrada", "Activo hace 5 meses"], ["1 jardinero", "0 entradas"]],
+  ["pt", pt, ["2 jardineiros", "1 entrada", "Ativo há 5 meses"], ["1 jardineiro", "0 entradas"]],
+];
 
 describe("FundPage", () => {
   beforeEach(() => {
@@ -340,6 +354,22 @@ describe("FundPage", () => {
     expect(donateButtons).toHaveLength(2);
     expect(endowButtons).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
+  });
+
+  it.each(rowCopy)("counts and dates Garden rows in %s", (locale, catalog, solar, composting) => {
+    // 150 days after the first Garden's last activity.
+    const now = mockGardens[0].lastActivityAt * 1000 + 150 * 86_400_000;
+    vi.useFakeTimers({ toFake: ["Date"], now });
+    try {
+      renderView(["/fund"], { locale, catalog });
+
+      const solarRow = screen.getByRole("group", { name: /Solar Community Garden/ });
+      for (const label of solar) expect(within(solarRow).getByText(label)).toBeVisible();
+      const compostingRow = screen.getByRole("group", { name: /Urban Composting Hub/ });
+      for (const label of composting) expect(within(compostingRow).getByText(label)).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("explains Donate and Endow once in Ways to support, with Donate leading", () => {

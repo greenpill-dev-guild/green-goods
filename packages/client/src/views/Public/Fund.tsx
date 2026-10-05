@@ -24,7 +24,7 @@ import {
   EditorialLinkArrow,
   EditorialNumeral,
   EditorialVaultAssetCardSkeleton,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
@@ -343,7 +343,7 @@ function getGardenVaultSummary(
 
 function FundPageContent() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading, isError } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const vaultSummary = usePublicVaultCatalogSummary();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -454,11 +454,10 @@ function FundPageContent() {
         title={formatMessage(
           {
             id: "public.fund.heroTitle",
-            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons.",
+            defaultMessage:
+              "<line>A small gesture,</line> <line><accent>growing</accent> over</line> <line>many seasons</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.fund.heroLede",
@@ -647,15 +646,7 @@ function FundPageContent() {
                 ))}
               </div>
             }
-            error={
-              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-                {formatMessage({
-                  id: "public.surface.error",
-                  defaultMessage:
-                    "This public record is temporarily unavailable. Please try again.",
-                })}
-              </p>
-            }
+            onRetry={() => void refetch()}
             empty={
               <div className="mt-12 max-w-md">
                 <p className="font-serif text-xl italic text-text-soft-400">

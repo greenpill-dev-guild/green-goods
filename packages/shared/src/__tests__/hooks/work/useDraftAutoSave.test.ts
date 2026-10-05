@@ -5,10 +5,20 @@ import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../../hooks/work/useDraftAutoSave";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(), persistent: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  save: vi.fn(),
+  persistent: vi.fn(),
+  returnToDraft: vi.fn(),
+  queue: { discardJob: vi.fn() },
+}));
 vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
 }));
+vi.mock("../../../modules/work/draft-lifecycle", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/work/draft-lifecycle")>()),
+  returnChangedWorkToDraft: mocks.returnToDraft,
+}));
+vi.mock("../../../modules/job-queue/default-instance", () => ({ jobQueue: mocks.queue }));
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 11155111 }));
 vi.mock("../../../modules/job-queue/draft-db", () => ({
   draftDB: { saveSnapshot: mocks.save },
@@ -42,6 +52,20 @@ describe("complete draft autosave", () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
     expect(mocks.save).not.toHaveBeenCalled();
+  });
+  it("does not write a loaded draft until its prompt is answered", async () => {
+    useWorkFlowStore.setState({ activeDraftId: "resumed", draftChoicePending: true });
+    const { result } = renderHookWithQueryClient(() => useDraftAutoSave(base, emptyImages));
+    await act(async () => {
+      await result.current.saveOnExit();
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(mocks.save).not.toHaveBeenCalled();
+    await act(async () => {
+      useWorkFlowStore.setState({ draftChoicePending: false });
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mocks.save.mock.calls[0][2]).toBe("resumed");
   });
   it("saves the initial snapshot and debounces subsequent text edits", async () => {
     const { rerender } = renderHookWithQueryClient(
@@ -83,6 +107,58 @@ describe("complete draft autosave", () => {
     });
     expect(useWorkFlowStore.getState().draftSaveState).toBe("failed");
   });
+  it("returns a submitted draft's changed work to the draft before the save answers, and fails the save when it cannot", async () => {
+    mocks.returnToDraft.mockReset();
+    const { result, rerender } = renderHookWithQueryClient(
+      ({ feedback }) => useDraftAutoSave({ ...base, feedback }, emptyImages),
+      { initialProps: { feedback: "first" } }
+    );
+    // A draft that was never submitted has no copy in the queue, so its save does not look.
+    await act(async () => {
+      await result.current.saveOnExit();
+    });
+    expect(mocks.returnToDraft).not.toHaveBeenCalled();
+
+    const saved = { id: "saved", uploadCheckpoint: { submittedAt: "2026-10-04", files: {} } };
+    mocks.save.mockResolvedValue(saved);
+    let finish!: (discarded: boolean) => void;
+    mocks.returnToDraft.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        })
+    );
+    rerender({ feedback: "submitted" });
+
+    // A Submit waits for this save, so it never finds the earlier copy to send.
+    let answered = false;
+    const saving = result.current.saveOnExit().then(() => {
+      answered = true;
+    });
+    await vi.waitFor(() => expect(mocks.returnToDraft).toHaveBeenCalledWith(saved, mocks.queue));
+    expect(answered).toBe(false);
+    await act(async () => {
+      finish(true);
+      await saving;
+    });
+    expect(answered).toBe(true);
+
+    // The earlier copy is still queued: the save fails, and a Submit waiting for it stops.
+    mocks.returnToDraft.mockRejectedValueOnce(new Error("blocked"));
+    rerender({ feedback: "changed" });
+    await act(async () => {
+      await expect(result.current.saveOnExit()).rejects.toThrow("blocked");
+    });
+    expect(useWorkFlowStore.getState().draftSaveState).toBe("failed");
+
+    // Saving again tries the copy again.
+    await act(async () => {
+      await result.current.saveOnExit();
+    });
+    expect(mocks.returnToDraft).toHaveBeenCalledTimes(3);
+    expect(useWorkFlowStore.getState().draftSaveState).toBe("saved");
+  });
+
   it("serializes overlapping snapshots instead of dropping the later save", async () => {
     let release!: () => void;
     mocks.save.mockImplementationOnce(

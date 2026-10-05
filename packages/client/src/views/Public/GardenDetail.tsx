@@ -196,9 +196,10 @@ export default function GardenDetail() {
                 id: "public.gardenDetail.stats.handsAtWork",
                 defaultMessage: "Hands at work",
               })}
-              value={detail?.contributors.length}
+              value={detail?.gardenerCount}
               loading={detailLoading}
-              unavailable={worksUnavailable}
+              // Read from the Garden's role lists, so a failed work read cannot hide it.
+              unavailable={false}
             />
             <StatCell
               label={formatMessage({

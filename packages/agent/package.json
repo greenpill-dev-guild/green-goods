@@ -22,6 +22,7 @@
     "@sentry/bun": "10.65.0",
     "@sentry/cli": "3.6.0",
     "@huggingface/transformers": "4.2.0",
+    "@simplewebauthn/server": "13.3.3",
     "exceljs": "4.4.0",
     "hono": "4.13.7",
     "pino": "10.3.1",

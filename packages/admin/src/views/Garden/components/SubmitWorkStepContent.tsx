@@ -1,13 +1,18 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
-import type { SubmitWorkController } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import {
+  getMinRequiredWorkImages,
+  type SubmitWorkController,
+} from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
 import type { Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { ActionChooserGrid } from "./ActionChooserGrid";
 import { SubmitWorkFields } from "./SubmitWorkFields";
+import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
 import { SubmitWorkReview } from "./SubmitWorkReview";
 
 const DOMAIN_TAB_KEYS: Record<Domain, string> = {
@@ -20,9 +25,12 @@ const DOMAIN_TAB_KEYS: Record<Domain, string> = {
 export function SubmitWorkStepContent({
   controller,
   photoRequirementText,
+  reviewStatus,
 }: {
   controller: SubmitWorkController;
   photoRequirementText: string;
+  /** Where the send stands, as the Review's status row says it. */
+  reviewStatus: FlowSendStatus;
 }) {
   const { formatMessage } = useIntl();
   const {
@@ -41,6 +49,7 @@ export function SubmitWorkStepContent({
     selectDomain,
     selectedAction,
     selectedActionId,
+    showValidation,
     visibleActions,
   } = controller;
   const { control, formState, getValues, register } = form;
@@ -111,11 +120,14 @@ export function SubmitWorkStepContent({
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           compress={false}
-          showPreview
-          currentFiles={images}
+          showPreview={false}
           onFilesChange={handleFilesChange}
-          onRemoveFile={removeImage}
           disabled={busy}
+        />
+        <SubmitWorkPhotos
+          images={images}
+          minRequired={getMinRequiredWorkImages(selectedAction)}
+          onRemove={removeImage}
         />
         {mediaFeedback ? (
           <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
@@ -147,13 +159,14 @@ export function SubmitWorkStepContent({
             control={control}
             register={register}
             errors={errors as Record<string, { message?: string } | undefined>}
+            showValidation={showValidation}
           />
         ) : null}
         <AdminTextField
           label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
           id="timeSpentMinutes"
           type="number"
-          error={errors.timeSpentMinutes?.message}
+          error={showValidation ? errors.timeSpentMinutes?.message : undefined}
           helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
           placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
           inputProps={{ step: "0.25", min: 0 }}
@@ -163,7 +176,7 @@ export function SubmitWorkStepContent({
           label={formatMessage({ id: "app.admin.work.submit.feedback" })}
           id="feedback"
           rows={3}
-          error={errors.feedback?.message}
+          error={showValidation ? errors.feedback?.message : undefined}
           placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
           {...register("feedback")}
         />
@@ -176,6 +189,7 @@ export function SubmitWorkStepContent({
       images={images}
       values={getValues() as Record<string, unknown>}
       photoRequirementText={photoRequirementText}
+      status={reviewStatus}
       onEditStep={goToStep}
     />
   ) : null;

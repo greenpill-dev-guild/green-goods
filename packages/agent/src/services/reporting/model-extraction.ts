@@ -31,6 +31,9 @@ const INTENTS: InterpretedIntent[] = [
   "status",
   "help",
   "cancel",
+  "connect",
+  "disconnect",
+  "greeting",
   "unclear",
 ];
 

@@ -31,7 +31,7 @@ function fundingVariant(state: NonNullable<PoolFundingControllerView["snapshot"]
 }
 
 /**
- * Pool Funding, as its own compact card at the foot of the Pool tab's right
+ * Pool Funding, as its own compact card at the foot of the Promises tab's right
  * column (PRD-1025 D9): what is available for new promises first, in dollars
  * with the G$ amount beside, then one line for the Safe and what is committed,
  * the funding and settlement chips, and the read time with View Details. The

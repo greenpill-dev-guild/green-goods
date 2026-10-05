@@ -19,8 +19,25 @@ const mocks = vi.hoisted(() => ({
     account: { address: "0x00000000000000000000000000000000000000a1" },
   },
   sendActivation: vi.fn(),
+  signOut: vi.fn(async () => {}),
+  loginWithPasskey: vi.fn(async (_name?: string) => {}),
+  trackError: vi.fn(),
+  offer: vi.fn(
+    async (_account: string): Promise<{ address: string; name: string; chainId: number } | null> =>
+      null
+  ),
 }));
 
+/** The garden an account not yet in it is invited to; by default the account needs no invitation. */
+const OFFER = {
+  address: "0x00000000000000000000000000000000000000c9",
+  name: "Community Garden",
+  chainId: 42161,
+};
+
+vi.mock("../../../hooks/agent-reporting/community-offer", () => ({
+  readCommunityOffer: (account: string) => mocks.offer(account),
+}));
 vi.mock("../../../modules/agent-reporting/browser-grant-activation", () => ({
   sendBrowserGrantActivation: mocks.sendActivation,
 }));
@@ -50,7 +67,15 @@ vi.mock("../../../providers/Auth", () => ({
     smartAccountClient: mocks.ownerClient,
     isAuthenticating: false,
   }),
-  useAuthActions: () => ({ loginWithWallet: vi.fn(), loginWithPasskey: vi.fn(async () => {}) }),
+  useAuthActions: () => ({
+    loginWithWallet: vi.fn(),
+    loginWithPasskey: mocks.loginWithPasskey,
+    signOut: mocks.signOut,
+  }),
+}));
+vi.mock("../../../modules/app/error-categories", () => ({
+  trackError: mocks.trackError,
+  trackAuthError: mocks.trackError,
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mocks.sender,
@@ -98,6 +123,11 @@ beforeEach(() => {
   mocks.account = ACCOUNT;
   mocks.sender = null;
   mocks.signMessage.mockClear();
+  mocks.signOut.mockClear();
+  mocks.loginWithPasskey.mockClear();
+  mocks.trackError.mockClear();
+  mocks.offer.mockReset();
+  mocks.offer.mockResolvedValue(null);
   mocks.sendActivation.mockReset();
   mocks.sendActivation.mockImplementation(async (input) => {
     input.assertOwner();
@@ -216,6 +246,136 @@ describe("reporting ceremony page", () => {
     agent.challengeState = "paired";
     await waitFor(() => expect(result.current.stage).toBe("linked"));
     expect(agent.requests("POST", "/access")).toEqual([]);
+  });
+
+  it("settles the garden invitation for the proven account before the code screen opens", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    mocks.offer.mockResolvedValue(OFFER);
+    const calls = wallet("send");
+    const { result } = render();
+    await act(() => result.current.start());
+    await act(() => result.current.prove());
+    expect(mocks.offer).toHaveBeenCalledWith(ACCOUNT);
+    expect(result.current).toMatchObject({
+      stage: "pairing",
+      linkedAccount: ACCOUNT,
+      communityOffer: OFFER,
+    });
+
+    await act(() => result.current.joinCommunity());
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      address: OFFER.address,
+      account: ACCOUNT,
+      functionName: "joinGarden",
+    });
+    // Sent once: the invitation is gone, and it stays gone when the chat confirms the code.
+    expect(result.current.communityOffer).toBeNull();
+    agent.challengeState = "paired";
+    await waitFor(() => expect(result.current.stage).toBe("linked"));
+    expect(result.current.communityOffer).toBeNull();
+    expect(mocks.offer).toHaveBeenCalledTimes(1);
+  });
+
+  it("invites a linked chat's account in a browser the Agent recognized, and joins as no other", async () => {
+    agent.purpose = "link_account";
+    agent.challengeState = "paired";
+    agent.verifiedAccount = ACCOUNT;
+    mocks.offer.mockResolvedValue(OFFER);
+    // The wallet in this browser has moved on to another account since the proof.
+    mocks.account = OTHER_ACCOUNT;
+    const calls = wallet("send");
+    const { result } = render();
+    await act(() => result.current.start());
+    expect(result.current).toMatchObject({
+      stage: "linked",
+      linkedAccount: ACCOUNT,
+      communityOffer: OFFER,
+    });
+    await act(() => result.current.joinCommunity());
+    expect(calls).toEqual([]);
+  });
+
+  const opened = () =>
+    agent.calls.filter((call) => call.method === "POST" && call.path === "/challenges");
+
+  it("lets go of the connected account on the account step, and keeps a code already shown", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    const { result } = render();
+    await act(() => result.current.start());
+    // On the account step only the website's sign-in changes; the challenge is still unused.
+    await act(async () => expect(await result.current.changeAccount()).toBe(true));
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    expect(result.current.stage).toBe("connect");
+
+    await act(() => result.current.prove());
+    // A code on screen stays the code of the account that proved it; the page keeps its place.
+    await act(() => result.current.changeAccount());
+    expect(result.current.stage).toBe("pairing");
+    expect(result.current.pairingCode).toBe("481516");
+    expect(opened()).toHaveLength(1);
+  });
+
+  it("returns to its account step only when a different account has signed in", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    const first = render();
+    await act(() => first.result.current.start());
+    await act(() => first.result.current.changeAccount());
+    // A different account signing in remounts every screen, this page included.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await waitFor(() => expect(second.result.current.stage).toBe("connect"));
+    expect(opened()).toHaveLength(2);
+
+    // The same account coming back is no change: the page waits for Continue, and the mark it
+    // left is spent, so a later reload waits too.
+    await act(() => second.result.current.changeAccount());
+    second.unmount();
+    const third = render();
+    await act(async () => {});
+    expect(third.result.current.stage).toBe("intro");
+    third.unmount();
+    mocks.account = ACCOUNT;
+    const fourth = render();
+    await act(async () => {});
+    expect(fourth.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(2);
+  });
+
+  it("leaves no mark when the account is let go before the link was opened", async () => {
+    const first = render();
+    await act(() => first.result.current.changeAccount());
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await act(async () => {});
+    // Nothing continued by itself: the start screen, with its warning for in-app browsers, stays.
+    expect(second.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(0);
+  });
+
+  it("finds a passkey account by the name it was created with", async () => {
+    const { result } = render();
+    await act(() => result.current.connectPasskey("afo.eth"));
+    expect(mocks.loginWithPasskey).toHaveBeenCalledWith("afo.eth");
+  });
+
+  it("records the error behind a failure it can only call unknown", async () => {
+    const stale = new Error("Connector not connected.");
+    mocks.signMessage.mockRejectedValueOnce(stale);
+    const { result } = render();
+    await act(() => result.current.start());
+    await act(() => result.current.prove());
+    expect(result.current.stage).toBe("connect");
+    expect(result.current.error).toBe("unknown");
+    expect(mocks.trackError).toHaveBeenCalledWith(
+      stale,
+      expect.objectContaining({ source: "useAgentReportingCeremony" })
+    );
   });
 
   it("keeps a proof from another account retryable instead of ending the page", async () => {
@@ -402,7 +562,7 @@ describe("reporting ceremony page", () => {
     ).toMatchObject({ idempotencyKey: "at-1:uncertain", outcome: { userOperationHash: TX_HASH } });
   });
 
-  it("reports an owner decline before delegate signing as rejected, preserving a retryable summary", async () => {
+  it("reports an owner decline before delegate signing and closes the grant", async () => {
     wallet("send");
     mocks.sendActivation.mockRejectedValue(
       Object.assign(new Error("User rejected the request."), { code: 4001 })
@@ -411,11 +571,27 @@ describe("reporting ceremony page", () => {
     await reachGrant(result);
     await act(() => result.current.installGrant());
     await act(() => result.current.installGrant());
-    expect(result.current).toMatchObject({ stage: "grant_ready", error: "declined" });
+    expect(result.current).toMatchObject({ stage: "failed", error: "declined" });
     expect(agent.requests("POST", "/execution-grants/g-1/activation/signature")).toEqual([]);
     expect(
       agent.requests("POST", "/execution-grants/g-1/activation/outcome")[0]?.body?.outcome
     ).toEqual({ kind: "rejected_before_send", reason: "user_rejected" });
+  });
+
+  it("settles a refused Agent signature before broadcast so the report can return to its owner", async () => {
+    wallet("send");
+    agent.activationSignatureFailure = true;
+    const { result } = render();
+    await reachGrant(result);
+    await act(() => result.current.installGrant());
+    await act(() => result.current.installGrant());
+    expect(agent.requests("POST", "/execution-grants/g-1/activation/signature")).toHaveLength(1);
+    expect(
+      agent.requests("POST", "/execution-grants/g-1/activation/outcome")[0]?.body?.outcome
+    ).toEqual({ kind: "preparation_failed", reason: "activation_unavailable" });
+    expect(result.current.error).toBe("unsupported");
+    expect(result.current.stage).toBe("failed");
+    expect(readCeremony("request-0123456789abcdef")?.pendingGrantActivation).toBeUndefined();
   });
 
   it("keeps a delegate signature with no bundler result uncertain and blocks a second owner prompt", async () => {

@@ -5,7 +5,49 @@ import { identifyWorkFile, isHeicFile, roundWorkLocation } from "../work/work-at
 import type { DraftDatabase } from "./draft-connection";
 import { computeFirstIncompleteStep, isWorkDraft } from "./draft-state";
 
-const MAX_DRAFTS_PER_USER = 20;
+/** Work drafts one account may keep on one chain. */
+export const MAX_DRAFTS_PER_USER = 20;
+
+function inKeyOrder(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(inKeyOrder);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+      .map(([key, entry]) => [key, inKeyOrder(entry)])
+  );
+}
+
+/**
+ * The work a draft holds, as text two saves are compared by. It leaves out
+ * where the person is in the flow, and reads an answer left empty as one not
+ * given, so reopening a draft and stepping through it is not a change.
+ */
+function workContent(draft: WorkDraftRecord, attachments: DraftImage[]): string {
+  const empty = (value: unknown) =>
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && !value.length);
+  const given = ([, value]: [string, unknown]) => !empty(value);
+  return JSON.stringify(
+    inKeyOrder({
+      garden: draft.gardenAddress?.toLowerCase() ?? null,
+      action: draft.actionUID ?? null,
+      feedback: draft.feedback ?? "",
+      details: Object.fromEntries(Object.entries(draft.details ?? {}).filter(given)),
+      minutes: draft.timeSpentMinutes || null,
+      tags: draft.tags ?? [],
+      location: draft.location ?? null,
+      missing: (draft.missingAttachments ?? []).map((item) => item.id).sort(),
+      attachments: attachments
+        .map(
+          (entry) => `${entry.order ?? 0}:${entry.kind ?? "media"}:${entry.contentHash ?? entry.id}`
+        )
+        .sort(),
+    })
+  );
+}
 
 /**
  * Save one revision of a work draft with its attachments in a single
@@ -104,6 +146,13 @@ export async function saveDraftSnapshot(
       next.firstIncompleteStep = computeFirstIncompleteStep(next, media.length > 0);
       const old = await db.draft_images.where("draftId").equals(draftId).toArray();
       const retained = new Set([...entries.map((entry) => entry.id), ...retainedUnreadableIds]);
+      const saved = new Set(entries.map((entry) => entry.id));
+      const kept = old.filter((entry) => retained.has(entry.id) && !saved.has(entry.id));
+      next.contentRevision =
+        (previous?.contentRevision ?? 0) +
+        (previous && workContent(previous, old) === workContent(next, [...entries, ...kept])
+          ? 0
+          : 1);
       await db.draft_images.bulkDelete(
         old.filter((entry) => !retained.has(entry.id)).map((entry) => entry.id)
       );

@@ -3,7 +3,6 @@ import { expect } from "storybook/test";
 import { MemoryRouter } from "react-router-dom";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { PublicGardenRow } from "../PublicGardenRow";
-import "../../../styles/editorial.css";
 import {
   EditorialCookieJarCardSkeleton,
   EditorialListRowSkeleton,
@@ -117,7 +116,7 @@ export const FundingRowFootprints: Story = {
                   description: "",
                   location: "Local garden",
                   bannerImage: "",
-                  contributorCount: 2,
+                  gardenerCount: 2,
                   actionCount: 3,
                   lastActivityAt: 0,
                   stewards: [],

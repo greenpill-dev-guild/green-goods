@@ -4,8 +4,8 @@ import { cn } from "../utils/styles/cn";
 export interface SpinnerProps {
   size?: "sm" | "md" | "lg";
   className?: string;
-  /** Screen reader label */
-  label?: string;
+  /** Screen reader label, already in the reader's language. The spinner has no copy of its own. */
+  label: string;
 }
 
 const sizeClasses = {
@@ -20,7 +20,7 @@ const sizeClasses = {
  * @example
  * <Spinner size="md" label="Loading..." />
  */
-export const Spinner: React.FC<SpinnerProps> = ({ size = "md", className, label = "Loading" }) => {
+export const Spinner: React.FC<SpinnerProps> = ({ size = "md", className, label }) => {
   return (
     <>
       <div
@@ -48,7 +48,7 @@ export interface CenteredSpinnerProps extends SpinnerProps {
  * Centered spinner with optional message
  *
  * @example
- * <CenteredSpinner fullScreen message="Loading your data..." />
+ * <CenteredSpinner fullScreen label="Loading" message="Loading your data..." />
  */
 export const CenteredSpinner: React.FC<CenteredSpinnerProps> = ({
   fullScreen = false,

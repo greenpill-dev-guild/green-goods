@@ -22,6 +22,8 @@ export type PublicRouteClass =
   | "join_request_create_garden"
   | "join_request_read"
   | "join_request_resolve"
+  | "passkey_registration"
+  | "passkey_lookup"
   | "webhook_pre"
   | "webhook_post"
   | "messaging_bootstrap"
@@ -75,6 +77,9 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   join_request_create_garden: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   join_request_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   join_request_resolve: { limit: 30, windowMs: 10 * 60 * 1000 },
+  // A sign-up is two calls, and an onboarding session can put a whole group behind one address.
+  passkey_registration: { limit: 120, windowMs: 10 * 60 * 1000 },
+  passkey_lookup: { limit: 240, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
   // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.

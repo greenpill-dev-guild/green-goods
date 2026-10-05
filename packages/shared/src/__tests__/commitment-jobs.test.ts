@@ -730,6 +730,67 @@ describe("queue identity for acts that name a commitment", () => {
     ).rejects.toThrow(/offline_job_identity_conflict/);
   });
 
+  describe("a creation placed again", () => {
+    // As the composer builds it: the words ride the job, and the CID is still empty.
+    const composed = (overrides: Partial<CommitmentCreationPayload> = {}) =>
+      commitmentPayload({
+        creationRequestKey: ZERO_HASH,
+        metadataCID: "",
+        metadata: { version: 1, title: "Ten hours of weeding" },
+        ...overrides,
+      });
+
+    /** The first press, after a send that failed once the executor had published the words. */
+    async function queueFailedFirstPress() {
+      const first = await jobQueue.addJob("commitment", composed(), HOLDER, meta);
+      const stored = (await jobQueueDB.getJob(first))!;
+      await jobQueueDB.updateJob({
+        ...stored,
+        attempts: 1,
+        lastError: "Network switch rejected.",
+        payload: { ...(stored.payload as object), metadataCID: "bafy-published" },
+      });
+      return first;
+    }
+
+    it("is the queued job, sent as it was queued, when only the clock and the published words differ", async () => {
+      const first = await queueFailedFirstPress();
+
+      // Ninety seconds later the same answers build a later deadline and no CID.
+      const again = await jobQueue.addJob(
+        "commitment",
+        composed({ dueDate: 2_000_000_090n }),
+        HOLDER,
+        meta
+      );
+
+      expect(again).toBe(first);
+      const queued = await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "commitment" });
+      expect(queued).toHaveLength(1);
+      expect(queued[0]?.payload).toMatchObject({
+        dueDate: 2_000_000_000n,
+        metadataCID: "bafy-published",
+      });
+    });
+
+    it.each([
+      ["an answer changed", { dueDate: 2_000_000_090n, targetUnits: 11n }],
+      ["the words changed", { metadata: { version: 1, title: "Twelve hours of weeding" } }],
+      ["the deadline moved by a day", { dueDate: 2_000_086_400n }],
+      ["the deadline moved earlier", { dueDate: 1_999_999_999n }],
+    ] as const)("is refused when %s, and the queued job is left as it was", async (_case, change) => {
+      const first = await queueFailedFirstPress();
+
+      await expect(jobQueue.addJob("commitment", composed(change), HOLDER, meta)).rejects.toThrow(
+        /offline_job_identity_conflict/
+      );
+
+      const queued = await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "commitment" });
+      expect(queued.map((job) => job.id)).toEqual([first]);
+      expect(queued[0]?.payload).toMatchObject({ dueDate: 2_000_000_000n, targetUnits: 10n });
+    });
+  });
+
   it("refuses the same claim under a different garden rather than quietly taking the second", async () => {
     const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
     await jobQueue.addJob("claim", payload, HOLDER, meta);

@@ -11,6 +11,7 @@ import type {
 } from "../../../services/reporting/interpretation";
 import type { GardenDirectory, ReportingGarden } from "../../../services/reporting/gardens";
 import type { ReportingClock, ReportingIds } from "../../../services/reporting/runtime";
+import type { FakeChain } from "./fake-chain";
 import type {
   OutboundRequest,
   OutboundResult,
@@ -36,9 +37,24 @@ export const AIYELOJA: ReportingGarden = {
   label: "Aiyeloja Family Garden",
 };
 
-/** A fixed garden list; the live directory reads every garden from the indexer. */
-export function fixedGardens(gardens: ReportingGarden[] = [TAS, AIYELOJA]): GardenDirectory {
-  return { list: () => gardens, refresh: async () => undefined };
+/**
+ * A fixed garden list; the live directory reads every garden from the indexer. Given the fake
+ * chain, an account's gardens follow the roles granted there, as the indexer follows the real
+ * chain. Without it no account is in any garden.
+ */
+export function fixedGardens(
+  gardens: ReportingGarden[] = [TAS, AIYELOJA],
+  chain?: Pick<FakeChain, "roles">
+): GardenDirectory {
+  const reportsTo = (garden: ReportingGarden, account: string): boolean => {
+    const roles = chain?.roles.get(`${garden.address}:${account.toLowerCase()}`);
+    return Boolean(roles && (roles.gardener || roles.operator || roles.owner));
+  };
+  return {
+    list: () => gardens,
+    gardensOf: (account) => gardens.filter((garden) => reportsTo(garden, account)),
+    refresh: async () => undefined,
+  };
 }
 
 export const ACTION_REGISTRY = "0x00000000000000000000000000000000000000b0" as const;

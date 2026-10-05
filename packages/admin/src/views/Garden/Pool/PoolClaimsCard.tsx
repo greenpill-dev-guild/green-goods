@@ -13,10 +13,10 @@ export interface PoolClaimsCardProps {
 }
 
 /**
- * Waiting for approval (PRD-1025), at the top of the Pool tab's right column:
- * everyone asking to take up a request or an offer, for the steward to approve
- * or decline. It is always there, one quiet line when nothing waits, so it
- * never moves the promises on the left (D1, D7, D8).
+ * Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's
+ * right column: everyone asking to take up a request or an offer, for the
+ * steward to approve or decline. It is always there, one quiet line when
+ * nothing waits, so it never moves the promises on the left (D1, D8).
  *
  * Rows hold their place for the visit (`useWaitingForApproval`): a decision
  * turns a row into its outcome, which stays until the steward leaves the tab,
@@ -46,13 +46,14 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
     : approvals.decided === 0
       ? formatMessage({
           id: "cockpit.garden.pool.approvals.description",
-          defaultMessage: "Approving one closes the others on the same promise.",
+          defaultMessage:
+            "Neighbours asking to take a promise up. Approving one closes the others on that promise.",
         })
       : formatMessage(
           {
             id: "cockpit.garden.pool.approvals.decidedThisVisit",
             defaultMessage:
-              "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Pool tab.} other {# decided this visit; they clear when you leave the Pool tab.}}",
+              "{waiting, plural, =0 {Nothing waiting now.} other {# waiting.}} {decided, plural, one {# decided this visit; it clears when you leave the Promises tab.} other {# decided this visit; they clear when you leave the Promises tab.}}",
           },
           { waiting: approvals.waiting, decided: approvals.decided }
         );
@@ -69,14 +70,14 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
         <AdminCardTitle>
           {formatMessage({
             id: "cockpit.garden.pool.approvals.title",
-            defaultMessage: "Waiting for approval",
+            defaultMessage: "Review Promises",
           })}
         </AdminCardTitle>
         {approvals.rows.length === 0 ? (
           <p className="mt-1 body-sm text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.approvals.empty",
-              defaultMessage: "Nothing waiting for approval.",
+              defaultMessage: "Nothing to review.",
             })}
           </p>
         ) : (

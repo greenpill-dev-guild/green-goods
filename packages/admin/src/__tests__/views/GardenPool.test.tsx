@@ -729,10 +729,8 @@ describe("GardenPoolTab (W7)", () => {
     renderTab();
     const stats = screen.getByRole("list", { name: /what needs you/i });
     // Nobody waits, so its zero is text rather than a way in.
-    expect(within(stats).getByText(/waiting for approval/i)).toBeInTheDocument();
-    expect(
-      within(stats).queryByRole("button", { name: /waiting for approval/i })
-    ).not.toBeInTheDocument();
+    expect(within(stats).getByText("To review")).toBeInTheDocument();
+    expect(within(stats).queryByRole("button", { name: /to review/i })).not.toBeInTheDocument();
 
     const list = screen.getByTestId("pool-commitments");
     fireEvent.click(within(stats).getByRole("button", { name: /2\s*needs recovery/i }));
@@ -871,7 +869,7 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
-  it("keeps Waiting for approval, Pool Status and Pool Funding in the right column, in that order", () => {
+  it("keeps Review Promises, Pool Status and Pool Funding in the right column, in that order", () => {
     mocks.controller = controller({
       claims: [pendingClaim()],
       titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
@@ -884,9 +882,19 @@ describe("GardenPoolTab (W7)", () => {
       ["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"].includes(name ?? "")
     );
     expect(cards).toEqual(["PoolClaimsCard", "PoolStatusCard", "PoolFundingSection"]);
+    // Each is headed by the name a steward reads (DL-077).
+    expect(
+      within(aside)
+        .getAllByRole("heading")
+        .map((heading) => heading.textContent)
+    ).toEqual(["Review Promises", "Pool Status", "Pool Funding"]);
     // The promises stay on the left, so nothing on the right moves them.
     expect(within(aside).queryByTestId("pool-commitments")).not.toBeInTheDocument();
-    expect(screen.getByTestId("pool-commitments")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("pool-commitments")).getByRole("heading", {
+        name: "Offers and Requests",
+      })
+    ).toBeVisible();
   });
 
   it("says on its status card when the pool is the protocol's", () => {
@@ -924,16 +932,18 @@ describe("GardenPoolTab (W7)", () => {
   });
 });
 
-describe("Garden workspace Pool tab visibility", () => {
-  it("shows the Pool tab to a steward and not to a plain member", () => {
+describe("Garden workspace Promises tab visibility", () => {
+  it("shows the Promises tab to a steward and not to a plain member", () => {
     mocks.gardenController = gardenController(true);
     const steward = renderWithProviders(<GardenView />);
-    expect(screen.getByRole("tab", { name: /pool/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Promises" })).toBeInTheDocument();
+    // The pool is the container, not the tab's name (DL-077).
+    expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
     steward.unmount();
 
     mocks.gardenController = gardenController(false);
     renderWithProviders(<GardenView />);
-    expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Promises" })).not.toBeInTheDocument();
   });
 
   it("keeps management controls from a reader who reaches the route directly while retaining funding facts", () => {

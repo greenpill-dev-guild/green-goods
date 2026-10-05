@@ -134,11 +134,13 @@ QueryPersistenceProvider > ErrorBoundary > AppKitProvider
   > AppProvider > RouterProvider
 ```
 
-**Client** (`packages/client/src/main.tsx` + `App.tsx`):
+**Client** (`packages/client/src/bootstrapPublic.tsx` / `bootstrapPwa.tsx` + `PublicApp.tsx` / `PwaApp.tsx`):
 ```
-HelmetProvider > AppErrorBoundary > AppProvider > App
-  > QueryPersistenceProvider > AppErrorBoundary > RouterProvider
+PublicRecoveryViews | AppRecoveryViews > HelmetProvider > AppErrorBoundary > AppProvider > App
+  > QueryPersistenceProvider (installed app only) > AppErrorBoundary > RouterProvider
 ```
+The recovery views stay outermost: every boundary, the outermost included, reads its error screens
+from them, and each entry hands over only its own so neither bundle carries the other's.
 Client wallet/auth providers do NOT live at the app root — they mount at route level via
 `routes/WalletRuntimeProviders.tsx` (`AppKitProvider > AuthGate`) so public/editorial routes
 never pay the wallet bundle.

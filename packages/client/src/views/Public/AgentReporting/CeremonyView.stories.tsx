@@ -89,6 +89,21 @@ const base: Props = {
   purpose: null,
   channelLabel: "Telegram",
   pairingCode: null,
+  linkedAccount: null,
+  inAppBrowser: false,
+  passkeyUnavailable: false,
+  linkCopied: false,
+  openInBrowser: asyncNoop,
+  communityOffer: null,
+  joinFailure: null,
+  joinSending: false,
+  skipCommunity: noop,
+  joinCommunity: asyncNoop,
+  lastFailure: null,
+  canFindAccount: true,
+  changeAccount: async () => true,
+  createAccount: async () => true,
+  accountKind: null,
   sessionAccount: null,
   resource: null,
   operation: null,
@@ -178,6 +193,77 @@ export const Proving: Story = { args: { ...ProveConnected.args, stage: "proving"
 export const ConnectDeclined: Story = { args: { ...ProveConnected.args, error: "declined" } };
 /** Linking an account asks for one signature, then a code sent in chat. */
 export const LinkConnect: Story = { args: { stage: "connect", purpose: "link_account" } };
+export const CreateAccount: Story = {
+  args: { stage: "connect", purpose: "link_account", initialName: "create" },
+};
+/** An account kept on another device is found by the name it was created with. */
+export const FindAccount: Story = {
+  args: { stage: "connect", purpose: "link_account", initialName: "find" },
+};
+/**
+ * The page starts on the account this browser last used. Under the step's rows, and in the
+ * account sheet, it offers to let that one go so the chat can link another.
+ */
+export const LinkConnected: Story = {
+  args: { stage: "connect", purpose: "link_account", account: ACCOUNT },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: "Sign to Continue" })).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: /^Not 0x.+\? Use a different account$/ })
+    ).toBeVisible();
+  },
+};
+export const CreateAccountSpanish: Story = {
+  ...CreateAccount,
+  parameters: { locale: "es" },
+};
+export const CreateAccountPortuguese: Story = {
+  ...CreateAccount,
+  parameters: { locale: "pt" },
+};
+export const Join: Story = {
+  args: {
+    stage: "pairing",
+    purpose: "link_account",
+    account: ACCOUNT,
+    accountKind: "passkey",
+    linkedAccount: ACCOUNT,
+    pairingCode: "481516",
+    communityOffer: {
+      address: "0xF7b892886998DAe960D64a9db488336684F137A0",
+      name: "Community Garden",
+      chainId: 42161,
+    },
+  },
+};
+export const JoinSpanish: Story = { ...Join, parameters: { locale: "es" } };
+export const JoinPortuguese: Story = { ...Join, parameters: { locale: "pt" } };
+/** A chat that is linked already: joining is all that is left, so no code is promised. */
+export const JoinLinked: Story = {
+  args: { ...Join.args, stage: "linked", accountKind: "wallet", pairingCode: null },
+};
+/** The invitation is for the linked account: with another one connected, joining is switched off. */
+export const JoinWrongAccount: Story = {
+  args: { ...JoinLinked.args, account: "0x9c2b7d4e5f60718293a4b5c6d7e8f90123451f3a" },
+};
+/** A browser the Agent recognized, with no account connected: it connects one before joining. */
+export const JoinDisconnected: Story = {
+  args: { ...JoinLinked.args, account: null, accountKind: null },
+};
+/** A sign-in that failed says so in the account layer's own words. */
+export const ConnectFailed: Story = {
+  args: { ...LinkConnect.args, lastFailure: "Sign in was cancelled." },
+};
+export const InAppStart: Story = { args: { stage: "intro", inAppBrowser: true } };
+export const InAppStartSpanish: Story = {
+  ...InAppStart,
+  parameters: { locale: "es" },
+};
+export const InAppStartPortuguese: Story = {
+  ...InAppStart,
+  parameters: { locale: "pt" },
+};
 export const Pairing: Story = {
   args: { stage: "pairing", purpose: "link_account", pairingCode: "481516", account: ACCOUNT },
 };
@@ -192,6 +278,7 @@ export const Review: Story = {
     operation,
   },
 };
+export const ReviewDisconnected: Story = { args: { ...Review.args, account: null } };
 export const ReviewWrongAccount: Story = {
   args: {
     ...Review.args,

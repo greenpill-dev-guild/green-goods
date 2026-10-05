@@ -34,7 +34,7 @@ import {
   readVaultShareBalanceOnChain,
 } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
-import { resolveAgentRpcUrl } from "./services/agent-rpc";
+import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import {
   createSqliteProfileAvatarStore,
@@ -57,6 +57,12 @@ import {
 } from "./services/garden-join-requests";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
+import { createPasskeyDirectory } from "./services/passkey-directory";
+import {
+  createHostedPasskeyNameCheck,
+  createSqlitePasskeyDirectoryStore,
+} from "./services/passkey-directory-adapters";
+import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
 
 // ============================================================================
 // INITIALIZATION
@@ -95,7 +101,22 @@ async function main(): Promise<void> {
 
   // Initialize services
   initDB(config.dbPath);
-  initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
+  const agentRpc = resolveAgentRpc(config.chainId);
+  // Only the host is logged: a configured address can carry a provider key in its path.
+  const rpcLog = {
+    chainId: config.chainId,
+    host: rpcHost(agentRpc.url),
+    source: agentRpc.source,
+  };
+  if (agentRpc.source === "public") {
+    logger.warn(
+      rpcLog,
+      "No RPC address or Alchemy key is set for this chain; using its public endpoint, which is rate limited"
+    );
+  } else {
+    logger.info(rpcLog, "Chain reads go through the configured RPC");
+  }
+  initBlockchain(config.chain, agentRpc.url);
   const ai = initAI();
   const subscriptionClient = createResendSubscriptionClient({
     apiKey: config.resendApiKey,
@@ -111,7 +132,7 @@ async function main(): Promise<void> {
   const gardenJoinRequestStore = joinRequestCipher
     ? createSqliteGardenJoinRequestStore(joinRequestCipher)
     : undefined;
-  const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
+  const agentRpcUrl = agentRpc.url;
 
   const trustedProxy = {
     hops: config.trustedProxyHops,
@@ -182,6 +203,21 @@ async function main(): Promise<void> {
     }),
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
+    ...(config.passkeyDirectoryEnabled
+      ? {
+          passkeyDirectory: createPasskeyDirectory({
+            store: createSqlitePasskeyDirectoryStore(),
+            relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
+            hostedNameTaken: config.passkeyHostedDirectoryUrl?.trim()
+              ? createHostedPasskeyNameCheck({
+                  rpcUrl: config.passkeyHostedDirectoryUrl.trim(),
+                  origin: `https://${PASSKEY_RP_ID}`,
+                })
+              : undefined,
+            allowLocalDevelopment: config.isDevelopment,
+          }),
+        }
+      : {}),
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled

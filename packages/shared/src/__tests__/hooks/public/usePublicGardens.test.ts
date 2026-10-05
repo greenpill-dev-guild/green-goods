@@ -154,7 +154,7 @@ describe("usePublicGardens", () => {
     expect(data[1]?.slug).toBe("0xabcdef1234567890abcdef1234567890abcdef12");
   });
 
-  it("computes contributor count and last activity from EAS works", async () => {
+  it("computes entry count and last activity from EAS works", async () => {
     const garden = createMockGarden({
       id: MOCK_ADDRESSES.garden,
       name: "Riparian Restoration",
@@ -165,7 +165,7 @@ describe("usePublicGardens", () => {
     });
 
     mockGetGardens.mockResolvedValue([garden, otherGarden]);
-    // Two works in `garden` from the same gardener + 1 from another → 2 unique contributors
+    // Three works in `garden` and one in the other garden.
     mockGetWorks.mockResolvedValue([
       createMockWork({
         gardenAddress: garden.id as `0x${string}`,
@@ -200,9 +200,47 @@ describe("usePublicGardens", () => {
     const data = result.current.data ?? [];
     const target = data.find((g) => g.address === garden.id);
     expect(target?.actionCount).toBe(3);
-    expect(target?.contributorCount).toBe(2);
     // EAS createdAt is in seconds; lastActivityAt should expose seconds value of the most recent work
     expect(target?.lastActivityAt).toBe(1_700_001_000);
+  });
+
+  it("counts gardeners and stewards once each, whether or not they have approved work", async () => {
+    const garden = createMockGarden({
+      id: MOCK_ADDRESSES.garden,
+      name: "Riparian Restoration",
+      // One steward holds the gardener role too, the other does not. One address
+      // arrives in two cases.
+      gardeners: [
+        MOCK_ADDRESSES.gardener,
+        MOCK_ADDRESSES.steward,
+        MOCK_ADDRESSES.user,
+        MOCK_ADDRESSES.user.toLowerCase() as `0x${string}`,
+      ],
+      stewards: [MOCK_ADDRESSES.steward, MOCK_ADDRESSES.deployer],
+    });
+    const quietGarden = createMockGarden({
+      id: "0xOther1234567890abcdef1234567890abcdef1234",
+      name: "Forest Garden",
+      gardeners: [MOCK_ADDRESSES.steward, MOCK_ADDRESSES.user],
+      stewards: [MOCK_ADDRESSES.steward],
+    });
+    mockGetGardens.mockResolvedValue([garden, quietGarden]);
+    // One approved work, by one of the first garden's four people.
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ gardenAddress: garden.id, gardenerAddress: MOCK_ADDRESSES.gardener }),
+    ]);
+
+    const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
+      queryClient,
+    });
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toMatchObject([
+      { name: "Riparian Restoration", gardenerCount: 4, actionCount: 1 },
+      { name: "Forest Garden", gardenerCount: 2, actionCount: 0 },
+    ]);
   });
 
   it("counts only approved work, so pending and rejected work set no count or recency", async () => {
@@ -239,7 +277,6 @@ describe("usePublicGardens", () => {
 
     expect(result.current.data?.[0]).toMatchObject({
       actionCount: 1,
-      contributorCount: 1,
       lastActivityAt: 1_700_000_000,
     });
   });
@@ -264,12 +301,11 @@ describe("usePublicGardens", () => {
 
     const data = result.current.data ?? [];
     expect(data[0]?.actionCount).toBe(0);
-    expect(data[0]?.contributorCount).toBe(0);
     // Garden createdAt in domain is ms; hook normalizes to seconds for parity with works
     expect(data[0]?.lastActivityAt).toBe(Math.floor(1_650_000_000_000 / 1000));
   });
 
-  it("treats EAS query failure as soft — gardens still render with zero stats", async () => {
+  it("treats EAS query failure as soft — gardens still render, with zero entries", async () => {
     const garden = createMockGarden({
       id: MOCK_ADDRESSES.garden,
       name: "Resilient Garden",
@@ -288,7 +324,8 @@ describe("usePublicGardens", () => {
     const data = result.current.data ?? [];
     expect(data).toHaveLength(1);
     expect(data[0]?.actionCount).toBe(0);
-    expect(data[0]?.contributorCount).toBe(0);
+    // The mock garden's gardener and steward come from the indexer's role lists, so the count survives.
+    expect(data[0]?.gardenerCount).toBe(2);
   });
 
   it("propagates indexer (garden) fetch errors", async () => {

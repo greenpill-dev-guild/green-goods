@@ -5,7 +5,7 @@
 - Owner: Astra (Codex)
 - Branch: record the approved implementation checkout before dispatch
 - Status: blocked (see status.json)
-- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+- Support owner: Afolabi, [contact@greengoods.app](mailto:contact@greengoods.app)
 
 ## Start gate
 

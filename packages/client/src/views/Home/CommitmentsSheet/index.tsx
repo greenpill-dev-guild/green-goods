@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import {
   useCommitmentPools,
@@ -45,6 +46,7 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   const { pools } = useCommitmentPools({ chainId });
   const { data: gardens = [] } = useGardens();
   const { series } = useCommitmentSeries({ chainId, holder: viewer ?? undefined });
+  const { sendsFromTap } = useCommitmentJobs({ chainId });
   const navigate = useNavigate();
 
   // The sheet sits beside the garden outlet rather than above a route of its
@@ -108,7 +110,13 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
       size="full"
     >
       {selectedTab === "live" && (
-        <LiveTab inbox={inbox} pools={pools} gardens={gardens} onOpenCommitment={openCommitment} />
+        <LiveTab
+          inbox={inbox}
+          pools={pools}
+          gardens={gardens}
+          sendsFromTap={sendsFromTap}
+          onOpenCommitment={openCommitment}
+        />
       )}
       {selectedTab === "over-time" && (
         <OverTimeTab

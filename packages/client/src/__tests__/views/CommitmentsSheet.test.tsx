@@ -119,6 +119,12 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", async (importOriginal) 
   };
 });
 
+/** Whether the reader sends queued promises themselves, as a wallet sign-in does. */
+const mockSendsFromTap = vi.fn(() => false);
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({ sendsFromTap: mockSendsFromTap() }),
+}));
+
 vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
   useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
@@ -133,6 +139,7 @@ describe("CommitmentsSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
+    mockSendsFromTap.mockReturnValue(false);
     mockUseCommitmentsInbox.mockReturnValue(inbox());
     mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
   });
@@ -441,6 +448,17 @@ describe("CommitmentsSheet", () => {
     expect(
       screen.getByText(/saved on this phone\. It sends when you are connected/i)
     ).toBeInTheDocument();
+  });
+
+  it("tells a wallet reader a queued promise is theirs to send, never that it sends itself", () => {
+    mockSendsFromTap.mockReturnValue(true);
+    mockUseCommitmentsInbox.mockReturnValue(inbox({ hasPendingCreate: true }));
+
+    render(<CommitmentsSheet isOpen onClose={() => {}} />);
+    expect(
+      screen.getByText(/still on this phone\. Send it, or check on it, from its garden's Promises/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/It sends when you are connected/i)).not.toBeInTheDocument();
   });
 
   it("counts acts per tab, and never inventory", () => {

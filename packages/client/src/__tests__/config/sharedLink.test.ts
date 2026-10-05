@@ -38,7 +38,8 @@ describe("shared record destinations", () => {
     for (const route of [`/home/${garden}`, path]) {
       const response = (await runLoader(publicAppRoutes, route)) as Response;
       expect(response.headers.get("location")).toBe(route.replace("/home/", "/gardens/"));
-      expect(matchRoutes(publicAppRoutes, response.headers.get("location")!)).toHaveLength(3);
+      // The root, the public shell, the shell's error-state route, then the record's page.
+      expect(matchRoutes(publicAppRoutes, response.headers.get("location")!)).toHaveLength(4);
     }
   });
   it("rejects external destinations, workflow routes, tokens, and malformed IDs", () => {

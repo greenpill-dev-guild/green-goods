@@ -56,6 +56,7 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
 // Must come after mocks
 import { GARDENS_HIDDEN_EVERYWHERE } from "../../../config/garden-visibility";
 import { useDrafts } from "../../../hooks/work/useDrafts";
+import { jobQueueDB } from "../../../modules/job-queue/db";
 import { computeFirstIncompleteStep, draftDB } from "../../../modules/job-queue/draft-db";
 import { computeFirstIncompleteStep as firstIncompleteStep } from "../../../modules/job-queue/draft-state";
 
@@ -166,6 +167,24 @@ describe("useDrafts", () => {
       });
 
       expect(result.current.drafts.map((draft) => draft.id)).toEqual(["empty", "good"]);
+    });
+
+    it("leaves out a draft whose work is already in the upload queue", async () => {
+      mockDraftDB.getDraftsForUser.mockResolvedValue([
+        createMockDraftRecord({ id: "queued", clientWorkId: "work-queued" }),
+        createMockDraftRecord({ id: "editing", clientWorkId: "work-editing" }),
+      ]);
+      await jobQueueDB.addJob({
+        kind: "work",
+        payload: { clientWorkId: "work-queued", actionUID: 1, feedback: "" },
+        chainId: TEST_CHAIN_ID,
+        userAddress: MOCK_ADDRESSES.user,
+      });
+
+      const { result } = renderHookWithQueryClient(() => useDrafts(), { queryClient });
+
+      await waitFor(() => expect(result.current.draftCount).toBe(1));
+      expect(result.current.drafts.map((draft) => draft.id)).toEqual(["editing"]);
     });
 
     it("does not fetch drafts when user is not authenticated", async () => {

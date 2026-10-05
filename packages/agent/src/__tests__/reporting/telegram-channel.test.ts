@@ -7,6 +7,7 @@ import {
   telegramRealm,
   toReportingEvent,
 } from "../../platforms/telegram-reporting";
+import { drawsChoiceButtons } from "../../services/reporting/channels";
 import type { OutboundRequest } from "../../services/reporting/transport";
 import { FakeTelegramApi, TEST_BOT_REALM, TEST_BOT_TOKEN } from "./support/telegram-api";
 
@@ -110,11 +111,20 @@ describe("Telegram updates", () => {
     ["/start@GreenGoodsBot pair_123456", "start"],
     ["/help", "help"],
     ["/confirm 1234", "confirm 1234"],
+    ["/connect", "connect"],
     ["/lang es", "lang es"],
     ["/approve 3", "help"],
     ["/path/to/file", "/path/to/file"],
   ])("reads %s as %s", (text, words) => {
     expect(toReportingEvent(privateMessage({ text }), TEST_BOT_REALM, 0)?.text).toBe(words);
+  });
+});
+
+describe("choices drawn as buttons", () => {
+  it("is Telegram's way, whichever bot; a channel that sends plain text keeps its codes", () => {
+    expect(drawsChoiceButtons(TEST_BOT_REALM)).toBe(true);
+    expect(drawsChoiceButtons("whatsapp:15550000000")).toBe(false);
+    expect(drawsChoiceButtons("synthetic:wefa")).toBe(false);
   });
 });
 
@@ -151,8 +161,15 @@ describe("Telegram delivery", () => {
     const verify = "Verify your account.";
     const production = "https://www.greengoods.app/agent/reporting/r1";
     const local = "https://localhost:3001/agent/reporting/r2";
-    await transport.send(request({ text: verify, link: { url: production, label: "Verify" } }));
+    await transport.send(
+      request({ text: verify, link: { url: production, label: "Verify", copyLabel: "Copy link" } })
+    );
     await transport.send(request({ text: verify, link: { url: local, label: "Verify" } }));
+    // A link to a public record is a button on its own: nothing there needs the link copied.
+    const record = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    await transport.send(
+      request({ text: "Published.", link: { url: record, label: "View your report" } })
+    );
 
     expect(api.messages()).toEqual([
       {
@@ -168,9 +185,19 @@ describe("Telegram delivery", () => {
       {
         chat_id: "7001",
         text: verify,
-        reply_markup: { inline_keyboard: [[{ text: "Verify", url: production }]] },
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Verify", url: production }],
+            [{ text: "Copy link", copy_text: { text: production } }],
+          ],
+        },
       },
       { chat_id: "7001", text: `${verify}\n\nVerify: ${local}` },
+      {
+        chat_id: "7001",
+        text: "Published.",
+        reply_markup: { inline_keyboard: [[{ text: "View your report", url: record }]] },
+      },
     ]);
   });
 

@@ -118,6 +118,24 @@ export function issuePrompt(
   return openPrompt(core, input.conversationId) as PromptRecord;
 }
 
+/** Every question put to a subject so far, as its kind and field, whatever became of it. */
+export function promptsAsked(
+  core: ReportingCore,
+  subjectKind: PromptSubjectKind,
+  subjectId: string
+): Array<{ kind: string; fieldKey: string | null }> {
+  const rows = core.db
+    .query(
+      `SELECT DISTINCT kind, field_key FROM conversation_prompts
+       WHERE subject_kind = $kind AND subject_id = $subject`
+    )
+    .all({ kind: subjectKind, subject: subjectId }) as Array<{
+    kind: string;
+    field_key: string | null;
+  }>;
+  return rows.map((row) => ({ kind: row.kind, fieldKey: row.field_key }));
+}
+
 export function resolvePrompt(core: ReportingCore, promptId: string): void {
   core.db
     .query(

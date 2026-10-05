@@ -1,11 +1,21 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { REPORTING_SUPPORT_CONTACT } from "@green-goods/shared/config/app";
-import { RiArrowDropRightLine, RiExternalLinkLine, RiMailLine, RiUserLine } from "@remixicon/react";
+import {
+  RiArrowDropRightLine,
+  RiExternalLinkLine,
+  RiGlobalLine,
+  RiUserLine,
+} from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { Card, FlexCard } from "@/components/Cards";
-import { Avatar, Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display";
+// Named files, not the Cards and Display barrels: this sheet loads with the website's frame on
+// every public page, and the barrels bring the work cards, and through them sign-in, the work
+// queue and the wallet kit. scripts/check-pwa-precache-budget.mjs fails a build where the frame
+// reaches any of them.
+import { Card, FlexCard } from "@/components/Cards/Card";
+import { Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display/Accordion/Faq";
+import { Avatar } from "@/components/Display/Avatar/Avatar";
 
 /** The questions someone has on a reporting page, in the order they tend to come up. */
 const TOPICS = ["page", "public", "cost", "change", "permission", "chat"] as const;
@@ -147,19 +157,19 @@ export function FocusedAccountSheet({
             defaultMessage: "Get in touch",
           })}
         </SectionHeading>
-        <a href={`mailto:${REPORTING_SUPPORT_CONTACT}`}>
+        <a href={`https://${REPORTING_SUPPORT_CONTACT}`} target="_blank" rel="noreferrer">
           <FlexCard>
             <div className="flex grow flex-row items-center gap-3">
               <Avatar>
                 <div className="mx-auto flex items-center justify-center text-center text-grey-200">
-                  <RiMailLine aria-hidden="true" />
+                  <RiGlobalLine aria-hidden="true" />
                 </div>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="text-base">
                   {intl.formatMessage({
-                    id: "public.reporting.help.email",
-                    defaultMessage: "Email support",
+                    id: "public.reporting.help.site",
+                    defaultMessage: "Visit Green Goods",
                   })}
                 </div>
                 <div className="text-xs text-text-sub-600 [overflow-wrap:anywhere]">

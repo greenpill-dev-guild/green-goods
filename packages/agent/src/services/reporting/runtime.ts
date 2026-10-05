@@ -35,6 +35,7 @@ export interface ReportingSettings {
   noticeVersion: string;
   supportContact: string;
   browserOrigin: string;
+  communityGarden?: `0x${string}`;
   preConsentRetentionMs: number;
   inactiveDraftRetentionMs: number;
   linkChallengeTtlMs: number;
@@ -49,7 +50,7 @@ export interface ReportingSettings {
 }
 
 export const DEFAULT_REPORTING_SETTINGS: Omit<ReportingSettings, "chainId" | "browserOrigin"> = {
-  noticeVersion: "2026-09-26",
+  noticeVersion: "2026-10-04",
   supportContact: REPORTING_SUPPORT_CONTACT,
   preConsentRetentionMs: 24 * 60 * 60 * 1000,
   inactiveDraftRetentionMs: 7 * 24 * 60 * 60 * 1000,

@@ -34,6 +34,7 @@ export function CommunityMembersDialogs({
       ? memberParam
       : undefined;
   const operations = useGardenOperations(garden.id);
+  const gardenAddress = garden.id;
 
   useEffect(() => {
     if (selectedItem === "manage-members") setManageMembersOpen(true);
@@ -100,17 +101,19 @@ export function CommunityMembersDialogs({
         onRemoveMember={handleRemoveMember}
         onAddMembers={openAddMembers}
       />
-      <AddMembersDialog
-        key={garden.id}
-        open={addMembersOpen}
-        onClose={closeAddMembers}
-        tone="community"
-        gardenAddress={garden.id}
-        roleMembers={roleMembers}
-        initialAddress={addMembersPrefill}
-        isLoading={operations.isLoading}
-        onAdd={(role, address) => addByRole[role](address)}
-      />
+      {isAddress(gardenAddress) ? (
+        <AddMembersDialog
+          key={garden.id}
+          open={addMembersOpen}
+          onClose={closeAddMembers}
+          tone="community"
+          gardenAddress={gardenAddress}
+          roleMembers={roleMembers}
+          initialAddress={addMembersPrefill}
+          isLoading={operations.isLoading}
+          onAdd={(role, address) => addByRole[role](address)}
+        />
+      ) : null}
     </>
   );
 }

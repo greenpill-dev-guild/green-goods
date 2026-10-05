@@ -4,9 +4,9 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 /**
- * The pool tab before the pool takes commitments: what setting up gives the
- * garden, and the one act that starts it. Offline the act waits, and says why
- * beneath it rather than greying out in silence.
+ * The Promises tab before the pool takes commitments: what setting up gives
+ * the garden, and the one act that starts it. Offline the act waits, and says
+ * why beneath it rather than greying out in silence.
  */
 export function PoolNotReadyCard({
   isOnline,

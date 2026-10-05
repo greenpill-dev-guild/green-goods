@@ -1,3 +1,4 @@
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 import {
   type PermissionModuleEntry,
   resolveReportingDeployment,
@@ -112,6 +113,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       ...DEFAULT_REPORTING_SETTINGS,
       chainId: options.chainId,
       browserOrigin: config.browserOrigin,
+      communityGarden: getNetworkConfig(options.chainId).rootGarden?.address,
     },
     gardens: options.gardens,
   };

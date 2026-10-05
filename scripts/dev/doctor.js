@@ -24,6 +24,7 @@ import {
   dockerEnvironment,
   commandVersion,
   inspectPersonalSkills,
+  inspectWorktreeHooks,
   inspectPinnedNode,
   inspectPinnedSubmodules,
   majorVersion,
@@ -884,6 +885,7 @@ function printText() {
 checkPlatform();
 checkTools();
 results.push(...inspectPersonalSkills());
+results.push(...inspectWorktreeHooks({ cwd: projectRoot }));
 const dependencies = dependencyReadiness(projectRoot);
 add(dependencies.ready ? "pass" : "fail", dependencies.ready ? "Workspace dependencies are ready" : "Workspace dependencies are missing or incomplete",
   dependencies.missing.join(", "), dependencies.ready ? "" : "Run setup with the appropriate profile after authorizing dependency installation.", { check: "dependencies" });

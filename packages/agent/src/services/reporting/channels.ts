@@ -21,3 +21,11 @@ export function channelOfRealm(providerRealm: string): ReportingChannel | null {
     ? (prefix as ReportingChannel)
     : null;
 }
+
+/**
+ * Whether a channel draws a question's choices as buttons. Where it does, a reply is a tap and no
+ * code needs typing; a channel that sends plain text keeps the code in its questions.
+ */
+export function drawsChoiceButtons(providerRealm: string): boolean {
+  return channelOfRealm(providerRealm) === "telegram";
+}

@@ -103,7 +103,7 @@ export default function GardenView() {
                     id: "pool",
                     label: formatMessage({
                       id: "cockpit.garden.pool.tab",
-                      defaultMessage: "Pool",
+                      defaultMessage: "Promises",
                     }),
                   },
                 ]

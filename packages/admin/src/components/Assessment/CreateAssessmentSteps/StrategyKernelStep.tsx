@@ -1,11 +1,11 @@
 import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
-import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { type KeyboardEvent, useMemo, useRef } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "../../AdminButton";
+import { AdminSelectableCard } from "../../AdminSelectableCard";
 import { AdminSelect, AdminTextArea, AdminTextField } from "../../AdminTextField";
 import { formatDomainGuidance, knownDomain, Section } from "./shared";
 
@@ -60,7 +60,7 @@ const UNIT_DEFAULTS: Record<string, string> = {
 };
 
 /** Resolve domain metrics with i18n labels; none until a known domain is chosen. */
-function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
+export function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
   const keys = domain === null ? [] : DOMAIN_METRICS[domain];
   return keys.map((m) => ({
     key: m.key,
@@ -112,7 +112,7 @@ const CYNEFIN_DEFAULTS: Record<string, string> = {
 };
 
 /** Resolve Cynefin options with i18n labels */
-function resolveCynefinOptions(intl: IntlShape) {
+export function resolveCynefinOptions(intl: IntlShape) {
   return CYNEFIN_PHASE_KEYS.map((opt) => ({
     value: opt.value,
     label: intl.formatMessage({ id: opt.labelId, defaultMessage: CYNEFIN_DEFAULTS[opt.labelId] }),
@@ -130,7 +130,9 @@ interface StrategyKernelStepProps {
 
 /**
  * Step 2: Strategy Kernel
- * Fields: diagnosis (textarea), SMART outcomes (repeater), Cynefin phase (radio selector)
+ * Fields: diagnosis (textarea), SMART outcomes (repeater), Cynefin phase (radio cards).
+ * Every control sits on the step's own left and right edges, with no card
+ * around a row of fields, so they all line up with the challenge above them.
  */
 export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKernelStepProps) {
   const intl = useIntl();
@@ -215,6 +217,43 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
           }),
   }));
 
+  // An assessment holds at least one outcome, so a lone row's Remove is held.
+  const canRemoveOutcome = form.smartOutcomes.length > 1;
+
+  // Roving-tabindex radiogroup, as a native radio set behaves: Tab reaches the
+  // chosen phase, and Arrow, Home and End move the choice with the focus.
+  const cynefinCards = useRef<(HTMLButtonElement | null)[]>([]);
+  const chosenCynefinIndex = cynefinOptions.findIndex(
+    (option) => option.value === form.cynefinPhase
+  );
+  const cynefinTabStop = Math.max(0, chosenCynefinIndex);
+  const handleCynefinKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (isSubmitting) return;
+    const last = cynefinOptions.length - 1;
+    let next: number;
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        next = cynefinTabStop >= last ? 0 : cynefinTabStop + 1;
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        next = cynefinTabStop <= 0 ? last : cynefinTabStop - 1;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = last;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    setField("cynefinPhase", cynefinOptions[next].value);
+    cynefinCards.current[next]?.focus();
+  };
+
   return (
     <div className="space-y-6">
       {/* The step title already names this part, so the field stands alone. */}
@@ -256,102 +295,10 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         })}
         description={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesDescription",
-          defaultMessage: "Each target needs a metric and a number (SMART outcomes)",
+          defaultMessage:
+            "Each outcome needs a metric and a target for the end of the reporting period (SMART outcomes)",
         })}
-      >
-        {smartOutcomeExample ? (
-          <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
-        ) : null}
-        <div className="space-y-3">
-          {form.smartOutcomes.map((outcome, index) => (
-            <div
-              key={index}
-              className="flex flex-col gap-2 rounded-lg border border-stroke-soft bg-bg-white p-3 sm:flex-row sm:items-start sm:gap-3"
-            >
-              <AdminTextField
-                className="flex-1"
-                label={formatMessage({
-                  id: "app.admin.assessment.strategyKernel.outcomeFieldLabel",
-                  defaultMessage: "Outcome",
-                })}
-                placeholder={formatMessage({
-                  id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
-                  defaultMessage: "What this outcome achieves...",
-                })}
-                disabled={isSubmitting}
-                value={outcome.description}
-                onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
-                error={(showValidation && outcomeErrors[index]?.description) || undefined}
-              />
-
-              <AdminSelect
-                className="w-full sm:w-48"
-                label={formatMessage({
-                  id: "app.admin.assessment.strategyKernel.metricFieldLabel",
-                  defaultMessage: "Metric",
-                })}
-                disabled={isSubmitting}
-                value={outcome.metric}
-                onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
-                error={(showValidation && outcomeErrors[index]?.metric) || undefined}
-              >
-                <option value="">
-                  {formatMessage({
-                    id: "app.admin.assessment.strategyKernel.selectMetric",
-                    defaultMessage: "Select Metric",
-                  })}
-                </option>
-                {metrics.map((m) => (
-                  <option
-                    key={m.key}
-                    value={m.key}
-                    disabled={
-                      outcome.metric !== m.key && (selectedMetricCounts.get(m.key) ?? 0) > 0
-                    }
-                  >
-                    {m.label} ({m.unit})
-                  </option>
-                ))}
-              </AdminSelect>
-
-              <div className="flex items-start gap-2">
-                <AdminTextField
-                  className="w-28"
-                  type="number"
-                  label={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.targetFieldLabel",
-                    defaultMessage: "Target",
-                  })}
-                  disabled={isSubmitting}
-                  value={String(outcome.target)}
-                  onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
-                  error={(showValidation && outcomeErrors[index]?.target) || undefined}
-                  inputProps={{ min: 0, step: "any" }}
-                />
-
-                {form.smartOutcomes.length > 1 && (
-                  <AdminIconButton
-                    variant="danger"
-                    className="mt-1.5"
-                    onClick={() => removeSmartOutcome(index)}
-                    disabled={isSubmitting}
-                    label={formatMessage({
-                      id: "app.admin.assessment.strategyKernel.removeOutcome",
-                      defaultMessage: "Remove Outcome",
-                    })}
-                  >
-                    <RiDeleteBinLine />
-                  </AdminIconButton>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* Array-level error */}
-          {showValidation && fieldErrors.smartOutcomes && (
-            <p className="body-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
-          )}
-
+        action={
           <AdminButton
             type="button"
             variant="outlined"
@@ -365,7 +312,118 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
               defaultMessage: "Add Outcome",
             })}
           </AdminButton>
+        }
+      >
+        {smartOutcomeExample ? (
+          <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
+        ) : null}
+        {/* The rows answer to this list's width, not the viewport's: one line
+            where Outcome, Metric and Target fit. Below that, Outcome and
+            Remove share a line over Metric and Target, which leaves the Metric
+            wide enough to show its unit. */}
+        <div className="@container">
+          <div className="flex flex-col gap-4 @xl:gap-2">
+            {form.smartOutcomes.map((outcome, index) => (
+              <div
+                key={index}
+                data-region="outcome-row"
+                className="grid grid-cols-[minmax(0,1fr)_3.5rem_2rem] items-start gap-x-2 gap-y-1 [grid-template-areas:'outcome_outcome_remove'_'metric_target_target'] @xl:grid-cols-[minmax(0,1fr)_14rem_7rem_2rem] @xl:[grid-template-areas:'outcome_metric_target_remove']"
+              >
+                <AdminTextField
+                  className="[grid-area:outcome]"
+                  label={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.outcomeFieldLabel",
+                    defaultMessage: "Outcome",
+                  })}
+                  placeholder={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
+                    defaultMessage: "A sentence about people or land",
+                  })}
+                  disabled={isSubmitting}
+                  value={outcome.description}
+                  onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
+                  error={(showValidation && outcomeErrors[index]?.description) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.outcomeHelp",
+                    defaultMessage: "The change you want to see",
+                  })}
+                />
+
+                <AdminSelect
+                  className="[grid-area:metric]"
+                  label={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.metricFieldLabel",
+                    defaultMessage: "Metric",
+                  })}
+                  disabled={isSubmitting}
+                  value={outcome.metric}
+                  onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
+                  error={(showValidation && outcomeErrors[index]?.metric) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.metricHelp",
+                    defaultMessage: "What you'll count",
+                  })}
+                >
+                  <option value="">
+                    {formatMessage({
+                      id: "app.admin.assessment.strategyKernel.selectMetric",
+                      defaultMessage: "Select Metric",
+                    })}
+                  </option>
+                  {metrics.map((m) => (
+                    <option
+                      key={m.key}
+                      value={m.key}
+                      disabled={
+                        outcome.metric !== m.key && (selectedMetricCounts.get(m.key) ?? 0) > 0
+                      }
+                    >
+                      {m.label} ({m.unit})
+                    </option>
+                  ))}
+                </AdminSelect>
+
+                <AdminTextField
+                  className="[grid-area:target]"
+                  type="number"
+                  label={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.targetFieldLabel",
+                    defaultMessage: "Target",
+                  })}
+                  disabled={isSubmitting}
+                  value={String(outcome.target)}
+                  onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
+                  error={(showValidation && outcomeErrors[index]?.target) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.targetHelp",
+                    defaultMessage: "How much",
+                  })}
+                  inputProps={{ min: 0, step: "any" }}
+                />
+
+                {/* Always in its column, so adding a second outcome never
+                    shifts the fields; centred on the field's 44 / 40px box. */}
+                <AdminIconButton
+                  variant="danger"
+                  className="mt-1.5 [grid-area:remove] sm:mt-1"
+                  onClick={() => removeSmartOutcome(index)}
+                  disabled={isSubmitting || !canRemoveOutcome}
+                  label={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.removeOutcome",
+                    defaultMessage: "Remove Outcome",
+                  })}
+                >
+                  <RiDeleteBinLine />
+                </AdminIconButton>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Array-level error */}
+        {showValidation && fieldErrors.smartOutcomes && (
+          <p className="body-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
+        )}
       </Section>
 
       {/* Cynefin Phase Selector */}
@@ -379,9 +437,17 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
           defaultMessage: "Pick the closest fit (Cynefin)",
         })}
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {cynefinOptions.map((option) => {
-            const isSelected = form.cynefinPhase === option.value;
+        {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the AdminSelectableCard radios */}
+        <div
+          role="radiogroup"
+          aria-label={formatMessage({
+            id: "app.admin.assessment.strategyKernel.cynefinTitle",
+            defaultMessage: "How Predictable Is This Work?",
+          })}
+          onKeyDown={handleCynefinKeyDown}
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        >
+          {cynefinOptions.map((option, index) => {
             const cynefinExample = formatDomainGuidance(
               intl,
               `app.admin.assessment.strategyKernel.cynefinExample.${CYNEFIN_SLUGS[option.value]}`,
@@ -389,8 +455,16 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
               (guidance) => guidance.cynefinExamples[option.value]
             );
             return (
-              <label
+              <AdminSelectableCard
                 key={option.value}
+                ref={(node) => {
+                  cynefinCards.current[index] = node;
+                }}
+                selectionRole="radio"
+                selected={index === chosenCynefinIndex}
+                tabIndex={index === cynefinTabStop ? 0 : -1}
+                disabled={isSubmitting}
+                onClick={() => setField("cynefinPhase", option.value)}
                 aria-label={formatMessage(
                   {
                     id: "app.admin.assessment.strategyKernel.cynefinAriaLabel",
@@ -398,31 +472,16 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   },
                   { phase: option.label }
                 )}
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition",
-                  isSelected
-                    ? "border-primary-base bg-primary-alpha-10 text-primary-dark"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:bg-[rgb(var(--text-strong-950)/0.08)]",
-                  isSubmitting && "cursor-not-allowed opacity-60"
-                )}
-              >
-                <input
-                  type="radio"
-                  name="cynefinPhase"
-                  value={option.value}
-                  checked={isSelected}
-                  onChange={() => setField("cynefinPhase", option.value)}
-                  disabled={isSubmitting}
-                  className="mt-0.5 h-4 w-4 border-stroke-sub accent-primary-base focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-0"
-                />
-                <div>
-                  <span className="label-md font-medium">{option.label}</span>
-                  <p className="mt-0.5 body-sm text-text-soft">{option.description}</p>
-                  {cynefinExample ? (
-                    <p className="mt-0.5 body-sm italic text-text-soft/70">{cynefinExample}</p>
-                  ) : null}
-                </div>
-              </label>
+                title={option.label}
+                description={
+                  <>
+                    {option.description}
+                    {cynefinExample ? (
+                      <span className="mt-0.5 block italic">{cynefinExample}</span>
+                    ) : null}
+                  </>
+                }
+              />
             );
           })}
         </div>

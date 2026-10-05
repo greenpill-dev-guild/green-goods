@@ -42,10 +42,22 @@ function row<T>(sql: string, params: Record<string, string | number> = {}): T {
   return harness.core.db.query(sql).get(params) as T;
 }
 
+describe("switching account after cancelling", () => {
+  it("lets the chat disconnect once a report waiting for a signature is cancelled", async () => {
+    await confirmLinkAndPublish(harness);
+    await harness.drain();
+    // The report has a prepared operation waiting for the owner's signature.
+    expect((await harness.say(ADA, "DISCONNECT"))[0]).toContain("can't disconnect it yet");
+    expect((await harness.say(ADA, "CANCEL"))[0]).toContain("Report cancelled");
+    // The cancelled report's operation stays in the table; it no longer holds the account.
+    expect((await harness.say(ADA, "SWITCH"))[0]).toContain("This chat is no longer connected to");
+  });
+});
+
 describe("owner publication", () => {
   it("links an account in chat, publishes the exact envelope and verifies the receipt", async () => {
     await confirmLinkAndPublish(harness);
-    expect(sentTexts().at(-1)).toBe(
+    expect(sentTexts().at(-1)).toContain(
       "Open this page to review and sign the exact publication with your wallet."
     );
 
@@ -95,8 +107,14 @@ describe("owner publication", () => {
     );
     expect(published).toMatchObject({ state: "published", transaction_hash: hash });
     expect(sentTexts().at(-1)).toBe(
-      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: ${hash}`
+      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: https://arbiscan.io/tx/${hash}`
     );
+    // The link opens the attestation's own record, which exists from the moment it is published.
+    // Nothing is signed there, so it carries no advice about browsers and no link to copy.
+    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
+      url: `https://arbitrum.easscan.org/attestation/view/${published.attestation_uid}`,
+      label: "View your report",
+    });
     // Attribution is the gardener's own account, never the Agent or a relayer.
     expect(row("SELECT attester, garden_address FROM work_records")).toEqual({
       attester: adaAccount.address.toLowerCase(),

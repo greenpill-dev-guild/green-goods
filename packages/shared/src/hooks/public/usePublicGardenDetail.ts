@@ -63,12 +63,6 @@ export interface PublicFieldNote {
   createdAt: number;
 }
 
-export interface PublicGardenContributor {
-  address: Address;
-  /** Number of approved field notes the contributor has logged at this garden. */
-  fieldNoteCount: number;
-}
-
 /**
  * Which best-effort EAS reads failed. A failed read yields an empty list, which
  * is indistinguishable from a genuinely empty garden — so callers that publish
@@ -87,7 +81,12 @@ export interface PublicGardenDetail {
    * asked the hook to slice could never widen the slice without a refetch.
    */
   fieldNotes: PublicFieldNote[];
-  contributors: PublicGardenContributor[];
+  /**
+   * People with the gardener or steward role in this garden, each address
+   * once: the count the garden's card shows (`PublicGardenSummary.gardenerCount`),
+   * read from the role lists and not from approved work.
+   */
+  gardenerCount: number;
   /** Count of evaluator attestations published for this garden (EAS). */
   assessmentCount: number;
   /** Total field-note count. Equal to `fieldNotes.length`; kept for callers that render "N of M". */
@@ -152,7 +151,7 @@ export function usePublicGardenDetail(
         return {
           garden: null,
           fieldNotes: [],
-          contributors: [],
+          gardenerCount: 0,
           assessmentCount: 0,
           totalFieldNotes: 0,
           partialData: false,
@@ -209,24 +208,10 @@ export function usePublicGardenDetail(
       const sortedWorks = [...publicWorks].sort((a, b) => b.createdAt - a.createdAt);
       const fieldNotes = sortedWorks.map(adaptWorkToFieldNote);
 
-      // Tally contributor activity over the FULL work set (not just the
-      // visible page) so the contributor list reflects total participation.
-      const counts = new Map<string, number>();
-      for (const work of sortedWorks) {
-        const key = work.gardenerAddress.toLowerCase();
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-      const contributors: PublicGardenContributor[] = Array.from(counts.entries())
-        .map(([address, fieldNoteCount]) => ({
-          address: address as Address,
-          fieldNoteCount,
-        }))
-        .sort((a, b) => b.fieldNoteCount - a.fieldNoteCount);
-
       return {
         garden: matched,
         fieldNotes,
-        contributors,
+        gardenerCount: publicGardenHelpers.gardenerAddresses(matched).length,
         assessmentCount: assessments.length,
         totalFieldNotes: fieldNotes.length,
         partialData: unavailableSources.works || unavailableSources.assessments,

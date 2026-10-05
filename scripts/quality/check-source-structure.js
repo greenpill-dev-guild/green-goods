@@ -114,14 +114,11 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // at all and would have tripped the blanket cap on first touch).
 export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
-  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 545,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
   "packages/agent/src/handlers/index.ts": 508,
   "packages/agent/src/platforms/telegram.ts": 590,
   "packages/agent/src/services/blockchain.ts": 627,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
-  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 520,
-  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
   "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,
@@ -146,7 +143,7 @@ export const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
   "packages/shared/src/index.ts": 1418,
   "packages/shared/src/modules/app/analytics-events.ts": 520,
-  "packages/shared/src/modules/app/posthog.ts": 577,
+  "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,
   "packages/shared/src/providers/Auth.tsx": 739,

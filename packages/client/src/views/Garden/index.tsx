@@ -364,6 +364,7 @@ const Work: React.FC = () => {
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
         onStartFresh={draft.startFresh}
+        onManage={draft.manage}
         imageCount={images.length}
       />
       <TopNav onBackClick={currentTab.backButton} overlay>

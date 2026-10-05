@@ -204,7 +204,7 @@ describe("usePublicGardenDetail", () => {
     expect(result.current.data?.garden).toBeNull();
   });
 
-  it("aggregates field notes, contributors, and assessment count for the matched garden", async () => {
+  it("aggregates field notes and assessment count for the matched garden", async () => {
     const garden = createMockGarden({
       id: MOCK_ADDRESSES.garden,
       name: "Riparian Restoration",
@@ -270,12 +270,17 @@ describe("usePublicGardenDetail", () => {
     // Most recent first
     expect(data?.fieldNotes[0]?.id).toBe("work-2");
     expect(data?.fieldNotes[0]?.metadata).toBe(work2.metadata);
-    expect(data?.contributors).toHaveLength(2);
     expect(data?.assessmentCount).toBe(1);
   });
 
-  it("shows only approved field notes, and counts hands at work from them", async () => {
-    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+  it("shows only approved field notes, and counts hands at work from the garden's roles", async () => {
+    // One person holds both roles; the other steward is not in the gardener list.
+    const garden = createMockGarden({
+      id: MOCK_ADDRESSES.garden,
+      name: "Garden",
+      gardeners: [MOCK_ADDRESSES.gardener, MOCK_ADDRESSES.user],
+      stewards: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.steward],
+    });
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue([
       createMockWork({ id: "approved", gardenerAddress: MOCK_ADDRESSES.gardener }),
@@ -297,9 +302,9 @@ describe("usePublicGardenDetail", () => {
 
     expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
     expect(result.current.data?.totalFieldNotes).toBe(1);
-    expect(result.current.data?.contributors).toEqual([
-      { address: MOCK_ADDRESSES.gardener.toLowerCase(), fieldNoteCount: 1 },
-    ]);
+    // gardener, user (once) and steward: not the one person whose work was approved,
+    // and not the account whose only work was rejected.
+    expect(result.current.data?.gardenerCount).toBe(3);
     expect(result.current.data?.unavailableSources.works).toBe(false);
   });
 

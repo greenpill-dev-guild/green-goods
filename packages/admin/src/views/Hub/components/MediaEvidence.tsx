@@ -5,6 +5,7 @@ import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
+import { imagePreviewLabels } from "@/components/imagePreviewLabels";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -83,6 +84,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
 
       {/* Full-featured image preview dialog */}
       <ImagePreviewDialog
+        labels={imagePreviewLabels(formatMessage)}
         isOpen={previewIndex !== null}
         onClose={() => setPreviewIndex(null)}
         images={resolvedMedia}

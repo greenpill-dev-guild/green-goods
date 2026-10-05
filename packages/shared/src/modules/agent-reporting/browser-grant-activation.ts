@@ -12,7 +12,6 @@ import type { GrantPolicy } from "./grants";
 import type { PublicationEnvelope } from "./envelope";
 import { createGrantedKernelActivationAccount } from "./kernel-permissions";
 
-type ActivationAccount = Awaited<ReturnType<typeof createGrantedKernelActivationAccount>>;
 type PreparedOperation = Omit<UserOperation<"0.7">, "signature"> & { signature?: Hex };
 
 /** Explicit wire allowlist: SDK stub/enable signatures and deployment authority never leave here. */
@@ -53,9 +52,10 @@ export async function sendBrowserGrantActivation(input: {
   onBeforeBroadcast: (hash: Hex) => void;
 }): Promise<Hex> {
   const { ownerClient, policy, envelope } = input;
-  const owner = ownerClient.account as ActivationAccount | undefined;
-  const ownerValidator = owner?.kernelPluginManager?.sudoValidator;
-  if (!ownerValidator) throw new Error("Owner Kernel client unavailable");
+  // The app's own passkey account: it approves the permission with the same signing call it
+  // makes for every operation it sends.
+  const owner = ownerClient.account;
+  if (!owner) throw new Error("Owner Kernel client unavailable");
   input.assertOwner();
   const account = await createGrantedKernelActivationAccount({
     client: createPublicClient({
@@ -65,7 +65,7 @@ export async function sendBrowserGrantActivation(input: {
     policy,
     permissionId: input.permissionId,
     envelope,
-    ownerValidator,
+    owner,
     signDelegate: async (operation) => {
       input.assertOwner();
       return input.signDelegate(signatureFreeActivationOperation(operation));

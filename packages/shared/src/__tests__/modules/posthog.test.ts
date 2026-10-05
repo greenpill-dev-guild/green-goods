@@ -26,13 +26,13 @@ import {
   getDistinctId,
   identify,
   identifyWithProperties,
-  registerTelemetrySink,
   reset,
   track,
   trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
+import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 
 describe("modules/posthog", () => {
   beforeEach(() => {

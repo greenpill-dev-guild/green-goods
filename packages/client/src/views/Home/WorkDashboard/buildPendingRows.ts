@@ -32,6 +32,11 @@ export interface PendingRowContext {
   intl: IntlShape;
   isOnline: boolean;
   pausedForDataSaver: boolean;
+  /**
+   * The reader sends queued proof themselves (a wallet sign-in). Nothing sends
+   * or checks it for them, so its row never says it will.
+   */
+  sendsFromTap: boolean;
   /** The action's own name, which titles work its record doesn't name. */
   actionTitle: (actionUID: number) => string | undefined;
   /** Work a promise counts: linked on the record, or by a queued link. */
@@ -270,9 +275,13 @@ export function draftRow(draft: DraftWithImages): PendingRow {
 /**
  * Proof still on this phone (D13), named by its promise: a draft not added
  * yet, or proof the queue holds to send.
+ *
+ * The background flush sends queued proof, and checks one already sent, for a
+ * passkey or embedded reader. A wallet reader does both from the promise this
+ * row opens, so their row says to open it and never that it goes by itself.
  */
 export function proofRow(proof: PendingProof, context: PendingRowContext): PendingRow {
-  const { intl } = context;
+  const { intl, sendsFromTap } = context;
   const base = {
     title: proof.title ?? message(intl, "app.commitments.row.untitled"),
     marker: { kind: "proof" as const, label: message(intl, "app.pending.marker.proof") },
@@ -307,7 +316,14 @@ export function proofRow(proof: PendingProof, context: PendingRowContext): Pendi
         pill: message(intl, "app.pending.pill.didntUpload"),
         status: message(intl, "app.pending.status.notAdded"),
       };
-    if (proof.waitingReason === "awaiting-confirmation") return checkingCard(saved, context);
+    if (proof.waitingReason === "awaiting-confirmation") {
+      const checking = checkingCard(saved, context);
+      if (!sendsFromTap) return checking;
+      const status = context.isOnline
+        ? "app.pending.status.openToCheck"
+        : "app.pending.status.checkAgainWhenConnected";
+      return { ...checking, status: message(intl, status), locked: false };
+    }
     const toUpload = (status: string, locked = false): RowCard => ({
       ...saved,
       kind: "upload",
@@ -316,7 +332,17 @@ export function proofRow(proof: PendingProof, context: PendingRowContext): Pendi
       locked,
     });
     if (proof.sending) return toUpload(message(intl, "app.pending.status.uploadingNow"), true);
-    if (!context.isOnline) return toUpload(message(intl, "app.pending.status.sendsWhenConnected"));
+    if (!context.isOnline) {
+      return toUpload(
+        message(
+          intl,
+          sendsFromTap
+            ? "app.pending.status.sendItWhenConnected"
+            : "app.pending.status.sendsWhenConnected"
+        )
+      );
+    }
+    if (sendsFromTap) return toUpload(message(intl, "app.pending.status.openToSend"));
     return toUpload(
       message(
         intl,

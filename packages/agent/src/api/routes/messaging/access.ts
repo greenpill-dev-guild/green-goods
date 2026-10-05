@@ -2,7 +2,7 @@ import {
   challengeCreateRequestSchema,
   proofRequestSchema,
 } from "@green-goods/shared/modules/agent-reporting";
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import * as z from "zod";
 import {
   type BrowserChallenge,
@@ -18,6 +18,13 @@ import {
   requestById,
 } from "../../../services/reporting/continuations";
 import { inTransaction } from "../../../services/reporting/database";
+import { activeAccount, participantEpoch } from "../../../services/reporting/participants";
+import {
+  forgetBrowser,
+  issueRecognition,
+  recognizedAccount,
+  RECOGNITION_TTL_MS,
+} from "../../../services/reporting/recognition";
 import {
   issueSession,
   revokeSession,
@@ -35,6 +42,8 @@ import {
   PREAUTH_COOKIE,
   preauthToken,
   readBody,
+  recognitionToken,
+  RECOGNITION_COOKIE,
   SESSION_COOKIE,
   writeCookie,
 } from "./http";
@@ -57,6 +66,32 @@ function challengeView(deps: MessagingRouteDeps, challenge: BrowserChallenge, cs
   };
 }
 
+/**
+ * Pairing completes in chat; the next response to this browser is when it earns recognition.
+ * Only a proof earns it: a challenge paired by recognition verified none, so it starts no new
+ * 15 minutes.
+ */
+function rememberPaired(c: Context, deps: MessagingRouteDeps, challenge: BrowserChallenge): void {
+  if (challenge.state !== "paired" && challenge.state !== "session_issued") return;
+  if (challenge.proofVerifiedAt === null) return;
+  const core = deps.core();
+  const request = requestById(core, challenge.requestId);
+  if (!request?.participantId || request.purpose === "recovery" || !challenge.verifiedAccount)
+    return;
+  if (participantEpoch(core, request.participantId) !== request.identityEpoch) return;
+  const account = activeAccount(core, request.participantId, core.settings.chainId);
+  if (!account || account.address !== challenge.verifiedAccount) return;
+  const prior = recognitionToken(c);
+  if (prior && recognizedAccount(core, prior, request)?.address === account.address) return;
+  const token = issueRecognition(
+    core,
+    request.participantId,
+    account.address,
+    request.identityEpoch
+  );
+  writeCookie(c, deps, RECOGNITION_COOKIE, token, RECOGNITION_TTL_MS / 1000);
+}
+
 export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void {
   // Opening a link creates this browser's own challenge. The page GET never reaches here, so link
   // previews and crawlers consume nothing.
@@ -69,7 +104,11 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     const core = deps.core();
     const created = inTransaction(core.db, () => {
       const request = openRequestByLocator(core, body.requestId);
-      return request ? createBrowserChallenge(core, request) : null;
+      const remembered =
+        request && recognitionToken(c)
+          ? recognizedAccount(core, recognitionToken(c) as string, request)
+          : null;
+      return request ? createBrowserChallenge(core, request, remembered) : null;
     });
     if (!created) return failure(c, "unavailable");
     writeCookie(
@@ -86,6 +125,7 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     const token = preauthToken(c);
     const challenge = token ? challengeForBrowser(deps.core(), c.req.param("id"), token) : null;
     const view = challenge ? challengeView(deps, challenge) : null;
+    if (challenge && view) rememberPaired(c, deps, challenge);
     return view ? c.json(view) : failure(c, "access_required");
   });
 
@@ -108,6 +148,7 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     });
     if (!result.ok) return failure(c, result.errorCode);
     const refreshed = challengeForBrowser(core, challenge.id, token as string);
+    if (refreshed) rememberPaired(c, deps, refreshed);
     return c.json(refreshed ? challengeView(deps, refreshed) : { ok: true, state: result.state });
   });
 
@@ -127,6 +168,8 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     const issued = issueSession(core, challenge.id);
     if (!issued) return failure(c, "access_required");
     const { session } = issued;
+    const paired = challengeForBrowser(core, challenge.id, token as string);
+    if (paired) rememberPaired(c, deps, paired);
     writeCookie(
       c,
       deps,
@@ -175,6 +218,10 @@ export function registerAccessRoutes(app: Hono, deps: MessagingRouteDeps): void 
     if (!session || session.accessId !== c.req.param("id")) return failure(c, "access_required");
     revokeSession(deps.core(), session.accessId, session.participantId);
     clearCookie(c, deps, SESSION_COOKIE);
+    // Signing out also ends this browser's recognition, or the next link would skip the proof.
+    const recognized = recognitionToken(c);
+    if (recognized) forgetBrowser(deps.core(), recognized);
+    clearCookie(c, deps, RECOGNITION_COOKIE);
     return c.json({ ok: true });
   });
 }

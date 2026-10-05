@@ -206,9 +206,31 @@ describe("Kernel reporting grant", () => {
     ).toBe(200);
 
     const summary = await reportUntilSummary(harness);
-    const replies = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
-    // Paused grants are not used; the choice is offered again and nothing is signed for the owner.
-    expect(replies.join("\n")).toContain("Publish this report only");
+    const replies = (await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).join("\n");
+    // A paused grant is not used and nothing is signed for the owner. It stays the garden's one
+    // live grant, so a new one is not offered: the owner is sent to sign.
+    expect(replies).toContain("Reporting permission is paused");
+    expect(replies).not.toContain("Allow reporting in chat");
+    expect(harness.sender.signed).toBe(1);
+  });
+
+  // Either budget ends the permission's use: its count of reports, or the gas they may reserve.
+  it.each([
+    ["reports", "submissions_reserved = 0, submissions_consumed = max_submissions"],
+    ["gas", "gas_reserved = 0, gas_consumed = gas_cap"],
+  ])("sends the owner to sign once the grant's %s are used up", async (_budget, used) => {
+    Object.assign(harness.delegationModules[0], { measuredGasUnitsPerSubmission: 1 });
+    await establishGrant();
+    await harness.drain();
+    harness.core.db.exec(`UPDATE execution_grants SET ${used}`);
+    const summary = await reportUntilSummary(harness);
+    const replies = (await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).join("\n");
+    expect(replies).toContain("used up for now");
+    expect(replies).not.toContain("Allow reporting in chat");
+    await harness.drain();
+    expect(harness.transport.texts().join("\n")).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
     expect(harness.sender.signed).toBe(1);
   });
 
@@ -354,8 +376,8 @@ describe("Kernel reporting grant", () => {
     harness.delegationModules.length = 0;
     const offer = await confirmedKernelReport();
     // Without delegation the Kernel owner signs this report once, as an EOA would.
-    expect(offer).toEqual([
-      "Open this page to review and sign the exact publication with your passkey.",
-    ]);
+    expect(offer[0]).toContain(
+      "Open this page to review and sign the exact publication with your passkey."
+    );
   });
 });

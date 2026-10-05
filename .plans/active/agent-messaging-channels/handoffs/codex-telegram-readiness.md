@@ -321,3 +321,61 @@ laptop demo.
   the origin check and signing on beta are still to be observed. Recheck which accounts exist on
   beta before the session. Staging has had its own passkey configuration, so a passkey account
   there may differ from the one on the public site; a wallet account is the same on both.
+
+## Delegation switched on for passkey accounts, 2026-10-04
+
+Recorded by the Claude interface session with Afolabi, who asked for it. This closes checklist
+step 7 as far as a fork can and adds the approved module for Arbitrum One.
+
+- **What had blocked it.** Not only the empty module list. The first report's activation asked the
+  owner's account for the Kernel SDK's owner validator. The app builds passkey accounts with
+  permissionless, whose account object has none, so no real account could approve a permission.
+  Earlier fork proof used an SDK account with a test key and could not see this.
+- **The fix.** `owner-validator.ts` adapts the account the app already has: its root, read from
+  the chain, must be the passkey validator, and the passkey signs one thing, the enable request
+  of the permission the page rebuilt and verified. The owner's signature stays in the browser.
+- **The approved module** (`grants.ts`): signer `0x6A6F069E2a08c2468e7724Ab3250CdBFBA14D4FF`,
+  code hash `0x510a0a1ab8b3f256a5c90b5fff51a9fd98656bd1c8a29fbd7857faa70c400ccd`; guard
+  `0xfe7c50354cE1AC1d10aEe840a520A40103A3d971`, code hash
+  `0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf`; both read from Arbitrum
+  One at block 511565792. Paymaster `0x777777777777AeC03fd955926DbF81597e66834C`, the one a Green
+  Goods passkey account's sponsored operation used in transaction
+  `0xca40752b288dfd58aca1b7c5b1356acea6a2b22d9284a081f6ca80d9ed2b5083`. Reporting only: review is
+  not approved, and a wallet account cannot hold a permission.
+- **Caps.** 6,000,000 gas units for one attempt and 0.005 ETH for a permission's five. The
+  fork's first report uses about 2.97 million gas and a later one 1,028,748. A live bundler asks
+  for more than an operation uses: the sponsored operation above asked for 1,469,733 and used
+  1,176,168, a quarter more, so a live first report would ask for about 3.7 million or more. The
+  earlier reservation, 3,400,001, was the fork's own hand-set limits and would have refused it;
+  the reservation is now twice the measured use. The Agent rejects an activation whose prepared
+  limits exceed it, and the fork run asserts it keeps half as much again above the first report
+  it measures. The chain charged 0.02 gwei when measured. These figures come from the fork and
+  one live operation, not from a live sponsored first report.
+- **Fork proof.** `bun run contracts -- verify reporting-kernel --network arbitrum --mode simulate`
+  at commit `273b27b5a4f007f1f533c3f50f649c50d4f6d1b8`, fork block 511590183, verified
+  `2026-10-04T10:46:09.849Z`, source digest
+  `sha256:daeea2186ea74f15cfa6338205d2a22bdff20eab61fc506805801f280e218912`, clean tree, 23 of 23
+  checks. Six use the approved module's own values: an account built as the app builds one is
+  deployed by its first operation and joins the Community Garden; its passkey approves the
+  permission and the report reaches the production EAS and work resolver under the deployed
+  guard; the delegate publishes the next report alone; a second garden's permission is approved
+  beside the first, each publishes only to its own garden and the first is refused a report in
+  the second; the owner removes the first with the passkey and its delegate is refused; the
+  second garden's permission still publishes. The passkey is a software key on the fork, and
+  the second garden (`0xF7b892886998DAe960D64a9db488336684F137A0`) grants the role itself there,
+  as its own `joinGarden` does; live, a steward adds the gardener.
+- **One account, two gardens.** A permission is per account and garden. The Community Garden's
+  does not use up another garden's five reports, and removing one leaves the other. A permission
+  that is paused or used up stays its garden's one live permission until it ends, so the chat
+  sends that garden's next report to be signed by its owner.
+- **A stand-in.** The paymaster's address keeps its place in the policy and carries fixture code,
+  because Pimlico's signature cannot be produced on a fork.
+- **Not proven.** Live sponsorship through Pimlico's bundler, and a passkey on a real device.
+  Acceptance is one passkey account on beta: allow reporting on a first report, publish it, then
+  publish a second from the chat, then remove the permission on the permissions page.
+- **To switch it off.** Remove the entry from `VERIFIED_PERMISSION_MODULES` and deploy, or unset
+  any one of the Agent's three delegation settings. Existing permissions expire within a day
+  and each owner can remove theirs on the permissions page without the Agent.
+- **A known edge.** An account that has never sent an operation is not deployed, and a
+  permission is approved by a deployed account alone. Such an account is offered the permission
+  in chat and refused on the page; signing that report itself deploys the account.

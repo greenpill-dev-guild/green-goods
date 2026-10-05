@@ -240,7 +240,7 @@ export function addToGroupStatus(input: {
           {
             id: "cockpit.garden.pool.seed.status.finishLaterHint",
             defaultMessage:
-              "{later, plural, one {Finish creating the last one from the pool tab when you're ready.} other {Finish creating the last # from the pool tab when you're ready.}}",
+              "{later, plural, one {Finish creating the last one from the Promises tab when you're ready.} other {Finish creating the last # from the Promises tab when you're ready.}}",
           },
           { later: state.later }
         ),

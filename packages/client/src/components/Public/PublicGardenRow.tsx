@@ -1,4 +1,4 @@
-import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -19,19 +19,6 @@ export interface PublicGardenRowProps {
 }
 
 /**
- * Aggregate garden's people count. `contributorCount` from the indexer is
- * unique addresses across Work attestations (gardeners who submitted work).
- * Stewards are also gardeners (per product semantics) but may not have
- * submitted any work. Without the unique-address sets in scope, `max(...)`
- * is the safe approximation: when work exists, contributorCount typically
- * subsumes stewards (stewards submit work too); when work is sparse,
- * stewards reflects who's involved.
- */
-function aggregateGardenerCount(garden: PublicGardenSummary): number {
-  return Math.max(garden.contributorCount, garden.stewards.length);
-}
-
-/**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
  * Anatomy: small thumbnail (left) → garden name + meta (center) → Donate +
@@ -42,22 +29,28 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.
+ *
+ * A row narrower than 28rem (a phone, or one of two columns on a tablet) puts
+ * the CTAs side by side under the text instead. Beside the text they take
+ * their labels' width out of the name's column, and a longer translation
+ * ("Provisionar") left the name 62px at 360px. `EditorialListRowSkeleton`
+ * mirrors this row; change the two together.
  */
 export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
-  const gardenerCount = aggregateGardenerCount(garden);
+  const formatAge = useLocalizedRelativeTime();
   const meta: string[] = [
     formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count} gardeners",
+        defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
       },
-      { count: gardenerCount }
+      { count: garden.gardenerCount }
     ),
     formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count} entries",
+        defaultMessage: "{count, plural, one {# entry} other {# entries}}",
       },
       { count: garden.actionCount }
     ),
@@ -69,7 +62,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           id: "public.gardens.lastActive",
           defaultMessage: "Active {when}",
         },
-        { when: formatRelativeTime(garden.lastActivityAt) }
+        { when: formatAge(garden.lastActivityAt) }
       )
     );
   }
@@ -85,65 +78,76 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         },
         { garden: garden.name || garden.slug }
       )}
-      className="flex h-full min-w-0 items-stretch gap-4 py-4 sm:gap-5"
+      className="@container h-full min-w-0"
     >
-      <Link
-        to={`/gardens/${garden.slug}`}
-        viewTransition
-        className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
-        aria-label={garden.name}
-      >
-        <div
-          data-component="PublicGardenRowMedia"
-          className="relative h-20 w-28 shrink-0 overflow-hidden bg-editorial-warm sm:h-24 sm:w-36"
+      <div className="flex h-full min-w-0 flex-wrap content-between items-stretch gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
+        <Link
+          to={`/gardens/${garden.slug}`}
+          viewTransition
+          className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
+          aria-label={garden.name}
         >
-          <ImageWithFallback
-            src={garden.bannerImage}
-            alt=""
-            className="h-full w-full object-cover"
-            backgroundFallback={
-              <GardenCoverFallback
-                name={garden.name}
-                slug={garden.slug}
-                initialClassName="text-3xl tracking-[-0.025em] sm:text-4xl lg:text-4xl"
-              />
-            }
-          />
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-          {garden.location ? (
-            <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
-              {garden.location}
-            </EditorialKicker>
-          ) : null}
-          <h3
-            className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
-            title={garden.name}
+          <div
+            data-component="PublicGardenRowMedia"
+            className="relative h-20 w-28 shrink-0 overflow-hidden bg-editorial-warm sm:h-24 sm:w-36"
           >
-            <span className="line-clamp-2 [overflow-wrap:anywhere]">
-              {garden.name || garden.slug}
-            </span>
-          </h3>
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
-            {meta.map((label, index) => (
-              <span key={label} className="flex min-w-0 items-center gap-x-2">
-                {index > 0 ? <span aria-hidden="true">·</span> : null}
-                <span className="[overflow-wrap:anywhere]">{label}</span>
-              </span>
-            ))}
-          </p>
-          <GardenVaultMetrics summary={vaultSummary} />
-        </div>
-      </Link>
+            <ImageWithFallback
+              src={garden.bannerImage}
+              alt=""
+              className="h-full w-full object-cover"
+              backgroundFallback={
+                <GardenCoverFallback
+                  name={garden.name}
+                  slug={garden.slug}
+                  initialClassName="text-3xl tracking-[-0.025em] sm:text-4xl lg:text-4xl"
+                />
+              }
+            />
+          </div>
 
-      <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
-        <EditorialPrimaryButton size="sm" onClick={() => onSupport(garden, "donate")}>
-          {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
-        </EditorialPrimaryButton>
-        <EditorialGhostButton variant="warm" size="sm" onClick={() => onSupport(garden, "endow")}>
-          {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-        </EditorialGhostButton>
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            {garden.location ? (
+              <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
+                {garden.location}
+              </EditorialKicker>
+            ) : null}
+            <h3
+              className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
+              title={garden.name}
+            >
+              <span className="line-clamp-2 [overflow-wrap:anywhere]">
+                {garden.name || garden.slug}
+              </span>
+            </h3>
+            <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
+              {meta.map((label, index) => (
+                <span key={label} className="flex min-w-0 items-center gap-x-2">
+                  {index > 0 ? <span aria-hidden="true">·</span> : null}
+                  <span className="[overflow-wrap:anywhere]">{label}</span>
+                </span>
+              ))}
+            </p>
+            <GardenVaultMetrics summary={vaultSummary} />
+          </div>
+        </Link>
+
+        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col @[28rem]:justify-center">
+          <EditorialPrimaryButton
+            size="sm"
+            className="flex-1 @[28rem]:flex-none"
+            onClick={() => onSupport(garden, "donate")}
+          >
+            {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
+          </EditorialPrimaryButton>
+          <EditorialGhostButton
+            variant="warm"
+            size="sm"
+            className="flex-1 @[28rem]:flex-none"
+            onClick={() => onSupport(garden, "endow")}
+          >
+            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+          </EditorialGhostButton>
+        </div>
       </div>
     </div>
   );

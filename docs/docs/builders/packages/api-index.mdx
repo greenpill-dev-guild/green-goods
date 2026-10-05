@@ -10,6 +10,7 @@ generated_from:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/subscribe.ts
@@ -19,11 +20,12 @@ generated_from:
   - packages/indexer/package.json
   - packages/shared/package.json
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:2362c0a6d611c111653f624a7b1ebc1460993591ccb71d17e7722a705c579e16"
+source_digest: "sha256:3e275edf29e0d817572cd278a08c59b6c013d80833f78471cf11b5318de5210c"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/passkey-directory.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
   - packages/agent/src/api/routes/subscribe.ts
@@ -51,6 +53,7 @@ Use package export specifiers and public route constants as the stable entrypoin
 | fundingIntentReceipt | `/public/funding-intents/:id` | `GET`, `OPTIONS` |
 | fundingIntents | `/public/funding-intents` | `OPTIONS`, `POST` |
 | gardenImpact | `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` |
+| passkeyDirectory | `/public/passkeys/rpc` | `OPTIONS`, `POST` |
 | subscribe | `/public/subscribe` | `OPTIONS`, `POST` |
 | thirdwebWebhook | `/webhooks/thirdweb` | `POST` |
 | uploadSign | `/api/uploads/sign` | `OPTIONS`, `POST` |

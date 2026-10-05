@@ -9,7 +9,11 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -213,6 +217,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveClientSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
+  // The PWA flavor and the Sentry environment above are the last readers of Vercel's
+  // VITE_-prefixed copies. Vite collects what it exposes after this function returns.
+  dropVercelFrameworkVariables(process.env);
   if (command === "build") {
     assertEnvParity({
       app: "client",

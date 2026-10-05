@@ -50,6 +50,25 @@ export function initSchema(db: Database): void {
       ON saved_offers(chainId, owner, deleted, updatedAt)
     `);
   db.run(`
+      CREATE TABLE IF NOT EXISTS passkey_credentials (
+        userName TEXT PRIMARY KEY,
+        credentialId TEXT NOT NULL UNIQUE,
+        publicKey TEXT NOT NULL,
+        rpId TEXT NOT NULL,
+        origin TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    `);
+  db.run(`
+      CREATE TABLE IF NOT EXISTS passkey_registration_challenges (
+        challenge TEXT PRIMARY KEY,
+        userName TEXT NOT NULL,
+        rpId TEXT NOT NULL,
+        origin TEXT NOT NULL,
+        expiresAt INTEGER NOT NULL
+      )
+    `);
+  db.run(`
       CREATE TABLE IF NOT EXISTS profile_avatars (
         chainId INTEGER NOT NULL,
         address TEXT NOT NULL,

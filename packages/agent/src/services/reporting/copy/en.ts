@@ -4,9 +4,34 @@
  * state. `{name}` placeholders are filled by `reportingText`.
  */
 export const EN_REPORTING_COPY = {
+  "link.browserHint":
+    "Open it in Safari or Chrome. If it opens inside the chat app, use that page's menu to open it in your browser, or copy the link.",
+  "link.copyButton": "Copy link",
+  "link.copyAddress": "Copy address",
+  "chat.welcomeLinked":
+    "Hi! This chat is connected to {account}.{gardens}\nTell me what you worked on, in your own words, and send photos if you have them. To use a different account, send SWITCH.",
+  "chat.hello": "Hi! Your report is still open, so here's where we were.",
+  "link.notLinked": "This chat isn't connected to an account. Send CONNECT to link one.",
+  "link.disconnected":
+    "Done. This chat is no longer connected to {account}, and any chat reporting permission you approved for it is paused. Send CONNECT to link an account.",
+  "link.disconnectBusy":
+    "A report or review is on its way out with this account, so I can't disconnect it yet. Finish or cancel it, then send DISCONNECT again.",
+  "link.disconnectHint":
+    "To disconnect this chat from your account, send DISCONNECT. To use a different account, send SWITCH.",
+  "report.explainGarden":
+    "A garden is the community or place your work belongs to. Pick the one where you did this work.",
+  "report.explainGardenUnlinked":
+    "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and see your own gardens first.",
+  "report.explainAction":
+    "These are the kinds of work {garden} is tracking right now. Pick the closest match to what you did; the details come next.",
+  "report.explainField": "{title}: {hint}. Pick the option that fits best.",
+  "report.explainNumber": "{title} is a number{unit}: {hint}. For example, 12.",
+  "report.explainNumberPlain": "{title} is a number{unit}. For example, 12.",
+  "report.fieldLead": "{title}?",
+  "report.fieldLeadHint": "{title}: {hint}.",
   "consent.notice":
-    "Hi! I'm the Green Goods reporting assistant, operated by WEFA. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
-  "consent.processors": " and may use OpenAI and TypeSafe to understand them",
+    "Hi! I'm the Green Goods reporting assistant. To help you report garden work, I store and read the messages and files you send here{processors}. Nothing becomes public until you confirm a report.\n\nSend STOP at any time to stop, DELETE to remove your unpublished data, or HELP for support ({support}).\n\nDo you agree?",
+  "consent.processors": " and may use AI to understand them",
   "consent.agree": "I agree",
   "consent.decline": "No thanks",
   "consent.declined":
@@ -16,7 +41,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• To connect your account, open the verification link I send and return here with PAIR followed by its six-digit code. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -38,7 +63,7 @@ export const EN_REPORTING_COPY = {
   "media.voiceFailed":
     "I couldn't transcribe that voice note. Your report is saved; please try again or type your update.",
   "voice.consent":
-    "Can I transcribe your voice notes? I send the recording to OpenAI to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
+    "Can I transcribe your voice notes? I send the recording to an AI service to turn it into text, add the text to your report and show it to you to check. The recording itself is never published.",
   "voice.agree": "Yes, transcribe",
   "voice.decline": "No, I'll type",
   "voice.granted": "Thank you. I'm transcribing your voice note now.",
@@ -57,18 +82,28 @@ export const EN_REPORTING_COPY = {
   "media.spreadsheetNative":
     "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming.",
   "report.askGarden": "Which garden is this report for?",
+  "report.askOwnGarden": "Which of your gardens is this report for?",
+  "report.otherGardens": "Other gardens",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
+  "report.questionPosition": "{position} of {total} · ",
+  "report.actionAdoptedOne":
+    "Got it: {action} at {garden}. 1 quick question, then a summary to check.",
+  "report.actionAdoptedMany":
+    "Got it: {action} at {garden}. {count} quick questions, then a summary to check.",
   "report.askAction": "Which activity in {garden} best matches your work?",
   "report.moreChoices": "More options",
   "report.noActions":
-    "{garden} has no activity open for reporting right now. Your draft is saved; contact {support} if this is unexpected.",
+    "{garden} has no activity open for reporting right now. Your draft is saved. Send EDIT to choose another garden, or contact {support} if this is unexpected.",
   "report.catalogUnavailable":
-    "I can't read {garden}'s activities right now. Your draft is saved; send any message to try again.",
-  "report.askNumber": "{title}? Please reply with a number{unit}.",
-  "report.askChoice": "{title}?",
-  "report.askMulti": "{title}? You can pick more than one, for example: 1, 3.",
-  "report.askText": "{title}?",
+    "I couldn't load {garden}'s activities just now. That's a problem on my side, and your draft is saved. Tap Try again or send any message.",
+  "report.tryAgain": "Try again",
+  "report.choiceHelp":
+    "I'm not sure which one you mean. Tap a choice below or reply with its number. Send HELP to see everything I can do, or CANCEL to stop this report.",
+  "report.askNumber": "{title} Send just the number{unit}.",
+  "report.askChoice": "{title}",
+  "report.askMulti": "{title} You can pick more than one, for example: 1, 3.",
+  "report.askText": "{title}",
   "report.askTime": "How much time did you spend on this work? For example: 2 hours or 45 minutes.",
   "report.askTimeUnit": "Was that {value} hours or {value} minutes?",
   "report.hours": "Hours",
@@ -92,12 +127,18 @@ export const EN_REPORTING_COPY = {
   "report.invalid.unit_mismatch":
     "This is counted in {unit}, but you wrote {stated}. Could you give it in {unit}?",
   "report.invalid.unit_required": "Please include the unit, for example 2 hours or 30 minutes.",
-  "report.invalid.unknown_option":
-    "Please choose one of the listed options by replying with its number.",
   "report.invalid.too_long": "That's a little long. Could you shorten it?",
   "report.invalid.empty": "I didn't catch an answer. Could you try again?",
+  "report.summaryButtonInstruction": "Tap Confirm to publish, Edit to change something, or Cancel.",
+  "report.summaryCodeInstruction":
+    "Reply CONFIRM {token} to publish, EDIT to change something, or CANCEL.",
+  "publish.consentButtonInstruction": "Tap Publish to continue.",
+  "publish.consentCodeInstruction": "Reply PUBLISH {token} to continue.",
+  "review.summaryButtonInstruction": "Tap Confirm to record it, Edit to change it, or Cancel.",
+  "review.summaryCodeInstruction":
+    "Reply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
   "report.summary":
-    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\nReply CONFIRM {token} to publish, EDIT to change something, or CANCEL.",
+    "Please check your report for {garden}:\n• Activity: {action}\n• Title: {title}\n• Time spent: {time}\n• Description: {feedback}{details}\n• Photos: {photos}\n\nWhen published, the title, description, details and photos become public on Arbitrum and IPFS and cannot be deleted.{account}\n\n{instruction}",
   "report.summaryAccount": "\nIt will be published by your account {account}.",
   "report.confirm": "Confirm",
   "report.edit": "Edit",
@@ -112,7 +153,7 @@ export const EN_REPORTING_COPY = {
   "report.cancelled": "Report cancelled. Unpublished content will be removed.",
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
-  "report.confirmToken": "To publish, reply CONFIRM {token} exactly as shown in the summary.",
+  "report.confirmToken": "To publish, reply CONFIRM {token}.",
   "report.frozen":
     "This report is being published, so I can't change it now. I've kept your message and will use it if publishing doesn't complete.",
   "report.alreadyPublished": "That report is already published. Send NEW to start another report.",
@@ -132,8 +173,32 @@ export const EN_REPORTING_COPY = {
   "link.request":
     "To publish, verify your existing Green Goods account (wallet or passkey) here. The link expires in 10 minutes and never moves funds.",
   "link.label": "Verify account",
-  "link.pairHint": "When the page shows a code, send it here as: PAIR 123456",
-  "link.paired": "Your account {account} is now linked.",
+  "link.pairHint": "When the page shows a code, send the six digits alone here.",
+  "link.otherAccountHint":
+    "The page opens with the account your browser last used. To link another, tap “Use a different account” there.",
+  "link.paired": "Your account {account} is now linked.{gardens}",
+  "link.gardens": "\nYour gardens: {gardens}.",
+  "link.gardensMore": "{gardens} and {count} more",
+  "link.joinCommunity": "Open this link to join the Community Garden with {account}.",
+  "link.joinCommunityQuestion":
+    "I don't see your account in this garden yet. Join the Community Garden, then tap I've joined.",
+  "link.joinCommunityLabel": "Join the Community Garden",
+  "link.joined": "I've joined",
+  "link.noGardens":
+    "\nI don't see it in a garden yet. A garden you just joined can take a few minutes to show here.",
+  "link.offer":
+    "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.",
+  "link.offerLabel": "Connect account",
+  "link.offerDeclined":
+    "No problem. Tell me about the work you did; you can send text and photos. Send CONNECT whenever you want to link your account.",
+  "link.connect":
+    "To connect your Green Goods account (wallet or passkey), verify it here. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamed":
+    "{account} is in: {gardens}.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.connectNamedNoGardens":
+    "I don't see {account} in a garden yet.\nTo connect it to this chat, verify it here with that account. The link expires in 10 minutes and never moves funds.",
+  "link.already":
+    "This chat is connected to {account}.{gardens}\nTo use a different account, send SWITCH.",
   "link.pairFailed":
     "That code doesn't match an open verification. Check the code on the Green Goods page.",
   "link.accountMismatch":
@@ -141,7 +206,7 @@ export const EN_REPORTING_COPY = {
   "link.accountTaken":
     "That account is already linked to another chat. If it's yours, send RECOVER from the chat you want to use. Support: {support}",
   "publish.consent":
-    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. Reply PUBLISH {token} to continue.",
+    "Publish your confirmed report to {garden} from {account}? The title, description, details and photos become public and cannot be deleted. {instruction}",
   "publish.publish": "Publish",
   "publish.signLink": "Open this page to review and sign the exact publication with your {kind}.",
   "publish.signLabel": "Review and publish",
@@ -164,6 +229,7 @@ export const EN_REPORTING_COPY = {
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
     "The publication failed on chain. Your report is saved; check it and confirm again to retry.",
+  "publish.viewReport": "View your report",
   "publish.published": "Your report is published ✅\nWork: {uid}\nTransaction: {tx}",
   "grant.active":
     "Reporting in chat is on for {garden} until {until}. I'll still ask you to confirm each report.",
@@ -171,6 +237,8 @@ export const EN_REPORTING_COPY = {
     "I can't publish this one from chat: the reporting permission is paused, used up or has ended. Confirm again and I'll send you a page to sign it yourself.",
   "grant.paused":
     "Reporting permission is paused. I'll ask you to publish with your passkey instead.",
+  "grant.spent":
+    "The reporting permission for this garden is used up for now. I'll ask you to publish with your passkey instead.",
   "review.pendingList": "Work waiting for your review in {garden}. Choose one to start:",
   "review.none": "There's no work waiting for your review.",
   "review.askDecision": "Do you approve or reject “{title}” by {gardener}?",
@@ -183,12 +251,13 @@ export const EN_REPORTING_COPY = {
   "review.askFeedback":
     "Add feedback for the gardener (it will be public). For an approval you can reply SKIP.",
   "review.summary":
-    "Your review of “{title}” in {garden}:\n• Decision: {decision}\n• Confidence: {confidence}\n• Feedback: {feedback}\n• Method: human review\n\nThe decision and feedback become public on Arbitrum.\nReply CONFIRM {token} to record it, EDIT to change it, or CANCEL.",
+    "Your review of “{title}” in {garden}:\n• Decision: {decision}\n• Confidence: {confidence}\n• Feedback: {feedback}\n• Method: human review\n\nThe decision and feedback become public on Arbitrum.\n{instruction}",
   "review.selfReview": "You can't review your own work.",
   "review.notSteward": "Your account isn't a steward of {garden}, so you can't review this work.",
   "review.notOperator":
     "Your account isn't a steward of any garden, so there's no work for you to review.",
   "review.recorded": "Your review is recorded ✅\nTransaction: {tx}",
+  "review.viewWork": "View the work",
   "account.wallet": "wallet",
   "account.passkey": "passkey",
   "review.link":

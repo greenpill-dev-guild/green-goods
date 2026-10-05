@@ -3,6 +3,8 @@
  *
  * The website boot fallback in index.html hand-mirrors the editorial hero and
  * site header geometry in plain CSS because it renders before Tailwind loads.
+ * The installed app's loading scene mirrors the sign-in scaffold the same way,
+ * so the logo and the line under it do not move when React takes over.
  * Each mirrored declaration in index.html carries a trailing comment naming
  * the Tailwind class it replicates; this suite asserts both halves of every
  * pair, so tuning either side fails here and names the file to update with it.
@@ -28,6 +30,14 @@ const FOCUSED_HEADER_SOURCE = readFileSync(
 const THEME_SOURCE = readFileSync(resolve(process.cwd(), "../shared/src/styles/theme.css"), "utf8");
 const ATOMS_SOURCE = readFileSync(
   resolve(process.cwd(), "src/components/Public/atoms/EditorialAtoms.tsx"),
+  "utf8"
+);
+const SCAFFOLD_SOURCE = readFileSync(
+  resolve(process.cwd(), "src/components/Layout/SplashScaffold.tsx"),
+  "utf8"
+);
+const LAUNCH_ERROR_SOURCE = readFileSync(
+  resolve(process.cwd(), "src/components/Errors/AppLaunchError.tsx"),
   "utf8"
 );
 
@@ -87,12 +97,35 @@ interface GeometryPair {
 }
 
 const GEOMETRY_PAIRS: GeometryPair[] = [
+  // Both heroes hold the card in the flow, at the foot, under a header clearance, so a card too
+  // tall for the hero grows the hero instead of sliding under the site header.
   {
-    classLiteral: "bottom-14 sm:bottom-24 lg:bottom-[12svh]",
+    classLiteral: "flex-col justify-end",
     source: "hero",
     boot: [
-      { css: "bottom: 56px; /* bottom-14 */", scope: "base" },
-      { css: "bottom: 96px; /* sm:bottom-24 */", scope: "sm" },
+      { css: "flex-direction: column; /* flex-col */", scope: "base" },
+      { css: "justify-content: flex-end; /* justify-end */", scope: "base" },
+    ],
+  },
+  {
+    classLiteral: "pt-22 sm:pt-26",
+    source: "hero",
+    boot: [
+      { css: "padding-top: 88px; /* pt-22 */", scope: "base" },
+      { css: "padding-top: 104px; /* sm:pt-26 */", scope: "sm" },
+    ],
+  },
+  // The fullscreen hero's offset from the foot of the first viewport.
+  {
+    classLiteral: "pb-14 sm:pb-24 lg:pb-[12svh]",
+    source: "hero",
+    boot: [
+      { css: "padding-bottom: 56px; /* pb-14 */", scope: "base" },
+      { css: "padding-bottom: 96px; /* sm:pb-24 */", scope: "sm" },
+      { css: "padding-bottom: 12svh;", scope: "lg" },
+      // The recovery card stays anchored to the viewport at the same foot offsets.
+      { css: "bottom: 56px; /* as pb-14 */", scope: "base" },
+      { css: "bottom: 96px; /* as sm:pb-24 */", scope: "sm" },
       { css: "bottom: 12svh;", scope: "lg" },
     ],
   },
@@ -139,21 +172,22 @@ const GEOMETRY_PAIRS: GeometryPair[] = [
     source: "hero",
     boot: [{ css: "min-height: 100svh; /* min-h-[100svh] */", scope: "base" }],
   },
+  // The banner's plate height is a floor, and its card spills past the foot by a negative margin.
   {
-    classLiteral: "h-[340px] sm:h-[420px] lg:h-[500px]",
+    classLiteral: "min-h-[340px] sm:min-h-[420px] lg:min-h-[500px]",
     source: "hero",
     boot: [
-      { css: "height: 340px; /* h-[340px] */", scope: "base" },
-      { css: "height: 420px; /* sm:h-[420px] */", scope: "sm" },
-      { css: "height: 500px; /* lg:h-[500px] */", scope: "lg" },
+      { css: "min-height: 340px; /* min-h-[340px] */", scope: "base" },
+      { css: "min-height: 420px; /* sm:min-h-[420px] */", scope: "sm" },
+      { css: "min-height: 500px; /* lg:min-h-[500px] */", scope: "lg" },
     ],
   },
   {
-    classLiteral: "bottom-[-4rem] sm:bottom-[-5rem]",
+    classLiteral: "-mb-16 sm:-mb-20",
     source: "hero",
     boot: [
-      { css: "bottom: -64px; /* bottom-[-4rem] */", scope: "base" },
-      { css: "bottom: -80px; /* sm:bottom-[-5rem] */", scope: "sm" },
+      { css: "margin-bottom: -64px; /* -mb-16 */", scope: "base" },
+      { css: "margin-bottom: -80px; /* sm:-mb-20 */", scope: "sm" },
     ],
   },
   {
@@ -190,6 +224,138 @@ const GEOMETRY_PAIRS: GeometryPair[] = [
   },
 ];
 
+/** The declarations of the first rule for a selector, in a block of CSS. */
+function ruleBody(css: string, selector: string): string {
+  const start = css.indexOf(`${selector} {`);
+  if (start === -1) throw new Error(`No ${selector} rule in the boot styles`);
+  return css.slice(start, css.indexOf("}", start));
+}
+
+interface ScenePair {
+  /** Literal class string expected in the mirrored component source. */
+  classLiteral: string;
+  source: "scaffold" | "launch";
+  /** The boot rule that mirrors it. */
+  selector: string;
+  /** Annotated declarations expected in that rule. */
+  boot: string[];
+  /** Declarations expected in the rule from 640px. */
+  sm?: string[];
+}
+
+// The sign-in scaffold, slot for slot: root, block, logo, line, the two control slots, the
+// message zone and the text link. The note is the one the could-not-open screen puts in slot two.
+const SCENE_PAIRS: ScenePair[] = [
+  {
+    classLiteral: "min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2",
+    source: "scaffold",
+    selector: ".boot-pwa-shell",
+    boot: [
+      "display: flex; /* flex */",
+      "flex-direction: column; /* flex-col */",
+      "align-items: center; /* items-center */",
+      "min-height: 100vh; /* min-h-screen */",
+      "padding: 8px 16px; /* py-2 px-4 */",
+    ],
+  },
+  {
+    classLiteral: "flex w-full max-w-sm flex-col items-center",
+    source: "scaffold",
+    selector: ".boot-pwa-content",
+    boot: ["width: 100%; /* w-full */", "max-width: 384px; /* max-w-sm */"],
+  },
+  {
+    classLiteral: "flex-shrink-0 mb-4",
+    source: "scaffold",
+    selector: ".boot-pwa-logo-slot",
+    boot: ["margin-bottom: 16px; /* mb-4 */"],
+  },
+  {
+    classLiteral: "h-24 w-auto sm:h-28",
+    source: "scaffold",
+    selector: ".boot-pwa-content img",
+    boot: ["width: auto; /* w-auto */", "height: 96px; /* h-24 */"],
+    sm: ["height: 112px; /* sm:h-28 */"],
+  },
+  {
+    classLiteral: "h-8 flex items-center justify-center mb-5",
+    source: "scaffold",
+    selector: ".boot-pwa-message-slot",
+    boot: ["height: 32px; /* h-8 */", "margin-bottom: 20px; /* mb-5 */"],
+  },
+  {
+    classLiteral: "text-base font-[650] text-text-strong-950",
+    source: "scaffold",
+    selector: ".boot-pwa-message-slot p",
+    boot: ["font-size: 1rem; /* text-base */", "font-weight: 650; /* font-[650] */"],
+  },
+  {
+    classLiteral: "w-full flex flex-col items-center gap-3",
+    source: "scaffold",
+    selector: ".boot-pwa-stack",
+    boot: ["gap: 12px; /* gap-3 */"],
+  },
+  {
+    classLiteral: "w-full h-11 flex items-center justify-center",
+    source: "scaffold",
+    selector: ".boot-pwa-note-slot",
+    boot: ["height: 44px; /* h-11 */"],
+  },
+  {
+    classLiteral: "relative w-full h-20 overflow-y-auto",
+    source: "scaffold",
+    selector: ".boot-pwa-zone",
+    boot: ["height: 80px; /* h-20: sign-in's message zone */"],
+  },
+  {
+    classLiteral: "h-5 flex items-center justify-center",
+    source: "scaffold",
+    selector: ".boot-pwa-link",
+    boot: ["height: 20px; /* h-5: sign-in's text link */"],
+  },
+  {
+    classLiteral: "w-full self-start pt-1 text-center text-sm leading-5 text-text-sub-600",
+    source: "launch",
+    selector: ".boot-pwa-note-slot p",
+    boot: [
+      "padding-top: 4px; /* pt-1 */",
+      "font-size: 0.875rem; /* text-sm */",
+      "line-height: 1.25rem; /* leading-5 */",
+    ],
+  },
+];
+
+describe("installed app loading scene parity", () => {
+  it.each(SCENE_PAIRS)("keeps $selector in step with the $source's $classLiteral", (pair) => {
+    expect(pair.source === "launch" ? LAUNCH_ERROR_SOURCE : SCAFFOLD_SOURCE).toContain(
+      pair.classLiteral
+    );
+    const rule = ruleBody(BOOT_CSS, pair.selector);
+    for (const declaration of pair.boot) expect(rule).toContain(declaration);
+    if (pair.sm) {
+      const smRule = ruleBody(mediaBlocks("min-width: 640px"), pair.selector);
+      for (const declaration of pair.sm) expect(smRule).toContain(declaration);
+    }
+  });
+
+  it("gives both control slots one rule, so they can never differ in height", () => {
+    expect(BOOT_CSS).toMatch(/\n {6}\.boot-pwa-action-slot,\n {6}\.boot-pwa-note-slot \{/);
+  });
+
+  it("splits the free space 7:3 above and below the block, as the scaffold does", () => {
+    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 7 }}");
+    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 3 }}");
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::before")).toContain("flex-grow: 7;");
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain("flex-grow: 3;");
+  });
+
+  it("lays the scene out in the scaffold's order: logo, line, action, note, zone, link", () => {
+    expect(INDEX_HTML).toMatch(
+      /class="boot-pwa-content">\s*<div class="boot-pwa-logo-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-message-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-stack">\s*<div class="boot-pwa-action-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-note-slot"[^>]*>[\s\S]*?<\/div>\s*<div class="boot-pwa-zone"[^>]*><\/div>\s*<div class="boot-pwa-link"[^>]*><\/div>/
+    );
+  });
+});
+
 describe("boot skeleton geometry parity", () => {
   it.each(GEOMETRY_PAIRS)("keeps the $source $classLiteral pair in sync", (pair) => {
     const source =
@@ -220,6 +386,22 @@ describe("boot skeleton geometry parity", () => {
     const navQuery = mediaBlocks("max-width: 767px");
     expect(navQuery).not.toContain("boot-editorial-card");
     expect(navQuery).not.toContain("boot-editorial-header");
+  });
+
+  it("keeps the hero's rail in the flow so a card too tall for the hero grows it", () => {
+    // Only the rail inside the hero joins the flow. The recovery rail keeps the absolute base rule.
+    expect(BOOT_CSS).toMatch(
+      /\n {6}\.boot-editorial-hero \.boot-editorial-card-rail \{\s*position: relative;\s*bottom: auto;\s*\}/
+    );
+    // The banner leaves its rail in that flow, over a plate whose height is only a floor: a rail
+    // pinned to the foot of a fixed-height plate is what let a tall card climb under the header.
+    const banner = BOOT_CSS.slice(
+      BOOT_CSS.indexOf("/* Banner-variant skeleton"),
+      BOOT_CSS.indexOf("/* Focused variant")
+    );
+    expect(banner).toContain("min-height: 340px; /* min-h-[340px] */");
+    expect(banner).not.toMatch(/position:\s*absolute/);
+    expect(banner).not.toMatch(/(?<!min-)height:/);
   });
 
   it("scopes the banner spill to rails inside the plate so recovery stays viewport-anchored", () => {
@@ -296,6 +478,11 @@ describe("boot skeleton geometry parity", () => {
     for (const threshold of [348, 364, 378, 424, 488]) {
       expect(BOOT_CSS).toContain(`@media (min-width: ${threshold}px)`);
     }
+    // A title left to wrap drops its third bar from 378px. The five pages whose English title
+    // is written as three lines keep it, and no other page or language does.
+    expect(mediaBlocks("min-width: 378px")).toMatch(
+      /\n {8}\.boot-skeleton-title-line\[data-line="3"\] \{\s*display: none;\s*\}\s*\[data-boot-title="three-lines"\] #boot-fallback\[lang="en"\] \.boot-skeleton-title-line\[data-line="3"\] \{\s*display: block;/
+    );
     expect(BOOT_CSS).toContain("margin-top: 16px; /* mt-4 */");
     expect(BOOT_CSS).toContain("margin-top: 24px; /* mt-6 */");
     expect(BOOT_CSS).toContain("height: 44px; /* hero actions row (pill height) */");

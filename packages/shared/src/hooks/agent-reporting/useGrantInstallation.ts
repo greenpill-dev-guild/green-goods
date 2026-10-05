@@ -179,7 +179,6 @@ export function useGrantInstallation({
     )
       return update({ error: "envelope_mismatch" });
     busy.current = true;
-    let delegateRequested = false;
     let broadcast = false;
     let knownHash: Hex | null = null;
     let attemptId: string | null = null;
@@ -267,7 +266,6 @@ export function useGrantInstallation({
         envelope,
         assertOwner,
         signDelegate: async (userOperation) => {
-          delegateRequested = true;
           remember({ kind: "uncertain", reason: "send_unknown" });
           return client.signGrantActivation(grant.grantId, {
             attemptId: attempt.attemptId,
@@ -285,9 +283,12 @@ export function useGrantInstallation({
       await report({ kind: "broadcast", userOperationHash: hash });
       update({ stage: "grant_submitted", error: null });
     } catch (error) {
-      const uncertain = delegateRequested || broadcast;
+      // A rejected Agent signature request may have exposed no signature at all. Ask the Agent
+      // to settle a pre-broadcast failure: it accepts only while the attempt is still unsigned.
+      // A lost reply after it persisted a signature is refused and remains uncertain.
+      let failureRecorded = false;
       if (attemptId && payloadDigest) {
-        const outcome: AttemptOutcome = uncertain
+        const outcome: AttemptOutcome = broadcast
           ? {
               kind: "uncertain",
               reason: "send_unknown",
@@ -296,10 +297,17 @@ export function useGrantInstallation({
           : isCancelledTxError(error)
             ? { kind: "rejected_before_send", reason: "user_rejected" }
             : { kind: "preparation_failed", reason: "activation_unavailable" };
-        await report(outcome).catch(() => undefined);
+        failureRecorded = await report(outcome).then(
+          () => true,
+          () => false
+        );
       }
+      const uncertain = broadcast || (attemptId !== null && !failureRecorded);
       if (!uncertain && resource) {
-        const fresh = await readGrantActivationState(client, requestId, grant);
+        const settledGrant = failureRecorded
+          ? await client.grant(grant.grantId).catch(() => grant)
+          : grant;
+        const fresh = await readGrantActivationState(client, requestId, settledGrant);
         update({ ...fresh, error: isCancelledTxError(error) ? "declined" : "unsupported" });
         return;
       }

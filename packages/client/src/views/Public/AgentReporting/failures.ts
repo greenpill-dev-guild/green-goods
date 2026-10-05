@@ -17,6 +17,16 @@ export interface CeremonyProblem {
   tone: "error" | "caution" | "neutral";
 }
 
+/**
+ * A problem that arrives already in words: a failed sign-in or account creation comes back from
+ * the account layer as a sentence in the reader's language, not as a message to format. Only the
+ * heading card says these.
+ */
+export interface SpokenProblem {
+  spoken: string;
+  tone: CeremonyProblem["tone"];
+}
+
 const UNUSABLE: MessageDescriptor = {
   id: "public.reporting.unavailable.body",
   defaultMessage:

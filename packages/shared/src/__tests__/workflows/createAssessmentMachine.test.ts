@@ -163,6 +163,20 @@ describe("workflows/createAssessmentMachine", () => {
       actor.stop();
     });
 
+    // A reporting period names whole days, each stored as its UTC midnight, so a
+    // period of one day has equal ends. The form accepts it, and the send must
+    // too, or Submit Assessment goes quiet.
+    it("accepts a reporting period of one day", () => {
+      const actor = createActor(createAssessmentMachine);
+      actor.start();
+      const day = Date.UTC(2026, 6, 27) / 1000;
+
+      actor.send({ type: "START", params: createValidParams({ startDate: day, endDate: day }) });
+
+      expect(actor.getSnapshot().value).toBe("ready");
+      actor.stop();
+    });
+
     it("accepts empty capitals array (v2 form payload)", () => {
       const actor = createActor(createAssessmentMachine);
       actor.start();

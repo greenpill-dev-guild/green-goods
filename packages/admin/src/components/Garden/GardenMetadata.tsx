@@ -1,5 +1,6 @@
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import type { SupportedChainId } from "@green-goods/shared/config/chains";
 import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
 import type { Address } from "@green-goods/shared/types/domain";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -13,6 +14,25 @@ import {
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
+
+// OpenSea's name for each chain the app supports. Null where it has no item page: OpenSea closed
+// its testnet site in 2025 and does not list Celo.
+const OPENSEA_CHAIN_NAMES: Record<SupportedChainId, string | null> = {
+  1: "ethereum",
+  42161: "arbitrum",
+  42220: null,
+  11155111: null,
+};
+
+/** The token's OpenSea item page, or null on a chain OpenSea has no page for. */
+export function getOpenSeaUrl(
+  chainId: number,
+  tokenAddress: Address,
+  tokenId: bigint | number
+): string | null {
+  const chainName = OPENSEA_CHAIN_NAMES[chainId as SupportedChainId];
+  return chainName ? `https://opensea.io/item/${chainName}/${tokenAddress}/${tokenId}` : null;
+}
 
 interface GardenMetadataProps {
   gardenId: Address; // Garden smart account address
@@ -51,6 +71,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
+  const openSeaUrl = getOpenSeaUrl(chainId, tokenAddress, tokenId);
 
   const getExplorerUrl = (address: Address, type: "address" | "token" | "nft") => {
     if (!blockExplorer) return null;
@@ -65,13 +86,6 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       default:
         return `${blockExplorer}/address/${address}`;
     }
-  };
-
-  const getOpenSeaUrl = () => {
-    // OpenSea URLs differ by chain
-    const chainSlug =
-      chainId === 11155111 ? "sepolia" : chainId === 42161 ? "arbitrum" : "ethereum";
-    return `https://testnets.opensea.io/assets/${chainSlug}/${tokenAddress}/${tokenId}`;
   };
 
   return (
@@ -181,35 +195,44 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-col gap-2">
-        <div className="label-xs text-text-soft">
-          {formatMessage({
-            id: "admin.gardenMetadata.externalLinks",
-            defaultMessage: "External Links",
-          })}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {blockExplorer && (
-            <AdminButton asChild variant="outlined" size="md" leadingIcon={<RiExternalLinkLine />}>
-              <a
-                href={getExplorerUrl(tokenAddress, "token") || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
+      {(blockExplorer || openSeaUrl) && (
+        <div className="flex flex-col gap-2">
+          <div className="label-xs text-text-soft">
+            {formatMessage({
+              id: "admin.gardenMetadata.externalLinks",
+              defaultMessage: "External Links",
+            })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {blockExplorer && (
+              <AdminButton
+                asChild
+                variant="outlined"
+                size="md"
+                leadingIcon={<RiExternalLinkLine />}
               >
-                {formatMessage({
-                  id: "admin.gardenMetadata.tokenContract",
-                  defaultMessage: "Token Contract",
-                })}
-              </a>
-            </AdminButton>
-          )}
-          <AdminButton asChild variant="tonal" size="md" leadingIcon={<RiNftLine />}>
-            <a href={getOpenSeaUrl()} target="_blank" rel="noopener noreferrer">
-              OpenSea
-            </a>
-          </AdminButton>
+                <a
+                  href={getExplorerUrl(tokenAddress, "token") || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {formatMessage({
+                    id: "admin.gardenMetadata.tokenContract",
+                    defaultMessage: "Token Contract",
+                  })}
+                </a>
+              </AdminButton>
+            )}
+            {openSeaUrl && (
+              <AdminButton asChild variant="tonal" size="md" leadingIcon={<RiNftLine />}>
+                <a href={openSeaUrl} target="_blank" rel="noopener noreferrer">
+                  OpenSea
+                </a>
+              </AdminButton>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

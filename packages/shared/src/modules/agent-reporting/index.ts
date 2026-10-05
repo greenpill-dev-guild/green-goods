@@ -93,7 +93,9 @@ export type { ReportRequirement, ReportSummary } from "./report-summary";
 export {
   buildReportSummary,
   minimumEvidence,
+  outstandingFieldQuestions,
   outstandingRequirements,
+  reportQuestionPosition,
   ReportNotReadyError,
   reportSummaryDigest,
 } from "./report-summary";

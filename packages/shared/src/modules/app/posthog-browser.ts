@@ -1,6 +1,8 @@
 import { type CaptureResult, posthog } from "posthog-js";
-import { registerTelemetrySink, restoreExceptionTopLevelProps } from "./posthog";
+import { flushCrashReports } from "./crash-reports";
+import { restoreExceptionTopLevelProps } from "./posthog";
 import { isReportingCeremonyPath, redactPrivatePaths } from "./private-paths";
+import { registerTelemetrySink } from "./telemetry-sink";
 
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 const EXTENSION_TAB_ERROR = /^No tab with id: \d+\.$/;
@@ -147,12 +149,22 @@ export function initializePostHog(apiKey: string): void {
   });
 
   registerTelemetrySink({
-    capture: (event, properties) => posthog.capture(event, properties),
+    // An event recorded earlier is a crash report, and the page showing a crash screen is about
+    // to be reloaded: it goes out at once instead of waiting in the batch.
+    capture: (event, properties, timing) =>
+      posthog.capture(event, properties, timing ? { ...timing, send_instantly: true } : undefined),
+    captureException: (error, properties) => posthog.captureException(error, properties),
     identify: (distinctId, properties) => posthog.identify(distinctId, properties),
     reset: () => posthog.reset(),
     getDistinctId: () => posthog.get_distinct_id(),
     register: (properties) => posthog.register(properties),
     isReady: () => typeof posthog.config?.api_host === "string",
   });
+  // Crashes from before the transport existed, this visit or an earlier one, go out now, and any
+  // that wait for a connection go out when it returns. The listener lives as long as the page.
+  if (initializedKey === null && typeof window !== "undefined") {
+    window.addEventListener("online", flushCrashReports);
+  }
   initializedKey = apiKey;
+  flushCrashReports();
 }

@@ -153,6 +153,8 @@ function createGreenGoodsIndexerClient(env: ViteEnv, isDev: boolean): GQLClient 
 
 /** Singleton Green Goods indexer client */
 export const greenGoodsIndexer = createGreenGoodsIndexerClient(
-  typeof import.meta !== "undefined" ? (import.meta.env as ViteEnv) : {},
+  typeof import.meta !== "undefined"
+    ? { VITE_ENVIO_INDEXER_URL: import.meta.env.VITE_ENVIO_INDEXER_URL }
+    : {},
   typeof import.meta !== "undefined" ? !!import.meta.env.DEV : false
 );

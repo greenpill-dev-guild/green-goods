@@ -11,6 +11,8 @@ const PROJECT_APPS: Readonly<Record<string, readonly PlaywrightApp[]>> = {
   "iphone-16-pro": ["client"],
   "mobile-chrome": ["client"],
   "mobile-safari": ["client"],
+  "work-exploration": ["client"],
+  "pwa-preview": ["client"],
   "passkey-mock": ["client"],
   performance: ["client"],
   testnet: ["client"],

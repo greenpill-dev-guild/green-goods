@@ -275,6 +275,8 @@ describe("ProfileAvatarEditor", () => {
     renderEditor();
     await openEditor();
     expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-busy", "true");
+    // The spinner over the photo says the same thing, not a generic English "Loading".
+    expect(screen.getByRole("status", { name: label })).toBeInTheDocument();
   });
 
   it("retains the published avatar and offers retry, change, and discard after failure", async () => {

@@ -22,6 +22,9 @@ describe("Telegram private command menus", () => {
     await registerSlashCommands(bot, true);
     expect(setMyCommands.mock.calls[0]?.[0]).toEqual([
       { command: "start", description: "Start or resume Green Goods" },
+      { command: "connect", description: "Connect your account" },
+      { command: "switch", description: "Use a different account" },
+      { command: "disconnect", description: "Disconnect your account" },
       { command: "status", description: "Check your progress" },
       { command: "help", description: "Get help and available commands" },
     ]);

@@ -96,7 +96,7 @@ const defaultServices: AdminBootServices = {
   },
   initIpfs: async () => {
     const { initializeIpfsFromEnv } = await import("@green-goods/shared/modules/data/ipfs/client");
-    return initializeIpfsFromEnv(import.meta.env);
+    return initializeIpfsFromEnv();
   },
 };
 

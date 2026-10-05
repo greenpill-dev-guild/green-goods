@@ -5,6 +5,7 @@ import { useJobQueue } from "../../../providers/JobQueue";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useGardenMembership } from "../../roles/useGardenMembership";
 import { useHasRole } from "../../roles/useHasRole";
 import {
@@ -73,6 +74,7 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
   const { retryAndSend } = useJobQueue();
+  const { sendsFromTap } = useCommitmentJobs({ chainId });
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -167,6 +169,8 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     ownCreations,
     /** The creations the list shows under the chosen Status and Kind. */
     shownCreations,
+    /** A queued creation goes only when the reader sends it (a wallet sign-in). */
+    sendsFromTap,
     rows,
     titleOf: (metadataCID: string | null | undefined) =>
       metadataCID ? (byCID.get(metadataCID)?.title ?? null) : null,

@@ -524,6 +524,33 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.works).toEqual([{ ...staleReviewed, status: "pending" }]);
   });
 
+  it("lists a steward's sent work once, and stops saving the placeholder an earlier build left", async () => {
+    const indexed = {
+      id: "0xwork",
+      title: "Planting",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "bafy-metadata",
+      media: ["cid"],
+      createdAt: 1001,
+    };
+    const merged = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    const saved = () =>
+      queryClient.getQueryData<Array<{ id: string }>>(merged)?.map((work) => work.id);
+    queryClient.setQueryData(merged, [
+      { ...indexed, id: `optimistic-0x${"ab".repeat(32)}`, metadata: "{}", media: [] },
+    ]);
+    mockGetWorkListPage.mockResolvedValue([indexed]);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(result.current.works.map((work) => work.id)).toEqual(["0xwork"]));
+    // The admin restores this saved list on reload, so the placeholder leaves it too.
+    await waitFor(() => expect(saved()).toEqual(["0xwork"]));
+  });
+
   it("returns offlineCount 0 in online-only mode", async () => {
     mockGetWorkListPage.mockResolvedValue([]);
 

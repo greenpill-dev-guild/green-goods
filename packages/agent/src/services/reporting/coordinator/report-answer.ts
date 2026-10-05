@@ -6,10 +6,21 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
 import type { PromptRecord } from "../prompts";
+import { requestConnection } from "./account-steps";
+import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
-import { askEditField } from "./edit-menu";
-import { answeredGarden, askAction, askField, askGarden, promptNextStep } from "./prompting";
+import { askEditField, askEditMenu } from "./edit-menu";
+import {
+  answeredGarden,
+  askAction,
+  askField,
+  askGarden,
+  fieldHint,
+  fieldQuestionText,
+  gardenLabel,
+  promptNextStep,
+} from "./prompting";
 import { handleReportMessage } from "./report-message";
 import {
   adoptAction,
@@ -30,6 +41,60 @@ function presentedKeys(prompt: PromptRecord): string[] {
   return prompt.options
     .filter((option) => !option.value.startsWith("page:"))
     .map((option) => option.value);
+}
+
+/** What the open question is asking for, in a sentence, before its choices are shown again. */
+function explainQuestion(writer: TurnWriter, prompt: PromptRecord): void {
+  const { ctx, core } = writer;
+  const draft = ctx.draft;
+  switch (prompt.kind) {
+    case "select_garden":
+      return writer.say(ctx.account ? "report.explainGarden" : "report.explainGardenUnlinked");
+    case "select_action":
+      return writer.say("report.explainAction", {
+        garden: gardenLabel(core.gardens, draft?.content.garden?.address),
+      });
+    case "field": {
+      const input = findInput(draft?.snapshot ?? null, prompt.fieldKey ?? "");
+      const hint = input ? fieldHint(input) : "";
+      if (input && hint) return writer.say("report.explainField", { title: input.title, hint });
+      return writer.say("report.choiceHelp");
+    }
+    default:
+      return writer.say("report.choiceHelp");
+  }
+}
+
+/**
+ * Typed words that pick none of the choices on offer. What the model could read in them (a status
+ * or cancel request, a request to link an account, a correction, new facts) is handled as a
+ * message is. A hello, a question, or words nothing could read get a sentence on what the question
+ * is asking for and the choices again, so the conversation never stops at an error.
+ */
+function offChoice(
+  writer: TurnWriter,
+  plan: Extract<TurnPlan, { kind: "answer" }>,
+  external: TurnExternal,
+  askAgain: () => void
+): void {
+  const read = external.interpretation;
+  if (read?.intent === "connect") return requestConnection(writer, null);
+  const hello = isGreeting(plan.text) || read?.intent === "greeting";
+  const usable =
+    !hello &&
+    read !== null &&
+    (read.intent === "status" ||
+      read.intent === "cancel" ||
+      read.intent === "disconnect" ||
+      read.gardenKey !== null ||
+      read.actionUID !== null ||
+      read.facts.length > 0);
+  if (usable) {
+    return handleReportMessage(writer, { kind: "message", text: plan.text, media: [] }, external);
+  }
+  if (hello) writer.say("chat.hello");
+  else explainQuestion(writer, plan.prompt);
+  askAgain();
 }
 
 /** An answer to the open question, from a button or typed text. */
@@ -54,13 +119,19 @@ export function handleReportAnswer(
       provenance: gardenerFact(sourceEntryId, original, unit),
     },
   ];
-  const page = option?.value.startsWith("page:") ? Number(option.value.slice(5)) : null;
+  // The entry that opens another page of choices can be picked by its number, like any other.
+  const paging = option ?? (text ? prompt.options[Number(text.trim()) - 1] : undefined);
+  const page = paging?.value.startsWith("page:") ? Number(paging.value.slice(5)) : null;
 
   switch (prompt.kind) {
     case "select_garden": {
-      if (page !== null) return askGarden(writer, draft, page);
+      if (page !== null) return askGarden(writer, draft, ctx.account?.address ?? null, page);
       const garden = answeredGarden(core.gardens, prompt, option, text);
-      if (!garden) return invalid(writer, "unknown_option");
+      if (!garden) {
+        return offChoice(writer, plan, external, () =>
+          askGarden(writer, draft, ctx.account?.address ?? null, prompt.page)
+        );
+      }
       apply(work, [
         { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },
       ]);
@@ -76,7 +147,11 @@ export function handleReportAnswer(
           .find((a) => a.definition.title.toLowerCase() === text?.trim().toLowerCase())
           ?.definition.actionUID.toString();
       const action = actions.find((candidate) => candidate.definition.actionUID.toString() === uid);
-      if (!action) return invalid(writer, "unknown_option");
+      if (!action) {
+        return offChoice(writer, plan, external, () =>
+          askAction(writer, draft, external.catalog, prompt.page)
+        );
+      }
       adoptAction(work, action, gardenerFact(sourceEntryId));
       break;
     }
@@ -94,6 +169,18 @@ export function handleReportAnswer(
             original: option.label,
           }
         : parseFieldAnswer(input, text ?? "", presentedKeys(prompt));
+      if (!answer.ok && answer.reason === "unknown_option") {
+        return offChoice(writer, plan, external, () => askField(writer, draft, input, prompt.page));
+      }
+      if (!answer.ok && answer.reason === "not_a_number") {
+        // Words where a number was asked for are usually a question about the field itself.
+        const hint = fieldHint(input);
+        return writer.say(hint ? "report.explainNumber" : "report.explainNumberPlain", {
+          title: input.title,
+          hint,
+          unit: input.unit ? ` (${input.unit})` : "",
+        });
+      }
       if (!answer.ok)
         return invalid(writer, answer.reason, {
           unit: input.unit ?? "",
@@ -133,7 +220,13 @@ export function handleReportAnswer(
               { id: "m", label: writer.text("report.minutes"), value: `minutes:${value}` },
             ],
           },
-          () => writer.text("report.askTimeUnit", { value })
+          () =>
+            fieldQuestionText(
+              writer,
+              draft,
+              { kind: "time" },
+              writer.text("report.askTimeUnit", { value })
+            )
         );
         return;
       }
@@ -150,7 +243,11 @@ export function handleReportAnswer(
             : undefined);
       const [unit, value] = (chosen?.value ?? "").split(":");
       const duration = parseDurationAnswer(`${value ?? ""} ${unit ?? ""}`);
-      if (!duration.ok) return invalid(writer, "unknown_option");
+      if (!duration.ok) {
+        return offChoice(writer, plan, external, () =>
+          promptNextStep(writer, draft, external.catalog)
+        );
+      }
       apply(work, [
         {
           field: "timeSpentMinutes",
@@ -169,7 +266,11 @@ export function handleReportAnswer(
       const conflict = work.content.conflicts.find((entry) => entry.field === prompt.fieldKey);
       const choice =
         option?.value ?? (text?.trim() === "2" ? "use" : text?.trim() === "1" ? "keep" : null);
-      if (!conflict || !choice) return invalid(writer, "unknown_option");
+      if (!conflict || !choice) {
+        return offChoice(writer, plan, external, () =>
+          promptNextStep(writer, draft, external.catalog)
+        );
+      }
       work.content = {
         ...work.content,
         conflicts: work.content.conflicts.filter((entry) => entry !== conflict),
@@ -187,7 +288,7 @@ export function handleReportAnswer(
     }
     case "edit_field": {
       const field = option?.value ?? presentedKeys(prompt)[Number(text) - 1];
-      if (!field) return invalid(writer, "unknown_option");
+      if (!field) return offChoice(writer, plan, external, () => askEditMenu(writer, draft));
       return askEditField(writer, draft, field, external.catalog);
     }
     default:

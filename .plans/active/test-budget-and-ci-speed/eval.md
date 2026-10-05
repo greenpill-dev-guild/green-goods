@@ -1,6 +1,66 @@
 # Evaluation and completion evidence
 
-## Current checkpoint — 2026-09-28 (snapshot 08 follow-up, local)
+## Agentic development proposal (2026-10-04)
+
+The [report](reports/2026-10-04-software-factory-comparison.md) reconciles the
+audits and distinguishes observed, reported, and proposed claims. Afo subsequently selected
+SF01–SF04, then SF10–SF11, then approved dependency changes and SF09 reporting.
+SF05–SF08 and SF12–SF13 remain unselected. The
+[first-batch handoff](handoffs/software-factory-batch-1.md) owns the new working-copy commands,
+RED/GREEN results, browser evidence and limitations. Historical receipts are not proof for this batch.
+The [second-batch handoff](handoffs/software-factory-batch-2.md) records the hook diagnostics,
+Client type guard, corrected compiler finding, and the then-pending Admin dependency decision.
+The [third-batch handoff](handoffs/software-factory-batch-3.md) records the approved repair and
+SF09 reporting: all 15 selected QA checks pass, followed by final fixture, type and quality proof.
+That third-batch isolated browser run passed recovery but failed route readiness.
+The [fourth-batch handoff](handoffs/software-factory-batch-4.md) supersedes its SF03 qualification: the
+full Admin project now passes 12 cases with one declared fork-only skip and zero retries after
+aligning the smoke RPC fixture with its indexer garden. Earlier timeouts remain historical failures.
+Actual Codex session/edit-hook loading is now recorded in the architecture pilot; Claude Desktop
+Code observation remains pending.
+
+| Slice | Required proof before completion | Current state |
+|---|---|---|
+| SF01 | Local/CI profile parity, mismatched-server rejection, owner-bound cleanup | Implemented; resolved local/CI config and real occupied-port/cancellation probes pass |
+| SF02 | Unknown request/argument fails, missing required request fails, supported empty state passes | Implemented; fixture contract suite passes, including invalid and legitimate empty inputs |
+| SF03 | Required user outcome and injected-error recovery; deliberate shell-only/disabled-dispatch faults fail | Locally accepted: fourth-batch Admin 12 pass / one declared fork-only skip / zero retries. Client proof remains the first-batch 20 pass / four existing skips. Earlier Admin readiness timeout did not reproduce; no root-cause repair claimed for it |
+| SF04 | Missing/skipped/cancelled/failed browser jobs fail aggregate; real successes pass | Implemented; 28/28 aggregate-gate cases pass, including browser-job failures |
+| SF05 | Virtual registration/session or rejection completes; login/absent UI cannot pass; fork prerequisites and limits explicit | Optional-suite assertions inspected; live proof pending |
+| SF06 | Production offline reload and recovery, negative cache fault; authentication design reviewed | Known preview gap; rendered proof none |
+| SF07 | Seed/action replay, isolated reset, safe effects, required outcomes, bounded cost | Proposed pilot only |
+| SF08 | Selection and freshness fixtures; skips/capability blocks explicit; critical overrides intact | Proposed integration only |
+| SF09 | Structured failure categories and accurate scoped evidence; no lost first failures or false full-suite claims | Reporting locally complete: 49/49 runner tests, 373/373 tooling tests, live CLI proof. Optional PR-text export deferred |
+| SF10 | Effective worktree hook-chain checks plus actual live harness observations in the existing pilot | Local diagnostics and disposable Git/Husky dispatch pass; 366/366 earlier tooling tests. Actual Codex session and pre/post-edit hook context observed; Claude Desktop Code and remaining pilot observations pending in the architecture hub |
+| SF11 | Invalid Address literal rejected under actual Client/Admin project graphs; valid controls pass; runtime boundary preserved | Locally complete: exact Admin ABIType dependency, one registration, both real-graph guards, seven caller repairs and test/story type fixes. All selected types, full suites and builds pass; publication unrequested |
+| SF12 | Reproduced recurring fault, negative and valid fixtures, or explicit property with replay | Candidates unselected; private memory untouched |
+| SF13 | Five-task observations and comparable metrics; actual existing delegation outcome where authorized | Pending; no routine state changed |
+
+Compiler correction from the second batch: the original external probe resolved a different
+Bun peer-context copy of viem/ABIType. Its Client result does not establish a Client application
+gap. The second-batch probes showed Client already rejected unrestricted strings, while
+Admin accepted them. Admin's typecheck then failed only the two expected-rejection directives
+with the probe present. At that second-batch checkpoint the failing Admin probe was removed pending approval. The
+third batch reinstates it with the approved registration and seven caller repairs; both graphs
+now reject unrestricted strings. The earlier reproduction remains in the second-batch handoff.
+The dated comparison report remains unchanged as historical evidence.
+
+Document proof for this update is recorded after validation below. Plan validation proves
+document and hub consistency only; it does not establish runtime quality or release readiness.
+
+### Planning validation receipt
+
+- Source context: `c4a9487350c6739de54bcc2737dd2a972223243f` on `develop` with unrelated application work in progress.
+- Validated artifact scope: this hub's new comparison report and updated plan/spec/eval/status documents.
+- Checked on 2026-10-04 at approximately 23:40–23:42 UTC against the dirty planning files; no commit-attributed implementation receipt.
+- `bun run check --plan -- --intent diagnose --changed .plans/active/test-budget-and-ci-speed/plan.todo.md,.plans/active/test-budget-and-ci-speed/spec.md,.plans/active/test-budget-and-ci-speed/eval.md,.plans/active/test-budget-and-ci-speed/status.json,.plans/active/test-budget-and-ci-speed/reports/2026-10-04-software-factory-comparison.md --json`: exit 0; sensitive planning scope, ready, no execution checks selected. This renders a plan only.
+- `node scripts/quality/check-guidance-links.mjs --base HEAD`: exit 0; 77 guidance files passed.
+- `node scripts/quality/check-immutable-plan-reports.mjs --base HEAD`: exit 0; existing dated reports unchanged.
+- Read-only local Markdown-link probe: 61 links/anchors across report, plan, spec, and eval passed. Status JSON parsed; prior lane states, execution status, notes/history, and linked files were preserved.
+- `git diff --check -- .plans/active/test-budget-and-ci-speed/plan.todo.md .plans/active/test-budget-and-ci-speed/spec.md .plans/active/test-budget-and-ci-speed/eval.md .plans/active/test-budget-and-ci-speed/status.json`: exit 0. The separate untracked-report command, `git diff --no-index --check -- /dev/null .plans/active/test-budget-and-ci-speed/reports/2026-10-04-software-factory-comparison.md`, exited 3 for three intentional Markdown hard-break spaces on metadata lines 3–5; no substantive document fault was reported.
+- `node scripts/harness/plan-hub.mjs validate`: exit 1 because the unrelated in-progress `.plans/active/agent-messaging-channels` directory lacks `status.json`. Repository-wide hub validation remains blocked; that directory was not edited. The narrower checks above do not replace full hub validation.
+- Browser proof: none; no UI code changed.
+
+## Historical checkpoint — 2026-09-28 (snapshot 08 follow-up, local)
 
 Items 2, 3, 5, 6 and 7 of scorecard snapshot 08 (D10) are eight local commits on `develop`,
 `1a3afcb52..f156aef6c`, not pushed. The
@@ -403,3 +463,17 @@ Refresh coverage before enforcing floors. Nightly directory rows are starting ev
 Snapshot 06 follows selected merges. Recover the original measurement/fault methods where possible; otherwise describe a new panel and do not claim like-for-like fault-score improvement. Record skips, superseded targets and deferred isolation. External republishing requires authorization.
 
 Implementation handoffs record tested SHA, UTC time, exact commands, validated paths, clean path-scoped worktree identity, results and remaining manual evidence. Use required RED/GREEN proof for changed behavior; use not_applicable with a reason for pure test/documentation refactors. Current-head CI is required for readiness. Close through the existing plan-skill procedure after delivery; give unresolved obligations explicit destinations.
+
+## Software Factory remaining-work checkpoint — 2026-10-05
+
+SF05–SF08 and SF12 meet local acceptance. The selected QA gate passed all seven checks: 378
+tooling tests, 333 fixture tests and four Chromium scenarios with no skips/retries. Closing
+selector/runner proof passed 115 tests, final fixtures 333, and formatting plus supplemental
+Oxlint passed. The fifth-batch handoff records the exact commands, dirty source identity,
+negative controls and evidence limits. Browser cost observations are individual runs under
+contention, not p50/p90 or comparative productivity measurements.
+
+SF10's actual Claude Desktop observation and SF13's ordinary-task and routine-dispatch proof
+remain with the existing architecture pilot. The unrelated incomplete agent-messaging-channels
+hub still prevents repository-wide Plan Hub validation. No publication or current-head GitHub
+CI result is claimed. See [remaining implementation evidence](handoffs/software-factory-batch-5.md).

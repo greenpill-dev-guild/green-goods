@@ -13,6 +13,7 @@ import {
   EditorialMediaCardSkeleton,
 } from "./atoms";
 import { PublicGardenCard } from "./PublicGardenCard";
+import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
 const FEATURED_FALLBACK_LIMIT = 4;
 const PLACEHOLDER_BANNER = "/images/no-image-placeholder.png";
@@ -79,7 +80,7 @@ function pickFeatured(
  */
 export function PublicFeaturedGardens() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
   const [failedImageKeys, setFailedImageKeys] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -136,6 +137,11 @@ export function PublicFeaturedGardens() {
                 />
               </div>
             ))}
+          </div>
+        ) : isError && gardens.length === 0 ? (
+          // A failed read is not an empty one: the section says so and offers the read again.
+          <div role="alert">
+            <PublicReadUnavailable className="mt-10" onRetry={() => void refetch()} />
           </div>
         ) : featured.length === 0 ? (
           <p className="mt-10 max-w-md text-sm text-text-sub-600">

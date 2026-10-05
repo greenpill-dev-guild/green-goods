@@ -1,4 +1,5 @@
 import { extractErrorMessage } from "./extract-message";
+import { wrongWalletNetwork } from "./wallet-network-refusal";
 
 export type TxErrorKind =
   | "cancelled"
@@ -56,23 +57,6 @@ const NETWORK_PATTERNS = [
   "failed to fetch",
   "econnrefused",
   "disconnected",
-];
-
-const WRONG_CHAIN_PATTERNS = [
-  "walletchainmismatch",
-  "chainmismatch",
-  "chain mismatch",
-  "connectorchainmismatch",
-  "wrong chain",
-  "wrong network",
-  "wallet network",
-  "switch your wallet",
-  "switch wallet",
-  "switch network",
-  "unsupported chain",
-  "chain not configured",
-  "network switch rejected",
-  "network switch already pending",
 ];
 
 const TIMEOUT_PATTERNS = ["timeout", "timed out", "deadline exceeded"];
@@ -220,7 +204,7 @@ export function classifyTxError(error: unknown): TxErrorView {
     };
   }
 
-  if (includesAny(normalizedMessage, WRONG_CHAIN_PATTERNS)) {
+  if (wrongWalletNetwork(rawMessage)) {
     return {
       kind: "wrongChain",
       severity: "error",

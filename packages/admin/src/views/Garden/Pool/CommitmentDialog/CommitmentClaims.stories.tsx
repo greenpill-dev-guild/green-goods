@@ -50,7 +50,7 @@ const meta: Meta<typeof CommitmentClaims> = {
     docs: {
       description: {
         component:
-          "Who asked to take a promise up (PRD-1025 D4), where a Waiting for approval row opens: each ask named the way the steward knows the person, when they asked and for whom, and, on a request, what they already hold in this pool and have kept. Approve stays one click and its progress takes the pair's place; Decline… asks for a reason and closes that ask only. Decided asks stay listed with their outcome. The same file carries the roster of who is on the record and the standing each of them holds.",
+          "Who asked to take a promise up (PRD-1025 D4), where a Review Promises row opens: each ask named the way the steward knows the person, when they asked and for whom, and, on a request, what they already hold in this pool and have kept. Approve stays one click and its progress takes the pair's place; Decline… asks for a reason and closes that ask only. Decided asks stay listed with their outcome. The same file carries the roster of who is on the record and the standing each of them holds.",
       },
     },
   },

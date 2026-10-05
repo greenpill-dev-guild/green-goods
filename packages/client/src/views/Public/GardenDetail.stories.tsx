@@ -4,7 +4,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { PUBLIC_HISTORY_PAGE_SIZE } from "@green-goods/shared/commitment-pooling/public";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
 import PublicShell from "../../routes/PublicShell";
@@ -33,7 +33,7 @@ function seeded(description: string, location = "Austin", name = "Community Gard
           bannerImage: FIXTURE_IMAGE_BANNER,
         },
         fieldNotes: [],
-        contributors: [],
+        gardenerCount: 0,
         assessmentCount: 0,
         totalFieldNotes: 0,
         partialData: false,
@@ -60,6 +60,10 @@ function seeded(description: string, location = "Austin", name = "Community Gard
     ],
   ]);
 }
+
+// The hero's card rises in on arrival (editorial.css), so its content is not visible on the
+// first frame. A check on hero content waits for the entrance instead of racing it.
+const HERO_ENTRANCE = { timeout: 3000 };
 
 const meta = {
   title: "Client/Public/GardenDetail/Description",
@@ -90,7 +94,7 @@ export const NotFound: Story = {
         {
           garden: null,
           fieldNotes: [],
-          contributors: [],
+          gardenerCount: 0,
           assessmentCount: 0,
           totalFieldNotes: 0,
           partialData: false,
@@ -103,7 +107,10 @@ export const NotFound: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const hero = await canvas.findByRole("region", { name: "Garden not found" });
-    await expect(within(hero).getByRole("heading", { level: 1 })).toBeVisible();
+    await waitFor(
+      () => expect(within(hero).getByRole("heading", { level: 1 })).toBeVisible(),
+      HERO_ENTRANCE
+    );
     await expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
     const explore = canvas.getByRole("region", { name: "Find a garden to explore" });
     await expect(within(explore).getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
@@ -167,7 +174,7 @@ export const LongLocation: Story = {
     const title = within(hero).getByRole("heading", { level: 1 });
     const location = within(hero).getByText("Santa Teresa, Rio de Janeiro, Brasil");
     const archive = canvas.getByRole("link", { name: "All Gardens" });
-    await expect(location).toBeVisible();
+    await waitFor(() => expect(location).toBeVisible(), HERO_ENTRANCE);
     await expect(location.getBoundingClientRect().top).toBeGreaterThanOrEqual(
       title.getBoundingClientRect().bottom
     );

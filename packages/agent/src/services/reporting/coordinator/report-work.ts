@@ -3,6 +3,7 @@ import {
   applyReportChanges,
   type FieldChange,
   type FieldProvenance,
+  outstandingFieldQuestions,
   reconcileDetailsWithAction,
   type ReportContent,
 } from "@green-goods/shared/modules/agent-reporting";
@@ -11,7 +12,7 @@ import type { DraftRecord } from "../drafts";
 import type { InterpretationResult } from "../interpretation";
 import { type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
 import { commitContentChange } from "./draft-commit";
-import { type CatalogView, promptNextStep } from "./prompting";
+import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -166,6 +167,17 @@ export function finish(
         sourceEventId: writer.ctx.event.id,
       })
     : draft;
+  // An activity just adopted: say how many questions follow, the count each one is numbered against.
+  if (draft.content.actionUID === null && next.content.actionUID !== null && next.snapshot) {
+    const remaining = outstandingFieldQuestions(next.content, next.snapshot).length;
+    if (remaining > 0) {
+      writer.say(remaining === 1 ? "report.actionAdoptedOne" : "report.actionAdoptedMany", {
+        action: next.snapshot.definition.title,
+        garden: gardenLabel(writer.core.gardens, next.content.garden?.address),
+        count: remaining,
+      });
+    }
+  }
   promptNextStep(writer, next, external.catalog);
   return next;
 }

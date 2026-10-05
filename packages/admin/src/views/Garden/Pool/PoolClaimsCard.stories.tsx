@@ -73,7 +73,7 @@ const meta: Meta<typeof PoolClaimsCard> = {
     docs: {
       description: {
         component:
-          "Waiting for approval (PRD-1025), at the top of the Pool tab's right column: everyone asking to take up a request or an offer. It is always there, one quiet line when nothing waits. Each row is two lines, who and when, then what for, with Decline… and Approve on the right; the row opens its promise. Pressing Approve puts the act's progress in the pair's place, then the outcome, which stays until the steward leaves the tab, and approving one closes the others on the same promise. A failure brings the pair back as Try Again, and a new ask joins the end marked New.",
+          "Review Promises (PRD-1025, named by DL-077), at the top of the Promises tab's right column: everyone asking to take up a request or an offer. It is always there, one quiet line when nothing waits. Each row is two lines, who and when, then what for, with Decline… and Approve on the right; the row opens its promise. Pressing Approve puts the act's progress in the pair's place, then the outcome, which stays until the steward leaves the tab, and approving one closes the others on the same promise. A failure brings the pair back as Try Again, and a new ask joins the end marked New.",
       },
     },
   },

@@ -50,7 +50,8 @@ export function CommunityMembersTab({
 }: CommunityMembersTabProps) {
   const { formatMessage } = useIntl();
   const [roleFilter, setRoleFilter] = useState<GardenRole | "all">("all");
-  const hasValidGardenAddress = isAddress(garden.id);
+  const gardenAddress = garden.id;
+  const hasValidGardenAddress = isAddress(gardenAddress);
   const gardenRouteContext = { gardenId: garden.id };
   const filteredDirectory = useMemo(
     () =>
@@ -74,7 +75,7 @@ export function CommunityMembersTab({
       <div className="garden-tab-layout">
         <div className="garden-tab-main">
           {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={garden.id} />
+            <CommunityJoinRequests gardenAddress={gardenAddress} />
           ) : null}
           <AdminCard variant="elevated" className="@container space-y-4">
             <div>

@@ -5,6 +5,7 @@ import {
 import type { ReportingChain } from "./chain";
 import { currentConfirmation } from "./confirmations";
 import { issueContinuation } from "./continuations";
+import { accountLink } from "./coordinator/account-steps";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";
@@ -87,6 +88,12 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
             garden: gardenLabel(core.gardens, garden.address),
             account: account.address,
             token: prompt.token,
+            instruction: out.text(
+              out.usesButtons()
+                ? "publish.consentButtonInstruction"
+                : "publish.consentCodeInstruction",
+              { token: prompt.token }
+            ),
           })
       );
     });
@@ -100,11 +107,46 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
   }
   if (!roles.gardener && !roles.operator) {
-    inTransaction(core.db, () =>
-      writer()?.say("publish.roleMissing", {
-        garden: gardenLabel(core.gardens, garden.address),
-      })
-    );
+    // The Community Garden can be joined, whatever other gardens the account is in, while the
+    // chain would accept the join. Any other garden, or this one closed or full, needs a steward.
+    let joinable = false;
+    if (core.settings.communityGarden?.toLowerCase() === garden.address.toLowerCase()) {
+      try {
+        joinable = await deps.chain.gardenAcceptsJoin(
+          garden.chainId,
+          garden.address,
+          account.address
+        );
+      } catch {
+        return { status: "retry", errorCode: "dependency_unavailable", delayMs: 30_000 };
+      }
+    }
+    inTransaction(core.db, () => {
+      const out = writer();
+      if (!out) return;
+      if (joinable && out.target.binding) {
+        out.ask(
+          {
+            subjectKind: "draft",
+            resourceId: draft.id,
+            resourceRevision: draft.revision,
+            kind: "join_community",
+            options: [{ id: "joined", label: out.text("link.joined"), value: "retry" }],
+          },
+          () => out.text("link.joinCommunityQuestion"),
+          {
+            url: accountLink(
+              out,
+              out.target.binding as NonNullable<typeof out.target.binding>,
+              account.address
+            ),
+            label: out.text("link.joinCommunityLabel"),
+          }
+        );
+      } else {
+        out.say("publish.roleMissing", { garden: gardenLabel(core.gardens, garden.address) });
+      }
+    });
     return done;
   }
 
@@ -118,10 +160,30 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
           gardenAddress: garden.address,
         })
       : null;
-  const usable =
-    grant && grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() }) === null;
+  const unusable = grant
+    ? grantUsability(grant, { identityEpoch: epoch, now: core.clock.now() })
+    : null;
+  // The gas one more report would reserve, from the same approved module the executor reserves
+  // by. A permission approved under a smaller reservation can run out of gas before its count.
+  const reservation =
+    deps.delegationModules.find((entry) => entry.chainId === core.settings.chainId)
+      ?.measuredGasUnitsPerSubmission ?? 0;
+  const outOfGas =
+    grant !== null && grant.gasReserved + grant.gasConsumed + reservation > grant.gasCap;
+  // A permission that is paused or used up stays this garden's one live permission until it
+  // ends, so another cannot be approved yet. Offering one would lead nowhere: the owner signs.
+  const spent =
+    grant?.state === "paused" || unusable === "epoch_changed"
+      ? "grant.paused"
+      : unusable === "exhausted" || (unusable === null && outOfGas)
+        ? "grant.spent"
+        : null;
   const mode =
-    account.kind === "eoa" || !delegationReady ? "owner" : usable ? "delegated" : "grant_choice";
+    account.kind === "eoa" || !delegationReady || spent
+      ? "owner"
+      : unusable === null && grant !== null
+        ? "delegated"
+        : "grant_choice";
 
   inTransaction(core.db, () => {
     const current = loadDraft(core, draft.id);
@@ -130,6 +192,7 @@ export async function resolveAuthority(deps: AuthorityDeps, job: ClaimedJob): Pr
     commitLifecycle(core, current, [{ type: "AUTHORITY_ESTABLISHED", mode }], {
       participantAction: false,
     });
+    if (spent) writer()?.say(spent);
     if (mode === "grant_choice") {
       const out = writer();
       out?.ask(

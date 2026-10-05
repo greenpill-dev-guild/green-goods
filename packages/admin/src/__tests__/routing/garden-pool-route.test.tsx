@@ -26,7 +26,7 @@ describe("/garden/pool", () => {
       ":commitmentId",
     ]);
     // Every pool route renders through the Garden workspace view, the way the
-    // hypercert inspector does, so the Pool tab and its dialogs share one shell.
+    // hypercert inspector does, so the Promises tab and its dialogs share one shell.
     const gardenLazy = lazyOf(findRoute(["garden", "health"]));
     expect(lazyOf(pool)).toBe(gardenLazy);
     expect(findRoute(["garden", "pool", "seed"])?.lazy).toBe(gardenLazy);
