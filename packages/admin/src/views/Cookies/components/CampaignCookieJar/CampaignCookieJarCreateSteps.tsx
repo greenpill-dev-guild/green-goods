@@ -1,8 +1,8 @@
+import type { ReactNode } from "react";
 import type { IntlShape } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
-import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { CampaignAdvancedSection } from "./CampaignAdvancedSection";
 import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
@@ -88,9 +88,15 @@ function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProp
 export function CampaignCreateStepBody({
   step,
   form,
+  status,
+  outcome,
 }: {
   step: ActionFlowStep;
   form: CampaignCookieJarCreateFormProps;
+  /** Where the Review's send stands. */
+  status: FlowSendStatus;
+  /** What the send made, once it landed. */
+  outcome?: ReactNode;
 }) {
   return (
     <div className="space-y-4">
@@ -101,80 +107,11 @@ export function CampaignCreateStepBody({
       {step.id === "gardens" ? <CampaignGardenSection {...form} /> : null}
       {step.id === "review" ? (
         <>
-          <CampaignCreateReview {...form} />
-          <CampaignAdvancedSection {...form} />
+          <CampaignCreateReview {...form} status={status} outcome={outcome} />
+          {/* Advanced changes what Create sends, so it goes once the jar exists. */}
+          {status.phase === "sent" ? null : <CampaignAdvancedSection {...form} />}
         </>
       ) : null}
-    </div>
-  );
-}
-
-/** Cancel or Back, then Next or Create Cookie Jar, with progress while it sends. */
-export function CampaignCreateFooter({
-  formatMessage,
-  isFirstStep,
-  isLastStep,
-  pending,
-  canCreate,
-  onCancel,
-  onBack,
-  onNext,
-  onCreate,
-}: {
-  formatMessage: IntlShape["formatMessage"];
-  isFirstStep: boolean;
-  isLastStep: boolean;
-  pending: boolean;
-  canCreate: boolean;
-  onCancel: () => void;
-  onBack: () => void;
-  onNext: () => void;
-  onCreate: () => void;
-}) {
-  const createLabel = formatMessage({
-    id: "cockpit.community.cookies.create",
-    defaultMessage: "Create Cookie Jar",
-  });
-  return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="min-w-0 sm:flex-1" aria-live="polite">
-        {pending ? <AdminLinearProgress ariaLabel={createLabel} /> : null}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
-          type="button"
-          variant={isFirstStep ? "text" : "outlined"}
-          onClick={isFirstStep ? onCancel : onBack}
-          disabled={pending}
-          className="self-start sm:self-auto"
-        >
-          {isFirstStep
-            ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
-            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        {isLastStep ? (
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={onCreate}
-            loading={pending}
-            disabled={!canCreate || pending}
-            className="w-full sm:w-auto"
-          >
-            {createLabel}
-          </AdminButton>
-        ) : (
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={onNext}
-            disabled={pending}
-            className="w-full sm:w-auto"
-          >
-            {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-          </AdminButton>
-        )}
-      </div>
     </div>
   );
 }

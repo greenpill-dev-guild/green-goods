@@ -25,8 +25,9 @@ function PendingHypercertRouteGuard({ active }: { active: boolean }) {
 // Create Hypercert is a create/commit flow rendered as a centered flow AdminDialog
 // (full-width bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS), same as Submit Work
 // and Create Assessment. The wizard owns its own ActionFlowShell chrome (header +
-// scrolling steps + pinned actions); the AdminDialog close button is the exit
-// (→ controller handleCancel).
+// scrolling steps + pinned actions) and ends on its Review, where the mint shows in
+// place and a confirmed mint leaves Done (DL-080). The AdminDialog close button is
+// the exit (→ controller handleCancel, which opens a minted hypercert's record).
 export default function CreateHypercert() {
   const { formatMessage } = useIntl();
   const createHypercert = useCreateHypercertController();
@@ -65,6 +66,7 @@ export default function CreateHypercert() {
         gardenName={createHypercert.garden.name}
         onCancel={createHypercert.handleCancel}
         onComplete={createHypercert.handleComplete}
+        onDone={createHypercert.handleDone}
       />
     );
   }

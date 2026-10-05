@@ -214,6 +214,15 @@ describe("the flow footers", () => {
     expect(handlers.onDone).toHaveBeenCalledTimes(1);
   });
 
+  it("hold only the act while what it would send is incomplete", () => {
+    const handlers = sendFooter({ sendDisabled: true });
+
+    expect(screen.getByRole("button", { name: "Submit Assessment" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Submit Assessment" }));
+    expect(handlers.onSend).not.toHaveBeenCalled();
+  });
+
   it("go back and on before the Review, and wait while work outside the send runs", () => {
     const handlers = sendFooter({ stepIndex: 0, isLast: false, held: true });
 

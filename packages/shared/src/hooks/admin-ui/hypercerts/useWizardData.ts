@@ -68,7 +68,13 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const wizardExternalUrl = useHypercertWizardStore((s) => s.externalUrl);
   const wizardDraftId = useHypercertWizardStore((s) => s.draftId);
 
-  const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
+  const {
+    currentStep,
+    nextStep,
+    previousStep: workflowPreviousStep,
+    setStep: workflowSetStep,
+    canProceed,
+  } = useCreateHypercertWorkflow();
 
   const { attestations, isLoading, hasError } = useHypercertAttestations(gardenId);
   const { data: assessments } = useGardenAssessments(gardenId);
@@ -95,6 +101,24 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   }, [selectedAssessment, updateMetadata]);
 
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
+
+  // A failed mint stays on the Review, where Try Again resumes it from its last
+  // finished stage. Leaving the Review to change an answer drops that attempt,
+  // so the next Mint sends the answers as they then stand.
+  const leaveFailedMint = useCallback(() => {
+    if (mintingState.status === "failed") cancel();
+  }, [cancel, mintingState.status]);
+  const previousStep = useCallback(() => {
+    leaveFailedMint();
+    workflowPreviousStep();
+  }, [leaveFailedMint, workflowPreviousStep]);
+  const setStep = useCallback(
+    (step: number) => {
+      leaveFailedMint();
+      workflowSetStep(step);
+    },
+    [leaveFailedMint, workflowSetStep]
+  );
 
   // Track if the steward has made changes worth protecting.
   const { isDirty, isPristine } = useMemo(
@@ -336,10 +360,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const steps = useWizardSteps(formatMessage);
 
   const nextDisabled = !(canProceed?.(currentStep) ?? false);
-  const submitLabel =
-    mintingState.status === "failed"
-      ? formatMessage({ id: "app.hypercerts.mint.retry" })
-      : formatMessage({ id: "app.hypercerts.mint.submit" });
 
   const validationMessage = useValidationMessage({
     currentStep,
@@ -428,7 +448,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     retry,
     isSubmitting,
     nextDisabled,
-    submitLabel,
     validationMessage,
 
     // Navigation guards

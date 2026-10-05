@@ -65,6 +65,8 @@ export interface FlowSendFooterProps {
   note?: ReactNode;
   /** Next is held: the step has nothing chosen yet. */
   nextDisabled?: boolean;
+  /** The Review's primary is held: what it would send is not complete; `note` says why. */
+  sendDisabled?: boolean;
   /** Work outside the send is under way (media still preparing), so every button waits. */
   held?: boolean;
   /** Starts an empty flow from the done state. Left out where the flow makes one thing only. */
@@ -92,6 +94,7 @@ export function FlowSendFooter({
   sendButtonProps,
   note,
   nextDisabled = false,
+  sendDisabled = false,
   held = false,
   another,
   onCancel,
@@ -180,7 +183,7 @@ export function FlowSendFooter({
           variant="filled"
           onClick={onSend}
           loading={phase === "sending"}
-          disabled={waiting}
+          disabled={waiting || sendDisabled}
           className="w-full sm:w-auto"
         >
           {phase === "failed"
