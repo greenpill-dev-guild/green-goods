@@ -40,7 +40,7 @@ const meta: Meta<typeof StrategyKernelStep> = {
     docs: {
       description: {
         component:
-          "Assessment wizard step 2. Diagnosis, SMART outcomes (repeater), and Cynefin phase selector. Every control sits on the step's own edges, and Add Outcome stays in the section's title row. Writes to the persisted Zustand store.",
+          "Assessment wizard step 2. Diagnosis, SMART outcomes (repeater), and Cynefin phase selector. Every control sits on the step's own edges, and Add Outcome stays in the section's title row. Each outcome row says under its fields what they hold: the change, what is counted, and how much (DL-079). Writes to the persisted Zustand store.",
       },
     },
   },
@@ -101,7 +101,10 @@ export const WithValidationErrors: Story = {
   ],
 };
 
-/** Three outcomes: each is one line of Outcome, Metric and Target, with Remove at its end. */
+/**
+ * Three outcomes: each is one line of Outcome, Metric and Target, with Remove at its end. An
+ * outcome names a change in people or land, and its count sits in Metric and Target (DL-079).
+ */
 export const Prefilled: Story = {
   decorators: [
     (Story) => (
@@ -110,9 +113,17 @@ export const Prefilled: Story = {
           domain: Domain.AGRO,
           diagnosis: RESTORATION_DIAGNOSIS,
           smartOutcomes: [
-            { description: "Plant native seedlings", metric: "treesPlanted", target: 200 },
-            { description: "Restore contiguous corridor", metric: "areaCoveredHa", target: 5 },
-            { description: "Bring back native species", metric: "speciesCount", target: 12 },
+            {
+              description: "Native forest grows back on the degraded pasture",
+              metric: "treesPlanted",
+              target: 200,
+            },
+            {
+              description: "The corridor is one habitat again",
+              metric: "areaCoveredHa",
+              target: 5,
+            },
+            { description: "More native species live here", metric: "speciesCount", target: 12 },
           ],
           cynefinPhase: CynefinPhase.COMPLEX,
         }}
@@ -134,7 +145,11 @@ export const SubmittingState: Story = {
           domain: Domain.SOLAR,
           diagnosis: "Rural households rely on diesel generators averaging 4h/day.",
           smartOutcomes: [
-            { description: "Install rooftop solar", metric: "panelsInstalled", target: 50 },
+            {
+              description: "Households in the neighbourhood have reliable power after dark",
+              metric: "householdsServed",
+              target: 50,
+            },
           ],
           cynefinPhase: CynefinPhase.COMPLICATED,
         }}

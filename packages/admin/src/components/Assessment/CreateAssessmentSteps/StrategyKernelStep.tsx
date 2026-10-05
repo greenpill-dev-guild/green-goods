@@ -295,7 +295,8 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         })}
         description={formatMessage({
           id: "app.admin.assessment.strategyKernel.smartOutcomesDescription",
-          defaultMessage: "Each target needs a metric and a number (SMART outcomes)",
+          defaultMessage:
+            "Each outcome needs a metric and a target for the end of the reporting period (SMART outcomes)",
         })}
         action={
           <AdminButton
@@ -336,12 +337,16 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   })}
                   placeholder={formatMessage({
                     id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
-                    defaultMessage: "What this outcome achieves...",
+                    defaultMessage: "A sentence about people or land",
                   })}
                   disabled={isSubmitting}
                   value={outcome.description}
                   onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
                   error={(showValidation && outcomeErrors[index]?.description) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.outcomeHelp",
+                    defaultMessage: "The change you want to see",
+                  })}
                 />
 
                 <AdminSelect
@@ -354,6 +359,10 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   value={outcome.metric}
                   onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
                   error={(showValidation && outcomeErrors[index]?.metric) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.metricHelp",
+                    defaultMessage: "What you'll count",
+                  })}
                 >
                   <option value="">
                     {formatMessage({
@@ -385,6 +394,10 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   value={String(outcome.target)}
                   onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
                   error={(showValidation && outcomeErrors[index]?.target) || undefined}
+                  helperText={formatMessage({
+                    id: "app.admin.assessment.strategyKernel.targetHelp",
+                    defaultMessage: "How much",
+                  })}
                   inputProps={{ min: 0, step: "any" }}
                 />
 
