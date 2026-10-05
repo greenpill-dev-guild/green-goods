@@ -44,7 +44,6 @@ function renderFab(primary: FabAction, ...rest: FabAction[]) {
     <IntlProvider locale="en" messages={enMessages}>
       <FabButton
         config={{
-          icon: primary.icon,
           label: "Community actions",
           actions: [primary, ...rest],
           onAction: vi.fn(),

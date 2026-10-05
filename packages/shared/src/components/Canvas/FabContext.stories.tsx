@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { RiAddLine, RiLeafLine } from "@remixicon/react";
+import { RiLeafLine } from "@remixicon/react";
 import { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
 
 function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
@@ -7,7 +7,6 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
     hidden
       ? null
       : {
-          icon: RiAddLine,
           label: "Create",
           actions: [
             {

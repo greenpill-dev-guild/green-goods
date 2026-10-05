@@ -117,7 +117,7 @@ describe("NavigationBar", () => {
           slots={slots}
           activePath="/hub"
           onNavigate={vi.fn()}
-          fab={{ icon: () => null, label: "Hub", actions: [], onAction: vi.fn() }}
+          fab={{ label: "Hub", actions: [], onAction: vi.fn() }}
         />
       </IntlProvider>
     );

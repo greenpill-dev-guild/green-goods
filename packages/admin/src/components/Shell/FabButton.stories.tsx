@@ -14,9 +14,9 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { FabButton } from "./FabButton";
 
-/** A config as `useViewActions` builds it: the primary first, lending its icon and label. */
+/** A config as `useViewActions` builds it: the primary first, lending its label. */
 function fabConfig(primary: FabAction, ...rest: FabAction[]): FabConfig {
-  return { icon: primary.icon, label: primary.label, actions: [primary, ...rest], onAction: fn() };
+  return { label: primary.label, actions: [primary, ...rest], onAction: fn() };
 }
 
 const addMember: FabAction = {
@@ -230,7 +230,6 @@ export const DisabledActionSaysWhy: Story = {
 export const SingleActionLabelMismatch: Story = {
   args: {
     config: {
-      icon: RiCheckboxCircleLine,
       // Deliberately different from the translated action label below.
       label: "Create",
       actions: [

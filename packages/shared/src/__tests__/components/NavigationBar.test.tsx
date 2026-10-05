@@ -395,7 +395,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
       label: "Actions",
       actions: [
         {
@@ -448,7 +447,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
       label: "Actions",
       actions: [
         {
@@ -493,7 +491,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
       label: "Actions",
       actions: [
         {
@@ -529,7 +526,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
       label: "Actions",
       actions: [
         {
@@ -576,7 +572,6 @@ describe("NavigationBar", () => {
   it("bounds the FAB launcher inside the mobile visual viewport", async () => {
     setDesktopViewport(false);
     const fab: FabConfig = {
-      icon: StubIcon,
       label: "Actions",
       actions: [
         {

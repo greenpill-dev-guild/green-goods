@@ -1,5 +1,4 @@
 import {
-  RiAddLine,
   RiClipboardLine,
   RiFlashlightLine,
   RiLeafLine,
@@ -49,7 +48,6 @@ const actionsSlot: ToolbarSlot = {
 const primarySlots: ToolbarSlot[] = [workSlot, gardenSlot, communitySlot, actionsSlot];
 
 const submitWorkFab = {
-  icon: RiAddLine,
   label: "Create",
   actions: [
     {
@@ -66,7 +64,6 @@ const submitWorkFab = {
 // dial. The primary action lives only inside the dial (never duplicated on the
 // collapsed button).
 const speedDialFab = {
-  icon: RiAddLine,
   label: "Create",
   actions: [
     {

@@ -1,11 +1,10 @@
-import { RiAddLine, RiHandCoinLine, RiLeafLine, RiUserAddLine } from "@remixicon/react";
+import { RiHandCoinLine, RiLeafLine, RiUserAddLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import type { FabConfig } from "./NavigationBar";
 import { FabButton } from "./NavigationBarFab";
 
 const communityActions: FabConfig = {
-  icon: RiAddLine,
   label: "Community actions",
   actions: [
     {
@@ -77,7 +76,6 @@ export const SpeedDial: Story = {
 export const SingleAction: Story = {
   args: {
     config: {
-      icon: RiLeafLine,
       label: "Create",
       actions: [
         {

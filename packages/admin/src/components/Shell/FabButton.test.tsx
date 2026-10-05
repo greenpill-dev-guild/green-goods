@@ -20,7 +20,6 @@ import { FabButton } from "./FabButton";
 
 function renderFab(onAction = vi.fn()) {
   const config: FabConfig = {
-    icon: RiUserAddLine,
     label: "Community actions",
     actions: [
       {
@@ -79,7 +78,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            icon: RiHandCoinLine,
             label: "Community actions",
             actions: [
               {
@@ -128,7 +126,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            icon: RiUserAddLine,
             label: "Community actions",
             actions: [
               {
@@ -166,7 +163,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            icon: RiHandCoinLine,
             label: "Community actions",
             actions: [
               {

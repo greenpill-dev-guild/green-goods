@@ -66,7 +66,6 @@ export function useViewActions({
     if (!primary) return null;
 
     return {
-      icon: primary.icon,
       label: primary.label,
       // Speed-dial: the primary sits nearest the FAB trigger (first here →
       // bottom of the upward stack via flex-col-reverse), mirroring the desktop
