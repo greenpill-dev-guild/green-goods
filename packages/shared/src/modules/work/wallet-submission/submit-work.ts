@@ -3,7 +3,7 @@ import {
   WorkTransactionReverted,
   reconcileWorkTransaction,
 } from "../work-confirmation";
-import type { Address } from "viem";
+import { type Address, type Log, parseEventLogs } from "viem";
 import { getAccount, getWalletClient } from "@wagmi/core";
 import type { WorkDraft } from "../../../types/domain";
 import type { EASWork } from "../../../types/eas-responses";
@@ -18,6 +18,7 @@ import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/loc
 import type { WorkUploadCheckpoint } from "../../../types/work-media";
 import { createSendChainReads, intentHead } from "../../job-queue/send-chain-reads";
 import { logger } from "../../app/logger";
+import { EASABI } from "../../../utils/blockchain/contracts";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
 import { buildWorkAttestTx } from "../../../utils/eas/transaction-builder";
@@ -30,6 +31,26 @@ import {
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
 import { TransactionRevertedError, waitForReceiptWithTimeout } from "./receipt";
+
+/** The id of the work attestation a confirmed send made for this garden, read from its receipt. */
+function attestedWorkUID(
+  logs: Log[] | undefined,
+  chainId: number,
+  gardenAddress: Address
+): string | undefined {
+  const eas = getEASConfig(chainId);
+  const attested = parseEventLogs({ abi: EASABI, eventName: "Attested", logs: logs ?? [] }).find(
+    (log) => {
+      const args = log.args as { recipient?: string; schemaUID?: string };
+      return (
+        log.address.toLowerCase() === eas.EAS.address.toLowerCase() &&
+        args.schemaUID?.toLowerCase() === eas.WORK.uid.toLowerCase() &&
+        args.recipient?.toLowerCase() === gardenAddress.toLowerCase()
+      );
+    }
+  );
+  return (attested?.args as { uid?: string } | undefined)?.uid?.toLowerCase();
+}
 
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -216,34 +237,45 @@ export async function submitWorkDirectly(
   // optimistic cache below covers the gap. A revert is not: the attestation
   // never happened, so surfacing it beats showing the gardener a submission
   // that silently went nowhere.
+  let receipt: Awaited<ReturnType<typeof waitForReceiptWithTimeout>>;
   try {
-    await waitForReceiptWithTimeout(hash, chainId, txTimeout);
+    receipt = await waitForReceiptWithTimeout(hash, chainId, txTimeout);
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
   } catch (err: unknown) {
     if (err instanceof TransactionRevertedError) throw new WorkTransactionReverted(hash);
     throw new AwaitingWorkConfirmation(hash);
   }
 
-  const optimisticWork: EASWork = {
-    id: `optimistic-${hash}`,
-    gardenerAddress: walletClient.account?.address || "",
-    gardenAddress,
-    actionUID,
-    title: workTitle,
-    feedback: draft.feedback || "",
-    metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
-    media: [],
-    createdAt: Math.floor(Date.now() / 1000),
-  };
-
-  queryClient.setQueryData<EASWork[]>(worksKeys.online(gardenAddress, chainId), (old) => [
-    optimisticWork,
-    ...(old || []),
-  ]);
-  queryClient.setQueryData<EASWork[]>(worksKeys.merged(gardenAddress, chainId), (old) => [
-    optimisticWork,
-    ...(old || []),
-  ]);
+  // The row shown until the indexer has the work carries the attestation's own
+  // id, so the indexed work replaces it. Under any other id the two would stay
+  // listed side by side. A receipt that names no such attestation adds no row,
+  // and the work appears once it is indexed.
+  const workUID = attestedWorkUID(receipt.logs, chainId, gardenAddress);
+  const sentWork: EASWork | undefined = workUID
+    ? {
+        id: workUID,
+        gardenerAddress: walletClient.account?.address || "",
+        gardenAddress,
+        actionUID,
+        title: workTitle,
+        feedback: draft.feedback || "",
+        metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
+        media: [],
+        createdAt: Math.floor(Date.now() / 1000),
+      }
+    : undefined;
+  const readKey = worksKeys.online(gardenAddress, chainId);
+  const savedKey = worksKeys.merged(gardenAddress, chainId);
+  /** The read's own row for this work: the indexer has returned it. */
+  const indexed = (work: EASWork) => work !== sentWork && work.id.toLowerCase() === workUID;
+  if (sentWork) {
+    const withSentWork = (old: EASWork[] | undefined) =>
+      old?.some((work) => work.id.toLowerCase() === workUID) ? old : [sentWork, ...(old ?? [])];
+    queryClient.setQueryData<EASWork[]>(readKey, withSentWork);
+    queryClient.setQueryData<EASWork[]>(savedKey, withSentWork);
+  } else {
+    logger.warn("[WalletSubmission] The receipt names no work attestation to list until indexed");
+  }
 
   const userAddress = walletClient.account?.address;
   if (userAddress) {
@@ -256,13 +288,18 @@ export async function submitWorkDirectly(
   onProgress?.("syncing", "Syncing with blockchain...");
 
   await pollQueriesAfterTransaction({
-    queryKeys: [worksKeys.online(gardenAddress, chainId), worksKeys.merged(gardenAddress, chainId)],
+    queryKeys: [readKey, savedKey],
     baseDelay: 1000,
     maxDelay: 4000,
     maxAttempts: 4,
     onAttempt: (attempt, delay) => {
       debugLog(`[WalletSubmission] Polling indexer (attempt ${attempt}, waited ${delay}ms)`);
     },
+    // The indexed work takes the saved row's place under the same id, so neither list
+    // grows when it arrives. The read holding its own row for the work is the sign.
+    ...(sentWork
+      ? { until: () => queryClient.getQueryData<EASWork[]>(readKey)?.some(indexed) ?? false }
+      : {}),
   });
 
   onProgress?.("complete", "Work submitted successfully!");
