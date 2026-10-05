@@ -275,7 +275,6 @@ export type {
   AdminGardenWorkspaceSelection,
   // Assessment hook types
   AssessmentDraftRecord,
-  AssessmentFormData,
   AssessmentStepId,
   // Auth context types
   AuthActionsValue,
@@ -343,7 +342,6 @@ export type {
   TxErrorMessages,
   UseAnalyticsIdentityOptions,
   UseAssessmentDraftResult,
-  UseAssessmentFormReturn,
   UseAttestationsResult,
   UseAudioRecordingOptions,
   UseAudioRecordingReturn,
@@ -384,7 +382,6 @@ export {
   type ArrivalKind,
   type ArrivalState,
   addRecentRecipient,
-  assessmentFormSchema,
   assessmentStepFields,
   buildPublicEndowmentPortfolio,
   CarouselContext,
@@ -393,7 +390,6 @@ export {
   createActionSchema,
   createAssessmentFormSchema,
   createDefaultAssessmentForm,
-  createDefaultAssessmentFormData,
   createDefaultGardenForm,
   creditInvalidationKeys,
   // Garden hooks
@@ -452,7 +448,6 @@ export {
   useArrivalState,
   // Assessment hooks
   useAssessmentDraft,
-  useAssessmentForm,
   // Utility hooks (documented API patterns — keep even with low external usage)
   useAsyncEffect,
   useAsyncSetup,

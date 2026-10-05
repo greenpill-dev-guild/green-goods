@@ -184,7 +184,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     [] // Machine created once — actor reads current values from refs
   );
 
-  const [state, send] = useMachine(machine);
+  const [state, send, actor] = useMachine(machine);
 
   const startCreation = useCallback(
     (params: AssessmentWorkflowParams & { gardenId: Address }) => {
@@ -207,6 +207,17 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       }
 
       send({ type: "START", params });
+      // The machine validates as it starts, and in its invalid state it ignores
+      // the SUBMIT that follows. Answers it refuses are not started, so the
+      // caller can say so; the form should have caught them first.
+      if (actor.getSnapshot().matches("invalid")) {
+        logger.error("The assessment send refused answers the form accepted", {
+          source: "useCreateAssessmentWorkflow",
+          startDate: params.startDate,
+          endDate: params.endDate,
+        });
+        return false;
+      }
       // Persist draft to IndexedDB for offline resilience
       void (async () => {
         const savedDraft = await saveDraft(params);
@@ -220,7 +231,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       })();
       return true;
     },
-    [send, saveDraft, draftKey, notifyDraftPersistenceIssue, formatMessage]
+    [send, actor, saveDraft, draftKey, notifyDraftPersistenceIssue, formatMessage]
   );
 
   const retry = useCallback(() => {

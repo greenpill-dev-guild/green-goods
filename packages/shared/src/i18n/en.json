@@ -358,7 +358,7 @@
   "app.admin.actPhase.failed": "It didn’t go through, and nothing changed. You can try again.",
   "app.admin.actPhase.queued": "Queued on this device. Check its status before trying again.",
   "app.admin.actPhase.signing": "Confirm in your wallet.",
-  "app.admin.assessment.actionsHarvest.endAfterStart": "End date must be after start date",
+  "app.admin.assessment.actionsHarvest.endAfterStart": "End date can't be before start date",
   "app.admin.assessment.actionsHarvest.reportingEndHelp": "When does the work period end? All work documented within this window will be aggregated.",
   "app.admin.assessment.actionsHarvest.reportingEndPlaceholder": "Select end date",
   "app.admin.assessment.actionsHarvest.reportingEndRequired": "End date is required",

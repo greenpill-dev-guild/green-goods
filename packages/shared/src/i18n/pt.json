@@ -358,7 +358,7 @@
   "app.admin.actPhase.failed": "Não foi concluído e nada mudou. Podes tentar de novo.",
   "app.admin.actPhase.queued": "Em fila neste dispositivo. Verifica o estado antes de tentares novamente.",
   "app.admin.actPhase.signing": "Confirma na tua carteira.",
-  "app.admin.assessment.actionsHarvest.endAfterStart": "A data final deve vir depois da inicial",
+  "app.admin.assessment.actionsHarvest.endAfterStart": "A data final não pode ser anterior à inicial",
   "app.admin.assessment.actionsHarvest.reportingEndHelp": "Quando termina o período de trabalho? Todo trabalho documentado nessa janela será agregado.",
   "app.admin.assessment.actionsHarvest.reportingEndPlaceholder": "Data final",
   "app.admin.assessment.actionsHarvest.reportingEndRequired": "A data de término é obrigatória",

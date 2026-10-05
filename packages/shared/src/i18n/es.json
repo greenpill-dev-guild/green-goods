@@ -358,7 +358,7 @@
   "app.admin.actPhase.failed": "No se completó y no cambió nada. Puedes intentarlo de nuevo.",
   "app.admin.actPhase.queued": "En cola en este dispositivo. Comprueba su estado antes de volver a intentarlo.",
   "app.admin.actPhase.signing": "Confirma en tu billetera.",
-  "app.admin.assessment.actionsHarvest.endAfterStart": "La fecha final debe ser posterior a la inicial",
+  "app.admin.assessment.actionsHarvest.endAfterStart": "La fecha final no puede ser anterior a la inicial",
   "app.admin.assessment.actionsHarvest.reportingEndHelp": "¿Cuándo termina el periodo de trabajo? Todo el trabajo documentado dentro de esta ventana será agregado.",
   "app.admin.assessment.actionsHarvest.reportingEndPlaceholder": "Fecha final",
   "app.admin.assessment.actionsHarvest.reportingEndRequired": "La fecha de fin es obligatoria",
