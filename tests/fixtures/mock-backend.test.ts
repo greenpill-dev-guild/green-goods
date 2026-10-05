@@ -75,6 +75,31 @@ describe("browser backend contract", () => {
       })
     ).toEqual({ data: { Gardener: [] } });
   });
+  it("accepts the work-link confirmer filter only for the same fixture account", async () => {
+    const mock = transport();
+    await mockClientBackend(mock.page);
+    const account = MOCK_CLIENT_GARDEN.gardeners[0].toLowerCase();
+    const query = "query Commitments { Commitment { id } }";
+    const variables = {
+      chainId: 11155111,
+      account,
+      state: "ACCEPTED",
+      confirmerAccounts: [account],
+    };
+    expect(await mock.request({ query, variables })).toEqual({ data: { Commitment: [] } });
+    for (const confirmerAccounts of [
+      [],
+      [account, account],
+      ["0x0000000000000000000000000000000000000001"],
+    ]) {
+      await expect(
+        mock.request({ query, variables: { ...variables, confirmerAccounts } })
+      ).rejects.toThrow(/confirmerAccounts/);
+    }
+    await expect(
+      mock.request({ query, variables: { ...variables, unexpected: true } })
+    ).rejects.toThrow(/variables/);
+  });
   it("rejects an EAS query for the wrong schema or recipient, even with empty results", async () => {
     const mock = transport();
     await mockClientBackend(mock.page);

@@ -466,10 +466,22 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
             check(allowedAddresses.includes(v.account?.toLowerCase()), `${name} account`);
             check(
               Object.keys(v).every((key) =>
-                ["chainId", "account", ...(name === "Commitments" ? ["state"] : [])].includes(key)
+                [
+                  "chainId",
+                  "account",
+                  ...(name === "Commitments" ? ["state", "confirmerAccounts"] : []),
+                ].includes(key)
               ),
               `${name} variables`
             );
+            if (name === "Commitments" && v.confirmerAccounts !== undefined) {
+              check(
+                Array.isArray(v.confirmerAccounts) &&
+                  v.confirmerAccounts.length === 1 &&
+                  v.confirmerAccounts[0] === v.account,
+                "Commitments confirmerAccounts"
+              );
+            }
             check(v.state === undefined || v.state === "ACCEPTED", `${name} state`);
             data = { [expectedFields[name][0]]: [] };
             break;
