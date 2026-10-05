@@ -195,6 +195,36 @@ test("downstream public-doc authority exits nonzero", () => {
   }
 });
 
+test("a Steward guide page without the guide frontmatter exits nonzero", () => {
+  const root = fixture();
+  try {
+    mkdirSync(path.join(root, "docs/docs/community/steward-guide"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/docs/community/steward-guide/reviewing-work.mdx"),
+      `---
+audience: steward
+owner: engineering
+last_verified: 2026-08-30
+feature_status: Live
+slug: /community/steward-guide/reviewing-work
+source_of_truth:
+  - authority.ts
+---
+# Reviewing work
+`,
+    );
+    writeFileSync(
+      path.join(root, "docs/sidebars.ts"),
+      "export default ['builders/test', 'community/steward-guide/reviewing-work'];\n",
+    );
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /steward-guide\/reviewing-work\.mdx.*Missing required frontmatter field: goal/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("broken redirect fragment exits nonzero", () => {
   const root = fixture();
   try {
