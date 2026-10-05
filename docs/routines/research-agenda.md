@@ -1,6 +1,6 @@
 # Green Goods Research Agenda
 
-**Edition:** v2 · 2026-09-24 · **Owner:** Afo (Research panel: afo, coi, matt)
+**Edition:** v3 · 2026-10-04 · **Owner:** Afo (Research panel: afo, coi, matt)
 **Read by:** the [`research-synthesis`](research-synthesis.md) routine every Saturday 00:00 UTC, and by anyone asking "what are we researching and why".
 **Review cadence:** humans edit this file at each Research (RESR) cycle boundary, roughly monthly. The routine never edits it; it reports **agenda drift** in its weekly memo with ready-to-paste wording, and the panel decides what changes.
 
@@ -280,5 +280,6 @@ These live on the Research team but are not agenda tracks this quarter. The rout
 
 ## Change log
 
+- **v3 · 2026-10-04.** Track 5 only: the WhatsApp operator in the settled list changed from WEFA to Afolabi as a sole proprietor doing business as Green Goods, after the user decision of 2026-10-04 recorded in the Plan Hub. No order, horizon, stage or open question changed; the next Research cycle review still decides those.
 - **v2 · 2026-09-24.** Reconciled completed and canceled research gates with Linear; recorded the Impact Framework sequence, current messaging research gate, and the environmental-data and identity backlog cleanup. The next Research cycle review still decides priorities and dates.
 - **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

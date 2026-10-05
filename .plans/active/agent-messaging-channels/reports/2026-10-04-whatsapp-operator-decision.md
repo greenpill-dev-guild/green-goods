@@ -73,7 +73,7 @@ Read on Meta's own help and policy pages that day. Recheck before relying on any
   [capability record](2026-09-27-reporting-core-capability-record.md) remains its spec.
 
 Outside the hub, track 5 of the [research agenda](../../../../docs/routines/research-agenda.md)
-names the new operator in its settled list.
+names the new operator in its settled list, as edition v3.
 
 ## Still open
 
@@ -85,5 +85,9 @@ names the new operator in its settled list.
 - **The first number.** PRD-942, which covered registering the Twilio number under the account in
   WEFA's portfolio, was closed on 29 September. Whether Meta lets that number be removed from that
   account, or Green Goods takes a new one, is not known.
+- **The support contact.** The technical brief names a mailbox on WEFA's domain as the support
+  route, while the chat and the pages send people to `greengoods.app`. Whether support moves to a
+  Green Goods-controlled address, or the WEFA-hosted mailbox is kept and named in the participant
+  notice, is undecided. Settle it before real tester intake.
 - **Who speaks for Green Goods.** The operator and the project lead are now the same person, so the
   operating memo linked on GROW-60 asks for a second person.
