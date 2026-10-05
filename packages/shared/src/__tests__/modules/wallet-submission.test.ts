@@ -22,6 +22,7 @@ vi.mock("../../config/appkit", () => ({
 vi.mock("../../config/blockchain", () => ({
   getEASConfig: () => ({
     EAS_CONTRACT: "0xEASAddress",
+    EAS: { address: "0x" + "e".repeat(40) },
     WORK: { uid: "0x" + "1".repeat(64) },
     WORK_APPROVAL: { uid: "0x" + "2".repeat(64) },
   }),
@@ -113,8 +114,12 @@ vi.mock("../../config/query-keys", () => ({
 }));
 
 import * as wagmiCore from "@wagmi/core";
-import type { WalletClient } from "viem";
+import { encodeEventTopics, type WalletClient } from "viem";
+import { worksKeys } from "../../config/query-keys/work";
+import { queryClient } from "../../config/react-query";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
+import type { EASWork } from "../../types/eas-responses";
+import { EASABI } from "../../utils/blockchain/contracts";
 
 import {
   submitApprovalDirectly,
@@ -237,6 +242,49 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xTransactionHash", chainId: mockChainId }
       );
+    });
+
+    it("lists the sent work under the attestation id its receipt names, and adds no row without one", async () => {
+      const garden = "0x1111111111111111111111111111111111111111";
+      const workUID = `0x${"ab".repeat(32)}`;
+      const attested = (emitter: string, schemaUID: string) => ({
+        address: emitter,
+        topics: encodeEventTopics({
+          abi: EASABI,
+          eventName: "Attested",
+          args: { recipient: garden, attester: `0x${"3".repeat(40)}`, schemaUID },
+        }),
+        data: workUID,
+      });
+      const eas = `0x${"e".repeat(40)}`;
+      const workSchema = `0x${"1".repeat(64)}`;
+      const keys = [worksKeys.online(garden, mockChainId), worksKeys.merged(garden, mockChainId)];
+      const listed = () =>
+        keys.map((key) => queryClient.getQueryData<EASWork[]>(key)?.map((work) => work.id));
+      const send = (logs: unknown[]) => {
+        mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ logs } as any);
+        return submitWorkDirectly(mockWorkDraft, garden, 123, "Test Action", mockChainId, []);
+      };
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue("0xHash" as `0x${string}`);
+
+      try {
+        // Another contract's event, or EAS attesting under another schema, is not this work.
+        await send([
+          attested(`0x${"d".repeat(40)}`, workSchema),
+          attested(eas, `0x${"2".repeat(64)}`),
+        ]);
+        expect(listed()).toEqual([undefined, undefined]);
+
+        // A read that already returned the work keeps its row: the same id is not listed twice.
+        queryClient.setQueryData(keys[0], [{ id: workUID, media: ["cid"] }]);
+        await send([attested(eas, workSchema)]);
+        expect(queryClient.getQueryData(keys[0])).toEqual([{ id: workUID, media: ["cid"] }]);
+        expect(listed()).toEqual([[workUID], [workUID]]);
+      } finally {
+        keys.forEach((queryKey) => queryClient.removeQueries({ queryKey }));
+      }
     });
 
     it.each([
