@@ -39,6 +39,15 @@
  * admin/src/index.css imports, so admin stories lay out as the product does. */
 @import "../../admin/src/styles/admin-layout.css";
 
+/* The public website's editorial layer (walnut and linen surfaces, the
+ * editorial shadows, the hero entrance, section reveals, and the install and
+ * endowment panel motion), the same file client/src/index.css imports, so
+ * Client/Public stories paint as the site does and `bg-editorial-*` utilities
+ * exist at all. Every rule in it is keyed to a token, a class or an attribute;
+ * it carries no document-level rule, so admin and installed-app stories are
+ * untouched. Its hero photographs are served by prepare-design-assets.mjs. */
+@import "../../client/src/styles/editorial.css";
+
 /* Per-surface tokens (admin type scale + font + colour aliases, client button
  * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
  * decorator sets. See surfaces.css for the parity contract. */
@@ -247,10 +256,6 @@
 [data-theme="dark"] .storybook-browser-preview {
   background: rgb(var(--gg-design-neutral-dark));
   color: rgb(var(--gg-design-primary-inverse));
-}
-
-.storybook-browser-preview a {
-  color: rgb(var(--gg-design-tertiary-action));
 }
 
 @keyframes accordion-down {
@@ -561,9 +566,13 @@
   }
 
   /* Links rendered as shared buttons take their colour from their emphasis
-     (client typography.css); the cockpit has no global link colour at all. */
+     (client typography.css); the cockpit has no global link colour at all.
+     This is the only link colour in the preview: an unlayered rule here would
+     outrank every surface's own link, button and utility colours, turning the
+     site's white navigation green and hiding the label of a link-button. A link
+     is text, so it takes the contrast-safe green (DL-053). */
   :where(:root:not([data-surface="admin"])) a:where(:not(.gg-button, .gg-icon-button, .gg-chip)) {
-    color: var(--color-primary);
+    color: var(--color-primary-on-surface);
   }
 
   ul {
