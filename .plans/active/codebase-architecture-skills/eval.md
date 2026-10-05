@@ -82,7 +82,7 @@ statistical comparison of agents or repositories.
 | Scenario | Useful evidence | Observation |
 |---|---|---|
 | Documentation correction | Narrow change; working links and consistent routing | Pending |
-| Bug fix | Reproduced defect; useful regression proof | Pending |
+| Bug fix | Reproduced defect; useful regression proof | Software Factory batch 4: Codex app, smoke fixture identity mismatch reproduced in the full browser project; one-line repair, 12 pass / one declared skip, zero retries. No human correction during the repair; earlier loader cause remains unproven. See fourth-batch handoff |
 | Domain change | Owning rule identified; accepted and rejected behavior checked | Pending |
 | UI correction | Local design guidance applied; rendered proof labeled | Pending |
 | Bounded refactor | Behavior preserved; concrete maintenance cost reduced | Pending |
@@ -93,5 +93,28 @@ followed a skill or a file being available is not behavioral proof. Record elaps
 usage only if already available, without adding instrumentation.
 
 Live registration observations remain separate: Claude Desktop **Code** session — pending;
-Codex session — pending. Synthetic events prove scripts and checked-in wiring, not that another
-application session loaded the configuration. Terminal Claude CLI is not Desktop evidence.
+Codex session-context and pre/post-edit events — observed in the October 4 session below.
+Synthetic events prove scripts and checked-in wiring, not that another application session
+loaded the configuration. Terminal Claude CLI is not Desktop evidence.
+
+### Codex app observation — 2026-10-04 (2026-10-05 UTC)
+
+The Software Factory implementation conversation received a native developer-context message
+beginning `Green Goods Codex context:` with the Bun, Shared hooks, root environment and browser
+proof rules plus the active plan titles. That content matches the registered
+`.codex/hooks/session_context.sh` output. Actual Admin/Shared manifest edits in the third batch
+also produced the `Green Goods edit context:` and `Green Goods post-edit context:` messages,
+including the exact touched manifest path and the dependency/config validation reminder.
+Those messages arrived from the host around real tool calls; they were not produced by manually
+running a hook script or a fixture.
+
+Observed events: SessionStart context and PreToolUse/PostToolUse edit context. The event's
+startup/resume/compact trigger is not exposed, so this does not certify a fresh-session launch.
+Stop, restricted-command enforcement, Linear linting, other worktrees and model compliance
+remain outside this observation. `.codex/hooks.json` and the three owning scripts were checked
+read-only against base `c4a9487350c6739de54bcc2737dd2a972223243f`; no hook/configuration change
+was needed. Claude Desktop Code still requires evidence from that actual application session;
+the user was asked for it during this batch. The five-task pilot remains separate.
+
+Browser qualification and commands for this ordinary bug-fix task are recorded in the
+[fourth-batch handoff](../test-budget-and-ci-speed/handoffs/software-factory-batch-4.md).

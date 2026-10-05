@@ -7,6 +7,7 @@ import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { DepositModal, WithdrawModal } from "@/components/Vault";
@@ -31,14 +32,16 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
   const resolvedGardenId = gardenAddress ?? selectedGarden?.id;
   const garden = gardens.find((item) => item.id === resolvedGardenId);
   const dialogGardenId = garden?.id ?? resolvedGardenId;
+  const vaultGardenAddress =
+    dialogGardenId && isAddress(dialogGardenId) ? dialogGardenId : undefined;
   const {
     vaults,
     isLoading: vaultsLoading,
     isError: vaultsHasError,
     refetch,
     isFetching,
-  } = useGardenVaults(dialogGardenId, {
-    enabled: Boolean(action && dialogGardenId),
+  } = useGardenVaults(vaultGardenAddress, {
+    enabled: Boolean(action && vaultGardenAddress),
   });
   // Closing a Deposit/Withdraw form returns to the endowment tab itself — never to the
   // `/vault` route, which used to re-pop a duplicate jars-inspector dialog on close.
@@ -55,7 +58,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
     id: isDeposit ? "app.treasury.depositDescription" : "app.treasury.withdrawDescription",
   });
 
-  if (gardensLoading || vaultsLoading || !dialogGardenId || vaultsHasError) {
+  if (gardensLoading || vaultsLoading || !vaultGardenAddress || vaultsHasError) {
     return (
       <AdminDialog
         open

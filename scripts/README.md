@@ -91,7 +91,7 @@ compatibility gate.
 |---|---|---|
 | `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
 | `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
-| `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal engineering skill availability for Codex and Claude |
+| `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal skill availability and effective worktree pre-push chain diagnostics |
 | `env-template-init.js` | `node scripts/dev/env-template-init.js` | Generate `env.template` skeleton from `env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `env.template` to materialize `.env` |
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `env.schema` keys non-empty |
@@ -105,9 +105,9 @@ compatibility gate.
 | `smoke-prod.js` | `bun run dev:smoke -- prod`; auto-run by `bun run dev -- prod` and `bun run dev -- prod-mirror` | Verify local browser surfaces plus read-only production agent health, the agent's browser-origin allowlist (every expected origin allowed, an unlisted one refused), Arbitrum RPC, contract bytecode, production/local indexer health, and indexer lag |
 | `tunnel.js` | `node scripts/dev/tunnel.js`, `ecosystem.config.cjs` | Cloudflared tunnel(s) for client + admin device testing. Spawns one tunnel per `--port` arg (defaults to client 3001 + admin 3002); writes `.tunnel-url` (client) and `.tunnel-url-admin` (admin) |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
-| `test-e2e.js` | `bun run browser e2e --preset all` | Boot the web stack (client + admin + docs + storybook) via `bun run dev -- web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev -- stop` |
+| `test-e2e.js` | `bun run browser e2e --preset all` | Qualified `passkey`, `explore --seed <integer>`, and `pwa-preview` presets additionally require complete fresh JSON proof with no retries or skips. Run Playwright with owned Client/Admin test servers on Sepolia; refuse occupied ports and let Playwright clean up its own processes. The `ui` preset uses explicitly started services. |
 | `seed-test-data.ts` | `bun scripts/dev/seed-test-data.ts` / `seed:anvil` | Seed local/anvil chain with test fixtures |
-| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
+| `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts. Final diagnostics preserve the first failure, selected scope, unrun checks, manual proof and lease blocks; host load is advisory. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
 | `ci-local.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
 | `stack.test.mjs` | `bun run check --only validation-system-test` | Default service selection and startup failure/readiness behavior |
 | `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
@@ -288,6 +288,12 @@ A script earns a place here only if it has a durable caller in (1) root `package
 One-shot ops (single-deploy fixes, batch migrations, ad-hoc audits) do not belong here — keep them in `.plans/<feature>/` or delete after use.
 
 `stack.test.mjs` and `smoke-full.test.mjs` run through `bun run check --only validation-system-test`; they cover dev profile selection, ownership, readiness, and live-versus-fork RPC checks.
+
+`dev:health` inspects each registered checkout's Git-resolved pre-push path, the known Husky
+chain, and the gate files in that checkout. Missing dispatchers, silent missing targets, older
+branch tooling and inactive registrations produce warnings with an owner-directed next step.
+It does not execute hooks, install dependencies, modify Git config, or repair other checkouts.
+A successful static check establishes file availability; live agent hook loading remains separate.
 
 Shared development helpers: `lib/dev-modes.mjs` supplies launcher, health, and smoke selection;
 `lib/setup-env.mjs` creates setup baselines exclusively without overwriting an existing environment.

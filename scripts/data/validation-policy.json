@@ -638,6 +638,72 @@
         "scripts/quality/check-immutable-plan-reports.mjs",
         "scripts/lib/git-guardrails.mjs"
       ]
+    },
+    {
+      "check": "browser-passkey",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.passkey.spec.ts",
+        "packages/shared/src/config/passkeyServer.ts"
+      ],
+      "prefixes": [
+        "packages/shared/src/workflows/auth",
+        "packages/shared/src/providers/Auth",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/auth/",
+        "packages/client/src/views/Login/"
+      ]
+    },
+    {
+      "check": "browser-pwa-preview",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.pwa-preview.spec.ts",
+        "packages/client/vite.config.ts",
+        "packages/client/src/main.tsx"
+      ],
+      "prefixes": ["packages/client/src/sw/", "packages/client/vite/"]
+    },
+    {
+      "check": "fork-fixtures-test",
+      "runInQa": true,
+      "exact": ["playwright.config.ts", "tests/helpers/mock-backend.ts"],
+      "prefixes": ["tests/fixtures/"]
+    },
+    {
+      "check": "browser-work-exploration",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.exploration.spec.ts",
+        "tests/fixtures/work-exploration.ts",
+        "tests/fixtures/work-exploration.test.ts",
+        "tests/helpers/mock-backend.ts",
+        "packages/shared/src/modules/work/work-list.ts",
+        "packages/shared/src/hooks/work/useWorks.ts",
+        "packages/shared/src/hooks/work/useWorkMetadata.ts"
+      ],
+      "prefixes": [
+        "packages/client/src/views/Home/Garden/Work",
+        "packages/shared/src/hooks/client-ui/work/"
+      ]
     }
   ],
   "checks": [
@@ -1073,7 +1139,9 @@
       "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
       "manual": true,
-      "attestation": { "engines": ["authenticated Brave"] }
+      "attestation": {
+        "engines": ["authenticated Brave"]
+      }
     },
     {
       "id": "story-quality",
@@ -1367,6 +1435,36 @@
       "budgetSeconds": 60,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
+    },
+    {
+      "id": "browser-passkey",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 80,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-pwa-preview",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-pwa-preview/results.json bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json --output=.cache/validation/browser-pwa-preview/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "Fresh production shell reloads offline; deleting its navigation cache defeats the same reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 100,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-work-exploration",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-work-exploration/results.json bun run browser e2e --preset explore --seed 17 -- --workers=1 --reporter=line,json --output=.cache/validation/browser-work-exploration/artifacts",
+      "risk": "Read and recovery wiring can silently lose a work record across roles or viewports.",
+      "expectedSignal": "Both seeded work inspection and outage-recovery cases display the same synthetic record before and after reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
     }
   ],
   "criticalOverrides": [
@@ -1697,7 +1795,12 @@
         "scripts/dev/package-commands.mjs",
         ".github/actions/setup-playwright/action.yml",
         "scripts/quality/check-staged-modules.mjs",
-        "scripts/quality/check-staged-modules.test.mjs"
+        "scripts/quality/check-staged-modules.test.mjs",
+        "scripts/dev/browser.js",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/node-cli.js",
+        "scripts/lib/command-runner.mjs",
+        "scripts/lib/dev-shared.js"
       ],
       "prefixes": [
         "packages/client/",

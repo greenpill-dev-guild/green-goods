@@ -6,6 +6,7 @@ const mockUseGardens = vi.fn();
 const mockUseGardenVaults = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
+const mockUseParams = vi.fn(() => ({ id: "garden-1" }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
   useUser: () => ({ primaryAddress: "0x1234567890123456789012345678901234567890" }),
@@ -67,7 +68,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "garden-1" }),
+  useParams: () => mockUseParams(),
   useLocation: () => mockUseLocation(),
   useNavigate: () => vi.fn(),
 }));
@@ -94,6 +95,7 @@ import GardenVaultView from "@/views/Garden/Vault";
 describe("GardenVaultView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseParams.mockReturnValue({ id: "garden-1" });
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: () => false,
       isOwnerOfGarden: () => false,
@@ -109,6 +111,19 @@ describe("GardenVaultView", () => {
       refetch: vi.fn(),
       isFetching: false,
     });
+  });
+
+  it.each([
+    { id: "0x2222222222222222222222222222222222222222", enabled: true },
+    { id: "community-garden", enabled: false },
+    { id: "0xwrong", enabled: false },
+  ])("does not broaden an invalid route into a chain-wide vault query: $id", ({ id, enabled }) => {
+    mockUseParams.mockReturnValue({ id });
+    mockUseLocation.mockReturnValue({ state: null });
+
+    renderWithProviders(<GardenVaultView />);
+
+    expect(mockUseGardenVaults).toHaveBeenCalledWith(enabled ? id : undefined, { enabled });
   });
 
   it("links back to community treasury when opened from a legacy treasury return", () => {

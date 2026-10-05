@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   resolvePlaywrightApps,
   selectedProjectNames,
@@ -65,5 +65,68 @@ describe("Playwright service selection", () => {
       })
     ).toBe(false);
     expect(shouldUsePlaywrightIndexer({})).toBe(true);
+  });
+});
+
+// The config is executable: inspect the resolved servers, not its source text.
+describe("Playwright test server ownership", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it.each([
+    "true",
+    "false",
+  ])("pins the test profile with CI=%s and refuses external servers", async (ci) => {
+    vi.stubEnv("CI", ci);
+    vi.stubEnv("PLAYWRIGHT_APP", "client");
+    vi.stubEnv("SKIP_WEBSERVER", "false");
+    vi.stubEnv("SKIP_INDEXER", "true");
+    vi.stubEnv("APP_ENV", "development");
+    vi.stubEnv("VITE_CHAIN_ID", "42161");
+    const { default: config } = await import("../../playwright.config");
+    const servers = [config.webServer].flat();
+    expect(servers).toHaveLength(1);
+    expect(servers[0]).toMatchObject({
+      command: "bun ../../scripts/dev/node-cli.js vite --mode test",
+      cwd: "./packages/client",
+      reuseExistingServer: false,
+      env: { APP_ENV: "test", NODE_ENV: "test", VITE_CHAIN_ID: "11155111" },
+    });
+  });
+});
+
+describe("production preview profile", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  it("builds fresh production assets with no dev auth or worker and owns its port", async () => {
+    vi.stubEnv("PLAYWRIGHT_PWA_PREVIEW", "true");
+    vi.stubEnv("PLAYWRIGHT_APP", "client");
+    vi.stubEnv("SKIP_WEBSERVER", "false");
+    vi.stubEnv("SKIP_INDEXER", "true");
+    const { default: config } = await import("../../playwright.config");
+    const servers = [config.webServer].flat();
+    expect(servers).toHaveLength(1);
+    for (const project of config.projects ?? []) {
+      if (["passkey-mock", "work-exploration", "pwa-preview"].includes(project.name ?? "")) {
+        expect(project.use?.channel).toBe("chromium");
+      }
+    }
+    expect(servers[0]).toMatchObject({
+      command: expect.stringContaining("bun run build &&"),
+      reuseExistingServer: false,
+      env: {
+        APP_ENV: "production",
+        NODE_ENV: "production",
+        VITE_ENABLE_SW_DEV: "false",
+        VITE_PASSKEY_SERVER_ENABLED: "true",
+        SENTRY_AUTH_TOKEN: "",
+        VITE_SENTRY_CLIENT_DSN: "",
+        GG_ENABLE_SOURCEMAPS: "false",
+      },
+    });
   });
 });

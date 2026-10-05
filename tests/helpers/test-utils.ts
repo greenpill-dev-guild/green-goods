@@ -523,8 +523,8 @@ export async function setupAuthenticatedClient(
 ) {
   const helper = new ClientTestHelper(page);
   await helper.enableMockAuth(role);
-  await mockClientBackend(page, backend);
-  return helper;
+  const scenario = await mockClientBackend(page, backend);
+  return Object.assign(helper, { backend: scenario });
 }
 
 // ============================================================================

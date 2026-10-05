@@ -15,7 +15,7 @@ export function resolveBrowser(argv) {
   if (command === 'e2e') {
     const selection = resolveE2e(args);
     if (selection.help) return selection;
-    return [{ command: 'node', args: ['scripts/dev/test-e2e.js', '--preset', selection.preset, ...(selection.rest.length ? ['--', ...selection.rest] : [])], env: { APP_ENV: 'test' } }];
+    return [{ command: 'node', args: ['scripts/dev/test-e2e.js', '--preset', selection.preset, ...(selection.rest.length ? ['--', ...selection.rest] : [])], env: selection.env }];
   }
   if (command === 'routes') {
     const options = parseOptions(args, { flags: ['--help', '-h'] });

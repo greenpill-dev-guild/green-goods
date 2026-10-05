@@ -1,24 +1,24 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
-import fs from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { createCommandRunner, isDirectRun, parseOptions, REPO_ROOT } from '../lib/command-runner.mjs';
-import { waitForService, findSystemNode } from '../lib/dev-shared.js';
+import { findSystemNode } from '../lib/dev-shared.js';
 
+// Use Playwright's CI server lifecycle, never the live-development PM2 profile.
+const testServers = { PLAYWRIGHT_PWA_PREVIEW: 'false', SKIP_WEBSERVER: 'false', SKIP_HEALTH_CHECK: 'false', SKIP_INDEXER: 'true' };
 const presets = {
-  all: { stack: true, args: ['test', '--project=client-full', '--project=chromium', '--project=performance'] },
-  smoke: { stack: true, args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'] },
+  all: { env: testServers, args: ['test', '--project=client-full', '--project=chromium', '--project=performance'] },
+  smoke: { env: testServers, args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'] },
   ui: { args: ['test', '--ui'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
   fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true' } },
-  passkey: { args: ['test', '--project=passkey-mock'] },
+  passkey: { env: testServers, args: ['test', '--project=passkey-mock'] },
+  explore: { env: testServers, args: ['test', '--project=work-exploration'] },
+  'pwa-preview': { env: { ...testServers, CI: 'true', PLAYWRIGHT_PWA_PREVIEW: 'true' }, args: ['test', '--project=pwa-preview'] },
   testnet: { args: ['test', '--project=testnet'], env: { TESTNET: 'true' } },
 };
 
 // Playwright treats bare tokens as test-file filters and --grep values as regular expressions.
-// The all and smoke presets boot a web stack before Playwright runs, so a malformed pattern is worth
-// catching here rather than paying for a stack boot first. Compiling the pattern to test it would
+// Malformed patterns should fail before Playwright boots its test servers. Compiling the pattern to test it would
 // build a regular expression out of argv, so instead this scans for the three defects that actually
 // come from a typo: an unbalanced group, an unterminated character class, and a trailing backslash.
 // The scan tracks escapes and character classes, so it never rejects a valid pattern; exotic invalid
@@ -71,59 +71,57 @@ export function validatePlaywrightArgs(args, preset) {
 }
 
 export function resolveE2e(argv) {
-  const options = parseOptions(argv, { flags: ['--help', '-h'], values: ['--preset'], passthrough: true });
-  if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser e2e [--preset all|smoke|ui|fork|passkey|testnet] [-- <Playwright arguments>]\nDefault: all. all/smoke start and clean up an owner-bound web stack; other presets preserve Playwright startup policy.' };
+  const options = parseOptions(argv, { flags: ['--help', '-h'], values: ['--preset', '--seed'], passthrough: true });
+  if (options['--help'] || options['-h']) return { help: 'Usage: bun run browser e2e [--preset all|smoke|ui|fork|passkey|explore|pwa-preview|testnet] [--seed <1..4294967295> (explore only)] [-- <Playwright arguments>]\nDefault: all. all/smoke use isolated Playwright-owned test servers; ui reuses explicitly started services.' };
   const preset = options['--preset'] || 'all';
   if (!Object.hasOwn(presets, preset)) throw new Error(`Unknown E2E preset: ${preset}`);
   const selection = presets[preset];
+  if (options['--seed'] !== undefined && preset !== 'explore') throw new Error('--seed requires --preset explore');
+  const seed = options['--seed'] ?? process.env.GG_BROWSER_SEED ?? '17';
+  if (preset === 'explore' && (!/^[1-9]\d*$/.test(seed) || Number(seed) > 0xffffffff)) throw new Error('--seed must be an integer from 1 to 4294967295');
+  const qualified = ['passkey', 'explore', 'pwa-preview'].includes(preset);
+  if (qualified) {
+    // Qualification is a complete, zero-retry scenario. Diagnostic flags cannot narrow its proof.
+    const permitted = new Set(['--workers', '-j', '--reporter', '--output', '--trace', '--headed', '--list', '--help', '-h', '--retries']);
+    const args = options.rest || [];
+    for (let i = 0; i < args.length; i++) {
+      const [flag, value] = args[i].split('=');
+      if (!permitted.has(flag)) throw new Error(`Argument ${args[i]} cannot alter qualified proof`);
+      if (['--headed', '--list', '--help', '-h'].includes(flag)) continue;
+      const actual = value ?? args[++i];
+      if (flag === '--reporter' && !actual?.split(',').includes('json')) throw new Error('JSON reporting is required for qualified proof');
+      if (flag === '--retries' && actual !== '0') throw new Error('Retries cannot alter qualified proof');
+    }
+  }
   const downstream = validatePlaywrightArgs(options.rest || [], preset);
   if (downstream.help) return resolveE2e(['--help']);
-  return { preset, stack: Boolean(selection.stack) && !downstream.list, rest: options.rest || [], args: [...selection.args, ...(options.rest || [])], env: { APP_ENV: 'test', ...selection.env, ...(selection.stack ? { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } : {}) } };
+  const reportPath = qualified ? path.resolve(REPO_ROOT, process.env.PLAYWRIGHT_JSON_OUTPUT_FILE || `.cache/validation/browser-${preset}/results.json`) : null;
+  return { preset, reportPath, verify: qualified && !downstream.list, stack: false, rest: options.rest || [], args: [...selection.args, ...(qualified ? ['--retries=0', '--max-failures=1', '--global-timeout=300000', '--reporter=line,json'] : []), ...(options.rest || [])], env: { APP_ENV: 'test', ...selection.env, ...(qualified ? { CI: 'true', PLAYWRIGHT_QUALIFIED: 'true', PLAYWRIGHT_JSON_OUTPUT_FILE: reportPath } : {}), ...(preset === 'explore' ? { GG_BROWSER_SEED: seed } : {}) } };
+}
+
+export function assertQualifiedReport(report, preset, startedAt) {
+  const expected = { passkey: ['passkey-mock', 1], explore: ['work-exploration', 2], 'pwa-preview': ['pwa-preview', 1] }[preset];
+  const stats = report?.stats;
+  if (!Number.isFinite(Date.parse(stats?.startTime)) || Date.parse(stats.startTime) < startedAt) throw new Error(`Qualified ${preset} proof report is stale or missing`);
+  const collect = suites => (suites ?? []).flatMap(suite => [...(suite.specs ?? []).flatMap(spec => spec.tests ?? []), ...collect(suite.suites)]);
+  const tests = collect(report.suites);
+  if (!expected || stats.expected !== expected[1] || stats.skipped !== 0 || stats.unexpected !== 0 || stats.flaky !== 0 || report.errors?.length || tests.length !== expected[1] || tests.some(test => test.projectName !== expected[0] || test.results?.length !== 1 || test.results[0].status !== 'passed' || test.results[0].retry !== 0)) {
+    throw new Error(`Qualified ${preset} proof is incomplete: every required scenario must pass once without skips or retries`);
+  }
 }
 
 export async function executeE2e(selection, dependencies = {}) {
-  const spawnImpl = dependencies.spawnImpl || spawn;
-  const wait = dependencies.wait || waitForService;
-  const runner = createCommandRunner({ ...dependencies, spawnImpl });
-  let stack;
-  let stackDone;
-  let logStream;
-  const owner = `e2e-${randomUUID()}`;
-  const stackEnv = { ...process.env, APP_ENV: 'test', VITE_ENABLE_SW_DEV: 'true', GREEN_GOODS_DEV_OWNER: owner };
+  const runner = createCommandRunner(dependencies);
   try {
-    if (selection.stack) {
-      const directory = fs.mkdtempSync(path.join(tmpdir(), 'green-goods-e2e-'));
-      const logFile = path.join(directory, 'dev.log');
-      logStream = fs.createWriteStream(logFile, { flags: 'wx' });
-      console.log(`E2E web-stack log: ${logFile}`);
-      stack = runner.track(spawnImpl('bun', ['run', 'dev', '--', 'web'], { cwd: REPO_ROOT, stdio: ['ignore', 'pipe', 'pipe'], detached: false, shell: false, env: stackEnv }));
-      stack.stdout.pipe(logStream);
-      stack.stderr.pipe(logStream);
-      stackDone = new Promise((resolve) => { stack.once('error', () => resolve(1)); stack.once('close', (code) => resolve(code ?? 1)); });
-      const deadlineMs = Date.now() + 90_000;
-      for (const port of [3001, 3002]) {
-        const ready = await Promise.race([
-          wait({ urls: [`https://localhost:${port}`, `http://localhost:${port}`], deadlineMs }),
-          runner.cancellation.then(() => ({ ok: false })),
-          stackDone.then((code) => code === 0 ? new Promise(() => {}) : ({ ok: false })),
-        ]);
-        if (!ready.ok) { console.error(`E2E service on ${port} did not become ready; see ${logFile}`); return runner.cancelled || 1; }
-      }
-    }
-    if (runner.cancelled) return runner.cancelled;
     const systemNode = dependencies.systemNode || findSystemNode() || process.execPath;
-    return await runner.run([{ command: systemNode, args: [path.join(REPO_ROOT, 'node_modules/@playwright/test/cli.js'), ...selection.args], env: selection.env }]);
-  } finally {
-    if (stack) {
-      if (stack.exitCode === null && stack.signalCode === null) stack.kill('SIGTERM');
-      // The owning launcher performs PM2 cleanup on termination. Its unique owner is
-      // also passed to an explicit stop if startup failed before handlers attached.
-      await Promise.race([stackDone, new Promise((resolve) => { const timer = setTimeout(resolve, 5000); timer.unref(); })]);
-      const cleanup = createCommandRunner({ ...dependencies, spawnImpl });
-      try { await cleanup.run([{ command: 'bun', args: ['run', 'dev', '--', 'stop'], env: { GREEN_GOODS_DEV_OWNER: owner } }]); }
-      finally { cleanup.dispose(); }
+    const startedAt = Date.now();
+    const code = await runner.run([{ command: systemNode, args: [path.join(REPO_ROOT, 'node_modules/@playwright/test/cli.js'), ...selection.args], env: selection.env }]);
+    if (code === 0 && selection.verify) {
+      assertQualifiedReport(JSON.parse(readFileSync(selection.reportPath, 'utf8')), selection.preset, startedAt);
     }
-    logStream?.end();
+    return code;
+  } finally {
+    // Playwright owns and tears down its server process groups, including on cancellation.
     runner.dispose();
   }
 }
