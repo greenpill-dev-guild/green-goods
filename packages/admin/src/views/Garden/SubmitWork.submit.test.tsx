@@ -821,19 +821,23 @@ describe("SubmitWorkPanel submit behavior", () => {
       await user.type(field(number), "-4");
       expect(screen.queryAllByRole("alert")).toHaveLength(0);
       await user.tab();
-      await waitFor(() => expect(field(number)).toHaveAccessibleDescription());
+      await waitFor(() => expect(field(number)).toHaveAccessibleDescription("Enter 0 or more"));
 
       // Focus landed on the next field; leaving it empty for a chip flags it in turn.
       expect(field(text)).toHaveFocus();
       const chip = within(field(chips)).getByRole("button", { name: chips.options[0] });
       await user.click(chip);
-      await waitFor(() => expect(field(text)).toHaveAccessibleDescription());
+      await waitFor(() =>
+        expect(field(text)).toHaveAccessibleDescription("This field is required")
+      );
 
       // The chips are cleared again, and flagged only once focus leaves their group.
       await user.click(chip);
       expect(field(chips)).not.toHaveAccessibleDescription();
       await user.click(screen.getByLabelText("Feedback"));
-      await waitFor(() => expect(field(chips)).toHaveAccessibleDescription());
+      await waitFor(() =>
+        expect(field(chips)).toHaveAccessibleDescription("This field is required")
+      );
 
       expect(screen.getAllByRole("alert")).toHaveLength(3);
     });
@@ -845,7 +849,9 @@ describe("SubmitWorkPanel submit behavior", () => {
       await clickNext(user);
 
       await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(REQUIRED.length));
-      for (const input of REQUIRED) expect(field(input), input.title).toHaveAccessibleDescription();
+      for (const input of REQUIRED) {
+        expect(field(input), input.title).toHaveAccessibleDescription("This field is required");
+      }
       for (const input of OPTIONAL) {
         expect(field(input), input.title).not.toHaveAccessibleDescription();
       }

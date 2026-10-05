@@ -494,7 +494,8 @@ export const DetailsStepChecked: Story = {
   play: async ({ canvasElement }) => {
     const flow = await openDetailsStep(canvasElement);
     await userEvent.click(flow.getByRole("button", { name: "Next" }));
-    await waitFor(() => expect(flow.getAllByRole("alert")).toHaveLength(4));
+    await waitFor(() => expect(flow.getAllByText("This field is required")).toHaveLength(4));
+    await expect(flow.getAllByRole("alert")).toHaveLength(4);
     await expect(flow.getByLabelText("Seedlings lost")).not.toHaveAccessibleDescription();
     await expect(flow.getByLabelText("Time Spent (hours)")).toBeVisible();
   },

@@ -6121,6 +6121,8 @@
   "app.work.step.details": "Detalles",
   "app.work.step.media": "Medios",
   "app.work.step.review": "Revisar",
+  "app.work.form.error.belowZero": "Ingresa 0 o más",
+  "app.work.form.error.required": "Este campo es obligatorio",
   "app.uploads.notUploadedTitle": "Aún no se ha subido",
   "app.uploads.signInToUpload": "Inicia sesión o conecta tu billetera para subir.",
   "app.uploads.connectionUnconfirmed": "No se subió nada. Inténtalo de nuevo cuando la conexión sea estable.",

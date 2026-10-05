@@ -1,6 +1,7 @@
 import {
   normalizeNumberDetail,
   type useWorkForm,
+  WORK_FORM_ERROR_IDS,
 } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { useState } from "react";
@@ -9,6 +10,17 @@ import { useIntl } from "react-intl";
 import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSelect, AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+
+/** What the work form says about a field, as a steward reads it. */
+const DETAIL_ERROR_MESSAGES: {
+  [Rule in keyof typeof WORK_FORM_ERROR_IDS]: {
+    id: (typeof WORK_FORM_ERROR_IDS)[Rule];
+    defaultMessage: string;
+  };
+} = {
+  required: { id: "app.work.form.error.required", defaultMessage: "This field is required" },
+  belowZero: { id: "app.work.form.error.belowZero", defaultMessage: "Enter 0 or more" },
+};
 
 export function SubmitWorkFields({
   inputs,
@@ -37,13 +49,18 @@ export function SubmitWorkFields({
       onBlur: () => markLeft(input.key),
       setValueAs: input.type === "number" ? normalizeNumberDetail : undefined,
     });
+  const errorText = (key: string) => {
+    if (!showValidation && !leftFields[key]) return undefined;
+    const message = errors[key]?.message;
+    const known = Object.values(DETAIL_ERROR_MESSAGES).find((entry) => entry.id === message);
+    return known ? formatMessage(known) : message;
+  };
   if (inputs.length === 0) return null;
 
   return (
     <>
       {inputs.map((input) => {
-        const error =
-          showValidation || leftFields[input.key] ? errors[input.key]?.message : undefined;
+        const error = errorText(input.key);
         if (input.type === "number" || input.type === "text") {
           return (
             <AdminTextField

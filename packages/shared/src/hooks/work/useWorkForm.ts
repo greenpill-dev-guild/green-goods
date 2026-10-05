@@ -22,35 +22,42 @@ import type { WorkInput } from "../../types/domain";
 import { normalizeTimeSpentMinutes } from "../../utils/form/normalizers";
 
 /**
+ * What a details field can get wrong, as translation ids. The gardener app holds its Next button
+ * instead of showing these; a view that does show a field's error renders the id in its own
+ * language.
+ */
+export const WORK_FORM_ERROR_IDS = {
+  required: "app.work.form.error.required",
+  belowZero: "app.work.form.error.belowZero",
+} as const;
+
+/**
  * Builds a Zod validator for a single WorkInput field.
  */
 function buildFieldValidator(input: WorkInput): z.ZodTypeAny {
+  const { required, belowZero } = WORK_FORM_ERROR_IDS;
   switch (input.type) {
     case "number": {
-      const base = z.preprocess(Number, z.number().min(0));
+      // A field with no value arrives as undefined, which `Number` turns into NaN.
+      const base = z.preprocess(Number, z.number({ error: required }).min(0, belowZero));
       return input.required ? base : base.optional();
     }
-    case "select":
-    case "band": {
-      const base = z.string().min(1);
-      return input.required ? base : z.string().optional();
-    }
     case "multi-select": {
-      const base = z.array(z.string());
-      return input.required ? base.min(1) : base.optional();
+      const base = z.array(z.string(), { error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
     case "repeater": {
       const rowShape: Record<string, z.ZodTypeAny> = {};
       for (const field of input.repeaterFields ?? []) {
         rowShape[field.key] = buildFieldValidator(field);
       }
-      const base = z.array(z.object(rowShape));
-      return input.required ? base.min(1) : base.optional();
+      const base = z.array(z.object(rowShape), { error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
     default: {
-      // text, textarea
-      const base = z.string();
-      return input.required ? base.min(1) : base.optional();
+      // text, textarea, select, band
+      const base = z.string({ error: required });
+      return input.required ? base.min(1, required) : base.optional();
     }
   }
 }

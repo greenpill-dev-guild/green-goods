@@ -6121,6 +6121,8 @@
   "app.work.step.details": "Details",
   "app.work.step.media": "Media",
   "app.work.step.review": "Review",
+  "app.work.form.error.belowZero": "Enter 0 or more",
+  "app.work.form.error.required": "This field is required",
   "app.uploads.notUploadedTitle": "Not uploaded yet",
   "app.uploads.signInToUpload": "Sign in or connect your wallet to upload.",
   "app.uploads.connectionUnconfirmed": "Nothing was uploaded. Try again when the connection is steady.",
