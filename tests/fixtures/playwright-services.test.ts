@@ -148,6 +148,20 @@ describe("caller-managed fork profile", () => {
     expect(config.webServer).toBeUndefined();
     expect(config.globalSetup).toBeUndefined();
   });
+  it("loads fork config in a worker without runner CLI arguments", async () => {
+    process.argv = ["node", "playwright/lib/common/process.js"];
+    vi.stubEnv("TEST_WORKER_INDEX", "0");
+    vi.stubEnv("RUN_FORK_TESTS", "true");
+    vi.stubEnv("SKIP_WEBSERVER", "true");
+    const { default: config } = await import("../../playwright.config");
+    expect(config.webServer).toBeUndefined();
+    expect(config.projects?.some((project) => project.name === "anvil-fork")).toBe(true);
+  });
+  it("still rejects an unselected fork in the runner", async () => {
+    process.argv = ["node", "playwright", "test", "--project=client-ci"];
+    vi.stubEnv("RUN_FORK_TESTS", "true");
+    await expect(import("../../playwright.config")).rejects.toThrow(/fork.*separately/i);
+  });
   it("rejects mixing fork and owned Sepolia projects", async () => {
     process.argv = ["node", "playwright", "test", "--project=anvil-fork", "--project=client-ci"];
     vi.stubEnv("RUN_FORK_TESTS", "true");

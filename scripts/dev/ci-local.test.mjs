@@ -148,22 +148,25 @@ function plan(checks, status = "ready") {
   };
 }
 
-test("summary distinguishes a test lease timeout from a failed test and stops the run", async () => {
-  const input = plan(["shared-test", "admin-test"]);
-  const calls = [];
-  const execution = await executePlan(input, {
-    runCheck: async (check) => { calls.push(check.id); return { ok: false, exitCode: 75 }; },
+for (const suite of ["shared-test", "client-test", "admin-test", "agent-test", "indexer-test"]) {
+  test(`${suite} lease timeout is blocked before dependent checks run`, async () => {
+    const input = plan([suite, "format"]);
+    const calls = [];
+    const execution = await executePlan(input, {
+      runCheck: async (check) => { calls.push(check.id); return { ok: false, exitCode: 75 }; },
+    });
+    assert.equal(execution.status, "blocked");
+    assert.equal(execution.exitCode, 2);
+    assert.equal(execution.results[0].exitCode, 75);
+    assert.deepEqual(execution.blocked, [{ id: suite, blockedBy: ["test-lease"] }]);
+    assert.deepEqual(calls, [suite]);
+    const summary = ciLocal.summarizeExecution(input, execution, { loadAverage: [0, 0, 0], cpuCount: 4 });
+    assert.equal(summary.category, "lease-timeout");
+    assert.equal(summary.firstFailure, null);
+    assert.deepEqual(summary.notRun, ["format"]);
   });
-  assert.equal(execution.status, "blocked");
-  assert.equal(execution.exitCode, 2);
-  assert.equal(execution.results[0].exitCode, 75);
-  assert.deepEqual(execution.blocked, [{ id: "shared-test", blockedBy: ["test-lease"] }]);
-  assert.deepEqual(calls, ["shared-test"]);
-  const summary = ciLocal.summarizeExecution(input, execution, { loadAverage: [0, 0, 0], cpuCount: 4 });
-  assert.equal(summary.category, "lease-timeout");
-  assert.equal(summary.firstFailure, null);
-  assert.deepEqual(summary.notRun, ["admin-test"]);
-});
+
+}
 
 test("summary does not label another command's exit 75 as a test lease timeout", async () => {
   const input = plan(["lint"]);
@@ -206,6 +209,29 @@ test("summary preserves first failure, exact focused scope, skips and unrun chec
   assert.match(summary.nextCommand, /--test-path 'shared:src\/a test.ts'/);
   assert.match(summary.nextCommand, /--only 'first' --only 'second' --only 'third'/);
   assert.doesNotMatch(JSON.stringify(summary), /private-token/);
+});
+
+test("recovery command preserves custom comparison refs and critical risk", () => {
+  const input = { ...plan(["lint"]), base: "refs/heads/review-base", head: "refs/heads/review-head", risk: "critical" };
+  const summary = ciLocal.summarizeExecution(input, {
+    status: "failed", results: [{ id: "lint", ok: false, exitCode: 1 }], blocked: [],
+  });
+  assert.match(summary.nextCommand, /--base 'refs\/heads\/review-base'/);
+  assert.match(summary.nextCommand, /--head 'refs\/heads\/review-head'/);
+  assert.match(summary.nextCommand, /--risk 'critical'/);
+});
+
+test("recovery command safely shell-quotes comparison refs", () => {
+  const input = { ...plan(["lint"]), base: "review'base", head: "review'head" };
+  const summary = ciLocal.summarizeExecution(input, { status: "blocked", results: [], blocked: [] });
+  const captureArguments = summary.nextCommand.replace(
+    "node scripts/dev/ci-local.js", "node -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' --",
+  );
+  const args = JSON.parse(execFileSync("sh", ["-c", captureArguments], { encoding: "utf8" }));
+  const options = parseArguments(args);
+  assert.equal(options.base, input.base);
+  assert.equal(options.head, input.head);
+  assert.equal(options.risk, input.risk);
 });
 
 test("summary keeps manual proof pending after an automated failure", async () => {

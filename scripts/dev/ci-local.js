@@ -906,7 +906,7 @@ export async function executePlan(plan, options = {}) {
     const result = await runCheck(check, { signal, environment });
     // These package wrappers reserve EX_TEMPFAIL for a lease wait that expires before tests run.
     const leaseTimedOut = !result.ok && !result.cancelled && result.exitCode === TEST_LEASE_TIMEOUT_EXIT_CODE &&
-      ["shared-test", "client-test", "admin-test", "agent-test"].includes(check.id);
+      ["shared-test", "client-test", "admin-test", "agent-test", "indexer-test"].includes(check.id);
     const evidence = { id: check.id, ...result, ...(leaseTimedOut ? { blocked: true } : {}), receiptInputs };
     results.push(evidence);
     options.onCheckComplete?.(check, evidence);
@@ -951,6 +951,9 @@ export function summarizeExecution(plan, execution, { loadAverage = loadavg(), c
   const accounted = new Set([...results, ...blocked].map((entry) => entry.id).concat(pendingManual));
   const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
   const replan = ["node scripts/dev/ci-local.js --plan --intent", quote(plan.effectiveIntent)];
+  if (plan.base) replan.push("--base", quote(plan.base));
+  if (plan.head) replan.push("--head", quote(plan.head));
+  if (plan.risk) replan.push("--risk", quote(plan.risk));
   if (plan.changedPaths?.length) replan.push("--changed", quote(plan.changedPaths.join(",")));
   for (const [surface, paths] of Object.entries(plan.testPaths ?? {})) {
     for (const path of paths) replan.push("--test-path", quote(`${surface}:${path}`));

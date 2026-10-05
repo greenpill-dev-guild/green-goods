@@ -7,15 +7,15 @@ The initial request was for a comprehensive comparison and update plan. The
 hub's verification and operating-cost work. The
 [SF checklist](plan.todo.md#agentic-development-follow-up-proposed-2026-10-04) is its sole execution
 plan. Afo subsequently selected SF01–SF04 with “Go ahead and implement the first batch.” These
-four local slices may start now; D14's timing and the unselected SF05–SF13 remain otherwise
-unchanged. Publication, dependency changes, Linear writes, and browser-policy changes are outside
-that first batch. Afo then selected the next batch: SF10–SF11, the independent constraint
+four local slices were the scope at that stage; later authorizations below supersede that
+selection. D14's timing for unrelated work remains unchanged. Publication, dependency changes,
+Linear writes, and browser-policy changes are outside that first batch. Afo then selected the next batch: SF10–SF11, the independent constraint
 repairs in the report. Afo then approved dependency changes and continuation: finish SF11 and
 implement SF09 reporting. SF03 remains open and does not authorize broader browser rollout.
 
 | ID | Recommended constraint | Rationale and decision status |
 |---|---|---|
-| SF-D1 | SF01–SF04 and SF09–SF11 SELECTED; other SF slices remain unselected | Afo's first-batch instruction selects local implementation now. Repair fidelity and environment parity before expanding automation. |
+| SF-D1 | SF01–SF12 SELECTED for local implementation; SF13 and actual-session SF10 evidence remain open | Afo's subsequent batch and remaining-work authorizations supersede the first-batch scope. See “Remaining Software Factory local implementation” below for evidence limits. |
 | SF-D2 | Extend browser CLI, existing fixtures, runner and receipt owner | These already own the lifecycle and proof. Avoid a duplicate verify framework or receipt database. |
 | SF-D3 | Require named outcomes and strict unexpected-request handling | A route, visible body, or successful fake does not prove a workflow completed. |
 | SF-D4 | Keep evidence classes and existing release attestation intact | Virtual authentication, clean-room Chromium, and installed authenticated Brave prove different claims. New automation is additive. |

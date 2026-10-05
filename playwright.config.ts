@@ -28,9 +28,12 @@ function envFlag(name: string): boolean {
 
 const requestedProjects = selectedProjectNames(process.argv);
 const callerManagedFork = requestedProjects.includes("anvil-fork");
+// Workers reload the config without the runner's project-selection arguments.
+const isWorkerProcess = process.env.TEST_WORKER_INDEX !== undefined;
 if (
-  (callerManagedFork && requestedProjects.some((project) => project !== "anvil-fork")) ||
-  (envFlag("RUN_FORK_TESTS") && !callerManagedFork)
+  !isWorkerProcess &&
+  ((callerManagedFork && requestedProjects.some((project) => project !== "anvil-fork")) ||
+    (envFlag("RUN_FORK_TESTS") && !callerManagedFork))
 ) {
   throw new Error("Run the anvil-fork project separately from owned test-server projects");
 }
