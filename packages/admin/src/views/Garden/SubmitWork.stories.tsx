@@ -18,7 +18,7 @@ import {
   type AuthStateValue,
 } from "@green-goods/shared/providers/Auth";
 import { type ComponentType, type ReactNode, useState } from "react";
-import { createMemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
@@ -32,7 +32,6 @@ import {
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
-  withSelectedAdminGarden,
   withWagmi,
 } from "../../../../shared/.storybook/decorators";
 import { stagedWorkPhoto } from "../../../../shared/.storybook/workPhotoFixtures";
@@ -127,8 +126,12 @@ const TWO_PHOTO_ACTION: Action = {
   mediaInfo: { title: "Field photos", required: true, minImageCount: 2, maxImageCount: 6 },
 };
 
-// The shell reads the garden from the URL, so the route names the seeded one.
-const SEEDED_GARDEN_SUBMIT_PATH = `/hub/work/submit?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
+// The shell reads its garden from the URL's `gardenId`, and falls back to the
+// first eligible garden by name, which is not the seeded one. So every story's
+// route names the garden the story is about.
+function submitWorkPath(garden: SharedGarden = STORYBOOK_PRIMARY_ADMIN_GARDEN) {
+  return `/hub/work/submit?gardenId=${garden.id}`;
+}
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -214,17 +217,14 @@ const disconnectedAuthState: AuthStateValue = {
 function SubmitWorkRouteStory() {
   return (
     <>
-      <Routes>
-        <Route path="/hub/work/submit" element={<SubmitWork />} />
-        <Route path="/garden/settings" element={<div className="p-6">Garden settings route</div>} />
-      </Routes>
+      <SubmitWork />
       <ToastViewport />
     </>
   );
 }
 
 // Renders the panel inline (not portaled) so play-test queries can scope to the
-// canvas. The responsive full-screen dialog is exercised by DialogShell.
+// canvas. DialogShell and MediaStep show it in its dialog host.
 function SubmitWorkPanelStory() {
   return (
     <div className="mx-auto flex h-full max-w-2xl flex-col">
@@ -253,19 +253,16 @@ export default meta;
 type Story = StoryObj<typeof SubmitWorkPanel>;
 
 function submitWorkDecorators({
-  initialPath = "/hub/work/submit",
   garden = STORYBOOK_PRIMARY_ADMIN_GARDEN,
   seeds = submitWorkSeeds(),
 }: {
-  initialPath?: string;
   garden?: SharedGarden;
   seeds?: ReadonlyArray<readonly [QueryKey, unknown]>;
 } = {}) {
   return [
     withAdminIdentity,
     withSeededQueryClient(seeds),
-    withSelectedAdminGarden(garden),
-    withRouter([initialPath]),
+    withRouter([submitWorkPath(garden)]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -283,8 +280,7 @@ function disconnectedDecorators() {
       </StoryAuthProvider>
     ),
     withSeededQueryClient(submitWorkSeeds()),
-    withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter(["/hub/work/submit"]),
+    withRouter([submitWorkPath()]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -296,10 +292,7 @@ function disconnectedDecorators() {
 // A single eligible action auto-selects onto Media; advancing without the
 // required photo is gated inline (not deferred to a submit-time toast).
 export const AvailableAction: Story = {
-  // Not in storybook-ci: this happy-path play needs live indexer/action data the
-  // clean-room CI browser can't reach, so the real panel renders its empty state
-  // ("No actions available for this garden's domains") and the assertions fail. Kept
-  // for local/authenticated Storybook review.
+  tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     seeds: submitWorkSeeds({ actions: STORYBOOK_SUBMIT_ACTIONS.slice(0, 1) }),
@@ -317,9 +310,7 @@ export const AvailableAction: Story = {
 
 // Multiple eligible actions → the scannable card chooser (radiogroup).
 export const ActionChooser: Story = {
-  // Not in storybook-ci: the card chooser needs live indexer/action data the clean-room
-  // CI browser can't reach, so the radiogroup never renders offline. Kept for
-  // local/authenticated Storybook review.
+  tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
   play: async ({ canvasElement }) => {
@@ -353,16 +344,11 @@ export const DomainFilter: Story = {
   },
 };
 
-// Centered AdminDialog flow housing (portals to document body) — visual review of
-// the real flow inside its modal host: single header, scrolling body, pinned footer.
-export const DialogShell: Story = {
-  render: () => <SubmitWorkRouteStory />,
-  decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
-};
-
 /**
  * The route in a data router: the host's close guard blocks navigation through
- * `useBlocker`, which a `MemoryRouter` does not provide.
+ * `useBlocker`, which `withRouter`'s `MemoryRouter` does not provide. The shared
+ * `withDataRouter` mounts one path with no search string; this route also needs
+ * `gardenId` and somewhere to land when the flow closes.
  */
 function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
   const [router] = useState(() =>
@@ -371,25 +357,17 @@ function SubmitWorkDataRoute({ children }: { children: ReactNode }) {
         { path: "/hub/work/submit", element: children },
         { path: "*", element: <div className="p-6">Hub route</div> },
       ],
-      { initialEntries: [SEEDED_GARDEN_SUBMIT_PATH] }
+      { initialEntries: [submitWorkPath()] }
     )
   );
   return <RouterProvider router={router} />;
 }
 
-// The media step in the flow's real host: the centered dialog on desktop, the
-// bottom sheet on a phone. The seeded garden's one action asks for two photos,
-// so the flow opens on Media with the count beside the uploader unmet.
-export const MediaStep: Story = {
-  render: () => (
-    <>
-      <SubmitWork />
-      <ToastViewport />
-    </>
-  ),
-  decorators: [
+// The route host in its dialog, as the Hub opens it, with the given actions seeded.
+function submitWorkRouteDecorators(actions: Action[]) {
+  return [
     withAdminIdentity,
-    withSeededQueryClient(submitWorkSeeds({ actions: [TWO_PHOTO_ACTION] })),
+    withSeededQueryClient(submitWorkSeeds({ actions })),
     (Story: ComponentType) => (
       <SubmitWorkDataRoute>
         <Story />
@@ -400,7 +378,22 @@ export const MediaStep: Story = {
       heightClassName: "h-[760px]",
       workspace: "hub",
     }),
-  ],
+  ];
+}
+
+// The flow in its real host (portals to the document body): the centered dialog
+// on desktop, the bottom sheet on a phone, with one header, a scrolling body and
+// a pinned footer. Several eligible actions, so it opens on the chooser.
+export const DialogShell: Story = {
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkRouteDecorators(CHOOSER_ACTIONS),
+};
+
+// The media step in that host. The seeded garden's one action asks for two
+// photos, so the flow opens on Media with the count beside the uploader unmet.
+export const MediaStep: Story = {
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkRouteDecorators([TWO_PHOTO_ACTION]),
 };
 
 // Staging photos in that host: the count turns met, a tile opens the preview
@@ -491,6 +484,7 @@ export const NoDomainRecovery: Story = {
 };
 
 export const NoPermission: Story = {
+  tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     garden: STORYBOOK_REVIEW_ONLY_GARDEN,
