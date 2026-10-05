@@ -158,7 +158,7 @@ reporting delegation, custodial accounts, or any SMS work.
 | Gate | State | Note |
 | --- | --- | --- |
 | O1 no-sign-up reading | **Resolved** | RESR-75 criterion 1: zero account steps to a private draft; one browser passkey step before a gardener-signed public record. |
-| O2 provider | **Resolved for the prototype** | Meta Cloud API direct, test number. Pilot provider stays open. |
+| O2 provider | **Provider resolved for the prototype; account and number reopened 2026-10-04** | Meta Cloud API direct. The September account under WEFA is not used: a new account on Green Goods' own portfolio, and its number, are being set up (GROW-60). Pilot provider stays open. |
 | O5 consent, retention, support, thresholds | **Minimum subset required; the rest deferred** | A test garden is not the same as no personal data. Invited testers use real WhatsApp accounts, so step 3 persists a real provider identifier, steps 4 and 5 retain real photos and descriptions, and step 15 publishes that evidence irreversibly to IPFS and chain. "No production data" describes the garden, not the people. A minimum of consent-at-first-contact, abandonment deletion and a named support owner is therefore above the cut line, folded into steps 5 and 14 rather than a sixteenth step. Thresholds, the full retention schedule and support tooling stay deferred to the TAS pilot. |
 | O3 deployed account-proof compatibility | **Largely answered by existing code** | See step 7. |
 | O4 total-loss recovery | **Open** | RESR-21. Unchanged; the prototype makes no recovery claim. |
