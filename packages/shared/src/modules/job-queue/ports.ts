@@ -223,7 +223,12 @@ export interface JobQueueHandle {
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
   flush(context: FlushContext): Promise<FlushResult>;
   retryJob(jobId: string): Promise<void>;
-  discardJob(jobId: string): Promise<boolean>;
+  /**
+   * Resolves whether the job was removed. `beforeDelete` runs once the job is
+   * known to be discardable and before its record goes, inside the same claim:
+   * if it rejects, the discard stops and the job stays.
+   */
+  discardJob(jobId: string, beforeDelete?: (job: Job) => Promise<void>): Promise<boolean>;
   getStats(userAddress: string): Promise<QueueStats>;
   getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]>;
   getJobsWithImages(

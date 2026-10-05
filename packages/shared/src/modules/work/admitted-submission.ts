@@ -24,6 +24,7 @@ import {
   WorkTransactionReverted,
 } from "./work-confirmation";
 import { classifySendFailure, WorkSendCancelledError } from "./send-outcome";
+import { draftContentOf, holdDraftForSubmit, noteQueuedDraftContent } from "./draft-lifecycle";
 
 export function queuedOutcome(
   queued: QueuedWorkSubmission,
@@ -68,16 +69,20 @@ function heldElsewhere(queued: QueuedWorkSubmission, ports: SubmitWorkPorts): Su
  * Admits the work durably, then sends it while the connection holds. Admission
  * wakes background preparation, which would otherwise claim the work first and
  * leave it for Upload all, so preparation is held back until this Submit has
- * sent the work or left it queued; it then prepares whatever is left.
+ * sent the work or left it queued; it then prepares whatever is left. The
+ * draft is held the same way: a send that completes here leaves it to the
+ * composer, which retires it once it has the outcome.
  */
 export async function submitAdmittedWork(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
   const resumePreparation = await ports.suspendPreparation();
+  const releaseDraft = holdDraftForSubmit(input.clientWorkId);
   try {
     return await admitAndSend(input, ports);
   } finally {
+    releaseDraft();
     resumePreparation();
   }
 }
@@ -86,7 +91,12 @@ async function admitAndSend(
   input: ResolvedSubmitWorkCommand,
   ports: SubmitWorkPorts
 ): Promise<SubmitWorkOutcome> {
+  // What the draft held when the queue copied the work is kept on the queued work,
+  // so a draft the person changes afterwards is never mistaken for what was sent.
+  const drafted = await draftContentOf(input);
   const queued = await ports.queue.admit!(input);
+  if (queued.newlyAdmitted && drafted !== undefined)
+    await noteQueuedDraftContent(queued.jobId, drafted);
   const completed = await jobQueueDB.getWorkCompletion(
     input.userAddress,
     input.chainId,

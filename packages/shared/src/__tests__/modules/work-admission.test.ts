@@ -8,9 +8,14 @@ import {
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
 import type { Action } from "../../types/domain";
-import type { WorkJobPayload } from "../../types/job-queue";
+import type { WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
+import { draftDB } from "../../modules/job-queue/draft-db";
+import { deleteDraftOfQueuedWork, listWorkDrafts } from "../../modules/work/draft-lifecycle";
+import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 
 // Whether a waiting HEIC photo can convert is each test's call.
 const heic = vi.hoisted(() => ({
@@ -53,6 +58,62 @@ function fixture() {
   ports.direct.submitWork = send;
   return { command, ports, send };
 }
+
+/**
+ * Submit from the wizard with a wallet whose prompt is declined: the draft is
+ * saved first, as the wizard saves it, and the queue admits the work before
+ * the wallet asks.
+ */
+async function declinedWalletWork() {
+  const { command, ports, send } = fixture();
+  const photo = new File([new Uint8Array([1, 2, 3, 4])], "bed.jpg", { type: "image/jpeg" });
+  const draftId = crypto.randomUUID();
+  const wizardSaves = (change: Partial<WorkDraftRecord> = {}) =>
+    draftDB.saveSnapshot(
+      command.userAddress!,
+      command.chainId,
+      draftId,
+      {
+        gardenAddress: command.gardenAddress,
+        actionUID: 1,
+        feedback: command.draft.feedback,
+        ...change,
+      },
+      [photo],
+      []
+    );
+  const record = await wizardSaves();
+  Object.assign(
+    command,
+    await createDraftUploadPersistence(record, command.draft, { current: null }),
+    { images: [photo] }
+  );
+  ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
+    await input.onCheckpoint?.({
+      submittedAt: new Date().toISOString(),
+      files: {},
+      broadcastPending: true,
+      broadcastPendingAt: new Date().toISOString(),
+    });
+    throw new WorkSubmissionError(
+      "User rejected the request.",
+      "transaction",
+      "batch",
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
+    );
+  });
+  await expect(submitWork(command, ports)).rejects.toThrow();
+  const queued = async () =>
+    (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "work", synced: false })
+    ).filter((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId);
+  const listedDrafts = async () =>
+    (await listWorkDrafts(command.userAddress!, command.chainId)).filter(
+      (draft) => draft.id === draftId
+    );
+  return { command, ports, send, draftId, queued, listedDrafts, wizardSaves };
+}
+
 describe("PWA durable submission boundary", () => {
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
@@ -114,6 +175,102 @@ describe("PWA durable submission boundary", () => {
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending).toBeFalsy();
     // A refusal clears the whole intent, its chain head too.
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.intentChainTime).toBeUndefined();
+  });
+
+  it("lists declined wallet work once, keeps all of it, and sends it once when Submit asks again", async () => {
+    const { command, ports, send, draftId, queued, listedDrafts } = await declinedWalletWork();
+
+    // Your Work reads the queue and the drafts: the work is one item, as queued.
+    const [job] = await queued();
+    expect(await queued()).toHaveLength(1);
+    expect(await listedDrafts()).toEqual([]);
+    // Nothing is lost: the queue has the photo, and the composer still has its draft.
+    expect(await jobQueueDB.getImagesForJob(job.id)).toHaveLength(1);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(1);
+
+    let whileSending: string | null | undefined;
+    ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
+      // The Submit that is sending the work answers for its own draft.
+      whileSending = await deleteDraftOfQueuedWork(job, "retire");
+      return send(input);
+    });
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "direct",
+      txHash: hash,
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(whileSending).toBeNull();
+    // Sent: the queue let go of it. The draft is the composer's to retire, and with nothing
+    // queued to remove it through, it is listed again and never left out of reach.
+    expect(await queued()).toEqual([]);
+    expect(await listedDrafts()).toHaveLength(1);
+    // Work sent from Your Work has no composer: the queue's report retires its draft.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe("removed");
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
+  });
+
+  it.each([
+    {
+      saved: "only moved to another step",
+      change: { currentStep: "details" as const },
+      kept: false,
+    },
+    { saved: "changed the work", change: { feedback: "Watered the east bed too" }, kept: true },
+    {
+      saved: "changed the work and was declined again",
+      change: { feedback: "Watered the east bed too" },
+      askedAgain: true,
+      kept: true,
+    },
+  ])("keeps the draft of work sent from Your Work when the wizard $saved after the decline: $kept", async ({
+    change,
+    askedAgain,
+    kept,
+  }) => {
+    const { command, ports, draftId, queued, wizardSaves } = await declinedWalletWork();
+    await wizardSaves(change);
+    // Asking again does not refresh the queued work, so it still holds the first version.
+    if (askedAgain) await expect(submitWork(command, ports)).rejects.toThrow();
+    const [job] = await queued();
+
+    // Upload all sends the work as it was queued. A draft that holds more than that was not sent.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe(kept ? "kept" : "removed");
+    expect((await draftDB.getDraft(draftId))?.feedback).toBe(kept ? change.feedback : undefined);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(kept ? 1 : 0);
+  });
+
+  it("discards declined work as one act: its draft and both sets of attachments, then the work", async () => {
+    const { draftId, queued, listedDrafts } = await declinedWalletWork();
+    const [job] = await queued();
+    const discard = () =>
+      jobQueue.discardJob(job.id, async (work) => {
+        await deleteDraftOfQueuedWork(work, "discard");
+      });
+
+    // A draft that cannot be removed stops the discard before the queued work is touched.
+    const blocked = vi.spyOn(draftDB, "deleteDraft").mockRejectedValueOnce(new Error("blocked"));
+    await expect(discard()).rejects.toThrow("blocked");
+    blocked.mockRestore();
+    expect(await queued()).toHaveLength(1);
+    expect(await draftDB.getDraft(draftId)).toBeDefined();
+
+    expect(await discard()).toBe(true);
+    expect(await queued()).toEqual([]);
+    expect(await jobQueueDB.getImagesForJob(job.id)).toEqual([]);
+    expect(await listedDrafts()).toEqual([]);
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
+    expect(await draftDB.getImagesForDraft(draftId)).toEqual([]);
+  });
+
+  it("still lists every draft when the upload queue cannot be read", async () => {
+    const { listedDrafts } = await declinedWalletWork();
+    const read = vi.spyOn(jobQueueDB, "getJobs").mockRejectedValueOnce(new Error("blocked"));
+    try {
+      expect(await listedDrafts()).toHaveLength(1);
+    } finally {
+      read.mockRestore();
+    }
   });
 
   it("holds the send lock through an open wallet prompt", async () => {

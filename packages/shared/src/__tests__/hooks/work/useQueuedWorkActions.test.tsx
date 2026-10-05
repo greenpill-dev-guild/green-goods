@@ -9,11 +9,15 @@ const mocks = vi.hoisted(() => ({
   discardJob: vi.fn(),
   schedule: vi.fn(),
   logError: vi.fn(),
+  removeDraft: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
 vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { retryJob: mocks.retryJob, discardJob: mocks.discardJob },
+}));
+vi.mock("../../../modules/work/draft-lifecycle", () => ({
+  deleteDraftOfQueuedWork: mocks.removeDraft,
 }));
 vi.mock("../../../modules/work/upload-preparation", () => ({
   scheduleUploadPreparation: mocks.schedule,
@@ -69,7 +73,16 @@ describe("useQueuedWorkActions", () => {
     expect(actions.current.isTryingAgain).toBe(false);
   });
 
-  it("discards a work that never reached the chain", async () => {
+  it("discards a work that never reached the chain, with the draft it left in the composer", async () => {
+    const job = { id: "job-1", kind: "work" };
+    // The queue runs the step it is handed once it knows the work may go, before removing it.
+    mocks.discardJob.mockImplementation(
+      async (_id: string, beforeDelete: (work: typeof job) => Promise<void>) => {
+        await beforeDelete(job);
+        expect(mocks.toast.success).not.toHaveBeenCalled();
+        return true;
+      }
+    );
     const actions = render("job-1");
 
     let discarded = false;
@@ -78,7 +91,8 @@ describe("useQueuedWorkActions", () => {
     });
 
     expect(discarded).toBe(true);
-    expect(mocks.discardJob).toHaveBeenCalledWith("job-1");
+    expect(mocks.discardJob).toHaveBeenCalledWith("job-1", expect.any(Function));
+    expect(mocks.removeDraft).toHaveBeenCalledExactlyOnceWith(job, "discard");
     expect(mocks.toast.success).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Work discarded" })
     );
