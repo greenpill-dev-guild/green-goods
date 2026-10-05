@@ -254,6 +254,21 @@ describe("useCreateAssessmentController submit", () => {
     expect(mockSubmitCreation).toHaveBeenCalled();
   });
 
+  it("says so when the send refuses the answers, and asks the wallet nothing", async () => {
+    fillAssessment();
+    mockStartCreation.mockReturnValueOnce(false);
+    const { result } = renderController();
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "We could not submit the assessment" })
+    );
+    expect(mockSubmitCreation).not.toHaveBeenCalled();
+  });
+
   it("ends on a Review step, after the three that collect answers", () => {
     const { result } = renderController();
 

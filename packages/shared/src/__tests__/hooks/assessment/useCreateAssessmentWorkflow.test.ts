@@ -281,6 +281,26 @@ describe("useCreateAssessmentWorkflow", () => {
     queryClient.clear();
   });
 
+  // The machine validates as it starts, and in its invalid state it ignores the
+  // Submit that follows. Answers it refuses must not come back as started.
+  it("does not report answers the send refuses as started", () => {
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+
+    let accepted = true;
+    act(() => {
+      accepted = result.current.startCreation(
+        createParams({ startDate: 1_700_086_400, endDate: 1_700_000_000 })
+      );
+    });
+
+    expect(accepted).toBe(false);
+    expect(result.current.state.matches("invalid")).toBe(true);
+    expect(mocks.loggerError).toHaveBeenCalled();
+    expect(mocks.saveDraft).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
   it("surfaces a missing steward address before the wallet is asked anything", async () => {
     mocks.walletAddress = undefined;
     const queryClient = createTestQueryClient();
