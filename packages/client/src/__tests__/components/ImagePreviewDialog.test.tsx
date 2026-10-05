@@ -213,4 +213,17 @@ describe("ImagePreviewDialog", () => {
 
     expect(screen.getByText("1 / 3")).toBeInTheDocument();
   });
+
+  it("returns focus to the control that opened it", async () => {
+    // It opens by state, with no Radix trigger, so Radix returns focus to nothing.
+    const user = userEvent.setup();
+    render(<TestHarness initialOpen={false} />);
+    const opener = screen.getByLabelText("open-dialog");
+
+    await user.click(opener);
+    await user.click(screen.getByTestId("image-preview-close"));
+
+    expect(screen.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
 });

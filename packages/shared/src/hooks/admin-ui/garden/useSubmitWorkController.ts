@@ -4,6 +4,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
 import { isOfflineTxHash } from "../../../modules/job-queue/queue-policy";
 import { logger } from "../../../modules/app/logger";
+import { isWorkPhoto } from "../../../modules/work/work-attachments";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
 import type { Action, Address, Domain } from "../../../types/domain";
@@ -244,7 +245,10 @@ export function useSubmitWorkController({
     if (busy) return;
     if (activeStepId === "media") {
       const minRequired = getMinRequiredWorkImages(selectedAction);
-      if (minRequired > 0 && images.length < minRequired) {
+      // Photos, not every staged file: a video is kept but does not count, and
+      // the submission would refuse the work at the end for the same shortfall.
+      const photoCount = images.filter((file) => isWorkPhoto(file)).length;
+      if (minRequired > 0 && photoCount < minRequired) {
         setMediaFeedback({
           variant: "error",
           message: formatMessage(

@@ -329,7 +329,8 @@ vi.mock("@green-goods/shared/modules/job-queue/queue-policy", async (importOrigi
   };
 });
 
-vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
+vi.mock("@green-goods/shared/modules/work/media-processing", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/work/media-processing")>()),
   normalizeWorkMediaFiles: async (files: File[]) => {
     const accepted = [];
     const rejected = [];
@@ -659,7 +660,7 @@ describe("SubmitWorkPanel submit behavior", () => {
       expect(onDirtyChange).toHaveBeenLastCalledWith(true);
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "photo.png" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Remove photo.png" }));
     await waitFor(() => {
       expect(onDirtyChange).toHaveBeenLastCalledWith(false);
     });
@@ -707,13 +708,41 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    // One photo, two required ⇒ the Media gate blocks the advance until the
-    // minimum is met; the mutation never runs.
+    // One photo, two required ⇒ the count beside the uploader says so, and the
+    // Media gate blocks the advance until the minimum is met; the mutation never runs.
     uploadFile(container);
+    expect(await screen.findByText("1 of 2 photos")).toBeInTheDocument();
     await clickNext(user);
     expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
+
+    // The second photo meets the action's requirement: the count says so and Next opens Details.
+    uploadFile(container, "after.png");
+    expect(await screen.findByText("2 photos added")).toBeInTheDocument();
+    await clickNext(user);
+    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
+  });
+
+  it("counts photos, not every staged file, toward the minimum", async () => {
+    mockState.actions = [createAction({ required: true, minImageCount: 2 })];
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    // A photo and a video are two staged files but one photo: the count says so, and
+    // Next holds the step as the submission would refuse the work at the end.
+    uploadFile(container);
+    uploadFile(container, "walkthrough.mp4", "video/mp4");
+    expect(await screen.findByRole("button", { name: "Remove walkthrough.mp4" })).toBeVisible();
+    expect(screen.getByText("1 of 2 photos")).toBeInTheDocument();
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   });
 
   it("submits through the shared mutation when required media is present", async () => {

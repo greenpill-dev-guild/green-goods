@@ -73,7 +73,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -81,6 +80,7 @@ import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { useDocumentScrollLock } from "../../hooks/ui/useDocumentScrollLock";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
+import { useOpenerFocus } from "../../hooks/utils/useOpenerFocus";
 
 const DEFAULT_CLOSE_DURATION_MS = 300;
 
@@ -211,7 +211,6 @@ export function PwaSheet({
   const dialogRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragDimRef = useRef<HTMLDivElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
   const hasHeader = title !== undefined && title !== null;
@@ -228,24 +227,8 @@ export function PwaSheet({
   useSheetPresence(open);
 
   // Remember who opened the sheet and hand focus back when it closes, the way
-  // the centered Radix surfaces do. The capture is a layout effect so it runs
-  // before the focus trap moves focus into the sheet; the restore is a
-  // passive cleanup because React DOM re-focuses the pre-commit element after
-  // its mutation phase, which would undo a restore made during layout.
-  useLayoutEffect(() => {
-    if (!open) return;
-    openerRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    return () => {
-      const opener = openerRef.current;
-      openerRef.current = null;
-      if (opener?.isConnected) opener.focus({ preventScroll: true });
-    };
-  }, [open]);
+  // the centered Radix surfaces do.
+  useOpenerFocus(open);
 
   // Hide the rest of the page from assistive tech while the sheet is open;
   // overlapping sheets compose because the manager reference-counts what it
