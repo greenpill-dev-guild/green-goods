@@ -556,6 +556,8 @@
   "app.admin.flow.discardChanges.confirm": "Descartar",
   "app.admin.flow.discardChanges.description": "As alterações não salvas serão perdidas.",
   "app.admin.flow.discardChanges.title": "Descartar alterações?",
+  "app.admin.flow.send.waiting": "A janela fica aberta até sua carteira responder.",
+  "app.admin.flow.send.walletAsksOnce": "Sua carteira vai pedir uma vez.",
   "app.admin.garden.create.confirm.cancel": "Cancelar",
   "app.admin.garden.create.confirm.deploy": "Confirmar e implantar",
   "app.admin.garden.create.confirm.description": "Revise o resumo e o custo estimado de gás antes de implantar.",

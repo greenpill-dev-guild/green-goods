@@ -556,6 +556,8 @@
   "app.admin.flow.discardChanges.confirm": "Descartar",
   "app.admin.flow.discardChanges.description": "Se perderán los cambios no guardados.",
   "app.admin.flow.discardChanges.title": "¿Descartar cambios?",
+  "app.admin.flow.send.waiting": "El diálogo sigue abierto hasta que tu billetera responda.",
+  "app.admin.flow.send.walletAsksOnce": "Tu billetera te lo pedirá una vez.",
   "app.admin.garden.create.confirm.cancel": "Cancelar",
   "app.admin.garden.create.confirm.deploy": "Confirmar y desplegar",
   "app.admin.garden.create.confirm.description": "Revisa el resumen y el costo estimado de gas antes de desplegar.",

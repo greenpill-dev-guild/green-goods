@@ -556,6 +556,8 @@
   "app.admin.flow.discardChanges.confirm": "Discard",
   "app.admin.flow.discardChanges.description": "Any unsaved changes will be lost.",
   "app.admin.flow.discardChanges.title": "Discard Changes?",
+  "app.admin.flow.send.waiting": "The dialog stays open until your wallet answers.",
+  "app.admin.flow.send.walletAsksOnce": "Your wallet will ask you once.",
   "app.admin.garden.create.confirm.cancel": "Cancel",
   "app.admin.garden.create.confirm.deploy": "Confirm and Deploy",
   "app.admin.garden.create.confirm.description": "Review the summary and estimated gas cost before deploying.",
