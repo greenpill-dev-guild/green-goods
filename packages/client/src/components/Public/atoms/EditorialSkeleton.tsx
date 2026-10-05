@@ -41,62 +41,65 @@ export function EditorialMediaCardSkeleton({
   );
 }
 
+/** The Fund row's placeholder: the same slots as `PublicGardenRow`, in the same place at each width. */
 export function EditorialListRowSkeleton({ className }: { className?: string }) {
   const { formatMessage } = useIntl();
   return (
     <div
       aria-hidden="true"
       data-editorial-skeleton-layout="list-row"
-      className={cn("flex h-full min-w-0 items-stretch gap-4 py-4 sm:gap-5", className)}
+      className={cn("@container h-full min-w-0", className)}
     >
-      <div className="flex min-w-0 flex-1 basis-0 items-stretch gap-4 sm:gap-5">
-        <EditorialSkeleton className="h-20 w-28 shrink-0 sm:h-24 sm:w-36" />
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-          <EditorialSkeleton className="-mb-0.5 h-[1lh] w-1/2 text-[11px]" />
-          <EditorialSkeleton className="h-[2lh] w-3/4 text-lg leading-[1.15]" />
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
-            {[
-              formatMessage(
-                { id: "public.gardens.gardeners", defaultMessage: "{count} gardeners" },
-                { count: 0 }
-              ),
-              formatMessage(
-                { id: "public.gardens.works", defaultMessage: "{count} entries" },
-                { count: 0 }
-              ),
-            ].map((label, index) => (
-              <span key={label} className="flex min-w-0 items-center gap-x-2">
-                {index > 0 ? <span className="invisible">·</span> : null}
-                <span className="editorial-skeleton [overflow-wrap:anywhere]">
-                  <span className="invisible">{label}</span>
+      <div className="flex h-full min-w-0 flex-wrap content-between items-stretch gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
+        <div className="flex min-w-0 flex-1 basis-0 items-stretch gap-4 sm:gap-5">
+          <EditorialSkeleton className="h-20 w-28 shrink-0 sm:h-24 sm:w-36" />
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            <EditorialSkeleton className="-mb-0.5 h-[1lh] w-1/2 text-[11px]" />
+            <EditorialSkeleton className="h-[2lh] w-3/4 text-lg leading-[1.15]" />
+            <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
+              {[
+                formatMessage(
+                  { id: "public.gardens.gardeners", defaultMessage: "{count} gardeners" },
+                  { count: 0 }
+                ),
+                formatMessage(
+                  { id: "public.gardens.works", defaultMessage: "{count} entries" },
+                  { count: 0 }
+                ),
+              ].map((label, index) => (
+                <span key={label} className="flex min-w-0 items-center gap-x-2">
+                  {index > 0 ? <span className="invisible">·</span> : null}
+                  <span className="editorial-skeleton [overflow-wrap:anywhere]">
+                    <span className="invisible">{label}</span>
+                  </span>
                 </span>
-              </span>
-            ))}
-          </p>
+              ))}
+            </p>
+          </div>
         </div>
-      </div>
-      <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
-        <EditorialPrimaryButton
-          disabled
-          size="sm"
-          className="editorial-skeleton"
-          data-skeleton-action="donate"
-        >
-          <span className="invisible">
-            {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
-          </span>
-        </EditorialPrimaryButton>
-        <EditorialGhostButton
-          disabled
-          variant="warm"
-          size="sm"
-          className="editorial-skeleton"
-          data-skeleton-action="endow"
-        >
-          <span className="invisible">
-            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-          </span>
-        </EditorialGhostButton>
+        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col @[28rem]:justify-center">
+          <EditorialPrimaryButton
+            disabled
+            size="sm"
+            className="editorial-skeleton flex-1 @[28rem]:flex-none"
+            data-skeleton-action="donate"
+          >
+            <span className="invisible">
+              {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
+            </span>
+          </EditorialPrimaryButton>
+          <EditorialGhostButton
+            disabled
+            variant="warm"
+            size="sm"
+            className="editorial-skeleton flex-1 @[28rem]:flex-none"
+            data-skeleton-action="endow"
+          >
+            <span className="invisible">
+              {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+            </span>
+          </EditorialGhostButton>
+        </div>
       </div>
     </div>
   );
