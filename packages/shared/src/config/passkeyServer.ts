@@ -58,7 +58,15 @@ function readPasskeyServerEnv(): PasskeyServerEnv {
   };
 }
 
+/**
+ * Whether this build keeps account names on a passkey server, so an account can be found by
+ * name on another device. `VITE_PASSKEY_SERVER_ENABLED` decides it for a build that knows only
+ * the hosted server. A build pointed at the Green Goods passkey directory is server-backed
+ * whatever that flag says: the directory is a passkey server, and setting its address must not
+ * be a silent no-op. Such a build still asks the hosted server for names the directory lacks.
+ */
 export function isPasskeyServerEnabled(env: PasskeyServerEnv = readPasskeyServerEnv()): boolean {
+  if (env.VITE_PASSKEY_DIRECTORY_URL?.trim()) return true;
   const configured = env.VITE_PASSKEY_SERVER_ENABLED?.trim().toLowerCase();
   if (configured === "true") return true;
   if (configured === "false") return false;
@@ -93,6 +101,11 @@ export function createPasskeyServerClient(chainId: number) {
  * Every sign-in by name asks the directory before the hosted server, so a directory that does
  * not answer must not hold older accounts up for long. The directory itself waits at most four
  * seconds on the hosted name list.
+ *
+ * The one retry covers lookups and the start of a sign-up. The passkey client sends the
+ * registration itself (`pks_verifyRegistration`) once whatever the transport allows, which the
+ * directory relies on: a registration answers one challenge, and a second copy would be refused
+ * after the first had already been stored.
  */
 const DIRECTORY_TIMEOUT_MS = 6_000;
 

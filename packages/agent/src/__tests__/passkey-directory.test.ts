@@ -18,6 +18,7 @@ const BETA = "https://beta.greengoods.app";
 const WWW = "https://www.greengoods.app";
 const PREVIEW = "https://green-goods-git-some-branch-greenpilldevguild.vercel.app";
 const LOCALHOST = "http://localhost:3001";
+const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
 const NOW = 1_759_600_000_000;
 
 function createDirectoryApp(
@@ -27,7 +28,7 @@ function createDirectoryApp(
   const store = new MemoryPasskeyDirectoryStore();
   const app = createServer({
     isAIReady: () => true,
-    allowedOrigins: new Set([BETA, WWW, LOCALHOST]),
+    allowedOrigins: new Set([BETA, WWW, LOCALHOST, LOOPBACK_ADDRESS]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     passkeyDirectory: createPasskeyDirectory({
       store,
@@ -213,6 +214,14 @@ describe("passkey directory", () => {
       LOCALHOST
     );
     expect(localDev.result.rp.id).toBe("localhost");
+    // A browser cannot create a passkey on an address, so local development means `localhost`.
+    const loopback = await call(
+      development.app,
+      "pks_startRegistration",
+      [{ userName: "ana" }],
+      LOOPBACK_ADDRESS
+    );
+    expect(loopback.error?.message).toBe("Passkeys are not available from this origin.");
   });
 
   it("answers the preflight and reports malformed calls as JSON-RPC errors", async () => {

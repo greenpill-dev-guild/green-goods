@@ -120,6 +120,9 @@ export type PasskeyDirectoryDeps = {
  * The domain a page may register a passkey under: the directory's own domain for that domain
  * and its subdomains over HTTPS, `localhost` in local development, and nothing for any other
  * origin. A browser enforces the same rule, so an unlisted origin could not use the passkey.
+ *
+ * Only the name `localhost` counts as local. A passkey's domain has to be a domain, so a
+ * browser refuses to create one on an address such as `127.0.0.1` ("This is an invalid domain").
  */
 function passkeyDomainForOrigin(
   origin: string,

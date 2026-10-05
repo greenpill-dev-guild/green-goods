@@ -34,7 +34,8 @@ options chooses that domain, so the passkey server decides where an account can 
 - **Green Goods passkey directory** (the agent route `/public/passkeys/rpc`): issues every passkey
   under `greengoods.app`, so one account signs in on every Green Goods site. A build uses it when
   `VITE_PASSKEY_DIRECTORY_URL` is set, and the agent serves it when `PASSKEY_DIRECTORY_ENABLED` is
-  `true`.
+  `true`. Setting the address is enough: such a build keeps names on a passkey server whatever
+  `VITE_PASSKEY_SERVER_ENABLED` says.
 - **Hosted passkey server**: issues each site its own hostname, so an account made there signs in
   only on the site that created it. Accounts made before the directory stay on it, and sign in the
   same way as before.

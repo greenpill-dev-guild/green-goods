@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import type { P256Credential } from "viem/account-abstraction";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildPasskeyRecoveryContext,
   classifyPasskeyCeremonyContext,
+  createPasskeyDirectoryClient,
   getPasskeyRpId,
   isPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier,
 } from "../../config/passkeyServer";
+
+const DIRECTORY_URL = "https://agent.greengoods.app/public/passkeys/rpc";
+const DIRECTORY_ENV = { VITE_PASSKEY_DIRECTORY_URL: DIRECTORY_URL };
 
 const locationFor = (origin: string): Pick<Location, "hostname" | "origin" | "protocol"> => {
   const url = new URL(origin);
@@ -34,6 +39,60 @@ describe("config/passkeyServer", () => {
       expect(
         isPasskeyServerEnabled({ DEV: true, PROD: false, VITE_PASSKEY_SERVER_ENABLED: "true" })
       ).toBe(true);
+    });
+
+    it("counts a build pointed at the passkey directory as server-backed, whatever the hosted flag says", () => {
+      const pointed = { VITE_PASSKEY_DIRECTORY_URL: DIRECTORY_URL };
+
+      expect(isPasskeyServerEnabled({ DEV: true, PROD: false, ...pointed })).toBe(true);
+      expect(isPasskeyServerEnabled({ ...pointed, VITE_PASSKEY_SERVER_ENABLED: "false" })).toBe(
+        true
+      );
+      expect(isPasskeyServerEnabled({ DEV: true, VITE_PASSKEY_DIRECTORY_URL: "  " })).toBe(false);
+    });
+  });
+
+  describe("passkey directory client", () => {
+    it("is absent until a build names the directory", () => {
+      expect(createPasskeyDirectoryClient({})).toBeNull();
+      expect(createPasskeyDirectoryClient(DIRECTORY_ENV)).not.toBeNull();
+    });
+
+    // A registration answers one challenge. If the client sent it twice, the directory would
+    // store the first and refuse the second, and a sign-up that worked would read as failed.
+    it("asks again once for a lookup, but sends a registration once", async () => {
+      const methods: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+        methods.push(JSON.parse(String(init?.body)).method);
+        return new Response(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32603, message: "Not now." } }),
+          { headers: { "content-type": "application/json" } }
+        );
+      });
+      const client = createPasskeyDirectoryClient(DIRECTORY_ENV);
+      const buffer = new Uint8Array([1, 2, 3]).buffer;
+      const created = {
+        id: "AQID",
+        publicKey: "0x04",
+        raw: {
+          rawId: buffer,
+          type: "public-key",
+          authenticatorAttachment: "platform",
+          response: { clientDataJSON: buffer, attestationObject: buffer },
+          getClientExtensionResults: () => ({}),
+        },
+      } as unknown as P256Credential;
+
+      await expect(client?.getCredentials({ context: { userName: "ana" } })).rejects.toThrow();
+      await expect(
+        client?.verifyRegistration({ credential: created, context: { userName: "ana" } })
+      ).rejects.toThrow();
+
+      expect(methods).toEqual([
+        "pks_getCredentials",
+        "pks_getCredentials",
+        "pks_verifyRegistration",
+      ]);
     });
   });
 
