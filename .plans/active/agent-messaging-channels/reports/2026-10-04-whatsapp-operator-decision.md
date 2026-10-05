@@ -88,6 +88,8 @@ names the new operator in its settled list, as edition v3.
 - **The support contact.** The technical brief names a mailbox on WEFA's domain as the support
   route, while the chat and the pages send people to `greengoods.app`. Whether support moves to a
   Green Goods-controlled address, or the WEFA-hosted mailbox is kept and named in the participant
-  notice, is undecided. Settle it before real tester intake.
+  notice, is undecided. Settle it before real tester intake. Until then the plan header and the
+  live-intake gate in [eval.md](../eval.md) still name that mailbox, and the research agenda lists
+  the address under Open.
 - **Who speaks for Green Goods.** The operator and the project lead are now the same person, so the
   operating memo linked on GROW-60 asks for a second person.
