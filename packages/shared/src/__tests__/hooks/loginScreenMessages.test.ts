@@ -5,6 +5,7 @@ import {
   getBrowserGuidanceLabel,
   getFriendlyLoginErrorMessage,
 } from "../../hooks/client-ui/auth/login-screen-messages";
+import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 
 const intl = {
   formatMessage: vi.fn(
@@ -33,9 +34,30 @@ describe("getFriendlyLoginErrorMessage", () => {
   it.each([
     ["address mismatch", "That passkey is for a different account."],
     ["Failed to fetch", "Passkey recovery is temporarily unavailable."],
+    [
+      "RPC Request failed. Details: Passkey sign-up is unavailable right now.",
+      "Passkey recovery is temporarily unavailable.",
+    ],
     ["Unexpected failure", "Something went wrong. Please try again."],
   ])("gives useful guidance for %s", (message, expected) => {
     expect(getFriendlyLoginErrorMessage(new Error(message), intl)).toBe(expected);
+  });
+
+  // A refusal from a passkey server quotes the address that was called and the request that was
+  // sent, and the request carries the name the person typed. Neither may pick the message.
+  it.each([
+    ["cancel-ana", "That name is already registered.", "That name is already registered."],
+    ["network-ana", "Passkey verification failed.", "We couldn't verify your passkey."],
+    [
+      "ana",
+      "Too many requests. Please try again later.",
+      "Something went wrong. Please try again.",
+    ],
+  ])("reads a refused sign-up for %s by what the server said", async (userName, refusal, expected) => {
+    const error = await passkeyServerRefusal({ userName, message: refusal });
+
+    expect(error.message).toContain(`"userName":"${userName}"`);
+    expect(getFriendlyLoginErrorMessage(error, intl)).toBe(expected);
   });
 });
 

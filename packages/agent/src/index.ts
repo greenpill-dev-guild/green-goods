@@ -57,6 +57,12 @@ import {
 } from "./services/garden-join-requests";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
 import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
+import { createPasskeyDirectory } from "./services/passkey-directory";
+import {
+  createHostedPasskeyNameCheck,
+  createSqlitePasskeyDirectoryStore,
+} from "./services/passkey-directory-adapters";
+import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
 
 // ============================================================================
 // INITIALIZATION
@@ -197,6 +203,21 @@ async function main(): Promise<void> {
     }),
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
+    ...(config.passkeyDirectoryEnabled
+      ? {
+          passkeyDirectory: createPasskeyDirectory({
+            store: createSqlitePasskeyDirectoryStore(),
+            relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
+            hostedNameTaken: config.passkeyHostedDirectoryUrl?.trim()
+              ? createHostedPasskeyNameCheck({
+                  rpcUrl: config.passkeyHostedDirectoryUrl.trim(),
+                  origin: `https://${PASSKEY_RP_ID}`,
+                })
+              : undefined,
+            allowLocalDevelopment: config.isDevelopment,
+          }),
+        }
+      : {}),
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled
