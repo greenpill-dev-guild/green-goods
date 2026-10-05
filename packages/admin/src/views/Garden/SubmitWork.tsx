@@ -23,7 +23,8 @@ function parseHubContext(search: string) {
 
 export interface SubmitWorkPanelProps {
   layout?: SubmitWorkLayout;
-  onSuccess?: () => void;
+  /** The steward leaves the done state the flow ends on. */
+  onDone?: () => void;
   onCancel?: () => void;
   auth?: SubmitWorkAuthSnapshot;
   onDirtyChange?: (dirty: boolean) => void;
@@ -75,7 +76,7 @@ export default function SubmitWork() {
       >
         <SubmitWorkPanel
           layout="dialog"
-          onSuccess={close}
+          onDone={close}
           onCancel={close}
           onDirtyChange={setPanelDirty}
           onBusyChange={setPanelBusy}

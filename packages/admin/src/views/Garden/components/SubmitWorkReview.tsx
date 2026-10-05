@@ -3,18 +3,24 @@
 // M3/semantic tokens (no client component imports, no glass). Values are read
 // from the react-hook-form snapshot; media previews use object URLs revoked on
 // unmount. Each section header carries an Edit control that jumps back to its
-// step so a value can be corrected without walking the flow again.
+// step so a value can be corrected without walking the flow again. One status
+// row above the sections says where the send stands and keeps its height while
+// it works, so the sections under it never move (DL-072, DL-080).
 import type { Action } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
+import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 
 export interface SubmitWorkReviewProps {
   action: Action;
   images: File[];
   values: Record<string, unknown>;
   photoRequirementText: string;
+  /** Where the send stands, in the one row that changes while it works. */
+  status: FlowSendStatus;
   /** Jump back to a step to edit it (1=Action, 2=Media, 3=Details). */
   onEditStep?: (step: number) => void;
 }
@@ -34,11 +40,14 @@ function ReviewCard({
   title,
   onEdit,
   editText,
+  editable,
   children,
 }: {
   title: string;
   onEdit?: () => void;
   editText?: string;
+  /** Held, not hidden, while a send works: a header that lost its Edit would move the cards. */
+  editable: boolean;
   children: ReactNode;
 }) {
   return (
@@ -51,6 +60,7 @@ function ReviewCard({
             variant="text"
             size="sm"
             onClick={onEdit}
+            disabled={!editable}
             aria-label={`${editText} ${title}`}
           >
             {editText}
@@ -67,9 +77,12 @@ export function SubmitWorkReview({
   images,
   values,
   photoRequirementText,
+  status,
   onEditStep,
 }: SubmitWorkReviewProps) {
   const { formatMessage } = useIntl();
+  // Until the send lands the values stay the steward's to change, a failed send included.
+  const editable = status.phase === "ready" || status.phase === "failed";
   const edit = formatMessage({ id: "app.common.edit", defaultMessage: "Edit" });
 
   const previews = useMemo(
@@ -99,10 +112,17 @@ export function SubmitWorkReview({
 
   return (
     <div className="space-y-3">
+      <FlowStatusRow
+        tone={status.tone}
+        busy={status.busy}
+        title={status.title}
+        description={status.description}
+      />
       <ReviewCard
         title={formatMessage({ id: "app.admin.work.submit.step.action", defaultMessage: "Action" })}
         onEdit={onEditStep ? () => onEditStep(1) : undefined}
         editText={edit}
+        editable={editable}
       >
         <p className="body-sm font-semibold text-text-strong">{action.title}</p>
         <p className="mt-0.5 body-xs text-text-sub">{photoRequirementText}</p>
@@ -116,6 +136,7 @@ export function SubmitWorkReview({
           })}
           onEdit={onEditStep ? () => onEditStep(3) : undefined}
           editText={edit}
+          editable={editable}
         >
           <div className="divide-y divide-stroke-soft">
             {action.inputs.map((input) => {
@@ -135,6 +156,7 @@ export function SubmitWorkReview({
         })}
         onEdit={onEditStep ? () => onEditStep(3) : undefined}
         editText={edit}
+        editable={editable}
       >
         <div className="divide-y divide-stroke-soft">
           <ReviewRow
@@ -161,6 +183,7 @@ export function SubmitWorkReview({
         })}
         onEdit={onEditStep ? () => onEditStep(2) : undefined}
         editText={edit}
+        editable={editable}
       >
         {previews.length > 0 ? (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
