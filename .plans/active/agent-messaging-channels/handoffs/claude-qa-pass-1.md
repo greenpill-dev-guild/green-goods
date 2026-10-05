@@ -5,7 +5,7 @@
 - Owner: Opus 5.5 (Claude)
 - Branch: record the approved implementation checkout before dispatch
 - Status: blocked (see status.json)
-- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+- Support owner: Afolabi, [contact@greengoods.app](mailto:contact@greengoods.app)
 
 ## Start gate
 
@@ -19,7 +19,7 @@ Adversarial proof includes duplicate/reclaimed ingress, HMAC rotation/racing ins
 
 Cover Action instruction updates after reservation and during owner/delegated sends using the confirmed snapshot. Prove independent owner revocation with Agent/proxy/database unavailable, including old signed operations and stale enable-authorization replay; keep delegation disabled until section 9.3 passes. Verify canonical PublicShell/SiteHeader routing, the independent permissions mode and unaffected default public/PWA routes.
 
-Before tester intake, rehearse help/deletion/incident contact with Afolabi (afo@wefa.world) and verify privacy/provider/retention gates. Deployed edge/header proof and authenticated Brave wallet/passkey proof are separate from harness fixtures. Record every capability omitted from the demo. Submit each completed checkpoint and final integration evidence to Astra.
+Before tester intake, rehearse help/deletion/incident contact with Afolabi (contact@greengoods.app) and verify privacy/provider/retention gates. Deployed edge/header proof and authenticated Brave wallet/passkey proof are separate from harness fixtures. Record every capability omitted from the demo. Submit each completed checkpoint and final integration evidence to Astra.
 
 ## Validation
 
