@@ -37,6 +37,7 @@ import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact"
 import { registerMessagingRoutes } from "./routes/messaging";
 import { registerReportingOpsRoutes } from "./routes/reporting-ops";
 import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
+import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
 
 const log = loggers.api;
 
@@ -195,6 +196,13 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       ...routeContext,
       deps: { ...routeContext.deps, gardenJoinRequestRateLimitPressure },
       store: deps.gardenJoinRequestStore,
+    });
+  }
+
+  if (deps.passkeyDirectory) {
+    registerPasskeyDirectoryRoutes(app, {
+      ...routeContext,
+      passkeyDirectory: deps.passkeyDirectory,
     });
   }
 

@@ -11,6 +11,7 @@ import { getChain } from "../config/chains";
 import {
   buildPasskeyRecoveryContext,
   createPasskey,
+  createPasskeyDirectoryClient,
   createPasskeyServerClient,
   getPasskeyRpId,
   isPasskeyServerEnabled,
@@ -30,6 +31,10 @@ import {
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
+import {
+  type PasskeyAssertionCheck,
+  verifyPasskeyAssertion,
+} from "../modules/auth/passkey-assertion";
 import {
   clearSignedOutSentinel,
   getAuthMode,
@@ -78,11 +83,19 @@ export interface PasskeyAdapters {
   telemetry: AuthTelemetryAdapter;
   isServerEnabled(): boolean;
   buildRecoveryContext(userName: string): ReturnType<typeof buildPasskeyRecoveryContext>;
+  /** The hosted passkey server: every account made before the directory lives there. */
   createServerClient(chainId: number): PasskeyServerClientAdapter;
+  /** The Green Goods passkey directory, or null while this build has not been switched to it. */
+  createDirectoryClient(): PasskeyServerClientAdapter | null;
   createLocalPasskey(userName: string): Promise<P256Credential>;
   createWebAuthnCredential(options: unknown): Promise<P256Credential>;
   getWebAuthnCredential(options: CredentialRequestOptions): Promise<Credential | null>;
+  /** Check a sign-in signature against the key the directory holds for the passkey. */
+  verifyAssertion(input: Omit<PasskeyAssertionCheck, "origin">): Promise<boolean>;
+  /** The domain the app uses when it runs a passkey ceremony without a server's options. */
   getRpId(): string;
+  /** This site's own hostname: the domain of a passkey the hosted server issued here. */
+  getSiteRpId(): string;
   randomChallenge(): Uint8Array;
   buildSmartAccount(
     credential: PasskeyCredential,
@@ -181,11 +194,14 @@ export const defaultPasskeyAdapters: PasskeyAdapters = {
   isServerEnabled: isPasskeyServerEnabled,
   buildRecoveryContext: buildPasskeyRecoveryContext,
   createServerClient: createPasskeyServerClient,
+  createDirectoryClient: () => createPasskeyDirectoryClient(),
   createLocalPasskey: createPasskey,
   createWebAuthnCredential: (options) =>
     createWebAuthnCredential(options as Parameters<typeof createWebAuthnCredential>[0]),
   getWebAuthnCredential: (options) => navigator.credentials.get(options),
+  verifyAssertion: (input) => verifyPasskeyAssertion({ ...input, origin: window.location.origin }),
   getRpId: getPasskeyRpId,
+  getSiteRpId: () => window.location.hostname,
   randomChallenge: () => crypto.getRandomValues(new Uint8Array(32)),
   buildSmartAccount,
 };

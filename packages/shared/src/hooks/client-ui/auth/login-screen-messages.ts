@@ -71,7 +71,13 @@ export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): s
       defaultMessage: "That name is already registered.",
     });
   }
-  if (message.includes("network") || message.includes("timeout") || message.includes("fetch")) {
+  if (
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("fetch") ||
+    // How the passkey directory reports that it cannot answer for now.
+    message.includes("unavailable right now")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.network",
       defaultMessage: "Passkey recovery is temporarily unavailable.",

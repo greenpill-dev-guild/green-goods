@@ -116,10 +116,12 @@ describe("config/passkeyServer", () => {
       });
     });
 
-    // Pins the property the pending staging rollout depends on: with no RP
-    // override, a subdomain resolves the apex RP rather than its own hostname.
-    // Staging still sets an override today, so this describes the code, not the
-    // deployment. A narrower RP would not change the address formula (`rpId` is
+    // Pins the app's own default: with no RP override, a subdomain resolves the
+    // apex RP rather than its own hostname. This describes the code, not which
+    // domain a deployed passkey has: a passkey server names the domain of the
+    // passkeys it issues. The Green Goods directory issues the apex to every
+    // site; the hosted server issues each site its own hostname, whatever this
+    // default says. A narrower RP would not change the address formula (`rpId` is
     // a signing-ceremony parameter and never enters Kernel's validator data);
     // it would keep the browser from offering the existing credential at all,
     // so the gardener registers a new one and that new public key gives them a

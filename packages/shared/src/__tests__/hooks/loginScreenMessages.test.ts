@@ -33,6 +33,10 @@ describe("getFriendlyLoginErrorMessage", () => {
   it.each([
     ["address mismatch", "That passkey is for a different account."],
     ["Failed to fetch", "Passkey recovery is temporarily unavailable."],
+    [
+      "RPC Request failed. Details: Passkey sign-up is unavailable right now.",
+      "Passkey recovery is temporarily unavailable.",
+    ],
     ["Unexpected failure", "Something went wrong. Please try again."],
   ])("gives useful guidance for %s", (message, expected) => {
     expect(getFriendlyLoginErrorMessage(new Error(message), intl)).toBe(expected);

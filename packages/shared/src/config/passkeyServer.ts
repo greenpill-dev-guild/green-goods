@@ -12,6 +12,11 @@ import { http } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
+import {
+  normalizePasskeyName,
+  PASSKEY_RP_ID,
+  PASSKEY_RP_NAME,
+} from "../public-contracts/passkey-directory";
 import { getPimlicoBundlerUrl } from "./pimlico";
 
 // ============================================================================
@@ -19,24 +24,24 @@ import { getPimlicoBundlerUrl } from "./pimlico";
 // ============================================================================
 
 /**
- * Fixed RP ID for passkey operations.
+ * The domain (RP ID) a passkey is created under decides where it can be used: a browser offers
+ * it only for that exact domain, on that domain's own pages and its subdomains. Every later
+ * sign-in and signature must name the same domain; Android's Credential Manager is strict
+ * about it.
  *
- * CRITICAL FOR ANDROID: The RP ID MUST be identical between registration and
- * authentication. Android's Credential Manager is very strict about this.
- *
- * Using the apex domain (greengoods.app) allows passkeys to work on:
- * - greengoods.app
- * - www.greengoods.app
- * - Any subdomain of greengoods.app
+ * `PASSKEY_RP_ID` is the domain every Green Goods site shares. The app chooses it only where it
+ * runs the ceremony itself. When a passkey server issues the options, that server names the
+ * domain: the Green Goods passkey directory issues the shared domain to every site, while the
+ * hosted Pimlico server issues each site its own hostname.
  */
-export const PASSKEY_RP_ID = "greengoods.app";
-export const PASSKEY_RP_NAME = "Green Goods";
+export { PASSKEY_RP_ID, PASSKEY_RP_NAME };
 
 type PasskeyServerEnv = {
   DEV?: boolean;
   PROD?: boolean;
   VITE_PASSKEY_SERVER_ENABLED?: string;
   VITE_PASSKEY_RP_ID?: string;
+  VITE_PASSKEY_DIRECTORY_URL?: string;
 };
 
 /**
@@ -49,6 +54,7 @@ function readPasskeyServerEnv(): PasskeyServerEnv {
     PROD: import.meta.env.PROD,
     VITE_PASSKEY_SERVER_ENABLED: import.meta.env.VITE_PASSKEY_SERVER_ENABLED,
     VITE_PASSKEY_RP_ID: import.meta.env.VITE_PASSKEY_RP_ID,
+    VITE_PASSKEY_DIRECTORY_URL: import.meta.env.VITE_PASSKEY_DIRECTORY_URL,
   };
 }
 
@@ -65,7 +71,7 @@ export type PasskeyRecoveryContext = {
 };
 
 export function normalizePasskeyAccountIdentifier(identifier: string): string {
-  return identifier.trim().replace(/^@+/, "").toLowerCase();
+  return normalizePasskeyName(identifier);
 }
 
 export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecoveryContext {
@@ -76,10 +82,21 @@ export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecovery
   return { userName };
 }
 
+/** The hosted Pimlico passkey server. It holds the accounts made before the directory. */
 export function createPasskeyServerClient(chainId: number) {
   return createPermissionlessPasskeyServerClient({
     transport: http(getPimlicoBundlerUrl(chainId)),
   });
+}
+
+/**
+ * The Green Goods passkey directory, or nothing while this build still signs people up on the
+ * hosted server. `VITE_PASSKEY_DIRECTORY_URL` switches a build to it. The directory speaks the
+ * same protocol as the hosted server, so the same client reads both.
+ */
+export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskeyServerEnv()) {
+  const url = env.VITE_PASSKEY_DIRECTORY_URL?.trim();
+  return url ? createPermissionlessPasskeyServerClient({ transport: http(url) }) : null;
 }
 
 export type PasskeyCeremonyBlockReason =
