@@ -273,7 +273,7 @@
         --boot-line: var(--color-stroke-soft-200, #d7d2c7);
         --boot-deep: var(--color-editorial-deep, #2d2118);
         --boot-deep-fg: var(--color-editorial-deep-fg, #f5f0e8);
-        --boot-action: var(--color-primary-action, #173f2a);
+        --boot-action: var(--color-primary-action, #1a7544);
         --boot-action-fg: var(--color-primary-action-foreground, #ffffff);
         position: fixed;
         inset: 0;
@@ -403,10 +403,10 @@
         padding: 0 24px; /* px-6 */
       }
 
-      /* The home hero's rail sits in the hero's flow above its foot padding,
-         as the loaded card does, so a screen too short for the card grows the
-         hero instead of sliding the card under the header. The recovery rail,
-         outside the hero, keeps the viewport-anchored offsets above. */
+      /* The hero's rail sits in the hero's flow under its header clearance,
+         as the loaded card does, so a card too tall for the hero grows the
+         hero instead of sliding under the header. The recovery rail, outside
+         the hero, keeps the viewport-anchored offsets above. */
       .boot-editorial-hero .boot-editorial-card-rail {
         position: relative;
         bottom: auto;
@@ -628,11 +628,21 @@
         opacity: 0.72;
       }
 
+      /* GEOMETRY SYNC: the installed app's loading scene mirrors SplashScaffold.tsx
+         slot for slot in plain CSS (this renders before Tailwind loads), so the
+         logo and the line under it are where sign-in and the could-not-open
+         screen draw them and nothing moves on handover. Each mirrored
+         declaration names its Tailwind class; bootFallbackGeometry.test.ts fails
+         when either side changes, so update both together. Every slot is
+         reserved in every state: the 7:3 split depends on the block's height. */
       .boot-pwa-shell {
         position: relative;
-        min-height: 100vh;
-        min-height: 100dvh;
+        display: flex; /* flex */
+        flex-direction: column; /* flex-col */
+        align-items: center; /* items-center */
+        min-height: 100vh; /* min-h-screen */
         box-sizing: border-box;
+        padding: 8px 16px; /* py-2 px-4 */
         overflow-x: hidden;
         overflow-y: auto;
         background: var(--boot-canvas);
@@ -640,96 +650,127 @@
         text-align: center;
       }
 
-      .boot-pwa-content {
-        position: absolute;
-        top: max(24px, calc(50% - 96px));
-        left: 50%;
-        width: min(calc(100% - 48px), 320px);
-        transform: translateX(-50%);
-        display: grid;
-        grid-template-rows: 64px auto;
-        row-gap: 16px;
-        align-items: center;
-        justify-items: stretch;
+      /* Golden anchor: free space splits 7:3 above and below the block. */
+      .boot-pwa-shell::before {
+        flex-grow: 7;
+        content: "";
       }
 
-      .boot-pwa-copy-stack {
-        width: 100%;
+      .boot-pwa-shell::after {
+        flex-grow: 3;
+        content: "";
+      }
+
+      .boot-pwa-content {
         display: flex;
+        width: 100%; /* w-full */
+        max-width: 384px; /* max-w-sm */
         flex-direction: column;
         align-items: center;
-        gap: 12px;
-      }
-
-      .boot-pwa-logo-slot,
-      .boot-pwa-message-slot,
-      .boot-pwa-action-slot {
-        width: 100%;
-        box-sizing: border-box;
       }
 
       .boot-pwa-logo-slot {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-shrink: 0;
+        margin-bottom: 16px; /* mb-4 */
       }
 
       .boot-pwa-content img {
         display: block;
-        width: 112px;
-        height: auto;
-        margin: 0 auto;
+        width: auto; /* w-auto */
+        height: 96px; /* h-24 */
       }
 
       .boot-pwa-message-slot {
-        block-size: 48px;
         display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        overflow-y: auto;
-      }
-
-      .boot-pwa-message-slot p {
         width: 100%;
-        max-block-size: 100%;
-        margin: 0;
-        overflow-y: auto;
-        font-size: 1rem;
-        font-weight: 650;
-        line-height: 1.5;
-      }
-
-      .boot-pwa-action-slot {
-        block-size: 44px;
-        display: flex;
+        height: 32px; /* h-8 */
+        margin-bottom: 20px; /* mb-5 */
         align-items: center;
         justify-content: center;
       }
 
+      /* The status voice: SplashScaffold's titleVoice="status". */
+      .boot-pwa-message-slot p {
+        margin: 0;
+        font-size: 1rem; /* text-base */
+        font-weight: 650; /* font-[650] */
+        line-height: 1.5;
+      }
+
+      .boot-pwa-stack {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px; /* gap-3 */
+      }
+
+      .boot-pwa-action-slot,
+      .boot-pwa-note-slot {
+        display: flex;
+        width: 100%;
+        height: 44px; /* h-11 */
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* A note starts at the slot's top and runs down into the empty zone
+         below it, so a second line never pushes the action. */
+      .boot-pwa-note-slot {
+        align-items: flex-start;
+      }
+
+      .boot-pwa-note-slot p {
+        width: 100%;
+        margin: 0;
+        padding-top: 4px; /* pt-1 */
+        color: var(--boot-muted);
+        font-size: 0.875rem; /* text-sm */
+        line-height: 1.25rem; /* leading-5 */
+      }
+
+      .boot-pwa-zone {
+        width: 100%;
+        height: 80px; /* h-20: sign-in's message zone */
+      }
+
+      .boot-pwa-link {
+        height: 20px; /* h-5: sign-in's text link */
+      }
+
+      /* The app's button: the shared Button at its default size (44px, the
+         16px app corner, a 16px regular label), full width as on sign-in. */
       .boot-pwa-action-slot .boot-reload-button {
+        width: 100%; /* w-full */
+        min-height: 44px;
         margin-top: 0;
+        border-radius: 16px;
+        padding: 0 16px;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5rem;
         white-space: nowrap;
       }
 
-      /* At 200% browser zoom, a 375px phone exposes roughly 188 CSS pixels.
-         Keep every translated recovery line available without changing the
-         compact geometry at normal mobile widths. The shell can scroll on
-         shorter phones, while logo, message, and action anchors remain stable
-         across states at the same zoom level. */
-      @media (max-width: 240px) {
-        .boot-pwa-content {
-          top: 24px;
-          width: min(calc(100% - 24px), 320px);
+      @media (min-width: 640px) {
+        .boot-pwa-content img {
+          height: 112px; /* sm:h-28 */
         }
+      }
 
+      /* At 200% browser zoom, a 375px phone exposes roughly 188 CSS pixels.
+         Let the line and the action take the room every translated message
+         needs; at that zoom, reading the message outranks holding the slots. */
+      @media (max-width: 240px) {
         .boot-pwa-message-slot {
-          block-size: 120px;
+          height: auto;
+          min-height: 32px;
         }
 
         .boot-pwa-action-slot .boot-reload-button {
-          max-width: 100%;
           padding-inline: 12px;
           font-size: 0.875rem;
+          white-space: normal;
         }
       }
 
@@ -811,35 +852,37 @@
       /* Banner-variant skeleton for non-home public paths (data-boot-hero is
          stamped by the boot-presentation detector): short image plate with the
          card spilling below it onto the canvas, mirroring the hero's banner
-         variant. Scoped to rails inside the plate so the recovery card keeps
-         the viewport-anchored fullscreen geometry. */
+         variant. The plate's height is a minimum and the rail stays in its
+         flow, so a card taller than the plate allows grows the plate as the
+         loaded hero does; the rail's negative margin is the spill. Scoped to
+         rails inside the plate so the recovery card keeps the
+         viewport-anchored fullscreen geometry. */
       [data-boot-hero="banner"] .boot-editorial-shell {
         background: var(--boot-canvas);
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero {
-        min-height: 0;
-        height: 340px; /* h-[340px] */
+        min-height: 340px; /* min-h-[340px] */
+        padding-bottom: 0;
       }
 
       [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
-        position: absolute;
-        bottom: -64px; /* bottom-[-4rem] */
+        margin-bottom: -64px; /* -mb-16 */
       }
 
       @media (min-width: 640px) {
         [data-boot-hero="banner"] .boot-editorial-hero {
-          height: 420px; /* sm:h-[420px] */
+          min-height: 420px; /* sm:min-h-[420px] */
         }
 
         [data-boot-hero="banner"] .boot-editorial-hero .boot-editorial-card-rail {
-          bottom: -80px; /* sm:bottom-[-5rem] */
+          margin-bottom: -80px; /* sm:-mb-20 */
         }
       }
 
       @media (min-width: 1024px) {
         [data-boot-hero="banner"] .boot-editorial-hero {
-          height: 500px; /* lg:h-[500px] */
+          min-height: 500px; /* lg:min-h-[500px] */
         }
       }
 
@@ -956,20 +999,15 @@
             <img
               alt=""
               src="%BASE_URL%icon.png"
-              width="112"
-              height="64"
+              width="819"
+              height="464"
             />
           </div>
-          <div class="boot-pwa-copy-stack">
-            <div class="boot-pwa-message-slot" data-boot-slot="message">
-              <p id="boot-pwa-message">Green Goods is loading.</p>
-            </div>
-            <div
-              class="boot-pwa-action-slot"
-              id="boot-pwa-action"
-              data-boot-slot="action"
-              hidden
-            >
+          <div class="boot-pwa-message-slot" data-boot-slot="message">
+            <p id="boot-pwa-message">Green Goods is loading.</p>
+          </div>
+          <div class="boot-pwa-stack">
+            <div class="boot-pwa-action-slot" id="boot-pwa-action" data-boot-slot="action">
               <button
                 class="boot-reload-button"
                 id="boot-pwa-reload"
@@ -979,6 +1017,11 @@
                 Reload
               </button>
             </div>
+            <div class="boot-pwa-note-slot" data-boot-slot="note">
+              <p id="boot-pwa-note" hidden></p>
+            </div>
+            <div class="boot-pwa-zone" aria-hidden="true"></div>
+            <div class="boot-pwa-link" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -995,7 +1038,7 @@
         var websiteReload = document.getElementById("boot-website-reload");
         var pwa = document.getElementById("boot-fallback-pwa");
         var pwaMessage = document.getElementById("boot-pwa-message");
-        var pwaAction = document.getElementById("boot-pwa-action");
+        var pwaNote = document.getElementById("boot-pwa-note");
         var pwaReload = document.getElementById("boot-pwa-reload");
         var presentation = document.documentElement.dataset.bootPresentation || "website";
         var copy = {
@@ -1003,12 +1046,15 @@
             applying: "Updating Green Goods…",
             applyingAction: "Updating…",
             loading: "Green Goods is loading.",
-            offline: "You’re offline. Saved screens may still be available.",
+            offline: "You’re offline.",
+            offlineNote: "Saved screens may still be available.",
             retry: "Try Again",
-            stalled: "Close every Green Goods window, then open the app again.",
-            updateWaiting: "Update waiting. Close every Green Goods window, then open the app again.",
-            update: "Green Goods needs the latest app files.",
-            updateAction: "Update app",
+            stalled: "Green Goods couldn’t update.",
+            stalledNote: "Close every Green Goods window, then open the app again.",
+            updateWaiting: "An update is waiting.",
+            updateWaitingNote: "Close every Green Goods window, then open the app again.",
+            update: "Green Goods needs an update.",
+            updateAction: "Update App",
             websiteRecoveryTitle: "This page is taking longer than expected.",
             websiteRecoveryBody: "Reload to try again.",
             reload: "Reload",
@@ -1017,11 +1063,14 @@
             applying: "Actualizando Green Goods…",
             applyingAction: "Actualizando…",
             loading: "Green Goods se está cargando.",
-            offline: "Estás sin conexión. Las pantallas guardadas pueden seguir disponibles.",
+            offline: "Estás sin conexión.",
+            offlineNote: "Las pantallas guardadas pueden seguir disponibles.",
             retry: "Intentar de nuevo",
-            stalled: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            updateWaiting: "Actualización pendiente. Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
-            update: "Green Goods necesita los archivos más recientes.",
+            stalled: "Green Goods no se pudo actualizar.",
+            stalledNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
+            updateWaiting: "Hay una actualización pendiente.",
+            updateWaitingNote: "Cierra todas las ventanas de Green Goods y vuelve a abrir la app.",
+            update: "Green Goods necesita actualizarse.",
             updateAction: "Actualizar app",
             websiteRecoveryTitle: "Esta página está tardando más de lo esperado.",
             websiteRecoveryBody: "Recarga para intentarlo de nuevo.",
@@ -1031,11 +1080,14 @@
             applying: "Atualizando o Green Goods…",
             applyingAction: "Atualizando…",
             loading: "Green Goods está carregando.",
-            offline: "Você está offline. As telas salvas ainda podem estar disponíveis.",
+            offline: "Você está offline.",
+            offlineNote: "As telas salvas ainda podem estar disponíveis.",
             retry: "Tentar novamente",
-            stalled: "Feche todas as janelas do Green Goods e abra o app novamente.",
-            updateWaiting: "Atualização pendente. Feche todas as janelas do Green Goods e abra o app novamente.",
-            update: "Green Goods precisa dos arquivos mais recentes.",
+            stalled: "O Green Goods não pôde atualizar.",
+            stalledNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
+            updateWaiting: "Há uma atualização pendente.",
+            updateWaitingNote: "Feche todas as janelas do Green Goods e abra o app novamente.",
+            update: "O Green Goods precisa atualizar.",
             updateAction: "Atualizar app",
             websiteRecoveryTitle: "Esta página está demorando mais do que o esperado.",
             websiteRecoveryBody: "Recarregue para tentar novamente.",
@@ -1084,6 +1136,17 @@
           return root && root.children.length > 0;
         }
 
+        // The installed app's scene says one thing on the line under the logo
+        // and, where there is more, a quiet note under the action. Every slot
+        // keeps its place; only what is in it changes.
+        function setPwaCopy(line, note) {
+          if (pwaMessage) pwaMessage.textContent = line;
+          if (pwaNote) {
+            pwaNote.textContent = note || "";
+            pwaNote.hidden = !note;
+          }
+        }
+
         function showFallback(kind) {
           if (!fallback || hasAppContent()) return;
           if (
@@ -1111,8 +1174,7 @@
               pwa.setAttribute("aria-busy", isRecovery ? "false" : "true");
             }
             if (website) website.hidden = true;
-            if (pwaMessage) pwaMessage.textContent = isRecovery ? labels.update : labels.loading;
-            if (pwaAction) pwaAction.hidden = !isRecovery;
+            setPwaCopy(isRecovery ? labels.update : labels.loading);
             if (pwaReload) {
               pwaReload.hidden = !isRecovery;
               pwaReload.setAttribute("aria-disabled", "false");
@@ -1159,8 +1221,8 @@
           recoveryInstallingWorker = undefined;
         }
 
-        function setPwaRecoveryState(kind, message) {
-          if (!fallback || !pwa || !pwaMessage || !pwaAction || !pwaReload) return;
+        function setPwaRecoveryState(kind, line, note) {
+          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
           var isApplying = kind === "applying";
           var isAlert = kind === "stalled";
 
@@ -1168,44 +1230,44 @@
           pwa.setAttribute("role", isAlert ? "alert" : "status");
           pwa.setAttribute("aria-live", isAlert ? "assertive" : "polite");
           pwa.setAttribute("aria-busy", isApplying ? "true" : "false");
-          pwaMessage.textContent = message;
-          pwaAction.hidden = false;
+          setPwaCopy(line, note);
           pwaReload.hidden = false;
           pwaReload.setAttribute("aria-disabled", isApplying ? "true" : "false");
           pwaReload.textContent = isApplying ? labels.applyingAction : labels.retry;
         }
 
         function setPwaLoadingState() {
-          if (!fallback || !pwa || !pwaMessage || !pwaAction || !pwaReload) return;
+          if (!fallback || !pwa || !pwaMessage || !pwaReload) return;
           fallback.hidden = false;
           fallback.dataset.state = "loading";
           pwa.setAttribute("role", "status");
           pwa.setAttribute("aria-live", "polite");
           pwa.setAttribute("aria-busy", "true");
-          pwaMessage.textContent = labels.loading;
-          pwaAction.hidden = true;
+          setPwaCopy(labels.loading);
           pwaReload.hidden = true;
           pwaReload.setAttribute("aria-disabled", "false");
           pwaReload.textContent = labels.updateAction;
         }
 
-        function stallPwaRecovery(message) {
+        // reason: "stalled", "updateWaiting" or "offline".
+        function stallPwaRecovery(reason) {
+          var key = reason || "stalled";
           removeRecoveryListeners();
           recoveryInFlight = false;
-          setPwaRecoveryState("stalled", message || labels.stalled);
+          setPwaRecoveryState("stalled", labels[key], labels[key + "Note"]);
           if (pwaReload) pwaReload.focus();
         }
 
         function activateWaitingWorker(worker) {
           if (!worker || !recoveryInFlight || !("serviceWorker" in navigator)) {
-            stallPwaRecovery(labels.stalled);
+            stallPwaRecovery("stalled");
             return;
           }
 
           // A waiting worker activates when every page using the old worker is
           // closed. The boot scene must not force activation around the app's
           // quiescence handshake.
-          stallPwaRecovery(labels.updateWaiting);
+          stallPwaRecovery("updateWaiting");
         }
 
         function handleInstallingStateChange() {
@@ -1216,7 +1278,7 @@
               (recoveryRegistration && recoveryRegistration.waiting) || recoveryInstallingWorker
             );
           } else if (recoveryInstallingWorker.state === "redundant") {
-            stallPwaRecovery(labels.stalled);
+            stallPwaRecovery("stalled");
           }
         }
 
@@ -1249,11 +1311,11 @@
           recoveryInFlight = true;
           setPwaRecoveryState("applying", labels.applying);
           recoveryTimer = window.setTimeout(function () {
-            stallPwaRecovery(labels.stalled);
+            stallPwaRecovery("stalled");
           }, PWA_RECOVERY_TIMEOUT_MS);
 
           if (!("serviceWorker" in navigator)) {
-            stallPwaRecovery(labels.stalled);
+            stallPwaRecovery("stalled");
             return;
           }
 
@@ -1261,7 +1323,7 @@
             recoveryRegistration = await navigator.serviceWorker.getRegistration();
             if (!recoveryInFlight) return;
             if (!recoveryRegistration) {
-              stallPwaRecovery(labels.stalled);
+              stallPwaRecovery("stalled");
               return;
             }
 
@@ -1276,7 +1338,7 @@
               return;
             }
             if (navigator.onLine === false) {
-              stallPwaRecovery(labels.offline);
+              stallPwaRecovery("offline");
               return;
             }
 
@@ -1289,7 +1351,7 @@
               watchInstallingWorker(recoveryRegistration.installing);
             }
           } catch (_) {
-            stallPwaRecovery(navigator.onLine === false ? labels.offline : labels.stalled);
+            stallPwaRecovery(navigator.onLine === false ? "offline" : "stalled");
           }
         }
 

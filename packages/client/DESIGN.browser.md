@@ -25,6 +25,7 @@ dialect: public-browser
 - **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
 - Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list, with one recorded exception: the chat reporting ceremony pages under `/agent/reporting/*` (see below).
+- **Unknown URLs redirect to `/`.** Only a Garden's page says "not found" (`/gardens/:id`); no other route renders a 404 (DL-083).
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
 ## SiteHeader
@@ -36,6 +37,18 @@ dialect: public-browser
 - **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
 - **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
 - Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
+
+## Failure States
+
+A visitor who meets a failure still sees a website. The failure is drawn where it happened and only as large as what failed (DL-083):
+
+- **A page fails** (its code will not load, its loader throws, or it throws while rendering): the page is replaced by an ordinary editorial page inside the site's frame. `PublicPageError` is the banner hero with a title, one sentence, Reload and Browse Gardens, over the soil footer. `SiteHeader` stays, so the navigation still leads away. The public pages sit inside one route that carries `RouteErrorBoundary view="page"` (`errorFrame` in `config/routes.tsx`), which is what keeps `PublicShell` on screen. The state cannot sit on a page's own route: React Router renders nothing for a route whose code failed to load.
+- **The site's frame fails** (`PublicShell`, the root route, or a provider): `PublicSiteError` is one linen card on the walnut ground, where the boot shell's recovery card sits, with the title, one sentence and Reload. It reads no provider and no router, so it renders whatever failed.
+- **A reporting ceremony page fails** as the app does, inside its focused bar: see `DESIGN.pwa.md` § Failure states.
+- **Offline**: when a page's code cannot be fetched without a connection, the title says so and the page reloads itself when the connection returns. Reload waits with it, so the browser's own offline page never replaces the site.
+- **A new build**: a page whose code is from a build that is no longer served reloads itself once, and no error is shown.
+- **A failed read is not an empty one.** A section whose read failed renders `PublicReadUnavailable`: the serif italic sentence ("This public record is temporarily unavailable. Please try again.", or the surface's own) and a Try Again that asks the read again. `PublicSurfaceState` renders it by default; the homepage's Featured Gardens and the lists on `/gardens`, `/actions`, `/fund` and `/impact` use it. An empty state is only for a read that succeeded and found nothing.
+- **Never on the website**: an error message or code, a stack, "technical details", a copy-details action, a bug or warning illustration, or app chrome. Reports go to PostHog by themselves.
 
 ## Reporting ceremony pages (`/agent/reporting/*`)
 
@@ -89,6 +102,14 @@ Every public-browser page ends with `PublicFooter` — a single quiet row contai
 - Copyright/provenance (`© <year> Green Goods. A living public record, rooted in regenerative work.`).
 
 Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
+
+## Banner Hero
+
+Every public page but Home opens on `PublicEditorialHero variant="banner"`: a shorter image plate (340px, 420px from 640px, 500px from 1024px) with the linen card at its foot, spilling past it into the next section (64px, 80px from 640px). The section after a banner reserves top padding for the spill.
+
+- **The card never slides under `SiteHeader`.** The plate's height is a minimum, not a fixed height. A card too tall for it (a narrow phone, a longer Spanish or Portuguese title, a stacked action row) grows the plate, so the card starts one gutter below the header (88px, 104px from 640px) and still spills the same distance. This is the homepage hero's short-screen rule, applied to the banner.
+- Where the card fits, the plate keeps its height and nothing moves.
+- The boot skeleton in `index.html` mirrors both rules; `bootFallbackGeometry.test.ts` pins the pair.
 
 ## `/gardens`
 

@@ -178,8 +178,8 @@ vi.mock("@/components/Sheets", () => ({
   EndowmentSheet: () => null,
 }));
 
-vi.mock("@/components/Errors", () => ({
-  GardenErrorBoundary: ({ children }: { children: React.ReactNode }) =>
+vi.mock("@/components/Errors/AppErrorBoundary", () => ({
+  AppErrorBoundary: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "garden-boundary" }, children),
 }));
 

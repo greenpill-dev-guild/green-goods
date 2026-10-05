@@ -28,12 +28,26 @@ import type React from "react";
  * content scan to miss); zone heights are STANDARD classes (`h-11`, `h-20`,
  * `h-8`, `h-5`), which the shared Storybook scan generates (storybook.css
  * declares `@source "../../client/src"`).
+ *
+ * One geometry for every screen that draws the logo: sign-in in all its states,
+ * the app's own loading screen, and the screen shown when the app could not
+ * open. GEOMETRY SYNC: the loading screen is static HTML that paints before
+ * this file loads (`.boot-pwa-shell` in index.html) and mirrors this scaffold
+ * slot for slot; bootFallbackGeometry.test.ts fails when either side changes, so
+ * update both together. A screen with one action may put a quiet note in slot
+ * two, aligned to the slot's top.
  */
 interface SplashScaffoldProps {
   /** Pulse the logo (loading states). */
   pulse?: boolean;
   /** Title / wordmark line (APP_NAME, or a loading message). */
   title: React.ReactNode;
+  /**
+   * How the line reads. The app's name keeps the wordmark's voice; a sentence
+   * ("Signing you in...", "Green Goods couldn't open.") takes the loading
+   * screen's. Both sit centred in the same slot, so the line never moves.
+   */
+  titleVoice?: "name" | "status";
   /** Slot 1 — entry primary or the form input. */
   slotOne?: React.ReactNode;
   /** Slot 2 — entry secondary, or the form primary. Reserved when empty. */
@@ -53,6 +67,7 @@ const SLOT_CLASS = "w-full h-11 flex items-center justify-center";
 export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
   pulse = false,
   title,
+  titleVoice = "name",
   slotOne,
   slotTwo,
   message,
@@ -83,7 +98,14 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
 
       {/* TITLE / MESSAGE — fixed-height slot. */}
       <div className="h-8 flex items-center justify-center mb-5">
-        <h3 className="text-center text-[1.25rem] font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
+        <h3
+          className={cn(
+            "text-center transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+            titleVoice === "name"
+              ? "text-[1.25rem] font-bold text-primary-dark"
+              : "text-base font-[650] text-text-strong-950"
+          )}
+        >
           {title}
         </h3>
       </div>

@@ -8,10 +8,12 @@ import {
   initializePostHog,
   protectReportingCeremonies,
 } from "../../modules/app/posthog-browser";
+import { recordCrash } from "../../modules/app/crash-reports";
 import { restoreExceptionTopLevelProps } from "../../modules/app/posthog";
 
 const posthogMock = vi.hoisted(() => ({
   capture: vi.fn(),
+  captureException: vi.fn(),
   config: { api_host: "" },
   get_distinct_id: vi.fn(() => "test-distinct-id"),
   identify: vi.fn(),
@@ -241,6 +243,29 @@ describe("initializePostHog", () => {
           dropSkippedTransitionExceptions,
         ],
       })
+    );
+  });
+
+  it("sends a crash kept before the transport connected, at the time it happened", () => {
+    // Offline holds the report back, as a crash before analytics loads would.
+    vi.stubGlobal("navigator", { onLine: false });
+    const error = new Error("Garden screen failed");
+    recordCrash(error, { source: "RouteErrorBoundary:unknown" });
+    expect(posthogMock.capture).not.toHaveBeenCalled();
+
+    vi.stubGlobal("navigator", { onLine: true });
+    initializePostHog("project-key-after-crash");
+    vi.unstubAllGlobals();
+
+    expect(posthogMock.capture).toHaveBeenCalledWith(
+      "error_tracked",
+      expect.objectContaining({ source: "RouteErrorBoundary:unknown" }),
+      // Sent at once: the page that shows a crash screen is usually reloaded next.
+      { timestamp: expect.any(Date), uuid: expect.any(String), send_instantly: true }
+    );
+    expect(posthogMock.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Garden screen failed" }),
+      expect.objectContaining({ source: "RouteErrorBoundary:unknown" })
     );
   });
 });

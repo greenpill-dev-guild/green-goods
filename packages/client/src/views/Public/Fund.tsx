@@ -343,7 +343,7 @@ function getGardenVaultSummary(
 
 function FundPageContent() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading, isError } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const vaultSummary = usePublicVaultCatalogSummary();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -646,15 +646,7 @@ function FundPageContent() {
                 ))}
               </div>
             }
-            error={
-              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-                {formatMessage({
-                  id: "public.surface.error",
-                  defaultMessage:
-                    "This public record is temporarily unavailable. Please try again.",
-                })}
-              </p>
-            }
+            onRetry={() => void refetch()}
             empty={
               <div className="mt-12 max-w-md">
                 <p className="font-serif text-xl italic text-text-soft-400">

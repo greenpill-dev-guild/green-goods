@@ -169,7 +169,8 @@ export default function ImpactPage() {
   }, [slice?.records, kindFilter, domainFilter, gardenFilter, page]);
   const evidenceState = selectPublicSurfaceState({
     isLoading: evidence.isLoading,
-    isError: slice?.status === "error",
+    // A read that rejected has no slice to carry a status, and is still a failed read.
+    isError: evidence.isError || slice?.status === "error",
     itemCount: filteredRecords.length,
   });
 
@@ -468,15 +469,12 @@ export default function ImpactPage() {
                 ))}
               </div>
             }
-            error={
-              <p className="mt-12 flex min-h-40 max-w-2xl items-center border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
-                {formatMessage({
-                  id: "public.impact.evidence.error",
-                  defaultMessage:
-                    "Evidence is temporarily unavailable. Please try again in a few minutes.",
-                })}
-              </p>
-            }
+            onRetry={() => void evidence.refetch()}
+            errorMessage={formatMessage({
+              id: "public.impact.evidence.error",
+              defaultMessage:
+                "Evidence is temporarily unavailable. Please try again in a few minutes.",
+            })}
             empty={
               <div className="mt-12 min-h-40 max-w-2xl border-t border-stroke-soft-200 pt-6">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">

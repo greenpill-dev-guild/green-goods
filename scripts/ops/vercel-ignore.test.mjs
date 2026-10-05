@@ -83,6 +83,16 @@ test("covers the files each build reads from outside its own directory", () => {
   assert.ok(designAssets.length >= 5, "design assets not found; update this reader");
   for (const path of designAssets) assert.ok(isInput("design", path), `design reads ${path}`);
 
+  const designFolders = [
+    ...read("packages/shared/.storybook/prepare-design-assets.mjs").matchAll(
+      /^const \w+Directory = "([^"]+\/)";/gm
+    ),
+  ].map((match) => match[1]);
+  assert.ok(designFolders.length >= 1, "design asset folders not found; update this reader");
+  for (const folder of designFolders) {
+    assert.ok(isInput("design", `${folder}hero-example.webp`), `design reads ${folder}`);
+  }
+
   const storyRoots = [
     ...read("packages/shared/.storybook/main.ts").matchAll(/"(?:\.\.\/)+(packages\/[^"*]+)\*\*/g),
   ].map((match) => match[1]);

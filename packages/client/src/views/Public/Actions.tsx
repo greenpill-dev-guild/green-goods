@@ -189,7 +189,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  */
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
-  const { data: actions = [], isLoading, isError } = useActions();
+  const { data: actions = [], isLoading, isError, refetch } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
@@ -398,15 +398,7 @@ export default function ActionsGallery() {
                 ))}
               </div>
             }
-            error={
-              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-                {formatMessage({
-                  id: "public.surface.error",
-                  defaultMessage:
-                    "This public record is temporarily unavailable. Please try again.",
-                })}
-              </p>
-            }
+            onRetry={() => void refetch()}
             empty={
               <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
                 {formatMessage({

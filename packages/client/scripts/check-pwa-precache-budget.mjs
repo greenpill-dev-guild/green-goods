@@ -11,6 +11,9 @@ const LIMITS = {
   precacheEntries: Number(process.env.PWA_PRECACHE_MAX_ENTRIES ?? 40),
   publicStartupGzip: Number(process.env.PWA_PUBLIC_STARTUP_GZIP_MAX ?? 450 * KiB),
   pwaStartupGzip: Number(process.env.PWA_INSTALLED_STARTUP_GZIP_MAX ?? 1.25 * MiB),
+  // The installed entry alone, before any route. It holds the app's recovery screens, which are
+  // what is shown when a route's code will not load, so it must not lean on the routes' code.
+  pwaEntryGzip: Number(process.env.PWA_INSTALLED_ENTRY_GZIP_MAX ?? 450 * KiB),
   modulePreloads: Number(process.env.PWA_MODULE_PRELOAD_MAX ?? 16),
   majorRouteGzip: Number(process.env.PWA_MAJOR_ROUTE_GZIP_MAX ?? 500 * KiB),
   mediaRouteGzip: Number(process.env.PWA_MEDIA_ROUTE_GZIP_MAX ?? 850 * KiB),
@@ -34,6 +37,9 @@ const FORBIDDEN_PUBLIC_MODULES = [
   "/config/default-chain",
   "/hooks/blockchain/",
 ];
+// The website's frame is a lazy route, so the entry's closure does not hold it, yet no public
+// page can draw until it and everything it imports have loaded. It answers to the same list.
+const PUBLIC_SHELL_SOURCE = "src/routes/PublicShell.tsx";
 
 // The shape of every lazy chunk's file name, set by `chunkFileNames` in
 // vite.config.ts. Privacy filters match a site's own files by name (Brave's
@@ -187,6 +193,11 @@ try {
   const publicKey = findManifestKey(manifest, "src/bootstrapPublic.tsx");
   const pwaKey = findManifestKey(manifest, "src/bootstrapPwa.tsx");
   if (!mainKey || !publicKey || !pwaKey) throw new Error("Bootstrap entries are missing from Vite manifest");
+  // A frame that has moved must not leave its check passing on nothing.
+  const publicShellKey = findManifestKey(manifest, PUBLIC_SHELL_SOURCE);
+  if (!publicShellKey) {
+    throw new Error(`The website frame (${PUBLIC_SHELL_SOURCE}) is missing from Vite manifest`);
+  }
 
   const mainClosure = collectManifestClosure(manifest, [mainKey]);
   const publicClosure = collectManifestClosure(manifest, [mainKey, publicKey]);
@@ -194,6 +205,14 @@ try {
   if (publicGzip > LIMITS.publicStartupGzip) {
     failures.push(
       `public startup gzip ${formatBytes(publicGzip)} exceeds ${formatBytes(LIMITS.publicStartupGzip)}`
+    );
+  }
+
+  const pwaEntry = collectManifestClosure(manifest, [mainKey, pwaKey]);
+  const pwaEntryGzip = [...pwaEntry.files].reduce((sum, file) => sum + fileSize(file, true), 0);
+  if (pwaEntryGzip > LIMITS.pwaEntryGzip) {
+    failures.push(
+      `installed entry gzip ${formatBytes(pwaEntryGzip)} exceeds ${formatBytes(LIMITS.pwaEntryGzip)}`
     );
   }
 
@@ -289,17 +308,29 @@ try {
     failures.push(`offline shell gzip ${formatBytes(shellGzip)} exceeds ${formatBytes(LIMITS.shellGzip)}`);
   }
 
-  const publicChunkClosure = collectChunkClosure(graph, publicClosure.files);
-  const forbidden = [];
-  for (const file of publicChunkClosure) {
-    for (const moduleId of graph.chunks[file]?.modules ?? []) {
-      if (FORBIDDEN_PUBLIC_MODULES.some((pattern) => moduleId.includes(pattern))) {
-        forbidden.push(moduleId);
+  const forbiddenUnder = (files) => {
+    const found = new Set();
+    for (const file of collectChunkClosure(graph, files)) {
+      for (const moduleId of graph.chunks[file]?.modules ?? []) {
+        if (FORBIDDEN_PUBLIC_MODULES.some((pattern) => moduleId.includes(pattern))) {
+          found.add(moduleId);
+        }
       }
     }
-  }
+    return [...found].sort();
+  };
+  const forbidden = forbiddenUnder(publicClosure.files);
   if (forbidden.length) {
-    failures.push(`forbidden public dependencies:\n  ${[...new Set(forbidden)].sort().join("\n  ")}`);
+    failures.push(`forbidden public dependencies:\n  ${forbidden.join("\n  ")}`);
+  }
+  // One catch-all import under the frame once brought sign-in, the work queue and the wallet
+  // kit to every public page, and the entry's check above could not see it.
+  const publicShell = collectManifestClosure(manifest, [publicShellKey]);
+  const forbiddenUnderShell = forbiddenUnder(publicShell.files);
+  if (forbiddenUnderShell.length) {
+    failures.push(
+      `forbidden public dependencies under the website frame (${PUBLIC_SHELL_SOURCE}):\n  ${forbiddenUnderShell.join("\n  ")}`
+    );
   }
 
   if (failures.length) {
@@ -311,6 +342,7 @@ try {
     [
       `PWA budgets OK: ${precacheUrls.length} precache entries (${formatBytes(precacheRaw)} raw)`,
       `public startup ${formatBytes(publicGzip)} gzip`,
+      `installed entry ${formatBytes(pwaEntryGzip)} gzip`,
       `installed startup ${formatBytes(pwaStartupGzip)} gzip`,
       `${modulePreloads} module preloads`,
       `${lazyChunkFiles.length} opaque lazy chunks`,
