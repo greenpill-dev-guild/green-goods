@@ -122,9 +122,13 @@ export function SubmitWorkFields({
             defaultValue={[]}
             render={({ field }) => (
               <AdminFieldGroup label={input.title} required={input.required} error={error}>
-                {/* The group is left once focus moves out of it, not between its chips. */}
+                {/* Next sends focus to the first field that needs a value; here that is the
+                    first chip. The group is left once focus moves out of it, not between chips. */}
                 <div
                   className="flex flex-wrap gap-2"
+                  ref={(group) =>
+                    field.ref(group && { focus: () => group.querySelector("button")?.focus() })
+                  }
                   onBlur={(event) => {
                     if (!event.currentTarget.contains(event.relatedTarget)) markLeft(input.key);
                   }}

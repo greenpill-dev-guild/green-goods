@@ -860,6 +860,18 @@ describe("SubmitWorkPanel submit behavior", () => {
       expect(screen.queryByRole("button", { name: "Submit Work" })).not.toBeInTheDocument();
     });
 
+    it("takes focus into a chip group when that is the field that needs a value", async () => {
+      const user = userEvent.setup();
+      const chips = detailInput("multi-select", true);
+      await openDetails(user, [chips]);
+
+      await clickNext(user);
+
+      const first = within(field(chips)).getByRole("button", { name: chips.options[0] });
+      await waitFor(() => expect(first).toHaveFocus());
+      expect(field(chips)).toHaveAccessibleDescription("This field is required");
+    });
+
     it("moves on once every required field has a value, with every optional one empty", async () => {
       const user = userEvent.setup();
       await openDetails(user, [...REQUIRED, ...OPTIONAL]);
