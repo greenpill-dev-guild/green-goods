@@ -805,7 +805,7 @@
   "app.assessment.submissionFailedMessage": "Algo deu errado. Tente novamente.",
   "app.assessment.submitAssessment": "Enviar avaliação",
   "app.assessment.submitted": "Avaliação enviada",
-  "app.assessment.submittedMessage": "Sua avaliação foi registrada on-chain",
+  "app.assessment.submittedMessage": "Sua avaliação foi registrada on-chain.",
   "app.assessment.table.capitals": "Capitais",
   "app.assessment.table.dateRange": "Datas",
   "app.assessment.table.tags": "Etiquetas",

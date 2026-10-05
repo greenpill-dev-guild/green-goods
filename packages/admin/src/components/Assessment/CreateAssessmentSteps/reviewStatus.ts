@@ -58,7 +58,7 @@ export function assessmentSendStatus(input: {
         }),
         description: formatMessage({
           id: "app.assessment.submittedMessage",
-          defaultMessage: "Your assessment has been recorded on-chain",
+          defaultMessage: "Your assessment has been recorded on-chain.",
         }),
       };
     case "failed":

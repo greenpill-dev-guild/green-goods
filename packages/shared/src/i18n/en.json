@@ -805,7 +805,7 @@
   "app.assessment.submissionFailedMessage": "Something went wrong. Please try again.",
   "app.assessment.submitAssessment": "Submit Assessment",
   "app.assessment.submitted": "Assessment submitted",
-  "app.assessment.submittedMessage": "Your assessment has been recorded on-chain",
+  "app.assessment.submittedMessage": "Your assessment has been recorded on-chain.",
   "app.assessment.table.capitals": "Capitals",
   "app.assessment.table.dateRange": "Date Range",
   "app.assessment.table.tags": "Tags",

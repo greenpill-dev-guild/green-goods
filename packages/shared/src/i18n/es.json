@@ -805,7 +805,7 @@
   "app.assessment.submissionFailedMessage": "Algo salió mal. Por favor intenta de nuevo.",
   "app.assessment.submitAssessment": "Enviar evaluación",
   "app.assessment.submitted": "Evaluación enviada",
-  "app.assessment.submittedMessage": "Tu evaluación se registró en cadena",
+  "app.assessment.submittedMessage": "Tu evaluación se registró en cadena.",
   "app.assessment.table.capitals": "Capitales",
   "app.assessment.table.dateRange": "Rango de fechas",
   "app.assessment.table.tags": "Etiquetas",
