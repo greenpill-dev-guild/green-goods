@@ -13,7 +13,11 @@ import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { draftDB } from "../../modules/job-queue/draft-db";
-import { deleteDraftOfQueuedWork, listWorkDrafts } from "../../modules/work/draft-lifecycle";
+import {
+  deleteDraftOfQueuedWork,
+  listWorkDrafts,
+  returnChangedWorkToDraft,
+} from "../../modules/work/draft-lifecycle";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 
@@ -271,6 +275,107 @@ describe("PWA durable submission boundary", () => {
     } finally {
       read.mockRestore();
     }
+  });
+
+  it("turns declined work back into a draft when the wizard changes it, and Submit then sends that version once", async () => {
+    const { command, ports, send, draftId, queued, listedDrafts, wizardSaves } =
+      await declinedWalletWork();
+    const [first] = await queued();
+    const changed = "Watered the east bed too";
+
+    // A save that only moves between steps leaves the queued work where it is.
+    const moved = await wizardSaves({ currentStep: "details" });
+    expect(await returnChangedWorkToDraft(moved, jobQueue)).toBe(false);
+    expect(await queued()).toHaveLength(1);
+
+    // The draft takes the copy's upload record before the copy goes. While that write fails
+    // the copy stays, because the draft still holds the declined prompt's send intent.
+    const edited = await wizardSaves({ feedback: changed });
+    const blocked = vi.spyOn(draftDB, "updateDraft").mockRejectedValueOnce(new Error("blocked"));
+    await expect(returnChangedWorkToDraft(edited, jobQueue)).rejects.toThrow("blocked");
+    blocked.mockRestore();
+    expect(await queued()).toHaveLength(1);
+
+    expect(await returnChangedWorkToDraft(edited, jobQueue)).toBe(true);
+    // No first version is left to upload from Your Work: the work is one draft again.
+    expect(await queued()).toEqual([]);
+    expect(await jobQueueDB.getImagesForJob(first.id)).toEqual([]);
+    expect(await listedDrafts()).toHaveLength(1);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(1);
+
+    // Submit queues the work as it now stands and sends it. The declined prompt's send
+    // intent stayed with the discarded copy, so this is a send, not a wait for the old one.
+    const draft = (await draftDB.getDraft(draftId))!;
+    command.draft.feedback = changed;
+    Object.assign(
+      command,
+      await createDraftUploadPersistence(draft, command.draft, { current: null })
+    );
+    ports.direct.submitWork = send;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "direct" });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].draft.feedback).toBe(changed);
+  });
+
+  it("leaves a queued copy that may have been sent, and keeps the changed draft when it lands", async () => {
+    const { queued, wizardSaves } = await declinedWalletWork();
+    const [job] = await queued();
+    await jobQueueDB.amendJob(job.id, (stored) => {
+      (stored.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        transactionHash: hash,
+      };
+    });
+
+    const changed = await wizardSaves({ feedback: "Watered the east bed too" });
+    expect(await returnChangedWorkToDraft(changed, jobQueue)).toBe(false);
+
+    const [sent] = await queued();
+    expect(sent.id).toBe(job.id);
+    expect(await deleteDraftOfQueuedWork(sent, "retire")).toBe("kept");
+  });
+
+  it("sends the changed work when a passkey Submit asks again after a decline", async () => {
+    const { command, ports } = fixture();
+    command.authMode = "passkey";
+    ports.sender = createMockTransactionSender();
+    const draftId = crypto.randomUUID();
+    const wizardSaves = (feedback: string) =>
+      draftDB.saveSnapshot(
+        command.userAddress!,
+        command.chainId,
+        draftId,
+        { gardenAddress: command.gardenAddress, actionUID: 1, feedback },
+        [],
+        []
+      );
+    const retained = { current: null };
+    // As the wizard does: save, which returns changed work to its draft, then Submit.
+    const submit = async (feedback: string) => {
+      command.draft.feedback = feedback;
+      await returnChangedWorkToDraft(await wizardSaves(feedback), jobQueue);
+      const record = (await draftDB.getDraft(draftId))!;
+      Object.assign(command, await createDraftUploadPersistence(record, command.draft, retained));
+      return submitWork(command, ports);
+    };
+    const sent: string[] = [];
+    ports.queue.process = vi
+      .fn()
+      .mockImplementationOnce(async (jobId: string) => {
+        const job = (await jobQueueDB.getJob(jobId))!;
+        await jobQueueDB.updateJob({ ...job, meta: { ...job.meta, requiresExplicitSend: true } });
+        return { success: false, error: "send-cancelled", skipped: true };
+      })
+      .mockImplementationOnce(async (jobId: string) => {
+        sent.push(((await jobQueueDB.getJob(jobId))!.payload as WorkJobPayload).feedback);
+        return { success: true, txHash: hash };
+      });
+
+    await expect(submit("Watered the seedlings")).rejects.toMatchObject({ code: 4001 });
+    await expect(submit("Watered the east bed too")).resolves.toMatchObject({ kind: "processed" });
+
+    expect(sent).toEqual(["Watered the east bed too"]);
   });
 
   it("holds the send lock through an open wallet prompt", async () => {
