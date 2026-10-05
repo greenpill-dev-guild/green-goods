@@ -10,6 +10,7 @@ import type {
   PasskeySessionAdapter,
 } from "../../workflows/auth-passkey-adapters";
 import { createAuthServices } from "../../workflows/authServices";
+import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 
 const CHAIN_ID = 11155111;
 const USER = "testuser";
@@ -337,6 +338,26 @@ describe("createAuthServices", () => {
       ).rejects.toThrow("already registered");
       expect(harness.server.startRegistration).not.toHaveBeenCalled();
       expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it("counts a refused sign-up by what the server said, not by the name that was typed", async () => {
+      harness.state.serverEnabled = true;
+      // The refusal quotes the request, so the typed name sits in the error's text.
+      for (const [userName, refusal, reason] of [
+        ["cancel-ana", "That name is already registered.", "recovery_context_taken"],
+        ["network-ana", "Passkey verification failed.", "verification_failed"],
+      ] as const) {
+        harness.server.startRegistration.mockRejectedValue(
+          await passkeyServerRefusal({ userName, message: refusal })
+        );
+
+        await expect(
+          invoke(harness.services.registerPasskey, { userName, chainId: CHAIN_ID })
+        ).rejects.toThrow(refusal);
+        expect(harness.telemetry.registerFailed).toHaveBeenLastCalledWith(
+          expect.objectContaining({ reason })
+        );
+      }
     });
   });
 
