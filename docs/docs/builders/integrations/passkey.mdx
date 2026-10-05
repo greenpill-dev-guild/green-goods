@@ -43,6 +43,12 @@ Sign-in asks the directory first and falls back to the hosted server for a name 
 not hold. The directory refuses a name the hosted server already holds, which keeps one owner per
 name across both.
 
+The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
+production list that `bun run dev:smoke -- prod` expects is in `scripts/dev/smoke-prod.js`). Of
+those, only `https` pages under `greengoods.app` are issued a passkey. The app's own check that a
+page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first filter, not the
+list.
+
 ## Testing boundary
 
 Passkey ceremonies depend on the configured relying-party domain and cannot be treated as proven by
