@@ -36,7 +36,7 @@ const mockGardens = [
     description: "A solar-powered community garden in downtown Austin",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 2,
     lastActivityAt: 1710000000,
     stewards: [GARDENER],

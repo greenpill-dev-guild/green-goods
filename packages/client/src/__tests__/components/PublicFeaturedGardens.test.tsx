@@ -79,7 +79,7 @@ function makeGarden({
     description: "A test garden",
     lastActivityAt,
     actionCount: 5,
-    contributorCount: 3,
+    gardenerCount: 3,
     stewards: [],
     evaluators: [],
   };

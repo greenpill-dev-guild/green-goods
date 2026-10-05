@@ -19,19 +19,6 @@ export interface PublicGardenRowProps {
 }
 
 /**
- * Aggregate garden's people count. `contributorCount` from the indexer is
- * unique addresses across Work attestations (gardeners who submitted work).
- * Stewards are also gardeners (per product semantics) but may not have
- * submitted any work. Without the unique-address sets in scope, `max(...)`
- * is the safe approximation: when work exists, contributorCount typically
- * subsumes stewards (stewards submit work too); when work is sparse,
- * stewards reflects who's involved.
- */
-function aggregateGardenerCount(garden: PublicGardenSummary): number {
-  return Math.max(garden.contributorCount, garden.stewards.length);
-}
-
-/**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
  * Anatomy: small thumbnail (left) → garden name + meta (center) → Donate +
@@ -52,14 +39,13 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
 export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
   const formatAge = useLocalizedRelativeTime();
-  const gardenerCount = aggregateGardenerCount(garden);
   const meta: string[] = [
     formatMessage(
       {
         id: "public.gardens.gardeners",
         defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
       },
-      { count: gardenerCount }
+      { count: garden.gardenerCount }
     ),
     formatMessage(
       {

@@ -5285,7 +5285,7 @@
   "public.gardens.browse": "Explorar todos os Jardins",
   "public.gardens.contributors": "Colaboradores",
   "public.gardens.description": "Explore jardins regenerativos documentando impacto em uma blockchain pública",
-  "public.gardens.empty": "Os jardins aparecerao aqui quando entrarem no ar.",
+  "public.gardens.empty": "Os jardins aparecerão aqui quando entrarem no ar.",
   "public.gardens.gardeners": "{count, plural, =0 {# jardineiros} one {# jardineiro} other {# jardineiros}}",
   "public.gardens.heroLede": "Cada Jardim é um lugar real onde uma comunidade documenta trabalho regenerativo em solar, agrofloresta, educação e resíduos. Qualquer pessoa pode ler o registro que constroem.",
   "public.gardens.heroTitle": "Explore os <accent>Jardins</accent> que cultivam o registro público",

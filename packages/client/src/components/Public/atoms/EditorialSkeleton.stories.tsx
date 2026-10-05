@@ -116,7 +116,7 @@ export const FundingRowFootprints: Story = {
                   description: "",
                   location: "Local garden",
                   bannerImage: "",
-                  contributorCount: 2,
+                  gardenerCount: 2,
                   actionCount: 3,
                   lastActivityAt: 0,
                   stewards: [],
