@@ -3,10 +3,11 @@
  *
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden metadata, role addresses, createdAt.
+ *     The gardener count comes from the role addresses, not from work.
  *   - **EAS** (`fetchListedApprovedWorks`, shared with the other public
- *     aggregates on a page): aggregates field-note (Work) counts, contributor
- *     counts, and last activity timestamps from approved work only. Pending
- *     and rejected work is not public.
+ *     aggregates on a page): aggregates field-note (Work) counts and last
+ *     activity timestamps from approved work only. Pending and rejected work
+ *     is not public.
  *
  * No auth path — intended for visitors landing on `/sites` or the landing
  * page's "Live Observations" panel.
@@ -49,8 +50,14 @@ export interface PublicGardenSummary {
   lastActivityAt: number;
   /** Count of `Work` attestations bound to this garden. */
   actionCount: number;
-  /** Distinct gardener addresses across all works for this garden. */
-  contributorCount: number;
+  /**
+   * People with the gardener role in this garden, each address once. Granting
+   * the steward or owner role grants the gardener role with it, so they are
+   * counted, and the number does not wait for approved work. Every "N
+   * gardeners" label on the website reads this field; the home page's "Hands
+   * at work" is the same count across the listed gardens (`usePublicStats`).
+   */
+  gardenerCount: number;
   /** Steward addresses surfaced to the public detail page. */
   stewards: Address[];
   /** Evaluator addresses surfaced for the "Verified Site" credibility path. */
@@ -90,20 +97,12 @@ export function usePublicGardens(
         chainId
       );
 
-      const statsByGarden = new Map<
-        string,
-        { actionCount: number; contributors: Set<string>; lastActivityAt: number }
-      >();
+      const statsByGarden = new Map<string, { actionCount: number; lastActivityAt: number }>();
 
       for (const work of approvedWorks) {
         const key = work.gardenAddress.toLowerCase();
-        const entry = statsByGarden.get(key) ?? {
-          actionCount: 0,
-          contributors: new Set<string>(),
-          lastActivityAt: 0,
-        };
+        const entry = statsByGarden.get(key) ?? { actionCount: 0, lastActivityAt: 0 };
         entry.actionCount += 1;
-        entry.contributors.add(work.gardenerAddress.toLowerCase());
         if (work.createdAt > entry.lastActivityAt) {
           entry.lastActivityAt = work.createdAt;
         }
@@ -129,7 +128,8 @@ export function usePublicGardens(
               ? stats.lastActivityAt
               : fallbackSeconds,
           actionCount: stats?.actionCount ?? 0,
-          contributorCount: stats?.contributors.size ?? 0,
+          gardenerCount: new Set((garden.gardeners ?? []).map((address) => address.toLowerCase()))
+            .size,
           stewards: garden.stewards ?? [],
           evaluators: garden.evaluators ?? [],
         };

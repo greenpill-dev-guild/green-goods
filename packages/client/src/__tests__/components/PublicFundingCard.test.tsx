@@ -204,7 +204,7 @@ const garden = {
   description: "A solar-powered community garden",
   location: "Austin, TX",
   bannerImage: "",
-  contributorCount: 2,
+  gardenerCount: 2,
   actionCount: 1,
   lastActivityAt: 1700000000,
   stewards: [],
