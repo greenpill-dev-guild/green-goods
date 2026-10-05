@@ -71,6 +71,12 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 > [Telegram-first report](reports/2026-09-29-telegram-first-whatsapp-outlook.md) and the
 > [Telegram channel handoff](handoffs/claude-telegram-channel.md).
 
+> **4 October:** Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the
+> WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio
+> of its own, set up now and verified later. This replaces "WhatsApp Business Account operated by
+> WEFA LLC" in the decision log. Telegram stays the live channel. See the
+> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+
 **Feature slug:** agent-messaging-channels
 
 **Stage:** `active`
@@ -79,7 +85,7 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-04
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 
@@ -174,7 +180,7 @@ reporting delegation, custodial accounts, or any SMS work.
 | Meta Cloud API direct, not Twilio | Locked 2026-09-21 | The Twilio number is only a phone number registered directly with Meta. `SEC-01` becomes `X-Hub-Signature-256`, not Twilio signature validation. |
 | No custodial wallets, no delegation | Locked 2026-09-21 | `submitWorkBot` and the agent's custodial `users.privateKey` path are excluded from this slice. |
 | Legacy Telegram custodial accounts out of scope | Locked 2026-09-21 | No migration, no reuse, no relabelling. |
-| WhatsApp Business Account operated by WEFA LLC | Locked 2026-09-21 | Recorded in RESR-75. The entity question reopens before the pilot, not for the prototype. |
+| WhatsApp Business Account operated by Afolabi as a sole proprietor doing business as Green Goods, on Green Goods' own Meta portfolio | Decided 2026-10-04 | Replaces "operated by WEFA LLC", locked 2026-09-21. Recorded in RESR-75 and the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md). Setup is GROW-60. Legal and fiscal sponsor review is open. |
 | Browser session uses a per-request signed proof, not a cookie | Locked 2026-09-21 | Supersedes the section 6 same-origin-facade proposal for this slice. See step 7. |
 | Correction happens in chat; the browser authenticates, shows and signs | Locked 2026-09-22 | Steps 9 and 10 hydrate a read-only review instead of the composer, dropping share-target hydration and draft-resume wiring. New step 16 walks the garden action's required inputs in chat. |
 | The action's own `Action.inputs` schema drives the walk | Locked 2026-09-22 | `options` and `bands` become WhatsApp interactive replies; `number` is validated against its declared `unit`; `text` is verbatim; `repeater` is refused. No per-garden question set is authored beside the published action. |

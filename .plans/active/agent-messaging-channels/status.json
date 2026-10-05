@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-10-03T00:01:25.703Z"
+    "updated_at": "2026-10-05T03:22:47.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -29,6 +29,7 @@
     "accepted_review_decisions": "reports/2026-09-26-accepted-review-decisions.md",
     "reporting_core_capability_record": "reports/2026-09-27-reporting-core-capability-record.md",
     "telegram_first_whatsapp_outlook": "reports/2026-09-29-telegram-first-whatsapp-outlook.md",
+    "whatsapp_operator_decision": "reports/2026-10-04-whatsapp-operator-decision.md",
     "telegram_readiness": "handoffs/codex-telegram-readiness.md"
   },
   "notes": [
@@ -67,7 +68,8 @@
     "2026-10-02 user-authorized implementation: resolve #864/#934/#949 conflicts, prepare deployed Telegram webhook/browser flow, enable new-database reporting defaults, pin provider snapshots, add bounded Office conversion, complete bounded Kernel grant source and independent owner removal, use responsive Client PWA views, and attach both Telegram and WhatsApp to one proven account. Codex owns integration. Deployment, actual keys/live-model evaluation, authenticated signing, Fly conversion/isolation and integrated Kernel deployment/pins/budgets remain live gates. WhatsApp needs access and its transport adapter. No production deployment or chain broadcast occurred.",
     "CURRENT 2026-10-02 follow-up: browser-only first actual report/review activation implemented; owner ENABLE authorization stays in the browser. Separate one-hour review grants, migration v3 recovery, per-attempt complete gas reservation and sealed continuation scope are implemented. 137 SQLite tests and live synthetic media proof pass; full current worktree gate, refreshed fork provenance and final immutable image remain pending. No app release or contract broadcast; production passkey/EAS/sponsorship and deployed policy verification remain required.",
     "CURRENT WORKTREE PROOF 2026-10-02: all 20 selected critical QA checks passed fresh via bun run check --intent qa --base HEAD. Shared 6683, Client 1533, Admin 1164, Agent 426 units plus 137 SQLite, Contracts 319 tooling and 2100 Solidity tests passed with existing governed skips. Separate structure/test-quality/vocabulary checks and 17 real-EntryPoint fork cases passed. This is uncommitted-worktree proof based on fc6bf61d82dda8e787b0390a29fad79d5b8425c2, not a commit-attributed receipt. Final immutable-image Office smoke and live production gates remain pending; no release/broadcast.",
-    "CURRENT PREPARATION RESULT: complete critical QA and 17-scenario fork proof passed; final image sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e built and pushed without app release. Untouched synthetic DOCX/XLSX conversion passed on Fly, one page each, process exit zero. Disposable machine 857495b473e108 is destroyed. Source is uncommitted; production Client/Agent rollout, passkey/EAS/garden roles/live sponsorship/deployed guard verification and two-account acceptance remain pending. Verified permission registry stays empty; WhatsApp remains off awaiting access and live adapter."
+    "CURRENT PREPARATION RESULT: complete critical QA and 17-scenario fork proof passed; final image sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e built and pushed without app release. Untouched synthetic DOCX/XLSX conversion passed on Fly, one page each, process exit zero. Disposable machine 857495b473e108 is destroyed. Source is uncommitted; production Client/Agent rollout, passkey/EAS/garden roles/live sponsorship/deployed guard verification and two-account acceptance remain pending. Verified permission registry stays empty; WhatsApp remains off awaiting access and live adapter.",
+    "2026-10-04 user decision: Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio of its own, set up now and verified later. This supersedes every earlier note that names WEFA as the WhatsApp operator. Setup is GROW-60 and blocks PRD-943; GROW-57 was canceled. Telegram stays the live channel. See reports/2026-10-04-whatsapp-operator-decision.md."
   ],
   "lanes": {
     "state_api": {
@@ -434,6 +436,14 @@
       "status": "preparation_evidence_recorded",
       "branch": "feature/agent-reporting-telegram",
       "note": "Final-source immutable image built with frozen dependencies and passed runtime imports plus untouched Fly DOCX/XLSX conversion. Test machine destroyed. Local implementation and preparation checks complete; production rollout and live acceptance remain pending."
+    },
+    {
+      "timestamp": "2026-10-05T03:22:47.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "operator_decision_recorded",
+      "branch": "chore/record-whatsapp-operator-decision",
+      "note": "User decided that Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on Green Goods' own Meta portfolio, replacing WEFA. Brief, spec, technical brief and decision log updated; new dated report added. No runtime change and no WhatsApp adapter yet."
     }
   ],
   "taxonomy": {
