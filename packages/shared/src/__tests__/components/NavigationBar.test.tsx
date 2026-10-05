@@ -24,6 +24,7 @@ vi.mock("react-intl", () => ({
         "cockpit.nav.profile": "Profile",
         "cockpit.fab.openActions": "Open Actions",
         "cockpit.fab.closeActions": "Close Actions",
+        "cockpit.fab.actions": "Actions",
         "actions.submit": "Submit Work",
         "actions.disabled": "Disabled action",
         "actions.disabledReason": "Nothing to fund yet.",
@@ -395,8 +396,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
-      label: "Actions",
       actions: [
         {
           id: "submit-work",
@@ -448,8 +447,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
-      label: "Actions",
       actions: [
         {
           id: "submit-work",
@@ -493,8 +490,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
-      label: "Actions",
       actions: [
         {
           id: "submit-work",
@@ -529,8 +524,6 @@ describe("NavigationBar", () => {
     setDesktopViewport(false);
     const onAction = vi.fn();
     const fab: FabConfig = {
-      icon: StubIcon,
-      label: "Actions",
       actions: [
         {
           id: "submit-work",
@@ -576,8 +569,6 @@ describe("NavigationBar", () => {
   it("bounds the FAB launcher inside the mobile visual viewport", async () => {
     setDesktopViewport(false);
     const fab: FabConfig = {
-      icon: StubIcon,
-      label: "Actions",
       actions: [
         {
           id: "submit-work",

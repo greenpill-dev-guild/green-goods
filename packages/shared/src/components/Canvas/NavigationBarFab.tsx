@@ -1,4 +1,4 @@
-import { RiCloseLine } from "@remixicon/react";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -23,14 +23,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  // A FAB shows its primary action's icon (config.icon), so the button says
-  // what it mostly does; a dial swaps it for a close icon while open (DL-050).
-  // The admin shell's FabButton follows the same rule.
-  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : config.icon;
-  const floatingActionLabel =
-    isSingleAction && config.actions[0]
-      ? formatMessage({ id: config.actions[0].labelId })
-      : config.label;
+  // Every FAB shows "+" while closed, whether it fires one act or opens a
+  // dial; a dial swaps it for a close icon while open, and its rows keep each
+  // act's own icon (DL-078). The admin shell's FabButton follows the same rule.
+  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : RiAddLine;
 
   const handleClick = useCallback(() => {
     if (!isSingleAction) {
@@ -42,6 +38,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     if (sole && !sole.disabled) config.onAction(sole.id);
   }, [isSingleAction, config]);
   const sole = isSingleAction ? config.actions[0] : undefined;
+  const floatingActionLabel = sole ? formatMessage({ id: sole.labelId }) : undefined;
   const soleReason =
     sole?.disabled && sole.disabledReasonId
       ? formatMessage({ id: sole.disabledReasonId, defaultMessage: sole.disabledReason })
@@ -105,6 +102,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     if (first) focusSpeedDialAction(first.id);
   }, [config.actions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
+  // A config with no actions has nothing to offer. useViewActions never
+  // publishes one, so this only covers a caller that does.
+  if (config.actions.length === 0) return null;
+
   return (
     <div
       className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}
@@ -154,7 +155,8 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-slot="speed-dial"
           data-state="open"
           role="menu"
-          aria-label={config.label}
+          // Named for the whole set, in the reader's language, not for one act.
+          aria-label={formatMessage({ id: "cockpit.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {

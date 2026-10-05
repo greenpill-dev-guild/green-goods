@@ -11,6 +11,7 @@
 
 import { renderHook } from "@testing-library/react";
 import React from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ============================================
@@ -31,34 +32,16 @@ vi.mock("../../../modules/app/logger", () => ({
 // ============================================
 
 import { useActionTranslation } from "../../../hooks/translation/useActionTranslation";
-import { AppContext } from "../../../providers/App";
 import type { Action } from "../../../types/domain";
 
 // ============================================
 // Test Helpers
 // ============================================
 
+/** `locale` is the language on screen, which is what react-intl reports to the hook. */
 function createWrapper(locale: "en" | "es" | "pt" = "en") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    const value = {
-      locale,
-      isMobile: false,
-      isInstalled: false,
-      isInstalling: false,
-      isPwaPresentation: false,
-      isStandalone: false,
-      installState: "not-installed" as const,
-      installedAppEvidence: { status: "unknown" as const, source: "unsupported" as const },
-      presentationMode: "website" as const,
-      wasInstalled: false,
-      availableLocales: ["en", "es", "pt"] as const,
-      deferredPrompt: null,
-      platform: "unknown" as const,
-      promptInstall: () => {},
-      handleInstallCheck: () => {},
-      switchLanguage: () => {},
-    };
-    return React.createElement(AppContext.Provider, { value }, children);
+    return React.createElement(IntlProvider, { locale }, children);
   };
 }
 
@@ -114,6 +97,20 @@ describe("useActionTranslation", () => {
     expect(result.current.translatedAction!.details).toBe("Detailed instructions here");
     expect(result.current.translatedAction!.review).toBe("Review criteria");
     expect(result.current.isTranslating).toBe(false);
+  });
+
+  it("shows a stored reviewed translation in the language on screen", () => {
+    const action = createAction({
+      mediaInfo: undefined,
+      details: undefined,
+      review: undefined,
+      translations: { es: { status: "reviewed", data: { title: "Plantar árboles" } } },
+    });
+    const { result } = renderHook(() => useActionTranslation(action), {
+      wrapper: createWrapper("es"),
+    });
+
+    expect(result.current.translatedAction!.title).toBe("Plantar árboles");
   });
 
   it("preserves non-translated action fields", () => {

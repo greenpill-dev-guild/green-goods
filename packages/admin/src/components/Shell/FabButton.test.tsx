@@ -4,8 +4,10 @@
 
 import type { FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import enMessages from "@green-goods/shared/i18n/en";
+import esMessages from "@green-goods/shared/i18n/es";
 import {
   type RemixiconComponentType,
+  RiAddLine,
   RiCloseLine,
   RiHandCoinLine,
   RiUserAddLine,
@@ -17,10 +19,10 @@ import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { FabButton } from "./FabButton";
 
-function renderFab(onAction = vi.fn()) {
+const MESSAGES = { en: enMessages, es: esMessages };
+
+function renderFab(onAction = vi.fn(), locale: keyof typeof MESSAGES = "en") {
   const config: FabConfig = {
-    icon: RiUserAddLine,
-    label: "Community actions",
     actions: [
       {
         id: "add-member",
@@ -41,7 +43,7 @@ function renderFab(onAction = vi.fn()) {
     onAction,
   };
   render(
-    <IntlProvider locale="en" messages={enMessages}>
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
       <FabButton config={config} mobileFloating />
     </IntlProvider>
   );
@@ -56,17 +58,65 @@ function iconPath(Icon: RemixiconComponentType) {
 }
 
 describe("FabButton", () => {
-  it("shows its primary action's icon, and a close icon while the dial is open (DL-050)", async () => {
+  it("shows a plus while closed, whatever its primary action, and a close icon while the dial is open (DL-078)", async () => {
     const user = userEvent.setup();
+    // The primary here is Add Member, whose own icon is not a plus.
     renderFab();
 
     const fab = screen.getByRole("button", { name: "Open Actions" });
-    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
 
     await user.click(fab);
     expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiCloseLine));
     // The close glyph is named for what it does now.
     expect(fab).toHaveAccessibleName("Close Actions");
+    // Each row keeps its act's own icon beside the label that names it.
+    const add = screen.getByRole("menuitem", { name: "Add Member" });
+    expect(add.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+    // The menu is named for the whole set, not for one act.
+    expect(screen.getByRole("menu")).toHaveAccessibleName("Actions");
+  });
+
+  it("names the dial's menu in the reader's language", async () => {
+    const user = userEvent.setup();
+    renderFab(vi.fn(), "es");
+
+    await user.click(screen.getByRole("button", { name: "Abrir acciones" }));
+    expect(screen.getByRole("menu")).toHaveAccessibleName("Acciones");
+  });
+
+  it("shows a plus on a FAB that fires one act, still named for that act (DL-078)", () => {
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton
+          config={{
+            actions: [
+              {
+                id: "fund-payout-jar",
+                icon: RiHandCoinLine,
+                label: "Fund Cookie Jar",
+                labelId: "cockpit.community.action.fundPayoutJar",
+              },
+            ],
+            onAction: vi.fn(),
+          }}
+          mobileFloating
+        />
+      </IntlProvider>
+    );
+
+    const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
+    expect(sole.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
+  });
+
+  it("renders nothing for a config with no actions", () => {
+    const { container } = render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton config={{ actions: [], onAction: vi.fn() }} mobileFloating />
+      </IntlProvider>
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps a disabled action reachable, inert, and saying why", async () => {
@@ -97,8 +147,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            icon: RiUserAddLine,
-            label: "Community actions",
             actions: [
               {
                 id: "fund-payout-jar",
@@ -135,8 +183,6 @@ describe("FabButton", () => {
       <IntlProvider locale="en" messages={enMessages}>
         <FabButton
           config={{
-            icon: RiHandCoinLine,
-            label: "Community actions",
             actions: [
               {
                 id: "fund-payout-jar",

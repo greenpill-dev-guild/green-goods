@@ -3894,6 +3894,7 @@
   "cockpit.community.viewSwitcher": "Vistas de comunidad",
   "cockpit.fab.openActions": "Abrir acciones",
   "cockpit.fab.closeActions": "Cerrar acciones",
+  "cockpit.fab.actions": "Acciones",
   "cockpit.garden.action.editDomains": "Editar dominios",
   "cockpit.garden.action.editGarden": "Editar jardín",
   "cockpit.garden.action.viewPublic": "Ver público",
