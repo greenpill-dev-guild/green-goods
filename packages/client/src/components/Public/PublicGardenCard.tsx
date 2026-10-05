@@ -36,7 +36,7 @@ export function PublicGardenCard({
         id: "public.gardens.gardeners",
         defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
       },
-      { count: garden.contributorCount }
+      { count: garden.gardenerCount }
     ),
   });
   metaItems.push({

@@ -2,6 +2,7 @@
  * @vitest-environment happy-dom
  */
 
+import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
@@ -100,7 +101,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
     seedGarden ? [SELECTED_GARDEN] : []
   );
   queryClient.setQueryData(
-    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(normalizeAddress(OPERATOR), DEFAULT_CHAIN_ID),
     seedGarden ? [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }] : []
   );
   queryClient.setQueryData(

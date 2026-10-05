@@ -1,4 +1,4 @@
-import { chromium, type FullConfig, type Page } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { resolvePlaywrightApps, shouldUsePlaywrightIndexer } from "./fixtures/playwright-services";
 
 function envFlag(name: string): boolean {
@@ -6,6 +6,19 @@ function envFlag(name: string): boolean {
 }
 
 const ADMIN_WARMUP_TIMEOUT_MS = 120_000;
+
+/** Compile the Client's PWA graph before the first spec's interaction budget starts. */
+async function warmClientBoot(page: Page, clientUrl: string): Promise<void> {
+  const startedAt = Date.now();
+  await page.goto(`${clientUrl}/home/login?presentation=pwa`, {
+    waitUntil: "domcontentloaded",
+    timeout: 120_000,
+  });
+  await page.getByTestId("login-button").waitFor({ timeout: 120_000 });
+  console.log(
+    `  🔥 Client (port 3001) - PWA login booted in ${((Date.now() - startedAt) / 1000).toFixed(1)}s`
+  );
+}
 
 /**
  * A fresh Vite dev server compiles the admin root on its first page load, which
@@ -51,10 +64,10 @@ async function warmAdminBoot(page: Page, adminUrl: string): Promise<void> {
  *
  * - Sets environment variables for test configuration
  * - Performs health checks on services (client, admin, indexer)
- * - Boots the admin once so its dev server has compiled it before the first spec
+ * - Boots the selected app graphs once before the first spec's interaction budget
  * - Can be extended to set up virtual WebAuthn authenticator state
  */
-async function globalSetup(config: FullConfig) {
+async function globalSetup() {
   console.log("🚀 Starting global test setup...\n");
 
   const selectedApps = resolvePlaywrightApps({ playwrightApp: process.env.PLAYWRIGHT_APP });
@@ -83,7 +96,9 @@ async function globalSetup(config: FullConfig) {
   }
 
   // Run health checks
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    channel: process.env.PLAYWRIGHT_QUALIFIED === "true" ? "chromium" : undefined,
+  });
   const context = await browser.newContext({
     ignoreHTTPSErrors: true, // Accept self-signed certs from mkcert
   });
@@ -112,10 +127,12 @@ async function globalSetup(config: FullConfig) {
 
     if (selectedApps.client) {
       try {
-        await page.goto(`${protocol}://localhost:3001`, { timeout: 5000 });
-        console.log("  ✅ Client (port 3001) - available");
-      } catch {
-        console.log("  ⚠️  Client (port 3001) - not available (will be started by webServer)");
+        await warmClientBoot(page, `${protocol}://localhost:3001`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+        console.log(
+          `  ⚠️  Client warm-up did not finish (${message}); specs must still prove readiness`
+        );
       }
     }
 

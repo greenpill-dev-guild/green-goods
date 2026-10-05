@@ -342,6 +342,25 @@ test("Shared requires both successful shard jobs even when its workflow reports 
   );
 });
 
+for (const [workflow, jobName] of [["Client", "Playwright Client CI"], ["Admin", "Playwright Admin CI"]]) {
+  test(`${workflow} requires its browser job despite a successful workflow`, async () => {
+    const dependencies = {
+      loadChangedFiles: async () => ["fixture.txt"],
+      selectWorkflows: () => [workflow],
+      loadWorkflowRuns: async (_token, _repo, sha) => {
+        assert.equal(sha, gateOptions.headSha);
+        return new Map([[workflow, workflowRun(workflow, { id: 42 })]]);
+      },
+      logger: silentLogger,
+    };
+    const job = { name: jobName, status: "completed", conclusion: "success" };
+    await runGate(gateOptions, { ...dependencies, loadWorkflowJobs: async () => [job] });
+    for (const jobs of [[], ...["skipped", "cancelled", "failure"].map(conclusion => [{ ...job, conclusion }]), [{ ...job, status: "in_progress", conclusion: null }]]) {
+      await assert.rejects(runGate(gateOptions, { ...dependencies, loadWorkflowJobs: async () => jobs }), new RegExp(`${workflow} required job ${jobName}`));
+    }
+  });
+}
+
 test("a missing workflow may register on a later poll", async () => {
   const fixture = gateFixture([
     [workflowRun("Alpha", { id: 2 })],

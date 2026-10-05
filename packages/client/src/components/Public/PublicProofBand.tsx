@@ -154,7 +154,7 @@ export function PublicProofBand({
               labelId="public.home.proof.contributors"
               defaultLabel="Hands at work"
               noteId="public.home.proof.contributorsNote"
-              defaultNote="Gardeners with a role in at least one Garden. Each address counted once."
+              defaultNote="Gardeners and stewards in any Garden. Each address counted once."
             />
             <ProofMarker
               value={works}

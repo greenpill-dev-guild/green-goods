@@ -1,5 +1,7 @@
 import type { IntlShape } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
+import { createPasskeyServerClient } from "permissionless/clients/passkeyServer";
+import { http } from "viem";
 import type { InstallGuidance } from "../../hooks/app/useInstallGuidance";
 import {
   getBrowserGuidanceLabel,
@@ -15,6 +17,26 @@ const intl = {
 } as unknown as IntlShape;
 
 describe("getFriendlyLoginErrorMessage", () => {
+  it.each([
+    404, 503,
+  ])("reports a signup lookup HTTP %s as temporarily unavailable", async (status) => {
+    const client = createPasskeyServerClient({
+      transport: http("https://directory.example/public/passkeys/rpc", {
+        retryCount: 0,
+        fetchFn: async () =>
+          new Response(status === 404 ? "Not Found" : "Service Unavailable", { status }),
+      }),
+    });
+    const error = await client
+      .getCredentials({ context: { userName: "synthetic" } })
+      .catch((error: unknown) => error);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(getFriendlyLoginErrorMessage(error, intl)).toBe(
+      "Passkey recovery is temporarily unavailable."
+    );
+  });
+
   it("reports a missing passkey instead of treating NotAllowedError as cancellation", () => {
     const unavailable = new Error("No passkey is available for this request.");
     unavailable.name = "NotAllowedError";

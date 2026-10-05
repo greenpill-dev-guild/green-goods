@@ -129,5 +129,6 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
 - [x] Add warning-only personal skill availability to the existing doctor.
 - [x] Wire focused regression selection, verify receipt freshness, and run required checks;
   the pre-existing Git-environment test failure is recorded in the handoff.
-- [ ] Observe hook loading in a normal Claude Desktop Code and Codex session (pending).
-- [ ] Observe the five next authorized task scenarios in the evaluation rubric (pending).
+- [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
+- [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
+- [ ] Observe the five next authorized task scenarios in the evaluation rubric (one bug-fix observation recorded; four categories pending).

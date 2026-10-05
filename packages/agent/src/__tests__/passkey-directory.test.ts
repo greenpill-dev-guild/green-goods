@@ -246,19 +246,33 @@ describe("passkey directory", () => {
     expect(garbage.error?.message).toBe("Passkey verification failed.");
   });
 
-  it("stops registrations from one address past the limit, with a code clients do not retry", async () => {
-    const { app } = createDirectoryApp();
-    const { limit } = PUBLIC_RATE_LIMIT_POLICIES.passkey_registration;
+  it.each([
+    ["pks_startRegistration", "passkey_registration"],
+    ["pks_getCredentials", "passkey_lookup"],
+  ] as const)("keeps the %s peer budget across names and Origin headers", async (method, route) => {
+    const { app, advance } = createDirectoryApp();
+    const { limit, windowMs } = PUBLIC_RATE_LIMIT_POLICIES[route];
     for (let attempt = 0; attempt < limit; attempt += 1) {
-      await call(app, "pks_startRegistration", [{ userName: `name-${attempt}` }]);
+      const origin =
+        route === "passkey_lookup"
+          ? `https://green-goods-qa-${attempt}-greenpilldevguild.vercel.app`
+          : attempt % 2 === 0
+            ? BETA
+            : WWW;
+      // A valid name must not share the aggregate bucket's internal material.
+      const userName = attempt === 0 ? "all-names" : `name-${attempt}`;
+      expect((await call(app, method, [{ userName }], origin)).error).toBeUndefined();
     }
 
-    const blocked = await call(app, "pks_startRegistration", [{ userName: "one-more" }]);
+    const blocked = await call(app, method, [{ userName: "one-more" }], BETA);
 
     expect(blocked.error).toEqual({
       code: -32000,
       message: "Too many requests. Please try again later.",
     });
+    // Origin-independent budgets still reset, so the group can recover after the window.
+    advance(windowMs);
+    expect((await call(app, method, [{ userName: "one-more" }], BETA)).error).toBeUndefined();
   });
 });
 

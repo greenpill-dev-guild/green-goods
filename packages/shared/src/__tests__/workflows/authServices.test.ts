@@ -362,13 +362,13 @@ describe("createAuthServices", () => {
   });
 
   describe("authenticatePasskey", () => {
-    it("authenticates through the local cache and preserves the stored username", async () => {
+    it("signs in without a requested name through the cache and preserves the stored username", async () => {
       harness.state.credential = CREDENTIAL;
       harness.state.userName = "stored-user";
 
       await expect(
         invoke(harness.services.authenticatePasskey, {
-          userName: "mistyped-name",
+          userName: null,
           chainId: CHAIN_ID,
         })
       ).resolves.toMatchObject({ userName: "stored-user", smartAccountAddress: ADDRESS });
@@ -381,7 +381,7 @@ describe("createAuthServices", () => {
       harness.calls.getWebAuthnCredential.mockResolvedValue(null);
 
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName: null, chainId: CHAIN_ID })
       ).rejects.toThrow("cancelled");
       expect(harness.sessionSpies.clearSignedOut).not.toHaveBeenCalled();
       expect(harness.state.signedOut).toBe(true);
@@ -433,18 +433,53 @@ describe("createAuthServices", () => {
       ).toEqual([0xde, 0xad, 0xbe, 0xef]);
     });
 
-    it("falls back once to a named local credential when the server has no match", async () => {
+    it.each([
+      USER,
+      " @TESTUSER ",
+    ])("recovers the matching cached name %s when the server has no match", async (userName) => {
       harness.state.serverEnabled = true;
       harness.state.credential = CREDENTIAL;
       harness.state.userName = USER;
 
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName, chainId: CHAIN_ID })
       ).resolves.toMatchObject({ credential: CREDENTIAL, userName: USER });
       expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
       expect(harness.telemetry.loginSucceeded).toHaveBeenCalledWith(
         expect.objectContaining({ source: "local_cache", reason: "legacy_fallback" })
       );
+    });
+
+    it.each([
+      "missing",
+      "unreachable",
+      "local-only",
+    ] as const)("never substitutes a cached account when another name is %s", async (lookup) => {
+      harness.state.serverEnabled = lookup !== "local-only";
+      harness.state.directoryEnabled = lookup !== "local-only";
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
+      harness.state.expectedAddress = ADDRESS;
+      harness.state.signedOut = true;
+      if (lookup === "unreachable") {
+        const failure = new Error("HTTP request failed");
+        failure.name = "HttpRequestError";
+        harness.directory.getCredentials.mockRejectedValue(failure);
+        harness.server.getCredentials.mockRejectedValue(failure);
+      }
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: "another-name",
+          chainId: CHAIN_ID,
+        })
+      ).rejects.toThrow(
+        lookup === "unreachable" ? "Passkey server lookup failed" : "No passkey credential"
+      );
+      expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+      expect(harness.state.signedOut).toBe(true);
     });
 
     it("falls back to local cache after a server lookup transport failure", async () => {
@@ -568,7 +603,7 @@ describe("createAuthServices", () => {
     it("pins the browser ID after a legacy cached hex ceremony without changing identity", async () => {
       harness.state.credential = { ...CREDENTIAL, id: SERVER_CREDENTIAL.id };
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName: null, chainId: CHAIN_ID })
       ).resolves.toMatchObject({
         credential: { id: SERVER_CREDENTIAL.id, signingId: CREDENTIAL.id },
       });

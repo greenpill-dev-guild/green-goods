@@ -10,6 +10,7 @@ describe("auth error tracking", () => {
     const walletAddress = "0x1111111111111111111111111111111111111111";
     const credentialId = "dGVzdC1jcmVkZW50aWFsLWlk";
     const secretApiKey = "secret-pimlico-key";
+    const userName = "private-name-marker";
     const calls: Array<{ error: Error; context: ExternalErrorReporterContext }> = [];
     const unregister = registerExternalErrorReporter((error, context) => {
       calls.push({ error, context });
@@ -17,10 +18,10 @@ describe("auth error tracking", () => {
 
     try {
       const cause = new Error(
-        `GET https://api.pimlico.io/v2/42161/rpc?apikey=${secretApiKey} failed credentialId=${credentialId}`
+        `GET https://api.pimlico.io/v2/42161/rpc?apikey=${secretApiKey} failed credentialId=${credentialId}\nRequest body: ${JSON.stringify({ userName })}`
       );
       const error = new Error(
-        `Passkey recovery failed for walletAddress=${walletAddress} at https://api.pimlico.io/v2/42161/rpc?apikey=${secretApiKey}`
+        `Passkey recovery failed for walletAddress=${walletAddress} at https://api.pimlico.io/v2/42161/rpc?apikey=${secretApiKey}\nRequest body: ${JSON.stringify({ userName })}`
       );
       (error as Error & { cause?: unknown }).cause = cause;
 
@@ -29,6 +30,7 @@ describe("auth error tracking", () => {
         userAction: "recover with passkey",
         authMode: "passkey",
         metadata: {
+          userName,
           credentialId,
           walletAddress,
           recoveryUrl: `https://api.pimlico.io/v2/42161/rpc?apikey=${secretApiKey}`,
@@ -48,6 +50,8 @@ describe("auth error tracking", () => {
     expect(serialized).not.toContain(walletAddress);
     expect(serialized).not.toContain(credentialId);
     expect(serialized).not.toContain(secretApiKey);
+    expect(serialized).not.toContain(userName);
+    expect(serialized).not.toContain("Request body:");
     expect(serialized).not.toContain("apikey=");
     expect(serialized).toContain("[REDACTED]");
   });

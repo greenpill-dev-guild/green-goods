@@ -16,6 +16,7 @@ import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { isAddress } from "viem";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import {
@@ -50,6 +51,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === resolvedGardenId);
+  const vaultGardenId = garden?.id ?? resolvedGardenId;
+  const vaultGardenAddress = vaultGardenId && isAddress(vaultGardenId) ? vaultGardenId : undefined;
   const gardenRouteContext = {
     gardenId: garden?.id ?? selectedGarden?.id ?? resolvedGardenId,
   };
@@ -76,8 +79,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     isError: vaultsHasError,
     refetch: refetchVaults,
     isFetching: vaultsFetching,
-  } = useGardenVaults(garden?.id ?? resolvedGardenId, {
-    enabled: Boolean(garden?.id ?? resolvedGardenId),
+  } = useGardenVaults(vaultGardenAddress, {
+    enabled: Boolean(vaultGardenAddress),
   });
 
   const { endowmentByAsset, totalHarvestCount, totalDepositorCount } = useMemo(() => {

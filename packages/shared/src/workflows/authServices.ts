@@ -5,6 +5,7 @@ import type { AuthPasskeySource } from "../modules/app/analytics-events";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
 import { logger } from "../modules/app/logger";
 import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
+import { normalizePasskeyName } from "../public-contracts/passkey-directory";
 import { classifyAuthErrorReason, PasskeyServerLookupError } from "./auth-passkey-errors";
 import {
   defaultPasskeyAdapters,
@@ -131,6 +132,14 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   const cachedPasskeyRpId = () =>
     session.getStoredRpId() ||
     (adapters.isServerEnabled() ? adapters.getSiteRpId() : adapters.getRpId());
+
+  const matchesCachedUsername = (userName: string): boolean => {
+    const storedUsername = session.getStoredUsername();
+    return (
+      storedUsername !== null &&
+      normalizePasskeyName(storedUsername) === normalizePasskeyName(userName)
+    );
+  };
 
   const registerWithServer = async (userName: string, chainId: number) => {
     const context = adapters.buildRecoveryContext(userName);
@@ -259,16 +268,12 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     return fromHostedServer;
   };
 
-  const authenticateFromCache = async (
-    userName: string | null,
-    chainId: number,
-    requireStoredUsername = false
-  ) => {
+  const authenticateFromCache = async (userName: string | null, chainId: number) => {
     const credential = session.getStoredCredential();
     if (!credential) throw new Error("No passkey found. Please create a new account.");
     const storedUsername = session.getStoredUsername();
     const rpId = cachedPasskeyRpId();
-    if (requireStoredUsername && userName && !storedUsername) {
+    if (userName && !matchesCachedUsername(userName)) {
       throw new Error("No passkey credential found for that username.");
     }
     const response = await adapters.getWebAuthnCredential({
@@ -418,7 +423,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
           else if (hasLocalCredential) {
             attemptSource = "local_cache";
             result = {
-              ...(await authenticateFromCache(input.userName, input.chainId, true)),
+              ...(await authenticateFromCache(input.userName, input.chainId)),
               source: "local_cache",
             };
           } else throw new Error("No passkey credential found for that username.");
@@ -426,11 +431,12 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
           if (
             attemptSource === "server" &&
             hasLocalCredential &&
+            matchesCachedUsername(input.userName) &&
             classifyAuthErrorReason(serverError) === "server_unavailable"
           ) {
             attemptSource = "local_cache";
             result = {
-              ...(await authenticateFromCache(input.userName, input.chainId, true)),
+              ...(await authenticateFromCache(input.userName, input.chainId)),
               source: "local_cache",
             };
           } else throw serverError;
