@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { assertExplorationNavigation, workExplorationCases } from "./work-exploration";
+import {
+  assertExplorationNavigation,
+  explorationEnsRejection,
+  workExplorationCases,
+} from "./work-exploration";
 
 describe("bounded work exploration", () => {
   it("replays the same plan and keeps the caller's seed", () => {
@@ -37,5 +41,73 @@ describe("bounded work exploration", () => {
         /Out-of-scope/
       );
     }
+  });
+});
+
+describe("exploration ENS transport boundary", () => {
+  const request = {
+    jsonrpc: "2.0",
+    id: 7,
+    method: "eth_call",
+    params: [
+      { to: "0xeeeeeeee14d718c2b47d9923deab1335e144eeee", data: "0xb7d6ca640000" },
+      "latest",
+    ] as const,
+  };
+  it.each([
+    "https://eth-mainnet.g.alchemy.com/v2/test",
+    "https://ethereum-rpc.publicnode.com",
+  ])("substitutes the same declared read on %s", (url) => {
+    expect(explorationEnsRejection(url, "POST", JSON.stringify(request))).toEqual({
+      jsonrpc: "2.0",
+      id: 7,
+      error: { code: 3, message: "No reverse ENS name in this scenario" },
+    });
+  });
+  it("leaves unknown providers to the exploration's rejecting network gate", () => {
+    for (const url of [
+      "https://evil.test/eth-mainnet.g.alchemy.com",
+      "https://ethereum-rpc.publicnode.com.evil.test",
+    ]) {
+      expect(explorationEnsRejection(url, "POST", JSON.stringify(request))).toBeNull();
+    }
+  });
+  it("rejects transaction writes instead of simulating success", () => {
+    for (const method of ["eth_sendRawTransaction", "eth_sendTransaction"]) {
+      expect(() =>
+        explorationEnsRejection(
+          "https://ethereum-rpc.publicnode.com",
+          "POST",
+          JSON.stringify({ ...request, method })
+        )
+      ).toThrow(/Unsupported/);
+    }
+  });
+  it("rejects unknown reads, blocks, HTTP methods and malformed payloads", () => {
+    for (const params of [
+      [{ ...request.params[0], to: "0x0000000000000000000000000000000000000001" }, "latest"],
+      [{ ...request.params[0], data: "0xdeadbeef" }, "latest"],
+      [request.params[0], "pending"],
+      [],
+    ]) {
+      expect(() =>
+        explorationEnsRejection(
+          "https://ethereum-rpc.publicnode.com",
+          "POST",
+          JSON.stringify({ ...request, params })
+        )
+      ).toThrow(/Unsupported/);
+    }
+    for (const body of ["null", "[]", "{}", "not JSON"]) {
+      expect(() =>
+        explorationEnsRejection("https://ethereum-rpc.publicnode.com", "POST", body)
+      ).toThrow();
+    }
+    expect(() =>
+      explorationEnsRejection("https://ethereum-rpc.publicnode.com", "GET", JSON.stringify(request))
+    ).toThrow(/Unsupported/);
+    expect(() =>
+      explorationEnsRejection("http://ethereum-rpc.publicnode.com", "POST", JSON.stringify(request))
+    ).toThrow(/Unsupported/);
   });
 });

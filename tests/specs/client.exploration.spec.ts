@@ -4,7 +4,11 @@ import { expect, test } from "@playwright/test";
 import deployment from "../../packages/contracts/deployments/11155111-latest.json" with {
   type: "json",
 };
-import { assertExplorationNavigation, workExplorationCases } from "../fixtures/work-exploration";
+import {
+  assertExplorationNavigation,
+  explorationEnsRejection,
+  workExplorationCases,
+} from "../fixtures/work-exploration";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
 import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
@@ -41,21 +45,8 @@ for (const scenario of workExplorationCases(process.env.GG_BROWSER_SEED)) {
       ) {
         return route.fulfill({ status: 404, json: { error: "No avatar in this scenario" } });
       }
-      if (url.hostname === "eth-mainnet.g.alchemy.com") {
-        const { id, method, params } = request.postDataJSON();
-        expect(method).toBe("eth_call");
-        expect(params).toHaveLength(2);
-        expect(params[1]).toBe("latest");
-        expect(params[0].to).toBe("0xeeeeeeee14d718c2b47d9923deab1335e144eeee");
-        expect(params[0].data.startsWith("0xb7d6ca64")).toBe(true);
-        return route.fulfill({
-          json: {
-            jsonrpc: "2.0",
-            id,
-            error: { code: 3, message: "No reverse ENS name in this scenario" },
-          },
-        });
-      }
+      const ensResponse = explorationEnsRejection(url.href, request.method(), request.postData());
+      if (ensResponse) return route.fulfill({ json: ensResponse });
       if (url.hostname === "fonts.googleapis.com" && url.pathname === "/css2") {
         return route.fulfill({ contentType: "text/css", body: "" });
       }

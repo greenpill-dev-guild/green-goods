@@ -27,3 +27,36 @@ export function assertExplorationNavigation(url: string, origin: string, pathnam
     throw new Error(`Out-of-scope exploration navigation: ${actual.origin}${actual.pathname}`);
   }
 }
+
+// The chain registry selects Alchemy locally and PublicNode without a provider key in CI.
+// Both transports may perform only the declared reverse-name read, never a write.
+export function explorationEnsRejection(url: string, method: string, body: string | null) {
+  const target = new URL(url);
+  if (!["eth-mainnet.g.alchemy.com", "ethereum-rpc.publicnode.com"].includes(target.hostname)) {
+    return null;
+  }
+  const payload = JSON.parse(body ?? "null");
+  if (
+    target.protocol !== "https:" ||
+    method !== "POST" ||
+    payload?.jsonrpc !== "2.0" ||
+    !(
+      typeof payload.id === "string" ||
+      (typeof payload.id === "number" && Number.isFinite(payload.id))
+    ) ||
+    payload.method !== "eth_call" ||
+    !Array.isArray(payload.params) ||
+    payload.params.length !== 2 ||
+    payload.params[1] !== "latest" ||
+    payload.params[0]?.to !== "0xeeeeeeee14d718c2b47d9923deab1335e144eeee" ||
+    typeof payload.params[0]?.data !== "string" ||
+    !payload.params[0].data.startsWith("0xb7d6ca64")
+  ) {
+    throw new Error("Unsupported exploration ENS request");
+  }
+  return {
+    jsonrpc: "2.0",
+    id: payload.id,
+    error: { code: 3, message: "No reverse ENS name in this scenario" },
+  };
+}
