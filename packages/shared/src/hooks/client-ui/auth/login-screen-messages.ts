@@ -74,6 +74,8 @@ export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): s
     });
   }
   if (
+    error.name === "HttpRequestError" ||
+    error.name === "TimeoutError" ||
     message.includes("network") ||
     message.includes("timeout") ||
     message.includes("fetch") ||

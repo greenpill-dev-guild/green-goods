@@ -317,7 +317,7 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   }
 
   if (IS_DEBUG) {
-    logger.info(`[ErrorTracking] ${severity.toUpperCase()}: ${normalizedError.message}`, {
+    logger.info(`[ErrorTracking] ${severity.toUpperCase()}: ${capturedError.message}`, {
       category,
       source,
     });
