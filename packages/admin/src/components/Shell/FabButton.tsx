@@ -1,6 +1,6 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiCloseLine } from "@remixicon/react";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -12,8 +12,9 @@ import { useIntl } from "react-intl";
 // The FAB is the one tone-filled control in the floating chrome: circular
 // 48px (56px with a label when floating), --tone-action fill, warm chrome
 // shadow at rest, state-layer + elevation feedback — never a hue shift or
-// scale jump. Multi-action configs open the speed dial (the "+" rotates 45°);
-// single-action configs fire directly and show a hover tooltip instead.
+// scale jump. Multi-action configs open the speed dial (the "+" becomes a
+// close icon); single-action configs fire directly and show a hover tooltip
+// instead.
 // ----------------------------------------------------------------------------
 
 export interface FabButtonProps {
@@ -30,11 +31,11 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  // A FAB shows its primary action's icon (useViewActions puts it in
-  // config.icon), so the button says what it mostly does; a dial swaps it for
-  // a close icon while open (DL-050). The Hub still shows "+", Submit Work's
-  // own icon.
-  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : config.icon;
+  // Every FAB shows "+" while closed, whether it fires one act or opens a
+  // dial: the workspace tone already says which tab this is, so the glyph
+  // stays one landmark across them (DL-078). A dial swaps it for a close icon
+  // while open, and its rows keep each act's own icon beside its label.
+  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : RiAddLine;
   const floatingActionLabel =
     isSingleAction && config.actions[0]
       ? formatMessage({ id: config.actions[0].labelId })

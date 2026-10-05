@@ -6,6 +6,7 @@ import type { FabConfig } from "@green-goods/shared/components/Canvas/Navigation
 import enMessages from "@green-goods/shared/i18n/en";
 import {
   type RemixiconComponentType,
+  RiAddLine,
   RiCloseLine,
   RiHandCoinLine,
   RiUserAddLine,
@@ -56,17 +57,47 @@ function iconPath(Icon: RemixiconComponentType) {
 }
 
 describe("FabButton", () => {
-  it("shows its primary action's icon, and a close icon while the dial is open (DL-050)", async () => {
+  it("shows a plus while closed, whatever its primary action, and a close icon while the dial is open (DL-078)", async () => {
     const user = userEvent.setup();
+    // The primary here is Add Member, whose own icon is not a plus.
     renderFab();
 
     const fab = screen.getByRole("button", { name: "Open Actions" });
-    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
 
     await user.click(fab);
     expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiCloseLine));
     // The close glyph is named for what it does now.
     expect(fab).toHaveAccessibleName("Close Actions");
+    // Each row keeps its act's own icon beside the label that names it.
+    const add = screen.getByRole("menuitem", { name: "Add Member" });
+    expect(add.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+  });
+
+  it("shows a plus on a FAB that fires one act, still named for that act (DL-078)", () => {
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <FabButton
+          config={{
+            icon: RiHandCoinLine,
+            label: "Community actions",
+            actions: [
+              {
+                id: "fund-payout-jar",
+                icon: RiHandCoinLine,
+                label: "Fund Cookie Jar",
+                labelId: "cockpit.community.action.fundPayoutJar",
+              },
+            ],
+            onAction: vi.fn(),
+          }}
+          mobileFloating
+        />
+      </IntlProvider>
+    );
+
+    const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
+    expect(sole.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
   });
 
   it("keeps a disabled action reachable, inert, and saying why", async () => {
