@@ -7,7 +7,7 @@ audience: steward
 owner: docs
 last_verified: 2026-05-01
 feature_status: Live
-goal: "Walk a steward or evaluator through the three-step assessment form."
+goal: "Walk a steward or evaluator through the assessment form and its review."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
 prereqs: "Assessment permission, a clear reporting window, and enough context to define the garden's current state."
@@ -20,6 +20,7 @@ source_of_truth:
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/ReviewStep.tsx
   - packages/shared/src/workflows/createAssessment.ts
 keywords:
   - assessment
@@ -59,7 +60,7 @@ An assessment is the garden's **baseline**: make it first, before the work it fr
 
 ## Step-by-step flow
 
-The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, and **Actions & Harvest**. Your progress is saved as a local draft when browser storage is available.
+The assessment form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions & Reporting Period**, and **Review**. Nothing is sent until you submit from the Review. Your progress is saved as a local draft when browser storage is available.
 
 ### Step 1: Open the assessment form
 
@@ -74,30 +75,34 @@ The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, 
 2. Enter a stable **title** that will still make sense later.
 3. Enter a short **description** of what the assessment covers.
 4. Enter the **location**.
-5. Click **Continue**.
+5. Click **Next**.
 
-### Step 3: Build the Strategy Kernel
+### Step 3: Fill Challenge & Goals
 
 1. Enter the **diagnosis**: what was happening before or during the work.
 2. Choose the situation type: clear, complicated, complex, chaotic, or confusion. The app labels this as the **Cynefin phase**.
 3. Add one or more **SMART outcomes** with a description, metric, and target.
 4. Select the metrics that match the domain and outcomes. Use multiple metrics when they add useful evidence, but do not add metrics just to make the assessment look bigger.
-5. Click **Continue**.
+5. Click **Next**.
 
-### Step 4: Pick Actions & Harvest
+### Step 4: Pick Actions & Reporting Period
 
 1. Select the **actions** this assessment covers. The form filters actions to the domain you picked in step 2.
 2. Set the **reporting period** start and end dates.
-3. Review the summary.
-4. Click **Submit assessment** and sign in your wallet.
-5. Wait for confirmation before closing the tab.
+3. Click **Next**.
+
+### Step 5: Review and submit
+
+1. Read each section. It shows what the assessment will record, grouped by the step that asked for it.
+2. Use a section's **Edit** to reopen its step and change an answer.
+3. Click **Submit Assessment** and approve the request in your wallet. Your wallet asks once.
+4. Leave the form open while it sends. The status row at the top of the Review says where the send stands.
 
 ## How to know it worked
 
-- A success toast confirms the assessment was submitted.
-- The form closes and returns you to the assessment list.
-- After indexing catches up, the assessment appears with its title, domain badge, and reporting date range.
-- The Hub's **Assessments** tab lists it too. Open it there to read its record: the description, domain, reporting period, location, author, and date.
+- The status row on the Review reads **Assessment submitted**. The form stays there, with the answers you sent, until you leave it.
+- **Done** closes the form onto the Hub's **Assessments** tab. **Create Another** starts a new, empty assessment instead.
+- After indexing catches up, the assessment appears in that list with its title, domain badge, and reporting date range. Open it to read its record: the description, domain, reporting period, location, author, and date.
 - If an explorer link is available, you can open it to verify the record.
 
 ## If something goes wrong
@@ -105,9 +110,9 @@ The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, 
 - **No permission.** Ask the garden owner to add you as an owner, steward, or evaluator.
 - **Domain is missing.** The garden does not have that domain enabled. Pick an enabled domain or update the garden settings first.
 - **Action is missing.** Actions are filtered by the selected domain. Check whether the action belongs to a different domain.
-- **Incomplete form.** The form highlights the missing field. Scroll back, fill it in, and retry.
+- **Incomplete form.** The form highlights the missing field, and the Review shows **Not provided** where an answer is missing. Use that section's **Edit**, fill it in, and submit again.
 - **Draft backup unavailable.** Submission can still work, but do not close the tab until you finish.
-- **Transaction cancelled.** Nothing was submitted. Retry when ready.
+- **Transaction cancelled or failed.** Nothing was submitted. The Review says what happened and keeps your answers: press **Try Again**, or use **Edit** to change an answer first.
 - **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
 
 ## Next step

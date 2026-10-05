@@ -5,6 +5,7 @@ import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame, withI18n } from "../../../../../shared/.storybook/decorators";
 import { stagedWorkPhotos } from "../../../../../shared/.storybook/workPhotoFixtures";
+import type { FlowSendStatus } from "../../../components/Layout/FlowSendFooter";
 import { SubmitWorkStepContent } from "./SubmitWorkStepContent";
 
 const ACTION: Action = {
@@ -47,6 +48,15 @@ const ACTION_STEP_CONTROLLER = {
   visibleActions: [ACTION],
 } as unknown as SubmitWorkController;
 
+// These stories stop before the Review, whose status row has its own stories (SubmitWorkReview).
+const REVIEW_STATUS: FlowSendStatus = {
+  phase: "ready",
+  tone: "neutral",
+  busy: false,
+  title: "Submits this work for review",
+  description: "It can't be changed once it's submitted.",
+};
+
 const meta = {
   title: "Admin/Workflows/Garden/SubmitWorkStepContent",
   component: SubmitWorkStepContent,
@@ -55,6 +65,7 @@ const meta = {
   args: {
     controller: ACTION_STEP_CONTROLLER,
     photoRequirementText: "1 photo required",
+    reviewStatus: REVIEW_STATUS,
   },
 } satisfies Meta<typeof SubmitWorkStepContent>;
 
@@ -85,7 +96,13 @@ function MediaStep({ staged }: { staged: File[] }) {
       setImages((current) => current.filter((_, item) => item !== index)),
   } as unknown as SubmitWorkController;
 
-  return <SubmitWorkStepContent controller={controller} photoRequirementText="2 photos required" />;
+  return (
+    <SubmitWorkStepContent
+      controller={controller}
+      photoRequirementText="2 photos required"
+      reviewStatus={REVIEW_STATUS}
+    />
+  );
 }
 
 /** Two photos required, none staged: the count sits under the upload well in amber. */

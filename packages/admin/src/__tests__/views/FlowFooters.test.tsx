@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+import {
+  FlowSendFooter,
+  type FlowSendFooterProps,
+  flowSendPhase,
+  SingleSendNote,
+} from "@/components/Layout/FlowSendFooter";
 import { SeedFlowFooter } from "@/views/Garden/Pool/Seed/SeedFlowFooter";
 import type { SeedStatusView } from "@/views/Garden/Pool/Seed/seedStatus";
 import { SetupFlowFooter } from "@/views/Garden/Pool/SetupFlow/SetupFlowFooter";
 import { stepBlockedReason } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
-import { renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen } from "../test-utils";
 
 const noop = vi.fn();
 
@@ -30,6 +36,32 @@ const seedFooter = {
   onCreate: noop,
   onDone: noop,
 };
+
+/** A create flow's footer on its Review, at one moment of the send. */
+function sendFooter(props: Partial<FlowSendFooterProps> = {}) {
+  const handlers = {
+    onCancel: vi.fn(),
+    onBack: vi.fn(),
+    onNext: vi.fn(),
+    onSend: vi.fn(),
+    onDone: vi.fn(),
+    onAnother: vi.fn(),
+  };
+  const phase = props.phase ?? "ready";
+  renderWithProviders(
+    <FlowSendFooter
+      stepIndex={3}
+      isLast
+      phase={phase}
+      sendLabel="Submit Assessment"
+      note={<SingleSendNote phase={phase} />}
+      another={{ label: "Create Another", onClick: handlers.onAnother }}
+      {...handlers}
+      {...props}
+    />
+  );
+  return handlers;
+}
 
 describe("the flow footers", () => {
   it("say why creating is off, under the buttons", () => {
@@ -126,5 +158,69 @@ describe("the flow footers", () => {
       "cockpit.garden.pool.setup.blocked.split"
     );
     expect(stepBlockedReason("how", ready)).toBeNull();
+  });
+
+  it.each([
+    [{ sending: false, sent: false, failed: false }, "ready"],
+    [{ sending: true, sent: false, failed: false }, "sending"],
+    [{ sending: false, sent: false, failed: true }, "failed"],
+    // A retry is under way: the last failure no longer reads.
+    [{ sending: true, sent: false, failed: true }, "sending"],
+    // A send that landed stays sent, whatever a stale flag says.
+    [{ sending: false, sent: true, failed: true }, "sent"],
+  ] as const)("read a create flow's send %o as %s", (send, phase) => {
+    expect(flowSendPhase(send)).toBe(phase);
+  });
+
+  it("send from the Review, and say how often the wallet asks", () => {
+    const handlers = sendFooter();
+
+    expect(screen.getByRole("status")).toHaveTextContent("Your wallet will ask you once.");
+    fireEvent.click(screen.getByRole("button", { name: "Submit Assessment" }));
+    expect(handlers.onSend).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+  });
+
+  it("hold every button while a create flow sends", () => {
+    sendFooter({ phase: "sending" });
+
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit Assessment" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "The dialog stays open until your wallet answers."
+    );
+  });
+
+  it("offer Try Again and the way back after a send that failed", () => {
+    const handlers = sendFooter({ phase: "failed" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(handlers.onSend).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Submit Assessment" })).not.toBeInTheDocument();
+  });
+
+  it("leave only Done and a fresh start once a create flow has sent", () => {
+    const handlers = sendFooter({ phase: "sent" });
+
+    // No way back into the steps, and nothing left to send.
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Create Another",
+      "Done",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "Create Another" }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(handlers.onAnother).toHaveBeenCalledTimes(1);
+    expect(handlers.onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("go back and on before the Review, and wait while work outside the send runs", () => {
+    const handlers = sendFooter({ stepIndex: 0, isLast: false, held: true });
+
+    // The first step leaves by Cancel; nothing sends from here.
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Submit Assessment" })).not.toBeInTheDocument();
+    expect(handlers.onSend).not.toHaveBeenCalled();
   });
 });

@@ -60,7 +60,7 @@ const UNIT_DEFAULTS: Record<string, string> = {
 };
 
 /** Resolve domain metrics with i18n labels; none until a known domain is chosen. */
-function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
+export function resolveDomainMetrics(intl: IntlShape, domain: Domain | null) {
   const keys = domain === null ? [] : DOMAIN_METRICS[domain];
   return keys.map((m) => ({
     key: m.key,
@@ -112,7 +112,7 @@ const CYNEFIN_DEFAULTS: Record<string, string> = {
 };
 
 /** Resolve Cynefin options with i18n labels */
-function resolveCynefinOptions(intl: IntlShape) {
+export function resolveCynefinOptions(intl: IntlShape) {
   return CYNEFIN_PHASE_KEYS.map((opt) => ({
     value: opt.value,
     label: intl.formatMessage({ id: opt.labelId, defaultMessage: CYNEFIN_DEFAULTS[opt.labelId] }),
