@@ -38,7 +38,8 @@
 > Afolabi operates the WhatsApp integration as a sole proprietor doing business as Green Goods, on a
 > Meta business portfolio of its own, set up now and verified later. The header and sections 1, 10,
 > 10.1, 12 and 13 name the new operator. Whether the other hosted services and the model processor
-> accounts move with the channel is undecided. See the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+> accounts move with the channel is undecided. Support moves to contact@greengoods.app. See the
+> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
 
 **Date:** 26 September 2026
 **Product:** Green Goods
@@ -1342,7 +1343,7 @@ Media processing must validate MIME from bytes, cap size/count/duration, fetch o
 
 ### 10.1 Prototype support and intake readiness
 
-**Accountable support owner: Afolabi — [afo@wefa.world](mailto:afo@wefa.world).** Afolabi, doing business as Green Goods, owns WhatsApp operations; Green Goods remains the product. That mailbox is on WEFA's domain, which the 4 October operator decision otherwise moves away from: whether support moves to a Green Goods-controlled address, or this route is kept and named in the participant notice, is undecided and must be settled before real tester intake. The chat replies and the ceremony pages send people to `greengoods.app` (`REPORTING_SUPPORT_CONTACT`), not to this mailbox. Include the settled contact in the tester invitation and first-contact notice so a broken agent does not prevent contact. Afolabi receives deletion requests, identity/relinking problems and delivery incidents, and coordinates technical incidents with the Opus 5.5 builder and Astra reviewer. Garden-specific work and membership questions go to the selected garden's authorized steward through Afolabi. Model assignments are engineering responsibilities, not substitutes for a human support contact.
+**Accountable support owner: Afolabi — [contact@greengoods.app](mailto:contact@greengoods.app).** Afolabi, doing business as Green Goods, owns WhatsApp operations; Green Goods remains the product. The support address moved from a mailbox on WEFA's domain to this Green Goods address on 4 October. The chat replies and the ceremony pages send people to `greengoods.app` (`REPORTING_SUPPORT_CONTACT`), not to this address; the live-intake gate in [eval.md](eval.md) requires the `help` reply and the Help sheet to expose it. Include it in the tester invitation and first-contact notice so a broken agent does not prevent contact. Afolabi receives deletion requests, identity/relinking problems and delivery incidents, and coordinates technical incidents with the Opus 5.5 builder and Astra reviewer. Garden-specific work and membership questions go to the selected garden's authorized steward through Afolabi. Model assignments are engineering responsibilities, not substitutes for a human support contact.
 
 Before real tester intake, verify the support address and help path, consent copy, cleanup jobs, processor terms and remaining audit/backup retention settings. Record a help/deletion/incident rehearsal. If support becomes unavailable, pause new tester intake until a replacement is named and notices updated; no response-time or backup-person promise is assumed. Synthetic fixtures do not require live support availability. Never mark a live intake gate complete merely because this document names the owner.
 

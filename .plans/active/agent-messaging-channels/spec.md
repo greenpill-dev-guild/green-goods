@@ -6,7 +6,8 @@
 > **4 October operator decision:** WEFA is no longer the responsible organization for WhatsApp.
 > Afolabi operates the channel as a sole proprietor doing business as Green Goods, on a Meta
 > business portfolio of its own. This supersedes the 24 September note below and the O2 answer
-> where they name WEFA. See the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+> where they name WEFA, and support moves to contact@greengoods.app. See the
+> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
 
 > **Latest user alignment:** API harness first; document/photo/spreadsheet support required.
 > OpenAI is the selected content-processing provider. The current prototype supports existing

@@ -7,7 +7,7 @@
   (PR #864) at pinned parent `8457b8aa2f82b4de41bd8de1551d7d9f5a36da8e`
 - Status: in progress (see status.json). PR #2 scope is implemented and fixture-tested; live gates
   and the WhatsApp transport (PR #3) remain. Independent review by Astra has not happened yet.
-- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+- Support owner: Afolabi, [contact@greengoods.app](mailto:contact@greengoods.app)
 
 ## Start gate
 

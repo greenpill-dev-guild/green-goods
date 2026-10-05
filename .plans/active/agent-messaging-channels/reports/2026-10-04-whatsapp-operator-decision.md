@@ -24,6 +24,7 @@ change of operator.
   separate legal entity, so he is personally the operator responsible for gardener data on this
   channel until a Green Goods entity exists.
 - **Set up now, verify later.** Meta does not require business verification to start.
+- **Support address.** contact@greengoods.app, a Green Goods address, replaces the mailbox on WEFA's domain.
 
 ## The order of setup
 
@@ -69,11 +70,13 @@ Read on Meta's own help and policy pages that day. Recheck before relying on any
 - [brief.md](../brief.md), [spec.md](../spec.md) (O2) and
   [technical-brief.md](../technical-brief.md) (header, sections 1, 10, 10.1, 12 and 13) name the new
   operator.
+- The support address changes in the plan header, section 10.1 of the technical brief, the
+  live-intake gate in [eval.md](../eval.md) and the lane handoffs.
 - The adapter's contract does not change. Section 6 of the
   [capability record](2026-09-27-reporting-core-capability-record.md) remains its spec.
 
 Outside the hub, track 5 of the [research agenda](../../../../docs/routines/research-agenda.md)
-names the new operator in its settled list, as edition v3.
+names the new operator and support address in its settled list, as edition v3.
 
 ## Still open
 
@@ -85,11 +88,9 @@ names the new operator in its settled list, as edition v3.
 - **The first number.** PRD-942, which covered registering the Twilio number under the account in
   WEFA's portfolio, was closed on 29 September. Whether Meta lets that number be removed from that
   account, or Green Goods takes a new one, is not known.
-- **The support contact.** The technical brief names a mailbox on WEFA's domain as the support
-  route, while the chat and the pages send people to `greengoods.app`. Whether support moves to a
-  Green Goods-controlled address, or the WEFA-hosted mailbox is kept and named in the participant
-  notice, is undecided. Settle it before real tester intake. Until then the plan header and the
-  live-intake gate in [eval.md](../eval.md) still name that mailbox, and the research agenda lists
-  the address under Open.
+- **The support path in the product.** The chat and the pages send people to `greengoods.app`, not
+  to the support address. The live-intake gate requires the help reply and the Help sheet to
+  expose it, and section 10.1 of the technical brief requires the address and help path to be
+  verified before real tester intake.
 - **Who speaks for Green Goods.** The operator and the project lead are now the same person, so the
   operating memo linked on GROW-60 asks for a second person.

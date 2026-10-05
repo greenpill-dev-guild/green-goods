@@ -10,7 +10,8 @@
 
 > **Operator decision, 4 October:** Green Goods will not use WEFA's Meta portfolio for WhatsApp.
 > Afolabi operates the channel as a sole proprietor doing business as Green Goods, on a Meta
-> business portfolio of its own. See the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+> business portfolio of its own. Support moves to contact@greengoods.app. See the
+> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
 
 > **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
 

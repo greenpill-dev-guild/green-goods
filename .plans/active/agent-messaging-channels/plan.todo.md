@@ -74,8 +74,8 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 > **4 October:** Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the
 > WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio
 > of its own, set up now and verified later. This replaces "WhatsApp Business Account operated by
-> WEFA LLC" in the decision log. Telegram stays the live channel. See the
-> [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
+> WEFA LLC" in the decision log. Telegram stays the live channel. Support moves to
+> contact@greengoods.app. See the [operator decision](reports/2026-10-04-whatsapp-operator-decision.md).
 
 **Feature slug:** agent-messaging-channels
 
@@ -104,7 +104,7 @@ Do not repeat the manual writes.
 ## Current build sequence
 
 **Builder:** Opus 5.5 (Claude). **Independent reviewer:** Astra (Codex).
-**Prototype support:** Afolabi, [afo@wefa.world](mailto:afo@wefa.world).
+**Prototype support:** Afolabi, [contact@greengoods.app](mailto:contact@greengoods.app).
 
 Use [technical brief section 12](technical-brief.md#12-implementation-order-and-acceptance),
 its stage gates and the current handoffs below. The older numbered steps are historical, not dispatch commands.

@@ -7,7 +7,7 @@
 - Status: in progress (see status.json). The ceremony pages and Shared hooks are implemented and
   fixture-tested; authenticated signing proof, deployed proxy proof and the section 9.3 permission
   mode remain. Independent review by Astra has not happened yet.
-- Support owner: Afolabi, [afo@wefa.world](mailto:afo@wefa.world)
+- Support owner: Afolabi, [contact@greengoods.app](mailto:contact@greengoods.app)
 
 ## Start gate
 
