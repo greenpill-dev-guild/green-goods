@@ -82,6 +82,8 @@ vi.mock("../../modules/work/upload-preparation", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../modules/work/upload-preparation")>()),
   scheduleUploadPreparation,
 }));
+const deleteDraftOfQueuedWork = vi.hoisted(() => vi.fn());
+vi.mock("../../modules/work/draft-lifecycle", () => ({ deleteDraftOfQueuedWork }));
 
 vi.mock("../../config/blockchain", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../config/blockchain")>()),
@@ -316,6 +318,53 @@ describe("providers/JobQueueProvider", () => {
       }
 
       expect(scheduleUploadPreparation).toHaveBeenCalledTimes(2);
+    });
+
+    it("re-reads the drafts when work is queued, and drops its draft once that work is sent or discarded", async () => {
+      const subscribedHandlers = new Set<(event: QueueEvent) => void>();
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
+        subscribedHandlers.add(handler);
+        return () => subscribedHandlers.delete(handler);
+      });
+      deleteDraftOfQueuedWork.mockResolvedValue(true);
+      const work = {
+        id: "work-job-1",
+        kind: "work",
+        chainId: 11155111,
+        payload: { actionUID: 1, gardenAddress: "0xgarden", feedback: "", clientWorkId: "work-1" },
+        createdAt: Date.now(),
+        attempts: 0,
+        synced: false,
+        userAddress: "0xuser",
+      } as Job;
+      const drafts = { queryKey: queryKeys.drafts.all };
+      const emit = (event: QueueEvent) =>
+        act(async () => {
+          subscribedHandlers.forEach((handler) => handler(event));
+          await Promise.resolve();
+        });
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await emit({ type: "job_added", jobId: work.id, job: work });
+      expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(drafts);
+      expect(deleteDraftOfQueuedWork).not.toHaveBeenCalled();
+
+      // A failed send keeps the work queued, and its draft with it.
+      await emit({ type: "job_failed", jobId: work.id, job: work, error: "network" });
+      expect(deleteDraftOfQueuedWork).not.toHaveBeenCalled();
+      expect(queueToasts.jobFailed).toHaveBeenCalledTimes(1);
+
+      // A discard is the person's choice: the draft goes, and nothing says a sync failed.
+      await emit({ type: "job_failed", jobId: work.id, job: work, error: "discarded" });
+      expect(deleteDraftOfQueuedWork).toHaveBeenLastCalledWith(work, "discard");
+      expect(queueToasts.jobFailed).toHaveBeenCalledTimes(1);
+
+      mockSharedQueryClient.invalidateQueries.mockClear();
+      await emit({ type: "job_completed", jobId: work.id, job: work, txHash: "0xabc" });
+      expect(deleteDraftOfQueuedWork).toHaveBeenLastCalledWith(work, "retire");
+      await waitFor(() =>
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith(drafts)
+      );
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {

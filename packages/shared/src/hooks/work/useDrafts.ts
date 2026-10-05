@@ -1,4 +1,4 @@
-import { deleteWorkDraft } from "../../modules/work/draft-lifecycle";
+import { deleteWorkDraft, listWorkDrafts } from "../../modules/work/draft-lifecycle";
 /**
  * Work Drafts Hook
  *
@@ -73,7 +73,7 @@ export function useDrafts() {
     queryFn: async (): Promise<DraftWithImages[]> => {
       if (!userAddress) return [];
 
-      const rawDrafts = await draftDB.getDraftsForUser(userAddress, chainId);
+      const rawDrafts = await listWorkDrafts(userAddress, chainId);
 
       return rawDrafts.map((draft) => ({ ...draft, images: [], thumbnailUrl: null }));
     },

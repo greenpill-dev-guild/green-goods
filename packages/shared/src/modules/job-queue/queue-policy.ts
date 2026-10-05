@@ -2,6 +2,8 @@ import type { Job, SendCheckpoint } from "../../types/job-queue";
 
 export const MAX_RETRIES = 5;
 export const COMMITMENT_WAITING_REPROBE_MS = 30_000;
+/** The error a `job:failed` event carries when the person discarded the job. */
+export const JOB_DISCARDED = "discarded";
 
 export function createOfflineTxHash(jobId: string): `0x${string}` {
   const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");

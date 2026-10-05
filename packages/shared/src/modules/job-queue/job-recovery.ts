@@ -12,7 +12,7 @@ import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { commitmentJobPrerequisite, type WorkLinkJobPayload } from "../commitment-pooling/jobs";
 import { forgetWorkBroadcast, retainedWorkBroadcast } from "../work/work-confirmation";
 import type { JobQueueEvents, JobQueueExecutionClaims, JobQueueStore } from "./ports";
-import { hasRecordedSend } from "./queue-policy";
+import { hasRecordedSend, JOB_DISCARDED } from "./queue-policy";
 
 /**
  * Whether a job may be thrown away.
@@ -128,12 +128,12 @@ export function createJobRecovery(
               isDiscardableJob(send)
             ) {
               await store.deleteJob(send.id);
-              events.emit("job:failed", { jobId: send.id, job: send, error: "discarded" });
+              events.emit("job:failed", { jobId: send.id, job: send, error: JOB_DISCARDED });
             }
           }
         }
         await store.deleteJob(jobId);
-        events.emit("job:failed", { jobId, job, error: "discarded" });
+        events.emit("job:failed", { jobId, job, error: JOB_DISCARDED });
         return true;
       } finally {
         await hold?.release();

@@ -8,18 +8,21 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
-import { queueKeys } from "../config/query-keys/misc";
+import { draftsKeys, queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
+import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { logger } from "../modules/app/logger";
+import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
 import { connectivityStore } from "../stores/connectivity";
 import type {
   ApprovalJobPayload,
+  Job,
   QueueEvent,
   QueueStats,
   WorkJobPayload,
@@ -151,6 +154,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   useEffect(() => {
     const abortController = new AbortController();
 
+    // Work sent or discarded from Your Work takes the draft its composer kept.
+    const dropDraft = (job: Job, mode: "discard" | "retire") => {
+      void deleteDraftOfQueuedWork(job, mode)
+        .then((removed) => {
+          if (removed) queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+        })
+        .catch((error: unknown) => {
+          logger.warn("[JobQueueProvider] Could not remove the draft of queued work", { error });
+        });
+    };
+
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
@@ -181,6 +195,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         invalidateKeys(
           queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        dropDraft(event.job, "retire");
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
@@ -216,7 +231,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       if (!event.job) return;
 
       if (event.job.kind === "work") {
-        queueToasts.jobFailed("work", event.error);
+        // A discard is the person's own act, which its screen confirms: not a failed sync.
+        if (event.error === JOB_DISCARDED) dropDraft(event.job, "discard");
+        else queueToasts.jobFailed("work", event.error);
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
@@ -245,6 +262,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         invalidateKeys(
           queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        // Queued work is listed as queued; its draft stops being a second item.
+        queryClient.invalidateQueries({ queryKey: draftsKeys.all });
       }
 
       // Update global counts
