@@ -153,6 +153,65 @@ export const FloatingLabelGeometry: Story = {
   },
 };
 
+const ROLE_OPTIONS = (
+  <>
+    <option value="">Choose a role</option>
+    <option value="gardener">Gardener</option>
+    <option value="evaluator">Evaluator</option>
+  </>
+);
+
+/**
+ * The line under a field is reserved, so a message arriving moves nothing below it
+ * (D10). Checked in browser mode, where real layout applies: a text field, a text
+ * area and a select are each the same height with no message, a helper, a one-line
+ * error, and (for the text field) a counter. Heights are compared with each other,
+ * never with a number, so the check reads the same at any text size or font.
+ */
+export const MessageHoldsTheLine: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    // items-start: a grid row would otherwise stretch a field to its tallest neighbour.
+    <div className="grid max-w-3xl items-start gap-5 sm:grid-cols-3">
+      <AdminTextField label="Name, no message" />
+      <AdminTextField label="Name, helper" helperText="Shown on the garden's page." />
+      <AdminTextField label="Name, error" error="Enter a name." />
+      <AdminTextArea label="Reason, no message" />
+      <AdminTextArea label="Reason, helper" helperText="Members read this." />
+      <AdminTextArea label="Reason, error" error="Give a reason." />
+      <AdminSelect label="Role, no message" defaultValue="gardener">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminSelect label="Role, helper" defaultValue="gardener" helperText="Sets what they can do.">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminSelect label="Role, error" defaultValue="" error="Pick a role.">
+        {ROLE_OPTIONS}
+      </AdminSelect>
+      <AdminTextField label="Name, counted" showCount inputProps={{ maxLength: 60 }} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const heightOf = (role: "textbox" | "combobox", name: string) => {
+      const control = canvas.getByRole(role, { name });
+      return (control.closest("[data-component]") ?? control).getBoundingClientRect().height;
+    };
+    const cases = [
+      ["textbox", "Name", ["helper", "error", "counted"]],
+      ["textbox", "Reason", ["helper", "error"]],
+      ["combobox", "Role", ["helper", "error"]],
+    ] as const;
+
+    for (const [role, field, states] of cases) {
+      const plain = heightOf(role, `${field}, no message`);
+      for (const state of states) {
+        await expect(Math.abs(heightOf(role, `${field}, ${state}`) - plain)).toBeLessThan(0.5);
+      }
+    }
+  },
+};
+
 export const OutlinedAtSectionTop: Story = {
   render: () => (
     <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
