@@ -251,22 +251,28 @@ export async function submitWorkDirectly(
   // listed side by side. A receipt that names no such attestation adds no row,
   // and the work appears once it is indexed.
   const workUID = attestedWorkUID(receipt.logs, chainId, gardenAddress);
-  if (workUID) {
-    const sentWork: EASWork = {
-      id: workUID,
-      gardenerAddress: walletClient.account?.address || "",
-      gardenAddress,
-      actionUID,
-      title: workTitle,
-      feedback: draft.feedback || "",
-      metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
-      media: [],
-      createdAt: Math.floor(Date.now() / 1000),
-    };
+  const sentWork: EASWork | undefined = workUID
+    ? {
+        id: workUID,
+        gardenerAddress: walletClient.account?.address || "",
+        gardenAddress,
+        actionUID,
+        title: workTitle,
+        feedback: draft.feedback || "",
+        metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
+        media: [],
+        createdAt: Math.floor(Date.now() / 1000),
+      }
+    : undefined;
+  const readKey = worksKeys.online(gardenAddress, chainId);
+  const savedKey = worksKeys.merged(gardenAddress, chainId);
+  /** The read's own row for this work: the indexer has returned it. */
+  const indexed = (work: EASWork) => work !== sentWork && work.id.toLowerCase() === workUID;
+  if (sentWork) {
     const withSentWork = (old: EASWork[] | undefined) =>
       old?.some((work) => work.id.toLowerCase() === workUID) ? old : [sentWork, ...(old ?? [])];
-    queryClient.setQueryData<EASWork[]>(worksKeys.online(gardenAddress, chainId), withSentWork);
-    queryClient.setQueryData<EASWork[]>(worksKeys.merged(gardenAddress, chainId), withSentWork);
+    queryClient.setQueryData<EASWork[]>(readKey, withSentWork);
+    queryClient.setQueryData<EASWork[]>(savedKey, withSentWork);
   } else {
     logger.warn("[WalletSubmission] The receipt names no work attestation to list until indexed");
   }
@@ -282,13 +288,18 @@ export async function submitWorkDirectly(
   onProgress?.("syncing", "Syncing with blockchain...");
 
   await pollQueriesAfterTransaction({
-    queryKeys: [worksKeys.online(gardenAddress, chainId), worksKeys.merged(gardenAddress, chainId)],
+    queryKeys: [readKey, savedKey],
     baseDelay: 1000,
     maxDelay: 4000,
     maxAttempts: 4,
     onAttempt: (attempt, delay) => {
       debugLog(`[WalletSubmission] Polling indexer (attempt ${attempt}, waited ${delay}ms)`);
     },
+    // The indexed work takes the saved row's place under the same id, so neither list
+    // grows when it arrives. The read holding its own row for the work is the sign.
+    ...(sentWork
+      ? { until: () => queryClient.getQueryData<EASWork[]>(readKey)?.some(indexed) ?? false }
+      : {}),
   });
 
   onProgress?.("complete", "Work submitted successfully!");

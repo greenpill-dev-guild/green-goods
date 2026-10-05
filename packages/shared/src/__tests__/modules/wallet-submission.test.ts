@@ -120,6 +120,7 @@ import { queryClient } from "../../config/react-query";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import { EASABI } from "../../utils/blockchain/contracts";
+import * as polling from "../../utils/blockchain/polling";
 
 import {
   submitApprovalDirectly,
@@ -269,6 +270,9 @@ describe("wallet-submission", () => {
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
       mock(mockWalletClient.sendTransaction!).mockResolvedValue("0xHash" as `0x${string}`);
 
+      // What the send tells its wait for the indexer to watch for.
+      const arrived = () => vi.mocked(polling.pollQueriesAfterTransaction).mock.lastCall![0].until;
+
       try {
         // Another contract's event, or EAS attesting under another schema, is not this work.
         await send([
@@ -276,12 +280,22 @@ describe("wallet-submission", () => {
           attested(eas, `0x${"2".repeat(64)}`),
         ]);
         expect(listed()).toEqual([undefined, undefined]);
+        // With no row standing in, the lists growing is the sign the work arrived.
+        expect(arrived()).toBeUndefined();
+
+        await send([attested(eas, workSchema)]);
+        expect(listed()).toEqual([[workUID], [workUID]]);
+        // The indexed work takes the row's place one for one, so the wait watches for the
+        // read's own row instead of a longer list.
+        expect(arrived()?.()).toBe(false);
+        queryClient.setQueryData(keys[0], [{ id: workUID, media: ["cid"] }]);
+        expect(arrived()?.()).toBe(true);
 
         // A read that already returned the work keeps its row: the same id is not listed twice.
-        queryClient.setQueryData(keys[0], [{ id: workUID, media: ["cid"] }]);
         await send([attested(eas, workSchema)]);
         expect(queryClient.getQueryData(keys[0])).toEqual([{ id: workUID, media: ["cid"] }]);
         expect(listed()).toEqual([[workUID], [workUID]]);
+        expect(arrived()?.()).toBe(true);
       } finally {
         keys.forEach((queryKey) => queryClient.removeQueries({ queryKey }));
       }
