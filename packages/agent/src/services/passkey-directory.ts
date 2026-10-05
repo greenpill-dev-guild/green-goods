@@ -246,6 +246,8 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
           result.reason === "name_taken" ? "name_taken" : "verification_failed"
         );
       }
+      // The site and domain only: a name is a person's, and stays out of the log.
+      log.info({ rpId: pending.rpId, origin: pending.origin }, "Passkey registered");
       return { success: true, id: credential.id, publicKey, userName };
     },
 
