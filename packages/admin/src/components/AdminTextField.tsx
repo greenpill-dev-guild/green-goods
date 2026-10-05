@@ -254,10 +254,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     );
 
     // Supporting text at the start of the row, the counter at its end (M3). The
-    // row is always there and one line tall, so an error appearing never moves
-    // anything below the field (PRD-1022 D10).
+    // row is always one 16px line (`/4` pins the text to it; `text-body-sm` alone
+    // inherits 18px), so an error never moves anything below the field (PRD-1022 D10).
     const supporting = (
-      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 text-body-sm">
+      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 text-body-sm/4">
         {supportingText ? (
           <p
             id={supportingId}

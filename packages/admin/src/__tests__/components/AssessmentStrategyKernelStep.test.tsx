@@ -40,6 +40,33 @@ describe("StrategyKernelStep", () => {
     expect(screen.queryByText(/kWh|solar panels|rooftop/i)).not.toBeInTheDocument();
   });
 
+  it("says under each field what it holds, on every outcome row", () => {
+    useCreateAssessmentStore.setState((state) => ({
+      form: {
+        ...state.form,
+        domain: Domain.AGRO,
+        smartOutcomes: [
+          { description: "Native canopy returns", metric: "treesPlanted", target: 200 },
+          { description: "More native species live here", metric: "", target: 12 },
+        ],
+      },
+    }));
+
+    renderStrategyStep();
+
+    // Outcome is the change, Metric what is counted, Target how much (DL-079).
+    for (const outcome of screen.getAllByRole("textbox", { name: "Outcome" })) {
+      expect(outcome).toHaveAccessibleDescription("The change you want to see");
+    }
+    for (const target of screen.getAllByRole("spinbutton", { name: "Target" })) {
+      expect(target).toHaveAccessibleDescription("How much");
+    }
+    // A field's own error takes its line; the fields beside it keep theirs.
+    const [metric, unsetMetric] = screen.getAllByRole("combobox", { name: "Metric" });
+    expect(metric).toHaveAccessibleDescription("What you'll count");
+    expect(unsetMetric).toHaveAccessibleDescription("Select a metric");
+  });
+
   it("explains persisted duplicate metric selections", () => {
     useCreateAssessmentStore.setState((state) => ({
       form: {
