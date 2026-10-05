@@ -9,14 +9,6 @@ import {
   Domain,
   type Garden as SharedGarden,
 } from "@green-goods/shared/types/domain";
-import {
-  AuthActionsContext,
-  type AuthActionsValue,
-  AuthContext,
-  type AuthContextType,
-  AuthStateContext,
-  type AuthStateValue,
-} from "@green-goods/shared/providers/Auth";
 import { type ComponentType, type ReactNode, useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
@@ -32,7 +24,6 @@ import {
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
-  withWagmi,
 } from "../../../../shared/.storybook/decorators";
 import { stagedWorkPhoto } from "../../../../shared/.storybook/workPhotoFixtures";
 import SubmitWork, { SubmitWorkPanel } from "./SubmitWork";
@@ -145,6 +136,12 @@ const STORYBOOK_REVIEW_ONLY_GARDEN = {
   evaluators: [STORYBOOK_STEWARD_ADDRESS],
 } satisfies SharedGarden;
 
+// A garden that is not among the steward's own, as a stale or mistyped link names.
+const STORYBOOK_UNLISTED_GARDEN = {
+  ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
+  id: "0x00000000000000000000000000000000000000ff",
+} satisfies SharedGarden;
+
 function replaceGarden(garden: SharedGarden) {
   return STORYBOOK_ADMIN_GARDENS.map((entry) => (entry.id === garden.id ? garden : entry));
 }
@@ -166,53 +163,6 @@ function submitWorkSeeds({
     ],
   ];
 }
-
-const noopAsync = async () => {};
-const noop = () => {};
-
-function StoryAuthProvider({ children, state }: { children: ReactNode; state: AuthStateValue }) {
-  const actions: AuthActionsValue = {
-    createAccount: noopAsync,
-    loginWithPasskey: noopAsync,
-    loginWithWallet: noop,
-    loginWithEmbedded: noop,
-    signOut: noopAsync,
-    switchToWallet: noop,
-    switchToPasskey: noop,
-    retry: noop,
-    dismissError: noop,
-    clearPasskey: noop,
-    disconnectWallet: noopAsync,
-  };
-  const value: AuthContextType = { ...state, ...actions };
-
-  return (
-    <AuthStateContext.Provider value={state}>
-      <AuthActionsContext.Provider value={actions}>
-        <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-      </AuthActionsContext.Provider>
-    </AuthStateContext.Provider>
-  );
-}
-
-const disconnectedAuthState: AuthStateValue = {
-  authMode: null,
-  isReady: true,
-  isAuthenticated: false,
-  isAuthenticating: false,
-  error: null,
-  credential: null,
-  smartAccountAddress: null,
-  smartAccountClient: null,
-  resolveSmartAccountClient: null,
-  userName: null,
-  hasStoredCredential: false,
-  walletAddress: null,
-  eoaAddress: undefined,
-  embeddedAddress: null,
-  externalWalletConnected: false,
-  externalWalletAddress: null,
-};
 
 function SubmitWorkRouteStory() {
   return (
@@ -243,7 +193,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "SubmitWork hosted in the AdminDialog flow host (a centered card on desktop, a full-width bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
+          "SubmitWork hosted in the AdminDialog flow host (a centered card on desktop, a full-width bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures. There is no signed-out state here: the shell's access gate shows Connect to continue in place of every in-app route (Admin/Shell/AdminAccessStateRenderer).",
       },
     },
   },
@@ -263,24 +213,6 @@ function submitWorkDecorators({
     withAdminIdentity,
     withSeededQueryClient(seeds),
     withRouter([submitWorkPath(garden)]),
-    withCanvasFrame({
-      className: "p-0",
-      heightClassName: "h-[760px]",
-      workspace: "hub",
-    }),
-  ];
-}
-
-function disconnectedDecorators() {
-  return [
-    withWagmi,
-    (Story: ComponentType) => (
-      <StoryAuthProvider state={disconnectedAuthState}>
-        <Story />
-      </StoryAuthProvider>
-    ),
-    withSeededQueryClient(submitWorkSeeds()),
-    withRouter([submitWorkPath()]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -500,13 +432,18 @@ export const NoPermission: Story = {
   },
 };
 
-export const Unauthenticated: Story = {
+// A link that names a garden this steward cannot open. The shell does not guess
+// another garden for a link that names one, so the flow says it cannot find it
+// and offers no way to submit. A signed-out viewer never gets this far: the
+// shell's access gate shows its connect state in place of every in-app route
+// (Admin/Shell/AdminAccessStateRenderer, Connect Required).
+export const GardenNotFound: Story = {
+  tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
-  decorators: disconnectedDecorators(),
+  decorators: submitWorkDecorators({ garden: STORYBOOK_UNLISTED_GARDEN }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByText("Please connect your wallet to submit work")
-    ).toBeVisible();
+    await expect(await canvas.findByText("Garden not found")).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
   },
 };
