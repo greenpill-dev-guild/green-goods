@@ -7,6 +7,7 @@
  * Esc/X/scrim close — this is the regression test for the fixed behavior.
  */
 
+import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -281,7 +282,7 @@ function renderSubmitWork(actions: Action[] = []) {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions);
   queryClient.setQueryData(
-    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(normalizeAddress(OPERATOR), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -313,7 +314,7 @@ function renderSubmitWorkTree() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(
-    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(normalizeAddress(OPERATOR), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(

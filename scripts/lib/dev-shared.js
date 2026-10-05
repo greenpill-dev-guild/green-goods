@@ -629,6 +629,66 @@ export function fixtureGitEnvironment(environment = process.env) {
   };
 }
 
+/** Inspect Git's effective pre-push chain per checkout without running or repairing hooks. */
+export function inspectWorktreeHooks({ cwd = process.cwd(), env = process.env, run = spawnSync } = {}) {
+  const git = (root, args) => run("git", args, {
+    cwd: root, encoding: "utf8", timeout: 5000,
+    env: clearRepositoryLocalGitVariables({ ...env }),
+  });
+  const inventory = git(cwd, ["worktree", "list", "--porcelain", "-z"]);
+  if (inventory.error || inventory.status !== 0 || !String(inventory.stdout ?? "").trim()) {
+    return [{ check: "worktree-hooks", state: "git-error", level: "warn",
+      title: "Worktree hook inventory unavailable", detail: "Git could not list registered worktrees.",
+      fix: "Inspect git worktree list from the owning checkout; no repair was attempted." }];
+  }
+  const worktrees = String(inventory.stdout).split("\0\0").filter(Boolean).map((block) => {
+    const fields = block.split("\0");
+    return { checkout: fields.find((field) => field.startsWith("worktree "))?.slice(9),
+      bare: fields.includes("bare") };
+  });
+  return worktrees.map(({ checkout, bare }) => {
+    const row = { check: "worktree-hooks", checkout, level: "warn", state: "inactive",
+      title: `Pre-push hook: ${checkout}`, detail: "Checkout is absent or bare; no hook was inspected.",
+      fix: "Ask the checkout owner to review its registration. Doctor never removes or retargets worktrees." };
+    if (!checkout || bare || !existsSync(path.join(checkout, ".git"))) return row;
+    const resolved = git(checkout, ["rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-push"]);
+    if (resolved.error || resolved.status !== 0) return { ...row, state: "git-error", detail: "Git could not resolve the effective pre-push path." };
+    const hookPath = String(resolved.stdout).trim();
+    row.hookPath = hookPath;
+    row.fix = "Review this checkout's package.json prepare command and setup instructions with its owner. Run bun run prepare there only after selecting that repair; no install or Git config change was made.";
+    const readable = (file) => {
+      try { accessSync(file, constants.R_OK); return statSync(file).isFile(); } catch { return false; }
+    };
+    if (!readable(hookPath)) return { ...row, state: "missing-dispatcher", detail: `Missing or unreadable dispatcher: ${hookPath}` };
+    try { accessSync(hookPath, constants.X_OK); } catch {
+      return { ...row, state: "nonexecutable-dispatcher", detail: `Git cannot execute ${hookPath}` };
+    }
+    const dispatcher = readFileSync(hookPath, "utf8");
+    let target = hookPath;
+    if (path.basename(path.dirname(hookPath)) === "_" && dispatcher.includes('. "$(dirname "$0")/h"')) {
+      const helper = path.join(path.dirname(hookPath), "h");
+      if (!readable(helper)) return { ...row, state: "missing-helper", detail: `Missing Husky helper: ${helper}` };
+      const helperBody = readFileSync(helper, "utf8");
+      if (!helperBody.includes('s=$(dirname "$(dirname "$0")")/$n') || !helperBody.includes('sh -e "$s" "$@"')) {
+        return { ...row, state: "unverified-hook", detail: `Custom Husky helper at ${helper}; its dispatch chain needs owner review.` };
+      }
+      target = path.join(path.dirname(path.dirname(hookPath)), "pre-push");
+      if (!readable(target)) return { ...row, state: "missing-target", detail: `Husky silently skips this missing target: ${target}` };
+    }
+    const body = readFileSync(target, "utf8");
+    if (!body.includes("node scripts/dev/node-cli.js scripts/dev/ci-local.js")) {
+      return { ...row, state: "unverified-hook", detail: `Custom or older hook at ${target}; its dispatch chain needs owner review.` };
+    }
+    // Even an absolute dispatcher runs its target with the pushed checkout as cwd.
+    const missing = ["scripts/dev/node-cli.js", "scripts/dev/ci-local.js"]
+      .map((file) => path.join(checkout, file)).filter((file) => !readable(file));
+    if (missing.length) return { ...row, state: "missing-tooling", detail: `This branch lacks gate tooling: ${missing.join(", ")}` };
+    if (env.HUSKY === "0") return { ...row, state: "disabled", detail: "HUSKY=0 disables dispatch in this environment." };
+    return { ...row, state: "available", level: "pass", targetPath: target, fix: "",
+      detail: `Files available: ${hookPath} → ${target}. Static inspection does not prove execution, user init behavior, or agent harness loading.` };
+  });
+}
+
 const SHARED_GIT_SETTINGS = "^(user\\.(name|email)|core\\.(bare|worktree)|commit\\.gpgsign)$";
 
 /**

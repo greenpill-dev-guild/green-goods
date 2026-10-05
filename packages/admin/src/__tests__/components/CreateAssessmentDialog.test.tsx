@@ -3,6 +3,7 @@
  * @vitest-environment jsdom
  */
 
+import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { del as idbDel, get as idbGet } from "idb-keyval";
@@ -171,7 +172,7 @@ function renderCreateAssessment() {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
-    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(normalizeAddress(OPERATOR), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(

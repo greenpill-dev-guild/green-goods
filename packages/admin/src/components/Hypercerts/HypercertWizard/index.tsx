@@ -11,6 +11,7 @@ import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
@@ -108,7 +109,7 @@ export function HypercertWizard({
         <HypercertPreview
           metadata={wizard.previewMetadata}
           gardenName={gardenName}
-          gardenId={gardenId}
+          gardenId={isAddress(gardenId) ? gardenId : undefined}
           attestationCount={wizard.selectedAttestations.length}
           totalUnits={TOTAL_UNITS}
           allowlist={wizard.allowlist}

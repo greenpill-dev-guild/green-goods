@@ -291,11 +291,11 @@ export function AddMembersDialog({
       />
     );
   } else if (shouldResolveEns) {
-    entryStatus = resolvedEnsAddress ? (
+    entryStatus = typedResolvedAddress ? (
       <FormattedMessage
         id="admin.addMember.ensResolved"
         defaultMessage="Resolves to {address}"
-        values={{ address: <EnsAddressText address={resolvedEnsAddress} /> }}
+        values={{ address: <EnsAddressText address={typedResolvedAddress} /> }}
       />
     ) : (
       formatMessage({

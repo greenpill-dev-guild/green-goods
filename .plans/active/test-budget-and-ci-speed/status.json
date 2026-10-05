@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-09-30T04:03:28.556Z"
+    "updated_at": "2026-10-05T06:59:39.103Z"
   },
   "links": {
     "brief": "brief.md",
@@ -44,7 +44,12 @@
     "User authorized remaining local work on September 26–27. Publication, branch changes and Linear writes remain outside scope. Named layout guards and the batch-approval cache fixture are retained after inspection; isolate:false remains deferred.",
     "2026-09-28 velocity follow-through (D1-D5): slices 0-13 committed locally on develop from d7cf681ec; evidence in reports/2026-09-28-velocity-follow-through.md; Astra's review handoff in handoffs/astra-review.md. Push, current-head CI, Linear sync and publication belong to the closeout pass.",
     "2026-09-28 Astra review (reports/2026-09-28-astra-review.md): REQUEST_CHANGES with five Must-Fix and one Should-Fix, all fixed in fourteen commits after 01ba4e2cd together with Afo's D6-D8 call-out decisions; see reports/2026-09-28-astra-review-resolution.md. The closeout pass pushes to origin/develop and records current-head CI for steps 3 and 5.",
-    "2026-09-29 post-release plan (D14): Afo reviewed scorecard v22 at 22592595d and chose to record the remaining work here and start it after the 2.0.0 release. Ten rows in plan.todo.md § After the release, evidence in reports/2026-09-29-post-release-plan.md; snapshot 09 on 2026-10-05 goes first. The restart, the worktree removal and the setup-debt row are Afo's calls; Dependabot #948 needs dependency approval; the Linear sync needs authorization."
+    "2026-09-29 post-release plan (D14): Afo reviewed scorecard v22 at 22592595d and chose to record the remaining work here and start it after the 2.0.0 release. Ten rows in plan.todo.md § After the release, evidence in reports/2026-09-29-post-release-plan.md; snapshot 09 on 2026-10-05 goes first. The restart, the worktree removal and the setup-debt row are Afo's calls; Dependabot #948 needs dependency approval; the Linear sync needs authorization.",
+    "2026-10-04 requested Software Factory comparison and proposal complete: reports/2026-10-04-software-factory-comparison.md reconciles Codex/Astra and Fable evidence; plan.todo.md contains SF01–SF13 with acceptance criteria in eval.md. All SF slices remain unselected; recommend SF01–SF04 first. D14 and existing lane states are unchanged. This request authorizes planning only.",
+    "2026-10-04 first-batch authorization selects SF01–SF04 now, superseding D14 timing only for these slices. All four are implemented locally. SF01/SF02/SF04 meet local acceptance; SF03 stays open because final focused and full Admin readiness checks fail, with failures also reproduced using the original startup/RPC mock. Client 20 passed with four existing skips; tooling 360/360 and fixture invocation 194/194. Working-copy evidence only: handoffs/software-factory-batch-1.md. No commit, push, PR, dependency, runtime application repair, or Linear write.",
+    "2026-10-04 next-batch authorization selects SF10–SF11 now. SF10 local diagnostics and disposable Git/Husky dispatch implemented; live agent hook-loading pilot remains with architecture hub. SF11 Client guard passes in its actual graph, correcting the original external-probe conclusion; Admin widening traced to Safe legacy ABIType registration. Direct abitype@1.2.3 dependency and seven exposed caller repairs await explicit approval. Manifests/lockfile/runtime callers remain unchanged. See handoffs/software-factory-batch-2.md; no commit, branch change, push, external write or worktree repair.",
+    "2026-10-04 third-batch authorization approved dependencies and continuation. SF11 local acceptance now passes: exact Admin abitype@1.2.3 dependency, one owning registration, both real-project negative probes and seven safe caller boundaries. SF09 reporting checkpoint passes 49/49 direct tests and the full selected 15-check QA plan. Final fixture/type/quality checks pass after removing an unnecessary Shared export. SF03 remains open (latest isolated Admin browser run: one pass, one readiness failure); SF10 live hook-loading stays with architecture hub. Optional PR-text export deferred. Evidence: handoffs/software-factory-batch-3.md; no commit, branch change, publication or external write.",
+    "2026-10-04 fourth batch: SF03 local Admin qualification passes 12 cases with one declared fork-only skip and zero retries after aligning the smoke RPC mock with its indexer garden. The earlier hydration-loader timeout did not reproduce; no runtime fix claimed. SF10 actual Codex session/pre-edit/post-edit context observed and recorded in the architecture hub; Claude Desktop Code remains pending. One ordinary bug-fix pilot category recorded. No dependency/runtime/hook/CI change this batch, no publication or external writes. See handoffs/software-factory-batch-4.md."
   ],
   "lanes": {
     "ui": {
@@ -78,14 +83,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
-          "evidence": "Image-compression exact-file parity before config edit: 31/32 passed, floor missing. /private/tmp/green-goods-image-compression-floor-red.log"
+          "command": "node --test --test-name-pattern='qualified browser|exploration accepts' scripts/dev/command-runners.test.mjs",
+          "evidence": "Two focused failures before qualification/seed guards; report and selector controls also failed before implementation. See software-factory-batch-5 handoff."
         },
         "green": {
-          "command": "node scripts/dev/node-cli.js node --test scripts/quality/workflow-performance-parity.test.mjs",
-          "evidence": "After measured image-compression floor: 32/32 passed; fixed-source full Shared coverage 499 files/5326 tests passed. /private/tmp/green-goods-image-compression-floor-green.log and /private/tmp/green-goods-image-compression-full-coverage-08f.log"
+          "command": "node --test scripts/quality/select-validation.test.mjs scripts/dev/command-runners.test.mjs",
+          "evidence": "115/115 on final source; full selected QA 7/7, tooling 378/378, fixtures 333/333, four browser scenarios zero retries/skips. Final profile/metadata refresh and dirty-source identity are in software-factory-batch-5."
         },
-        "note": "Historical tooling RED/GREEN retained. The September 27 slice preserves runtime behavior; mechanical-refactor proof, adapter conformance and a caught/restored revision fault are in Snapshot 06. Client whole-suite timeouts remain an explicit validation blocker."
+        "note": ""
       },
       "skill_tags": ["planning", "testing", "tooling"],
       "manual_blocked": false
@@ -492,6 +497,102 @@
       "status": "in_progress",
       "branch": null,
       "note": "D14: Afo reviewed scorecard v22 at 22592595d and chose to record the post-release plan here and start it after the 2.0.0 release. Ten rows in plan.todo.md § After the release, evidence in reports/2026-09-29-post-release-plan.md; snapshot 09 (2026-10-05) first. The restart, the worktree removal and the setup-debt row are Afo's; Dependabot #948 needs dependency approval; the Linear sync needs authorization."
+    },
+    {
+      "timestamp": "2026-10-04T23:40:01.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_proposed",
+      "branch": null,
+      "note": "Compared the user-supplied Fable audit with Codex/Astra findings, rechecked disagreements, and recorded the comprehensive report and SF01–SF13 proposal. All implementation remains unselected; D14, lane states, architecture-pilot ownership, and authorization boundaries are preserved."
+    },
+    {
+      "timestamp": "2026-10-05T00:41:35.639Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-05T00:49:58.639Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "SF01/SF02/SF04 locally accepted. SF03 code implemented; final Admin qualification remains open (full: four pass/four fail/one declared skip/four not run; focused: 0/2). Original-source Admin control also fails two readiness cases. Client 20 pass/four existing skips, tooling 360/360, fixture invocation 194/194. See software-factory-batch-1 handoff. No publication."
+    },
+    {
+      "timestamp": "2026-10-05T01:49:29.601Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-05T01:50:26.137Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Second batch SF10/SF11: local hook diagnostics and disposable dispatch proof pass; Client Address guard and 1528/1528 Client tests pass. Live agent hook-loading pilot remains pending; Admin widening traced, dependency and seven caller repairs await explicit approval. SF03 qualification remains open. No publication or external writes."
+    },
+    {
+      "timestamp": "2026-10-05T04:47:52.011Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-05T04:47:57.991Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Third batch locally accepted: explicit dependency approval used for exact Admin abitype@1.2.3, registration and caller/fixture repair; SF09 reporting passed. All 15 selected QA checks and final fixture/type/quality checks pass. SF03 Admin route readiness remains open; SF10 live harness pilot stays with architecture hub. No publication or external writes."
+    },
+    {
+      "timestamp": "2026-10-05T05:10:41.973Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-05T05:10:43.458Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Fourth batch: SF03 locally qualifies after Admin smoke indexer/RPC garden alignment; full Admin browser 12 pass, one declared skip, zero retries. Earlier loader timeout did not reproduce and is not claimed fixed. SF10 actual Codex context/edit events observed; Claude Desktop Code remains pending with architecture pilot. No runtime/config/dependency change or publication."
+    },
+    {
+      "timestamp": "2026-10-05T06:49:21.470Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Remaining Software Factory local implementation selected and implemented: qualified passkey rejection, production offline preview, seeded read/recovery, selector/CI wiring and owner-local proof guards. Final selected QA is running. Actual Claude Desktop and ordinary-task/routine observations remain external evidence obligations."
+    },
+    {
+      "timestamp": "2026-10-05T06:59:34.788Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-05T06:59:39.104Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "SF05-SF08 and SF12 locally accepted with full selected QA 7/7 and closing 115/115 tooling, 333/333 fixtures. CI wiring and browser proof guards complete locally. SF10 actual Claude Desktop observation and SF13 ordinary-task/routine outcomes remain pending; unrelated incomplete hub blocks global Plan Hub validation. No publication or current-head CI claim."
     }
   ]
 }

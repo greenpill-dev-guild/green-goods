@@ -33,7 +33,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
-  useUser: (() => ({ primaryAddress: VIEWER })) as UserModule["useUser"],
+  useUser: () =>
+    ({ primaryAddress: VIEWER }) satisfies Pick<
+      ReturnType<UserModule["useUser"]>,
+      "primaryAddress"
+    >,
 }));
 
 vi.mock(

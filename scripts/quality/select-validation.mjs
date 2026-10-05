@@ -2,7 +2,8 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -1270,10 +1271,22 @@ export function detectCliToolchain(options = {}) {
   };
 }
 
+export function inspectPlaywrightChromium(cwd = projectRoot) {
+  try {
+    const require = createRequire(resolve(cwd, 'package.json'));
+    const executable = require('@playwright/test').chromium.executablePath();
+    const stat = statSync(executable);
+    return { available: stat.isFile(), fingerprint: `${require('@playwright/test/package.json').version}:${stat.size}:${stat.mtimeMs}` };
+  } catch {
+    return { available: false, fingerprint: null };
+  }
+}
+
 export function detectCliCapabilities(options = {}) {
   const inspect = options.inspectPinnedSubmodules ?? inspectPinnedSubmodules;
   return {
     contractSubmodules: inspect({ cwd: options.cwd ?? projectRoot }).ready,
+    playwrightChromium: inspectPlaywrightChromium(options.cwd).available,
   };
 }
 

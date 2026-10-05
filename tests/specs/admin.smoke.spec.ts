@@ -152,7 +152,7 @@ async function mockAdminCockpitBackend(page: Page) {
     });
   });
 
-  await mockSepoliaRpc(page);
+  await mockSepoliaRpc(page, { garden: MOCK_GARDENS[0] });
 }
 
 async function setupMockSteward(page: Page) {

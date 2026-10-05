@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { isAddress } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
@@ -75,9 +76,13 @@ export function useGardenDetailData(id: string | undefined) {
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
   const isOwner = garden ? gardenPermissions.isOwnerOfGarden(garden) : false;
 
-  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
-    enabled: Boolean(id),
-  });
+  const vaultGardenAddress = id && isAddress(id) ? id : undefined;
+  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(
+    vaultGardenAddress,
+    {
+      enabled: Boolean(vaultGardenAddress),
+    }
+  );
   // Steward alerts read the jars' claim limits; stewards are the only ones shown alerts.
   const { jars: cookieJars, hasNoJar: hasNoPayoutJar } = useGardenCookieJars(id, {
     enabled: Boolean(id) && canManage,

@@ -12,6 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createConnection } from "node:net";
+import { availableParallelism, loadavg } from "node:os";
 import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -25,9 +26,10 @@ import {
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
 } from "../lib/dev-shared.js";
-import { LOCAL_GATE_VARIABLE } from "./test-lease.mjs";
+import { LOCAL_GATE_VARIABLE, TEST_LEASE_TIMEOUT_EXIT_CODE } from "./test-lease.mjs";
 import {
   buildReceiptInputs,
+  inspectPlaywrightChromium,
   fingerprintReceiptInputs,
   isAdvisoryManualCheck,
   resolveGitInputs,
@@ -359,6 +361,7 @@ export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "arbitrumFork") {
     return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
+  if (capability === "playwrightChromium") return "Install the pinned Chromium runtime with bun x playwright install chromium; then retry the selected browser check.";
   if (capability === "contractSubmodules") {
     if (contractSubmoduleState === "modified") {
       return "Inspect and preserve, commit, stash, or discard the local changes in the contract submodules; validation will not reset them.";
@@ -384,6 +387,7 @@ async function detectEnvironment(options) {
     "node_modules/typescript/package.json",
     "node_modules/vitest/package.json",
   ].every((path) => existsSync(resolve(projectRoot, path)));
+  const playwright = inspectPlaywrightChromium();
   const bunVersion = await commandOutput("bun");
   const foundryOutput = await commandOutput("forge");
   const foundryVersion = foundryOutput?.match(/\d+\.\d+\.\d+/)?.[0] ?? null;
@@ -393,6 +397,7 @@ async function detectEnvironment(options) {
     contractSubmoduleState: contractSubmodules.state,
     toolchain: {
       node: process.version.replace(/^v/, ""),
+      ...(playwright.fingerprint ? { playwright: playwright.fingerprint } : {}),
       ...(bunVersion ? { bun: bunVersion } : {}),
       ...(foundryVersion ? { foundry: foundryVersion } : {}),
     },
@@ -405,6 +410,7 @@ async function detectEnvironment(options) {
       arbitrumFork: await arbitrumForkAvailable(),
       authenticatedBrave: false,
       browser: false,
+      playwrightChromium: playwright.available,
       ...options.capabilities,
     },
   };
@@ -790,7 +796,7 @@ export async function executePlan(plan, options = {}) {
     : null;
   const finish = (result) => {
     if (deadlineTimer) clearTimeout(deadlineTimer);
-    return result;
+    return { pendingManual, ignoredAttestations, ...result };
   };
 
   // The selector owns receipt policy; a plan that does not allow reuse runs every check fresh.
@@ -898,7 +904,10 @@ export async function executePlan(plan, options = {}) {
     // machine-wide test lease in package-commands.mjs sizes their workers.
     options.onCheckStart?.(check);
     const result = await runCheck(check, { signal, environment });
-    const evidence = { id: check.id, ...result, receiptInputs };
+    // These package wrappers reserve EX_TEMPFAIL for a lease wait that expires before tests run.
+    const leaseTimedOut = !result.ok && !result.cancelled && result.exitCode === TEST_LEASE_TIMEOUT_EXIT_CODE &&
+      ["shared-test", "client-test", "admin-test", "agent-test", "indexer-test"].includes(check.id);
+    const evidence = { id: check.id, ...result, ...(leaseTimedOut ? { blocked: true } : {}), receiptInputs };
     results.push(evidence);
     options.onCheckComplete?.(check, evidence);
 
@@ -909,6 +918,12 @@ export async function executePlan(plan, options = {}) {
           : { status: "cancelled", exitCode: 130, results, blocked },
       );
     }
+    if (leaseTimedOut) {
+      blocked.push({ id: check.id, blockedBy: ["test-lease"] });
+      if (failFast) return finish({ status: "blocked", exitCode: 2, results, blocked });
+      index += 1;
+      continue;
+    }
     if (!result.ok && failFast) {
       return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
     }
@@ -916,13 +931,57 @@ export async function executePlan(plan, options = {}) {
     index += 1;
   }
 
-  if (results.some((result) => !result.ok)) {
+  if (results.some((result) => !result.ok && !result.blocked)) {
     return finish({ status: "failed", exitCode: 1, results, blocked });
   }
   if (blocked.length > 0 || plan.status === "blocked") {
     return finish({ status: "blocked", exitCode: 2, results, blocked, ignoredAttestations });
   }
   return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
+}
+
+/** Summarize observed evidence only; never copy subprocess logs, environment or attestation text. */
+export function summarizeExecution(plan, execution, { loadAverage = loadavg(), cpuCount = availableParallelism() } = {}) {
+  const results = execution.results ?? [];
+  const blocked = (execution.blocked ?? []).map(({ id, blockedBy }) => ({ id, blockedBy: [...blockedBy] }));
+  const leaseTimedOut = blocked.some((entry) => entry.blockedBy.includes("test-lease"));
+  const firstFailure = results.find((result) => !result.ok && !result.cancelled && !result.blocked);
+  const pendingManual = plan.checks.filter((check) => check.manual &&
+    !results.some((result) => result.id === check.id && result.ok)).map((check) => check.id);
+  const accounted = new Set([...results, ...blocked].map((entry) => entry.id).concat(pendingManual));
+  const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
+  const replan = ["node scripts/dev/ci-local.js --plan --intent", quote(plan.effectiveIntent)];
+  if (plan.base) replan.push("--base", quote(plan.base));
+  if (plan.head) replan.push("--head", quote(plan.head));
+  if (plan.risk) replan.push("--risk", quote(plan.risk));
+  if (plan.changedPaths?.length) replan.push("--changed", quote(plan.changedPaths.join(",")));
+  for (const [surface, paths] of Object.entries(plan.testPaths ?? {})) {
+    for (const path of paths) replan.push("--test-path", quote(`${surface}:${path}`));
+  }
+  for (const check of plan.checks) replan.push("--only", quote(check.id));
+  const category = execution.status === "failed" ? "check-failed"
+    : execution.status === "blocked" ? (leaseTimedOut ? "lease-timeout" : "capability-blocked")
+      : execution.status;
+  const load = loadAverage.slice(0, 3).map((value) => Number.isFinite(value) && value >= 0 ? value : null);
+  const processors = Number.isInteger(cpuCount) && cpuCount > 0 ? cpuCount : null;
+  return {
+    category,
+    scope: { intent: plan.effectiveIntent, head: plan.head, workingCopyFingerprint: plan.workingCopyFingerprint,
+      profile: plan.environment?.profile, changedPaths: [...(plan.changedPaths ?? [])],
+      testPaths: structuredClone(plan.testPaths ?? {}), selectedChecks: plan.checks.map((check) => check.id) },
+    passed: results.filter((result) => result.ok && !result.reused && !result.attested).map((result) => result.id),
+    reused: results.filter((result) => result.reused).map((result) => result.id),
+    attested: results.filter((result) => result.attested).map((result) => result.id),
+    firstFailure: firstFailure ? { id: firstFailure.id, exitCode: firstFailure.exitCode } : null,
+    interrupted: results.filter((result) => result.cancelled).map((result) => result.id),
+    blocked, pendingManual,
+    notRun: plan.checks.filter((check) => !accounted.has(check.id)).map((check) => check.id),
+    skipped: (plan.skipped ?? []).map((check) => check.id),
+    context: { loadAverage: load, cpuCount: processors,
+      contentionSuspected: processors !== null && load[0] !== null && load[0] > processors,
+      testLease: leaseTimedOut ? "timed-out" : "not-reported" },
+    nextCommand: ["passed", "cancelled"].includes(execution.status) ? null : replan.join(" "),
+  };
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -1133,6 +1192,15 @@ async function main() {
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }
+  const summary = summarizeExecution(plan, execution);
+  console.log(`Outcome: ${summary.category}; ${summary.passed.length} fresh passes, ${summary.reused.length} reused, ${summary.notRun.length} unrun of ${summary.scope.selectedChecks.length} selected checks (${summary.scope.intent}).`);
+  if (summary.firstFailure) console.log(`First failure: ${summary.firstFailure.id} (exit ${summary.firstFailure.exitCode}); its original output is above.`);
+  for (const key of ["interrupted", "notRun", "skipped", "pendingManual"]) {
+    if (summary[key].length) console.log(`  ${key}: ${summary[key].join(", ")}`);
+  }
+  if (summary.context.testLease === "timed-out") console.log("Test lease expired before the suite ran. Wait for the active suite to finish; no retry was started.");
+  if (summary.context.contentionSuspected) console.log(`Host load ${summary.context.loadAverage.join("/")} on ${summary.context.cpuCount} CPUs suggests contention; it does not explain or waive a failure.`);
+  if (summary.nextCommand) console.log(`Review the original failure or blocker, then inspect the same selected scope: ${summary.nextCommand}`);
   // A leaking fixture passes its own test, so only the config it wrote to can report it.
   const leaked = reportGitFixtureLeak(
     findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),
