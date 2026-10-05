@@ -34,7 +34,7 @@ export function PublicGardenCard({
     label: formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count} gardeners",
+        defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
       },
       { count: garden.contributorCount }
     ),
@@ -43,7 +43,7 @@ export function PublicGardenCard({
     label: formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count} entries",
+        defaultMessage: "{count, plural, one {# entry} other {# entries}}",
       },
       { count: garden.actionCount }
     ),

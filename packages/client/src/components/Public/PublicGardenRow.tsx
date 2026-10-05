@@ -1,4 +1,4 @@
-import { formatRelativeTime } from "@green-goods/shared/utils/relativeTime";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -51,19 +51,20 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
  */
 export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
+  const formatAge = useLocalizedRelativeTime();
   const gardenerCount = aggregateGardenerCount(garden);
   const meta: string[] = [
     formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count} gardeners",
+        defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
       },
       { count: gardenerCount }
     ),
     formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count} entries",
+        defaultMessage: "{count, plural, one {# entry} other {# entries}}",
       },
       { count: garden.actionCount }
     ),
@@ -75,7 +76,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           id: "public.gardens.lastActive",
           defaultMessage: "Active {when}",
         },
-        { when: formatRelativeTime(garden.lastActivityAt) }
+        { when: formatAge(garden.lastActivityAt) }
       )
     );
   }
