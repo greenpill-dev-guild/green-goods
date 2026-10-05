@@ -34,13 +34,15 @@ violated half of these. Validators check structure; this contract is what "desig
   a section-header trailing act, a right-rail quick-actions card, or a row's one trailing act.
   Never in the view header.
 - **Below 1024px the same view action set rides the FabButton speed dial**, primary nearest the
-  trigger ([useViewActions.ts:71](../../../packages/shared/src/hooks/admin-ui/useViewActions.ts) —
+  trigger ([useViewActions.ts](../../../packages/shared/src/components/Canvas/useViewActions.ts) —
   "mirroring the desktop row's primary-rightmost emphasis"). One action set, two presentations.
-- **The FAB shows its primary action's icon.** A multi-action FAB wears the primary's glyph, so it
-  never promises a create its dial does not hold, and swaps to a close icon while the dial is open
-  (DL-050). The Hub's FAB still shows "+", Submit Work's own icon. Proof:
+- **The FAB always shows a plus.** Closed, every FAB shows "+" in the workspace tone it already
+  wears, whether it fires one act or opens a dial: the tone says which tab this is, so the glyph
+  stays one landmark across all of them. A dial swaps the plus for a close icon while open, and
+  its rows say what each act does, each with its own icon and label (DL-078, which replaces
+  DL-050's primary-action icon). Proof:
   [FabButton.tsx](../../../packages/admin/src/components/Shell/FabButton.tsx) — `FabIcon` is
-  `config.icon` unless the dial is open.
+  `RiAddLine` unless a dial is open. (NN/g consistency and standards.)
 
 ## 2. Dialog taxonomy and continuity
 

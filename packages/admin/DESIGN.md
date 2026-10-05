@@ -164,7 +164,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
-- **FAB** (`Shell/FabButton`): Per-workspace primary action — a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Integrated into NavigationBar via FabProvider.
+- **FAB** (`Shell/FabButton`): Per-workspace primary action — a capsule at both sizes (`rounded-full`): 48px circle in the dock, 56px extended capsule with label when floating on mobile (DL-010; capsule = the 9999 step of the admin radius set). Closed, it shows a plus in every workspace, in the workspace tone, whether it fires one act or opens a speed dial; a dial shows a close icon while open, and its rows name each act beside the act's own icon (DL-078). Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
 - **Controlled Chrome**: only the NavigationBar/FAB dock is translucent — flat `rgb(var(--admin-surface-0) / 0.85)`, 12px blur, warm ambient shadow, 1px ink ring (every dialog surface and the account side sheet are solid M3). The AppBar root and MainSheet are transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 

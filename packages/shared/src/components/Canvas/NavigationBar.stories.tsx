@@ -1,5 +1,4 @@
 import {
-  RiAddLine,
   RiClipboardLine,
   RiFlashlightLine,
   RiLeafLine,
@@ -49,8 +48,6 @@ const actionsSlot: ToolbarSlot = {
 const primarySlots: ToolbarSlot[] = [workSlot, gardenSlot, communitySlot, actionsSlot];
 
 const submitWorkFab = {
-  icon: RiAddLine,
-  label: "Create",
   actions: [
     {
       id: "submit-work",
@@ -66,8 +63,6 @@ const submitWorkFab = {
 // dial. The primary action lives only inside the dial (never duplicated on the
 // collapsed button).
 const speedDialFab = {
-  icon: RiAddLine,
-  label: "Create",
   actions: [
     {
       id: "submit-work",
@@ -209,7 +204,7 @@ export const MobileSpeedDial: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // The collapsed FAB shows the primary action's icon but never its label
+    // The collapsed FAB shows a plus and never the primary action's label
     // (the bug: "Submit Work" showed on the button AND in the dial).
     const opener = canvas.getByRole("button", { name: /open actions/i });
     await expect(opener).toHaveAttribute("aria-haspopup", "menu");
