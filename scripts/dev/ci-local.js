@@ -955,7 +955,7 @@ export function summarizeExecution(plan, execution, { loadAverage = loadavg(), c
   for (const [surface, paths] of Object.entries(plan.testPaths ?? {})) {
     for (const path of paths) replan.push("--test-path", quote(`${surface}:${path}`));
   }
-  if (plan.checks.length) replan.push("--only", quote(plan.checks.map((check) => check.id).join(",")));
+  for (const check of plan.checks) replan.push("--only", quote(check.id));
   const category = execution.status === "failed" ? "check-failed"
     : execution.status === "blocked" ? (leaseTimedOut ? "lease-timeout" : "capability-blocked")
       : execution.status;

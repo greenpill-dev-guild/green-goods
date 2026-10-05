@@ -204,7 +204,7 @@ test("summary preserves first failure, exact focused scope, skips and unrun chec
   assert.equal(summary.passed.length, 1);
   assert.match(summary.nextCommand, /--plan --intent 'checkpoint'/);
   assert.match(summary.nextCommand, /--test-path 'shared:src\/a test.ts'/);
-  assert.match(summary.nextCommand, /--only 'first,second,third'/);
+  assert.match(summary.nextCommand, /--only 'first' --only 'second' --only 'third'/);
   assert.doesNotMatch(JSON.stringify(summary), /private-token/);
 });
 
