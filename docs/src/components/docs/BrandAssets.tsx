@@ -12,12 +12,14 @@ const colors = [
   {id: 'black', label: 'Black', note: 'Monochrome'},
 ] as const;
 
+/** Look up a required inventory entry; missing files fail the page build. */
 function asset(file: string) {
   const found = files.find((item) => item.file === file);
   if (!found) throw new Error(`Brand kit asset is missing: ${file}`);
   return found;
 }
 
+/** Select SVG and common PNG sizes for one color/framing; ZIPs retain other sizes. */
 function colorFiles(color: string, layout: string) {
   return files.filter((file) =>
     file.file.startsWith(`primary/${color}/${layout}/`) &&
@@ -25,6 +27,7 @@ function colorFiles(color: string, layout: string) {
   );
 }
 
+/** Resolve a named ZIP from the inventory and respect the docs deployment base URL. */
 function BundleLink({name, label}: {name: BundleName; label: string}) {
   const baseUrl = useBaseUrl('/');
   const bundle = manifest.bundles.find((item) => item.label === name);
@@ -32,6 +35,7 @@ function BundleLink({name, label}: {name: BundleName; label: string}) {
   return <a href={`${baseUrl}${bundle.url.slice(1)}`} download>{label}</a>;
 }
 
+/** Keep file type and dimensions visible and identify the asset for screen readers. */
 function DownloadLink({file, name, label}: {file: AssetFile; name: string; label?: string}) {
   const baseUrl = useBaseUrl('/');
   const dimensions = file.width ? ` ${file.width} by ${file.height} pixels` : '';
@@ -54,6 +58,10 @@ type PreviewProps = {
   eager?: boolean;
 };
 
+/**
+ * Prefer scalable SVG previews, or PNG references for graphics and templates.
+ * Fall back to available PNGs, show favicons at native sizes, and reject missing previews.
+ */
 function AssetPreview({name, items, dark, favicon, wide, preferPng, eager}: PreviewProps) {
   const baseUrl = useBaseUrl('/');
   const pngs = items.filter((file) => file.format === 'png');
@@ -79,6 +87,7 @@ function AssetPreview({name, items, dark, favicon, wide, preferPng, eager}: Prev
   </a>;
 }
 
+/** Keep each preview beside its downloads; nested symbols use the logo heading hierarchy. */
 function AssetCard({title, description, id, nested, bundle, ...preview}: PreviewProps & {
   title: string;
   description: string;
@@ -100,6 +109,7 @@ function AssetCard({title, description, id, nested, bundle, ...preview}: Preview
   </article>;
 }
 
+/** Compare standard and enlarged square framing with direct downloads for each. */
 function LogoCard({color}: {color: (typeof colors)[number]}) {
   return <article className={styles.card} aria-label={`${color.label} logos`}>
     <div className={styles.cardBody}>
@@ -126,6 +136,7 @@ function LogoCard({color}: {color: (typeof colors)[number]}) {
   </article>;
 }
 
+/** Render the curated catalogue from the versioned inventory, with full-kit access. */
 export default function BrandAssets() {
   const baseUrl = useBaseUrl('/');
   return <div className={styles.assets}>
