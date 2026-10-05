@@ -6458,8 +6458,11 @@
       "role": "steward",
       "tags": ["shell", "responsive"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "steward-cockpit-ux-2026-09-25"
+      "status": "retired",
+      "source": "steward-cockpit-ux-2026-09-25",
+      "retiredOn": "2026-10-04",
+      "retiredReason": "Its result changed: the button no longer borrows its first action's icon. It shows a plus in every workspace, so the gear on Garden and the Add Member icon on Community this case expected no longer appear.",
+      "replacedBy": ["ADM-197"]
     },
     {
       "id": "ADM-186",
@@ -10563,6 +10566,31 @@
       "evidence": "Screenshots of the sheet, the empty wizard, Editing with both drafts and the restored wizard",
       "role": "gardener",
       "tags": ["work-submission", "draft", "my-work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-197",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "The floating action button shows a plus in every workspace",
+      "preconditions": [
+        "Steward session at phone width",
+        "A deployer session for the Actions button, which only a deployer has"
+      ],
+      "steps": [
+        "On Garden, Community, and the Hub read the floating action button",
+        "Open its menu and read the actions, then close it",
+        "On Actions read the button, and as a deployer press it"
+      ],
+      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own colour (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
+      "evidence": "Screenshots of each button closed and one menu open",
+      "role": "steward",
+      "tags": ["shell", "responsive"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-session-2026-10-01"
