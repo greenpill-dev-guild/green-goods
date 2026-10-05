@@ -41,6 +41,7 @@ export function HypercertWizard({
   const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
   const mintFailed = wizard.mintingState.status === "failed";
   const txError = useTxErrorMessages(mintFailed ? wizard.mintingState.error : null);
+  const { preflightError } = wizard;
   // One reading of the mint, so the status row and the footer never disagree.
   // The flow ends on its Review (DL-080): the mint shows there, in place, and
   // a confirmed mint leaves Done.
@@ -48,14 +49,16 @@ export function HypercertWizard({
     phase: flowSendPhase({
       sending: wizard.isSubmitting,
       sent: wizard.mintingState.status === "confirmed",
-      failed: mintFailed,
+      failed: mintFailed || preflightError !== null,
     }),
     stage: wizard.mintingState.status,
-    failure: {
-      tone: txError.view.severity,
-      title: txError.title,
-      description: txError.message,
-    },
+    failure: preflightError
+      ? { tone: "error", title: preflightError.title, description: preflightError.message }
+      : {
+          tone: txError.view.severity,
+          title: txError.title,
+          description: txError.message,
+        },
     formatMessage,
   });
   const { phase } = status;

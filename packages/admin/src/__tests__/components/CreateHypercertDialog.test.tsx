@@ -492,6 +492,49 @@ describe("CreateHypercert dialog", () => {
       expect(router?.state.location.pathname).toBe("/hub/certify/create");
     });
 
+    it("keeps a mint refused before the wallet on the Review with its error and Try Again", async () => {
+      await onReview();
+
+      // No allowlist is set, so the mint is refused before the wallet is asked.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "app.hypercerts.mint.submit" }));
+        await Promise.resolve();
+      });
+
+      const row = document.querySelector('[data-component="FlowStatusRow"]');
+      await waitFor(() => expect(row).toHaveAttribute("data-tone", "error"));
+      expect(row).toHaveTextContent("app.hypercerts.mint.error.generic.title");
+      expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+    });
+
+    it("opens the record as it was minted, even if the wizard's answers change after", async () => {
+      const router = await onReview();
+      await act(async () => {
+        const store = useHypercertWizardStore.getState();
+        store.updateMetadata({ title: "As minted" });
+        store.setMintingState({ status: "confirmed", hypercertId: HYPERCERT_ID });
+        await Promise.resolve();
+      });
+      await screen.findByText("Hypercert minted");
+      await act(async () => {
+        useHypercertWizardStore.getState().updateMetadata({ title: "Changed later" });
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Done" }));
+        await Promise.resolve();
+      });
+
+      await waitFor(() =>
+        expect(router?.state.location.pathname).toBe(`/garden/impact/hypercerts/${HYPERCERT_ID}`)
+      );
+      expect(router?.state.location.state).toMatchObject({
+        optimisticData: { title: "As minted" },
+      });
+    });
+
     it("holds every button while the mint works", async () => {
       await onReview();
 

@@ -23,7 +23,12 @@ export function useCreateHypercertController() {
   // mint confirms (DL-080); Done, or closing, then opens the hypercert's record.
   const [minted, setMinted] = useState<HypercertCompletionData | null>(null);
 
-  const handleComplete = useCallback((data: HypercertCompletionData) => setMinted(data), []);
+  // The first confirmed snapshot is the hypercert as it was minted; a later
+  // rerun of the wizard's effect (a refetch, say) must not replace it.
+  const handleComplete = useCallback(
+    (data: HypercertCompletionData) => setMinted((current) => current ?? data),
+    []
+  );
 
   const openMinted = useCallback(
     (data: HypercertCompletionData) =>

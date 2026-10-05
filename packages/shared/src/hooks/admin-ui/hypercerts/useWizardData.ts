@@ -101,11 +101,18 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   }, [selectedAssessment, updateMetadata]);
 
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
+  // A mint refused before the wallet is asked (IPFS unavailable, an invalid
+  // allowlist, a steward check that failed) never reaches the mint machine, so
+  // the Review reads it from here, in the words the toast used to carry.
+  const [preflightError, setPreflightError] = useState<{ title: string; message: string } | null>(
+    null
+  );
 
   // A failed mint stays on the Review, where Try Again resumes it from its last
   // finished stage. Leaving the Review to change an answer drops that attempt,
   // so the next Mint sends the answers as they then stand.
   const leaveFailedMint = useCallback(() => {
+    setPreflightError(null);
     if (mintingState.status === "failed") cancel();
   }, [cancel, mintingState.status]);
   const previousStep = useCallback(() => {
@@ -197,11 +204,14 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   useEffect(() => {
     if (!selectedAttestationIds.length) return;
+    // Once a mint is under way or done, its own bundle shows up in the list it
+    // is pruned against; pruning then would empty the Review and its record.
+    if (mintingState.status !== "idle" && mintingState.status !== "failed") return;
     const pruned = selectedAttestationIds.filter((id) => !bundledAttestations[id]);
     if (pruned.length !== selectedAttestationIds.length) {
       setSelectedAttestations(pruned);
     }
-  }, [bundledAttestations, selectedAttestationIds, setSelectedAttestations]);
+  }, [bundledAttestations, mintingState.status, selectedAttestationIds, setSelectedAttestations]);
 
   const contributorWeights = useHypercertContributorWeights(selectedAttestations);
 
@@ -323,6 +333,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
       return;
     }
 
+    setPreflightError(null);
     try {
       await mint({
         draft,
@@ -337,11 +348,10 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
         category: categorized.category,
         metadata: categorized.metadata,
       });
-      toastService.error({
+      // The Review's status row says it, with Try Again.
+      setPreflightError({
         title: formatMessage({ id: "app.hypercerts.mint.error.generic.title" }),
         message: formatMessage({ id: getErrorMessageKey(categorized) }),
-        context: "hypercert minting",
-        suppressLogging: true,
       });
     }
   }, [
@@ -447,6 +457,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     cancel,
     retry,
     isSubmitting,
+    preflightError,
     nextDisabled,
     validationMessage,
 
