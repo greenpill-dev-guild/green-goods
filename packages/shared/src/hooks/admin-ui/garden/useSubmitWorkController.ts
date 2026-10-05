@@ -40,7 +40,6 @@ function browserIsOffline() {
 interface UseSubmitWorkControllerOptions {
   auth: SubmitWorkAuthSnapshot;
   localizeAction: (action: Action, intl: Pick<IntlShape, "formatMessage" | "locale">) => Action;
-  onSuccess?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   isOffline?: () => boolean;
@@ -49,7 +48,6 @@ interface UseSubmitWorkControllerOptions {
 export function useSubmitWorkController({
   auth,
   localizeAction,
-  onSuccess,
   onDirtyChange,
   onBusyChange,
   isOffline = browserIsOffline,
@@ -120,12 +118,6 @@ export function useSubmitWorkController({
   const submitIntentRef = useRef(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  const panelDirty = form.formState.isDirty || images.length > 0;
-  useEffect(() => {
-    onDirtyChange?.(panelDirty);
-    return () => onDirtyChange?.(false);
-  }, [onDirtyChange, panelDirty]);
-
   const canSubmit = garden ? canManageGarden(garden) : false;
   const isLoadingData = Boolean(gardensLoading || actionsLoading);
   const mutation = useWorkMutation({
@@ -141,6 +133,9 @@ export function useSubmitWorkController({
         formatMessage({ id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message })
       );
     },
+    // A sent submission stays on its Review, which says so in place (DL-080):
+    // no toast repeats it and nothing closes the flow. Only a queued stand-in,
+    // which the admin never treats as sent, still needs a word here.
     onSuccess: (txHash) => {
       if (typeof txHash === "string" && isOfflineTxHash(txHash)) {
         toastService.error({
@@ -148,11 +143,7 @@ export function useSubmitWorkController({
           message: formatMessage({ id: "app.admin.work.submit.queuedError.message" }),
           context: "admin work submission",
         });
-        return;
       }
-
-      toastService.success({ title: formatMessage({ id: "app.admin.work.submit.success" }) });
-      onSuccess?.();
     },
     onError: (error: unknown) => {
       logger.error("Admin work submission failed", { error });
@@ -161,6 +152,15 @@ export function useSubmitWorkController({
   });
 
   const busy = mutation.isPending || isPreparingMedia;
+  // The send landed as a real transaction. From here the Review is a record of
+  // what went out: nothing in it changes and closing loses nothing.
+  const sent =
+    mutation.isSuccess && typeof mutation.data === "string" && !isOfflineTxHash(mutation.data);
+  const panelDirty = !sent && (form.formState.isDirty || images.length > 0);
+  useEffect(() => {
+    onDirtyChange?.(panelDirty);
+    return () => onDirtyChange?.(false);
+  }, [onDirtyChange, panelDirty]);
   useBeforeUnloadWhilePending(busy);
   useEffect(() => {
     onBusyChange?.(busy);
@@ -238,8 +238,14 @@ export function useSubmitWorkController({
     if (actionId && actionId !== selectedActionId) handleActionChange(actionId);
   };
 
+  // Start a new submission from the done state: nothing chosen, nothing staged.
+  const submitAnother = () => {
+    handleActionChange("");
+    setCurrentStep(1);
+  };
+
   const goBack = () => {
-    if (!busy) setCurrentStep((step) => Math.max(1, step - 1));
+    if (!busy && !sent) setCurrentStep((step) => Math.max(1, step - 1));
   };
   const goNext = async () => {
     if (busy) return;
@@ -267,10 +273,10 @@ export function useSubmitWorkController({
     setCurrentStep((step) => Math.min(SUBMIT_WORK_STEP_IDS.length, step + 1));
   };
   const handleStepJump = (step: number) => {
-    if (!busy && step < currentStep) setCurrentStep(step);
+    if (!busy && !sent && step < currentStep) setCurrentStep(step);
   };
   const goToStep = (step: number) => {
-    if (!busy) setCurrentStep(step);
+    if (!busy && !sent) setCurrentStep(step);
   };
 
   return {
@@ -300,11 +306,11 @@ export function useSubmitWorkController({
     phaseRef,
     progressMessage,
     removeImage,
-    resetMutation: mutation.reset,
     selectDomain: setActionDomain,
     selectedAction,
     selectedActionId,
-    submitValidatedDraft,
+    sent,
+    submitAnother,
     armSubmitIntent: () => {
       submitIntentRef.current = true;
     },

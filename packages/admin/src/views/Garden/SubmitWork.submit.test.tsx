@@ -28,6 +28,8 @@ const {
     actionsLoading: false,
     selectedGarden: null as { id: string; tokenAddress: string; name: string } | null,
     workMutationOptions: null as null | Record<string, unknown>,
+    // How the send reads at the next render: pending, settled, and with what.
+    mutation: {} as Record<string, unknown>,
   },
   mockMutate: vi.fn(),
   mockToastError: vi.fn(),
@@ -113,23 +115,6 @@ vi.mock("@green-goods/shared/components/Canvas/SheetFooter", async () => {
   return {
     SheetFooter: ({ children }: { children: React.ReactNode }) =>
       React.createElement("div", null, children),
-  };
-});
-
-vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-  return {
-    TxInlineFeedback: ({
-      visible,
-      title,
-      message,
-      action,
-    }: {
-      visible: boolean;
-      title: string;
-      message: string;
-      action?: React.ReactNode;
-    }) => (visible ? React.createElement("div", { role: "alert" }, title, message, action) : null),
   };
 });
 
@@ -561,14 +546,18 @@ describe("SubmitWorkPanel submit behavior", () => {
     mockState.actions = [createAction()];
     mockState.actionsLoading = false;
     mockState.workMutationOptions = null;
+    mockState.mutation = {};
     mockUseWorkMutation.mockImplementation((options) => {
       mockState.workMutationOptions = options;
       return {
         mutate: mockMutate,
         isPending: false,
+        isSuccess: false,
         isError: false,
+        data: undefined,
         error: null,
         reset: vi.fn(),
+        ...mockState.mutation,
       };
     });
     heicToMocks.isHeic.mockResolvedValue(false);
@@ -977,11 +966,12 @@ describe("SubmitWorkPanel submit behavior", () => {
   });
 
   it("does not report success when the shared mutation returns an offline queue hash", async () => {
-    const onSuccess = vi.fn();
+    // The mutation settles as a success, but with a queued stand-in for a hash.
+    mockState.mutation = { isSuccess: true, data: "0xoffline_stranded" };
 
     render(
       <TestProviders>
-        <SubmitWorkPanel layout="page" onSuccess={onSuccess} />
+        <SubmitWorkPanel layout="page" />
       </TestProviders>
     );
 
@@ -1000,7 +990,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       })
     );
     expect(mockToastSuccess).not.toHaveBeenCalled();
-    expect(onSuccess).not.toHaveBeenCalled();
+    // Nothing was sent, so the flow does not end on Done.
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
   });
 
   it("blocks offline admin submissions instead of queuing them", async () => {
@@ -1029,16 +1020,19 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  it("maps shared submission progress into the admin footer status", async () => {
+  it("says each stage of the send in the Review's status row", async () => {
+    mockState.actions = [createAction({ required: false, minImageCount: 0 })];
+    const user = userEvent.setup();
+
     render(
       <TestProviders>
         <SubmitWorkPanel layout="page" />
       </TestProviders>
     );
+    await advanceToReview(user);
+    expect(screen.getByText("Submits this work for review")).toBeInTheDocument();
 
-    // Single eligible action auto-selects into the Media step, surfacing the footer.
-    await screen.findByRole("button", { name: "Next" });
-
+    mockState.mutation = { isPending: true };
     act(() => {
       const onProgress = mockState.workMutationOptions?.onProgress as
         | ((stage: string, message: string) => void)
@@ -1046,14 +1040,45 @@ describe("SubmitWorkPanel submit behavior", () => {
       onProgress?.("uploading", "Uploading media to IPFS...");
     });
 
+    expect(screen.getByText("Submitting the work")).toBeInTheDocument();
     expect(screen.getByText("Uploading media...")).toBeInTheDocument();
 
+    mockState.mutation = {};
     act(() => {
       const onSettled = mockState.workMutationOptions?.onSettled as (() => void) | undefined;
       onSettled?.();
     });
 
     expect(screen.queryByText("Uploading media...")).not.toBeInTheDocument();
+  });
+
+  it("says a sent submission in the Review's status row, not in a toast", async () => {
+    mockState.actions = [createAction({ required: false, minImageCount: 0 })];
+    const user = userEvent.setup();
+    // A new element each time: the same one would not render again.
+    const panel = () => (
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    const { rerender } = render(panel());
+    await advanceToReview(user);
+    mockState.mutation = { isSuccess: true, data: `0x${"ab".repeat(32)}` };
+    act(() => {
+      const handleSuccess = mockState.workMutationOptions?.onSuccess as
+        | ((txHash: string) => void)
+        | undefined;
+      handleSuccess?.(`0x${"ab".repeat(32)}`);
+    });
+    rerender(panel());
+
+    expect(screen.getByText("Work submitted successfully")).toBeInTheDocument();
+    expect(mockToastSuccess).not.toHaveBeenCalled();
+    // What was sent is a record now: no section reopens for editing.
+    const edits = screen.getAllByRole("button", { name: /^Edit / });
+    expect(edits.length).toBeGreaterThan(0);
+    for (const edit of edits) expect(edit).toBeDisabled();
   });
 
   it("auto-selects the only eligible action and lands on the Media step", async () => {

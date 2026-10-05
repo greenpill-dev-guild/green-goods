@@ -11,7 +11,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useSyncExternalStore } from "react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
@@ -26,8 +26,56 @@ const OPERATOR = "0x9999999999999999999999999999999999999999";
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const workMutationOverride = vi.hoisted(() => ({
-  current: null as null | (() => unknown),
+  current: null as null | ((options: unknown) => unknown),
 }));
+
+// A work send the test settles by hand: the real one needs a wallet and a chain.
+const workSend = vi.hoisted(() => {
+  type Callbacks = {
+    onSuccess?: (txHash: string) => void;
+    onError?: (error: unknown) => void;
+    onSettled?: () => void;
+  };
+  const idle = {
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    data: undefined as string | undefined,
+    error: null as unknown,
+  };
+  const listeners = new Set<() => void>();
+  let state = idle;
+  let callbacks: Callbacks = {};
+  const set = (next: typeof idle) => {
+    state = next;
+    listeners.forEach((listener) => listener());
+  };
+  return {
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    snapshot: () => state,
+    listen(next: Callbacks) {
+      callbacks = next;
+    },
+    mutate: () => set({ ...idle, isPending: true }),
+    reset: () => set(idle),
+    // The callbacks run before the send reads as settled, as the real mutation runs them.
+    succeed(txHash: string) {
+      callbacks.onSuccess?.(txHash);
+      callbacks.onSettled?.();
+      set({ ...idle, isSuccess: true, data: txHash });
+    },
+    fail(error: unknown) {
+      callbacks.onError?.(error);
+      callbacks.onSettled?.();
+      set({ ...idle, isError: true, error });
+    },
+  };
+});
 
 const dataHookOverride = vi.hoisted(() => {
   const listeners = new Set<() => void>();
@@ -170,7 +218,7 @@ vi.mock("@green-goods/shared/hooks/work/useWorkMutation", async (importOriginal)
     ...actual,
     useWorkMutation: ((options) =>
       workMutationOverride.current
-        ? workMutationOverride.current()
+        ? workMutationOverride.current(options)
         : actual.useWorkMutation(options)) as typeof actual.useWorkMutation,
   };
 });
@@ -279,6 +327,21 @@ function renderSubmitWorkTree() {
   return { renderResult, router };
 }
 
+/** The work mutation as the flow reads it, settled from the test through `workSend`. */
+function useHandSettledSend(options: unknown) {
+  workSend.listen(options as Parameters<typeof workSend.listen>[0]);
+  const state = useSyncExternalStore(workSend.subscribe, workSend.snapshot, workSend.snapshot);
+  return { ...state, mutate: workSend.mutate, reset: workSend.reset };
+}
+
+// The one eligible action opens on Media with optional photos; a typed note makes the flow dirty.
+async function walkToReview(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Next" }));
+  await user.type(await screen.findByLabelText("Impact note"), "Mulched the west bed");
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  return screen.findByRole("button", { name: "app.admin.work.submit.submit" });
+}
+
 describe("SubmitWork dialog", () => {
   beforeEach(() => {
     useAdminStore.setState({
@@ -303,6 +366,7 @@ describe("SubmitWork dialog", () => {
 
   afterEach(() => {
     workMutationOverride.current = null;
+    workSend.reset();
     dataHookOverride.reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
@@ -383,6 +447,87 @@ describe("SubmitWork dialog", () => {
         "?gardenId=0x2222222222222222222222222222222222222222"
       );
     });
+  });
+
+  it("ends a successful send on the Review with Done, and never asks to discard", async () => {
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
+    await act(async () => {
+      router = renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.succeed(`0x${"ab".repeat(32)}`);
+      await Promise.resolve();
+    });
+
+    // The send landed: the Review stays where it is and offers the way out.
+    expect(await screen.findByRole("button", { name: "Done" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() => {
+      expect(router?.state.location.pathname).toBe("/hub/work");
+    });
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("stays on the Review after a failed send, still guards the answers, and tries again", async () => {
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
+    await act(async () => {
+      router = renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.fail(new Error("User rejected the request"));
+      await Promise.resolve();
+    });
+
+    // The Review says what happened and offers the same send again, not Done.
+    expect(await screen.findByText("Work wasn't submitted")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/work/submit");
+
+    // Nothing was sent, so the typed note is still the steward's to lose.
+    const dialog = screen.getByRole("dialog", { name: "app.admin.work.submit.title" });
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    const keepEditing = await screen.findByRole("button", { name: "Keep Editing" });
+    await act(async () => {
+      fireEvent.click(keepEditing);
+      await Promise.resolve();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(workSend.snapshot().isPending).toBe(true);
+  });
+
+  it("starts an empty submission for Submit Another", async () => {
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    await act(async () => {
+      renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.succeed(`0x${"ab".repeat(32)}`);
+      await Promise.resolve();
+    });
+    await user.click(await screen.findByRole("button", { name: "Submit Another" }));
+
+    // Back at the start (the one action opens on Media), with nothing carried over.
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    expect(await screen.findByLabelText("Impact note")).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
   });
 
   it("keeps hook order stable when submit-work data resolves after the loading branch", async () => {
