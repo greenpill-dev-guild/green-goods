@@ -1,4 +1,4 @@
-import { RiCloseLine } from "@remixicon/react";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -23,10 +23,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  // A FAB shows its primary action's icon (config.icon), so the button says
-  // what it mostly does; a dial swaps it for a close icon while open (DL-050).
-  // The admin shell's FabButton follows the same rule.
-  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : config.icon;
+  // Every FAB shows "+" while closed, whether it fires one act or opens a
+  // dial; a dial swaps it for a close icon while open, and its rows keep each
+  // act's own icon (DL-078). The admin shell's FabButton follows the same rule.
+  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : RiAddLine;
   const floatingActionLabel =
     isSingleAction && config.actions[0]
       ? formatMessage({ id: config.actions[0].labelId })

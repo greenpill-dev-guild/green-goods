@@ -4,6 +4,7 @@
 
 import {
   type RemixiconComponentType,
+  RiAddLine,
   RiCloseLine,
   RiHandCoinLine,
   RiUserAddLine,
@@ -13,9 +14,22 @@ import userEvent from "@testing-library/user-event";
 import { renderToStaticMarkup } from "react-dom/server";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import type { FabConfig } from "../../components/Canvas/NavigationBar";
+import type { FabAction } from "../../components/Canvas/NavigationBar";
 import { FabButton } from "../../components/Canvas/NavigationBarFab";
 import enMessages from "../../i18n/en.json";
+
+const addMember: FabAction = {
+  id: "add-member",
+  icon: RiUserAddLine,
+  label: "Add Member",
+  labelId: "cockpit.community.action.addMember",
+};
+const fundCookieJar: FabAction = {
+  id: "fund-payout-jar",
+  icon: RiHandCoinLine,
+  label: "Fund Cookie Jar",
+  labelId: "cockpit.community.action.fundPayoutJar",
+};
 
 /** The drawn path of an icon, to tell which icon the FAB shows. */
 function iconPath(Icon: RemixiconComponentType) {
@@ -24,41 +38,42 @@ function iconPath(Icon: RemixiconComponentType) {
   return host.querySelector("path")?.getAttribute("d");
 }
 
+/** Neither primary's own icon is a plus. */
+function renderFab(primary: FabAction, ...rest: FabAction[]) {
+  render(
+    <IntlProvider locale="en" messages={enMessages}>
+      <FabButton
+        config={{
+          icon: primary.icon,
+          label: "Community actions",
+          actions: [primary, ...rest],
+          onAction: vi.fn(),
+        }}
+        mobileFloating
+      />
+    </IntlProvider>
+  );
+}
+
 describe("NavigationBarFab", () => {
-  it("shows its primary action's icon, and a close icon while the dial is open (DL-050)", async () => {
+  it("shows a plus while closed, whatever its primary action, and a close icon while the dial is open (DL-078)", async () => {
     const user = userEvent.setup();
-    const config: FabConfig = {
-      icon: RiUserAddLine,
-      label: "Community actions",
-      actions: [
-        {
-          id: "add-member",
-          icon: RiUserAddLine,
-          label: "Add Member",
-          labelId: "cockpit.community.action.addMember",
-        },
-        {
-          id: "fund-payout-jar",
-          icon: RiHandCoinLine,
-          label: "Fund Cookie Jar",
-          labelId: "cockpit.community.action.fundPayoutJar",
-        },
-      ],
-      onAction: vi.fn(),
-    };
-    render(
-      <IntlProvider locale="en" messages={enMessages}>
-        <FabButton config={config} mobileFloating />
-      </IntlProvider>
-    );
+    renderFab(addMember, fundCookieJar);
 
     const fab = screen.getByRole("button", { name: "Open Actions" });
-    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiUserAddLine));
+    expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
 
     await user.click(fab);
     expect(fab.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiCloseLine));
     expect(fab.querySelector("svg")?.getAttribute("class") ?? "").not.toContain("rotate");
     // The close glyph is named for what it does now.
     expect(fab).toHaveAccessibleName("Close Actions");
+  });
+
+  it("shows a plus on a FAB that fires one act, still named for that act (DL-078)", () => {
+    renderFab(fundCookieJar);
+
+    const sole = screen.getByRole("button", { name: "Fund Cookie Jar" });
+    expect(sole.querySelector("path")?.getAttribute("d")).toBe(iconPath(RiAddLine));
   });
 });
