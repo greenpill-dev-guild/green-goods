@@ -149,6 +149,41 @@ describe("crash reports", () => {
     expect(sent()).toHaveLength(1);
   });
 
+  it("leaves a crash another tab kept while this one was sending", async () => {
+    const page = await startPage();
+    page.recordCrash(crash("this tab"), PROPERTIES);
+    const [mine] = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
+    const theirs = {
+      ...mine,
+      id: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      error: { name: "TypeError", message: "other tab" },
+    };
+
+    // The other tab's write lands after this tab has read the key and before it takes its own
+    // reports out of it.
+    const read = window.localStorage.getItem.bind(window.localStorage);
+    let reads = 0;
+    const reading = vi.spyOn(window.localStorage, "getItem").mockImplementation((key) => {
+      const value = read(key);
+      reads += 1;
+      if (key === STORAGE_KEY && reads === 1) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify([mine, theirs]));
+      }
+      return value;
+    });
+    try {
+      const { sink, sent } = transport();
+      page.registerTelemetrySink(sink);
+      page.flushCrashReports();
+
+      expect(sent().map(([, properties]) => properties.crash_report_id)).toEqual([mine.id]);
+    } finally {
+      reading.mockRestore();
+    }
+    const left = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
+    expect(left.map((report: { id: string }) => report.id)).toEqual([theirs.id]);
+  });
+
   it("holds ten reports at most and drops the oldest", async () => {
     const page = await startPage();
     for (let index = 1; index <= 12; index += 1) {

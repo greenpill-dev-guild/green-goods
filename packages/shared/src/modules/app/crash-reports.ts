@@ -163,8 +163,13 @@ export function flushCrashReports(): void {
   const reports = [...stored, ...unsaved].filter((report) => !delivered.has(report.id));
   if (reports.length === 0) return;
 
-  // Emptied before sending, so a second tab flushing at the same moment finds nothing to send.
-  if (stored.length > 0) writeStored([]);
+  // Taken out of storage before sending, so a second tab flushing at the same moment finds
+  // nothing to send. Only what was read above is taken, from a fresh read: another tab may have
+  // kept a crash of its own since, and emptying the key would lose it.
+  if (stored.length > 0) {
+    const taken = new Set(stored.map((report) => report.id));
+    writeStored(readStored().filter((report) => !taken.has(report.id)));
+  }
   unsaved = [];
 
   const now = Date.now();
