@@ -196,10 +196,13 @@ describe("PWA durable submission boundary", () => {
 
     expect(send).toHaveBeenCalledTimes(1);
     expect(removedWhileSending).toBe(false);
-    expect(await draftDB.getDraft(draftId)).toBeDefined();
-    // Sent: the queue let go of it, and its draft is still not an item of its own.
+    // Sent: the queue let go of it. The draft is the composer's to retire, and with nothing
+    // queued to remove it through, it is listed again and never left out of reach.
     expect(await queued()).toEqual([]);
-    expect(await listedDrafts()).toEqual([]);
+    expect(await listedDrafts()).toHaveLength(1);
+    // Work sent from Your Work has no composer: the queue's report retires its draft.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe(true);
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
   });
 
   it("removes declined work with its draft and both sets of attachments when it is discarded", async () => {

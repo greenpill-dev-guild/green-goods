@@ -64,9 +64,11 @@ export async function deleteWorkDraft(id: string, mode: "discard" | "retire" = "
  * The drafts Your Work lists and counts.
  *
  * Submit admits work to the upload queue before it asks for a signature, and
- * the composer keeps its draft so a declined prompt can be answered again. That
- * work is already listed, as queued and then as sent, so its draft is not a
- * second item.
+ * the composer keeps its draft so a declined prompt can be answered again.
+ * While that work waits in the queue it is listed there, so its draft is not a
+ * second item. Only then: sending or discarding the queued work removes the
+ * draft, and a draft with nothing queued stays where the person can remove it,
+ * because every stored draft counts toward their limit.
  */
 export async function listWorkDrafts(
   userAddress: string,
@@ -80,15 +82,7 @@ export async function listWorkDrafts(
         (job) => (job.payload as WorkJobPayload).clientWorkId
       )
     );
-    const listed: WorkDraftRecord[] = [];
-    for (const draft of drafts) {
-      const id = draft.clientWorkId;
-      const admitted =
-        id !== undefined &&
-        (queued.has(id) || Boolean(await jobQueueDB.getWorkCompletion(userAddress, chainId, id)));
-      if (!admitted) listed.push(draft);
-    }
-    return listed;
+    return drafts.filter((draft) => !draft.clientWorkId || !queued.has(draft.clientWorkId));
   } catch (error) {
     // A queue that cannot be read lists no work either, so every draft stays reachable.
     logger.warn("[WorkDrafts] Could not read the upload queue; listing every draft", { error });
