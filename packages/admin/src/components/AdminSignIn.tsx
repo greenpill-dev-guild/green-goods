@@ -77,7 +77,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
         </form>
       ) : null}
       {controller.error ? (
-        <p id={errorId} role="alert" className="body-sm text-error-base">
+        <p id={errorId} role="alert" className="body-sm text-error-dark">
           {controller.error}
         </p>
       ) : null}
