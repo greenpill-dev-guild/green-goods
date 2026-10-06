@@ -1111,17 +1111,24 @@ const OPTIONAL_LINEAR_RECORD_FIELDS = new Set(["parentId", "parentRef", "project
 // the applier keeps its current Linear value; a null would read as "clear it"
 // and could strip a parent, milestone, due date, or project set in Linear. A
 // create record keeps the null: the new issue starts without that field.
-// Reconciled mirrors own their existing state independently of uncertified local
-// lanes. Omitting state preserves it, including Done, Canceled and research progress.
-function omitUnrecordedFieldsFromUpdate(record, stateSyncMode = DEFAULT_LINEAR_STATE_SYNC_MODE) {
+// Reconciled mirrors retain their complete historical record independently of
+// local certification. A preserve record is read-only, not an issue update.
+function buildLinearSyncRecord(record, stateSyncMode = DEFAULT_LINEAR_STATE_SYNC_MODE) {
   if (record.action !== "update") {
     return record;
   }
 
+  if (stateSyncMode === "preserve_existing") {
+    return {
+      action: "preserve",
+      issue: record.issue,
+      ...(record.lane ? { lane: record.lane } : {}),
+    };
+  }
+
   return Object.fromEntries(
     Object.entries(record).filter(([field, value]) =>
-      !(field === "state" && stateSyncMode === "preserve_existing") &&
-      (value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field))),
+      value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field)),
   );
 }
 
@@ -1132,7 +1139,7 @@ function buildLinearSyncManifest(status) {
   const laneSyncMode = linearLaneSyncMode(linear);
   const stateSyncMode = linear.stateSyncMode || DEFAULT_LINEAR_STATE_SYNC_MODE;
   if (stateSyncMode === "preserve_existing") {
-    warnings.push("Preserve existing Linear states on update records; any state advancement needs a separate verified forward-only write.");
+    warnings.push("Preserve existing Linear records without mutation: verify preserve actions against live Linear, never submit them as updates. Any follow-up needs a separately authorized comment, successor or verified forward-only write.");
   }
   const parentIssue = canonicalLinearParentIssue(linear);
   const project = linearProjectForStatus(normalized, warnings);
@@ -1147,7 +1154,7 @@ function buildLinearSyncManifest(status) {
     warnings.push("Plan is missing Linear parent issue.");
   }
 
-  const parent = omitUnrecordedFieldsFromUpdate({
+  const parent = buildLinearSyncRecord({
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
     title: `${normalized.feature.title} roadmap`,
@@ -1205,7 +1212,7 @@ function buildLinearSyncManifest(status) {
     : executionSubLanes.map(([laneName, lane]) =>
       buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
   const lanes = [...executionLanes, ...canonicalLanes].map((record) =>
-    omitUnrecordedFieldsFromUpdate(record, stateSyncMode));
+    buildLinearSyncRecord(record, stateSyncMode));
 
   return {
     version: 1,
@@ -2392,7 +2399,7 @@ function moveFeature(flags, archiveLockHeld = false) {
       latestHistoryEntry?.timestamp === status.workflow.updated_at;
     if (!hasText(lastSyncedAt) || !confirmedCurrentState) {
       throw new Error(
-        `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
+        `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply create/update actions and verify read-only preserve actions in the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
       );
     }
   }
@@ -2675,7 +2682,7 @@ function printLinearSyncManifest(manifest, asJson) {
   console.log(`${manifest.feature.slug} | ${manifest.parent.action} parent | ${manifest.lanes.length} lane issue(s)`);
   console.log(`team=${manifest.routing.team} project=${manifest.routing.project || "unprojected"}`);
   for (const lane of manifest.lanes) {
-    console.log(`${lane.lane} | ${lane.action} | ${lane.issue || "new"} | ${lane.title}`);
+    console.log(`${lane.lane} | ${lane.action} | ${lane.issue || "new"} | ${lane.title || "existing mirror (read-only)"}`);
   }
 
   if (manifest.warnings.length > 0) {

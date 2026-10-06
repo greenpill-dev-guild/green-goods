@@ -77,4 +77,4 @@ Resolution: `cancelled`. No implementation is claimed shipped by this hub. The e
 Still open or dispositioned:
 
 - No implementation is retained. Any future supporter display requires a new scope decision and partner-content permission review; the historical candidate is dropped from dispatch.
-- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, apply the preservation manifest (stateSyncMode=preserve_existing), verify that the mirror remains Canceled, and only then record a fresh confirmation before archive. The earlier confirmation remains invalidated; this repair makes no external Linear write.
+- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, verify the read-only preservation entry (stateSyncMode=preserve_existing) against live Linear without mutation, confirm that the mirror remains Canceled, and only then record a fresh confirmation before archive. The earlier confirmation remains invalidated; this repair makes no external Linear write.

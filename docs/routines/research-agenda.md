@@ -118,7 +118,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Question.** Which conservative Arbitrum yield strategies should garden endowments consider against the current Aave baseline, with what principal protection, liquidity, custody and failure risks; who controls principal and yield; and how does yield turn into funded impact?
 
-**Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow is in progress (PRD-763).
+**Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow shipped in PR 776 (PRD-763, Done). Its archived QA lanes were not certified and the Brave check was not recorded; those proof gaps do not reopen delivery.
 
 **Anchors.**
 - RESR-9 (RWA Yield Expansion research; In Progress, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, assigned to Afo in Q4 October), RESR-8 (yield-to-impact codification; Backlog).
@@ -280,7 +280,7 @@ These live on the Research team but are not agenda tracks this quarter. The rout
 
 ## Change log
 
-- **v4 · 2026-10-06.** Track 3 now treats the former yield mix, preset architecture, ≥5% target and Q2 dates as historical hypotheses; research must produce a current evidence-backed recommendation before implementation scope is accepted. Track 5 retires the completed PRD-998 start gate and points remaining live acceptance to current handoffs. Track order, horizons and stages are unchanged.
+- **v4 · 2026-10-06.** Track 3 now treats the former yield mix, preset architecture, ≥5% target and Q2 dates as historical hypotheses; research must produce a current evidence-backed recommendation before implementation scope is accepted. It also records PRD-763 delivery separately from its uncertified QA and unrecorded Brave proof. Track 5 retires the completed PRD-998 start gate and points remaining live acceptance to current handoffs. Track order, horizons and stages are unchanged.
 - **v3 · 2026-10-04.** Track 5 only: the WhatsApp operator in the settled list changed from WEFA to Afolabi as a sole proprietor doing business as Green Goods, and the support address changed from afo@wefa.world to contact@greengoods.app, after the user decisions of 2026-10-04 recorded in the Plan Hub. No order, horizon, stage or open question changed; the next Research cycle review still decides those.
 - **v2 · 2026-09-24.** Reconciled completed and canceled research gates with Linear; recorded the Impact Framework sequence, current messaging research gate, and the environmental-data and identity backlog cleanup. The next Research cycle review still decides priorities and dates.
 - **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

@@ -214,7 +214,9 @@ For active implementation work, Linear sync is the default first step before cod
 agent dispatch.
 
 1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
-2. Respect `manifest.laneSyncMode`. When it is `parent_only`, create or update only the parent
+2. Respect `manifest.stateSyncMode`: `preserve` actions are read-only. Verify those issue IDs
+   against live Linear without writing fields; apply only `create` and `update` actions. Respect
+   `manifest.laneSyncMode`. When it is `parent_only`, create or update only the parent
    mirror and do not create lane issues unless Afo explicitly expands the Linear footprint. Record
    that mode with `--lane-sync-mode parent_only`.
 3. When `manifest.laneSyncMode` is `lane_issues` and the manifest shows a missing parent or
@@ -291,10 +293,12 @@ restate them here. Plan-specific deltas:
   `linear.trackers` (`name: issue`) and point their `parentIssue` at it. The manifest parents those
   lanes under the tracker and never writes the tracker issue itself.
 - For a reconciled mirror whose live state is independent of local certification, set
-  `linear.stateSyncMode` to `preserve_existing`. The manifest omits `state` on existing parent,
-  canonical-lane and execution-sub-lane updates; keep their current Linear states. New issues
-  retain stage-derived initial states. Any later state advancement needs a separately verified
-  forward-only write; never infer Done from uncertified lanes or reopen Canceled scope.
+  `linear.stateSyncMode` to `preserve_existing`. Existing parent, canonical-lane and execution
+  records become read-only `action: preserve` entries containing only the issue ID and optional
+  lane key. Do not submit them as updates: retain their state, title, body, labels, priority,
+  project, schedule and dependencies. New issues retain stage-derived create fields. Follow-ups
+  need separately authorized comments, successors or verified forward-only writes; a Done
+  issue's description stays intact. Never infer Done from uncertified lanes or reopen Canceled scope.
 - A `linear-sync` update record leaves out any field the hub does not record, such as a parent,
   milestone, due date, or project; keep that field's current Linear value. On a create record, null
   means the new issue starts without that field.
@@ -307,14 +311,18 @@ the safe, stakeholder-relevant status, respecting the routing-rules privacy boun
 A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Linear steps:
 
 1. While the PR is open, apply the current `linear-sync` manifest so terminal implementation
-   issues and their active parent are `In Review`. Respect `manifest.stateSyncMode`: with
-   `preserve_existing`, leave omitted states unchanged and verify any separately authorized
-   forward advancement against live Linear. Never move Done backward or reopen Canceled scope.
-2. Move the implementation issues and the parent to `Done` only after a human merges the PR, each
-   with a one- or two-sentence comment on what shipped and anything still open.
+   issues and their active parent are `In Review`. Apply only create/update actions. With
+   `preserve_existing`, verify each read-only `preserve` entry against live Linear without
+   changing its fields; verify any separately authorized forward advancement. Never move Done
+   backward or reopen Canceled scope.
+2. After a human merges delivered implementation, move its nonterminal implementation issues
+   and parent to `Done` with a one- or two-sentence comment on what shipped and anything still
+   open. Preserve already-Done bodies and Canceled scope. Research-only reconciliation does
+   not mark research Done; verify its independently owned live status without advancing it.
 3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>` as
-   the last hub edit before the closeout-record commit. Archiving refuses a mirror that changed
-   after its last confirmation.
+   the last hub edit before the closeout-record commit, only after the writes and live verification
+   above. A preservation manifest alone is not sync confirmation. Archiving refuses a mirror
+   that changed after its last confirmation.
 
 ### PR Linkage
 
@@ -362,7 +370,8 @@ that shipped without one.
    explicitly dropped. In `status.json`, append a `closeout_recorded` history entry, leave
    uncertified lanes as they are, and trim `links` to the hub's top-level files (plus confined
    `reports/` paths); the archive refuses links into `handoffs/`, other hubs, or packages.
-4. **Mirrored hubs:** make the Linear writes in Part 4 and run `confirm-linear-sync` last.
+4. **Mirrored hubs:** apply the create/update actions and verify read-only preserve actions
+   against live Linear as described in Part 4; run `confirm-linear-sync` last.
 5. **Commit the record by itself** (`docs(plans): record the closeout of <slug>`), after
    formatting `status.json` with Biome.
 6. **Archive, then commit.** Run

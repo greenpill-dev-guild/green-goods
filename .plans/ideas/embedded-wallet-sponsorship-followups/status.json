@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-10-06T22:31:37Z",
+    "updated_at": "2026-10-06T22:48:50Z",
     "resolution": "cancelled"
   },
   "links": {
@@ -23,7 +23,7 @@
     "Replaces the old broad web2 auth and gas sponsorship scope with a code-grounded follow-up.",
     "Focus on sender sponsorship, deferred-signing semantics, and address continuity UX only.",
     "Contracts are intentionally n/a.",
-    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) remains Canceled. The broad idea was canceled; sponsored donations have the narrower PRD-1033 owner. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation remains invalidated. stateSyncMode=preserve_existing now omits state from existing mirror updates, retaining Canceled. Apply that preservation manifest and verify the current mirror before recording a fresh confirmation or archiving. No Linear issue is reopened."
+    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) remains Canceled. The broad idea was canceled; sponsored donations have the narrower PRD-1033 owner. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation remains invalidated. stateSyncMode=preserve_existing emits a read-only preserve action for the existing mirror, retaining its full Canceled record. Verify that issue against live Linear without mutation before recording a fresh confirmation or archiving. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
@@ -158,6 +158,14 @@
       "status": "closeout_text_reconciled",
       "branch": null,
       "note": "Aligned the plan reconciliation and annotated closeout history with preserved unfinished lane states. This records no lane certification, external Linear write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-06T22:48:50Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_record_preservation_enabled",
+      "branch": null,
+      "note": "Preservation now emits a read-only issue reference, retaining the full historical mirror rather than only its state. Fresh live verification remains required before confirmation/archive; no external write or confirmation is recorded."
     }
   ],
   "taxonomy": {

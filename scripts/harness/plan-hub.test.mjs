@@ -797,9 +797,9 @@ test("terminal implementation lanes and their active parent move to In Review", 
   }));
 
 // Existing mirrors can be Done/Canceled or research In Progress while local lanes
-// remain uncertified. An update must not reset those independently owned states.
+// remain uncertified. Preserved mirrors must emit no mutable issue fields.
 for (const stage of ["ideas", "backlog", "active"]) {
-  test(`linear-sync preserves existing parent states for reconciled ${stage} hubs`, () =>
+  test(`linear-sync preserves existing parent records for reconciled ${stage} hubs`, () =>
     withFixture((root) => {
       assert.equal(runPlanHub(root, ["scaffold", "preserved-parent", "--stage", stage]).status, 0);
       const status = readStatus(root, stage, "preserved-parent");
@@ -813,14 +813,13 @@ for (const stage of ["ideas", "backlog", "active"]) {
       const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-parent", "--json"]);
       assert.equal(result.status, 0, result.stderr);
       const manifest = JSON.parse(result.stdout);
-      assert.equal(manifest.parent.action, "update");
-      assert.equal(Object.hasOwn(manifest.parent, "state"), false);
+      assert.deepEqual(manifest.parent, { action: "preserve", issue: "RESR-9" });
       assert.equal(manifest.stateSyncMode, "preserve_existing");
-      assert.match(manifest.warnings.join("\n"), /existing Linear states/);
+      assert.match(manifest.warnings.join("\n"), /existing Linear records/);
     }));
 }
 
-test("linear-sync preserves existing canonical and execution lane states but initializes new issues", () =>
+test("linear-sync preserves existing canonical and execution records but initializes new issues", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "preserved-lanes", "--stage", "active"]).status, 0);
     const status = readStatus(root, "active", "preserved-lanes");
@@ -857,12 +856,19 @@ test("linear-sync preserves existing canonical and execution lane states but ini
     const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-lanes", "--json"]);
     assert.equal(result.status, 0, result.stderr);
     const manifest = JSON.parse(result.stdout);
-    const updated = [manifest.parent, ...manifest.lanes].filter((record) => record.action === "update");
-    assert.deepEqual(updated.map((record) => record.issue).sort(), ["PRD-650", "PRD-700", "PRD-729"]);
-    for (const record of updated) assert.equal(Object.hasOwn(record, "state"), false);
+    const preserved = [manifest.parent, ...manifest.lanes].filter((record) => record.action === "preserve");
+    assert.deepEqual(preserved, [
+      { action: "preserve", issue: "PRD-650" },
+      { action: "preserve", issue: "PRD-700", lane: "retained_source" },
+      { action: "preserve", issue: "PRD-729", lane: "qa_pass_1" },
+    ]);
+    assert.equal([manifest.parent, ...manifest.lanes].some((record) => record.action === "update"), false);
     const created = manifest.lanes.find((record) => record.lane === "fresh_work");
     assert.equal(created.action, "create");
     assert.equal(created.state, "Todo");
+    assert.equal(created.title, "Fresh Work for Preserved Lanes");
+    assert.match(created.description, /handoffs\/claude-ui\.md/);
+    assert.equal(created.parentId, "PRD-650");
   }));
 
 test("linear-sync rejects an unknown state sync mode", () =>
