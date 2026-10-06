@@ -98,13 +98,32 @@ test("Storybook produces and retains its own PWA audit even when a check fails",
   const workflow = load(readFileSync(join(root, ".github/workflows/design.yml"), "utf8"));
   const steps = workflow.jobs.storybook.steps;
   const generation = steps.findIndex(step => step.run === "node scripts/design/md-generate.mjs --check");
+  const probe = steps.findIndex(step => step.id === "pwa_audit_file");
   const upload = steps.findIndex(step => step.with?.name === "client-pwa-token-audit");
   const tokenCheck = steps.findIndex(step => step.run === "bun run check --only design-tokens");
-  assert.ok(generation >= 0 && upload > generation && tokenCheck > upload);
+  assert.ok(generation >= 0 && probe > generation && upload > probe && tokenCheck > upload);
+  assert.match(steps[probe].if, /always\(\)/);
+  assert.match(steps[probe].if, /!cancelled\(\)/);
   assert.match(steps[upload].if, /always\(\)/);
   assert.match(steps[upload].if, /!cancelled\(\)/);
-  assert.match(steps[upload].if, /hashFiles\('output\/design\/client-pwa-token-audit.md'\)/);
+  assert.match(steps[upload].if, /steps\.pwa_audit_file\.outputs\.present == 'true'/);
   assert.equal(steps[upload].with.path, "output/design/client-pwa-token-audit.md");
   assert.equal(steps[upload].with["if-no-files-found"], "error");
   assert.equal(steps.find(step => step.with?.name === "storybook-static").with.path, "packages/shared/storybook-static");
+  const fixture = mkdtempSync(join(tmpdir(), "pwa-audit-probe-"));
+  try {
+    for (const present of [false, true]) {
+      if (present) {
+        mkdirSync(join(fixture, "output/design"), { recursive: true });
+        writeFileSync(join(fixture, "output/design/client-pwa-token-audit.md"), "audit");
+      }
+      const output = join(fixture, String(present));
+      writeFileSync(output, "");
+      const result = spawnSync("bash", ["-e", "-c", steps[probe].run], {
+        cwd: fixture, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: output },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(readFileSync(output, "utf8"), present ? "present=true\n" : "");
+    }
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
 });

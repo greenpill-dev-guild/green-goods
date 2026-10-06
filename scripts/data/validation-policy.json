@@ -1848,7 +1848,8 @@
         ".github/actions/setup-js/action.yml",
         ".github/workflows/design.yml",
         "packages/shared/src/hooks/app/useTheme.ts",
-        ".github/actions/setup-playwright/action.yml"
+        ".github/actions/setup-playwright/action.yml",
+        "scripts/dev/playwright-setup.test.mjs"
       ],
       "prefixes": [
         ".claude/skills/design/",

@@ -163,8 +163,17 @@ jobs:
       - name: Produce client PWA token audit
         run: node scripts/design/md-generate.mjs --check
 
+      - name: Locate client PWA token audit
+        id: pwa_audit_file
+        if: ${{ always() && !cancelled() }}
+        shell: bash
+        run: |
+          if [ -f output/design/client-pwa-token-audit.md ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload client PWA token audit
-        if: ${{ always() && !cancelled() && hashFiles('output/design/client-pwa-token-audit.md') != '' }}
+        if: ${{ always() && !cancelled() && steps.pwa_audit_file.outputs.present == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: client-pwa-token-audit
