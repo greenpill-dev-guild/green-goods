@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Create Cookie Jar: the flow dialog opened from Campaign Cookie Jars on the protocol garden's Payouts (DL-046). Campaign, Payout, Eligible gardens, and Review, with Advanced as a detour on Review; the created and submitted states are its final state.",
+          "Create Cookie Jar: the flow dialog opened from Campaign Cookie Jars on the protocol garden's Payouts (DL-046). Campaign, Payout, Eligible gardens, and Review, with Advanced as a detour on Review. It ends on the Review: the send shows in its status row, and once the jar exists (or the wallet queued its create) the Review shows it and the footer becomes Done (DL-080).",
       },
     },
   },
@@ -48,6 +48,7 @@ export const GardensStep: Story = { args: { initialStep: 2 } };
 /** Review, with Advanced as a detour; Create waits for a complete jar. */
 export const ReviewStep: Story = { args: { initialStep: 3 } };
 
+/** The jar exists: its Review shows it, with Done and Create Another. */
 export const Created: Story = { args: { initialCreatedJarAddress: STORYBOOK_CAMPAIGN_JAR } };
 
 /** A Safe-style wallet queued the create; the jar address is not known yet. */

@@ -60,8 +60,8 @@ export function HypercertPreview({
 }: HypercertPreviewProps) {
   const { formatMessage } = useIntl();
 
-  // Minting progress is now shown in a dialog overlay (MintingDialog)
-  // rather than replacing this preview component
+  // The Review's status row above says how the mint is going; the preview
+  // holds still and waits while it works.
   const isMinting =
     mintingState &&
     mintingState.status !== "idle" &&

@@ -65,14 +65,9 @@ vi.mock("@green-goods/shared/utils/app/text", () => ({
   },
 }));
 
-// Mock the DistributionChart and MintProgress components
+// Mock the DistributionChart component
 vi.mock("../../../components/Hypercerts/DistributionChart", () => ({
   DistributionChart: () => createElement("div", { "data-testid": "distribution-chart" }, "Chart"),
-}));
-
-vi.mock("../../../components/Hypercerts/Steps/MintProgress", () => ({
-  MintProgress: ({ state }: { state: MintingState }) =>
-    createElement("div", { "data-testid": "mint-progress" }, `Minting: ${state.status}`),
 }));
 
 import { HypercertPreview } from "../../../components/Hypercerts/Steps/HypercertPreview";
@@ -369,7 +364,7 @@ describe("components/Hypercerts/HypercertPreview", () => {
   });
 
   describe("minting state transitions", () => {
-    // Note: MintProgress is now rendered in MintingDialog at the wizard level,
+    // The mint's progress shows in the Review's status row at the wizard level,
     // not inside HypercertPreview. The preview remains visible but is dimmed
     // when minting is in progress.
 

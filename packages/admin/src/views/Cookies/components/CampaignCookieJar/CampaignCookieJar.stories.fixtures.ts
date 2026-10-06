@@ -56,7 +56,6 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   moduleConfigured: true,
   isDeployer: true,
   roleLoading: false,
-  createError: null,
   createPending: false,
   gardensLoading: false,
   factoryLoading: false,

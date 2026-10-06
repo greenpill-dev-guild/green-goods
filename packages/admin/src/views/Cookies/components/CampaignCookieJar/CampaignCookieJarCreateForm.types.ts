@@ -11,7 +11,6 @@ export interface CampaignCookieJarCreateFormProps {
   moduleConfigured: boolean;
   isDeployer: boolean;
   roleLoading: boolean;
-  createError: Error | null;
   createPending: boolean;
   gardensLoading: boolean;
   factoryLoading: boolean;

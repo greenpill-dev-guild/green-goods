@@ -1,33 +1,40 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { FlowSendFooter, SingleSendNote } from "@/components/Layout/FlowSendFooter";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
-import {
-  CampaignCreateFooter,
-  CampaignCreateStepBody,
-  campaignCreateSteps,
-} from "./CampaignCookieJarCreateSteps";
+import { CampaignCreateStepBody, campaignCreateSteps } from "./CampaignCookieJarCreateSteps";
+import { campaignCreateStatus } from "./campaignCreateStatus";
 
-const steps = campaignCreateSteps(campaignCookieJarCreateFormProps.formatMessage);
+const { formatMessage } = campaignCookieJarCreateFormProps;
+const steps = campaignCreateSteps(formatMessage);
+const ready = campaignCreateStatus({
+  phase: "ready",
+  awaitingJarAddress: false,
+  failure: { tone: "error", title: "", description: "" },
+  formatMessage,
+});
 
 function StepPreview({ stepIndex }: { stepIndex: number }) {
   const step = steps[stepIndex];
   if (!step) return null;
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <CampaignCreateStepBody step={step} form={campaignCookieJarCreateFormProps} />
-      <CampaignCreateFooter
-        formatMessage={campaignCookieJarCreateFormProps.formatMessage}
-        isFirstStep={stepIndex === 0}
-        isLastStep={stepIndex === steps.length - 1}
-        pending={false}
-        canCreate={campaignCookieJarCreateFormProps.canCreate}
+      <CampaignCreateStepBody step={step} form={campaignCookieJarCreateFormProps} status={ready} />
+      <FlowSendFooter
+        stepIndex={stepIndex}
+        isLast={stepIndex === steps.length - 1}
+        phase="ready"
+        sendLabel="Create Cookie Jar"
+        note={<SingleSendNote phase="ready" />}
+        sendDisabled={!campaignCookieJarCreateFormProps.canCreate}
         onCancel={fn()}
         onBack={fn()}
         onNext={fn()}
-        onCreate={fn()}
+        onSend={fn()}
+        onDone={fn()}
       />
     </div>
   );

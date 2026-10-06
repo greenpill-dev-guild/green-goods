@@ -60,6 +60,9 @@ export const Held: Story = { args: { stepIndex: 1, isLast: false, held: true } }
 /** On the Review: the act, and how often the wallet will ask. */
 export const Ready: Story = {};
 
+/** What the act would send is incomplete: only the act waits, and the way back stays. */
+export const SendHeld: Story = { args: { sendDisabled: true } };
+
 export const Sending: Story = { args: { phase: "sending" } };
 
 /** The send failed or was declined: the same act again, and the way back to the answers. */
