@@ -7,10 +7,11 @@
     "stage": "ideas"
   },
   "workflow": {
-    "overall_status": "idea",
+    "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-06-27T00:28:08.413Z"
+    "updated_at": "2026-10-06T09:47:18.109Z",
+    "resolution": "cancelled"
   },
   "links": {
     "brief": "brief.md",
@@ -21,49 +22,56 @@
   "notes": [
     "Replaces the old broad web2 auth and gas sponsorship scope with a code-grounded follow-up.",
     "Focus on sender sponsorship, deferred-signing semantics, and address continuity UX only.",
-    "Contracts are intentionally n/a."
+    "Contracts are intentionally n/a.",
+    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
-      "branch": "claude/ui/embedded-wallet-sponsorship-followups",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/state-api/embedded-wallet-sponsorship-followups",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "contracts": {
       "owner": "codex",
-      "status": "n/a",
-      "branch": "codex/contracts/embedded-wallet-sponsorship-followups",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "skill_tags": []
+      "skill_tags": [],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "claude/qa-pass-1/embedded-wallet-sponsorship-followups",
+      "status": "skipped",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "codex/qa-pass-2/embedded-wallet-sponsorship-followups",
+      "status": "skipped",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "branch_trigger": "claude/qa-pass-1/embedded-wallet-sponsorship-followups",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
@@ -110,6 +118,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "[PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
+    },
+    {
+      "timestamp": "2026-10-06T09:47:18.109Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ],
   "taxonomy": {
@@ -121,7 +145,7 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-27T00:28:08.412Z",
+    "lastSyncedAt": "2026-10-06T09:47:18.109Z",
     "parentIssue": "PRD-611",
     "lanes": {}
   }
