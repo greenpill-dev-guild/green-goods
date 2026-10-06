@@ -7,10 +7,11 @@
     "stage": "ideas"
   },
   "workflow": {
-    "overall_status": "idea",
+    "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-29T05:49:32.687Z",
-    "updated_at": "2026-06-27T00:02:09.510Z"
+    "updated_at": "2026-10-06T09:47:15.700Z",
+    "resolution": "cancelled"
   },
   "links": {
     "brief": "brief.md",
@@ -22,49 +23,56 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-10-06 reconciliation: [PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
-      "branch": "claude/ui/public-supporters-band",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/state-api/public-supporters-band",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "contracts": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/contracts/public-supporters-band",
+      "status": "skipped",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "skill_tags": ["contracts"]
+      "skill_tags": ["contracts"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "claude/qa-pass-1/public-supporters-band",
+      "status": "skipped",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "codex/qa-pass-2/public-supporters-band",
+      "status": "skipped",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
       "branch_trigger": "claude/qa-pass-1/public-supporters-band",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
@@ -111,6 +119,22 @@
       "status": "moved_to_ideas",
       "branch": null,
       "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "closeout_recorded",
+      "branch": null,
+      "note": "[PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
+    },
+    {
+      "timestamp": "2026-10-06T09:47:15.700Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
     }
   ],
   "taxonomy": {
@@ -122,7 +146,7 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "lastSyncedAt": "2026-10-06T09:47:15.700Z",
     "parentIssue": "PRD-347",
     "lanes": {},
     "project": "Green Goods Seasons & Campaigns"

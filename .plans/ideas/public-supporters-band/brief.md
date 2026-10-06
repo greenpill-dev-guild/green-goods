@@ -1,7 +1,8 @@
 # Public Supporters / Partnerships Section
 
+**Status**: `CLOSED — canceled; see plan closeout`
 **Slug**: `public-supporters-band`
-**Stage**: `ideas` (state: `investigate-further`)
+**Stage**: `ideas`
 **Priority**: `p2`
 **Created**: `2026-04-28`
 
