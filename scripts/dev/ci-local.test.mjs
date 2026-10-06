@@ -1323,7 +1323,7 @@ test("local gate checks mark themselves so package suites still take the machine
   const result = await runCommandCheck(
     {
       id: "shared-test",
-      command: `node -e "process.stdout.write([process.env.CI, process.env.GREEN_GOODS_LOCAL_GATE].join(' '))"`,
+      command: 'printf "%s %s" "$CI" "$GREEN_GOODS_LOCAL_GATE"',
       cwd: ".",
     },
     { captureOutput: true },

@@ -4,16 +4,20 @@
 **Linear Issue**: [RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73) (parent-only mirror)
 **Linear Project**: Commitment Pooling
 **Linear Source**: source:plans
-**Stage**: backlog
-**Status**: BLOCKED — scoping and architecture only. **No implementation is authorized.**
+**Stage**: `backlog`
+**Status**: `RESEARCH IN PROGRESS — backlog placement; no implementation authorized`
 **Created**: 2026-08-25
-**Last Updated**: 2026-08-25
+**Last Updated**: `2026-10-06`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
 
 > Every slice below requires its own scope lock and explicit human dispatch before any code is
 > written. Slice ordering is a dependency statement, not a schedule commitment. The PRD-651 gates
 > are unchanged by anything in this hub.
+
+## Status reconciliation (2026-10-06)
+
+RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates.
 
 ## Decision Log
 

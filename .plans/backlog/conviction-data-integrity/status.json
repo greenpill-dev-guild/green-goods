@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-07-19T21:52:14.326Z",
-    "updated_at": "2026-07-19T21:52:14.326Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -43,7 +43,8 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-10-06 reconciliation: Keep the coherent conviction read-model outcome. The historical configuration/count/threshold examples remain hypotheses to reproduce against current consumers and contract/indexer boundaries. Re-audit and scope-lock the remaining defects before implementation; no current runtime defect or fresh contract proof is asserted here."
   ],
   "lanes": {
     "ui": {
@@ -147,6 +148,14 @@
       "status": "consolidated",
       "branch": null,
       "note": "Consolidated the three stale B1/B2/B3 conviction hubs into one re-audit-first backlog program; source hubs retained as non-dispatchable artifacts."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Keep the coherent conviction read-model outcome. The historical configuration/count/threshold examples remain hypotheses to reproduce against current consumers and contract/indexer boundaries. Re-audit and scope-lock the remaining defects before implementation; no current runtime defect or fresh contract proof is asserted here."
     }
   ]
 }

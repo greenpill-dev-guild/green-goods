@@ -2,9 +2,13 @@
 
 **Feature Slug**: `ens-l2-sender-admin-recovery`
 **Stage**: `backlog`
-**Status**: `BACKLOG`
+**Status**: `BACKLOG — support UI exists; sender recovery and live inventory remain gated`
 **Created**: `2026-04-26`
-**Last Updated**: `2026-04-26`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+Current source includes `ENSUsernameChangeRequest` and its Profile entry, preparing a support packet with desired slug, reason and contact. `useENSReleaseName` retains the legacy sponsored-release guard. Those portions are source-present, not fresh rendered or deployed proof. Sender admin recovery, the supported operator runbook and a fresh cross-chain inventory remain open. Revalidate the deployed sender, support policy and the name-reservation boundary before migration or implementation; no broadcast is authorized.
 
 ## Decision Log
 
@@ -28,8 +32,8 @@
 
 ## Immediate Updates To Make Now
 
-- [ ] Replace the legacy passkey release dead-end copy with `Request username change`.
-- [ ] Add a clear support-request state that captures current slug, owner address, desired slug, reason, and contact path.
+- [x] Source-present support entry and username-change request sheet (October 6 source inspection; rendered/deployed proof not refreshed).
+- [x] Source-present support packet captures current/desired names, account, reason and contact; operator delivery remains a separate check.
 - [ ] Add operator instructions for the current-contract path:
   - fund the user's current smart account on Arbitrum,
   - have the user sign existing `releaseName()`,

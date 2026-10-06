@@ -2,9 +2,15 @@
 
 **Feature Slug**: `steward-cockpit-ux`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `IMPLEMENTED — five PRs merged; aggregate receipts and QA disposition pending`
 **Created**: `2026-09-25T05:02:27.261Z`
-**Last Updated**: `2026-09-25`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+All five implementation children PRD-982 through PRD-986 and parent [PRD-981](https://linear.app/greenpill-dev-guild/issue/PRD-981) are Done in live Linear. PR5 merged as [PR #910](https://github.com/greenpill-dev-guild/green-goods/pull/910), present in local Git history at `11bc2d467`. The PR5 merge checkbox and execution sub-lane now reflect that delivery.
+
+The aggregate UI/state handoffs still contain pending Validation Receipts, and neither hub QA handoff records the required acceptance walk or regression review. The aggregate lanes are blocked for evidence reconciliation, not waiting for implementation to restart. Existing per-PR proof remains historical. Keep the QA work in [QA Pass 1](handoffs/claude-qa-pass-1.md) and [QA Pass 2](handoffs/codex-qa-pass-2.md); no new passing receipt is asserted. Reconcile those obligations before a `closed` closeout, or certify every lane before a `completed` closeout. Do not reopen the Done Linear parent or children.
 
 ## Decision Log
 
@@ -94,7 +100,7 @@ PR1's branch already carries this hub as its first commit.
 - [x] View colours onto Warm Earth aliases (D32)
 - [x] Ratchet in the design-token check; frontend-design Rules 9 and 13 clarified (D32)
 - [x] Remaining copy and nesting (D30, D33); remaining write-surface stories (D25)
-- [ ] PR opened, CI green, bot reviews resolved, merged; sub-lane and Linear child updated
+- [x] PR5 merged as #910; PRD-986 is Done (reconciled 2026-10-06)
 
 ### QA Pass 1 and 2
 

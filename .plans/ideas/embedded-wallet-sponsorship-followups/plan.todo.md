@@ -2,10 +2,14 @@
 
 **Feature Slug**: `embedded-wallet-sponsorship-followups`
 **Stage**: `ideas`
-**Status**: `BACKLOG`
+**Status**: `CLOSED — canceled idea; closeout record ready for the archive sequence`
 **Created**: `2026-04-12`
-**Last Updated**: `2026-04-12`
+**Last Updated**: `2026-10-06`
 **Replaces**: broad web2 auth and gas sponsorship scope
+
+## Status reconciliation (2026-10-06)
+
+[PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. Uncertified lanes retain their original todo, n/a and blocked states; cancellation disables dispatch without claiming implementation passed. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened.
 
 ## Decision Log
 
@@ -90,3 +94,12 @@
 ### Step 6: Validation and regression coverage
 **Files**: existing sender/auth/login tests
 **Change**: Add or update tests for sender selection, sponsored capability flags, embedded restore, deferred-signing semantics, and continuity messaging. Keep passkey and wallet fallback regressions covered.
+
+## Closeout (2026-10-06)
+
+Resolution: `cancelled`. No implementation is claimed shipped by this hub. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner.
+
+Still open or dispositioned:
+
+- Sponsored donations → [PRD-1033](https://linear.app/greenpill-dev-guild/issue/PRD-1033). The broader offline/identity/copy proposal is dropped from dispatch; reopen only through a new accepted scope, without treating PRD-1033 as authority for those independent changes.
+- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, verify the read-only preservation entry (stateSyncMode=preserve_existing) against live Linear without mutation, confirm that the mirror remains Canceled, and only then record a fresh confirmation before archive. The earlier confirmation remains invalidated; this repair makes no external Linear write.

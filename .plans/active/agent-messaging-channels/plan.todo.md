@@ -1,5 +1,6 @@
 # Messaging integration delivery proposal
 
+**Last Updated**: `2026-10-06`
 > **2 October implementation scope:** the user authorized conflict resolution across PRs
 > #864/#934/#949, Telegram-first remote readiness, enabled reporting defaults, pinned live
 > models and root environment setup, Office conversion, completion of bounded Kernel
@@ -53,7 +54,7 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
+> Older dispatch below remains historical. The PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining live proof.
 
 > **27 and 28 September decisions:** every garden accepts chat reports, which replaces the TAS and
 > Aiyeloja Family Garden prototype choice; the reporter's role in the chosen garden is still checked
@@ -79,13 +80,13 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Feature slug:** agent-messaging-channels
 
-**Stage:** `active`
+**Stage**: `active`
 
-**Status:** `ACTIVE — implementation and local critical validation passed; draft PR stack, current-head CI and live deployment/provider/signing/WhatsApp gates remain tracked in the current handoff`
+**Status**: `ACTIVE — Telegram-first reporting; live acceptance and review follow-ups remain gated`
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-10-04
+**Last updated:** 2026-10-06
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 
@@ -95,11 +96,13 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Linear milestone:** Buildathon prototype — target 2026-10-02, submission 2026-10-04
 
-**Mirror:** PRD-339 is stored historical metadata, unresolved during the 2026-09-11 research pass.
-The live slice issues are PRD-943 through PRD-948 under the Buildathon prototype milestone. The
-manual Linear writes described in [Linear changes](#linear-changes) **were applied on 2026-09-22**;
-what remains deliberately unrun is `linear-sync` and `record-linear`, the Implementation Start Gate.
-Do not repeat the manual writes.
+**Mirror:** [PRD-998](https://linear.app/greenpill-dev-guild/issue/PRD-998) is canonical, with `parent_only` lane sync. The Implementation Start Gate completed on 2026-09-27, as recorded in the current checklist below; it is not an unrun dispatch prerequisite. PRD-339 and the September PRD-943–PRD-948 slice are historical context. Do not repeat those writes or create lane mirrors. Current `status.json` and handoffs own the remaining acceptance work.
+
+## Status reconciliation (2026-10-06)
+
+The canonical hub is active and mirrors [PRD-998](https://linear.app/greenpill-dev-guild/issue/PRD-998), observed In Progress on October 6. Current develop already contains the complete accepted hub and the October operator decision. The local October 4 experience review remains with its author for separate publication; it is not imported by this PR. Its older Twilio, SMS, Q2 dates and PRD-339 reference are historical, not current dispatch instructions.
+
+Telegram-first reporting is the accepted current implementation. Real provider, authenticated signing, deployed privacy/configuration and conditional Kernel proof remain with the existing handoffs. The October review recommends dialogue, privacy and observability improvements; this status repair does not authorize those runtime changes or claim that the recovered source is deployed in this checkout.
 
 ## Current build sequence
 
@@ -961,10 +964,7 @@ the Buildathon prototype and WhatsApp number working milestones.
 - **One Linear write remains owed.** PRD-947's body still describes composer hydration and the
   `useWhatsAppDraftIntake`/`useDraftResume` validation commands, which steps 9 and 10 no longer do.
   It needs the read-only review reflected before a builder picks it up.
-- `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
-  an `lane_issues` sync would have created duplicate canonical lane issues under the historical
-  PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
-  a builder is named and the lanes come off `blocked`.
+- **Historical start-gate warning, retired 2026-10-06.** The September warning about an unrun sync under PRD-339 is superseded by the completed 2026-09-27 gate and canonical PRD-998 `parent_only` mirror. The preceding September tracker changes are provenance, not a current write queue. Follow the current checklist and handoffs; do not repeat these writes or redispatch delivered work.
 
 ## Validation and handoff
 

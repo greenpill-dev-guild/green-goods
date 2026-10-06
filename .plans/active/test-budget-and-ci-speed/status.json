@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-10-05T06:59:39.103Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -49,7 +49,8 @@
     "2026-10-04 first-batch authorization selects SF01–SF04 now, superseding D14 timing only for these slices. All four are implemented locally. SF01/SF02/SF04 meet local acceptance; SF03 stays open because final focused and full Admin readiness checks fail, with failures also reproduced using the original startup/RPC mock. Client 20 passed with four existing skips; tooling 360/360 and fixture invocation 194/194. Working-copy evidence only: handoffs/software-factory-batch-1.md. No commit, push, PR, dependency, runtime application repair, or Linear write.",
     "2026-10-04 next-batch authorization selects SF10–SF11 now. SF10 local diagnostics and disposable Git/Husky dispatch implemented; live agent hook-loading pilot remains with architecture hub. SF11 Client guard passes in its actual graph, correcting the original external-probe conclusion; Admin widening traced to Safe legacy ABIType registration. Direct abitype@1.2.3 dependency and seven exposed caller repairs await explicit approval. Manifests/lockfile/runtime callers remain unchanged. See handoffs/software-factory-batch-2.md; no commit, branch change, push, external write or worktree repair.",
     "2026-10-04 third-batch authorization approved dependencies and continuation. SF11 local acceptance now passes: exact Admin abitype@1.2.3 dependency, one owning registration, both real-project negative probes and seven safe caller boundaries. SF09 reporting checkpoint passes 49/49 direct tests and the full selected 15-check QA plan. Final fixture/type/quality checks pass after removing an unnecessary Shared export. SF03 remains open (latest isolated Admin browser run: one pass, one readiness failure); SF10 live hook-loading stays with architecture hub. Optional PR-text export deferred. Evidence: handoffs/software-factory-batch-3.md; no commit, branch change, publication or external write.",
-    "2026-10-04 fourth batch: SF03 local Admin qualification passes 12 cases with one declared fork-only skip and zero retries after aligning the smoke RPC mock with its indexer garden. The earlier hydration-loader timeout did not reproduce; no runtime fix claimed. SF10 actual Codex session/pre-edit/post-edit context observed and recorded in the architecture hub; Claude Desktop Code remains pending. One ordinary bug-fix pilot category recorded. No dependency/runtime/hook/CI change this batch, no publication or external writes. See handoffs/software-factory-batch-4.md."
+    "2026-10-04 fourth batch: SF03 local Admin qualification passes 12 cases with one declared fork-only skip and zero retries after aligning the smoke RPC mock with its indexer garden. The earlier hydration-loader timeout did not reproduce; no runtime fix claimed. SF10 actual Codex session/pre-edit/post-edit context observed and recorded in the architecture hub; Claude Desktop Code remains pending. One ordinary bug-fix pilot category recorded. No dependency/runtime/hook/CI change this batch, no publication or external writes. See handoffs/software-factory-batch-4.md.",
+    "2026-10-06 reconciliation: Opening summary now points to batch 5. Snapshot 09 remains unconfirmed after its October 5 date. SF10/SF13 actual observations, CI verification of the owning implementation range and D14 human gates remain pending; no implementation receipt is refreshed."
   ],
   "lanes": {
     "ui": {
@@ -593,6 +594,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "SF05-SF08 and SF12 locally accepted with full selected QA 7/7 and closing 115/115 tooling, 333/333 fixtures. CI wiring and browser proof guards complete locally. SF10 actual Claude Desktop observation and SF13 ordinary-task/routine outcomes remain pending; unrelated incomplete hub blocks global Plan Hub validation. No publication or current-head CI claim."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Opening summary now points to batch 5. Snapshot 09 remains unconfirmed after its October 5 date. SF10/SF13 actual observations, CI verification of the owning implementation range and D14 human gates remain pending; no implementation receipt is refreshed."
     }
   ]
 }

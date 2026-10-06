@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-09-26T00:21:02.481Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,7 +25,8 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
     "lanes": {},
-    "laneSyncMode": "lane_issues"
+    "laneSyncMode": "lane_issues",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "design-system",
@@ -45,12 +46,13 @@
     "The implementing agent merges PR1, PR2, PR3, and PR5 with --merge once CI Gate is green and bot reviews are resolved; PR4 waits for Afo's yes on before/after screenshots, and PR5 merges only after PR4 has merged.",
     "Mark unused lanes as n/a before promoting QA.",
     "Use targeted package tests as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-10-06 reconciliation: All five PRs and Linear children delivered, including #910. Aggregate lanes now explicitly blocked on receipt reconciliation; the two unperformed/unrecorded hub QA obligations remain open. PRD-981 stays Done."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -67,11 +69,14 @@
         },
         "note": ""
       },
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "All five PRs merged; reconcile the aggregate historical Validation Receipt and retained QA obligations. No new implementation dispatch or current-head certification."
     },
     "state_api": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
@@ -88,7 +93,10 @@
         },
         "note": ""
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true,
+      "ready_when_dependencies_met": false,
+      "blocked_reason": "All five PRs merged; reconcile the aggregate historical Validation Receipt and retained QA obligations. No new implementation dispatch or current-head certification."
     },
     "contracts": {
       "owner": "codex",
@@ -324,6 +332,22 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "All five PRs and Linear children delivered, including #910. Aggregate lanes now explicitly blocked on receipt reconciliation; the two unperformed/unrecorded hub QA obligations remain open. PRD-981 stays Done."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ],
   "execution_sub_lanes": {
@@ -386,7 +410,7 @@
     "pr5_copy_storybook_polish": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "refactor/admin-type-scale-and-stories",
       "depends_on": ["pr4_shell_cookies_tone"],
       "handoff": "handoffs/pr5-copy-storybook-polish.md",
@@ -395,7 +419,8 @@
         "issue": "PRD-986",
         "parentIssue": "PRD-981"
       },
-      "linear_issues": ["PRD-986", "PRD-981"]
+      "linear_issues": ["PRD-986", "PRD-981"],
+      "handoff_note": "PR #910 merged at 11bc2d467; PRD-986 Done. Source-delivery reconciliation only; historical per-PR proof is not a fresh aggregate receipt."
     }
   }
 }

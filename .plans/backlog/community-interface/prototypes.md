@@ -633,7 +633,7 @@ Chain: `contracts` (blocked on CP registration-helper freeze) → `indexer` (nee
 
 **VERIFY-ON-LINEAR** (Linear MCP is unauthenticated this session — these are truths that live on Linear, not in-repo):
 - **Fourth-garden authority** (P1-3): **settled 2026-07-18 by Decision Log #29** — decision #27 is superseded, no fourth garden is selected, and no artifact names one. The repo no longer shows two states, and the candidate's identity is confined to research-notes storage.
-- **PRD-687 → PRD-691 blocking edge** and **PRD-682** (shared-foundation + PWA, tracked in the Commitment Pooling project) — confirm status and that PRD-691 has no agent dispatch yet.
+- **PRD-687 → PRD-691 blocking edge** and historical canceled **PRD-682** (former shared-foundation + PWA tracker) — confirm current PRD-691 status and fresh accepted shared-foundation scope; do not dispatch PRD-682.
 - **RESR-64** due 2026-08-12 — confirm the selected service queue's operating record remains pending and continues to own the membership-queue implementation gate.
 - **RESR-62 survey outcome #2 owner + date** (P2-3) — who signs the ship-or-revise-vocabulary decision, and is it before the contracts deploy.
 - **PRD-650** (`plan.todo.md:73` stray reference) — confirm it is the CP August parent tracker, not a Needs record.

@@ -1,6 +1,6 @@
 # Messaging identities and garden workflows
 
-> **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs are reconciled locally; the tracker/start gate remains before implementation. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
+> **Accepted review decisions, 26 September:** Afolabi ([afo@wefa.world](mailto:afo@wefa.world)) owns prototype support; Opus 5.5 builds and Astra reviews. The tracker/start gate completed on 2026-09-27 under PRD-998 with parent_only sync; do not repeat it for delivered work. Current handoffs own remaining live acceptance. Durable terminal outcomes, dispatch-time publication controls, stable identity under key rotation and deployed privacy/configuration proof are required. See [current delivery](plan.todo.md#current-build-sequence) and [failure/operations contracts](technical-brief.md#11-failure-and-recovery-contract). No runtime proof or task dispatch is claimed.
 
 
 > **4 October operator decision:** WEFA is no longer the responsible organization for WhatsApp.
@@ -27,7 +27,7 @@
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
+> Older dispatch below remains historical. The PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining live proof.
 
 > **24 September 2026 architecture amendment:** The current target is the
 > [WhatsApp technical brief](technical-brief.md). It records the user's newer decisions:
