@@ -55,7 +55,7 @@ function createController(
     authMethodLabel: "Wallet",
     avatarFallback: "0X",
     eligibleGardens: [gardenOne, gardenTwo],
-    eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
+    primaryAddress: "0x9999999999999999999999999999999999999999" as Address,
     headline: "0x9999...9999",
     roleLabel: "steward",
     selectedGardenChoiceId: gardenOne.id,

@@ -5,6 +5,7 @@ import type { AuthMode } from "../../../types/auth";
 import { formatAddress } from "../../../utils/app/text";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useAuthActions, useAuthState } from "../../../providers/Auth";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useEnsName } from "../../blockchain/useEnsName";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
@@ -50,7 +51,7 @@ export interface AccountProfileController {
   authMethodLabel: string | null;
   avatarFallback: string;
   eligibleGardens: Garden[];
-  eoaAddress: Address | null;
+  primaryAddress: Address | null;
   headline: string;
   roleLabel: string;
   selectedGardenChoiceId: string | null;
@@ -60,10 +61,10 @@ export interface AccountProfileController {
 
 export function useAccountProfileController(): AccountProfileController {
   const { formatMessage } = useIntl();
-  const { eoaAddress, authMode } = useAuthState();
+  const { authMode } = useAuthState();
   const { signOut } = useAuthActions();
   const { role } = useRole();
-  const address = eoaAddress as Address | null;
+  const address = usePrimaryAddress() as Address | null;
   const { data: ensName } = useEnsName(address);
   const { eligibleGardens } = useEligibleAdminGardens();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
@@ -93,7 +94,7 @@ export function useAccountProfileController(): AccountProfileController {
     authMethodLabel,
     avatarFallback: getInitials(headline),
     eligibleGardens,
-    eoaAddress: address,
+    primaryAddress: address,
     headline,
     roleLabel,
     selectedGardenChoiceId,

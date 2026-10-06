@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { ConnectButton } from "@/components/ConnectButton";
+import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { WalletRequiredConnectShell } from "./ConnectShell";
@@ -82,11 +82,12 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           <p className="mt-2 max-w-md body-sm text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
-              defaultMessage: "Connect your wallet to access this feature.",
+              defaultMessage:
+                "Connect your wallet or sign in with a passkey to access this feature.",
             })}
           </p>
-          <div className="mt-6">
-            <ConnectButton size="lg" />
+          <div className="mt-6 w-full max-w-sm">
+            <AdminSignInContainer />
           </div>
         </main>
       </AdminAccessHomeShell>
