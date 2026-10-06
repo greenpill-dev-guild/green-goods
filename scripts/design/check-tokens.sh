@@ -250,6 +250,15 @@ validate_usage_baseline() {
   fi
 }
 
+check_collection_statuses() {
+  local status
+  # pipefail reports the rightmost failure; preserve earlier IO/parser errors too.
+  for status in "$@"; do
+    if [[ "$status" -gt 1 ]]; then return "$status"; fi
+  done
+  return 0
+}
+
 collect_usage_hits() {
   grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
@@ -264,6 +273,7 @@ collect_usage_hits() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -304,6 +314,7 @@ collect_admin_invariant_hits() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -342,6 +353,7 @@ collect_admin_wrapper_bypass_hits() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -377,6 +389,7 @@ collect_admin_raw_type_size_hits() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 collect_admin_view_m3_colour_hits() {
@@ -390,6 +403,7 @@ collect_admin_view_m3_colour_hits() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 collect_optional_hits() {
@@ -457,6 +471,7 @@ collect_admin_chrome_violations() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
@@ -490,6 +505,7 @@ collect_admin_focus_ring_violations() {
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses "${PIPESTATUS[@]}"
 }
 
 if ! ADMIN_FOCUS_RING_VIOLATIONS="$(collect_optional_hits collect_admin_focus_ring_violations)"; then exit 2; fi
