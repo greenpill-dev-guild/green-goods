@@ -8,9 +8,9 @@
 **Linear Issue**: `PRD-455`
 **Linear Source**: `source:plans`
 **Stage**: `ideas`
-**Status**: `BACKLOG`
+**Status**: `IDEA — later portable six-badge expansion; no rollout date accepted`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-05-10`
+**Last Updated**: `2026-10-06`
 **Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
@@ -21,6 +21,10 @@
 > 2026-04-27 scope update: moved to backlog. The April 28 presentation/release scope is only the existing three initial GreenWill badges (`genesis`, `first-work`, `first-support`). This hub is the later six-badge portable reputation expansion and should not block the current closeout.
 
 > 2026-05-10 Linear sync update: `PRD-455` is the current `source:plans` mirror for this later six-badge portable expansion. The old `PRD-292` epic is completed GitHub-migration context, not the active plan mirror.
+
+## Status reconciliation (2026-10-06)
+
+PRD-455 remains Backlog. Keep this distinct from the initial three GreenWill badges. The April/June rollout dates are historical, not current commitments. Activation requires updated chain availability, portability evidence, issuer/contract confidence and explicit pilot scope; no badge deployment or issuance is authorized.
 
 ## Decision Log
 

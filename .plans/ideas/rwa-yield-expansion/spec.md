@@ -11,6 +11,12 @@ last_updated: 2026-04-17
 
 # RWA Yield Expansion — Design
 
+## Status reconciliation (2026-10-06)
+
+[RESR-9](https://linear.app/greenpill-dev-guild/issue/RESR-9) is In Progress and asks for a decision-ready recommendation on conservative Arbitrum yield strategies for garden endowments. Its former rates, products, Q2 rollout dates and preset construction sequence are hypotheses to re-check with current primary sources. Research does not authorize contracts, adapters, custody, migration or fund movement.
+
+Compare principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery against the current Aave baseline, then produce a recommendation with evidence and explicit uncertainty. Environmental or solar assets are candidates, not mandatory selections. The historical preset design below is retained for provenance and is not a locked implementation contract.
+
 ## Goal
 
 Lift the Octant Vault yield from ~1% (pure Aave V3 USDC) to **≥5% sustained 30 days** by introducing a diversified yield engine across RWA and high-quality DeFi strategies, exposed to operators as curated presets.

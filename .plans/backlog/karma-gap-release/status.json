@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-09-11T00:45:41.341Z",
-    "updated_at": "2026-09-11T00:52:07.787Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -44,7 +44,8 @@
     "Successor to the closed karma-gap-integration-repair hub: PR #775 merged the repair and PRD-839 is Done. Recover the predecessor from Git history using its .plans/ARCHIVE.md row.",
     "No Linear mirror yet; the PRD-839 closing comment points here.",
     "Implementation, review, deployment, reconciliation, and expansion are separate human-authorized boundaries. No test result authorizes a broadcast.",
-    "Use Bun wrappers only; never raw Forge."
+    "Use Bun wrappers only; never raw Forge.",
+    "2026-10-06 reconciliation: The repair shipped in PR #775; this hub owns release only. Existing Arbitrum GardenAccounts require a reviewed compatibility path before the Karma/GardenToken release. Keep the pinned inventory, seeded historical linkage, canary and authenticated proof gates. The age review supplies no new deployment facts and authorizes no upgrade."
   ],
   "lanes": {
     "ui": {
@@ -147,6 +148,14 @@
       "status": "seeded_from_predecessor",
       "branch": null,
       "note": "Filled the brief, spec, plan, and eval from the closed karma-gap-integration-repair hub and carried over release-runbook.md and arbitrum-karma-inventory.ts."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "The repair shipped in PR #775; this hub owns release only. Existing Arbitrum GardenAccounts require a reviewed compatibility path before the Karma/GardenToken release. Keep the pinned inventory, seeded historical linkage, canary and authenticated proof gates. The age review supplies no new deployment facts and authorizes no upgrade."
     }
   ]
 }

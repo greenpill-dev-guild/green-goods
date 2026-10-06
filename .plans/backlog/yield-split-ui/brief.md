@@ -1,7 +1,7 @@
 # Yield & Split Management UI
 
 **Slug**: `yield-split-ui`
-**Stage**: `active`
+**Stage**: `backlog`
 **Priority**: `p2`
 **Created**: `2026-03-16`
 

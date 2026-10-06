@@ -1,5 +1,6 @@
 # Messaging integration delivery proposal
 
+**Last Updated**: `2026-10-06`
 > **2 October implementation scope:** the user authorized conflict resolution across PRs
 > #864/#934/#949, Telegram-first remote readiness, enabled reporting defaults, pinned live
 > models and root environment setup, Office conversion, completion of bounded Kernel
@@ -79,9 +80,9 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Feature slug:** agent-messaging-channels
 
-**Stage:** `active`
+**Stage**: `active`
 
-**Status:** `ACTIVE — implementation and local critical validation passed; draft PR stack, current-head CI and live deployment/provider/signing/WhatsApp gates remain tracked in the current handoff`
+**Status**: `ACTIVE — Telegram-first reporting; live acceptance and review follow-ups remain gated`
 
 **Created:** 2026-04-17
 
@@ -100,6 +101,12 @@ The live slice issues are PRD-943 through PRD-948 under the Buildathon prototype
 manual Linear writes described in [Linear changes](#linear-changes) **were applied on 2026-09-22**;
 what remains deliberately unrun is `linear-sync` and `record-linear`, the Implementation Start Gate.
 Do not repeat the manual writes.
+
+## Status reconciliation (2026-10-06)
+
+The canonical hub is active and mirrors [PRD-998](https://linear.app/greenpill-dev-guild/issue/PRD-998), observed In Progress on October 6. Current develop already contains the complete accepted hub and the October operator decision. The local October 4 experience review remains with its author for separate publication; it is not imported by this PR. Its older Twilio, SMS, Q2 dates and PRD-339 reference are historical, not current dispatch instructions.
+
+Telegram-first reporting is the accepted current implementation. Real provider, authenticated signing, deployed privacy/configuration and conditional Kernel proof remain with the existing handoffs. The October review recommends dialogue, privacy and observability improvements; this status repair does not authorize those runtime changes or claim that the recovered source is deployed in this checkout.
 
 ## Current build sequence
 

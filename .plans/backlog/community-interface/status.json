@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-09-11T00:55:34.036Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -92,7 +92,8 @@
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable lane-level execution truth; Linear is the parent-only roadmap and coordination mirror, not a 1:1 lane mirror.",
     "Linear was reconciled and live-re-read on 2026-07-10: project/milestones, PRD-687/691/695/696, PRD-682/683, canceled-child supersession notes, and the new RESR-64 engagement-model document all match the parent-only plan contract.",
-    "Linear was live-updated and re-read on 2026-07-28 for the PRD-758 architecture decision, validation comment, and In Review transition; the PRD-687 parent pointer; the Community Needs project description and Needs substrate milestone; and the Commitment Pooling related-work boundary. PRD-687 remains Todo, no duplicate lane issues were created, and PRD-691/PRD-693 were not changed."
+    "Linear was live-updated and re-read on 2026-07-28 for the PRD-758 architecture decision, validation comment, and In Review transition; the PRD-687 parent pointer; the Community Needs project description and Needs substrate milestone; and the Commitment Pooling related-work boundary. PRD-687 remains Todo, no duplicate lane issues were created, and PRD-691/PRD-693 were not changed.",
+    "2026-10-06 reconciliation: PRD-687 remains Backlog. Keep Needs substrate, membership/privacy/pilot gates and Community PWA scope deferred. Join-request delivery and the later PRD-1017 repair are separate; neither establishes every production/pilot gate in this hub. Re-read the current join-request owners before rescoping any overlap. Do not reopen delivered work or promote the broader Needs lanes from this status review."
   ],
   "lanes": {
     "contracts": {
@@ -453,6 +454,14 @@
       "status": "moved_to_backlog",
       "branch": null,
       "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-687 remains Backlog. Keep Needs substrate, membership/privacy/pilot gates and Community PWA scope deferred. Join-request delivery and the later PRD-1017 repair are separate; neither establishes every production/pilot gate in this hub. Re-read the current join-request owners before rescoping any overlap. Do not reopen delivered work or promote the broader Needs lanes from this status review."
     }
   ]
 }

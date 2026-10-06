@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T23:55:33Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -21,7 +21,8 @@
   "notes": [
     "Captures future ENS reliability work after the core claim, release, migration, and sponsor-funding paths are deployable.",
     "Do not block the immediate ENS deploy on this backlog hub.",
-    "Onchain receiver state remains the final source of truth; indexer/admin surfaces are operational projections."
+    "Onchain receiver state remains the final source of truth; indexer/admin surfaces are operational projections.",
+    "2026-10-06 reconciliation: Re-audit existing release-fee/funding checks and recovery UI before implementing the older cooldown/retry checklist. The source now includes sponsored-release funding checks and a support-assisted username-change surface. That does not establish the historical observability, event-correlation, smoke or alerting outcomes. Keep this separate from sender recovery and select a bounded operational gap after a fresh inventory."
   ],
   "lanes": {
     "ui": {
@@ -86,6 +87,14 @@
       "status": "scaffolded",
       "branch": null,
       "note": "Captured future ENS operations and reliability optimizations after core deploy readiness work."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Re-audit existing release-fee/funding checks and recovery UI before implementing the older cooldown/retry checklist. The source now includes sponsored-release funding checks and a support-assisted username-change surface. That does not establish the historical observability, event-correlation, smoke or alerting outcomes. Keep this separate from sender recovery and select a bounded operational gap after a fresh inventory."
     }
   ],
   "taxonomy": {

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-22T00:26:22.875Z",
-    "updated_at": "2026-09-22T00:43:30.976Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,8 @@
     "Blocked on founder decisions 1, 2, and 3 in spec.md § Human Judgment Points; steps 3 onward cannot be sequenced until they are answered.",
     "The contracts lane activates only if decision 1 is answered on-chain, and then it belongs to the sender v2 in ens-l2-sender-admin-recovery rather than a second deployment.",
     "Sign-up and auth are critical surfaces: any check added there must never block account creation.",
-    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins."
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "2026-10-06 reconciliation: PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them."
   ],
   "lanes": {
     "ui": {
@@ -149,6 +150,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them."
     }
   ]
 }

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-09-11T00:55:34.138Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -65,7 +65,8 @@
     "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
     "Stage-2 contracts merged in PR #695 at bff3b274d after the independent review's cross-rail double-payment finding and inherited source Safe identity dependency were resolved with focused RED/GREEN proof. The former indexer generated-helper drift is resolved at 1fbb6c1cd with local boundary, lint, 203-test, codegen, and TypeScript-build proof plus a green refreshed remote Indexer job. The root test target was rerun outside the restricted sandbox and passed, so the prior Foundry macOS system-proxy abort is no longer an active whole-branch proof gap.",
     "Live Linear was re-read on 2026-08-11. PRD-785 is Done. The Phase A release-engineering reconciliation performs no Linear write.",
-    "August 10 release decision: deploy and bind SettlementModule and CreditRegistry in both directions, but leave every G$ pool credit configuration absent or disabled. G$ repayment remains disabled by GDollarRepaymentDisabled until a separately approved authenticated receipt policy exists."
+    "August 10 release decision: deploy and bind SettlementModule and CreditRegistry in both directions, but leave every G$ pool credit configuration absent or disabled. G$ repayment remains disabled by GDollarRepaymentDisabled until a separately approved authenticated receipt policy exists.",
+    "2026-10-06 reconciliation: PRD-785 and PRD-786 are Done; PRD-787 remains Todo with an October 21 due date. Contracts and state/API are delivered, while the retained state/API handoff still records a checkpoint proof limit. The machine lane is blocked on reconciling that historical receipt, not further source implementation. UI, deployment/address pinning, post-deploy replay and QA stay separate. The old September-only deferral is historical; this reassessment does not dispatch UI."
   ],
   "lanes": {
     "ui": {
@@ -92,7 +93,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "blocked",
       "branch": "feature/commitment-pooling-credit-api-state",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
@@ -111,7 +112,8 @@
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"],
       "note": "Implementation merged in PR #722 on 2026-08-17, including the review follow-up (CreditRegistry pin-expiry guard ebe9e156c and the shared read-boundary test); PRD-786 is Done. No commit-attributed GREEN receipt was recorded, so the lane is not marked passed.",
-      "manual_blocked": false
+      "manual_blocked": true,
+      "blocked_reason": "PRD-786 source delivered; reconcile its retained historical checkpoint proof limit. UI is PRD-787 and release remains separate."
     },
     "contracts": {
       "owner": "codex",
@@ -383,6 +385,14 @@
       "status": "moved_to_backlog",
       "branch": null,
       "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-785 and PRD-786 are Done; PRD-787 remains Todo with an October 21 due date. Contracts and state/API are delivered, while the retained state/API handoff still records a checkpoint proof limit. The machine lane is blocked on reconciling that historical receipt, not further source implementation. UI, deployment/address pinning, post-deploy replay and QA stay separate. The old September-only deferral is historical; this reassessment does not dispatch UI."
     }
   ]
 }

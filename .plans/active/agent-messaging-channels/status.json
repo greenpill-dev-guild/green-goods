@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-10-05T03:22:47.000Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -69,7 +69,8 @@
     "CURRENT 2026-10-02 follow-up: browser-only first actual report/review activation implemented; owner ENABLE authorization stays in the browser. Separate one-hour review grants, migration v3 recovery, per-attempt complete gas reservation and sealed continuation scope are implemented. 137 SQLite tests and live synthetic media proof pass; full current worktree gate, refreshed fork provenance and final immutable image remain pending. No app release or contract broadcast; production passkey/EAS/sponsorship and deployed policy verification remain required.",
     "CURRENT WORKTREE PROOF 2026-10-02: all 20 selected critical QA checks passed fresh via bun run check --intent qa --base HEAD. Shared 6683, Client 1533, Admin 1164, Agent 426 units plus 137 SQLite, Contracts 319 tooling and 2100 Solidity tests passed with existing governed skips. Separate structure/test-quality/vocabulary checks and 17 real-EntryPoint fork cases passed. This is uncommitted-worktree proof based on fc6bf61d82dda8e787b0390a29fad79d5b8425c2, not a commit-attributed receipt. Final immutable-image Office smoke and live production gates remain pending; no release/broadcast.",
     "CURRENT PREPARATION RESULT: complete critical QA and 17-scenario fork proof passed; final image sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e built and pushed without app release. Untouched synthetic DOCX/XLSX conversion passed on Fly, one page each, process exit zero. Disposable machine 857495b473e108 is destroyed. Source is uncommitted; production Client/Agent rollout, passkey/EAS/garden roles/live sponsorship/deployed guard verification and two-account acceptance remain pending. Verified permission registry stays empty; WhatsApp remains off awaiting access and live adapter.",
-    "2026-10-04 user decision: Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio of its own, set up now and verified later. This supersedes every earlier note that names WEFA as the WhatsApp operator. Setup is GROW-60 and blocks PRD-943; GROW-57 was canceled. Telegram stays the live channel. Support moves to contact@greengoods.app. See reports/2026-10-04-whatsapp-operator-decision.md."
+    "2026-10-04 user decision: Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio of its own, set up now and verified later. This supersedes every earlier note that names WEFA as the WhatsApp operator. Setup is GROW-60 and blocks PRD-943; GROW-57 was canceled. Telegram stays the live channel. Support moves to contact@greengoods.app. See reports/2026-10-04-whatsapp-operator-decision.md.",
+    "2026-10-06 reconciliation: confirmed the canonical active hub and PRD-998 In Progress against current develop. Preserve the October operator decision and current live gates. The local October 4 experience review remains with its author for separate publication."
   ],
   "lanes": {
     "state_api": {
@@ -158,7 +159,7 @@
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11\u201312 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
+      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11–12 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
       "skill_tags": ["testing", "review", "contracts"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -444,6 +445,14 @@
       "status": "operator_decision_recorded",
       "branch": "chore/record-whatsapp-operator-decision",
       "note": "User decided that Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on Green Goods' own Meta portfolio, replacing WEFA. Brief, spec, technical brief and decision log updated; new dated report added. No runtime change and no WhatsApp adapter yet."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "2026-10-06 reconciliation: confirmed the canonical active hub and PRD-998 In Progress against current develop. Preserve the October operator decision and current live gates. The local October 4 experience review remains with its author for separate publication."
     }
   ],
   "taxonomy": {

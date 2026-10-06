@@ -17,12 +17,18 @@
 
 
 **Status:** ACTIVE implementation; integration validation and live gates remain open.
-**Last updated:** 4 October 2026
+**Last Updated**: `2026-10-06`
 **Product:** Green Goods. Afolabi operates the WhatsApp integration as a sole proprietor doing business as Green Goods (decided 4 October; WEFA before that).
 
 **Current architecture:** [Technical brief, dependencies, state machines, ERD and sequences](technical-brief.md).
 **Earlier research and slice:** [Specification history](spec.md).
 **Delivery and proof:** [Plan](plan.todo.md), [acceptance](eval.md), [execution state](status.json).
+
+## Status reconciliation (2026-10-06)
+
+The canonical hub is active and mirrors [PRD-998](https://linear.app/greenpill-dev-guild/issue/PRD-998), observed In Progress on October 6. Current develop already contains the complete accepted hub and the October operator decision. The local October 4 experience review remains with its author for separate publication; it is not imported by this PR. Its older Twilio, SMS, Q2 dates and PRD-339 reference are historical, not current dispatch instructions.
+
+Telegram-first reporting is the accepted current implementation. Real provider, authenticated signing, deployed privacy/configuration and conditional Kernel proof remain with the existing handoffs. The October review recommends dialogue, privacy and observability improvements; this status repair does not authorize those runtime changes or claim that the recovered source is deployed in this checkout.
 
 ## The experience
 

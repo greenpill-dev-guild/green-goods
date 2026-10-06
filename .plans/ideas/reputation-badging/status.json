@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-06-27T00:01:58.170Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,7 +34,8 @@
     "This hub owns the later six-badge portable reputation expansion. The initial GreenWill three-badge deployment path is separate and does not require the GreenGoodsBadge EAS schema.",
     "Locks are non-transferable (soulbound); key manager = greenwill issuer address.",
     "No custom badge-issuance contracts — Unlock factory + existing EAS cover the surface.",
-    "Moved to backlog on 2026-04-27 as the later six-badge portable reputation expansion. April 28 scope is only the existing initial GreenWill badges: genesis, first-work, and first-support."
+    "Moved to backlog on 2026-04-27 as the later six-badge portable reputation expansion. April 28 scope is only the existing initial GreenWill badges: genesis, first-work, and first-support.",
+    "2026-10-06 reconciliation: PRD-455 remains Backlog. Keep this distinct from the initial three GreenWill badges. The April/June rollout dates are historical, not current commitments. Activation requires updated chain availability, portability evidence, issuer/contract confidence and explicit pilot scope; no badge deployment or issuance is authorized."
   ],
   "lanes": {
     "ui": {
@@ -152,6 +153,14 @@
       "status": "moved_to_ideas",
       "branch": null,
       "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-455 remains Backlog. Keep this distinct from the initial three GreenWill badges. The April/June rollout dates are historical, not current commitments. Activation requires updated chain availability, portability evidence, issuer/contract confidence and explicit pilot scope; no badge deployment or issuance is authorized."
     }
   ],
   "taxonomy": {

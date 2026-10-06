@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-28T18:26:56.000Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -197,7 +197,8 @@
     "2026-08-14 same-address GardenAccount ownership (register #112, Afo authorized): the active ../celo-garden-account-safe-ownership/ plan supersedes the temporary 1-of-2 deployment-EOA Garden Safe bootstrap before any Garden Safe deployment. The accepted target reproduces the exact Arbitrum GardenAccount implementation and immutable dependencies on Celo, atomically creates accounts from the (42161, Arbitrum GardenToken, tokenId) tuple, uses a dedicated authenticated Garden-bound relay that cannot satisfy threshold two alone, and deploys each Safe directly with GardenAccount plus the protocol and Dev Guild recovery Safes at threshold two. This plan authorizes no deployment, guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary, or other broadcast.",
     "Zodiac Roles v2 is pinned for Celo. The 2.1.0 Roles mastercopy 0x9646fDAD06d3e24444381f44362a3B0eB343D337 and its Integrity, Packer, and MultiSendUnwrapper dependencies are live on Celo, byte-identical to the same addresses on Ethereum mainnet, and every function in src/interfaces/IZodiacRoles.sol is dispatchable in the deployed runtime. The ERC-2470 singleton factory and the Zodiac module proxy factory are both present, so the per-Safe modifier clones have a deterministic deployment path. No modifier instance exists yet and this record grants no authority.",
     "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred.",
-    "Rehearsal review follow-ups (2026-09-26): the six W3 sub-lanes are Linear children of PRD-989, which sits under the canonical parent PRD-650; W4 items after 2.0.0 have no lanes yet (qa-readiness-plan § 4c)."
+    "Rehearsal review follow-ups (2026-09-26): the six W3 sub-lanes are Linear children of PRD-989, which sits under the canonical parent PRD-650; W4 items after 2.0.0 have no lanes yet (qa-readiness-plan § 4c).",
+    "2026-10-06 reconciliation: PRD-650/989/729/730 and COM-7 are externally Done; retained hub certification is not upgraded. COM-7 delivery and PRD-731 active release work reconciled. New deployed walks belong to PRD-1009/1030, with docs/videos/settlement evidence still open."
   ],
   "lanes": {
     "contracts": {
@@ -226,11 +227,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "blocked",
       "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts"],
-      "manual_blocked": false,
-      "blocked_reason": null,
+      "manual_blocked": true,
+      "blocked_reason": "Core implementation delivered. Reconcile historical aggregate receipts and the separate PRD-1009/PRD-1030 deployed acceptance plus PRD-731 release obligations; do not redispatch delivered source.",
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Gardener Celo wallet source implementation and TDD complete at ea193295f9ce1f6ebac415481c320c5d7a61baae. All 35 automated release checks pass; authenticated Brave, hosted policy and production canary evidence remain blocked. See handoffs/codex-gardener-celo-wallets.md and the linked validation receipt.",
       "linear_issues": ["PRD-650"],
@@ -247,14 +248,15 @@
         },
         "note": ""
       },
-      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
+      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"],
+      "ready_when_dependencies_met": false
     },
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment. Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Core implementation delivered. Reconcile historical aggregate receipts and the separate PRD-1009/PRD-1030 deployed acceptance plus PRD-731 release obligations; do not redispatch delivered source.",
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -281,11 +283,12 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Manual gate: unlock only after required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note.",
+      "blocked_reason": "Historical delivery is Done in Linear; current hub certification evidence remains unmapped. Preserve the Done issue and use PRD-1009/PRD-1030 for deployed follow-through.",
       "branch": "test/commitment-pooling-qa-pass-1",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "Historical Linear issue is Done. This retained hub lane stays blocked until its certification receipt/evidence is reconciled. New deployed walks belong to PRD-1009 and PRD-1030; do not reopen PRD-729 or PRD-730."
     },
     "qa_pass_2": {
       "linear_issues": ["PRD-730"],
@@ -293,12 +296,13 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Release-certification QA starts only after QA Pass 1 defects are dispositioned and the post-QA documentation-polish lane PRD-727 is complete and re-read.",
+      "blocked_reason": "Historical delivery is Done in Linear; current hub certification evidence remains unmapped. Preserve the Done issue and use PRD-1009/PRD-1030 for deployed follow-through.",
       "branch": "test/commitment-pooling-qa-pass-2",
       "branch_trigger": "claude/qa-pass-1/commitment-pooling",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "Historical Linear issue is Done. This retained hub lane stays blocked until its certification receipt/evidence is reconciled. New deployed walks belong to PRD-1009 and PRD-1030; do not reopen PRD-729 or PRD-730."
     }
   },
   "execution_sub_lanes": {
@@ -516,7 +520,7 @@
     "july_dry_run": {
       "machine_lane": null,
       "owner": "human",
-      "status": "todo",
+      "status": "completed",
       "branch": null,
       "depends_on": [],
       "handoff": null,
@@ -528,7 +532,8 @@
         "dueDate": "2026-07-31"
       },
       "linear_issues": ["COM-7", "COM-3"],
-      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
+      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62).",
+      "handoff_note": "COM-7 survey is Done in Linear; this records historical delivery, not a newly verified readiness matrix or release attestation."
     },
     "release_engineering": {
       "machine_lane": null,
@@ -560,7 +565,7 @@
       "rollback_owner_before_transfer": "green-goods-deployer",
       "rollback_owner_after_transfer": "protocol Safe; green-goods-deployer remains proposer/coordinator",
       "garden_safe_recovery_owner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
-      "status": "blocked",
+      "status": "in_progress",
       "manual_blocked": true,
       "blocked_reason": "The accepted Garden Safe/CCIP canary is not repeated. Dedicated Kernel passkey/G$ canary, hosted sponsorship policy restrictions, authenticated Brave proof, and fresh human authorization for production actions remain required.",
       "branch": null,
@@ -574,7 +579,7 @@
       },
       "linear_issues": ["PRD-731"],
       "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. The Celo Safe/Zodiac ceremony ended at block 75390218 with settlement:garden-roles:verify and settlement:garden-routes:verify green, and release:verify recomputes all 18 frozen permission hashes. SettlementModule and CeloSettlementExecutor remain paused. Accepted when protocol ownership on Arbitrum is verified on the 2-of-6 Safe, the Celo executor is owned by a Celo protocol Safe at or above the repository floor, setCcipRoute is verified from a mined receipt carrying the module's CcipRouteUpdated event with both peers still paused, and the ping/ack and minimum-value canary have each been separately authorized and witnessed.",
-      "handoff_note": "Reopened 2026-09-05 for Enable Gardener Celo Wallets. See handoffs/codex-gardener-celo-wallets.md; previous lane evidence is historical."
+      "handoff_note": "PRD-731 is In Progress; preserve its current live release obligations and the existing human authorization boundary."
     },
     "community": {
       "machine_lane": "ui",
@@ -1771,6 +1776,14 @@
       "status": "passed",
       "branch": "fix/host-garden-personal-claims",
       "note": "Merged in #925. Reads passed so the Linear sync keeps PRD-997 In Review; the on-chain claim stays pending for the protocol-pool walk, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-997 to Done"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-650/989/729/730 and COM-7 are externally Done; retained hub certification is not upgraded. COM-7 delivery and PRD-731 active release work reconciled. New deployed walks belong to PRD-1009/1030, with docs/videos/settlement evidence still open."
     }
   ]
 }

@@ -2,14 +2,18 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `backlog`
-**Status**: `BACKLOG: moved 2026-09-10 because Needs is deferred and September is QA only. The four-schema/two-resolver/refUID architecture stays locked (2026-07-27). The join-request queue shipped in PR #779 and is switched on for QA, but its production gates are not recorded as met; every other lane keeps its named gate`
+**Status**: `BACKLOG — Needs deferred; shipped join requests are separate`
 **Created**: 2026-07-04
-**Last Updated**: 2026-09-10
+**Last Updated**: `2026-10-06`
 
 Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-needs-and-signals-083dd7e556c2). Milestones: Needs substrate (2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The Product Commitment Pooling cycle runs 2026-07-16 through 2026-07-30; Research alignment runs through 2026-07-30. Active September delivery tracker PRD-682 stays in [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354); canceled PRD-683 remains historical traceability only. Artifacts: `spec.md`, `corrections-log.md`, `diagrams.md`, `wireframes.md`, `journeys.md`, `research-plan.md`.
 
 > **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs historical PRD-688 indexer, PRD-689 paymaster, and PRD-690 shared) and **PRD-691** September needs app (absorbs historical PRD-692 funder lens, PRD-693 docs, and PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696**, scoping record **RESR-64**, and active cross-project delivery tracker **PRD-682**. Canceled **PRD-683** remains historical only. Dispatch reads an active tracker plus this plan and its handoffs, never a closed child issue.
 > **Plan-hub sync (2026-07-07).** `status.json` records **PRD-687** as the single `linear.parentIssue` because plan-hub supports one parent mirror in `parent_only` mode. **PRD-691** remains the active September needs app tracker in `consolidatedTrackers` and the table below; no lane-child issues should be recreated without explicit approval.
+
+## Status reconciliation (2026-10-06)
+
+PRD-687 remains Backlog. Keep Needs substrate, membership/privacy/pilot gates and Community PWA scope deferred. Join-request delivery and the later PRD-1017 repair are separate; neither establishes every production/pilot gate in this hub. Re-read the current join-request owners before rescoping any overlap. Do not reopen delivered work or promote the broader Needs lanes from this status review.
 
 ## Decision Log (locked 2026-07-04 through 2026-07-27, full rationale in spec.md §1)
 
