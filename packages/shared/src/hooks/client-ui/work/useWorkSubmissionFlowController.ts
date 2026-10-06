@@ -228,9 +228,7 @@ export function useWorkSubmissionFlowController({
     actionUID,
   });
 
-  useEffect(() => {
-    ensureWorkSubmissionJourneyId();
-  }, [ensureWorkSubmissionJourneyId]);
+  useEffect(() => void ensureWorkSubmissionJourneyId(), [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
     if (!linkIntent) return;
     setGardenAddressStable(linkIntent.garden);
