@@ -208,7 +208,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 4. Operational readiness before real intake: support rehearsal, provider settings and the remaining audit/backup retention schedule. The support owner, the support address and local draft-data retention decisions are settled; their implementation is not: the chat and its pages do not show the address yet, and the mailbox is unverified.
 5. How activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per prototype garden domain.
 
-**Implementable when.** The prototype product direction is accepted. Opus 5.5 starts the synthetic API harness after the repository tracker/start gate; Astra reviews completed checkpoints. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
+**Implementable when.** The prototype product direction is accepted. Current Plan Hub handoffs own remaining validation and live acceptance for delivered source; the completed PRD-998 tracker/start gate does not authorize redispatch. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 

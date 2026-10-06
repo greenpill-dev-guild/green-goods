@@ -7,7 +7,7 @@
 
 ## Problem
 
-The protocol already supports `getSplitConfig()`, `setSplitRatio()`, `splitYield()`, pending yield reads, escrow tracking, and `setGardenTreasury()`, but the UI still hardcodes default split ratios and hides safe operator controls. Admin managers already have a distribution action in `PositionCard`, gated by `canOpenDistribution` and executed through `harvestDistribution.mutate`. Remaining work is a consumer audit of split configuration and pending/escrow reads plus guarded presets; preset editing needs a governance gate because the current contract exposes treasury destination control more broadly than product intent allows.
+The protocol already supports `getSplitConfig()`, `setSplitRatio()`, `splitYield()`, pending yield reads, escrow tracking, and `setGardenTreasury()`, but the UI still hardcodes default split ratios and hides safe operator controls. Admin managers already have a distribution action in `PositionCard`, gated by `canOpenDistribution` and executed through `harvestDistribution.mutate`. Remaining split-ratio work is to update admin `GardenYieldCard` and client `ConvictionSheet` to use live configuration instead of `DEFAULT_SPLIT_CONFIG`. Pending/escrow reads need a separate consumer audit. Preset editing needs a governance gate because the current contract exposes treasury destination control more broadly than product intent allows.
 
 ## Desired Outcome
 
@@ -16,7 +16,7 @@ The protocol already supports `getSplitConfig()`, `setSplitRatio()`, `splitYield
 - The `setGardenTreasury` permission risk is addressed inside this hub before guarded presets become available
 - Operators can choose guarded split presets after the treasury permission gate passes
 - Pending yield and escrowed fractions are visible where operators already work
-- The client ConvictionDrawer reflects the same live split config
+- The client ConvictionSheet reflects the same live split config
 
 ## Scope Notes
 

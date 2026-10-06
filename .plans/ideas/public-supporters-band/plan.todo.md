@@ -8,7 +8,7 @@
 
 ## Status reconciliation (2026-10-06)
 
-[PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened.
+[PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. Uncertified lanes retain their original todo, n/a and blocked states; cancellation disables dispatch without claiming implementation passed. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened.
 
 ## Decision Log
 

@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-10-06T20:54:01Z",
+    "updated_at": "2026-10-06T22:31:37Z",
     "resolution": "cancelled"
   },
   "links": {
@@ -125,7 +125,7 @@
       "lane": "system",
       "status": "closeout_recorded",
       "branch": null,
-      "note": "[PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
+      "note": "[PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. Correction after lane restoration: the earlier skipped-lane closeout is superseded. Uncertified lanes retain their original todo, n/a and blocked states; cancellation disables dispatch without claiming implementation passed. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
     },
     {
       "timestamp": "2026-10-06T09:47:18.109Z",
@@ -150,6 +150,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-06T22:31:37Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "closeout_text_reconciled",
+      "branch": null,
+      "note": "Aligned the plan reconciliation and annotated closeout history with preserved unfinished lane states. This records no lane certification, external Linear write or sync confirmation."
     }
   ],
   "taxonomy": {
