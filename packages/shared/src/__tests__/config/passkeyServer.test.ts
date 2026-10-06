@@ -205,13 +205,10 @@ describe("config/passkeyServer", () => {
       }
     });
 
-    // Characterization, not endorsement. The check trusts every subdomain, so
-    // hosts the spec does not approve pass it too. `staging-admin` is the live
-    // example: it is deliberately outside the rollout because `packages/admin`
-    // has no passkey entrypoint, yet the check still admits it. Closing that
-    // gap is an open decision (see the spec's "Approved origins versus enforced
-    // origins"), and these are the cases that will fail if it is closed.
-    it("currently trusts any production subdomain, approved or not", () => {
+    // This is domain compatibility, not site authorization. PRD-833 chose the directory's
+    // configured origin list as authoritative; the app remains a first filter, as documented
+    // in docs/docs/builders/integrations/passkey.mdx. Do not narrow the RP to a single hostname.
+    it("keeps the domain first filter separate from the directory's approved-origin list", () => {
       for (const origin of [
         "https://unapproved.greengoods.app",
         "https://staging-admin.greengoods.app",
