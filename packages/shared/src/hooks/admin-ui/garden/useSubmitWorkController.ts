@@ -131,6 +131,7 @@ export function useSubmitWorkController({
     userAddress: primaryAddress ?? null,
     completeClientFlow: false,
     allowOfflineQueue: false,
+    retainSubmission: true,
     onProgress: (stage, message) => {
       setProgressMessage(
         formatMessage({ id: `app.admin.work.submit.progress.${stage}`, defaultMessage: message })
@@ -140,7 +141,11 @@ export function useSubmitWorkController({
     // no toast repeats it and nothing closes the flow. Only a queued stand-in,
     // which the admin never treats as sent, still needs a word here.
     onSuccess: (txHash) => {
-      if (typeof txHash === "string" && isOfflineTxHash(txHash)) {
+      if (
+        typeof txHash === "string" &&
+        isOfflineTxHash(txHash) &&
+        mutation.getLastSubmissionOutcome()?.kind !== "awaiting-confirmation"
+      ) {
         toastService.error({
           title: formatMessage({ id: "app.admin.work.submit.queuedError.title" }),
           message: formatMessage({ id: "app.admin.work.submit.queuedError.message" }),
@@ -167,6 +172,7 @@ export function useSubmitWorkController({
     published.txHash === mutation.data &&
     !isOfflineTxHash(published.txHash);
   const panelDirty = !sent && (form.formState.isDirty || images.length > 0);
+  const submitted = sent || published?.kind === "awaiting-confirmation";
   useEffect(() => {
     onDirtyChange?.(panelDirty);
     return () => onDirtyChange?.(false);
@@ -255,7 +261,7 @@ export function useSubmitWorkController({
   };
 
   const goBack = () => {
-    if (!busy && !sent) setCurrentStep((step) => Math.max(1, step - 1));
+    if (!busy && !submitted) setCurrentStep((step) => Math.max(1, step - 1));
   };
   const goNext = async () => {
     if (busy) return;
@@ -286,10 +292,10 @@ export function useSubmitWorkController({
     setCurrentStep((step) => Math.min(SUBMIT_WORK_STEP_IDS.length, step + 1));
   };
   const handleStepJump = (step: number) => {
-    if (!busy && !sent && step < currentStep) setCurrentStep(step);
+    if (!busy && !submitted && step < currentStep) setCurrentStep(step);
   };
   const goToStep = (step: number) => {
-    if (!busy && !sent) setCurrentStep(step);
+    if (!busy && !submitted) setCurrentStep(step);
   };
 
   return {

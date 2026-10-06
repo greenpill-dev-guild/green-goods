@@ -33,6 +33,8 @@ export interface SubmitWorkCommand {
   draft: WorkDraft;
   images: File[];
   allowOfflineQueue: boolean;
+  /** Retain an online wallet send for confirmation recovery without offline fallback. */
+  retainSubmission?: boolean;
 }
 
 export interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
@@ -157,7 +159,14 @@ export async function submitWork(
     ...command,
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
-  if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
+  if ((resolved.allowOfflineQueue || resolved.retainSubmission) && ports.queue.admit) {
+    if (
+      !resolved.allowOfflineQueue &&
+      (resolved.authMode !== "wallet" || !(await ports.connectivity.confirm()))
+    )
+      throw new Error("Offline queue is disabled for this submission surface");
+    return submitAdmittedWork(resolved, ports);
+  }
   const online = await ports.connectivity.confirm();
 
   const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
@@ -317,6 +326,7 @@ export function createDefaultSubmitWorkPorts(
             clientWorkId: input.clientWorkId,
             authMode: input.authMode,
             admissionToken,
+            ...(!input.allowOfflineQueue ? { requiresExplicitSend: true } : {}),
           }
         );
         const job = await jobQueueDB.getJob(jobId);

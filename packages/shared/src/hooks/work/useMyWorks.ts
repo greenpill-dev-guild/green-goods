@@ -7,7 +7,7 @@
  */
 
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
 import { getWorksByGardener } from "../../modules/data/eas";
@@ -21,6 +21,8 @@ import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { useUser } from "../auth/useUser";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
+import { logger } from "../../modules/app/logger";
 import { useLiveQuery } from "../utils/useLiveQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
@@ -100,6 +102,15 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     staleTime: includeOffline ? 10_000 : 30_000,
   });
   const localKey = worksKeys.offline("mine", chainId, activeAddress);
+  useEffect(() => {
+    if (!activeAddress || !online.data?.length) return;
+    void retireWorkCompletionSnapshots(
+      jobQueueDB,
+      activeAddress,
+      chainId,
+      online.data.map((work) => work.id)
+    ).catch((error) => logger.error("Could not retire indexed work snapshots", { error }));
+  }, [activeAddress, chainId, online.data]);
   const local = useQuery({
     queryKey: localKey,
     queryFn: () =>

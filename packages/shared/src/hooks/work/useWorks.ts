@@ -4,6 +4,8 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
+import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { type OverlayWork, resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
@@ -13,6 +15,7 @@ import type { Work, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
 import { deduplicateById, extractClientWorkId } from "../../utils/work/deduplication";
+import { sortByCreatedAt } from "../../utils/time";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
@@ -186,6 +189,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     // slice rebuilt each row on every render, and a screen that keeps a row in
     // state from an effect, as the admin work detail does, re-rendered without end.
     const remoteData = online.data?.slice(0, take);
+    const indexedIds = new Set(
+      (online.data ?? [])
+        .filter((work) => work.approval !== undefined)
+        .map((work) => work.id.toLowerCase())
+    );
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
@@ -194,7 +202,8 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     const confirmed = (completions.data ?? []).flatMap((row) =>
       row.chainId === chainId &&
       row.userAddress === primaryAddress?.toLowerCase() &&
-      row.work?.gardenAddress.toLowerCase() === gardenId.toLowerCase()
+      row.work?.gardenAddress.toLowerCase() === gardenId.toLowerCase() &&
+      !indexedIds.has(row.work.id.toLowerCase())
         ? [row.work]
         : []
     );
@@ -203,7 +212,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       saved: deduplicateById([...(projection.data ?? overlay.data ?? []), ...confirmed]),
       overlay: overlay.data,
     });
-    const rows: Work[] = resolved.rows;
+    // Confirmed previews and cached history share the indexed pagination window.
+    // Pending queue jobs are appended below and stay visible independently.
+    const rows: Work[] = sortByCreatedAt(resolved.rows).slice(0, take);
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
@@ -236,7 +247,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     }
     return {
       remoteData,
-      works: rows.sort((a, b) => b.createdAt - a.createdAt),
+      works: sortByCreatedAt(rows),
       unknownIds: resolved.unknownIds,
       retainedIds: resolved.retainedIds,
     };
@@ -256,6 +267,17 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     sendingJobs,
     isOnline,
   ]);
+
+  useEffect(() => {
+    if (!primaryAddress || !online.data?.length) return;
+    // Wallet receipt previews share this cache; an embedded approval marks an indexed row.
+    void retireWorkCompletionSnapshots(
+      jobQueueDB,
+      primaryAddress,
+      chainId,
+      online.data.filter((work) => work.approval !== undefined).map((work) => work.id)
+    ).catch((error) => logger.error("Could not retire indexed work snapshots", { error }));
+  }, [primaryAddress, chainId, online.data]);
 
   useEffect(() => {
     if (remoteData !== undefined) {

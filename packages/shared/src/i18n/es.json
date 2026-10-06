@@ -6777,5 +6777,7 @@
   "cockpit.garden.pool.seed.error.actionRequired": "Añade al menos una acción",
   "cockpit.garden.pool.seed.error.actionChoose": "Elige una acción",
   "cockpit.garden.pool.seed.error.actionCount": "Indica un número de al menos 1",
-  "cockpit.garden.pool.seed.error.actionCountLarge": "Ese número es demasiado grande"
+  "cockpit.garden.pool.seed.error.actionCountLarge": "Ese número es demasiado grande",
+  "cockpit.garden.pool.seed.error.actionDuplicate": "Esa acción ya está en la lista",
+  "cockpit.garden.pool.seed.error.actionCountWhole": "Introduce un número entero"
 }

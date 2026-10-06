@@ -5,6 +5,7 @@ import "fake-indexeddb/auto";
 
 // Import directly from db.ts to avoid EAS SDK dependency chain
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -208,6 +209,7 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
     },
   });
   await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", `0x${"cd".repeat(32)}`, id);
+  const originalJob = (await jobQueueDB.getJob(id))!;
   await jobQueueDB.deleteJob(id);
   expect((await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work).toEqual(
     work
@@ -228,6 +230,7 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
         gardenAddress: garden,
         actionUID: 1,
         feedback: "Other",
+        confirmedWork: work,
       },
     });
     await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", "0xother", otherId);
@@ -248,4 +251,30 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
       });
   });
   expect(observed).toEqual([expect.objectContaining({ clientWorkId: "confirmed-copy", work })]);
+  await retireWorkCompletionSnapshots(jobQueueDB, address.toUpperCase(), 11155111, [
+    work.id.toUpperCase(),
+  ]);
+  expect(await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy")).toMatchObject({
+    clientWorkId: "confirmed-copy",
+    transactionHash: `0x${"cd".repeat(32)}`,
+    workUID: work.id,
+    indexedAt: expect.any(Number),
+  });
+  expect(
+    (await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work
+  ).toBeUndefined();
+  expect((await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy"))?.work).toEqual(
+    work
+  );
+  expect((await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy"))?.work).toEqual(
+    work
+  );
+  // A late duplicate completion write cannot restore a retired card.
+  const db = await jobQueueDB.init();
+  await db.jobs.put(originalJob);
+  await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", `0x${"cd".repeat(32)}`, id);
+  expect(
+    (await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work
+  ).toBeUndefined();
+  await jobQueueDB.deleteJob(id);
 });

@@ -222,6 +222,20 @@ const SEED_ERROR_DESCRIPTOR_BY_ID = new Map<string, SeedErrorMessage>(
     ])
     .concat([
       [
+        "That action is already listed",
+        {
+          id: "cockpit.garden.pool.seed.error.actionDuplicate",
+          defaultMessage: "That action is already listed",
+        },
+      ],
+      [
+        "Enter a whole count",
+        {
+          id: "cockpit.garden.pool.seed.error.actionCountWhole",
+          defaultMessage: "Enter a whole count",
+        },
+      ],
+      [
         "Add at least one action",
         {
           id: "cockpit.garden.pool.seed.error.actionRequired",

@@ -27,8 +27,38 @@ export async function recordWorkCompletion(
     userAddress: job.userAddress.toLowerCase(),
     chainId: job.chainId,
     transactionHash,
-    ...(work ? { work } : {}),
+    ...(previous?.indexedAt !== undefined
+      ? { indexedAt: previous.indexedAt, workUID: previous.workUID }
+      : work
+        ? { work, workUID: work.id }
+        : {}),
     jobId,
     createdAt: Date.now(),
+  });
+}
+
+function readWorkCompletions(db: JobQueueDatabase, address: string, chainId: number) {
+  const prefix = `${chainId}:${address.toLowerCase()}:`;
+  return db.work_completions.where("scope").between(prefix, `${prefix}\uffff`, true, true);
+}
+
+/** Indexed cards leave the temporary snapshot; retry identity stays durable. */
+export async function retireWorkCompletionSnapshots(
+  store: { init: () => Promise<JobQueueDatabase> },
+  address: string,
+  chainId: number,
+  indexedWorkIds: readonly string[]
+): Promise<void> {
+  const ids = new Set(indexedWorkIds.map((id) => id.toLowerCase()));
+  if (!ids.size) return;
+  const db = await store.init();
+  await db.transaction("rw", db.work_completions, async () => {
+    await readWorkCompletions(db, address, chainId)
+      .filter((row) => Boolean(row.work && ids.has(row.work.id.toLowerCase())))
+      .modify((row) => {
+        row.workUID = row.work!.id;
+        row.indexedAt = Date.now();
+        delete row.work;
+      });
   });
 }

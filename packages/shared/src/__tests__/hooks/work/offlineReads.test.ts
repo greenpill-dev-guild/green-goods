@@ -6,12 +6,16 @@ import { renderHookWithQueryClient } from "../../test-utils/query-client-render"
 
 const seams = vi.hoisted(() => ({
   completions: vi.fn(() => [] as unknown[]),
+  retire: vi.fn(async () => {}),
   list: vi.fn(),
   approvals: vi.fn(),
   jobs: vi.fn(),
   mine: vi.fn(),
   images: vi.fn(),
   preview: vi.fn((_file: File, _owner: string, _identity: string) => "blob:restored-evidence"),
+}));
+vi.mock("../../../modules/job-queue/work-completions", () => ({
+  retireWorkCompletionSnapshots: seams.retire,
 }));
 // The garden read is one bounded page plus the approvals for the works on it.
 vi.mock("../../../modules/data/eas", () => ({
@@ -331,6 +335,61 @@ it("does not restore abandoned queue rows from legacy merged garden snapshots", 
 });
 
 describe("confirmed queue cards after a fresh reading cache", () => {
+  it("keeps indexed historical snapshots outside the garden window until Load older", async () => {
+    const rows = Array.from({ length: 100 }, (_, index) => ({
+      ...cachedWork,
+      id: `indexed-${index}`,
+      createdAt: now - index,
+      gardenerAddress: queuedJob.userAddress,
+      approval: null,
+    }));
+    seams.completions.mockReturnValue(
+      rows.map((row) => ({
+        userAddress: queuedJob.userAddress,
+        chainId: 11155111,
+        work: row,
+      }))
+    );
+    client.setQueryData(worksKeys.online(garden, 11155111), rows.slice(0, 51));
+    client.setQueryData(worksKeys.local(garden, 11155111, queuedJob.userAddress), rows);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works).toHaveLength(50));
+    expect(result.current.hasOlderWork).toBe(true);
+    expect(result.current.works.some((row) => row.id === "indexed-50")).toBe(false);
+    expect(seams.retire).toHaveBeenCalledWith(
+      expect.anything(),
+      queuedJob.userAddress,
+      11155111,
+      rows.slice(0, 51).map((row) => row.id)
+    );
+    client.setQueryData(worksKeys.window(garden, 11155111), 100);
+    await waitFor(() => expect(result.current.works).toHaveLength(100));
+    expect(result.current.hasOlderWork).toBe(false);
+  });
+
+  it("does not resurrect a retired snapshot from an older saved projection", async () => {
+    seams.completions.mockReturnValue([
+      {
+        userAddress: queuedJob.userAddress,
+        chainId: 11155111,
+        workUID: cachedWork.id,
+        indexedAt: now,
+      },
+    ]);
+    client.setQueryData(
+      worksKeys.online(garden, 11155111),
+      Array.from({ length: 51 }, (_, index) => ({
+        ...cachedWork,
+        id: `newer-${index}`,
+        createdAt: now + 100 - index,
+        approval: null,
+      }))
+    );
+    client.setQueryData(worksKeys.local(garden, 11155111, queuedJob.userAddress), [cachedWork]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works).toHaveLength(50));
+    expect(result.current.works.some((row) => row.id === cachedWork.id)).toBe(false);
+  });
   const owner = "0x1111111111111111111111111111111111111111";
   const work = {
     ...cachedWork,

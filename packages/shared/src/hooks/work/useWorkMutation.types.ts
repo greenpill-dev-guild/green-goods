@@ -13,6 +13,8 @@ export interface UseWorkMutationOptions {
   completeClientFlow?: boolean;
   /** Disable when queue fallback must not represent a completed submission. */
   allowOfflineQueue?: boolean;
+  /** Persist an online wallet submission for confirmation-only recovery. */
+  retainSubmission?: boolean;
   onProgress?: (stage: WalletSubmissionStage, message: string) => void;
   onSuccess?: (txHash: `0x${string}` | string) => void;
   onError?: (error: unknown) => void;
