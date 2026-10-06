@@ -88,9 +88,8 @@ const meta: Meta = {
           "and Portuguese, and the play function asserts the rule the pages are built on: the " +
           "heading card, the status card and the bottom bar are each one height on every screen, " +
           "so the report or permission under them starts in one place and never moves. The " +
-          "structure is checked everywhere, with text held to one line. Whether the copy fits its " +
-          "lines depends on the typeface: the pages use the system font, the copy was fitted in " +
-          "Apple's, and its fit is checked on Apple platforms only. CI runs on Linux.",
+          "structure and natural wrapping are checked on every platform, in the shipped font " +
+          "and an Arial fallback. No platform skips the text-fit check.",
       },
     },
   },
@@ -158,25 +157,62 @@ function Screens({ children }: { children: ReactNode }) {
 }
 
 /**
- * Whether the copy's fit can be judged here. The pages use the system font stack, so each platform
- * draws them in its own typeface, and the copy was fitted in Apple's. Clean-room CI runs on Linux,
- * whose typeface is wider: two English titles that fit in Apple's wrap there. A web font loaded by
- * another story says nothing about these panels, which never use one.
- */
-function drawnInAppleSystemFont(): boolean {
-  return /Mac OS X|iPhone|iPad/.test(navigator.userAgent);
-}
-
-/**
- * Asserts each band is one size across every panel that has it; returns what it measured. The
- * structure is checked everywhere. The copy's fit, at its natural wrapping, is checked as well
- * where the panels are drawn in the typeface the copy was fitted in.
+ * Check structural reservations first, then natural wrapping in each font profile.
+ * A green Linux run must prove readable copy as well as the shape of the page.
  */
 async function expectOneSize(canvasElement: HTMLElement) {
-  canvasElement.setAttribute(STRUCTURE, "");
-  const structure = await expectBands(canvasElement);
-  canvasElement.removeAttribute(STRUCTURE);
-  return drawnInAppleSystemFont() ? expectBands(canvasElement) : structure;
+  try {
+    canvasElement.setAttribute(STRUCTURE, "");
+    await expectBands(canvasElement);
+  } finally {
+    canvasElement.removeAttribute(STRUCTURE);
+  }
+  const frames = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-panel] > section"));
+  const previous = frames.map((frame) => frame.style.fontFamily);
+  const previousSans = canvasElement.style.getPropertyValue("--font-sans");
+  let bands: ReturnType<typeof measure>[] = [];
+  try {
+    for (const font of [null, "Arial, sans-serif"]) {
+      if (font) {
+        canvasElement.style.setProperty("--font-sans", font);
+        frames.forEach((frame) => {
+          frame.style.fontFamily = font;
+        });
+      }
+      // Native font changes are flushed by the geometry reads; unrelated web-font loads
+      // and background-tab animation frames must not delay this check.
+      bands = await expectBands(canvasElement);
+      const text = Array.from(
+        canvasElement.querySelectorAll<HTMLElement>(
+          '[data-component="CeremonyHeading"] h1, [data-component="CeremonyStageNotice"], [data-component="FlowBar"] button'
+        )
+      );
+      await expect(text.length).toBeGreaterThan(0);
+      const clipped = text
+        .filter(
+          (element) =>
+            element.scrollWidth > element.clientWidth + 1 ||
+            element.scrollHeight > element.clientHeight + 1
+        )
+        .map((element) => ({
+          panel: element.closest<HTMLElement>("[data-panel]")?.dataset.testid,
+          text: element.textContent,
+          width: [element.scrollWidth, element.clientWidth],
+          height: [element.scrollHeight, element.clientHeight],
+        }));
+      await expect({ font: font ?? "shipped", clipped }).toEqual({
+        font: font ?? "shipped",
+        clipped: [],
+      });
+    }
+    return bands;
+  } finally {
+    frames.forEach((frame, index) => {
+      frame.style.fontFamily = previous[index] ?? "";
+    });
+    if (previousSans) canvasElement.style.setProperty("--font-sans", previousSans);
+    else canvasElement.style.removeProperty("--font-sans");
+  }
 }
 
 async function expectBands(canvasElement: HTMLElement) {

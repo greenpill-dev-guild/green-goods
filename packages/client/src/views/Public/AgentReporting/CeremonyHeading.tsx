@@ -31,7 +31,8 @@ export function GardenLine({ children }: { children: string }) {
 /**
  * The page's heading card at each stage. A step is headed by what to do in it; once the request has
  * left the page, by what was sent, as the app's work page names a submission, and the status card
- * under it says where it stands. Every heading is a title on one line and a body within two.
+ * under it says where it stands. The title and body each reserve two lines at phone width,
+ * so platform font metrics do not move the record between steps.
  */
 export function ceremonyHeading(
   intl: IntlShape,

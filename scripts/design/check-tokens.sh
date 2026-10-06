@@ -260,6 +260,7 @@ collect_usage_hits() {
     | grep -Ev 'duration-\[var\(' \
     | grep -Ev 'rounded-\[var\(' \
     | grep -Evi 'react error #[0-9]{3,8}' \
+    | node scripts/design/filter-comment-hits.mjs "$RAW_USAGE_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
@@ -299,6 +300,7 @@ collect_admin_invariant_hits() {
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     "$ADMIN_INVARIANT_PATTERN" packages/admin/src 2>/dev/null \
     | grep -Ev "$USAGE_ALLOWLIST_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_INVARIANT_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
@@ -336,6 +338,7 @@ collect_admin_wrapper_bypass_hits() {
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     --exclude-dir=Shell \
     "$ADMIN_WRAPPER_BYPASS_PATTERN" packages/admin/src 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_WRAPPER_BYPASS_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
@@ -370,6 +373,7 @@ collect_admin_raw_type_size_hits() {
     --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     "$ADMIN_RAW_TYPE_SIZE_PATTERN" packages/admin/src 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_RAW_TYPE_SIZE_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
@@ -382,13 +386,29 @@ collect_admin_view_m3_colour_hits() {
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     "$ADMIN_VIEW_M3_COLOUR_PATTERN" packages/admin/src 2>/dev/null \
     | grep -Ev "$ADMIN_M3_COLOUR_OWNERS_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_VIEW_M3_COLOUR_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
 }
 
+collect_optional_hits() {
+  local status
+  if "$@"; then return 0; else status=$?; fi
+  # grep's no-match status is expected; parser/IO failures must stop the guard.
+  if [[ "$status" -eq 1 ]]; then return 0; fi
+  return "$status"
+}
+
 validate_usage_baseline
-USAGE_HITS="$({ collect_usage_hits || true; collect_admin_invariant_hits || true; collect_admin_wrapper_bypass_hits || true; collect_admin_raw_type_size_hits || true; collect_admin_view_m3_colour_hits || true; } | sort -u)"
+if ! USAGE_HITS="$(
+  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits; do
+    collect_optional_hits "$collector" || exit 2
+  done | sort -u
+)"; then
+  echo "❌ Token source collection failed; guard results are unavailable."
+  exit 2
+fi
 BASELINE_HITS=""
 if [[ -f "$USAGE_BASELINE" ]]; then
   BASELINE_HITS="$(awk -F '\t' '!/^[[:space:]]*(#|$)/ {print $1}' "$USAGE_BASELINE" | sort -u || true)"
@@ -433,12 +453,13 @@ collect_admin_chrome_violations() {
     --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
     "$ADMIN_CHROME_PATTERN" packages/admin/src 2>/dev/null \
     | grep -Ev "$ADMIN_CHROME_ALLOWLIST_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_CHROME_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
 }
 
-ADMIN_CHROME_VIOLATIONS="$(collect_admin_chrome_violations || true)"
+if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
 if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
@@ -465,12 +486,13 @@ collect_admin_focus_ring_violations() {
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
     --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
     "$LEGACY_ADMIN_FOCUS_RING_PATTERN" packages/admin/src packages/shared/src/components/Canvas 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$LEGACY_ADMIN_FOCUS_RING_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
 }
 
-ADMIN_FOCUS_RING_VIOLATIONS="$(collect_admin_focus_ring_violations || true)"
+if ! ADMIN_FOCUS_RING_VIOLATIONS="$(collect_optional_hits collect_admin_focus_ring_violations)"; then exit 2; fi
 if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
   echo "❌ Admin focus-ring token violation found:"
   echo "$ADMIN_FOCUS_RING_VIOLATIONS" | sed 's/^/  /'

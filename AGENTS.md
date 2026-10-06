@@ -188,6 +188,11 @@ Use `humanize-writing` for human-facing prose when available. Lead with the usef
 write clear sentences, and preserve evidence and uncertainty. Report what changed, how it was
 verified, and anything still blocked. Keep code, commands, and identifiers exact.
 
+For coding and investigation tasks, capture observed phase boundaries as work proceeds and
+include the compact [task/phase record](.claude/context/task-handoffs.md) in the final or
+continuation handoff, including ordinary tasks without a Plan Hub. Keep it in the existing chat
+or owning handoff; unknown timing and human attention stay unknown.
+
 ## Shared skills and harness configuration
 
 Edit shared skills in `.claude/skills`; `.agents/skills` is its symlinked Codex discovery path.
