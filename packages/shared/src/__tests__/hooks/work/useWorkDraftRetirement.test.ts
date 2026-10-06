@@ -65,3 +65,26 @@ it("keeps the composer after failed retirement and allows an explicit retry", as
   });
   expect(navigate).toHaveBeenCalledOnce();
 });
+
+it("holds the committed Review through navigation and clears it only after unmount", async () => {
+  useWorkFlowStore.setState({ feedback: "Submitted work" });
+  const navigate = vi.fn(() => expect(useWorkFlowStore.getState().feedback).toBe("Submitted work"));
+  const { unmount } = renderHook(() =>
+    useWorkDraftRetirement({
+      completed: true,
+      paused: false,
+      attempt: 0,
+      clearActiveDraft: vi.fn().mockResolvedValue(undefined),
+      schedule: (callback) => callback(),
+      navigate,
+    })
+  );
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(navigate).toHaveBeenCalledOnce();
+  expect(useWorkFlowStore.getState().submissionCompleted).toBe(true);
+  unmount();
+  expect(useWorkFlowStore.getState().feedback).toBe("");
+  expect(useWorkFlowStore.getState().submissionCompleted).toBe(false);
+});

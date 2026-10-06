@@ -106,6 +106,22 @@ function MediaStep({ staged }: { staged: File[] }) {
 }
 
 /** Two photos required, none staged: the count sits under the upload well in amber. */
+export const MediaProcessing: Story = {
+  args: {
+    controller: {
+      ...ACTION_STEP_CONTROLLER,
+      activeStepId: "media",
+      selectedAction: TWO_PHOTO_ACTION,
+      busy: true,
+      isPreparingMedia: true,
+      progressMessage: "Processing... 42%",
+    } as unknown as SubmitWorkController,
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("status")).toHaveTextContent("Processing... 42%");
+  },
+};
+
 export const MediaNoPhotos: Story = {
   render: () => <MediaStep staged={[]} />,
 };

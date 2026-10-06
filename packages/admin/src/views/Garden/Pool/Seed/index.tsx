@@ -256,7 +256,9 @@ export function SeedCommitmentDialog({
   });
 
   const goNext = useCallback(async () => {
-    const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")));
+    const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")), {
+      shouldFocus: true,
+    });
     if (valid && !closedSeedActions(form.getValues(), actions, chainId, Date.now()).length)
       setStepIndex((index) => index + 1);
   }, [form, currentStep, actions, chainId]);

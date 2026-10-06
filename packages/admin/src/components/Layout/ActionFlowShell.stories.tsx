@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { RiUploadCloudLine } from "@remixicon/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { useState } from "react";
 import { AdminButton } from "../AdminButton";
 import { AdminLinearProgress } from "../AdminLinearProgress";
 import { ActionFlowShell } from "./ActionFlowShell";
@@ -151,5 +152,34 @@ export const TwoColumnRail: Story = {
     layout: "dialog",
     children: <FormPreview rows={6} />,
     footer: <ProgressFooter />,
+  },
+};
+
+export const CompletionVisibility: Story = {
+  tags: ["storybook-ci"],
+  render: function CompletionExample() {
+    const [complete, setComplete] = useState(false);
+    return (
+      <ActionFlowShell
+        title="Submit Work"
+        complete={complete}
+        footer={<AdminButton onClick={() => setComplete(true)}>Complete submission</AdminButton>}
+      >
+        <p role="status">{complete ? "Work submitted" : "Review your work"}</p>
+        <FormPreview rows={20} />
+      </ActionFlowShell>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const scrollBody = canvasElement.querySelector<HTMLElement>('[data-component="SheetBody"]')!;
+    scrollBody.scrollTop = scrollBody.scrollHeight;
+    await expect(scrollBody.scrollTop).toBeGreaterThan(0);
+    await userEvent.click(canvas.getByRole("button", { name: "Complete submission" }));
+    await expect(scrollBody.scrollTop).toBe(0);
+    await expect(canvas.getByRole("status")).toBeVisible();
+    await expect(canvasElement.ownerDocument.activeElement).toBe(
+      canvasElement.querySelector('[data-region="action-flow-body"]')
+    );
   },
 };

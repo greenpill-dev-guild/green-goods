@@ -5,6 +5,7 @@ import "fake-indexeddb/auto";
 
 // Import directly from db.ts to avoid EAS SDK dependency chain
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -178,4 +179,102 @@ describe("durable work admission", () => {
       uploadCheckpoint: { broadcast: { kind: "user-operation", hash: "0xnew" } },
     });
   });
+});
+
+it("retains the receipt-confirmed card after queue and photo cleanup", async () => {
+  const address = "0x1111111111111111111111111111111111111111" as const;
+  const garden = "0x2222222222222222222222222222222222222222" as const;
+  const work = {
+    id: `0x${"ab".repeat(32)}`,
+    gardenerAddress: address,
+    gardenAddress: garden,
+    actionUID: 1,
+    title: "Planting",
+    feedback: "Completed",
+    metadata: '{"clientWorkId":"confirmed-copy"}',
+    media: ["uploaded-photo"],
+    createdAt: 1800000000,
+    status: "pending" as const,
+  };
+  const id = await jobQueueDB.addJob({
+    kind: "work",
+    chainId: 11155111,
+    userAddress: address,
+    payload: {
+      clientWorkId: "confirmed-copy",
+      confirmedWork: work,
+      gardenAddress: garden,
+      actionUID: 1,
+      feedback: "Completed",
+    },
+  });
+  await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", `0x${"cd".repeat(32)}`, id);
+  const originalJob = (await jobQueueDB.getJob(id))!;
+  await jobQueueDB.deleteJob(id);
+  expect((await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work).toEqual(
+    work
+  );
+  expect(await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy")).toBeUndefined();
+  expect(await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy")).toBeUndefined();
+  // Real completion records in neighbouring account/chain scopes must not leak
+  // through the live read that backs Your Work.
+  for (const scope of [
+    { userAddress: address, chainId: 42161 },
+    { userAddress: garden, chainId: 11155111 },
+  ]) {
+    const otherId = await jobQueueDB.addJob({
+      kind: "work",
+      ...scope,
+      payload: {
+        clientWorkId: "confirmed-copy",
+        gardenAddress: garden,
+        actionUID: 1,
+        feedback: "Other",
+        confirmedWork: work,
+      },
+    });
+    await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", "0xother", otherId);
+    await jobQueueDB.deleteJob(otherId);
+  }
+  const observed = await new Promise<unknown>((resolve, reject) => {
+    const subscription = jobQueueDB
+      .observeWorkCompletions(address.toUpperCase(), 11155111)
+      .subscribe({
+        next: (rows) => {
+          subscription.unsubscribe();
+          resolve(rows);
+        },
+        error: (error) => {
+          subscription.unsubscribe();
+          reject(error);
+        },
+      });
+  });
+  expect(observed).toEqual([expect.objectContaining({ clientWorkId: "confirmed-copy", work })]);
+  await retireWorkCompletionSnapshots(jobQueueDB, address.toUpperCase(), 11155111, [
+    work.id.toUpperCase(),
+  ]);
+  expect(await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy")).toMatchObject({
+    clientWorkId: "confirmed-copy",
+    transactionHash: `0x${"cd".repeat(32)}`,
+    workUID: work.id,
+    indexedAt: expect.any(Number),
+  });
+  expect(
+    (await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work
+  ).toBeUndefined();
+  expect((await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy"))?.work).toEqual(
+    work
+  );
+  expect((await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy"))?.work).toEqual(
+    work
+  );
+  // A late duplicate completion write cannot restore a retired card.
+  const db = await jobQueueDB.init();
+  await db.jobs.put(originalJob);
+  await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", `0x${"cd".repeat(32)}`, id);
+  expect(
+    (await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work
+  ).toBeUndefined();
+  await jobQueueDB.deleteJob(id);
 });

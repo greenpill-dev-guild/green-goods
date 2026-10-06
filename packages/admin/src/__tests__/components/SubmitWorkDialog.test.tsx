@@ -19,6 +19,7 @@ import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { AuthContext } from "@green-goods/shared/providers/Auth";
 import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import SubmitWork from "@/views/Garden/SubmitWork";
@@ -44,7 +45,10 @@ const workSend = vi.hoisted(() => {
     data: undefined as string | undefined,
     error: null as unknown,
     // What the mutation publishes to the session that started the send.
-    lastSubmissionOutcome: null as null | { kind: "direct"; txHash: string },
+    lastSubmissionOutcome: null as null | {
+      kind: "direct" | "awaiting-confirmation";
+      txHash: string;
+    },
   };
   const listeners = new Set<() => void>();
   let state = idle;
@@ -66,8 +70,7 @@ const workSend = vi.hoisted(() => {
     },
     mutate: () =>
       set({ ...idle, isPending: true, lastSubmissionOutcome: state.lastSubmissionOutcome }),
-    // As the real reset: the settled result goes, the published outcome stays.
-    reset: () => set({ ...idle, lastSubmissionOutcome: state.lastSubmissionOutcome }),
+    reset: () => set(idle),
     restore: () => set(idle),
     // The callbacks run before the send reads as settled, as the real mutation runs them.
     succeed(txHash: string) {
@@ -79,6 +82,16 @@ const workSend = vi.hoisted(() => {
         data: txHash,
         lastSubmissionOutcome: { kind: "direct", txHash },
       });
+    },
+    awaitConfirmation(txHash: string) {
+      set({
+        ...idle,
+        isSuccess: true,
+        data: txHash,
+        lastSubmissionOutcome: { kind: "awaiting-confirmation", txHash },
+      });
+      callbacks.onSuccess?.(txHash);
+      callbacks.onSettled?.();
     },
     // The account changed while the send was out. It still lands, but the mutation
     // runs no callbacks and publishes nothing to the session that is here now.
@@ -347,7 +360,12 @@ function renderSubmitWorkTree() {
 function useHandSettledSend(options: unknown) {
   workSend.listen(options as Parameters<typeof workSend.listen>[0]);
   const state = useSyncExternalStore(workSend.subscribe, workSend.snapshot, workSend.snapshot);
-  return { ...state, mutate: workSend.mutate, reset: workSend.reset };
+  return {
+    ...state,
+    mutate: workSend.mutate,
+    reset: workSend.reset,
+    getLastSubmissionOutcome: () => workSend.snapshot().lastSubmissionOutcome,
+  };
 }
 
 // The one eligible action opens on Media with optional photos; a typed note makes the flow dirty.
@@ -492,6 +510,24 @@ describe("SubmitWork dialog", () => {
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
+  it("keeps a receipt still being checked out of the successful Done state", async () => {
+    const errorToast = vi.spyOn(toastService, "error");
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    await act(async () => {
+      renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.awaitConfirmation("0xoffline_confirmation-job");
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check confirmation" })).toBeInTheDocument();
+    expect(errorToast).not.toHaveBeenCalled();
+  });
   it("stays on the Review after a failed send, still guards the answers, and tries again", async () => {
     workMutationOverride.current = useHandSettledSend;
     const user = userEvent.setup();

@@ -3,6 +3,7 @@ import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import {
   address,
   integer,
+  indexedConsiderationRail,
   mapCommitment,
   number,
   optionalNumber,
@@ -160,6 +161,7 @@ export async function mapCommitmentsWithRequirements(
       hasKnownDisplayTerms({
         ...raw,
         onchainState: raw.state,
+        considerationRail: indexedConsiderationRail(raw),
         ...Object.fromEntries(
           DISPLAY_INTEGER_FIELDS.map((field) => [field, nullableProjectionInteger(raw[field])])
         ),

@@ -270,6 +270,23 @@ describe("wallet-submission", () => {
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
       mock(mockWalletClient.sendTransaction!).mockResolvedValue("0xHash" as `0x${string}`);
 
+      const uploaded = {
+        media: ["cid-photo-one", "cid-photo-two"],
+        metadata: {
+          clientWorkId: "sent",
+          details: { trees: 4 },
+          timeSpentMinutes: 30,
+          attachments: [
+            { cid: "cid-photo-one", type: "image/jpeg" },
+            { cid: "cid-photo-two", type: "image/png" },
+          ],
+        },
+      };
+      mock(encoders.encodeWorkData).mockImplementation(async (_draft, _chain, options) => {
+        options?.onEncoded?.(uploaded);
+        return "0xEncodedWorkData" as `0x${string}`;
+      });
+
       // What the send tells its wait for the indexer to watch for.
       const arrived = () => vi.mocked(polling.pollQueriesAfterTransaction).mock.lastCall![0].until;
 
@@ -285,6 +302,10 @@ describe("wallet-submission", () => {
 
         await send([attested(eas, workSchema)]);
         expect(listed()).toEqual([[workUID], [workUID]]);
+        expect(queryClient.getQueryData<EASWork[]>(keys[0])?.[0]).toMatchObject({
+          media: uploaded.media,
+          metadata: JSON.stringify(uploaded.metadata),
+        });
         // The indexed work takes the row's place one for one, so the wait watches for the
         // read's own row instead of a longer list.
         expect(arrived()?.()).toBe(false);

@@ -228,9 +228,7 @@ export function useWorkSubmissionFlowController({
     actionUID,
   });
 
-  useEffect(() => {
-    ensureWorkSubmissionJourneyId();
-  }, [ensureWorkSubmissionJourneyId]);
+  useEffect(() => void ensureWorkSubmissionJourneyId(), [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
     if (!linkIntent) return;
     setGardenAddressStable(linkIntent.garden);
@@ -246,8 +244,11 @@ export function useWorkSubmissionFlowController({
     attempt: retirementAttempt,
     clearActiveDraft,
     schedule: scheduleNavigation,
-    navigate: () =>
-      navigate(linkIntent?.returnTo ?? homeRoute, { replace: true, viewTransition: true }),
+    navigate: () => {
+      const destination = linkIntent?.returnTo ?? homeRoute;
+      if (destination === homeRoute) useUIStore.getState().openWorkDashboard("pending");
+      navigate(destination, { replace: true, viewTransition: true });
+    },
   });
 
   const { detailInputs, detailsConfig, mediaConfig, minRequired, reviewConfig, reviewData } =

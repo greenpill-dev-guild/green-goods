@@ -79,6 +79,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  /** The published content, available for a receipt-confirmed local preview. */
+  onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
   checkpoint?: WorkUploadCheckpoint;
   onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Stable submission identity. New submissions always supply it. */
@@ -400,6 +402,9 @@ export async function encodeWorkData(
       { name: "media", value: media, type: "string[]" },
     ]) as `0x${string}`;
 
+    checkpoint.published = { data: encodedData, metadata: metadataPayload, media };
+    await persistCheckpoint();
+    options.onEncoded?.({ metadata: metadataPayload, media });
     return encodedData;
   } catch (error) {
     failedFiles++;

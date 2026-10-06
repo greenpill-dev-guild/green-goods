@@ -1,13 +1,14 @@
 import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
-import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { type KeyboardEvent, useMemo, useRef } from "react";
+import { RiAddLine } from "@remixicon/react";
+import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { AdminButton, AdminIconButton } from "../../AdminButton";
+import { AdminButton } from "../../AdminButton";
 import { AdminSelectableCard } from "../../AdminSelectableCard";
-import { AdminSelect, AdminTextArea, AdminTextField } from "../../AdminTextField";
+import { AdminTextArea } from "../../AdminTextField";
 import { formatDomainGuidance, knownDomain, Section } from "./shared";
+import { AssessmentOutcomeFields } from "./AssessmentOutcomeFields";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -125,6 +126,7 @@ export function resolveCynefinOptions(intl: IntlShape) {
 
 interface StrategyKernelStepProps {
   showValidation: boolean;
+  validationAttempt?: number;
   isSubmitting: boolean;
 }
 
@@ -134,7 +136,11 @@ interface StrategyKernelStepProps {
  * Every control sits on the step's own left and right edges, with no card
  * around a row of fields, so they all line up with the challenge above them.
  */
-export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKernelStepProps) {
+export function StrategyKernelStep({
+  showValidation,
+  validationAttempt = 0,
+  isSubmitting,
+}: StrategyKernelStepProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
 
@@ -143,6 +149,48 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
   const addSmartOutcome = useCreateAssessmentStore((s) => s.addSmartOutcome);
   const removeSmartOutcome = useCreateAssessmentStore((s) => s.removeSmartOutcome);
   const updateSmartOutcome = useCreateAssessmentStore((s) => s.updateSmartOutcome);
+
+  // Newly added fields have not participated in the failed validation. They
+  // reveal their errors on blur or the next explicit attempt to continue.
+  const [freshFields, setFreshFields] = useState({
+    attempt: validationAttempt,
+    keys: new Set<string>(),
+  });
+  const revealField = (index: number, field: string) =>
+    setFreshFields((current) => {
+      const keys = new Set(current.keys);
+      keys.delete(`${index}:${field}`);
+      return { ...current, keys };
+    });
+  const showOutcomeError = (index: number, field: string) =>
+    showValidation &&
+    (freshFields.attempt !== validationAttempt || !freshFields.keys.has(`${index}:${field}`));
+  const addOutcome = () => {
+    const index = form.smartOutcomes.length;
+    setFreshFields((current) => ({
+      attempt: validationAttempt,
+      keys: new Set([
+        ...(current.attempt === validationAttempt ? current.keys : []),
+        ...["description", "metric", "target"].map((field) => `${index}:${field}`),
+      ]),
+    }));
+    addSmartOutcome();
+  };
+  const removeOutcome = (index: number) => {
+    setFreshFields((current) => ({
+      ...current,
+      keys: new Set(
+        [...current.keys].flatMap((key) => {
+          const [row, field] = key.split(":");
+          const rowIndex = Number(row);
+          return rowIndex === index
+            ? []
+            : [`${rowIndex > index ? rowIndex - 1 : rowIndex}:${field}`];
+        })
+      ),
+    }));
+    removeSmartOutcome(index);
+  };
 
   // Step 1 requires a domain, but a restored draft can carry a stale one; an
   // unknown domain reads as none (neutral text), never as Solar (DL-047).
@@ -213,7 +261,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         ? null
         : formatMessage({
             id: "app.admin.assessment.strategyKernel.outcomeTargetPositive",
-            defaultMessage: "Target must be positive",
+            defaultMessage: "Use 0 or more",
           }),
   }));
 
@@ -303,7 +351,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             type="button"
             variant="outlined"
             size="sm"
-            onClick={() => addSmartOutcome()}
+            onClick={addOutcome}
             disabled={isSubmitting}
             leadingIcon={<RiAddLine />}
           >
@@ -324,98 +372,28 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         <div className="@container">
           <div className="flex flex-col gap-4 @xl:gap-2">
             {form.smartOutcomes.map((outcome, index) => (
-              <div
+              <AssessmentOutcomeFields
                 key={index}
-                data-region="outcome-row"
-                className="grid grid-cols-[minmax(0,1fr)_3.5rem_2rem] items-start gap-x-2 gap-y-1 [grid-template-areas:'outcome_outcome_remove'_'metric_target_target'] @xl:grid-cols-[minmax(0,1fr)_14rem_7rem_2rem] @xl:[grid-template-areas:'outcome_metric_target_remove']"
-              >
-                <AdminTextField
-                  className="[grid-area:outcome]"
-                  label={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.outcomeFieldLabel",
-                    defaultMessage: "Outcome",
-                  })}
-                  placeholder={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
-                    defaultMessage: "A sentence about people or land",
-                  })}
-                  disabled={isSubmitting}
-                  value={outcome.description}
-                  onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
-                  error={(showValidation && outcomeErrors[index]?.description) || undefined}
-                  helperText={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.outcomeHelp",
-                    defaultMessage: "The change you want to see",
-                  })}
-                />
-
-                <AdminSelect
-                  className="[grid-area:metric]"
-                  label={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.metricFieldLabel",
-                    defaultMessage: "Metric",
-                  })}
-                  disabled={isSubmitting}
-                  value={outcome.metric}
-                  onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
-                  error={(showValidation && outcomeErrors[index]?.metric) || undefined}
-                  helperText={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.metricHelp",
-                    defaultMessage: "What you'll count",
-                  })}
-                >
-                  <option value="">
-                    {formatMessage({
-                      id: "app.admin.assessment.strategyKernel.selectMetric",
-                      defaultMessage: "Select Metric",
-                    })}
-                  </option>
-                  {metrics.map((m) => (
-                    <option
-                      key={m.key}
-                      value={m.key}
-                      disabled={
-                        outcome.metric !== m.key && (selectedMetricCounts.get(m.key) ?? 0) > 0
-                      }
-                    >
-                      {m.label} ({m.unit})
-                    </option>
-                  ))}
-                </AdminSelect>
-
-                <AdminTextField
-                  className="[grid-area:target]"
-                  type="number"
-                  label={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.targetFieldLabel",
-                    defaultMessage: "Target",
-                  })}
-                  disabled={isSubmitting}
-                  value={String(outcome.target)}
-                  onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
-                  error={(showValidation && outcomeErrors[index]?.target) || undefined}
-                  helperText={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.targetHelp",
-                    defaultMessage: "How much",
-                  })}
-                  inputProps={{ min: 0, step: "any" }}
-                />
-
-                {/* Always in its column, so adding a second outcome never
-                    shifts the fields; centred on the field's 44 / 40px box. */}
-                <AdminIconButton
-                  variant="danger"
-                  className="mt-1.5 [grid-area:remove] sm:mt-1"
-                  onClick={() => removeSmartOutcome(index)}
-                  disabled={isSubmitting || !canRemoveOutcome}
-                  label={formatMessage({
-                    id: "app.admin.assessment.strategyKernel.removeOutcome",
-                    defaultMessage: "Remove Outcome",
-                  })}
-                >
-                  <RiDeleteBinLine />
-                </AdminIconButton>
-              </div>
+                outcome={outcome}
+                metrics={metrics}
+                selectedMetricCounts={selectedMetricCounts}
+                errors={{
+                  description:
+                    (showOutcomeError(index, "description") && outcomeErrors[index]?.description) ||
+                    undefined,
+                  metric:
+                    (showOutcomeError(index, "metric") && outcomeErrors[index]?.metric) ||
+                    undefined,
+                  target:
+                    (showOutcomeError(index, "target") && outcomeErrors[index]?.target) ||
+                    undefined,
+                }}
+                isSubmitting={isSubmitting}
+                canRemove={canRemoveOutcome}
+                onChange={(field, value) => updateSmartOutcome(index, field, value)}
+                onBlur={(field) => revealField(index, field)}
+                onRemove={() => removeOutcome(index)}
+              />
             ))}
           </div>
         </div>
