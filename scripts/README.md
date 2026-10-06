@@ -109,6 +109,7 @@ compatibility gate.
 | `seed-test-data.ts` | `bun scripts/dev/seed-test-data.ts` / `seed:anvil` | Seed local/anvil chain with test fixtures |
 | `ci-local.js` | `bun run check` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts. Final diagnostics preserve the first failure, selected scope, unrun checks, manual proof and lease blocks; host load is advisory. Clears the repository binding a git hook exports before any check runs, fails when a check changes the git config shared by all worktrees, and refuses publication intents while that config carries a test-fixture identity |
 | `ci-local.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
+| `playwright-setup.test.mjs` | Design CI guardrail tests | Exercise privileged installer timeout ownership, bounded retry/recovery, and caller timeout budgets |
 | `stack.test.mjs` | `bun run check --only validation-system-test` | Default service selection and startup failure/readiness behavior |
 | `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
 | `surface-leases.test.mjs` | `bun run check --only validation-system-test`, CI Gate | Deterministic coverage for claims, reuse, conflicts, stale-owner handling, and owner-only release |
@@ -186,6 +187,9 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-guidance-examples.test.mjs` | `bun run check --only review-guardrails-test`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
 | `check-vocab.sh` | `bun run check --only vocabulary` | Banned-vocabulary scan over i18n strings |
 | `md-generate.mjs` | `node scripts/design/md-generate.mjs` / `check:design-generated` | Regenerate committed DesignMD JSON/CSS projections and write the detailed client PWA token audit to the ignored `output/design/` CI-artifact path |
+| `md-generate.test.mjs` | Design CI guardrail tests | Prove that passing, contrast-failing, and stale-token runs retain the PWA audit artifact |
+| `filter-comment-hits.mjs` | `check-tokens.sh` | Mask parsed TS/TSX and CSS comments before matching source hits; retain exact baseline rows and fail on invalid input |
+| `token-usage.test.mjs` | Design CI guardrail tests | Exercise the actual token collectors against comments, executable classes, multiline values, and scanner failures |
 | `check-css-custom-properties.mjs` | `check-tokens.sh` | Undefined `var(--*)` guard with audited baseline support |
 | `check-css-custom-properties.test.mjs` | `bun run check --only review-guardrails-test` | Fixture tests for undefined custom-property guard behavior |
 

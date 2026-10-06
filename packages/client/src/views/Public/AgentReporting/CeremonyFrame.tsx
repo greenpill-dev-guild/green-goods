@@ -31,7 +31,7 @@ const PROBLEM_TEXT = {
  * screen keeps its zones, so the report or permission under them never moves:
  *
  * - the top bar holds the flow's steps, only while there is a step to take;
- * - the heading card is a title and two lines, whatever they say;
+ * - the heading card reserves two title lines and two body lines, whatever they say;
  * - the status card, where the view gives one, is the app's stacked notice: a title and two lines;
  * - the bottom bar is one row: the step's buttons or, once nothing is left to press, where the
  *   request stands.
@@ -136,7 +136,7 @@ export function CeremonyFrame({
               }
               Icon={hideHeadingIcon ? undefined : heading.Icon}
               // Enlarged text may need more than the form card's cap; it grows rather than clips.
-              className="max-h-none"
+              className="max-h-none [&_h1]:min-h-[2lh]"
             />
             {notice}
           </>
