@@ -871,6 +871,53 @@ test("linear-sync preserves existing canonical and execution records but initial
     assert.equal(created.parentId, "PRD-650");
   }));
 
+// Preservation verifies all recorded mirrors even when dispatch selection excludes
+// inactive, terminal, aggregate or sync-disabled lanes. It creates no missing mirror.
+for (const stage of ["ideas", "backlog", "active"]) {
+  for (const laneSyncMode of ["parent_only", "lane_issues"]) {
+    test(`linear-sync includes all recorded mirrors for ${stage} ${laneSyncMode} preservation`, () =>
+      withFixture((root) => {
+        assert.equal(runPlanHub(root, ["scaffold", "all-mirrors", "--stage", stage]).status, 0);
+        const status = readStatus(root, stage, "all-mirrors");
+        const canonical = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
+        status.linear = {
+          parentIssue: "PRD-780",
+          laneSyncMode,
+          stateSyncMode: "preserve_existing",
+          lanes: Object.fromEntries(canonical.map((lane, i) => [lane, { issue: `PRD-${785 + i}` }])),
+        };
+        for (const [i, lane] of canonical.entries()) {
+          status.lanes[lane].status = ["n/a", "skipped", "todo", "passed", "completed"][i];
+        }
+        status.execution_sub_lanes = Object.fromEntries([false, true].map((sync, i) => [
+          `historical_${i}`,
+          {
+            machine_lane: "state_api", owner: "codex", status: "n/a", branch: null,
+            depends_on: [], handoff: "handoffs/codex-state-api.md",
+            linear: { sync, issue: `PRD-${790 + i}`, parentIssue: "PRD-780" },
+          },
+        ]));
+        writeStatus(root, stage, "all-mirrors", status);
+        mkdirSync(join(root, ".plans", stage, "all-mirrors", "handoffs"), { recursive: true });
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_1");
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_2");
+        const result = runPlanHub(root, ["linear-sync", "--feature", "all-mirrors", "--json"]);
+        assert.equal(result.status, 0, result.stderr);
+        const manifest = JSON.parse(result.stdout);
+        assert.deepEqual(manifest.parent, { action: "preserve", issue: "PRD-780" });
+        assert.deepEqual(
+          manifest.lanes.map((r) => [r.lane, r.issue]).sort(),
+          [...canonical.map((lane, i) => [lane, `PRD-${785 + i}`]),
+            ["historical_0", "PRD-790"], ["historical_1", "PRD-791"]].sort(),
+        );
+        for (const record of manifest.lanes) {
+          assert.equal(record.action, "preserve");
+          assert.deepEqual(Object.keys(record).sort(), ["action", "issue", "lane"]);
+        }
+      }));
+  }
+}
+
 test("linear-sync rejects an unknown state sync mode", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "invalid-state-mode", "--stage", "ideas"]).status, 0);

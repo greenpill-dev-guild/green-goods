@@ -295,7 +295,9 @@ restate them here. Plan-specific deltas:
 - For a reconciled mirror whose live state is independent of local certification, set
   `linear.stateSyncMode` to `preserve_existing`. Existing parent, canonical-lane and execution
   records become read-only `action: preserve` entries containing only the issue ID and optional
-  lane key. Do not submit them as updates: retain their state, title, body, labels, priority,
+  lane key. Include every recorded canonical/execution mirror, including inactive, terminal,
+  aggregate and sync-disabled lanes, even in parent-only mode; verification creates no lane issue.
+  Do not submit them as updates: retain their state, title, body, labels, priority,
   project, schedule and dependencies. New issues retain stage-derived create fields. Follow-ups
   need separately authorized comments, successors or verified forward-only writes; a Done
   issue's description stays intact. Never infer Done from uncertified lanes or reopen Canceled scope.

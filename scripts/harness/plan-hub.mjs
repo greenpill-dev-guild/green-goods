@@ -1214,6 +1214,23 @@ function buildLinearSyncManifest(status) {
   const lanes = [...executionLanes, ...canonicalLanes].map((record) =>
     buildLinearSyncRecord(record, stateSyncMode));
 
+  if (stateSyncMode === "preserve_existing") {
+    // Dispatch filters must not hide recorded mirrors from closeout verification.
+    // Include historical aggregates and sync-disabled execution lanes read-only.
+    const recordedLanes = [
+      ...CANONICAL_LANES.map((lane) => [lane, linearLaneIssue(linear, lane)]),
+      ...Object.entries(normalized.execution_sub_lanes || {}).map(([name, lane]) =>
+        [name, normalizedLinearIssue(lane.linear?.issue)]),
+    ];
+    const includedIssues = new Set(lanes.map((record) => record.issue).filter(Boolean));
+    for (const [lane, issue] of recordedLanes) {
+      if (issue && !includedIssues.has(issue)) {
+        lanes.push({ action: "preserve", issue, lane });
+        includedIssues.add(issue);
+      }
+    }
+  }
+
   return {
     version: 1,
     syncDirection: LINEAR_SYNC_DIRECTION,
