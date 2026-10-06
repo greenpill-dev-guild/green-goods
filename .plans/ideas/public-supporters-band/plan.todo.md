@@ -77,4 +77,4 @@ Resolution: `cancelled`. No implementation is claimed shipped by this hub. The e
 Still open or dispositioned:
 
 - No implementation is retained. Any future supporter display requires a new scope decision and partner-content permission review; the historical candidate is dropped from dispatch.
-- Commit this closeout record before archiving; retain the current Linear cancellation.
+- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, archive still requires a cancellation-preserving sync and fresh mirror proof; the current idea-stage manifest would reopen the issue as Backlog, so do not apply it or record confirmation.

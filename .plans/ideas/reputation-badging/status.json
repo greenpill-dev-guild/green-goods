@@ -26,9 +26,9 @@
     "lanes": {}
   },
   "notes": [
-    "Outcome milestone #16 — Badges live across 3+ pilot gardens; due 2026-06-30.",
+    "Historical outcome milestone #16 — Badges live across 3+ pilot gardens; former due date 2026-06-30 is superseded.",
     "Epic #466. Groundwork: #457 (feat(greenwill): async badge issuer service).",
-    "Hard deadline: Lock + schema deploy 2026-04-25; pilot rollout 2026-06-30.",
+    "Historical Q2 schedule, superseded: Lock + schema deploy 2026-04-25; pilot rollout 2026-06-30. No current rollout date is accepted.",
     "Portability is a first-class outcome — sibling projects (Coop, WEFA) must render Green Goods badges via the shared EAS schema + Unlock locks without Green Goods-specific integration.",
     "GreenWill broadcast is blocked on a contracts confidence gate: upgrade-preservation unit coverage, GreenWill workflow integration coverage, Arbitrum fork support-flow test.",
     "This hub owns the later six-badge portable reputation expansion. The initial GreenWill three-badge deployment path is separate and does not require the GreenGoodsBadge EAS schema.",

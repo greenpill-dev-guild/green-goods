@@ -102,4 +102,4 @@ Resolution: `cancelled`. No implementation is claimed shipped by this hub. The b
 Still open or dispositioned:
 
 - Sponsored donations → [PRD-1033](https://linear.app/greenpill-dev-guild/issue/PRD-1033). The broader offline/identity/copy proposal is dropped from dispatch; reopen only through a new accepted scope, without treating PRD-1033 as authority for those independent changes.
-- Commit this closeout record before archiving; retain the current Linear cancellation.
+- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, archive still requires a cancellation-preserving sync and fresh mirror proof; the current idea-stage manifest would reopen the issue as Backlog, so do not apply it or record confirmation.

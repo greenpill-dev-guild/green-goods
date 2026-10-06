@@ -86,7 +86,7 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Created:** 2026-04-17
 
-**Last updated:** 2026-10-04
+**Last updated:** 2026-10-06
 
 **Specification:** [current technical brief](technical-brief.md), with [earlier slice context](spec.md)
 
@@ -96,11 +96,7 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 
 **Linear milestone:** Buildathon prototype — target 2026-10-02, submission 2026-10-04
 
-**Mirror:** PRD-339 is stored historical metadata, unresolved during the 2026-09-11 research pass.
-The live slice issues are PRD-943 through PRD-948 under the Buildathon prototype milestone. The
-manual Linear writes described in [Linear changes](#linear-changes) **were applied on 2026-09-22**;
-what remains deliberately unrun is `linear-sync` and `record-linear`, the Implementation Start Gate.
-Do not repeat the manual writes.
+**Mirror:** [PRD-998](https://linear.app/greenpill-dev-guild/issue/PRD-998) is canonical, with `parent_only` lane sync. The Implementation Start Gate completed on 2026-09-27, as recorded in the current checklist below; it is not an unrun dispatch prerequisite. PRD-339 and the September PRD-943–PRD-948 slice are historical context. Do not repeat those writes or create lane mirrors. Current `status.json` and handoffs own the remaining acceptance work.
 
 ## Status reconciliation (2026-10-06)
 
@@ -968,10 +964,7 @@ the Buildathon prototype and WhatsApp number working milestones.
 - **One Linear write remains owed.** PRD-947's body still describes composer hydration and the
   `useWhatsAppDraftIntake`/`useDraftResume` validation commands, which steps 9 and 10 no longer do.
   It needs the read-only review reflected before a builder picks it up.
-- `linear-sync` has **not** been run, deliberately. The hub is `parent_only`; with an empty lane map
-  an `lane_issues` sync would have created duplicate canonical lane issues under the historical
-  PRD-339 parent instead of using the live slice issues. Run the Implementation Start Gate only once
-  a builder is named and the lanes come off `blocked`.
+- **Historical start-gate warning, retired 2026-10-06.** The September warning about an unrun sync under PRD-339 is superseded by the completed 2026-09-27 gate and canonical PRD-998 `parent_only` mirror. The preceding September tracker changes are provenance, not a current write queue. Follow the current checklist and handoffs; do not repeat these writes or redispatch delivered work.
 
 ## Validation and handoff
 

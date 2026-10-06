@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-10-06T09:47:18.109Z",
+    "updated_at": "2026-10-06T19:26:32Z",
     "resolution": "cancelled"
   },
   "links": {
@@ -23,12 +23,12 @@
     "Replaces the old broad web2 auth and gas sponsorship scope with a code-grounded follow-up.",
     "Focus on sender sponsorship, deferred-signing semantics, and address continuity UX only.",
     "Contracts are intentionally n/a.",
-    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) is Canceled in live Linear. The broad idea tracker was canceled; its sponsored donation outcome now has the narrower PRD-1033 owner. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
+    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) remains Canceled. The broad idea was canceled; sponsored donations have the narrower PRD-1033 owner. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation is invalidated. Archive remains blocked: the current idea-stage linear-sync manifest proposes Backlog and ignores cancellation. Do not apply that manifest or confirm sync; cancellation-preserving sync and fresh mirror proof are required before archive. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "skipped",
+      "status": "todo",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -38,7 +38,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "todo",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -48,7 +48,7 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "n/a",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -58,7 +58,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "skipped",
+      "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
@@ -68,7 +68,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
@@ -134,6 +134,14 @@
       "status": "linear_sync_confirmed",
       "branch": null,
       "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-06T19:26:32Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_invalidated",
+      "branch": null,
+      "note": "Invalidated the 2026-10-06T09:47:18.109Z confirmation: no cancellation-preserving manifest was applied. Restored prior lastSyncedAt and original lane statuses; earlier closeout lane flattening is superseded. Keep PRD-611 Canceled and dispatch disabled. Do not apply the current idea-stage Backlog manifest or archive until cancellation-preserving sync is supported and verified."
     }
   ],
   "taxonomy": {
@@ -145,7 +153,7 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-06T09:47:18.109Z",
+    "lastSyncedAt": "2026-06-27T00:28:08.412Z",
     "parentIssue": "PRD-611",
     "lanes": {}
   }

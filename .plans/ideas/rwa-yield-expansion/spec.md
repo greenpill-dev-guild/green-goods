@@ -1,12 +1,13 @@
 ---
 title: RWA Yield Expansion — Design
 epic: Epic — RWA Yield Expansion
-outcome: Octant Vault APY ≥ 5% sustained 30 days
-quarter: Q2 2026
-due: 2026-06-30
-status: Draft
+outcome: Evidence-backed recommendation on conservative Arbitrum yield strategies
+status: Research in progress; implementation scope unselected
 owner: afo
-last_updated: 2026-04-17
+last_updated: 2026-10-06
+historical_outcome: Octant Vault APY ≥ 5% sustained 30 days
+historical_quarter: Q2 2026
+historical_due: 2026-06-30
 ---
 
 # RWA Yield Expansion — Design
@@ -17,11 +18,11 @@ last_updated: 2026-04-17
 
 Compare principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery against the current Aave baseline, then produce a recommendation with evidence and explicit uncertainty. Environmental or solar assets are candidates, not mandatory selections. The historical preset design below is retained for provenance and is not a locked implementation contract.
 
-## Goal
+## Historical goal (unselected hypothesis)
 
 Lift the Octant Vault yield from ~1% (pure Aave V3 USDC) to **≥5% sustained 30 days** by introducing a diversified yield engine across RWA and high-quality DeFi strategies, exposed to operators as curated presets.
 
-## Decisions (locked during brainstorm)
+## Historical brainstorm decisions (reopened hypotheses)
 
 | # | Decision | Value |
 |---|---|---|

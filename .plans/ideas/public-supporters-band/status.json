@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-29T05:49:32.687Z",
-    "updated_at": "2026-10-06T09:47:15.700Z",
+    "updated_at": "2026-10-06T19:26:32Z",
     "resolution": "cancelled"
   },
   "links": {
@@ -24,12 +24,12 @@
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
-    "2026-10-06 reconciliation: [PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. All unstarted lanes are skipped as canceled scope, not passed implementation. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened."
+    "2026-10-06 reconciliation: [PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) remains Canceled. No implementation or retained partner-display scope was accepted. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation is invalidated. Archive remains blocked: the current idea-stage linear-sync manifest proposes Backlog and ignores cancellation. Do not apply that manifest or confirm sync; cancellation-preserving sync and fresh mirror proof are required before archive. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "skipped",
+      "status": "todo",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -39,7 +39,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "todo",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -49,7 +49,7 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "todo",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -59,7 +59,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "skipped",
+      "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
@@ -69,7 +69,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "skipped",
+      "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
@@ -135,6 +135,14 @@
       "status": "linear_sync_confirmed",
       "branch": null,
       "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-06T19:26:32Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_invalidated",
+      "branch": null,
+      "note": "Invalidated the 2026-10-06T09:47:15.700Z confirmation: no cancellation-preserving manifest was applied. Restored prior lastSyncedAt and original lane statuses; earlier closeout lane flattening is superseded. Keep PRD-347 Canceled and dispatch disabled. Do not apply the current idea-stage Backlog manifest or archive until cancellation-preserving sync is supported and verified."
     }
   ],
   "taxonomy": {
@@ -146,7 +154,7 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-06T09:47:15.700Z",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
     "parentIssue": "PRD-347",
     "lanes": {},
     "project": "Green Goods Seasons & Campaigns"

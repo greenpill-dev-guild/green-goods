@@ -116,31 +116,31 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Horizon:** quarter · **Stage:** evidencing
 **Note:** RESR-9 is assigned and In Progress in the current Research cycle.
 
-**Question.** Which vault strategies and presets give garden endowments materially better yield than today's Aave-only position while staying conservative, who controls principal and yield, and how does yield turn into funded impact?
+**Question.** Which conservative Arbitrum yield strategies should garden endowments consider against the current Aave baseline, with what principal protection, liquidity, custody and failure risks; who controls principal and yield; and how does yield turn into funded impact?
 
 **Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow is in progress (PRD-763).
 
 **Anchors.**
 - RESR-9 (RWA Yield Expansion research; In Progress, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, assigned to Afo in Q4 October), RESR-8 (yield-to-impact codification; Backlog).
 - Linear project [Operator Yield Split Visibility & Presets](https://linear.app/greenpill-dev-guild/project/operator-yield-split-visibility-and-presets-375773578105) (Product, Backlog; PRD-351) and the Linear document *Green Goods x Octant Vault Scope Lock*.
-- `.plans/ideas/rwa-yield-expansion/` (Conservative and Balanced presets mixing Aave V3, Morpho Metamorpho, and Ondo USDY with an instant-withdrawal buffer and a FIFO redemption queue; a sustained ≥5% target) and the admin harvest-and-distribute workflow shipped in PR 776.
+- `.plans/ideas/rwa-yield-expansion/` owns the RESR-9 research boundary. Its former Aave/Morpho/Ondo mix, Conservative/Balanced presets, buffer/FIFO design and sustained ≥5% target are historical hypotheses, not accepted constraints. The admin harvest-and-distribute workflow shipped in PR 776 is separate implementation evidence.
 - The weekly growth-pulse status update on *Sustainability & Monetization* for TVL and yield numbers. Do not re-query PostHog or the indexer here.
 
 **Status surface.** Comment on RESR-9 (there is no research-owned project; the Product project is for the operator UX, not the strategy question).
 
 **Settled.**
-- Yield expansion is a policy layer on top of the existing MultistrategyVault, not a replacement; `YieldResolver` stays untouched; operators opt into presets rather than composing strategy baskets (rwa-yield-expansion brief).
+- RESR-9 produces a decision-ready recommendation with current primary-source evidence and explicit uncertainty. Research does not authorize contracts, adapters, custody, migration or fund movement; no preset architecture is accepted by this agenda.
 - Harvest and distribution are separate transactions; admin must not report harvest as distribution (harvest-distribution-ux brief).
 - Cookie Jar is historical context, not an active rail (RESR-15 boundary).
 
 **Open.**
-1. The current candidate strategy set on Arbitrum with live, verifiable APY and risk. The rwa-yield-expansion brief's dates (a May contract freeze and a June deploy) have lapsed, so its strategy list needs re-verification against what is live now. Next step: RESR-9's first artifact, a strategy table with sources fetched this quarter. Answerable by the owner.
-2. Who holds preset authority (Hats roles) and what timelock applies, and whether a 48-hour operator-initiated switch is still the intended shape. Next step: confirm against the scope-lock document.
+1. The current candidate strategy set on Arbitrum, compared with the Aave baseline on principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery. The former strategy list and Q2 dates are historical. Next step: RESR-9's first artifact, a strategy table with current primary sources and explicit uncertainty. Answerable by the owner.
+2. Whether presets or a policy layer are appropriate at all, and what allocation authority, liquidity model, migration boundary and timelocks a recommendation would require. Hats roles, buffer/FIFO redemption and the 48-hour switch are reopened hypotheses. Next step: compare alternatives and reconcile any recommendation with the scope-lock document before accepting implementation scope.
 3. The funding-rail map (RESR-15): Octant vault crowdfunding, Juicebox and Revnet, direct Safe payout, partner rounds, GoodDollar allocation paths, with initiator, principal control, yield control, evidence trigger, and funder view per rail. Next step: deliver its October comparison; it also feeds track 6.
 4. Yield-to-impact language (RESR-8) once RESR-15 lands.
-5. Whether a sustained ≥5% is achievable at conservative risk, or the bar should be restated. Next step: the panel reads RESR-9's table.
+5. What yield outcome current evidence supports at conservative risk. Sustained ≥5% is a historical hypothesis, not a minimum acceptance bar. Next step: the panel reads RESR-9's table and accepts or rejects a revised outcome.
 
-**Implementable when.** A strategy and preset recommendation with live APY evidence, risk notes, and audit implications is accepted; RESR-15's rail map is accepted; and the operator preset UX scope (PRD-351) is confirmed against it.
+**Implementable when.** A strategy recommendation and any required architecture with current yield evidence, risk notes and audit implications are accepted; RESR-15's rail map is accepted; and the operator UX scope (PRD-351) is confirmed against that decision. Presets are conditional on the accepted recommendation.
 
 **Watch keywords.** yield, vault, APY, Aave, Morpho, Metamorpho, Ondo, USDY, RWA, endowment, preset, strategy, Octant, MultistrategyVault, harvest, splitYield, treasury, TVL, Cookie Jar.
 

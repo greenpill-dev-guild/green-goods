@@ -11,10 +11,10 @@
 **Status**: `IDEA — later portable six-badge expansion; no rollout date accepted`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-10-06`
-**Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
+**Historical Q2 dates (superseded)**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**. No current rollout date is accepted.
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
-> **For agentic workers:** Execute via the `plan` skill's batch flow (`.claude/skills/plan/SKILL.md § Execute Plan`) task-by-task. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** The phases and dated schedule below are a historical proposal. Do not dispatch them until updated scope and rollout dates are accepted through the `plan` skill. Steps use checkbox (`- [ ]`) syntax.
 
 > 2026-04-25 cleanup note, updated after deployment-readiness review: this backlog hub owns the later portable badge expansion and shared `GreenGoodsBadge` EAS schema. The initial GreenWill launch is only Genesis, First Work, and First Support, and does not require this schema.
 
