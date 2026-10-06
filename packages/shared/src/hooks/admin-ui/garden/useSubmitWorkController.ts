@@ -163,6 +163,7 @@ export function useSubmitWorkController({
   const sent =
     mutation.isSuccess &&
     published !== null &&
+    (published.kind === "direct" || published.kind === "processed") &&
     published.txHash === mutation.data &&
     !isOfflineTxHash(published.txHash);
   const panelDirty = !sent && (form.formState.isDirty || images.length > 0);
@@ -313,6 +314,7 @@ export function useSubmitWorkController({
     images,
     isAuthenticated,
     isLoadingData,
+    isPreparingMedia,
     mediaFeedback,
     mutation,
     phaseRef,

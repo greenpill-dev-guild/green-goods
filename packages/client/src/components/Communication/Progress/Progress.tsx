@@ -14,17 +14,15 @@ interface FormProgressProps {
  * under it, joined by lines that fill as steps complete. Submit Work, proof and
  * compose share it, so every flow names its steps (D6).
  *
- * Each step is a column of up to 64px, wide enough for the longest step name
- * in every language, and the line between two markers spans only the gap
- * between them. Columns narrow before the tracker reaches the top bar's back
- * button, down to 58px on a 320px phone.
+ * Compact 48px columns keep all four names centred on a 320px phone while
+ * leaving the back button its own tap area. Connectors span the marker gaps.
  */
 export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
   const { formatMessage } = useIntl();
   return (
     <ol
       aria-label={formatMessage({ id: "app.form.progress.label" })}
-      className="grid w-full grid-flow-col auto-cols-[minmax(0,4rem)] justify-center"
+      className="grid w-full grid-flow-col auto-cols-[minmax(0,3rem)] justify-center"
     >
       {steps.map((step, index) => {
         const isCurrentStep = currentStep === index + 1;
@@ -77,7 +75,7 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
             </span>
             <span
               className={cn(
-                "whitespace-nowrap text-[11px] leading-[14px]",
+                "max-w-full text-center text-[11px] leading-[12px]",
                 isCurrentStep
                   ? "font-semibold text-text-strong-950"
                   : "font-medium text-text-sub-600"

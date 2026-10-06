@@ -26,7 +26,6 @@ import {
   submitWork,
   type SubmitWorkOutcome,
 } from "../../modules/work/submit-work-command";
-import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
@@ -95,7 +94,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const ownsFlow = (origin: Origin | undefined) =>
     ownsSession(origin) &&
     (!completeClientFlow || origin?.activeDraftId === useWorkFlowStore.getState().activeDraftId);
-  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const retainedCheckpoint = useRef<{
     id: string;
     checkpoint: NonNullable<WorkDraft["uploadCheckpoint"]>;
@@ -384,10 +382,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
         lastGardenRef.current = gardenAddress;
         scheduleFollowUp();
-      }
-
-      if (completeClientFlow) {
-        openWorkDashboard();
       }
 
       onSuccess?.(txHash);

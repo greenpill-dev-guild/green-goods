@@ -184,8 +184,10 @@ export function SubmitWorkFlow({
       }),
     },
   ];
+  const awaitingConfirmation = mutation.lastSubmissionOutcome?.kind === "awaiting-confirmation";
   // One reading of the send, so the status row and the footer never disagree.
   const status = submitWorkSendStatus({
+    awaitingConfirmation,
     phase: flowSendPhase({ sending: mutation.isPending, sent, failed: mutation.isError }),
     progressMessage,
     formatMessage,
@@ -196,10 +198,17 @@ export function SubmitWorkFlow({
       stepIndex={currentStep - 1}
       isLast={currentStep === stepConfigs.length}
       phase={phase}
-      sendLabel={formatMessage({ id: "app.admin.work.submit.submit" })}
+      sendLabel={
+        awaitingConfirmation
+          ? formatMessage({
+              id: "app.admin.work.submit.checkConfirmation",
+              defaultMessage: "Check confirmation",
+            })
+          : formatMessage({ id: "app.admin.work.submit.submit" })
+      }
       // The Review's primary submits the form, which validates once more before it sends.
       sendButtonProps={{ type: "submit", form: formId, leadingIcon: <RiUploadCloudLine /> }}
-      note={<SingleSendNote phase={phase} />}
+      note={awaitingConfirmation ? status.description : <SingleSendNote phase={phase} />}
       nextDisabled={activeStepId === "action" && !selectedAction}
       held={busy}
       another={{

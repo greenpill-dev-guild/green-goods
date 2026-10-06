@@ -2,7 +2,7 @@ import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { type KeyboardEvent, useMemo, useRef } from "react";
+import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "../../AdminButton";
 import { AdminSelectableCard } from "../../AdminSelectableCard";
@@ -125,6 +125,7 @@ export function resolveCynefinOptions(intl: IntlShape) {
 
 interface StrategyKernelStepProps {
   showValidation: boolean;
+  validationAttempt?: number;
   isSubmitting: boolean;
 }
 
@@ -134,7 +135,11 @@ interface StrategyKernelStepProps {
  * Every control sits on the step's own left and right edges, with no card
  * around a row of fields, so they all line up with the challenge above them.
  */
-export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKernelStepProps) {
+export function StrategyKernelStep({
+  showValidation,
+  validationAttempt = 0,
+  isSubmitting,
+}: StrategyKernelStepProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
 
@@ -143,6 +148,48 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
   const addSmartOutcome = useCreateAssessmentStore((s) => s.addSmartOutcome);
   const removeSmartOutcome = useCreateAssessmentStore((s) => s.removeSmartOutcome);
   const updateSmartOutcome = useCreateAssessmentStore((s) => s.updateSmartOutcome);
+
+  // Newly added fields have not participated in the failed validation. They
+  // reveal their errors on blur or the next explicit attempt to continue.
+  const [freshFields, setFreshFields] = useState({
+    attempt: validationAttempt,
+    keys: new Set<string>(),
+  });
+  const revealField = (index: number, field: string) =>
+    setFreshFields((current) => {
+      const keys = new Set(current.keys);
+      keys.delete(`${index}:${field}`);
+      return { ...current, keys };
+    });
+  const showOutcomeError = (index: number, field: string) =>
+    showValidation &&
+    (freshFields.attempt !== validationAttempt || !freshFields.keys.has(`${index}:${field}`));
+  const addOutcome = () => {
+    const index = form.smartOutcomes.length;
+    setFreshFields((current) => ({
+      attempt: validationAttempt,
+      keys: new Set([
+        ...(current.attempt === validationAttempt ? current.keys : []),
+        ...["description", "metric", "target"].map((field) => `${index}:${field}`),
+      ]),
+    }));
+    addSmartOutcome();
+  };
+  const removeOutcome = (index: number) => {
+    setFreshFields((current) => ({
+      ...current,
+      keys: new Set(
+        [...current.keys].flatMap((key) => {
+          const [row, field] = key.split(":");
+          const rowIndex = Number(row);
+          return rowIndex === index
+            ? []
+            : [`${rowIndex > index ? rowIndex - 1 : rowIndex}:${field}`];
+        })
+      ),
+    }));
+    removeSmartOutcome(index);
+  };
 
   // Step 1 requires a domain, but a restored draft can carry a stale one; an
   // unknown domain reads as none (neutral text), never as Solar (DL-047).
@@ -213,7 +260,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
         ? null
         : formatMessage({
             id: "app.admin.assessment.strategyKernel.outcomeTargetPositive",
-            defaultMessage: "Target must be positive",
+            defaultMessage: "Use 0 or more",
           }),
   }));
 
@@ -303,7 +350,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             type="button"
             variant="outlined"
             size="sm"
-            onClick={() => addSmartOutcome()}
+            onClick={addOutcome}
             disabled={isSubmitting}
             leadingIcon={<RiAddLine />}
           >
@@ -342,7 +389,11 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   disabled={isSubmitting}
                   value={outcome.description}
                   onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
-                  error={(showValidation && outcomeErrors[index]?.description) || undefined}
+                  onBlur={() => revealField(index, "description")}
+                  error={
+                    (showOutcomeError(index, "description") && outcomeErrors[index]?.description) ||
+                    undefined
+                  }
                   helperText={formatMessage({
                     id: "app.admin.assessment.strategyKernel.outcomeHelp",
                     defaultMessage: "The change you want to see",
@@ -358,7 +409,10 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   disabled={isSubmitting}
                   value={outcome.metric}
                   onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
-                  error={(showValidation && outcomeErrors[index]?.metric) || undefined}
+                  onBlur={() => revealField(index, "metric")}
+                  error={
+                    (showOutcomeError(index, "metric") && outcomeErrors[index]?.metric) || undefined
+                  }
                   helperText={formatMessage({
                     id: "app.admin.assessment.strategyKernel.metricHelp",
                     defaultMessage: "What you'll count",
@@ -384,7 +438,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                 </AdminSelect>
 
                 <AdminTextField
-                  className="[grid-area:target]"
+                  className="[grid-area:target] [&_[data-region=supporting-line]]:min-h-8"
                   type="number"
                   label={formatMessage({
                     id: "app.admin.assessment.strategyKernel.targetFieldLabel",
@@ -393,7 +447,10 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   disabled={isSubmitting}
                   value={String(outcome.target)}
                   onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
-                  error={(showValidation && outcomeErrors[index]?.target) || undefined}
+                  onBlur={() => revealField(index, "target")}
+                  error={
+                    (showOutcomeError(index, "target") && outcomeErrors[index]?.target) || undefined
+                  }
                   helperText={formatMessage({
                     id: "app.admin.assessment.strategyKernel.targetHelp",
                     defaultMessage: "How much",
@@ -406,7 +463,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                 <AdminIconButton
                   variant="danger"
                   className="mt-1.5 [grid-area:remove] sm:mt-1"
-                  onClick={() => removeSmartOutcome(index)}
+                  onClick={() => removeOutcome(index)}
                   disabled={isSubmitting || !canRemoveOutcome}
                   label={formatMessage({
                     id: "app.admin.assessment.strategyKernel.removeOutcome",

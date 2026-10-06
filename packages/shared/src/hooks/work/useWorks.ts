@@ -12,7 +12,7 @@ import { WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
 import type { Work, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
-import { extractClientWorkId } from "../../utils/work/deduplication";
+import { deduplicateById, extractClientWorkId } from "../../utils/work/deduplication";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
@@ -106,6 +106,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
   const isOnline = useOnlineStatus();
+  const completions = useLiveQuery(
+    primaryAddress ? `${chainId}:${primaryAddress.toLowerCase()}` : null,
+    () => jobQueueDB.observeWorkCompletions(primaryAddress!, chainId)
+  );
   const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
@@ -187,9 +191,16 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     );
     // The approval stays in the stored read and leaves the projected row, whose
     // status already carries it.
+    const confirmed = (completions.data ?? []).flatMap((row) =>
+      row.chainId === chainId &&
+      row.userAddress === primaryAddress?.toLowerCase() &&
+      row.work?.gardenAddress.toLowerCase() === gardenId.toLowerCase()
+        ? [row.work]
+        : []
+    );
     const resolved = resolveGardenWorkRows({
       remote: remoteData,
-      saved: projection.data ?? overlay.data,
+      saved: deduplicateById([...(projection.data ?? overlay.data ?? []), ...confirmed]),
       overlay: overlay.data,
     });
     const rows: Work[] = resolved.rows;
@@ -230,6 +241,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       retainedIds: resolved.retainedIds,
     };
   }, [
+    completions.data,
+    primaryAddress,
+    gardenId,
+    chainId,
     online.data,
     take,
     projection.data,

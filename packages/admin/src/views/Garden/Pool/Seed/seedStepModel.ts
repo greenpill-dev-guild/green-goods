@@ -215,10 +215,38 @@ const SEED_ERROR_MESSAGES = {
 
 /** What the schema said, keyed by the id it said it with. */
 const SEED_ERROR_DESCRIPTOR_BY_ID = new Map<string, SeedErrorMessage>(
-  Object.entries(COMMITMENT_COMPOSER_ERROR_IDS).map(([rule, id]) => [
-    id,
-    SEED_ERROR_MESSAGES[rule as keyof typeof SEED_ERROR_MESSAGES],
-  ])
+  Object.entries(COMMITMENT_COMPOSER_ERROR_IDS)
+    .map(([rule, id]): [string, SeedErrorMessage] => [
+      id,
+      SEED_ERROR_MESSAGES[rule as keyof typeof SEED_ERROR_MESSAGES],
+    ])
+    .concat([
+      [
+        "Add at least one action",
+        {
+          id: "cockpit.garden.pool.seed.error.actionRequired",
+          defaultMessage: "Add at least one action",
+        },
+      ],
+      [
+        "Choose an action",
+        { id: "cockpit.garden.pool.seed.error.actionChoose", defaultMessage: "Choose an action" },
+      ],
+      [
+        "Needs a count of at least 1",
+        {
+          id: "cockpit.garden.pool.seed.error.actionCount",
+          defaultMessage: "Needs a count of at least 1",
+        },
+      ],
+      [
+        "That count is too large",
+        {
+          id: "cockpit.garden.pool.seed.error.actionCountLarge",
+          defaultMessage: "That count is too large",
+        },
+      ],
+    ])
 );
 
 /**

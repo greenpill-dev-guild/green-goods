@@ -10,6 +10,8 @@ export interface WorkCompletion {
   userAddress: string;
   chainId: number;
   transactionHash: string;
+  /** Optional for completions written by older builds. */
+  work?: import("../../types/domain").Work;
   jobId: string;
   createdAt: number;
 }

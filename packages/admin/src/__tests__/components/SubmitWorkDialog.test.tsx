@@ -44,7 +44,10 @@ const workSend = vi.hoisted(() => {
     data: undefined as string | undefined,
     error: null as unknown,
     // What the mutation publishes to the session that started the send.
-    lastSubmissionOutcome: null as null | { kind: "direct"; txHash: string },
+    lastSubmissionOutcome: null as null | {
+      kind: "direct" | "awaiting-confirmation";
+      txHash: string;
+    },
   };
   const listeners = new Set<() => void>();
   let state = idle;
@@ -78,6 +81,14 @@ const workSend = vi.hoisted(() => {
         isSuccess: true,
         data: txHash,
         lastSubmissionOutcome: { kind: "direct", txHash },
+      });
+    },
+    awaitConfirmation(txHash: string) {
+      set({
+        ...idle,
+        isSuccess: true,
+        data: txHash,
+        lastSubmissionOutcome: { kind: "awaiting-confirmation", txHash },
       });
     },
     // The account changed while the send was out. It still lands, but the mutation
@@ -492,6 +503,22 @@ describe("SubmitWork dialog", () => {
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
+  it("keeps a receipt still being checked out of the successful Done state", async () => {
+    workMutationOverride.current = useHandSettledSend;
+    const user = userEvent.setup();
+    await act(async () => {
+      renderSubmitWork([WORK_ACTION]);
+      await Promise.resolve();
+    });
+    await user.click(await walkToReview(user));
+    await act(async () => {
+      workSend.awaitConfirmation(`0x${"ef".repeat(32)}`);
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("button", { name: "Done" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check confirmation" })).toBeInTheDocument();
+  });
   it("stays on the Review after a failed send, still guards the answers, and tries again", async () => {
     workMutationOverride.current = useHandSettledSend;
     const user = userEvent.setup();

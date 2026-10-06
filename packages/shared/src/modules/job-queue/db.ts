@@ -373,12 +373,16 @@ class JobQueueStore {
       async () => {
         const job = await db.jobs.get(jobId);
         if (job?.chainId) {
+          const scope = workScope(job.userAddress, job.chainId, clientWorkId);
+          const previous = await db.work_completions.get(scope);
+          const work = (job.payload as WorkJobPayload).confirmedWork ?? previous?.work;
           await db.work_completions.put({
-            scope: workScope(job.userAddress, job.chainId, clientWorkId),
+            scope,
             clientWorkId,
             userAddress: job.userAddress.toLowerCase(),
             chainId: job.chainId,
             transactionHash: attestationId,
+            ...(work ? { work } : {}),
             jobId,
             createdAt: Date.now(),
           });
@@ -400,6 +404,18 @@ class JobQueueStore {
   ): Promise<WorkCompletion | undefined> {
     const db = await this.init();
     return db.work_completions.get(workScope(address, chainId, clientWorkId));
+  }
+
+  /** Confirmed cards remain readable after the upload jobs and files are removed. */
+  observeWorkCompletions(address: string, chainId: number): Observable<WorkCompletion[]> {
+    return this.observe(async () => {
+      const db = await this.init();
+      const prefix = `${chainId}:${address.toLowerCase()}:`;
+      return db.work_completions
+        .where("scope")
+        .between(prefix, `${prefix}\uffff`, true, true)
+        .toArray();
+    });
   }
 
   async acquireExecutionClaim(ids: string[], token: string): Promise<boolean> {

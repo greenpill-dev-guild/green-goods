@@ -127,6 +127,17 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
   const tracker = canvas.getByRole("list");
   const steps = within(tracker).getAllByRole("listitem");
 
+  const firstMarker = box(markerOf(steps[0], 1));
+  const lastMarker = box(markerOf(steps.at(-1)!, steps.length));
+  await expect((firstMarker.left + lastMarker.right) / 2).toBeCloseTo(
+    (box(bar).left + box(bar).right) / 2,
+    0
+  );
+  for (let index = 1; index < steps.length; index++) {
+    await expect(box(steps[index - 1].lastElementChild!).right).toBeLessThan(
+      box(steps[index].lastElementChild!).left
+    );
+  }
   // Flow pages offset their content by the bar's 80px.
   await expect(box(bar).height).toBe(80);
   for (const [index, step] of steps.entries()) {
@@ -148,6 +159,13 @@ const sitsOnTheBackLine: NonNullable<FlowStory["play"]> = async ({ canvasElement
  */
 export const InTopBar: FlowStory = {
   ...inTopBar,
+  play: sitsOnTheBackLine,
+};
+
+/** The longer quantity label wraps inside its own column on a narrow phone. */
+export const ComposeInTopBar: FlowStory = {
+  ...inTopBar,
+  args: { ...inTopBar.args, flow: "compose" },
   play: sitsOnTheBackLine,
 };
 

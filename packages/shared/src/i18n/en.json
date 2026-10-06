@@ -519,7 +519,7 @@
   "app.admin.assessment.strategyKernel.outcomeFieldLabel": "Outcome",
   "app.admin.assessment.strategyKernel.outcomeHelp": "The change you want to see",
   "app.admin.assessment.strategyKernel.outcomePlaceholder": "A sentence about people or land",
-  "app.admin.assessment.strategyKernel.outcomeTargetPositive": "Target must be positive",
+  "app.admin.assessment.strategyKernel.outcomeTargetPositive": "Use 0 or more",
   "app.admin.assessment.strategyKernel.removeOutcome": "Remove Outcome",
   "app.admin.assessment.strategyKernel.selectMetric": "Select Metric",
   "app.admin.assessment.strategyKernel.smartOutcomeExample.agro": "e.g., Native forest grows back on the degraded pasture",
@@ -6053,6 +6053,7 @@
   "app.garden.draft.resumeDescription": "Continue with your saved work, or choose Start Fresh. This draft stays in Your Work.",
   "app.garden.attachments.invalid": "Check attachment formats and sizes. Photos: 10 MB; videos: 20 MB and 30 seconds; all files: 50 MB.",
   "app.garden.draft.reselect": "{name} is no longer readable. Remove this attachment, then select it again from Media.",
+  "app.admin.work.submit.checkConfirmation": "Check confirmation",
   "app.work.awaitingConfirmation": "Awaiting confirmation",
   "app.work.confirmationExplanation": "Your work was sent. We will check its status automatically when online.",
   "app.work.confirmationFailed": "This upload didn't go through. Your media is saved; try again when you're ready.",
@@ -6772,5 +6773,9 @@
   "public.reporting.browser.open": "Open in Browser",
   "public.reporting.browser.warning": "Open this in Safari or Chrome. Passkeys and wallets may fail here.",
   "public.reporting.browser.copied": "Link copied. If nothing opened, paste it in Safari or Chrome.",
-  "public.reporting.browser.noPasskey": "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet."
+  "public.reporting.browser.noPasskey": "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet.",
+  "cockpit.garden.pool.seed.error.actionRequired": "Add at least one action",
+  "cockpit.garden.pool.seed.error.actionChoose": "Choose an action",
+  "cockpit.garden.pool.seed.error.actionCount": "Needs a count of at least 1",
+  "cockpit.garden.pool.seed.error.actionCountLarge": "That count is too large"
 }

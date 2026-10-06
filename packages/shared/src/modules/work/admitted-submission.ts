@@ -238,6 +238,16 @@ async function admitAndSend(
           ports.onWalletStage
         )
       );
+      const { readConfirmedWork } = await import("./work-confirmation");
+      const confirmedWork = await readConfirmedWork(
+        job as Job<WorkJobPayload>,
+        txHash as `0x${string}`,
+        input.chainId
+      );
+      if (confirmedWork) {
+        payload.confirmedWork = confirmedWork;
+        await jobQueueDB.updateJob(job);
+      }
       await jobQueueDB.storeClientWorkIdMapping(input.clientWorkId, txHash, job.id);
       await jobQueueDB.markJobSynced(job.id, txHash);
       forgetWorkBroadcast(job.id);

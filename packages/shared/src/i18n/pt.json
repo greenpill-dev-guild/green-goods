@@ -519,7 +519,7 @@
   "app.admin.assessment.strategyKernel.outcomeFieldLabel": "Resultado",
   "app.admin.assessment.strategyKernel.outcomeHelp": "A mudança que você quer ver",
   "app.admin.assessment.strategyKernel.outcomePlaceholder": "Uma frase sobre pessoas ou terra",
-  "app.admin.assessment.strategyKernel.outcomeTargetPositive": "A meta deve ser positiva",
+  "app.admin.assessment.strategyKernel.outcomeTargetPositive": "Use 0 ou mais",
   "app.admin.assessment.strategyKernel.removeOutcome": "Remover resultado",
   "app.admin.assessment.strategyKernel.selectMetric": "Selecionar métrica",
   "app.admin.assessment.strategyKernel.smartOutcomeExample.agro": "ex., A floresta nativa volta a crescer na pastagem degradada",
@@ -6053,6 +6053,7 @@
   "app.garden.draft.resumeDescription": "Continue seu trabalho salvo ou escolha Começar do Zero. Este rascunho fica em Seu trabalho.",
   "app.garden.attachments.invalid": "Confira os formatos e tamanhos. Fotos: 10 MB; vídeos: 20 MB e 30 segundos; todos os arquivos: 50 MB.",
   "app.garden.draft.reselect": "Não é possível ler {name}. Remova este arquivo e selecione-o novamente em Mídia.",
+  "app.admin.work.submit.checkConfirmation": "Verificar confirmação",
   "app.work.awaitingConfirmation": "Aguardando confirmação",
   "app.work.confirmationExplanation": "Seu trabalho foi enviado. Verificaremos o status automaticamente quando houver conexão.",
   "app.work.confirmationFailed": "Este envio não foi concluído. Seus arquivos estão salvos; tente novamente quando quiser.",
@@ -6772,5 +6773,9 @@
   "public.reporting.browser.open": "Abrir no navegador",
   "public.reporting.browser.warning": "Abra no Safari ou Chrome. Senhas de acesso e carteiras podem falhar aqui.",
   "public.reporting.browser.copied": "Link copiado. Se nada abriu, cole no Safari ou Chrome.",
-  "public.reporting.browser.noPasskey": "Senhas de acesso não funcionam aqui. Abra no Safari ou Chrome, ou use uma carteira."
+  "public.reporting.browser.noPasskey": "Senhas de acesso não funcionam aqui. Abra no Safari ou Chrome, ou use uma carteira.",
+  "cockpit.garden.pool.seed.error.actionRequired": "Adicione pelo menos uma ação",
+  "cockpit.garden.pool.seed.error.actionChoose": "Escolha uma ação",
+  "cockpit.garden.pool.seed.error.actionCount": "Informe uma quantidade de pelo menos 1",
+  "cockpit.garden.pool.seed.error.actionCountLarge": "Essa quantidade é muito grande"
 }

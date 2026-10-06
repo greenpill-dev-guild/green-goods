@@ -11,6 +11,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
 import { getWorksByGardener } from "../../modules/data/eas";
+import { resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import type { Work } from "../../types/domain";
 import type { EASWorkListRow } from "../../types/eas-responses";
@@ -19,6 +20,8 @@ import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { useUser } from "../auth/useUser";
+import { jobQueueDB } from "../../modules/job-queue/db";
+import { useLiveQuery } from "../utils/useLiveQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -77,6 +80,10 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const { user } = useUser();
   const activeAddress = user?.id;
   const queryClient = useQueryClient();
+  const completions = useLiveQuery(
+    activeAddress ? `${chainId}:${activeAddress.toLowerCase()}` : null,
+    () => jobQueueDB.observeWorkCompletions(activeAddress!, chainId)
+  );
   const queryKey = worksKeys.mine(activeAddress, chainId, false, timeFilter, limit);
 
   const isOnline = useOnlineStatus();
@@ -134,51 +141,60 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     () => ""
   );
   const downloaded = useMemo(() => {
-    if (!gardenReads || !includeOffline || !activeAddress || online.data !== undefined) {
+    if (!gardenReads || !activeAddress) {
       return { rows: [] as Work[], updatedAt: undefined };
     }
-    // Each downloaded row carries the latest approval read with it.
     const queries = cache
-      .findAll({ queryKey: ["greengoods", "works", "online"] })
-      .filter((query) => query.queryKey[4] === chainId && query.state.data !== undefined);
-    const rows = queries.flatMap((query) => {
-      const gardenId = String(query.queryKey[3] ?? "");
-      const legacyStatuses = new Map(
-        (queryClient.getQueryData<Work[]>(worksKeys.merged(gardenId, chainId)) ?? []).map(
-          (work) => [work.id, work.status]
-        )
+      .findAll({ queryKey: worksKeys.all })
+      .filter(
+        (query) =>
+          ["online", "merged"].includes(String(query.queryKey[2])) &&
+          query.queryKey[4] === chainId &&
+          query.state.data !== undefined
       );
-      return ((query.state.data as EASWorkListRow[] | undefined) ?? [])
-        .filter((work) => work.gardenerAddress.toLowerCase() === activeAddress.toLowerCase())
-        .map(({ approval, ...work }) => ({
-          ...work,
-          status: approval
-            ? approval.approved
-              ? ("approved" as const)
-              : ("rejected" as const)
-            : legacyStatuses.get(work.id) === "approved" ||
-                legacyStatuses.get(work.id) === "rejected"
-              ? legacyStatuses.get(work.id)!
-              : ("pending" as const),
-        }));
+    const gardens = new Set(queries.map((query) => String(query.queryKey[3] ?? "")));
+    const rows = [...gardens].flatMap((gardenId) => {
+      const saved = queryClient.getQueryData<Work[]>(worksKeys.merged(gardenId, chainId));
+      return resolveGardenWorkRows({
+        remote: queryClient.getQueryData<EASWorkListRow[]>(worksKeys.online(gardenId, chainId)),
+        saved,
+        overlay: saved,
+      }).rows.filter((work) => work.gardenerAddress.toLowerCase() === activeAddress.toLowerCase());
     });
     const updated = queries.map((query) => query.state.dataUpdatedAt).filter(Boolean);
     return { rows, updatedAt: updated.length ? Math.min(...updated) : undefined };
-  }, [cache, gardenReads, includeOffline, activeAddress, chainId, online.data, queryClient]);
+  }, [cache, gardenReads, activeAddress, chainId, queryClient]);
   const remoteRows = useMemo(() => {
     // `gardenReads` is the cache revision that makes legacy merged-status
     // lookups reactive even though they are synchronous QueryClient reads.
     void gardenReads;
-    return (online.data ?? downloaded.rows).map((work) => {
-      if (work.status === "approved" || work.status === "rejected") return work;
-      const legacy = (
-        queryClient.getQueryData<Work[]>(worksKeys.merged(work.gardenAddress, chainId)) ?? []
-      ).find((candidate) => candidate.id === work.id);
-      return legacy?.status === "approved" || legacy?.status === "rejected"
-        ? { ...work, status: legacy.status }
-        : work;
-    });
-  }, [chainId, downloaded.rows, gardenReads, online.data, queryClient]);
+    // The garden cache holds receipt-confirmed work before the personal indexer
+    // read catches up. Prefer that read once it returns the same attestation.
+    const confirmed = (completions.data ?? []).flatMap((row) =>
+      row.chainId === chainId && row.userAddress === activeAddress?.toLowerCase() && row.work
+        ? [row.work]
+        : []
+    );
+    return deduplicateById([...(online.data ?? []), ...downloaded.rows, ...confirmed]).map(
+      (work) => {
+        if (work.status === "approved" || work.status === "rejected") return work;
+        const legacy = (
+          queryClient.getQueryData<Work[]>(worksKeys.merged(work.gardenAddress, chainId)) ?? []
+        ).find((candidate) => candidate.id === work.id);
+        return legacy?.status === "approved" || legacy?.status === "rejected"
+          ? { ...work, status: legacy.status }
+          : work;
+      }
+    );
+  }, [
+    activeAddress,
+    chainId,
+    completions.data,
+    downloaded.rows,
+    gardenReads,
+    online.data,
+    queryClient,
+  ]);
   const metadataByWork = useQueries({
     queries: remoteRows.map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),

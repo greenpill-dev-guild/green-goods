@@ -61,6 +61,12 @@ describe("hooks/ui/useFormWizardStepValidation", () => {
     expect(trigger).toHaveBeenCalledWith(["confirm"], { shouldFocus: true });
     expect(onValidNext).not.toHaveBeenCalled();
     expect(result.current.showValidation).toBe(true);
+    expect(result.current.validationAttempt).toBe(1);
+    await act(async () => {
+      await result.current.handleNext();
+    });
+    expect(result.current.validationAttempt).toBe(2);
+    expect(onValidNext).not.toHaveBeenCalled();
   });
 
   it("validates all fields on submit checks", async () => {

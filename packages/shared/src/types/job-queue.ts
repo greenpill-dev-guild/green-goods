@@ -83,6 +83,8 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  /** Receipt-verified snapshot, committed with the completion before the queued files leave. */
+  confirmedWork?: import("./domain").Work;
   location?: ApproximateWorkLocation;
   uploadCheckpoint?: WorkUploadCheckpoint;
   /** Stable identity encoded into metadata; optional only for persisted legacy jobs. */

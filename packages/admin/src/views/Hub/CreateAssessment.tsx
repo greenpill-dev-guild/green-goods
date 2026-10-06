@@ -71,6 +71,7 @@ export default function CreateAssessment() {
     ),
     strategy: (
       <StrategyKernelStep
+        validationAttempt={createAssessment.validationAttempt}
         showValidation={createAssessment.showValidation}
         isSubmitting={createAssessment.isSubmitting}
       />
