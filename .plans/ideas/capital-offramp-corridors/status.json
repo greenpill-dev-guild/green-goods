@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-08-03",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "lastSyncedAt": "2026-08-04T04:07:25Z",
     "parentIssue": "RESR-71",
     "project": "Capital Off-Ramp Corridors",
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -169,6 +170,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "RESR-71 is Done for the independent review and accepted corrections. That does not approve a corridor, provider, account or commercial commitment. Keep the corrected brief authoritative, preserve dated evidence and separate its research from the onramp work referenced by RESR-82."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ]
 }

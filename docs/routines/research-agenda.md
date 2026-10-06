@@ -1,6 +1,6 @@
 # Green Goods Research Agenda
 
-**Edition:** v3 · 2026-10-04 · **Owner:** Afo (Research panel: afo, coi, matt)
+**Edition:** v4 · 2026-10-06 · **Owner:** Afo (Research panel: afo, coi, matt)
 **Read by:** the [`research-synthesis`](research-synthesis.md) routine every Saturday 00:00 UTC, and by anyone asking "what are we researching and why".
 **Review cadence:** humans edit this file at each Research (RESR) cycle boundary, roughly monthly. The routine never edits it; it reports **agenda drift** in its weekly memo with ready-to-paste wording, and the panel decides what changes.
 
@@ -188,8 +188,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Anchors.**
 - RESR-75 (entry criteria, Done) and RESR-79 (model-processing evaluation, Todo), in the [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) project (In Progress). OpenAI is the accepted content-processing direction; live processing still needs the provider/consent evidence and measured comparison tracked by RESR-79.
-- PRD-955 records the Meta Cloud API prototype and PRD-970 the chat field walk. Their older deterministic-only scope and `.plans/ideas/` references need reconciliation with the active hub before dispatch; this merge does not change those tracker records.
-- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. Opus 5.5 builds and Astra reviews; local handoffs are reconciled and the tracker/start gate remains before dispatch.
+- PRD-955 records the Meta Cloud API prototype and PRD-970 the chat field walk. Their older deterministic-only scope and `.plans/ideas/` references are historical tracker context, superseded for dispatch by the active PRD-998 hub and current handoffs; do not repeat the completed start gate.
+- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. The PRD-998 parent_only start gate completed on 2026-09-27, and Telegram-first source is implemented. Current handoffs own remaining live acceptance; older build assignments and gate instructions do not redispatch delivered work.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
@@ -280,6 +280,7 @@ These live on the Research team but are not agenda tracks this quarter. The rout
 
 ## Change log
 
+- **v4 · 2026-10-06.** Track 3 now treats the former yield mix, preset architecture, ≥5% target and Q2 dates as historical hypotheses; research must produce a current evidence-backed recommendation before implementation scope is accepted. Track 5 retires the completed PRD-998 start gate and points remaining live acceptance to current handoffs. Track order, horizons and stages are unchanged.
 - **v3 · 2026-10-04.** Track 5 only: the WhatsApp operator in the settled list changed from WEFA to Afolabi as a sole proprietor doing business as Green Goods, and the support address changed from afo@wefa.world to contact@greengoods.app, after the user decisions of 2026-10-04 recorded in the Plan Hub. No order, horizon, stage or open question changed; the next Research cycle review still decides those.
 - **v2 · 2026-09-24.** Reconciled completed and canceled research gates with Linear; recorded the Impact Framework sequence, current messaging research gate, and the environmental-data and identity backlog cleanup. The next Research cycle review still decides priorities and dates.
 - **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

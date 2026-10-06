@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-10-06T19:26:32Z",
+    "updated_at": "2026-10-06T20:54:01Z",
     "resolution": "cancelled"
   },
   "links": {
@@ -23,7 +23,7 @@
     "Replaces the old broad web2 auth and gas sponsorship scope with a code-grounded follow-up.",
     "Focus on sender sponsorship, deferred-signing semantics, and address continuity UX only.",
     "Contracts are intentionally n/a.",
-    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) remains Canceled. The broad idea was canceled; sponsored donations have the narrower PRD-1033 owner. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation is invalidated. Archive remains blocked: the current idea-stage linear-sync manifest proposes Backlog and ignores cancellation. Do not apply that manifest or confirm sync; cancellation-preserving sync and fresh mirror proof are required before archive. No Linear issue is reopened."
+    "2026-10-06 reconciliation: [PRD-611](https://linear.app/greenpill-dev-guild/issue/PRD-611) remains Canceled. The broad idea was canceled; sponsored donations have the narrower PRD-1033 owner. Original todo, blocked and n/a lane states are preserved; workflow and manual lane gates disable dispatch. The premature sync confirmation remains invalidated. stateSyncMode=preserve_existing now omits state from existing mirror updates, retaining Canceled. Apply that preservation manifest and verify the current mirror before recording a fresh confirmation or archiving. No Linear issue is reopened."
   ],
   "lanes": {
     "ui": {
@@ -142,6 +142,14 @@
       "status": "linear_sync_invalidated",
       "branch": null,
       "note": "Invalidated the 2026-10-06T09:47:18.109Z confirmation: no cancellation-preserving manifest was applied. Restored prior lastSyncedAt and original lane statuses; earlier closeout lane flattening is superseded. Keep PRD-611 Canceled and dispatch disabled. Do not apply the current idea-stage Backlog manifest or archive until cancellation-preserving sync is supported and verified."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ],
   "taxonomy": {
@@ -155,6 +163,7 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-06-27T00:28:08.412Z",
     "parentIssue": "PRD-611",
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing"
   }
 }

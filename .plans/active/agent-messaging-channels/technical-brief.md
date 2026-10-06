@@ -50,7 +50,7 @@
 
 **Final document review:** [26 September review and closure record](reports/2026-09-26-final-brief-review.md), with [completed validation results](reports/2026-09-26-final-brief-validation.md). The current specification is ready to guide the API-harness slice. Live processing, account permissions and deployment remain gated by section 12.2.
 
-**Accepted review decisions:** [Support, ownership and reliability updates](reports/2026-09-26-accepted-review-decisions.md). Afolabi owns prototype support; Opus 5.5 builds and Astra reviews. The current handoffs reflect these decisions; tracker reconciliation remains before implementation.
+**Accepted review decisions:** [Support, ownership and reliability updates](reports/2026-09-26-accepted-review-decisions.md). Afolabi owns prototype support; Opus 5.5 builds and Astra reviews. The current handoffs reflect these decisions; the PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining acceptance.
 
 ## 1. Product contract and delivery decision
 
@@ -78,7 +78,7 @@ Group transport, financial commitments and legacy Telegram account migration are
 
 Section 12 is the current implementation sequence. Dated dispatch lists in the companion files are historical references and must not be executed as a second plan.
 
-This brief supersedes older target assumptions about PWA-centered reporting, the operating entity being undecided, and model interpretation being outside the desired architecture. It does not mark the older implementation tasks or processor gates complete. Local lane handoffs are reconciled; existing tracker scope still requires reconciliation before dispatch. That bookkeeping does not change the API-harness completion boundary.
+This brief supersedes older target assumptions about PWA-centered reporting, the operating entity being undecided, and model interpretation being outside the desired architecture. It does not mark the older implementation tasks or processor gates complete. Local lane handoffs are reconciled; the PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining acceptance. That bookkeeping does not change the API-harness completion boundary.
 
 ## 2. Account authorization: EOA signing and Kernel permissions
 
@@ -1479,14 +1479,14 @@ The acceptance cases in section 11 are required in addition to the walkthrough. 
 
 | Stage | Completion evidence | What blocks this stage |
 | --- | --- | --- |
-| API harness | Agent-owned in-process Hono entry, Shared command/machine guards, real temporary SQLite, deterministic model/converter and fake chain/signer fixtures; replay/restart proof | Opus 5.5/Astra assigned; complete tracker/start-gate reconciliation before dispatch. No Meta, model key, wallet, gas or production domain needed |
+| API harness | Agent-owned in-process Hono entry, Shared command/machine guards, real temporary SQLite, deterministic model/converter and fake chain/signer fixtures; replay/restart proof | Opus 5.5/Astra assigned; the PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining acceptance. No Meta, model key, wallet, gas or production domain needed |
 | Real tester intake | Afolabi contact/help path rehearsed; notices, processor terms, cleanup and audit/backup retention configured | Any missing live operating prerequisite; this gate applies before intake, not only before recording |
 | Live interpretation | Agent adapters plus isolated worker prove the chosen files/languages, source coverage, correction, cleanup, latency and configured spend cap | Pinned binaries/models, provider settings and approved processing terms for any participant data |
 | Owner-signing demo | Client/Shared ceremony, fixed origin/proxy, existing-account proof, exact prepared call and matching Arbitrum work/review receipts | Garden roles, deployed schemas, funded/sponsored calls, provider provisioning and actual browser/wallet proof |
 | Delegated demo | Separate report/review policies, isolated signer, limits, pause/revoke and receipt recovery proven on the existing Kernel configuration, including section 9.3 with Agent/proxy/database unavailable | Exact module/custody compatibility, nested-field restrictions, measured gas caps and independent owner revocation; delegation stays disabled until all pass. Owner signing remains available but does not close this gate |
 | Recorded demonstration | Consent, notices, scoped current limits, private-data cleanup and selected journeys verified end-to-end | Verified support route to Afolabi, remaining retention schedule and all capabilities claimed in the recording |
 
-Agent owns persistence, API, model/media adapters, upload, outbox and reconciliation. Shared owns reusable domain validation, machine definitions, account/envelope contracts and hooks. Client owns route/shell composition and user interaction. Deployment work owns the proxy, private volume/backups, isolated converter and restricted signer. Afolabi, doing business as Green Goods, supplies WhatsApp operating arrangements; garden stewards supply garden context and review authority. Opus 5.5 implements the package-owned slices; Astra reviews their evidence before live enablement. Complete the tracker/start gate before dispatch. No contract or indexer change is assumed; if scope requires one, return to a separately reviewed plan.
+Agent owns persistence, API, model/media adapters, upload, outbox and reconciliation. Shared owns reusable domain validation, machine definitions, account/envelope contracts and hooks. Client owns route/shell composition and user interaction. Deployment work owns the proxy, private volume/backups, isolated converter and restricted signer. Afolabi, doing business as Green Goods, supplies WhatsApp operating arrangements; garden stewards supply garden context and review authority. Opus 5.5 implements the package-owned slices; Astra reviews their evidence before live enablement. The PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining acceptance. No contract or indexer change is assumed; if scope requires one, return to a separately reviewed plan.
 
 The exact model versions, converter image, RPC/bundler endpoints, nonzero deployment/schema addresses, canonical passkey origin, gas budgets and supported account/module matrix form a versioned readiness manifest. The service must refuse to enable an unproven capability; a missing or invalid setting never selects an unrestricted fallback. This manifest contains references to secret configuration, not secret values.
 

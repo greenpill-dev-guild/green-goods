@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-09-22T00:26:22.875Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T21:01:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,7 +25,8 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
     "lanes": {},
-    "laneSyncMode": "parent_only"
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "identity-ens",
@@ -158,6 +159,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them."
+    },
+    {
+      "timestamp": "2026-10-06T21:01:43Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
     }
   ]
 }

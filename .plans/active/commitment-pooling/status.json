@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -96,7 +96,8 @@
       "standing_commitments_architecture": "PRD-788",
       "standing_commitments_artifacts": "PRD-789",
       "full_pool_compatibility": "PRD-796"
-    }
+    },
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -1784,6 +1785,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "PRD-650/989/729/730 and COM-7 are externally Done; retained hub certification is not upgraded. COM-7 delivery and PRD-731 active release work reconciled. New deployed walks belong to PRD-1009/1030, with docs/videos/settlement evidence still open."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ]
 }

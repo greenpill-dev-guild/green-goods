@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T21:01:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,7 +35,8 @@
         "issue": "PRD-787"
       }
     },
-    "laneSyncMode": "lane_issues"
+    "laneSyncMode": "lane_issues",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -108,7 +109,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "Latest review follow-up is in progress. UI, hosted deployment, broadcast, G$ repayment, and value operations remain excluded."
+        "note": "PRD-786 source and the review follow-up are delivered. Reconcile the retained historical checkpoint proof; no commit-attributed GREEN receipt is recorded, so red_recorded remains. UI, hosted deployment, broadcast, G$ repayment and value operations remain excluded."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"],
       "note": "Implementation merged in PR #722 on 2026-08-17, including the review follow-up (CreditRegistry pin-expiry guard ebe9e156c and the shared read-boundary test); PRD-786 is Done. No commit-attributed GREEN receipt was recorded, so the lane is not marked passed.",
@@ -393,6 +394,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "PRD-785 and PRD-786 are Done; PRD-787 remains Todo with an October 21 due date. Contracts and state/API are delivered, while the retained state/API handoff still records a checkpoint proof limit. The machine lane is blocked on reconciling that historical receipt, not further source implementation. UI, deployment/address pinning, post-deploy replay and QA stay separate. The old September-only deferral is historical; this reassessment does not dispatch UI."
+    },
+    {
+      "timestamp": "2026-10-06T21:01:43Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
     }
   ]
 }

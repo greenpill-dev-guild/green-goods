@@ -53,6 +53,7 @@ const ARCHIVE_STATUS_KEYS = new Set([
 const ARCHIVE_LINEAR_KEYS = new Set([
   "syncDirection",
   "laneSyncMode",
+  "stateSyncMode",
   "lastSyncedAt",
   "issue",
   "parentIssue",
@@ -145,6 +146,8 @@ const CANONICAL_LANE_SET = new Set(CANONICAL_LANES);
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
 const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
 const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
+const LINEAR_STATE_SYNC_MODES = new Set(["stage_derived", "preserve_existing"]);
+const DEFAULT_LINEAR_STATE_SYNC_MODE = "stage_derived";
 const LINEAR_BASE_LABELS = ["protocol:green-goods", "source:plans"];
 const LINEAR_PARENT_ACTIVITY_LABEL = "activity:architecture";
 const LINEAR_LANE_SKIP_STATUSES = new Set(["n/a", "skipped", "passed", "completed"]);
@@ -1108,13 +1111,17 @@ const OPTIONAL_LINEAR_RECORD_FIELDS = new Set(["parentId", "parentRef", "project
 // the applier keeps its current Linear value; a null would read as "clear it"
 // and could strip a parent, milestone, due date, or project set in Linear. A
 // create record keeps the null: the new issue starts without that field.
-function omitUnrecordedFieldsFromUpdate(record) {
+// Reconciled mirrors own their existing state independently of uncertified local
+// lanes. Omitting state preserves it, including Done, Canceled and research progress.
+function omitUnrecordedFieldsFromUpdate(record, stateSyncMode = DEFAULT_LINEAR_STATE_SYNC_MODE) {
   if (record.action !== "update") {
     return record;
   }
 
   return Object.fromEntries(
-    Object.entries(record).filter(([field, value]) => value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field)),
+    Object.entries(record).filter(([field, value]) =>
+      !(field === "state" && stateSyncMode === "preserve_existing") &&
+      (value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field))),
   );
 }
 
@@ -1123,6 +1130,10 @@ function buildLinearSyncManifest(status) {
   const warnings = [];
   const linear = normalized.linear || {};
   const laneSyncMode = linearLaneSyncMode(linear);
+  const stateSyncMode = linear.stateSyncMode || DEFAULT_LINEAR_STATE_SYNC_MODE;
+  if (stateSyncMode === "preserve_existing") {
+    warnings.push("Preserve existing Linear states on update records; any state advancement needs a separate verified forward-only write.");
+  }
   const parentIssue = canonicalLinearParentIssue(linear);
   const project = linearProjectForStatus(normalized, warnings);
   const team = linearTeamForStatus(normalized);
@@ -1146,7 +1157,7 @@ function buildLinearSyncManifest(status) {
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
     description: buildLinearParentDescription(normalized, laneSyncMode),
-  });
+  }, stateSyncMode);
 
   const executionSubLanes = executionSubLanesForLinear(normalized);
   const canonicalLaneNames = executionSubLanes.length > 0
@@ -1193,7 +1204,8 @@ function buildLinearSyncManifest(status) {
     ? []
     : executionSubLanes.map(([laneName, lane]) =>
       buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
-  const lanes = [...executionLanes, ...canonicalLanes].map(omitUnrecordedFieldsFromUpdate);
+  const lanes = [...executionLanes, ...canonicalLanes].map((record) =>
+    omitUnrecordedFieldsFromUpdate(record, stateSyncMode));
 
   return {
     version: 1,
@@ -1214,6 +1226,7 @@ function buildLinearSyncManifest(status) {
       operationalCheckpoints: linear.operationalCheckpoints || {},
     },
     laneSyncMode,
+    stateSyncMode,
     parent,
     lanes,
     warnings,
@@ -1326,6 +1339,14 @@ function validateLinear(status, errors) {
     !LINEAR_LANE_SYNC_MODES.has(linear.laneSyncMode)
   ) {
     errors.push(`linear.laneSyncMode must be one of ${Array.from(LINEAR_LANE_SYNC_MODES).join(", ")}`);
+  }
+
+  if (
+    linear.stateSyncMode !== undefined &&
+    linear.stateSyncMode !== null &&
+    !LINEAR_STATE_SYNC_MODES.has(linear.stateSyncMode)
+  ) {
+    errors.push(`linear.stateSyncMode must be one of ${Array.from(LINEAR_STATE_SYNC_MODES).join(", ")}`);
   }
 
   for (const field of ["issue", "parentIssue", "project", "initiative", "lastSyncedAt"]) {

@@ -54,7 +54,7 @@ or parallel reporting API is needed. Per-grant software custody extends the exis
 > proof. EIP-7702 remains excluded. Story-first chat, repeated Jev/LLM interpretation, an API-first
 > test phase and two PWA-style browser view families are the current target. See the
 > [technical brief](technical-brief.md) and [research amendment](reports/2026-09-25-account-and-conversation-amendment.md).
-> Older dispatch below remains historical. Current handoffs are reconciled; the tracker/start gate and runtime proof remain pending.
+> Older dispatch below remains historical. The PRD-998 parent_only start gate completed on 2026-09-27; current handoffs own remaining live proof.
 
 > **27 and 28 September decisions:** every garden accepts chat reports, which replaces the TAS and
 > Aiyeloja Family Garden prototype choice; the reporter's role in the chosen garden is still checked

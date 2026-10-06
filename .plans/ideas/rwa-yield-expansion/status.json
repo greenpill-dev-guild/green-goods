@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-04-17",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,7 +22,8 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-05-10T22:34:44.492Z",
     "parentIssue": "RESR-9",
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing"
   },
   "notes": [
     "Research-first backlog item for Arbitrum environmental and solar yield assets.",
@@ -147,6 +148,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "Aligned brief, specification and evaluation with current RESR-9 conservative strategy research. P2 idea placement retained; old preset rates/dates/design are historical hypotheses and all implementation lanes remain n/a."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ],
   "taxonomy": {

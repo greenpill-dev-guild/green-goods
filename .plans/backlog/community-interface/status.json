@@ -87,7 +87,7 @@
     "The selected join-request architecture is implemented locally as an encrypted garden-scoped agent queue across the PWA Gardeners tab and admin members view. Production collection remains manually blocked until JOIN_REQUESTS_ENCRYPTION_KEY is installed, a backup operator is named, recovery is rehearsed, and authenticated Brave proof is recorded.",
     "FundingAttribution displays once globally per verified receipt key (chainId, txHash, rail), including across different Needs; mergedIntoNeedUID is typed separately from noteCID.",
     "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
-    "PRD-758 is the Community Needs architecture prerequisite for PRD-682 and must close before PRD-682 implementation. It does not block PRD-721, PRD-722, PRD-723, or the core Commitment Pooling backend.",
+    "Historical architecture gate: PRD-758 closed on 2026-08-29 and PRD-682 was canceled as superseded on 2026-09-11. Neither is a live dispatch prerequisite for PRD-721, PRD-722, PRD-723 or the core Commitment Pooling backend.",
     "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable lane-level execution truth; Linear is the parent-only roadmap and coordination mirror, not a 1:1 lane mirror.",

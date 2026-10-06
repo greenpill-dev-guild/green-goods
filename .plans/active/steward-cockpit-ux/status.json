@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-09-25T05:02:27.261Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,7 +25,8 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
     "lanes": {},
-    "laneSyncMode": "lane_issues"
+    "laneSyncMode": "lane_issues",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "design-system",
@@ -339,6 +340,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "All five PRs and Linear children delivered, including #910. Aggregate lanes now explicitly blocked on receipt reconciliation; the two unperformed/unrecorded hub QA obligations remain open. PRD-981 stays Done."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ],
   "execution_sub_lanes": {

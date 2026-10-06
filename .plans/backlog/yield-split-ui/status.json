@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-03-16",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-06T21:01:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,18 +23,9 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-06-26T00:00:00.000Z",
     "parentIssue": "PRD-351",
-    "lanes": {
-      "ui": {
-        "issue": "PRD-479"
-      },
-      "state_api": {
-        "issue": "PRD-480"
-      },
-      "contracts": {
-        "issue": "PRD-481"
-      }
-    },
-    "project": "Operator Yield Split Visibility & Presets"
+    "lanes": {},
+    "project": "Operator Yield Split Visibility & Presets",
+    "stateSyncMode": "preserve_existing"
   },
   "notes": [
     "Mixed Claude + Codex backlog hub covering shared/admin/client UI plus in-plan contract/governance hardening.",
@@ -44,7 +35,8 @@
     "Protocol Treasury share is fixed and Green Goods governed; operators may only adjust direct-funding vs hypercert presets after Phase 2.",
     "Do not expose setGardenTreasury, treasury destination editing, raw three-way setSplitRatio editing, or raw Protocol Treasury bps editing.",
     "Linear PRD-351 remains the backlog parent mirror. Historical lane issue references are not active execution lanes; child issues should only be created or revived after this hub moves back to active.",
-    "2026-10-06 reconciliation: PRD-351 is Todo in Linear. Current source has `useHarvestDistribution`, receipt-derived distribution outcomes and `useYieldStatus` consuming live split configuration, in addition to the older split hooks. The former blanket claim that no split action exists needs a fresh consumer audit. Reassess remaining hardcoded displays and preset UX; preserve Green Goods governance of the treasury share and the `setGardenTreasury` permission-hardening gate before presets. No contract or product policy changes are selected."
+    "2026-10-06 reconciliation: PRD-351 is Todo in Linear. Current source has `useHarvestDistribution`, receipt-derived distribution outcomes and `useYieldStatus` consuming live split configuration, in addition to the older split hooks. The former blanket claim that no split action exists needs a fresh consumer audit. Reassess remaining hardcoded displays and preset UX; preserve Green Goods governance of the treasury share and the `setGardenTreasury` permission-hardening gate before presets. No contract or product policy changes are selected.",
+    "2026-10-06 review correction: removed historical PRD-479/480/481 lane mappings while this hub is backlog; PRD-351 remains the parent mirror. Activation requires a fresh consumer audit and accepted scope, not duplicate lane recreation."
   ],
   "lanes": {
     "ui": {
@@ -244,6 +236,14 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "PRD-351 is Todo in Linear. Current source has `useHarvestDistribution`, receipt-derived distribution outcomes and `useYieldStatus` consuming live split configuration, in addition to the older split hooks. The former blanket claim that no split action exists needs a fresh consumer audit. Reassess remaining hardcoded displays and preset UX; preserve Green Goods governance of the treasury share and the `setGardenTreasury` permission-hardening gate before presets. No contract or product policy changes are selected."
+    },
+    {
+      "timestamp": "2026-10-06T21:01:43Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
     }
   ],
   "taxonomy": {
