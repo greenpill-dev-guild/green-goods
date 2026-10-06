@@ -25,11 +25,11 @@ function fixture(source, run, extension = "tsx") {
   try { return run(root, path); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
-function collect(root, name = "collect_admin_invariant_hits") {
+function collect(root, name = "collect_admin_invariant_hits", { scanner = filterPath, shellSetup = "" } = {}) {
   // Resolve the real scanner beside the checker while its input root is isolated.
   const functions = collectors.replaceAll("node scripts/design/filter-comment-hits.mjs",
-    `node '${filterPath}'`);
-  return spawnSync("bash", ["-c", `set -o pipefail\nUSAGE_ALLOWLIST_REGEX='\\.test\\.tsx?'\n${functions}\n${name}`], {
+    `node '${scanner}'`);
+  return spawnSync("bash", ["-c", `set -o pipefail\nUSAGE_ALLOWLIST_REGEX='\\.test\\.tsx?'\n${functions}\n${shellSetup}\n${name}`], {
     cwd: root, encoding: "utf8",
   });
 }
@@ -151,5 +151,30 @@ test("source read errors survive later no-match filters in every collector", () 
         assert.equal(result.stdout, "", name);
       }
     } finally { chmodSync(unreadable, 0o600); }
+  });
+});
+
+
+test("Node import failures cannot become no-match results in any collector", () => {
+  fixture("const ok = 1;\n", root => {
+    mkdirSync(join(root, "packages/shared/src/components/Canvas"), { recursive: true });
+    const scanner = join(root, "broken-filter.mjs");
+    writeFileSync(scanner, 'import "./missing-filter-dependency.mjs";\n');
+    for (const name of sourceCollectors) {
+      const result = collect(root, `collect_optional_hits ${name}`, { scanner });
+      assert.match(result.stderr, /ERR_MODULE_NOT_FOUND/, name);
+      assert.equal(result.status, 2, `${name}: ${result.stderr}`);
+    }
+  });
+});
+
+test("status 1 from normalization or sorting remains a collection failure", () => {
+  fixture("const ok = 1;\n", root => {
+    for (const stage of ["sed", "sort"]) {
+      const result = collect(root, "collect_optional_hits collect_usage_hits", {
+        shellSetup: `${stage}() { cat > /dev/null; return 1; }`,
+      });
+      assert.equal(result.status, 2, `${stage}: ${result.stderr}`);
+    }
   });
 });
