@@ -1,3 +1,4 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
@@ -126,19 +127,14 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
     }
     const content = contentRef.current;
     if (!content) return;
-    const restore = () => {
-      const scroller = content.querySelector<HTMLElement>(".overflow-y-auto");
-      if (!scroller) return;
-      scroller.scrollTop = returnState.scrollTop;
-      if (scroller.scrollTop >= returnState.scrollTop) {
+    return restoreDashboardScroll(
+      content,
+      () => content.querySelector<HTMLElement>(".overflow-y-auto"),
+      returnState.scrollTop,
+      () => {
         restoredScroll.current = true;
-        observer.disconnect();
       }
-    };
-    const observer = new MutationObserver(restore);
-    observer.observe(content, { childList: true, subtree: true });
-    restore();
-    return () => observer.disconnect();
+    );
   }, [isOpen, returnState, selectedTab, direction]);
 
   return (

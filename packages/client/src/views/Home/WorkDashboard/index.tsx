@@ -1,3 +1,4 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import {
   DEFAULT_RETRY_COUNT,
@@ -246,18 +247,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       restoredScrollRef.current = true;
       return;
     }
-    // Drafts, proofs and review rows can arrive independently after the sheet mounts.
-    const restore = () => {
-      scroller.scrollTop = returnState.scrollTop;
-      if (scroller.scrollTop >= returnState.scrollTop) {
+    return restoreDashboardScroll(
+      scroller,
+      () => scroller,
+      returnState.scrollTop,
+      () => {
         restoredScrollRef.current = true;
-        observer.disconnect();
       }
-    };
-    const observer = new MutationObserver(restore);
-    observer.observe(scroller, { childList: true, subtree: true });
-    restore();
-    return () => observer.disconnect();
+    );
   }, [returnState, activeTab, pendingFilter, completedFilter, timeFilter]);
 
   // Leaving for a row's own page remembers the tab, filter and scroll, so Back

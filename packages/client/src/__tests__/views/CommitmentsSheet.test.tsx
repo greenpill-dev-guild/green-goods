@@ -12,7 +12,8 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen } from "../test-utils";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 /** Rows navigate into a commitment, so the sheet needs a router around it. */
 const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
@@ -528,6 +529,43 @@ describe("CommitmentsSheet", () => {
         }),
       },
     });
+  });
+
+  it("keeps the reader's scroll after a clamped promise dashboard return", async () => {
+    const previous = useUIStore.getState().commitmentsSheetReturnState;
+    useUIStore.setState({
+      commitmentsSheetReturnState: { tab: "live", direction: "all", scrollTop: 420 },
+    });
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(
+          this,
+          this.classList.contains("overflow-y-auto") ? Math.min(value, 150) : value
+        );
+      },
+    });
+    try {
+      const view = render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      const scroller = document.querySelector<HTMLElement>(".overflow-y-auto");
+      if (!scroller) throw new Error("Commitments scroll owner is missing");
+      expect(scroller.scrollTop).toBe(150);
+      fireEvent.touchStart(scroller);
+      scroller.scrollTop = 70;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(70);
+      view.unmount();
+    } finally {
+      useUIStore.setState({ commitmentsSheetReturnState: previous });
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
   });
 
   it("shows the member their own settled record, lapsed included", async () => {

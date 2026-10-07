@@ -894,6 +894,42 @@ describe("WorkDashboard", () => {
     }
   });
 
+  it("hands clamped scroll restoration to the reader before later row updates", async () => {
+    mockReturnState = {
+      tab: "pending",
+      pendingFilter: "all",
+      completedFilter: "all",
+      timeFilter: "month",
+      scrollTop: 420,
+    };
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(this, this.id === "work-dashboard-scroll" ? Math.min(value, 150) : value);
+      },
+    });
+    try {
+      const view = renderDashboard();
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+      expect(scroller.scrollTop).toBe(150);
+      fireEvent.wheel(scroller, { deltaY: -80 });
+      scroller.scrollTop = 70;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(70);
+      view.unmount();
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
+  });
+
   it("owns dashboard scrolling explicitly and resets that owner on tab changes", () => {
     const appScroll = document.createElement("div");
     appScroll.id = "app-scroll";
