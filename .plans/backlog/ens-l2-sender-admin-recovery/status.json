@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-04-26T01:43:40Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -21,7 +21,8 @@
   "notes": [
     "First-time sponsored passkey claims remain deployable on the current sender.",
     "This plan addresses the L2 sender admin recovery gap that blocks clean username changes and lost-passkey exact-name recovery.",
-    "Do not remove the legacy sponsored-release UI gate until sender v2 or equivalent L2 recovery is deployed and verified."
+    "Do not remove the legacy sponsored-release UI gate until sender v2 or equivalent L2 recovery is deployed and verified.",
+    "2026-10-06 reconciliation: Current source includes `ENSUsernameChangeRequest` and its Profile entry, preparing a support packet with desired slug, reason and contact. `useENSReleaseName` retains the legacy sponsored-release guard. Those portions are source-present, not fresh rendered or deployed proof. Sender admin recovery, the supported operator runbook and a fresh cross-chain inventory remain open. Revalidate the deployed sender, support policy and the name-reservation boundary before migration or implementation; no broadcast is authorized."
   ],
   "lanes": {
     "ui": {
@@ -78,6 +79,14 @@
       "status": "scaffolded",
       "branch": null,
       "note": "Captured focused follow-up for L2 sender admin recovery after identifying the legacy passkey release/change limitation."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Current source includes `ENSUsernameChangeRequest` and its Profile entry, preparing a support packet with desired slug, reason and contact. `useENSReleaseName` retains the legacy sponsored-release guard. Those portions are source-present, not fresh rendered or deployed proof. Sender admin recovery, the supported operator runbook and a fresh cross-chain inventory remain open. Revalidate the deployed sender, support policy and the name-reservation boundary before migration or implementation; no broadcast is authorized."
     }
   ],
   "taxonomy": {

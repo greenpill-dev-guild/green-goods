@@ -4,7 +4,7 @@ import type React from "react";
 
 /**
  * Ritual surface — the full-screen login ceremony frame used after boot has
- * resolved. It owns the root container, the golden-anchored constant-height
+ * resolved. It owns the root container, the shared, constant-height
  * block, the logo, the title slot, and EVERY reserved zone wrapper.
  *
  * Slot model: every auth state renders the same skeleton —
@@ -20,8 +20,8 @@ import type React from "react";
  * string fits, and anything longer scrolls INSIDE instead of pushing the
  * tertiary link down.
  *
- * Vertical anchor: the two flexGrow spacers split the free space 7:3, landing
- * the logo center near the golden section at the EXACT same Y in every state —
+ * Vertical anchor: the two flexGrow spacers split the free space 11:9, keeping
+ * the block higher while the logo has the EXACT same Y in every state —
  * the LayoutStability storybook-ci test pins the logo, both slot zones, the
  * input (across form panels), the primary (within each cluster), and the
  * tertiary link. The spacers use inline flexGrow (nothing for a Tailwind
@@ -74,8 +74,8 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
   tertiary,
 }) => (
   <div className="min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2">
-    {/* Golden anchor — free space splits 7:3 above/below the constant block. */}
-    <div aria-hidden="true" style={{ flexGrow: 7 }} />
+    {/* Shared anchor — free space splits 11:9 above/below the constant block. */}
+    <div aria-hidden="true" style={{ flexGrow: 11 }} />
 
     <div className="flex w-full max-w-sm flex-col items-center">
       {/* ───────────────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
           className={cn(
             "text-center transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             titleVoice === "name"
-              ? "text-[1.25rem] font-bold text-primary-dark"
+              ? "text-[1.25rem] font-bold text-primary-on-surface"
               : "text-base font-[650] text-text-strong-950"
           )}
         >
@@ -127,6 +127,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
       </div>
     </div>
 
-    <div aria-hidden="true" style={{ flexGrow: 3 }} />
+    {/* Reserve 20px / the upper spacer's 55% share to raise the block by 20px. */}
+    <div aria-hidden="true" style={{ flexGrow: 9, flexBasis: "calc(20px * 20 / 11)" }} />
   </div>
 );

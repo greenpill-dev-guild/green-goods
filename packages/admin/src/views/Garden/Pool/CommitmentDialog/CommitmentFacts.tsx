@@ -64,7 +64,7 @@ export function CommitmentFacts({
           commitment.commitmentType === "DOMAIN_IMPACT"
             ? formatMessage({
                 id: "cockpit.garden.pool.seed.kind.gardenWork",
-                defaultMessage: "Garden work (impact)",
+                defaultMessage: "Garden work",
               })
             : commitment.commitmentType === "SEASON_CAMPAIGN"
               ? formatMessage({

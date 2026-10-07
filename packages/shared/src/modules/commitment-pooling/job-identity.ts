@@ -49,8 +49,11 @@ export function commitmentJobIdentity(kind: string, payload: unknown): string | 
  * settle the team before the proof and its credit were on the record.
  */
 export function commitmentJobPrerequisite(kind: string, payload: unknown): string | null {
-  if (kind !== "confirmation" || !payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") return null;
   const value = payload as Record<string, unknown>;
+  if (kind === "workLink")
+    return typeof value.sourceWorkJobId === "string" ? value.sourceWorkJobId : null;
+  if (kind !== "confirmation") return null;
   return value.action === "submit" && typeof value.afterEvidenceJobId === "string"
     ? value.afterEvidenceJobId
     : null;

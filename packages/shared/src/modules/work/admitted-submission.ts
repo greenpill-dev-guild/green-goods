@@ -105,6 +105,7 @@ async function admitAndSend(
   if (completed)
     return {
       kind: "direct",
+      jobId: completed.jobId,
       sponsored: false,
       clientWorkId: input.clientWorkId,
       txHash: completed.transactionHash as `0x${string}`,
@@ -117,19 +118,27 @@ async function admitAndSend(
       checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
     );
     // Submitting again after declining the prompt is the person asking to send it.
-    if (awaiting || !existing?.meta?.requiresExplicitSend)
+    const canCheckWalletBroadcast =
+      input.retainSubmission && input.authMode === "wallet" && checkpoint?.transactionHash;
+    if (
+      (awaiting && !canCheckWalletBroadcast) ||
+      (!awaiting && !existing?.meta?.requiresExplicitSend)
+    )
       return {
         ...queuedOutcome(queued, ports.sender),
         kind: awaiting ? "awaiting-confirmation" : "queued",
       } as SubmitWorkOutcome;
   }
   // Admission is durable; on an unconfirmed connection the work waits in the queue.
-  if (!(await ports.connectivity.confirm()))
+  if (!(await ports.connectivity.confirm())) {
+    if (!input.allowOfflineQueue)
+      throw new Error("Offline queue is disabled for this submission surface");
     return queuedOutcome(
       queued,
       ports.sender,
       ports.connectivity.isOnline() ? "connection-unconfirmed" : undefined
     );
+  }
   if (input.authMode !== "wallet") {
     await input.assertOwnership?.();
     if (!ports.sender) return queuedOutcome(queued, ports.sender);
@@ -172,6 +181,7 @@ async function admitAndSend(
       return completion
         ? {
             kind: "direct",
+            jobId: completion.jobId,
             sponsored: false,
             clientWorkId: input.clientWorkId,
             txHash: completion.transactionHash as `0x${string}`,
@@ -238,12 +248,28 @@ async function admitAndSend(
           ports.onWalletStage
         )
       );
+      const { readConfirmedWork } = await import("./work-confirmation");
+      const confirmedWork = await readConfirmedWork(
+        job as Job<WorkJobPayload>,
+        txHash as `0x${string}`,
+        input.chainId
+      );
+      if (confirmedWork) {
+        payload.confirmedWork = confirmedWork;
+        await jobQueueDB.updateJob(job);
+      }
       await jobQueueDB.storeClientWorkIdMapping(input.clientWorkId, txHash, job.id);
       await jobQueueDB.markJobSynced(job.id, txHash);
       forgetWorkBroadcast(job.id);
       await jobQueueDB.deleteJob(job.id).catch(() => undefined);
       jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash });
-      return { kind: "direct", txHash, sponsored: false, clientWorkId: input.clientWorkId };
+      return {
+        kind: "direct",
+        txHash,
+        sponsored: false,
+        clientWorkId: input.clientWorkId,
+        jobId: job.id,
+      };
     } catch (error) {
       if (error instanceof WorkTransactionReverted) {
         job.meta = { ...job.meta, workTransactionReverted: true };
@@ -283,8 +309,10 @@ async function admitAndSend(
           ...queuedOutcome(queued, ports.sender),
           kind: "awaiting-confirmation",
         } as SubmitWorkOutcome;
-      if (isNetworkError(error) || error instanceof PendingHeicConversionError)
+      if (isNetworkError(error) || error instanceof PendingHeicConversionError) {
+        if (!input.allowOfflineQueue) throw error;
         return queuedOutcome(queued, ports.sender);
+      }
       await jobQueueDB.markJobTerminalFailed(
         job.id,
         error instanceof Error ? error.message : "submission-failed"

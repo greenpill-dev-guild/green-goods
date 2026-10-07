@@ -22,6 +22,39 @@ describe("StrategyKernelStep", () => {
     useCreateAssessmentStore.getState().reset();
   });
 
+  it("keeps newly added outcomes neutral until blur or the next validation attempt", () => {
+    const view = render(
+      <IntlProvider locale="en" messages={{}} onError={() => {}}>
+        <StrategyKernelStep showValidation validationAttempt={1} isSubmitting={false} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("textbox", { name: "Outcome" })).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Outcome" }));
+    const [existing, added] = screen.getAllByRole("textbox", { name: "Outcome" });
+    expect(existing).toHaveAttribute("aria-invalid", "true");
+    expect(added).not.toHaveAttribute("aria-invalid", "true");
+    fireEvent.blur(added);
+    expect(added).toHaveAttribute("aria-invalid", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Add Outcome" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove Outcome" })[0]);
+    expect(screen.getAllByRole("textbox", { name: "Outcome" })[1]).not.toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+    view.rerender(
+      <IntlProvider locale="en" messages={{}} onError={() => {}}>
+        <StrategyKernelStep showValidation validationAttempt={2} isSubmitting={false} />
+      </IntlProvider>
+    );
+    expect(screen.getAllByRole("textbox", { name: "Outcome" })[1]).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+  });
+
   it("names each part in plain words, with the method as helper text and no Solar fallback", () => {
     // A restored draft can carry a stale domain; it reads as none, never as Solar.
     useCreateAssessmentStore.setState((state) => ({
@@ -40,7 +73,7 @@ describe("StrategyKernelStep", () => {
     expect(screen.queryByText(/kWh|solar panels|rooftop/i)).not.toBeInTheDocument();
   });
 
-  it("says under each field what it holds, on every outcome row", () => {
+  it("explains outcome fields once while keeping every row and its errors described", () => {
     useCreateAssessmentStore.setState((state) => ({
       form: {
         ...state.form,
@@ -54,6 +87,10 @@ describe("StrategyKernelStep", () => {
 
     renderStrategyStep();
 
+    // One visible explanation serves every row without losing its accessible association.
+    expect(screen.getAllByText("The change you want to see")).toHaveLength(1);
+    expect(screen.getAllByText("What you'll count")).toHaveLength(1);
+    expect(screen.getAllByText("How much")).toHaveLength(1);
     // Outcome is the change, Metric what is counted, Target how much (DL-079).
     for (const outcome of screen.getAllByRole("textbox", { name: "Outcome" })) {
       expect(outcome).toHaveAccessibleDescription("The change you want to see");
@@ -64,7 +101,7 @@ describe("StrategyKernelStep", () => {
     // A field's own error takes its line; the fields beside it keep theirs.
     const [metric, unsetMetric] = screen.getAllByRole("combobox", { name: "Metric" });
     expect(metric).toHaveAccessibleDescription("What you'll count");
-    expect(unsetMetric).toHaveAccessibleDescription("Select a metric");
+    expect(unsetMetric).toHaveAccessibleDescription("Select a metric What you'll count");
   });
 
   it("explains persisted duplicate metric selections", () => {

@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Status**: ACTIVE
 **Created**: 2026-09-20
-**Last Updated**: 2026-09-26
+**Last Updated**: 2026-10-06
 **Owning lanes**: `state_api`, `ui` (`ui_client`, `ui_admin`), `qa_pass_1`
 **Companions**: `handoffs/claude-qa-pass-1.md` (Wave 2), `acceptance-matrix.md`,
 `standing-commitments-spec.md`, `.claude/context/qa.md`
@@ -12,6 +12,10 @@ This plan gets Commitment Pooling ready for the release QA walk, runs that walk 
 and leaves the QA catalog accurate for every act a person can actually perform. It does not replace
 the Wave 2 walkthrough in the QA Pass 1 handoff: it supplies what that walkthrough needs first
 (a corrected catalog, three small builds, a staged real-chain setup) and the loop that follows it.
+
+## Status reconciliation (2026-10-06)
+
+PRD-650 and rehearsal tracker PRD-989 are Done. This document retains the accepted walk and residual scope. The current deployed walk is [PRD-1009](https://linear.app/greenpill-dev-guild/issue/PRD-1009); two-device work/profile recovery is [PRD-1030](https://linear.app/greenpill-dev-guild/issue/PRD-1030). Record new observations there and in the owning handoffs without reopening historical QA issues. Release operations, docs, walkthroughs and settlement evidence remain separately owned as recorded in `plan.todo.md`.
 
 ## 1. Decision log
 

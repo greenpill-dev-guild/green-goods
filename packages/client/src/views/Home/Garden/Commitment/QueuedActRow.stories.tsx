@@ -90,8 +90,8 @@ export const WalletNotSentWrongNetwork: Story = {
     await expect(canvas.queryByText(/signature cancelled/i)).toBeNull();
     // Nothing sends it for them, so the row must not say it will.
     await expect(canvas.queryByText(/sends when you're connected/i)).toBeNull();
-    await expect(canvas.getByRole("button", { name: "Send Now" })).toBeEnabled();
-    await expect(canvas.getByRole("button", { name: "Discard" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Send take-up" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Discard unsent take-up" })).toBeEnabled();
   },
 };
 
@@ -111,4 +111,33 @@ export const WalletNotSentYet: Story = {
 /** A wallet reader waiting for their membership: it is theirs to send once it lands. */
 export const WalletWaitingForMembership: Story = {
   args: { sendsFromTap: true, act: { ...claim, waitingReason: "membership-unavailable" } },
+};
+
+/** A provider submits for someone else to confirm; they do not confirm their own delivery. */
+export const SendingForConfirmation: Story = {
+  args: {
+    act: { ...claim, kind: "confirmation", confirmationAction: "submit" },
+    sendsFromTap: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Sending this promise for confirmation")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Send for confirmation" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Discard unsent submission" })).toBeEnabled();
+    await expect(canvas.queryByRole("button", { name: "Send confirmation" })).toBeNull();
+  },
+};
+
+/** A confirmer records that the promise was kept. */
+export const ConfirmingDelivery: Story = {
+  args: {
+    act: { ...claim, kind: "confirmation", confirmationAction: "confirm" },
+    sendsFromTap: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Confirming this promise")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Send confirmation" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Discard unsent confirmation" })).toBeEnabled();
+  },
 };

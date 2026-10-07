@@ -201,12 +201,10 @@ export const TopNav: React.FC<TopNavProps> = ({
       {/* The middle starts clear of the back button's 48px hit area, and at the
           bar's top padding like the button, so a flow's step markers share the
           button's row and their names hang below it. Nothing in it rises into
-          that padding, where the shell's offline banner lies. The spacer after
-          it mirrors the back button so the middle centres on the screen, and it
-          gives way first when a flow's step names need the room. */}
-      <div className="absolute inset-y-0 left-16 right-6 flex flex-row items-start pt-6">
+          that padding, where the shell's offline banner lies. Equal clearance
+          on both sides keeps the tracker centred even on narrow phones. */}
+      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-6">
         <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
-        <div aria-hidden="true" className="w-10 shrink-[100]" />
       </div>
 
       <div className="flex grow" />

@@ -13,12 +13,14 @@ const ASSESSMENTS = [
     id: "0xabc0000000000000000000000000000000000000000000000000000000000001",
     title: "Q1 restoration survey",
     assessmentType: "impact",
+    domain: 1,
     createdAt: daysAgo(4),
   },
   {
     id: "0xabc0000000000000000000000000000000000000000000000000000000000002",
     title: "Workshop cohort check-in",
     assessmentType: "education",
+    domain: 2,
     createdAt: daysAgo(10),
   },
 ];

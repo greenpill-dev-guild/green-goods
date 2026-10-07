@@ -78,3 +78,24 @@ it("does not clear a new account after deletion completes", async () => {
   await deletion;
   expect(useWorkFlowStore.getState().feedback).toBe("new account");
 });
+
+it("keeps Review intact while a committed retirement waits to navigate", async () => {
+  useWorkFlowStore.setState({ submissionCompleted: true, feedback: "submitted details" });
+  const reset = vi.fn();
+  const unregister = registerDraftFormReset(reset);
+  try {
+    await deleteWorkDraft("active", "retire");
+    expect(mocks.remove).toHaveBeenCalledWith("active");
+    expect(useWorkFlowStore.getState().feedback).toBe("submitted details");
+    expect(useWorkFlowStore.getState().images).toHaveLength(1);
+    expect(reset).not.toHaveBeenCalled();
+  } finally {
+    unregister();
+  }
+});
+
+it("still clears a retired draft sent outside its composer", async () => {
+  await deleteWorkDraft("active", "retire");
+  expect(useWorkFlowStore.getState().images).toEqual([]);
+  expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+});

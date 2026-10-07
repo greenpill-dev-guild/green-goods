@@ -440,7 +440,7 @@ describe("presentation-specific boot fallback", () => {
       for (const slot of slots) expect(slot).not.toHaveAttribute("hidden");
     };
 
-    // Loading: the action slot is empty, not gone. Hiding it would move the 7:3 anchor.
+    // Loading: the action slot is empty, not gone. Hiding it would move the shared anchor.
     expectSlotsReserved();
     expect(pwaReload).toHaveAttribute("hidden");
     expect(pwaNote).toHaveAttribute("hidden");
@@ -463,10 +463,10 @@ describe("presentation-specific boot fallback", () => {
     // At 200% zoom reading the line outranks holding its slot.
     expect(zoomStyles).toBeDefined();
     expect(zoomStyles).toMatch(
-      /\.boot-pwa-message-slot\s*{[^}]*height:\s*auto[^}]*min-height:\s*32px/s
+      /\.boot-pwa-message-slot\s*{[^}]*height:\s*auto[^}]*min-height:\s*2rem/s
     );
     expect(zoomStyles).toMatch(
-      /\.boot-pwa-action-slot \.boot-reload-button\s*{[^}]*padding-inline:\s*12px[^}]*font-size:\s*0\.875rem[^}]*white-space:\s*normal/s
+      /\.boot-pwa-action-slot \.boot-reload-button\s*{[^}]*padding-inline:\s*0\.75rem[^}]*font-size:\s*0\.875rem[^}]*white-space:\s*normal/s
     );
   });
 

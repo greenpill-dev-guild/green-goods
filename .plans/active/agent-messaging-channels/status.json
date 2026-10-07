@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-10-05T03:22:47.000Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -42,7 +42,7 @@
     "eval.md SEC-01 was written against Twilio request-signature validation. Under the Meta Cloud API it is X-Hub-Signature-256 verified with the app secret over the preserved raw body.",
     "Account proof (PRD-946) is largely existing code: packages/agent/src/api/routes/garden-join-request-auth.ts:40-104 and packages/agent/src/services/profile-avatars.ts:90-127 already verify EOA, deployed ERC-1271 and counterfactual ERC-6492 accounts. Treat the lane as reuse, not new cryptography.",
     "The agent is a single Fly machine with SQLite on the agent_data volume; the volume attaches to one machine, so single-replica operation is enforced by storage topology. Do not scale horizontally while draft state lives in that file.",
-    "Existing Linear mirror PRD-339 remains unresolved historical metadata. The live slice issues are PRD-943 through PRD-948. The manual Linear writes were applied on 2026-09-22; only linear-sync and record-linear remain deliberately unrun.",
+    "2026-10-06 correction: PRD-998 is the canonical parent_only mirror. The Implementation Start Gate completed on 2026-09-27; the September PRD-339 and PRD-943 through PRD-948 sync/write instructions are historical and must not be repeated. Current handoffs and checklist own remaining acceptance.",
     "The builder for the 2026-09-25 to 2026-10-02 window is not yet named. Lane owners below are placeholders until one is assigned.",
     "Lane sync is parent_only. The live implementation issues are PRD-943 through PRD-948 plus PRD-955 and PRD-956 (PRD-956 owns step 15) under the Buildathon prototype milestone; they are not lane mirrors. Do not let linear-sync create canonical lane issues under the historical PRD-339 parent.",
     "Bot review on PR #864 found three factual errors in the first draft of this hub, now corrected: the root test runner rejects positional paths and has no typecheck script, so every proof command is package-scoped; step 1 must register its route in api/server.ts because nothing is auto-discovered; and ClientWorkIdMapping is browser IndexedDB the agent cannot read, so the outcome is reported back through an authenticated route.",
@@ -63,13 +63,14 @@
     "2026-09-25 latest alignment: user accepted reproducible API harness first, Jev/LLM recommendation and ERD simplification; required documents/visual interpretation and explicitly included spreadsheets. Generic /continue and /recover browser routes use /messaging API with provider-bound requests. Target is passkey-first personal Kernel accounts with optional Profile EOA association and separately authorized signer control; that account feature remains future implementation. Provider choices are recommendations pending evaluation. No runtime implementation, installs, external uploads, account changes or tracker writes in this documentation update.",
     "Latest user decisions: OpenAI selected for all content processing; Jev retained for typed decisions; automatic Office-to-PDF/image conversion included. Browser routes selected as /agent/reporting/:requestId and /agent/reporting/recover/:requestId. Entire passkey-first onboarding plus optional Profile wallet model is future-only; current prototype uses existing EOA/Kernel accounts. Removed speculative account_usage field and corrected sign-in wireframe. Documentation only; runtime lanes remain blocked, with no installs or tracker writes.",
     "Final brief review 2026-09-26: closed three documentation gap classes (domain/proof persistence, ceremony/recovery APIs and retry/handoff semantics, current delivery/acceptance authority). User accepted 24h/5 reporting and 1h/5 review grants, 24h pre-consent and 7-day inactive draft expiry plus post-publication source cleanup. Technical brief section 12 owns current implementation sequence; older dispatch is historical. Runtime/custody/provider/chain gates remain unproven; no implementation or tracker writes.",
-    "User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred.",
+    "Historical pre-build note, superseded by the completed 2026-09-27 PRD-998 parent_only start gate: User accepted PR-review remedies: Afolabi (afo@wefa.world) owns prototype support; Opus 5.5 builds and Astra reviews. Current handoffs replace the historical dispatch and obsolete hook commands. Durable terminal outcomes, dispatch-time pause controls, stable subject identity/HMAC alias rotation, exclusive operation parents, root schema and deployed edge proof are required. Local scope is reconciled; tracker/start-gate reconciliation remains before dispatch. Synthetic transport fixtures are required; live Telegram remains optional. No runtime build, external message or tracker write occurred.",
     "PR #864 follow-up: confirmed Action snapshots own offchain field validation; updates during a pending send cannot be promised to invalidate an onchain transaction. Current acceptance requires both signing race cases. Delegation stays disabled until section 9.3 owner revocation passes with Agent/proxy/database unavailable, including old signed operations and enable-authorization replay. Client ceremonies use a focused PublicShell/SiteHeader variant; static /agent/reporting/permissions reuses the ceremony view for independent revocation. No runtime implementation or proof is claimed.",
     "2026-10-02 user-authorized implementation: resolve #864/#934/#949 conflicts, prepare deployed Telegram webhook/browser flow, enable new-database reporting defaults, pin provider snapshots, add bounded Office conversion, complete bounded Kernel grant source and independent owner removal, use responsive Client PWA views, and attach both Telegram and WhatsApp to one proven account. Codex owns integration. Deployment, actual keys/live-model evaluation, authenticated signing, Fly conversion/isolation and integrated Kernel deployment/pins/budgets remain live gates. WhatsApp needs access and its transport adapter. No production deployment or chain broadcast occurred.",
     "CURRENT 2026-10-02 follow-up: browser-only first actual report/review activation implemented; owner ENABLE authorization stays in the browser. Separate one-hour review grants, migration v3 recovery, per-attempt complete gas reservation and sealed continuation scope are implemented. 137 SQLite tests and live synthetic media proof pass; full current worktree gate, refreshed fork provenance and final immutable image remain pending. No app release or contract broadcast; production passkey/EAS/sponsorship and deployed policy verification remain required.",
     "CURRENT WORKTREE PROOF 2026-10-02: all 20 selected critical QA checks passed fresh via bun run check --intent qa --base HEAD. Shared 6683, Client 1533, Admin 1164, Agent 426 units plus 137 SQLite, Contracts 319 tooling and 2100 Solidity tests passed with existing governed skips. Separate structure/test-quality/vocabulary checks and 17 real-EntryPoint fork cases passed. This is uncommitted-worktree proof based on fc6bf61d82dda8e787b0390a29fad79d5b8425c2, not a commit-attributed receipt. Final immutable-image Office smoke and live production gates remain pending; no release/broadcast.",
     "CURRENT PREPARATION RESULT: complete critical QA and 17-scenario fork proof passed; final image sha256:ff9482e25d37264e3ff7d7bf19b3fd8890dd22f87535976024b111aefaa6fa9e built and pushed without app release. Untouched synthetic DOCX/XLSX conversion passed on Fly, one page each, process exit zero. Disposable machine 857495b473e108 is destroyed. Source is uncommitted; production Client/Agent rollout, passkey/EAS/garden roles/live sponsorship/deployed guard verification and two-account acceptance remain pending. Verified permission registry stays empty; WhatsApp remains off awaiting access and live adapter.",
-    "2026-10-04 user decision: Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio of its own, set up now and verified later. This supersedes every earlier note that names WEFA as the WhatsApp operator. Setup is GROW-60 and blocks PRD-943; GROW-57 was canceled. Telegram stays the live channel. Support moves to contact@greengoods.app. See reports/2026-10-04-whatsapp-operator-decision.md."
+    "2026-10-04 user decision: Green Goods will not use WEFA's Meta portfolio for WhatsApp. Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on a Meta business portfolio of its own, set up now and verified later. This supersedes every earlier note that names WEFA as the WhatsApp operator. Setup is GROW-60 and blocks PRD-943; GROW-57 was canceled. Telegram stays the live channel. Support moves to contact@greengoods.app. See reports/2026-10-04-whatsapp-operator-decision.md.",
+    "2026-10-06 reconciliation: confirmed the canonical active hub and PRD-998 In Progress against current develop. Preserve the October operator decision and current live gates. The local October 4 experience review remains with its author for separate publication."
   ],
   "lanes": {
     "state_api": {
@@ -158,7 +159,7 @@
       "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11\u201312 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
+      "handoff_note": "Astra: independent review of every completed checkpoint and integrated prototype; current technical brief sections 11–12 own acceptance. Auth, crash/retry, identity rotation, privacy, operating switches and conditional Kernel grants are in scope.",
       "skill_tags": ["testing", "review", "contracts"],
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
@@ -444,6 +445,14 @@
       "status": "operator_decision_recorded",
       "branch": "chore/record-whatsapp-operator-decision",
       "note": "User decided that Afolabi operates the WhatsApp channel as a sole proprietor doing business as Green Goods, on Green Goods' own Meta portfolio, replacing WEFA. Brief, spec, technical brief and decision log updated; new dated report added. No runtime change and no WhatsApp adapter yet."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "2026-10-06 reconciliation: confirmed the canonical active hub and PRD-998 In Progress against current develop. Preserve the October operator decision and current live gates. The local October 4 experience review remains with its author for separate publication."
     }
   ],
   "taxonomy": {

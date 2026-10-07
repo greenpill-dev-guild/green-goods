@@ -21,7 +21,12 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
 import { SeedTotal } from "./SeedTotal";
 import { dueDateAfter, formatDueDate } from "./seedReward";
-import { actionUIDOf, closedSeedActions, type SeedFieldError } from "./seedStepModel";
+import {
+  actionUIDOf,
+  closedSeedActions,
+  seedErrorText,
+  type SeedFieldError,
+} from "./seedStepModel";
 
 /** How many separate promises a steward usually seeds at once. */
 const SET_SIZE_CHOICES = [1, 5, 10, 20] as const;
@@ -326,6 +331,15 @@ export function SeedStepHowMuch({
                     defaultMessage: "Action",
                   })}
                   value={values.requirements[index]?.actionUID ?? ""}
+                  {...form.register(`requirements.${index}.actionUID`)}
+                  error={
+                    form.formState.errors.requirements?.[index]?.actionUID?.message
+                      ? seedErrorText(
+                          form.formState.errors.requirements?.[index]?.actionUID?.message,
+                          formatMessage
+                        )
+                      : undefined
+                  }
                   onChange={(event) =>
                     form.setValue(`requirements.${index}.actionUID`, event.target.value, {
                       shouldDirty: true,
@@ -357,6 +371,14 @@ export function SeedStepHowMuch({
                     defaultMessage: "Count",
                   })}
                   value={String(values.requirements[index]?.requiredCount ?? 1)}
+                  error={
+                    form.formState.errors.requirements?.[index]?.requiredCount?.message
+                      ? seedErrorText(
+                          form.formState.errors.requirements?.[index]?.requiredCount?.message,
+                          formatMessage
+                        )
+                      : undefined
+                  }
                   onChange={(event) =>
                     form.setValue(
                       `requirements.${index}.requiredCount`,
@@ -410,9 +432,16 @@ export function SeedStepHowMuch({
                 )}
               </p>
             ))}
-            {form.formState.errors.requirements?.message ? (
-              <p className="body-xs text-error-dark">
-                {String(form.formState.errors.requirements.message)}
+            {(form.formState.errors.requirements?.root?.message ??
+            form.formState.errors.requirements?.message) ? (
+              <p className="body-xs text-error-dark" role="alert">
+                {seedErrorText(
+                  String(
+                    form.formState.errors.requirements?.root?.message ??
+                      form.formState.errors.requirements?.message
+                  ),
+                  formatMessage
+                )}
               </p>
             ) : null}
           </div>

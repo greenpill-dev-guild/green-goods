@@ -70,7 +70,7 @@ export function MemberRow({
       className={cn(
         "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
         selected
-          ? "border-primary-base bg-primary-base/10"
+          ? "border-primary-on-surface bg-primary-base/10"
           : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50"
       )}
     >
@@ -112,7 +112,7 @@ export function MemberRow({
           <span className="text-[10px] text-text-soft-400">+{extraRoles}</span>
         ) : null}
         {selected ? (
-          <RiCheckLine className="h-4 w-4 shrink-0 text-primary-base" aria-hidden />
+          <RiCheckLine className="h-4 w-4 shrink-0 text-primary-on-surface" aria-hidden />
         ) : null}
       </div>
     </button>

@@ -5,7 +5,7 @@ import {
   finishLegacyRecovery,
   discardUnrecoveredLegacy,
 } from "../../modules/work/legacy-draft-recovery";
-import type { MissingDraftAttachment } from "../../types/job-queue";
+import type { MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { get } from "idb-keyval";
 import { useDrafts } from "./useDrafts";
@@ -18,6 +18,7 @@ import {
   fromDraftWorkLink,
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
+  sameWorkLinkIdentity,
   toDraftWorkLink,
   type WorkLinkIntent,
   writeWorkLinkIntent,
@@ -30,19 +31,22 @@ import {
 import type { WorkFormData } from "./useWorkForm";
 
 interface UseDraftResumeOptions {
-  formState: {
-    images: File[];
-    gardenAddress: string | null;
-    actionUID: number | null;
-    feedback: string;
-    timeSpentMinutes: number;
-  };
-  isOnIntroTab: boolean;
   searchParams: URLSearchParams;
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
   restoreForm?: (values: WorkFormData) => void;
 }
 const LEGACY_KEY = LEGACY_MEDIA_KEY;
+
+function matchesPagePromise(draft: WorkDraftRecord, intent: WorkLinkIntent): boolean {
+  if (
+    draft.gardenAddress?.toLowerCase() !== intent.garden.toLowerCase() ||
+    draft.actionUID !== intent.actionUID
+  )
+    return false;
+  if (!draft.linkIntent) return true;
+  const kept = fromDraftWorkLink(draft.linkIntent);
+  return kept !== null && sameWorkLinkIdentity(kept, intent);
+}
 
 export function useDraftResume({
   searchParams,
@@ -60,6 +64,9 @@ export function useDraftResume({
   }, []);
   const [legacyRecovery, setLegacyRecovery] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  // A warm store is not proof that this visit is for the same work. Hold the new page's
+  // autosave and selection effects until its promise has been reconciled with the saved draft.
+  const [entryResolved, setEntryResolved] = useState(false);
   const hydrated = useWorkFlowStore((state) => state.draftHydrated);
   const explicitId = searchParams.get("draftId");
   const latest = useRef({ resumeDraft, restoreForm, searchParams, setSearchParams });
@@ -68,6 +75,7 @@ export function useDraftResume({
   const restoredLink = useRef(false);
 
   useEffect(() => {
+    setEntryResolved(false);
     if (!userAddress) {
       if (useWorkFlowStore.getState().draftScope) {
         useWorkFlowStore.getState().reset();
@@ -89,15 +97,18 @@ export function useDraftResume({
     const state = useWorkFlowStore.getState();
     setLegacyRecovery(false);
     setShowDraftSheet(false);
+    const incomingPromise = parseWorkLinkIntent(latest.current.searchParams);
     if (
       state.draftScope === scope &&
       state.draftHydrated &&
       !state.draftChoicePending &&
-      !explicitId
+      !explicitId &&
+      !incomingPromise
     ) {
       // Still loaded from an earlier visit, so the page comes back as it was.
       // The URL doesn't, though: the draft's promise is put back into it, as a
       // resume does, or the work could upload without its link.
+      setEntryResolved(true);
       const draftId = state.activeDraftId;
       if (
         !draftId ||
@@ -139,29 +150,60 @@ export function useDraftResume({
       !hasWorkLinkIntentParams(latest.current.searchParams)
         ? fromDraftWorkLink(state.draftPagePromise)
         : null;
-    useWorkFlowStore.setState((current) => ({
+    useWorkFlowStore.setState({
       draftScope: scope,
       draftHydrated: false,
-      draftEpoch: current.draftEpoch + 1,
       draftSaveState: "loading",
       draftError: null,
       draftLinkCleared: false,
-    }));
+    });
     void (async () => {
       try {
+        // An outgoing page can still be saving its last edit. Let that write finish before
+        // changing its generation or reading its record; this page's autosave stays disabled.
+        await queueDraftWrite(async () => undefined);
+        controller.signal.throwIfAborted();
+        useWorkFlowStore.setState((current) => ({ draftEpoch: current.draftEpoch + 1 }));
         const draftId = explicitId ?? (await draftDB.getActiveDraft(userAddress, chainId));
         controller.signal.throwIfAborted();
-        // The draft brings back the promise it was for, unless the page was opened for one.
+        const requestedPromise = incomingPromise ?? pagePromise;
+        let resumed = false;
+        // The draft brings back the promise it was for, unless this visit names one itself.
         let link: WorkLinkIntent | null = pagePromise;
         if (draftId) {
-          await latest.current.resumeDraft(draftId, {
-            signal: controller.signal,
-            restoreForm: latest.current.restoreForm,
-          });
-          const kept = (await draftDB.getDraft(draftId))?.linkIntent;
-          if (!link && kept && !hasWorkLinkIntentParams(latest.current.searchParams))
-            link = fromDraftWorkLink(kept);
-          if (!explicitId) setSheet(true);
+          const draft = await draftDB.getDraft(draftId);
+          controller.signal.throwIfAborted();
+          if (
+            draft &&
+            (draft.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
+              draft.chainId !== chainId)
+          )
+            throw new Error("draft-owner");
+          if (requestedPromise && (!draft || !matchesPagePromise(draft, requestedPromise))) {
+            if (await draftDB.isAtDraftLimit(userAddress, chainId)) throw new Error("draft-limit");
+            controller.signal.throwIfAborted();
+            // Keep the record and its media in Your Work; only release the wizard's active slot.
+            await queueDraftWrite(async () => {
+              controller.signal.throwIfAborted();
+              await draftDB.releaseActiveDraft(userAddress, chainId, draftId);
+            });
+            controller.signal.throwIfAborted();
+            useWorkFlowStore.getState().reset();
+            latest.current.restoreForm?.({ feedback: "" });
+          } else {
+            await latest.current.resumeDraft(draftId, {
+              signal: controller.signal,
+              restoreForm: latest.current.restoreForm,
+            });
+            resumed = true;
+            const kept = draft?.linkIntent;
+            if (!link && kept && !hasWorkLinkIntentParams(latest.current.searchParams))
+              link = fromDraftWorkLink(kept);
+            if (!explicitId && !requestedPromise) setSheet(true);
+          }
+        } else if (requestedPromise) {
+          useWorkFlowStore.getState().reset();
+          latest.current.restoreForm?.({ feedback: "" });
         } else {
           const legacy = await get<File[]>(LEGACY_KEY);
           controller.signal.throwIfAborted();
@@ -176,8 +218,8 @@ export function useDraftResume({
         // would write the page's promise, garden and action onto it before the person answers.
         useWorkFlowStore.setState({
           draftHydrated: true,
-          draftSaveState: draftId ? "saved" : "idle",
-          draftChoicePending: Boolean(draftId) && !explicitId,
+          draftSaveState: resumed ? "saved" : "idle",
+          draftChoicePending: resumed && !explicitId && !requestedPromise,
           draftPagePromise: null,
         });
         if (explicitId || link) {
@@ -188,6 +230,7 @@ export function useDraftResume({
           restoredLink.current = Boolean(link) && link !== pagePromise;
           latest.current.setSearchParams(params, { replace: true });
         }
+        setEntryResolved(true);
       } catch (error) {
         if (controller.signal.aborted) return;
         useWorkFlowStore.setState({
@@ -311,7 +354,7 @@ export function useDraftResume({
      * which is when the promise in it is the draft's and would read as the page's own.
      */
     askAgainNextVisit: () => {
-      if (!showDraftSheet) return false;
+      if (!showDraftSheet && useWorkFlowStore.getState().draftHydrated) return false;
       const own = restoredLink.current ? null : parseWorkLinkIntent(latest.current.searchParams);
       useWorkFlowStore.setState({
         draftHydrated: false,
@@ -322,6 +365,6 @@ export function useDraftResume({
     clearActiveDraft,
     legacyRecovery,
     retryHydration: () => setLoadAttempt((attempt) => attempt + 1),
-    isResumingFromUrl: !hydrated,
+    isResumingFromUrl: !hydrated || !entryResolved,
   };
 }

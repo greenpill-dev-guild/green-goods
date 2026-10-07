@@ -1,5 +1,6 @@
 # Community Needs & Signals
 
+**Stage**: `backlog`
 ## Outcome
 
 Give community members a low-barrier, garden-scoped way to name Needs, signal shared priorities, connect Needs to commitments and proof, and let operators moderate the record without turning funding into a ranking mechanic.

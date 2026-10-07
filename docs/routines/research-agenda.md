@@ -1,6 +1,6 @@
 # Green Goods Research Agenda
 
-**Edition:** v3 · 2026-10-04 · **Owner:** Afo (Research panel: afo, coi, matt)
+**Edition:** v4 · 2026-10-06 · **Owner:** Afo (Research panel: afo, coi, matt)
 **Read by:** the [`research-synthesis`](research-synthesis.md) routine every Saturday 00:00 UTC, and by anyone asking "what are we researching and why".
 **Review cadence:** humans edit this file at each Research (RESR) cycle boundary, roughly monthly. The routine never edits it; it reports **agenda drift** in its weekly memo with ready-to-paste wording, and the panel decides what changes.
 
@@ -116,31 +116,31 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Horizon:** quarter · **Stage:** evidencing
 **Note:** RESR-9 is assigned and In Progress in the current Research cycle.
 
-**Question.** Which vault strategies and presets give garden endowments materially better yield than today's Aave-only position while staying conservative, who controls principal and yield, and how does yield turn into funded impact?
+**Question.** Which conservative Arbitrum yield strategies should garden endowments consider against the current Aave baseline, with what principal protection, liquidity, custody and failure risks; who controls principal and yield; and how does yield turn into funded impact?
 
-**Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow is in progress (PRD-763).
+**Why it matters.** The *Sustainability & Monetization* initiative is marked at risk and "first protocol revenue" is the quarter's bar. The cycle theme names yield impact. The `/vaults` Octant vault and Cookie Jar flows exist, and the harvest-to-distribution operator flow shipped in PR 776 (PRD-763, Done). Its archived QA lanes were not certified and the Brave check was not recorded; those proof gaps do not reopen delivery.
 
 **Anchors.**
 - RESR-9 (RWA Yield Expansion research; In Progress, assigned to Matt, in the current cycle), RESR-15 (map Season Two campaigns, vaults, and funding rails; Todo, assigned to Afo in Q4 October), RESR-8 (yield-to-impact codification; Backlog).
 - Linear project [Operator Yield Split Visibility & Presets](https://linear.app/greenpill-dev-guild/project/operator-yield-split-visibility-and-presets-375773578105) (Product, Backlog; PRD-351) and the Linear document *Green Goods x Octant Vault Scope Lock*.
-- `.plans/ideas/rwa-yield-expansion/` (Conservative and Balanced presets mixing Aave V3, Morpho Metamorpho, and Ondo USDY with an instant-withdrawal buffer and a FIFO redemption queue; a sustained ≥5% target) and the admin harvest-and-distribute workflow shipped in PR 776.
+- `.plans/ideas/rwa-yield-expansion/` owns the RESR-9 research boundary. Its former Aave/Morpho/Ondo mix, Conservative/Balanced presets, buffer/FIFO design and sustained ≥5% target are historical hypotheses, not accepted constraints. The admin harvest-and-distribute workflow shipped in PR 776 is separate implementation evidence.
 - The weekly growth-pulse status update on *Sustainability & Monetization* for TVL and yield numbers. Do not re-query PostHog or the indexer here.
 
 **Status surface.** Comment on RESR-9 (there is no research-owned project; the Product project is for the operator UX, not the strategy question).
 
 **Settled.**
-- Yield expansion is a policy layer on top of the existing MultistrategyVault, not a replacement; `YieldResolver` stays untouched; operators opt into presets rather than composing strategy baskets (rwa-yield-expansion brief).
+- RESR-9 produces a decision-ready recommendation with current primary-source evidence and explicit uncertainty. Research does not authorize contracts, adapters, custody, migration or fund movement; no preset architecture is accepted by this agenda.
 - Harvest and distribution are separate transactions; admin must not report harvest as distribution (harvest-distribution-ux brief).
 - Cookie Jar is historical context, not an active rail (RESR-15 boundary).
 
 **Open.**
-1. The current candidate strategy set on Arbitrum with live, verifiable APY and risk. The rwa-yield-expansion brief's dates (a May contract freeze and a June deploy) have lapsed, so its strategy list needs re-verification against what is live now. Next step: RESR-9's first artifact, a strategy table with sources fetched this quarter. Answerable by the owner.
-2. Who holds preset authority (Hats roles) and what timelock applies, and whether a 48-hour operator-initiated switch is still the intended shape. Next step: confirm against the scope-lock document.
+1. The current candidate strategy set on Arbitrum, compared with the Aave baseline on principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery. The former strategy list and Q2 dates are historical. Next step: RESR-9's first artifact, a strategy table with current primary sources and explicit uncertainty. Answerable by the owner.
+2. Whether presets or a policy layer are appropriate at all, and what allocation authority, liquidity model, migration boundary and timelocks a recommendation would require. Hats roles, buffer/FIFO redemption and the 48-hour switch are reopened hypotheses. Next step: compare alternatives and reconcile any recommendation with the scope-lock document before accepting implementation scope.
 3. The funding-rail map (RESR-15): Octant vault crowdfunding, Juicebox and Revnet, direct Safe payout, partner rounds, GoodDollar allocation paths, with initiator, principal control, yield control, evidence trigger, and funder view per rail. Next step: deliver its October comparison; it also feeds track 6.
 4. Yield-to-impact language (RESR-8) once RESR-15 lands.
-5. Whether a sustained ≥5% is achievable at conservative risk, or the bar should be restated. Next step: the panel reads RESR-9's table.
+5. What yield outcome current evidence supports at conservative risk. Sustained ≥5% is a historical hypothesis, not a minimum acceptance bar. Next step: the panel reads RESR-9's table and accepts or rejects a revised outcome.
 
-**Implementable when.** A strategy and preset recommendation with live APY evidence, risk notes, and audit implications is accepted; RESR-15's rail map is accepted; and the operator preset UX scope (PRD-351) is confirmed against it.
+**Implementable when.** A strategy recommendation and any required architecture with current yield evidence, risk notes and audit implications are accepted; RESR-15's rail map is accepted; and the operator UX scope (PRD-351) is confirmed against that decision. Presets are conditional on the accepted recommendation.
 
 **Watch keywords.** yield, vault, APY, Aave, Morpho, Metamorpho, Ondo, USDY, RWA, endowment, preset, strategy, Octant, MultistrategyVault, harvest, splitYield, treasury, TVL, Cookie Jar.
 
@@ -188,8 +188,8 @@ Each track carries the same fields. The routine reads them literally, so keep th
 
 **Anchors.**
 - RESR-75 (entry criteria, Done) and RESR-79 (model-processing evaluation, Todo), in the [Agent Messaging Channels (WhatsApp + SMS)](https://linear.app/greenpill-dev-guild/project/agent-messaging-channels-whatsapp-sms-71cda634fcf7) project (In Progress). OpenAI is the accepted content-processing direction; live processing still needs the provider/consent evidence and measured comparison tracked by RESR-79.
-- PRD-955 records the Meta Cloud API prototype and PRD-970 the chat field walk. Their older deterministic-only scope and `.plans/ideas/` references need reconciliation with the active hub before dispatch; this merge does not change those tracker records.
-- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. Opus 5.5 builds and Astra reviews; local handoffs are reconciled and the tracker/start gate remains before dispatch.
+- PRD-955 records the Meta Cloud API prototype and PRD-970 the chat field walk. Their older deterministic-only scope and `.plans/ideas/` references are historical tracker context, superseded for dispatch by the active PRD-998 hub and current handoffs; do not repeat the completed start gate.
+- [Current Agent Messaging Plan Hub](../../.plans/active/agent-messaging-channels/technical-brief.md): existing EOAs sign exact publications; existing Kernel users may grant separate limited reporting/review permissions after compatibility proof. The PRD-998 parent_only start gate completed on 2026-09-27, and Telegram-first source is implemented. Current handoffs own remaining live acceptance; older build assignments and gate instructions do not redispatch delivered work.
 - The evidence mesh roadmap's Phase 1 evidence list (minutes per accepted submission, completion and abandonment, correction rate, operator minutes, data cost, language and device coverage, consent comprehension).
 - PostHog Agent project (`262124`) for what the Telegram agent already sees; read through growth-pulse or bug-intake, never re-queried here.
 
@@ -208,7 +208,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 4. Operational readiness before real intake: support rehearsal, provider settings and the remaining audit/backup retention schedule. The support owner, the support address and local draft-data retention decisions are settled; their implementation is not: the chat and its pages do not show the address yet, and the mailbox is unverified.
 5. How activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per prototype garden domain.
 
-**Implementable when.** The prototype product direction is accepted. Opus 5.5 starts the synthetic API harness after the repository tracker/start gate; Astra reviews completed checkpoints. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
+**Implementable when.** The prototype product direction is accepted. Current Plan Hub handoffs own remaining validation and live acceptance for delivered source; the completed PRD-998 tracker/start gate does not authorize redispatch. Live intake and each demonstrated capability require the Plan Hub's separate operating and compatibility gates. Pilot acceptance still requires the metric/cohort and evidence work above. This document update does not change Linear issue or project state.
 
 **Watch keywords.** WhatsApp, SMS, Twilio, Meta Business, messaging, agent, session key, Telegram, low-bandwidth, USSD, voice note, opt-in, template message, entry criteria, feature phone.
 
@@ -280,6 +280,7 @@ These live on the Research team but are not agenda tracks this quarter. The rout
 
 ## Change log
 
+- **v4 · 2026-10-06.** Track 3 now treats the former yield mix, preset architecture, ≥5% target and Q2 dates as historical hypotheses; research must produce a current evidence-backed recommendation before implementation scope is accepted. It also records PRD-763 delivery separately from its uncertified QA and unrecorded Brave proof. Track 5 retires the completed PRD-998 start gate and points remaining live acceptance to current handoffs. Track order, horizons and stages are unchanged.
 - **v3 · 2026-10-04.** Track 5 only: the WhatsApp operator in the settled list changed from WEFA to Afolabi as a sole proprietor doing business as Green Goods, and the support address changed from afo@wefa.world to contact@greengoods.app, after the user decisions of 2026-10-04 recorded in the Plan Hub. No order, horizon, stage or open question changed; the next Research cycle review still decides those.
 - **v2 · 2026-09-24.** Reconciled completed and canceled research gates with Linear; recorded the Impact Framework sequence, current messaging research gate, and the environmental-data and identity backlog cleanup. The next Research cycle review still decides priorities and dates.
 - **v1 · 2026-09-02.** First edition. Seven tracks ordered from the steward's brief of 2026-09-02, grounded in the live Linear board, the `.plans/` hubs, and the routine's own August memos. The two gaps the edition named were filed the same day as RESR-75 (track 5) and RESR-76 (track 6).

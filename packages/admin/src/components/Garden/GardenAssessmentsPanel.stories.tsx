@@ -7,12 +7,14 @@ const MOCK_ASSESSMENTS = [
     id: "0xabc0000000000000000000000000000000000000000000000000000000000001",
     title: "Q1 restoration survey",
     assessmentType: "impact",
+    domain: 1,
     createdAt: 1712534400,
   },
   {
     id: "0xabc0000000000000000000000000000000000000000000000000000000000002",
     title: "Workshop cohort check-in",
     assessmentType: "education",
+    domain: 2,
     createdAt: 1711929600,
   },
 ];
@@ -80,5 +82,27 @@ export const DataError: Story = {
     assessments: [],
     isLoading: false,
     error: new Error("Indexer unreachable"),
+  },
+};
+
+export const DomainRecords: Story = {
+  args: {
+    assessments: [
+      {
+        ...MOCK_ASSESSMENTS[0],
+        domain: 0,
+        title: "Reliable solar power for every household in the garden community",
+      },
+      { ...MOCK_ASSESSMENTS[0], id: "agro-record", domain: 1, title: "Native canopy returns" },
+      { ...MOCK_ASSESSMENTS[1], domain: 2 },
+      {
+        ...MOCK_ASSESSMENTS[1],
+        id: "waste-record",
+        domain: 3,
+        title: "Community compost and cleaner waterways",
+      },
+    ],
+    isLoading: false,
+    error: null,
   },
 };

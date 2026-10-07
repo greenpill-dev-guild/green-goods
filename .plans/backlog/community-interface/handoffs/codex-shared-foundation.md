@@ -34,4 +34,4 @@ Community scaffolding/routes/copy, auth redesign, job schema changes, and admin/
 
 ## Unblock evidence
 
-Approved extraction inventory, named critical-surface reviewer, accepted RED characterization targets, and explicit dispatch for PRD-682's prerequisite slice. Run and record the RED characterization output after dispatch but before implementation; it is not a pre-dispatch gate.
+Approved extraction inventory, named critical-surface reviewer, accepted RED characterization targets, and explicit dispatch under a new accepted tracker. PRD-682 was canceled as superseded on 2026-09-11 and is historical only. Run and record the RED characterization output after dispatch but before implementation; it is not a pre-dispatch gate.

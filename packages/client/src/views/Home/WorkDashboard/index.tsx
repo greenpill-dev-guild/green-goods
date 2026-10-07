@@ -1,3 +1,4 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import {
   DEFAULT_RETRY_COUNT,
@@ -29,7 +30,7 @@ import { RiCheckLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import type { StandardTab } from "@/components/Navigation";
 import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
@@ -66,7 +67,7 @@ export interface WorkDashboardProps {
 
 export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose }) => {
   const intl = useIntl();
-  const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const { user } = useUser();
   const activeAddress = user?.id;
   // The queue and the proof drafts are kept under the primary address.
@@ -113,7 +114,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const initialTab = useUIStore((s) => s.workDashboardInitialTab);
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
   const returnState = useUIStore((s) => s.workDashboardReturnState);
-  const rememberWorkDashboard = useUIStore((s) => s.rememberWorkDashboard);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
   const closeCompletedRef = useRef(false);
@@ -238,25 +238,41 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     if (!returnState || restoredScrollRef.current) return;
     const scroller = document.getElementById("work-dashboard-scroll");
     if (!scroller) return;
-    scroller.scrollTop = returnState.scrollTop;
-    // The list may arrive after the sheet mounts. Try again when its rows arrive,
-    // but stop once the old position fits so later filters never jump backward.
-    if (returnState.scrollTop === 0 || scroller.scrollTop >= returnState.scrollTop)
+    if (
+      activeTab !== returnState.tab ||
+      pendingFilter !== returnState.pendingFilter ||
+      completedFilter !== returnState.completedFilter ||
+      timeFilter !== returnState.timeFilter
+    ) {
       restoredScrollRef.current = true;
-  }, [returnState, pendingMySubmissions.length, filteredCompleted.length]);
+      return;
+    }
+    return restoreDashboardScroll(
+      scroller,
+      () => scroller,
+      returnState.scrollTop,
+      () => {
+        restoredScrollRef.current = true;
+      }
+    );
+  }, [returnState, activeTab, pendingFilter, completedFilter, timeFilter]);
 
   // Leaving for a row's own page remembers the tab, filter and scroll, so Back
   // from that page can reopen Your Work where it was.
   const leaveFor = (path: string, state?: Record<string, unknown>) => {
-    rememberWorkDashboard({
-      tab: activeTab,
-      pendingFilter,
-      completedFilter,
-      timeFilter,
-      scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
-    });
     onClose?.();
-    navigate(path, { state, viewTransition: true });
+    dashboardNavigation.leave(
+      {
+        kind: "work",
+        tab: activeTab,
+        pendingFilter,
+        completedFilter,
+        timeFilter,
+        scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
+      },
+      path,
+      state
+    );
   };
 
   // Navigation handler - handles both Work and WorkApproval shapes
@@ -378,8 +394,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     if (closeCompletedRef.current) return;
     closeCompletedRef.current = true;
     clearCloseTimeout();
+    dashboardNavigation.clear();
     onClose?.();
-  }, [clearCloseTimeout, onClose]);
+  }, [clearCloseTimeout, dashboardNavigation, onClose]);
 
   const handleClose = () => {
     if (isClosing) return;

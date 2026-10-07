@@ -30,6 +30,8 @@ export interface UseFormWizardStepValidationOptions<
 
 export interface UseFormWizardStepValidationResult {
   showValidation: boolean;
+  /** Changes on every explicit validation, including repeated failed Next attempts. */
+  validationAttempt: number;
   setShowValidation: (showValidation: boolean) => void;
   validateCurrentStep: () => Promise<boolean>;
   validateAll: () => Promise<boolean>;
@@ -58,6 +60,7 @@ export function useFormWizardStepValidation<
   clearValidationAfterValidNext = false,
 }: UseFormWizardStepValidationOptions<TStepId, TFieldName>): UseFormWizardStepValidationResult {
   const [showValidation, setShowValidation] = useState(false);
+  const [validationAttempt, setValidationAttempt] = useState(0);
   const revealOnStepRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export function useFormWizardStepValidation<
 
   const validateCurrentStep = useCallback(async () => {
     setShowValidation(true);
+    setValidationAttempt((attempt) => attempt + 1);
 
     const currentStepId = steps[currentStep]?.id;
     const fields = currentStepId ? stepFields?.[currentStepId] : undefined;
@@ -92,6 +96,7 @@ export function useFormWizardStepValidation<
 
   const validateAll = useCallback(async () => {
     setShowValidation(true);
+    setValidationAttempt((attempt) => attempt + 1);
     return trigger ? trigger(undefined, { shouldFocus: true }) : true;
   }, [trigger]);
 
@@ -121,6 +126,7 @@ export function useFormWizardStepValidation<
 
   return {
     showValidation,
+    validationAttempt,
     setShowValidation,
     validateCurrentStep,
     validateAll,

@@ -9,7 +9,7 @@
 
 ## Start gate
 
-Before implementation, run `node scripts/harness/plan-hub.mjs linear-sync --feature agent-messaging-channels --json`, reconcile the existing tracker scope, and record verified canonical identifiers with `record-linear`. Keep `parent_only`; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
+Completed on 2026-09-27 under PRD-998 with `parent_only` sync. Do not repeat the earlier synchronization or identifier recording for delivered work. Current handoffs own the remaining acceptance; no new lane issues. This documentation update does not dispatch a task. Follow the current package slices in [plan.todo.md](../plan.todo.md#current-build-sequence), not the historical step numbers. No branch switch or creation is implied.
 
 ## Scope
 

@@ -20,6 +20,9 @@ const TEST_PRIMARY_ADDRESS = "0x1111111111111111111111111111111111111111";
 
 // ── Mock data ───────────────────────────────────────────────────────────────
 const mockGetWorkListPage = vi.fn();
+vi.mock("../../../modules/job-queue/work-completions", () => ({
+  retireWorkCompletionSnapshots: vi.fn(async () => {}),
+}));
 const mockGetWorkApprovalsForWorks = vi.fn();
 const mockGetJobs = vi.fn();
 const mockGetImagesForJob = vi.fn();
@@ -56,6 +59,12 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
+    observeWorkCompletions: () => ({
+      subscribe: (observer: { next: (rows: never[]) => void }) => {
+        queueMicrotask(() => observer.next([]));
+        return { unsubscribe() {} };
+      },
+    }),
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
 }));

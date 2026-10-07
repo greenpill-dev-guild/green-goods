@@ -10,11 +10,26 @@ type FormatMessage = (descriptor: { id: string; defaultMessage: string }) => str
 
 export function submitWorkSendStatus(input: {
   phase: FlowSendPhase;
+  awaitingConfirmation?: boolean;
   /** The stage the send says it is on (uploading, the wallet, the chain); empty between stages. */
   progressMessage: string;
   formatMessage: FormatMessage;
 }): FlowSendStatus {
   const { phase, progressMessage, formatMessage } = input;
+  if (input.awaitingConfirmation)
+    return {
+      phase: "ready",
+      tone: "info",
+      busy: false,
+      title: formatMessage({
+        id: "app.work.awaitingConfirmation",
+        defaultMessage: "Awaiting confirmation",
+      }),
+      description: formatMessage({
+        id: "app.work.confirmationExplanation",
+        defaultMessage: "Your work was sent. We will check its status automatically when online.",
+      }),
+    };
   switch (phase) {
     case "ready":
       return {

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-08-25T06:54:00.451Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-08-25T06:39:35.972Z",
     "lanes": {},
-    "laneSyncMode": "parent_only"
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -51,7 +52,8 @@
     "Clean room: hand-write interfaces from cosmo-local-credit/protocol docs/SPEC.md. Never read, import, or vendor AGPL src/.",
     "Never build a global cross-pool rate table (decision 17) — it would break the no-universal-price guardrail and foreclose federation.",
     "External facts in resources.md were verified 2026-08-24/25; re-verify against primary sources before any transaction.",
-    "Lane order is encoded, not implied: contracts -> state_api -> ui. laneDependenciesMet treats an empty depends_on as satisfied, so an empty list would let a manual-blocker clear make UI actionable before its contract and shared-state prerequisites exist."
+    "Lane order is encoded, not implied: contracts -> state_api -> ui. laneDependenciesMet treats an empty depends_on as satisfied, so an empty list would let a manual-blocker clear make UI actionable before its contract and shared-state prerequisites exist.",
+    "2026-10-06 reconciliation: RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates."
   ],
   "lanes": {
     "ui": {
@@ -197,6 +199,22 @@
       "status": "scoped",
       "branch": "plan/cosmo-local-credit-interop-hub",
       "note": "Addressed 13 CodeRabbit findings on PR #769; encoded contracts -> state_api -> ui lane order."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ]
 }
