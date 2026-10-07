@@ -46,14 +46,6 @@ vi.mock("idb-keyval", () => ({
   },
 }));
 const options = () => ({
-  formState: {
-    images: [],
-    gardenAddress: null,
-    actionUID: null,
-    feedback: "",
-    timeSpentMinutes: 0,
-  },
-  isOnIntroTab: true,
   searchParams: new URLSearchParams(),
   setSearchParams: vi.fn(),
   restoreForm: vi.fn(),
@@ -281,7 +273,14 @@ describe("the promise a draft was for", () => {
   };
 
   it("comes back into the page when the draft resumes", async () => {
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const input = { ...options(), searchParams: new URLSearchParams("draftId=draft-1") };
     renderHook(() => useDraftResume(input));
     await waitFor(() => expect(input.setSearchParams).toHaveBeenCalled());
@@ -302,7 +301,14 @@ describe("the promise a draft was for", () => {
         activeDraftId: "draft-1",
         draftLinkCleared,
       });
-      mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+      mocks.draft.mockResolvedValue({
+        id: "draft-1",
+        userAddress: mocks.user,
+        chainId: 11155111,
+        gardenAddress: GARDEN,
+        actionUID: 5,
+        linkIntent: kept,
+      });
     };
 
     it("puts the draft's promise back into the page without reloading the draft", async () => {
@@ -329,7 +335,14 @@ describe("the promise a draft was for", () => {
 
   it("gives way to a promise the page was opened for", async () => {
     mocks.active.mockResolvedValue("draft-1");
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const page = writeWorkLinkIntent(new URLSearchParams(), {
       ...kept,
       commitmentId: 9n,
@@ -342,20 +355,25 @@ describe("the promise a draft was for", () => {
       return "intro";
     });
     const { result } = renderHook(() => useDraftResume(input));
-    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
 
-    expect(input.setSearchParams).not.toHaveBeenCalled();
-    // Starting fresh sets the draft aside and leaves the page's own promise where it is.
-    await act(async () => {
-      await result.current.handleStartFresh();
-    });
+    expect(result.current.showDraftSheet).toBe(false);
+    expect(mocks.resume).not.toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledWith(mocks.user, 11155111, "draft-1");
     expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
     expect(input.setSearchParams).not.toHaveBeenCalled();
   });
 
   it("leaves with the old draft when the person starts fresh", async () => {
     mocks.active.mockResolvedValue("draft-1");
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const input = options();
     const { result } = renderHook(() => useDraftResume(input));
     await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledTimes(1));

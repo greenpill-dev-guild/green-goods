@@ -117,7 +117,7 @@ export function SeedStepReview({
     values.kind === "GARDEN_WORK"
       ? formatMessage({
           id: "cockpit.garden.pool.seed.kind.gardenWork",
-          defaultMessage: "Garden work (impact)",
+          defaultMessage: "Garden work",
         })
       : values.kind === "SERVICE"
         ? formatMessage({

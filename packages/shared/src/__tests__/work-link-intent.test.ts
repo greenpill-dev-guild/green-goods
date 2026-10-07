@@ -33,6 +33,15 @@ describe("Work link intent", () => {
     expect(fromDraftWorkLink({ ...kept, commitmentId: "not a number" })).toBeNull();
   });
 
+  it("keeps changing choice progress and dates out of persisted draft identity", () => {
+    const intent = parseWorkLinkIntent(complete())!;
+    const choice = { ...intent, approvedCount: 1, requiredCount: 3, dueDate: 1791331200n };
+    expect(JSON.parse(JSON.stringify(toDraftWorkLink(choice)))).toEqual({
+      ...intent,
+      commitmentId: "9",
+    });
+  });
+
   it("round-trips one complete safe intent", () => {
     const params = complete();
     expect(hasWorkLinkIntentParams(params)).toBe(true);

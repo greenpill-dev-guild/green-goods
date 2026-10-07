@@ -23,7 +23,7 @@ export function InstallNudge() {
       role="status"
       data-testid="install-nudge"
     >
-      <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
+      <RiDownloadLine size={10} className="text-primary-on-surface" aria-hidden="true" />
       <span className="text-[10px]">
         {formatMessage({
           id: "app.offline.installPrompt",

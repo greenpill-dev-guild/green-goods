@@ -1,5 +1,5 @@
 import { useWorkDraftRetirement } from "../../work/useWorkDraftRetirement";
-import { useUIStore } from "../../../stores/useUIStore";
+import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
 import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
@@ -74,8 +74,13 @@ export function useWorkSubmissionFlowController({
 }: UseWorkSubmissionFlowControllerOptions) {
   const intl = useIntl();
   const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, writeSearchParams] = useSearchParams();
+  const setSearchParams = useCallback<ReturnType<typeof useSearchParams>[1]>(
+    (params, options) => writeSearchParams(params, { ...options, state: location.state }),
+    [writeSearchParams, location.state]
+  );
   const selection = useWorkSelection();
   const form = useWorkFormContext();
   const { authMode, primaryAddress } = useUser();
@@ -116,10 +121,8 @@ export function useWorkSubmissionFlowController({
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
-  // The scheduling gate holds from submit until the link settles: it keeps Upload Work disabled
-  // and pauses draft retirement, which useWorkMutation starts before submit sees the outcome.
-  // Queueing is narrower: the Work has been sent, not only saved on this device, and only its link
-  // is still being queued.
+  // Hold submission and draft retirement until the dependent link settles. Queueing starts
+  // only after Work was sent; scheduling also covers Work saved on this device.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
   const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
@@ -184,19 +187,7 @@ export function useWorkSubmissionFlowController({
     clearActiveDraft,
     legacyRecovery,
     retryHydration,
-  } = useDraftResume({
-    formState: {
-      images,
-      gardenAddress,
-      actionUID,
-      feedback,
-      timeSpentMinutes: timeSpentMinutes ?? 0,
-    },
-    isOnIntroTab: activeTab === WorkTab.Intro,
-    searchParams,
-    setSearchParams,
-    restoreForm: form.reset,
-  });
+  } = useDraftResume({ searchParams, setSearchParams, restoreForm: form.reset });
   const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
     {
@@ -216,7 +207,7 @@ export function useWorkSubmissionFlowController({
           : undefined,
     },
     images,
-    { enabled: !legacyRecovery }
+    { enabled: !legacyRecovery && !isResumingFromUrl }
   );
 
   useShareTargetIntake({
@@ -231,14 +222,23 @@ export function useWorkSubmissionFlowController({
 
   useEffect(() => void ensureWorkSubmissionJourneyId(), [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
-    if (!linkIntent) return;
-    setGardenAddressStable(linkIntent.garden);
-    useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
-  }, [linkIntent, setGardenAddressStable]);
-  useEffect(() => {
-    const state = location.state as { gardenId?: string } | null;
-    if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId as Address);
-  }, [gardens.length, location.state, setGardenAddressStable]);
+    if (isResumingFromUrl) return;
+    if (linkIntent) {
+      setGardenAddressStable(linkIntent.garden);
+      useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
+    } else {
+      const state = location.state as { gardenId?: string } | null;
+      if (!hasLinkIntentParams && state?.gardenId && gardens.length > 0)
+        setGardenAddressStable(state.gardenId as Address);
+    }
+  }, [
+    isResumingFromUrl,
+    linkIntent,
+    hasLinkIntentParams,
+    gardens.length,
+    location.state,
+    setGardenAddressStable,
+  ]);
   useWorkDraftRetirement({
     completed: submissionCompleted,
     paused: isSchedulingDependentLink || !!pendingLinkRecovery,
@@ -247,8 +247,9 @@ export function useWorkSubmissionFlowController({
     schedule: scheduleNavigation,
     navigate: () => {
       const destination = linkIntent?.returnTo ?? homeRoute;
-      if (destination === homeRoute) useUIStore.getState().openWorkDashboard("pending");
-      navigate(destination, { replace: true, viewTransition: true });
+      if (destination === homeRoute)
+        dashboardNavigation.openWork("pending", "all", { replace: true });
+      else dashboardNavigation.returnTo(destination, { viewTransition: true });
     },
   });
 
@@ -438,8 +439,7 @@ export function useWorkSubmissionFlowController({
       manage: () => {
         // Back returns to this address unless the promise in it is the saved draft's.
         const replace = askAgainNextVisit();
-        useUIStore.getState().openWorkDashboard("pending", "editing");
-        navigate(homeRoute, { replace });
+        dashboardNavigation.openWork("pending", "editing", { replace });
       },
       handleContinueDraft,
       startFresh: async () => {
@@ -449,7 +449,7 @@ export function useWorkSubmissionFlowController({
       },
     },
     exit: () => {
-      navigate(homeRoute, { viewTransition: true });
+      if (!dashboardNavigation.back()) navigate(homeRoute, { viewTransition: true });
       saveDraftInBackground();
     },
     isJoiningCommunityGarden,

@@ -73,9 +73,9 @@ dialect: installed-pwa
 ## Color Adaptation
 
 The PWA inherits the Warm Earth core. The current green rhythm is protected:
-- Bright tertiary garden green stays on text-free marks: icons, active nav marks (the icon and indicator bar, not the label), dots, progress lines, soft highlights, and value-flow indicators.
+- Bright tertiary garden green remains available for decorative marks, soft highlights and value-flow illustrations. Interactive foregrounds share the contrast-safe theme role below; domain and semantic status palettes retain their own meaning.
 - Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action tokens with white text, never bright green (DL-017).
-- Green text on a surface (active tab and AppBar labels, the open FAQ title, links, selected titles) uses `--primary-on-surface`: deep green in light, the bright accent in dark. In an active tab the label takes it while the icon and indicator bar keep the bright accent (DL-053).
+- Green interactive foregrounds on a surface (active tab and AppBar labels, their icons and indicators, links, selected titles, focus and selection marks) use `--primary-on-surface`: deep green in light, the readable bright accent in dark. An active control uses one foreground role for its label, icon and indicator (DL-086, superseding the interactive-mark split in DL-053).
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
 - No PWA-specific token overrides; values come from shared tokens.
 
@@ -97,12 +97,12 @@ The PWA inherits the Warm Earth core. The current green rhythm is protected:
 
 **Do:**
 - Test PWA layouts at 375px and on a real phone when layout or navigation changes
-- Preserve the bright green accent rhythm in `/home`, `/home/garden`, and `/home/profile`
+- Preserve the theme-aware green hierarchy in `/home`, `/home/garden`, and `/home/profile`
 - Use container queries for components that can appear in both client modes
 - Keep copy warm, personal, and community-facing
 
 **Don't:**
 - Show `SiteHeader` or hamburger navigation in installed PWA mode
 - Use editorial serif in the PWA — it is an app, not a magazine
-- Replace bright accent states with admin workspace colors
+- Replace the PWA green roles with admin workspace colors
 - Make the funding or submission flow feel transactional

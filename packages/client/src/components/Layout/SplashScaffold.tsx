@@ -102,7 +102,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
           className={cn(
             "text-center transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             titleVoice === "name"
-              ? "text-[1.25rem] font-bold text-primary-dark"
+              ? "text-[1.25rem] font-bold text-primary-on-surface"
               : "text-base font-[650] text-text-strong-950"
           )}
         >

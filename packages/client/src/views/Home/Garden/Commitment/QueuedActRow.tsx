@@ -23,6 +23,42 @@ interface NoticeCopy {
   bodyValues?: Record<string, string>;
 }
 
+const OPERATION_COPY: Record<
+  PendingCommitmentAct["kind"],
+  { titleId: string; sendId: string; discardId: string }
+> = {
+  commitmentSeries: {
+    titleId: "app.commitment.queue.operation.series",
+    sendId: "app.commitment.queue.send.series",
+    discardId: "app.commitment.queue.discard.series",
+  },
+  commitment: {
+    titleId: "app.commitment.queue.operation.promise",
+    sendId: "app.commitment.queue.send.promise",
+    discardId: "app.commitment.queue.discard.promise",
+  },
+  claim: {
+    titleId: "app.commitment.queue.operation.claim",
+    sendId: "app.commitment.queue.send.claim",
+    discardId: "app.commitment.queue.discard.claim",
+  },
+  evidence: {
+    titleId: "app.commitment.queue.operation.proof",
+    sendId: "app.commitment.queue.send.proof",
+    discardId: "app.commitment.queue.discard.proof",
+  },
+  workLink: {
+    titleId: "app.commitment.queue.operation.workLink",
+    sendId: "app.commitment.queue.send.workLink",
+    discardId: "app.commitment.queue.discard.workLink",
+  },
+  confirmation: {
+    titleId: "app.commitment.queue.operation.confirmation",
+    sendId: "app.commitment.queue.send.confirmation",
+    discardId: "app.commitment.queue.discard.confirmation",
+  },
+};
+
 const ICON = "h-5 w-5 flex-shrink-0";
 
 /** A wallet reader's act whose last send failed: saved, not sent, and why. */
@@ -141,27 +177,24 @@ export function QueuedActRow({
 }: QueuedActRowProps) {
   const { formatMessage } = useIntl();
   const copy = noticeCopy(act, inFlight, sendsFromTap);
+  const operation =
+    act.kind === "confirmation" && act.confirmationAction === "submit"
+      ? {
+          titleId: "app.commitment.queue.operation.submission",
+          sendId: "app.commitment.queue.send.submission",
+          discardId: "app.commitment.queue.discard.submission",
+        }
+      : OPERATION_COPY[act.kind];
   // A send on record is checked, not sent again, so the button says so.
   const confirming = act.waitingReason === "awaiting-confirmation";
   const locked = isBusy || inFlight;
   const actions = (
     <>
-      <div className={onDiscard ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
-        {onDiscard ? (
-          <Button
-            type="button"
-            emphasis="secondary"
-            size="sm"
-            onClick={onDiscard}
-            disabled={locked}
-            leadingIcon={<RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />}
-          >
-            {formatMessage({ id: "app.pool.queued.discard" })}
-          </Button>
-        ) : null}
+      <div className="flex flex-row-reverse flex-wrap gap-2">
         <Button
           type="button"
           size="sm"
+          className="w-full min-w-0 whitespace-normal sm:grow sm:basis-[calc(50%-0.25rem)]"
           onClick={onSendNow}
           disabled={locked}
           leadingIcon={
@@ -173,9 +206,22 @@ export function QueuedActRow({
           }
         >
           {formatMessage({
-            id: confirming ? "app.commitment.queue.checkAgain" : "app.commitment.queue.sendNow",
+            id: confirming ? "app.commitment.queue.checkAgain" : operation.sendId,
           })}
         </Button>
+        {onDiscard ? (
+          <Button
+            type="button"
+            emphasis="secondary"
+            size="sm"
+            className="w-full min-w-0 whitespace-normal sm:grow sm:basis-[calc(50%-0.25rem)]"
+            onClick={onDiscard}
+            disabled={locked}
+            leadingIcon={<RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />}
+          >
+            {formatMessage({ id: operation.discardId })}
+          </Button>
+        ) : null}
       </div>
       {discardFailed ? (
         <p className="mt-2 text-xs" role="alert">
@@ -193,6 +239,7 @@ export function QueuedActRow({
       title={formatMessage({ id: copy.titleId })}
       action={actions}
     >
+      <p className="mb-1 font-semibold">{formatMessage({ id: operation.titleId })}</p>
       <p
         data-component="QueuedActRow"
         data-kind={act.kind}

@@ -89,6 +89,22 @@ describe("ImpactTab", () => {
     expect(openSection).toHaveBeenCalledWith("impact", "assessments", "a-2");
   });
 
+  it("identifies assessment domains in recent rows and the opened list without guessing unknown domains", () => {
+    renderImpact({
+      section: "assessments",
+      assessments: [
+        { id: "a-solar", title: "Energy access", domain: 0, createdAt: 1_700_000_000 },
+        { id: "a-edu", title: "Garden learning", domain: 2, createdAt: 1_700_000_000 },
+        { id: "a-unknown", title: "Imported assessment", domain: 9, createdAt: 1_700_000_000 },
+      ],
+    });
+
+    expect(screen.getAllByText("Solar")).toHaveLength(2);
+    expect(screen.getAllByText("Education")).toHaveLength(2);
+    expect(screen.queryByText("Agroforestry")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Imported assessment")).toHaveLength(2);
+  });
+
   it("says a failed assessments read failed, rather than reading as an empty list", () => {
     renderImpact({ assessmentsError: new Error("indexer unavailable") });
 

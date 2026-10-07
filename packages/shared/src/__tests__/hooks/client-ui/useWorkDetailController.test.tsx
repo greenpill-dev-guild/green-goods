@@ -1,6 +1,6 @@
 /** @vitest-environment happy-dom */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, screen } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => ({
   lookupResult: null as null | Record<string, unknown>,
   queuedLoading: false,
 }));
+
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => mocks.userId }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-query")>()),
@@ -329,7 +331,52 @@ describe("useWorkDetailController", () => {
     expect(mocks.navigateToTop).toHaveBeenCalledWith("/home/garden-1");
   });
 
-  it("reopens the dashboard when returning from a work opened there", () => {
+  it("pops the recorded parent for Back and after a dashboard review", () => {
+    function ScopedDashboardWrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        MemoryRouter,
+        {
+          initialEntries: [
+            "/home",
+            {
+              pathname: "/home/garden-1/work/work-1",
+              state: {
+                dashboardBack: {
+                  scope: `11155111:${mocks.userId}:${useUIStore.getState().dashboardNavigationId}`,
+                  path: "/home",
+                },
+              },
+            },
+          ],
+        },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home",
+              element: createElement("p", null, "Dashboard parent"),
+            }),
+            createElement(Route, { path: "/home/:id/work/:workId", element: children })
+          )
+        )
+      );
+    }
+    const first = renderHook(() => useWorkDetailController(), { wrapper: ScopedDashboardWrapper });
+    act(() => first.result.current.back());
+    expect(screen.getByText("Dashboard parent")).toBeInTheDocument();
+    expect(mocks.navigateToTop).not.toHaveBeenCalled();
+    first.unmount();
+
+    renderHook(() => useWorkDetailController(), { wrapper: ScopedDashboardWrapper });
+    act(() => mocks.approvalParams?.onApprovalComplete?.("garden-1"));
+    expect(screen.getByText("Dashboard parent")).toBeInTheDocument();
+    expect(mocks.navigateToTop).not.toHaveBeenCalled();
+  });
+
+  it("ignores a stale dashboard marker without this session's history entry", () => {
     useUIStore.getState().rememberWorkDashboard({
       tab: "pending",
       pendingFilter: "needsReview",
@@ -344,11 +391,9 @@ describe("useWorkDetailController", () => {
 
     result.current.back();
 
-    expect(mocks.navigateToTop).toHaveBeenCalledWith("/home");
+    expect(mocks.navigateToTop).toHaveBeenCalledWith("/home/garden-1");
     expect(useUIStore.getState()).toMatchObject({
-      isWorkDashboardOpen: true,
-      workDashboardInitialTab: "pending",
-      workDashboardInitialPendingFilter: "needsReview",
+      isWorkDashboardOpen: false,
       workDashboardReturnState: { scrollTop: 144 },
     });
   });

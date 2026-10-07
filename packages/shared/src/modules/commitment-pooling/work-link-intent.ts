@@ -13,7 +13,12 @@ export interface WorkLinkIntent {
   returnTo: string;
 }
 
-export type WorkLinkChoice = WorkLinkIntent;
+/** Read-only choice details; they do not participate in link identity or URL persistence. */
+export interface WorkLinkChoice extends WorkLinkIntent {
+  approvedCount?: number;
+  requiredCount?: number;
+  dueDate?: bigint | null;
+}
 
 /** One operation identity shared by admission, the wizard and queue recovery. */
 export function dependentWorkLinkPayload(
@@ -43,7 +48,16 @@ export function sameWorkLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent
 
 /** The link as a work draft keeps it. */
 export function toDraftWorkLink(intent: WorkLinkIntent): DraftWorkLink {
-  return { ...intent, commitmentId: intent.commitmentId.toString() };
+  // A live choice may carry progress and dates; only the intent belongs in a draft.
+  return {
+    commitmentId: intent.commitmentId.toString(),
+    requirementIndex: intent.requirementIndex,
+    actionUID: intent.actionUID,
+    garden: intent.garden,
+    commitmentTitle: intent.commitmentTitle,
+    requirementLabel: intent.requirementLabel,
+    returnTo: intent.returnTo,
+  };
 }
 
 /**
