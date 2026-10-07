@@ -45,7 +45,9 @@ not hold. The directory refuses a name the hosted server already holds, which ke
 name across both.
 
 The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
-production list that `bun run dev:smoke -- prod` expects is in `scripts/dev/smoke-prod.js`). Of
+production list that `bun run dev:smoke -- prod` expects is in `scripts/dev/smoke-prod.js`). Every
+directory RPC and its preflight require an explicitly listed origin; the general public API's
+automatic Vercel-preview exception does not apply here. Adding a subdomain does not approve it. Of
 those, only `https` pages under `greengoods.app` are issued a passkey. The app's own check that a
 page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first filter, not the
 list.

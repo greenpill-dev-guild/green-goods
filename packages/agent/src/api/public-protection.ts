@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
+import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import { getPath } from "hono/utils/url";
 
 export type PublicRouteClass =
   | "subscribe"
@@ -302,7 +304,11 @@ function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
   if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
+  // Directory RPCs and their preflight use only the configured list. Other public APIs retain
+  // their preview exception; sharing an RP domain never approves a site for the directory.
+  const isPasskeyDirectory = getPath(request) === PUBLIC_AGENT_ROUTES.passkeyDirectory;
   return (
-    origin !== "none" && (allowedOrigins.has(origin) || isGreenGoodsVercelPreviewOrigin(origin))
+    origin !== "none" &&
+    (allowedOrigins.has(origin) || (!isPasskeyDirectory && isGreenGoodsVercelPreviewOrigin(origin)))
   );
 }
