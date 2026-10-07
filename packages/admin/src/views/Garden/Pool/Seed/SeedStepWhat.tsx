@@ -86,7 +86,7 @@ export function SeedStepWhat({
                   }),
                   description: formatMessage({
                     id: "cockpit.garden.pool.seed.kind.serviceHint",
-                    defaultMessage: "Kept by proof",
+                    defaultMessage: "Proof of the support or service delivered",
                   }),
                 },
                 {
@@ -97,7 +97,7 @@ export function SeedStepWhat({
                   }),
                   description: formatMessage({
                     id: "cockpit.garden.pool.seed.kind.gardenWorkHint",
-                    defaultMessage: "Kept by approved actions",
+                    defaultMessage: "Linked work approved by garden stewards",
                   }),
                 },
               ]}
@@ -112,7 +112,7 @@ export function SeedStepWhat({
           <AdminChoiceGroup
             ariaLabel={formatMessage({
               id: "cockpit.garden.pool.seed.direction",
-              defaultMessage: "Direction",
+              defaultMessage: "What is the pool doing?",
             })}
             value={field.value}
             onChange={field.onChange}
