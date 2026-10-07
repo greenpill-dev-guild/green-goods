@@ -1,7 +1,6 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { formatEther } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import { getChain } from "../../config/chains";
 import type { CreateGardenParams } from "../../types/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import {
@@ -13,8 +12,13 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import { readyWalletClient } from "../transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
+import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import type {
+  BroadcastReference,
+  BroadcastConfirmation,
+  TransactionSender,
+  TxResult,
+} from "../transactions/types";
 
 export interface CreateGardenCommand {
   params: CreateGardenParams;
@@ -38,6 +42,7 @@ export interface CreateGardenPorts {
       config: GardenContractConfig;
       accountAddress: `0x${string}`;
       chainId: number;
+      ccipFee: bigint;
     }): Promise<{ success: boolean; error?: { message: string } }>;
     waitForReceipt(hash: `0x${string}`, chainId: number): Promise<void>;
     estimateTransaction(input: {
@@ -55,7 +60,12 @@ export interface CreateGardenPorts {
       accountAddress: `0x${string}`;
       chainId: number;
       ccipFee: bigint;
-    }): Promise<`0x${string}`>;
+    }): Promise<TxResult>;
+    reconcile(
+      hash: `0x${string}`,
+      chainId: number,
+      reference?: BroadcastReference
+    ): Promise<BroadcastConfirmation>;
   };
   documents: { addPending(hash: `0x${string}`, submittedAt: number): void };
   clock: { now(): number };
@@ -89,7 +99,7 @@ function buildGardenContractConfig(params: CreateGardenParams): GardenContractCo
 export async function createGarden(
   command: CreateGardenCommand,
   ports: CreateGardenPorts
-): Promise<`0x${string}`> {
+): Promise<TxResult> {
   const config = buildGardenContractConfig(command.params);
   const contracts = ports.reader.contracts(command.chainId);
   const ccipFee = await ports.reader.estimateCcipFee({
@@ -103,20 +113,23 @@ export async function createGarden(
     config,
     accountAddress: command.accountAddress,
     chainId: command.chainId,
+    ccipFee,
   });
   if (!simulation.success) {
     throw new Error(simulation.error?.message ?? "Transaction simulation failed");
   }
-  const txHash = await ports.sender.send({
+  const result = await ports.sender.send({
     gardenToken: contracts.gardenToken as `0x${string}`,
     config,
     accountAddress: command.accountAddress,
     chainId: command.chainId,
     ccipFee,
   });
-  ports.documents.addPending(txHash, ports.clock.now());
-  await ports.reader.waitForReceipt(txHash, command.chainId);
-  return txHash;
+  ports.documents.addPending(result.hash, ports.clock.now());
+  if (result.confirmation !== "pending") {
+    await ports.reader.waitForReceipt(result.hash, command.chainId);
+  }
+  return result;
 }
 
 export async function estimateGardenCreation(
@@ -155,8 +168,12 @@ export async function estimateGardenCreation(
 }
 
 export function createDefaultCreateGardenPorts(input: {
+  transactionSender: TransactionSender;
   addPending(hash: `0x${string}`): void;
+  checkpoint?: (result: TxResult) => void;
+  clearCheckpoint?: (result: TxResult) => void;
 }): CreateGardenPorts {
+  const confirmed = new Set<`0x${string}`>();
   return {
     reader: {
       contracts: getNetworkContracts,
@@ -181,21 +198,24 @@ export function createDefaultCreateGardenPorts(input: {
           return 0n;
         }
       },
-      simulate: ({ gardenToken, config, accountAddress, chainId }) =>
+      simulate: ({ gardenToken, config, accountAddress, chainId, ccipFee }) =>
         simulateTransaction(
           gardenToken,
           GardenTokenABI,
           "mintGarden",
           [config],
           accountAddress,
-          chainId
+          chainId,
+          ccipFee
         ),
       waitForReceipt: async (hash, chainId) => {
-        await waitForTransactionReceipt(getWagmiConfig(), {
+        if (confirmed.has(hash)) return;
+        const receipt = await waitForTransactionReceipt(getWagmiConfig(), {
           hash,
           chainId,
           timeout: TX_RECEIPT_TIMEOUT_MS,
         });
+        if (receipt.status !== "success") throw new Error("Garden creation transaction reverted");
       },
       estimateTransaction: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const { publicClient } = createClients(chainId);
@@ -212,18 +232,41 @@ export function createDefaultCreateGardenPorts(input: {
       },
     },
     sender: {
+      reconcile: (hash, chainId, broadcastReference) =>
+        reconcileTransaction(
+          input.transactionSender,
+          {
+            hash,
+            sponsored: false,
+            confirmation: "pending",
+            broadcastReference: broadcastReference ?? { kind: "transaction", hash, chainId },
+          },
+          (hash) => createClients(chainId).publicClient.getTransactionReceipt({ hash })
+        ),
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
-        const walletClient = await readyWalletClient(chainId, accountAddress);
-        await assertLocalArbitrumForkWallet();
-        return walletClient.writeContract({
-          address: gardenToken,
-          abi: GardenTokenABI,
-          functionName: "mintGarden",
-          account: accountAddress,
-          args: [config],
-          value: ccipFee,
-          chain: getChain(chainId),
-        });
+        const sender = input.transactionSender;
+        const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
+        await assertOwnership();
+        const result = await sendCheckpointedCall(
+          sender,
+          {
+            address: gardenToken,
+            abi: GardenTokenABI,
+            functionName: "mintGarden",
+            account: accountAddress,
+            args: [config],
+            value: ccipFee,
+            chainId,
+          },
+          (result) => input.checkpoint?.(result),
+          (result) => input.clearCheckpoint?.(result),
+          { assertOwnership }
+        );
+        if (result.confirmation !== "pending") {
+          confirmed.add(result.hash);
+          input.clearCheckpoint?.(result);
+        }
+        return result;
       },
     },
     documents: { addPending: (hash) => input.addPending(hash) },

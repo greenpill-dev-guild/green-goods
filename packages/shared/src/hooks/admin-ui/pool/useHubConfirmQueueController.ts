@@ -98,7 +98,7 @@ export function useHubConfirmQueueController(input: {
 }): HubConfirmQueueController {
   const { chainId, toConfirm, search } = input;
   const isOnline = useOnlineStatus();
-  const jobs = useCommitmentJobs({ chainId });
+  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   const mutation = useCommitmentMutation({ chainId });
 
   const commitments = useMemo(

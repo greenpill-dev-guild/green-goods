@@ -1,5 +1,6 @@
 import { getAddress, isAddress } from "viem";
 import { create } from "zustand";
+import { getTransactionScopeKey, type TxResult } from "../modules/transactions/types";
 import { persist } from "zustand/middleware";
 
 import {
@@ -41,6 +42,22 @@ export interface CreateGardenStep {
 }
 
 export interface CreateGardenStore {
+  // Accepted submissions keep their own chain:address scope across identity changes.
+  pendingSubmissions: Record<
+    string,
+    {
+      accountAddress: Address;
+      chainId: number;
+      gardenName: string;
+      result: TxResult;
+    }
+  >;
+  getPendingSubmission: (
+    account: Address,
+    chainId: number
+  ) => CreateGardenStore["pendingSubmissions"][string] | undefined;
+  recordPendingSubmission: (submission: CreateGardenStore["pendingSubmissions"][string]) => void;
+  clearPendingSubmission: (account: Address, chainId: number) => void;
   form: CreateGardenFormState;
   steps: CreateGardenStep[];
   currentStep: number;
@@ -108,6 +125,22 @@ export function isValidAddress(address: string): boolean {
 export const useCreateGardenStore = create<CreateGardenStore>()(
   persist(
     (set, get) => ({
+      pendingSubmissions: {},
+      getPendingSubmission: (account, chainId) =>
+        get().pendingSubmissions[getTransactionScopeKey(account, chainId)],
+      recordPendingSubmission: (submission) =>
+        set((state) => ({
+          pendingSubmissions: {
+            ...state.pendingSubmissions,
+            [getTransactionScopeKey(submission.accountAddress, submission.chainId)]: submission,
+          },
+        })),
+      clearPendingSubmission: (account, chainId) =>
+        set((state) => {
+          const { [getTransactionScopeKey(account, chainId)]: _removed, ...pendingSubmissions } =
+            state.pendingSubmissions;
+          return { pendingSubmissions };
+        }),
       form: createEmptyGardenForm(),
       steps: defaultSteps,
       currentStep: 0,
@@ -231,9 +264,21 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       },
       // Deep-merge persisted form with defaults so new/renamed fields are always present
       merge: (persisted, current) => {
-        const p = persisted as Partial<CreateGardenStore>;
+        const p = persisted as Partial<CreateGardenStore> & {
+          pendingSubmission?: CreateGardenStore["pendingSubmissions"][string];
+        };
         return {
           ...current,
+          pendingSubmissions:
+            p.pendingSubmissions ??
+            (p.pendingSubmission
+              ? {
+                  [getTransactionScopeKey(
+                    p.pendingSubmission.accountAddress,
+                    p.pendingSubmission.chainId
+                  )]: p.pendingSubmission,
+                }
+              : {}),
           currentStep: p.currentStep ?? current.currentStep,
           form: {
             ...createEmptyGardenForm(),
@@ -241,15 +286,20 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           },
         };
       },
-      // Only persist form and currentStep, not steps (static) or functions
+      // Persist the draft and its accepted submission, not static steps or functions
       partialize: (state) =>
-        ({ form: state.form, currentStep: state.currentStep }) as CreateGardenStore,
+        ({
+          form: state.form,
+          currentStep: state.currentStep,
+          pendingSubmissions: state.pendingSubmissions,
+        }) as CreateGardenStore,
     }
   )
 );
 
 export function resetCreateGardenStore() {
   useCreateGardenStore.setState({
+    pendingSubmissions: {},
     form: createEmptyGardenForm(),
     steps: defaultSteps,
     currentStep: 0,

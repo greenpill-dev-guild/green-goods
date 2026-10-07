@@ -14,7 +14,11 @@ import { Domain } from "../../../types/domain";
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const CREATE_PATH = "/hub/assess/create";
 // The garden documents Agroforestry only (bit 1), unless a test unsets it.
-const domainsState = vi.hoisted(() => ({ data: 2 as number | undefined }));
+const domainsState = vi.hoisted(() => ({
+  data: 2 as number | undefined,
+  primaryAddress: "0x2222222222222222222222222222222222222222" as string | undefined,
+  walletAddress: "0x2222222222222222222222222222222222222222" as string | undefined,
+}));
 const mockStartCreation = vi.fn((_payload: unknown) => true);
 const mockSubmitCreation = vi.fn();
 const mockResetWorkflow = vi.fn();
@@ -44,7 +48,11 @@ const workflow = vi.hoisted(() => {
 });
 
 vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: "0x2222222222222222222222222222222222222222" }),
+  useAccount: () => ({ address: domainsState.walletAddress }),
+}));
+
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => domainsState.primaryAddress,
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
@@ -101,6 +109,9 @@ vi.mock("../../../hooks/assessment/useCreateAssessmentWorkflow", async () => {
           workflow.set("idle");
         },
         canRetry: false,
+        isPending: value === "pending" || value === "reconciling",
+        isCheckingConfirmation: value === "reconciling",
+        checkConfirmation: vi.fn(),
         draft: {
           loadDraft: async () => null,
           saveDraft: (payload: unknown) => mockSaveDraft(payload),
@@ -171,9 +182,26 @@ function fillAssessment() {
 describe("useCreateAssessmentController submit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    domainsState.primaryAddress = "0x2222222222222222222222222222222222222222";
+    domainsState.walletAddress = domainsState.primaryAddress;
     domainsState.data = 1 << Domain.AGRO;
     workflow.set("idle");
     useCreateAssessmentStore.getState().reset();
+  });
+
+  it("submits an authorized primary/passkey account without a Wagmi wallet", async () => {
+    domainsState.primaryAddress = "0x7777777777777777777777777777777777777777";
+    domainsState.walletAddress = undefined;
+    fillAssessment();
+    const { result } = renderController();
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(mockStartCreation).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Canopy baseline" })
+    );
+    expect(mockSubmitCreation).toHaveBeenCalled();
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
   it("sends a restored domain the garden does not document back to the domain step", async () => {
@@ -281,6 +309,35 @@ describe("useCreateAssessmentController submit", () => {
     // The store walks as far as the controller lists.
     act(() => useCreateAssessmentStore.getState().goToStep(REVIEW_STEP));
     expect(result.current.currentStep).toBe(REVIEW_STEP);
+  });
+
+  it("keeps an indeterminate assessment on Review and refuses the normal submit/reset path", async () => {
+    fillAssessment();
+    const { result } = renderController();
+    act(() => workflow.set("pending"));
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.currentStep).toBe(REVIEW_STEP);
+    expect(result.current.hasError).toBe(false);
+    await act(() => result.current.handleSubmit());
+    expect(mockResetWorkflow).not.toHaveBeenCalled();
+    expect(mockStartCreation).not.toHaveBeenCalled();
+    expect(mockSubmitCreation).not.toHaveBeenCalled();
+  });
+
+  it("allows pending assessments to leave without discarding or submitting again", async () => {
+    fillAssessment();
+    const { result, guard, router } = renderController();
+    act(() => workflow.set("pending"));
+    await act(async () => {
+      await result.current.handleSubmit();
+      await router.navigate("/hub/work");
+    });
+    expect(router.state.location.pathname).toBe("/hub/work");
+    expect(guard.current.confirmOpen).toBe(false);
+    expect(mockSubmitCreation).not.toHaveBeenCalled();
+    expect(mockResetWorkflow).not.toHaveBeenCalled();
   });
 
   it("keeps a successful send on the Review, with its answers, and never asks to discard", async () => {

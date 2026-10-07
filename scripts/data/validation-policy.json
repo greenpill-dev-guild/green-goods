@@ -404,6 +404,7 @@
         "packages/shared/src/modules/offline-content/",
         "packages/shared/src/modules/profile-avatar/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
         "packages/shared/src/hooks/offline/",
         "packages/shared/src/hooks/profile/",
         "packages/shared/src/hooks/app/useOffline",
@@ -658,6 +659,7 @@
         "packages/shared/src/providers/Auth",
         "packages/shared/src/hooks/auth/",
         "packages/shared/src/hooks/client-ui/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
         "packages/client/src/views/Login/"
       ]
     },
@@ -1494,6 +1496,7 @@
         "packages/shared/src/hooks/action/useActionOperations.ts",
         "packages/shared/src/hooks/admin-ui/actions/useActionEditorController.ts",
         "packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts",
+        "packages/shared/src/hooks/admin-ui/auth/useAdminLoginController.ts",
         "packages/shared/src/hooks/admin-ui/community/useCommunityWorkspaceController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
@@ -1597,6 +1600,7 @@
         "packages/shared/src/modules/marketplace/signing.ts",
         "packages/shared/src/modules/transactions/bundling-sender.ts",
         "packages/shared/src/modules/transactions/chain-guard.ts",
+        "packages/shared/src/modules/transactions/confirmation.ts",
         "packages/shared/src/modules/transactions/embedded-sender.ts",
         "packages/shared/src/modules/transactions/factory.ts",
         "packages/shared/src/modules/transactions/passkey-sender.ts",

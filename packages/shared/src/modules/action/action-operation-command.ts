@@ -1,9 +1,12 @@
 import type { Abi } from "viem";
-import { getChain } from "../../config/chains";
 import type { ToastActionOptions } from "../../hooks/app/useToastAction";
-import { readyWalletClient } from "../transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
+import {
+  TransactionConfirmationPendingError,
+  type TransactionSender,
+  type TxResult,
+} from "../transactions/types";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { sendCheckpointedCall } from "../transactions/confirmation";
 
 export interface ActionOperationCommand {
   functionName: string;
@@ -21,6 +24,7 @@ export interface ActionOperationCall extends ActionOperationCommand {
 export interface ActionOperationResult {
   hash?: `0x${string}`;
   success: boolean;
+  confirmation?: "pending";
   error?: { name: string; message: string; action?: string };
 }
 
@@ -44,7 +48,10 @@ export async function executeActionOperation(
 }
 
 export function createDefaultActionOperationPorts(input: {
+  transactionSender: TransactionSender;
   executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
+  checkpoint?: (call: ActionOperationCall, result: TxResult) => void;
+  clearCheckpoint?: (call: ActionOperationCall, result: TxResult) => void;
 }): ActionOperationPorts {
   return {
     reader: {
@@ -62,16 +69,28 @@ export function createDefaultActionOperationPorts(input: {
       send: (call) =>
         input.executeWithToast(
           async () => {
-            const walletClient = await readyWalletClient(call.chainId, call.account);
-            await assertLocalArbitrumForkWallet();
-            return walletClient.writeContract({
-              address: call.contractAddress,
-              abi: call.abi,
-              functionName: call.functionName,
-              account: call.account,
-              args: call.args,
-              chain: getChain(call.chainId),
-            });
+            const sender = input.transactionSender;
+            const assertOwnership = () => sender.assertOwnership?.(call.account, call.chainId);
+            await assertOwnership();
+            const result = await sendCheckpointedCall(
+              sender,
+              {
+                address: call.contractAddress,
+                abi: call.abi,
+                functionName: call.functionName,
+                account: call.account,
+                args: call.args,
+                chainId: call.chainId,
+              },
+              (result) => input.checkpoint?.(call, result),
+              (result) => input.clearCheckpoint?.(call, result),
+              { assertOwnership }
+            );
+            if (result.confirmation === "pending") {
+              throw new TransactionConfirmationPendingError(result);
+            }
+            input.clearCheckpoint?.(call, result);
+            return result.hash;
           },
           {
             loadingMessage: call.messages.loading,

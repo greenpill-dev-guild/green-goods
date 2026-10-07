@@ -9,6 +9,7 @@ export interface CreateAssessmentContext {
   txHash?: string;
   error?: string;
   retryCount: number;
+  pendingGardenId?: Address;
 }
 
 export type CreateAssessmentEvent =
@@ -16,6 +17,9 @@ export type CreateAssessmentEvent =
   | { type: "SUBMIT" }
   | { type: "RETRY" }
   | { type: "CLOSE" }
+  | { type: "RESTORE_PENDING"; gardenId: Address }
+  | { type: "CHECK_CONFIRMATION" }
+  | { type: "SWITCH_SCOPE" }
   | { type: "RESET" };
 
 const createAssessmentSetup = setup({
@@ -41,6 +45,7 @@ const createAssessmentSetup = setup({
     }),
     clearError: assign({ error: undefined }),
     clearContext: assign({
+      pendingGardenId: undefined,
       assessmentParams: undefined,
       error: undefined,
       txHash: undefined,
@@ -59,8 +64,12 @@ const createAssessmentSetup = setup({
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,
     }),
+    storePendingGarden: assign({
+      pendingGardenId: ({ event }) => (event as { gardenId: Address }).gardenId,
+    }),
   },
   actors: {
+    reconcileAssessment: fromPromise<string | null>(async () => null),
     submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
       async () => {
         throw new Error("submitAssessment actor must be provided");
@@ -100,6 +109,8 @@ const createAssessmentSetup = setup({
       );
     },
     canRetry: ({ context }) => context.retryCount < 3,
+    isPending: () => false,
+    hasConfirmedUid: ({ event }) => Boolean((event as { output?: string }).output),
   },
 });
 
@@ -108,6 +119,10 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
   initial: "idle",
   context: {
     retryCount: 0,
+  },
+  on: {
+    SWITCH_SCOPE: { target: ".idle", actions: "clearContext" },
+    RESTORE_PENDING: { target: ".pending", actions: "storePendingGarden" },
   },
   states: {
     idle: {
@@ -171,10 +186,13 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
           target: "success",
           actions: "storeTxHash",
         },
-        onError: {
-          target: "error",
-          actions: ["storeFailure", "incrementRetry"],
-        },
+        onError: [
+          { target: "pending", guard: "isPending", actions: "storeFailure" },
+          {
+            target: "error",
+            actions: ["storeFailure", "incrementRetry"],
+          },
+        ],
       },
     },
     success: {
@@ -187,6 +205,20 @@ export const createAssessmentMachine = createAssessmentSetup.createMachine({
           target: "idle",
           actions: "clearContext",
         },
+      },
+    },
+    pending: { on: { CHECK_CONFIRMATION: "reconciling" } },
+    reconciling: {
+      invoke: {
+        src: "reconcileAssessment",
+        onDone: [
+          { target: "success", guard: "hasConfirmedUid", actions: "storeTxHash" },
+          { target: "pending" },
+        ],
+        onError: [
+          { target: "pending", guard: "isPending" },
+          { target: "error", actions: "storeFailure" },
+        ],
       },
     },
     error: {

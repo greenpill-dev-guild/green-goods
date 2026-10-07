@@ -9,6 +9,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionEditorController } from "../../../hooks/admin-ui/actions/useActionEditorController";
 
 const mocks = vi.hoisted(() => ({
+  assertReady: vi.fn(),
+  pendingEdits: [] as unknown[],
+  reconcileEdits: vi.fn(),
+  clearCompletedEdits: vi.fn(),
   clearDraft: vi.fn(),
   getFileByHash: vi.fn(),
   loggerError: vi.fn(),
@@ -68,6 +72,10 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     isLoading: false,
+    pendingEdits: mocks.pendingEdits,
+    reconcileEdits: mocks.reconcileEdits,
+    clearCompletedEdits: mocks.clearCompletedEdits,
+    assertReady: mocks.assertReady,
     updateActionEndTime: mocks.updateEndTime,
     updateActionInstructions: mocks.updateInstructions,
     updateActionStartTime: mocks.updateStartTime,
@@ -109,7 +117,40 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe("useActionEditorController", () => {
+  it("keeps an accepted edit pending without a failure toast or draft cleanup", async () => {
+    mocks.updateTitle.mockResolvedValueOnce({ success: false, confirmation: "pending" });
+    const { result } = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() => expect(result.current.form.getValues("title")).toBe("Original action"));
+    await act(() =>
+      result.current.submit({
+        title: "Updated action",
+        startTime: originalStart,
+        endTime: originalEnd,
+      })
+    );
+    expect(mocks.toastError).not.toHaveBeenCalled();
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.updateInstructions).not.toHaveBeenCalled();
+  });
+
+  it("holds a restored edit for confirmation without another update", async () => {
+    mocks.pendingEdits = [["pending", {}]];
+    const { result } = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() => expect(result.current.form.getValues("title")).toBe("Original action"));
+    expect(result.current.isPendingEdit).toBe(true);
+    await act(() =>
+      result.current.submit({ title: "Updated", startTime: originalStart, endTime: originalEnd })
+    );
+    await act(() => result.current.checkConfirmation());
+    expect(mocks.reconcileEdits).toHaveBeenCalledOnce();
+    expect(mocks.updateTitle).not.toHaveBeenCalled();
+    expect(mocks.toastError).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
+    mocks.pendingEdits = [];
     vi.clearAllMocks();
     mocks.restoreDraft.mockReturnValue(null);
     mocks.updateEndTime.mockResolvedValue({ success: true });
@@ -157,6 +198,25 @@ describe("useActionEditorController", () => {
     });
 
     expect(mocks.loggerError).toHaveBeenCalledWith("Failed to update action", { error: failure });
+    expect(mocks.toastError).toHaveBeenCalledOnce();
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it("retains the draft when an operation resolves with a failed result", async () => {
+    mocks.updateTitle.mockResolvedValue({
+      success: false,
+      error: { message: "Simulation failed" },
+    });
+    const { result } = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() => expect(result.current.form.getValues("title")).toBe("Original action"));
+    await act(async () => {
+      await result.current.submit({
+        title: "Updated action",
+        startTime: originalStart,
+        endTime: originalEnd,
+      });
+    });
     expect(mocks.toastError).toHaveBeenCalledOnce();
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.clearDraft).not.toHaveBeenCalled();

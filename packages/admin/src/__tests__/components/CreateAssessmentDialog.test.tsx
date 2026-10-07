@@ -13,7 +13,7 @@ import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
-import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { AuthContext, AuthStateContext } from "@green-goods/shared/providers/Auth";
 import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
 import {
   type CreateAssessmentFormState,
@@ -32,6 +32,9 @@ type Controller = ReturnType<
 >;
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+const accountState = vi.hoisted(() => ({
+  address: "0x9999999999999999999999999999999999999999" as string | undefined,
+}));
 type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
@@ -57,8 +60,14 @@ const SELECTED_GARDEN: Garden = {
 };
 
 vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
+  useAccount: () => ({
+    address: accountState.address,
+    isConnected: Boolean(accountState.address),
+    isConnecting: false,
+  }),
   useReadContract: () => ({ data: 1 }),
+  useConfig: () => ({}),
+  useWriteContract: () => ({ writeContractAsync: vi.fn() }),
 }));
 
 vi.mock(
@@ -153,6 +162,9 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
     isDirty: false,
     isSent: false,
     isSubmitting: false,
+    isPending: false,
+    isCheckingConfirmation: false,
+    checkConfirmation: vi.fn(),
     normalizedGardenDomainMask: 1,
     reviewForm: ANSWERS,
     showValidation: false,
@@ -168,7 +180,8 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
   };
 }
 
-function renderCreateAssessment() {
+function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}) {
+  const auth = { ...authContextValue, ...authOverrides };
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
@@ -200,9 +213,11 @@ function renderCreateAssessment() {
   render(
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={{}} onError={() => {}}>
-        <AuthContext.Provider value={authContextValue}>
-          <RouterProvider router={router} />
-        </AuthContext.Provider>
+        <AuthStateContext.Provider value={auth}>
+          <AuthContext.Provider value={auth}>
+            <RouterProvider router={router} />
+          </AuthContext.Provider>
+        </AuthStateContext.Provider>
       </IntlProvider>
     </QueryClientProvider>
   );
@@ -217,7 +232,25 @@ function renderCreateAssessment() {
 const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
 
 describe("CreateAssessment dialog", () => {
+  it("shows confirmation checking for an accepted assessment and cannot retry it", async () => {
+    const controller = controllerAt({
+      isSubmitting: true,
+      isPending: true,
+      isCheckingConfirmation: false,
+      checkConfirmation: vi.fn(),
+    });
+    createAssessmentControllerOverride.current = () => controller;
+    renderCreateAssessment();
+    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Try Again|Create Another|Submit Assessment/ })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
+    expect(controller.checkConfirmation).toHaveBeenCalledOnce();
+    expect(controller.handleSubmit).not.toHaveBeenCalled();
+  });
   beforeEach(async () => {
+    accountState.address = OPERATOR;
     await idbDel(DRAFT_KEY);
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({
@@ -238,6 +271,19 @@ describe("CreateAssessment dialog", () => {
         dispatchEvent: vi.fn(),
       })),
     });
+  });
+
+  it("offers the assessment form to an authorized passkey account without a Wagmi wallet", async () => {
+    accountState.address = undefined;
+    renderCreateAssessment({
+      authMode: "passkey",
+      smartAccountAddress: OPERATOR,
+      walletAddress: null,
+      eoaAddress: undefined,
+    });
+    expect(await screen.findByRole("heading", { name: "Domain & Context" })).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/requires signing in with a wallet account/)).not.toBeInTheDocument();
   });
 
   afterEach(async () => {
@@ -354,6 +400,19 @@ describe("CreateAssessment dialog", () => {
       expect(router?.state.location.pathname).toBe("/hub/assess/create");
       expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
     });
+  });
+
+  it("allows a persisted pending assessment to close while retaining confirmation controls", async () => {
+    const handleClose = vi.fn();
+    createAssessmentControllerOverride.current = () =>
+      controllerAt({ isPending: true, isSubmitting: false, isDirty: false, handleClose });
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("button", { name: "Check confirmation" })).toBeEnabled();
+    fireEvent.click(screen.getByLabelText(/close/i));
+    expect(handleClose).toHaveBeenCalledOnce();
   });
 
   it("does not fire the close path while assessment submission is pending", async () => {

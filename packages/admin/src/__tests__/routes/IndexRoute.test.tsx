@@ -77,6 +77,24 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
   },
 }));
 
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockAuthState.current.eoaAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
+  useAdminLoginController: () => ({
+    username: "",
+    setUsername: vi.fn(),
+    error: null,
+    isSigningIn: false,
+    canSignInByName: false,
+    hasStoredCredential: false,
+    storedUsername: null,
+    signInByName: vi.fn(),
+    signInWithStoredPasskey: vi.fn(),
+  }),
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => mockAuthState.current,
 }));

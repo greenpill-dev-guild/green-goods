@@ -17,6 +17,7 @@
  */
 
 import {
+  signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
@@ -27,6 +28,8 @@ import {
 } from "@wagmi/core";
 import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { isCanonicalTransactionHash } from "./confirmation";
+import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -39,7 +42,9 @@ import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
   TransactionReplacementError,
+  assertTypedDataChain,
   TransactionRevertedError,
+  type AccountTypedDataRequest,
   type ContractCall,
   type TransactionSender,
   type TransactionSendOptions,
@@ -65,16 +70,10 @@ async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
-/**
- * Check whether a hash is a canonical 66-char tx hash (0x + 64 hex chars).
- * Safe-style wallets can return longer or non-standard identifiers.
- */
-function isCanonicalTxHash(hash: string): hash is `0x${string}` {
-  return /^0x[a-fA-F0-9]{64}$/.test(hash);
-}
-
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
+  reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
+  signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   waitForTransactionReceipt: (
     config: Config,
     params: {
@@ -172,11 +171,20 @@ export class WalletSender implements TransactionSender {
           >
         )(config, params),
     };
+    this.deps.signTypedData ??= (config, request) =>
+      defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
+        typeof defaultSignTypedData
+      >[1]);
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
       ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
+    this.deps.reconcileBroadcast ??= (reference) =>
+      reconcileWalletBroadcast(this.config, reference, this.deps.getAccount?.().address);
   }
+
+  reconcileBroadcast: NonNullable<TransactionSender["reconcileBroadcast"]> = (reference) =>
+    this.deps.reconcileBroadcast!(reference);
 
   /**
    * The call with the address it is for: the one it names, or else the one
@@ -220,6 +228,23 @@ export class WalletSender implements TransactionSender {
     await this.assertSigner(call, options);
   }
 
+  async signTypedData(
+    request: AccountTypedDataRequest,
+    options: TransactionSendOptions = {}
+  ): Promise<Hex> {
+    assertTypedDataChain(request);
+    const assertSigner = async () => {
+      await options.assertOwnership?.();
+      assertWalletAccount(request.account, this.deps.getAccount?.().address);
+    };
+    await assertSigner();
+    await this.deps.ensureWalletChain?.(request.chainId, "write", assertSigner);
+    await assertSigner();
+    const signature = await this.deps.signTypedData!(this.config, request);
+    await assertSigner();
+    return signature;
+  }
+
   async sendContractCall(
     named: ContractCall,
     options: TransactionSendOptions = {}
@@ -259,7 +284,7 @@ export class WalletSender implements TransactionSender {
     // Some Safe-style wallets return a non-canonical hash-like identifier.
     // waitForTransactionReceipt only accepts canonical tx hashes, so skip
     // waiting and preserve a pending result for the off-chain Safe flow.
-    if (!isCanonicalTxHash(hash)) {
+    if (!isCanonicalTransactionHash(hash)) {
       // No address or hash material in the log context: aggregated logs must
       // stay free of identifying transaction data (short Safe identifiers
       // would otherwise be logged in full via a "preview").

@@ -7,10 +7,10 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
-import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { renderHookWithProviders as renderHookWithQueryClient } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -18,12 +18,25 @@ const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
 const mockAssertMarketplaceReady = vi.fn();
 const mockBuildMakerAsk = vi.fn();
+const mockGetOrderNonces = vi.fn();
+vi.mock("../../../modules/marketplace/client", () => ({
+  getOrderNonces: (...args: unknown[]) => mockGetOrderNonces(...args),
+}));
 const mockSignMakerAsk = vi.fn();
 const mockValidateOrder = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
-const mockReadyWalletClient = vi.fn(async (..._args: unknown[]) => ({
-  sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
+let authMode: "wallet" | "passkey" = "wallet";
+const mockOwnership = vi.fn();
+const mockSender = () => ({
+  authMode,
+  sendContractCall: mockSendTransaction,
+  signTypedData: vi.fn(),
+  assertOwnership: mockOwnership,
+});
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mockSender(),
 }));
 
 // ============================================
@@ -51,11 +64,6 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   }),
 }));
 
-// The hook takes its wallet client from the guard when the act runs.
-vi.mock("../../../modules/transactions/chain-guard", () => ({
-  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
-}));
-
 vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
@@ -63,14 +71,6 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
-  }),
-}));
-
-vi.mock("../../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({
-    smartAccountClient: null,
-    smartAccountAddress: null,
-    eoaAddress: "0x2222222222222222222222222222222222222222",
   }),
 }));
 
@@ -111,11 +111,12 @@ import {
 // Test Suite
 // ============================================
 
-describe("useBatchListForYield", () => {
+describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (mode) => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    authMode = mode;
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
@@ -125,6 +126,7 @@ describe("useBatchListForYield", () => {
         hypercertsModule: TEST_MODULE,
       },
     });
+    mockGetOrderNonces.mockResolvedValue({ globalNonce: 4n, orderNonce: 1n });
     mockBuildMakerAsk.mockReturnValue({
       quoteType: 1,
       globalNonce: 0n,
@@ -144,7 +146,7 @@ describe("useBatchListForYield", () => {
     });
     mockSignMakerAsk.mockResolvedValue("0xsignature");
     mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
-    mockSendTransaction.mockResolvedValue("0xtxhash");
+    mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
   });
 
   describe("initial state", () => {
@@ -253,6 +255,41 @@ describe("useBatchListForYield", () => {
   });
 
   describe("invalidation", () => {
+    it("keeps pending batches out of the retry state and refreshes listings", async () => {
+      mockSendTransaction.mockResolvedValueOnce({
+        hash: "0xSafeProposalIdentifier",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
+      });
+      const listings = [
+        {
+          hypercertId: 1n,
+          fractionId: 1n,
+          currency: "0x0000000000000000000000000000000000000000" as const,
+          pricePerUnit: 1000n,
+          minUnitAmount: 1n,
+          maxUnitAmount: 1000n,
+          minUnitsToKeep: 0n,
+          sellLeftover: false,
+          durationDays: 30,
+        },
+      ];
+      await act(() => result.current.batchList(listings));
+      await waitFor(() => expect(result.current.progress.status).toBe("pending"));
+      expect(result.current.error).toBeNull();
+      expect(mockInvalidateQueries).toHaveBeenCalled();
+      await act(async () => {
+        result.current.reset();
+        await result.current.batchList(listings);
+      });
+      expect(result.current.progress.status).toBe("pending");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSignMakerAsk).toHaveBeenCalledTimes(1);
+    });
+
     it("keeps marketplace listing invalidation after a successful batch listing", async () => {
       const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
         queryClient,
@@ -274,11 +311,21 @@ describe("useBatchListForYield", () => {
         ]);
       });
 
-      // Readied once to sign and again to send, each time for the signer.
-      expect(mockReadyWalletClient.mock.calls).toEqual([
-        [TEST_CHAIN_ID, TEST_SIGNER],
-        [TEST_CHAIN_ID, TEST_SIGNER],
-      ]);
+      expect(mockSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          account: TEST_SIGNER,
+          chainId: TEST_CHAIN_ID,
+          address: TEST_MODULE,
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
+      );
+      expect(mockOwnership).toHaveBeenCalledWith(TEST_SIGNER, TEST_CHAIN_ID);
+      expect(mockBuildMakerAsk).toHaveBeenCalledWith(
+        expect.any(Object),
+        TEST_SIGNER,
+        TEST_CHAIN_ID,
+        { globalNonce: 4n, orderNonce: 1n }
+      );
       expect(mockInvalidateQueries).toHaveBeenCalledWith({
         queryKey: ["greengoods", "marketplace", "orders"],
       });

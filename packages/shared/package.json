@@ -25,6 +25,7 @@
     "./config/tokens": "./src/config/tokens.ts",
     "./hooks": "./src/hooks/index.ts",
     "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
+    "./hooks/admin-ui/auth/useAdminLoginController": "./src/hooks/admin-ui/auth/useAdminLoginController.ts",
     "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
     "./hooks/ui/useDocumentScrollLock": "./src/hooks/ui/useDocumentScrollLock.ts",
     "./i18n": "./src/i18n/index.ts",

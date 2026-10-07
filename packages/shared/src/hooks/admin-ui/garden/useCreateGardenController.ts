@@ -21,11 +21,22 @@ export function useCreateGardenController() {
   const isOnline = useOnlineStatus();
 
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
-  const { state, openFlow, closeFlow, goNext, goBack, goToReview, submitCreation, retry, draft } =
-    useCreateGardenWorkflow();
+  const {
+    state,
+    openFlow,
+    closeFlow,
+    goNext,
+    goBack,
+    goToReview,
+    submitCreation,
+    retry,
+    checkConfirmation,
+    draft,
+  } = useCreateGardenWorkflow();
   const { loadDraft } = draft;
 
-  const isSubmitting = state.value === "submitting";
+  const isPending = state.matches("pending") || state.matches("reconciling");
+  const isSubmitting = state.matches("submitting") || isPending;
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
@@ -163,6 +174,7 @@ export function useCreateGardenController() {
   };
 
   const handleCancel = () => {
+    if (isSubmitting) return;
     closeFlow();
     navigate("/garden");
   };
@@ -182,6 +194,9 @@ export function useCreateGardenController() {
     isDetailsStep: currentStepConfig?.id === "details",
     isReviewStepActive: currentStepConfig?.id === "review",
     isSubmitting,
+    isPending,
+    isCheckingConfirmation: state.matches("reconciling"),
+    checkConfirmation,
     isTeamStep: currentStepConfig?.id === "team",
     retry,
     showValidation: stepValidation.showValidation,

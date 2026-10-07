@@ -3,6 +3,7 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toastService } from "../../components/toast";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import { useToastAction } from "../../hooks/app/useToastAction";
 import enMessages from "../../i18n/en.json";
 
@@ -11,6 +12,7 @@ vi.mock("../../components/toast", () => ({
     loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -54,6 +56,24 @@ describe("useToastAction", () => {
     expect(mockAction).toHaveBeenCalledTimes(1);
   });
 
+  it("announces an accepted pending submission without success or failure", async () => {
+    const { result } = renderHook(() => useToastAction(), { wrapper });
+    const pending = new TransactionConfirmationPendingError({
+      hash: "0xProposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    await act(async () => {
+      await expect(
+        result.current.executeWithToast(async () => {
+          throw pending;
+        })
+      ).rejects.toBe(pending);
+    });
+    expect(toastService.info).toHaveBeenCalled();
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(toastService.error).not.toHaveBeenCalled();
+  });
   it("should handle action failure with error toast", async () => {
     const { result } = renderHook(() => useToastAction(), { wrapper });
     const error = new Error("Something went wrong");

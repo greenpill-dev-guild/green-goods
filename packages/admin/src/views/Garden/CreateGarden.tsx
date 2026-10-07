@@ -44,15 +44,32 @@ export default function CreateGarden() {
         sections={toFormFlowSections(createGarden.steps, stepRegistry)}
         feedback={
           <TxInlineFeedback
-            visible={createGarden.hasError}
-            severity={createGarden.txErrorView.severity}
-            title={createGarden.errorTitle}
-            message={createGarden.errorMessage}
+            visible={createGarden.hasError || createGarden.isPending}
+            severity={createGarden.isPending ? "warning" : createGarden.txErrorView.severity}
+            title={
+              createGarden.isPending
+                ? intl.formatMessage({ id: "admin.garden.deploy.pendingTitle" })
+                : createGarden.errorTitle
+            }
+            message={
+              createGarden.isPending
+                ? intl.formatMessage({ id: "admin.garden.deploy.pendingMessage" })
+                : createGarden.errorMessage
+            }
             reserveClassName="min-h-[8.25rem]"
             action={
-              <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
+              <AdminButton
+                variant="tonal"
+                size="sm"
+                onClick={
+                  createGarden.isPending ? createGarden.checkConfirmation : createGarden.retry
+                }
+                disabled={createGarden.isCheckingConfirmation}
+              >
                 {intl.formatMessage({
-                  id: "admin.garden.deploy.retry",
+                  id: createGarden.isPending
+                    ? "app.account.checkConfirmation"
+                    : "admin.garden.deploy.retry",
                   defaultMessage: "Retry Deployment",
                 })}
               </AdminButton>

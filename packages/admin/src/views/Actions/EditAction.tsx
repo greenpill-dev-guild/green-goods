@@ -1,4 +1,5 @@
 import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
+import { Alert } from "@green-goods/shared/components/Alert";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@green-goods/shared/utils/time";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
@@ -28,6 +29,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
     instructionConfig,
     isEditingInstructions,
     isLoading,
+    isPendingEdit,
+    isCheckingConfirmation,
+    checkConfirmation,
     isLoadingInstructions,
     setInstructionConfig,
     setIsEditingInstructions,
@@ -183,9 +187,31 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
         </AdminCard>
 
         <AdminCard className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
-            {formatMessage({ id: "app.actions.edit.saveChanges" })}
-          </AdminButton>
+          {isPendingEdit ? (
+            <>
+              <Alert variant="info">
+                {formatMessage({
+                  id: "app.account.transactionPending",
+                  defaultMessage:
+                    "Transaction submitted. Check its confirmation before trying again.",
+                })}
+              </Alert>
+              <AdminButton
+                type="button"
+                disabled={isCheckingConfirmation}
+                onClick={() => void checkConfirmation()}
+              >
+                {formatMessage({
+                  id: "app.account.checkConfirmation",
+                  defaultMessage: "Check confirmation",
+                })}
+              </AdminButton>
+            </>
+          ) : (
+            <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
+              {formatMessage({ id: "app.actions.edit.saveChanges" })}
+            </AdminButton>
+          )}
           <AdminButton type="button" variant="outlined" onClick={cancel}>
             {formatMessage({ id: "app.common.cancel" })}
           </AdminButton>
