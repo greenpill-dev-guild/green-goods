@@ -177,7 +177,14 @@ export function QueuedActRow({
 }: QueuedActRowProps) {
   const { formatMessage } = useIntl();
   const copy = noticeCopy(act, inFlight, sendsFromTap);
-  const operation = OPERATION_COPY[act.kind];
+  const operation =
+    act.kind === "confirmation" && act.confirmationAction === "submit"
+      ? {
+          titleId: "app.commitment.queue.operation.submission",
+          sendId: "app.commitment.queue.send.submission",
+          discardId: "app.commitment.queue.discard.submission",
+        }
+      : OPERATION_COPY[act.kind];
   // A send on record is checked, not sent again, so the button says so.
   const confirming = act.waitingReason === "awaiting-confirmation";
   const locked = isBusy || inFlight;

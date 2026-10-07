@@ -160,13 +160,14 @@ export function WorkCommitmentSelection({
             disabled={loading || readFailed || !onSelectedKeyChange}
             aria-haspopup="dialog"
             aria-expanded={open}
+            aria-describedby={`${choiceId}-selection`}
             aria-label={intl.formatMessage({
               id: "app.garden.commitment.choose",
               defaultMessage: "Choose a Promise",
             })}
             className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-left text-sm text-text-strong-950 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
           >
-            <span className="min-w-0 whitespace-normal">
+            <span id={`${choiceId}-selection`} className="min-w-0 whitespace-normal">
               <span className="block">
                 {selectedChoice?.title ??
                   intl.formatMessage({

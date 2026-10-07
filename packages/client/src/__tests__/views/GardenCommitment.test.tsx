@@ -910,6 +910,40 @@ describe("GardenCommitment", () => {
     expect(screen.queryByText(/to take this up\./i)).not.toBeInTheDocument();
   });
 
+  it.each([
+    [
+      "submit",
+      "Sending this promise for confirmation",
+      "Send for confirmation",
+      "Discard unsent submission",
+    ],
+    ["confirm", "Confirming this promise", "Send confirmation", "Discard unsent confirmation"],
+  ] as const)("names a queued %s operation accurately", async (confirmationAction, title, send, discard) => {
+    mockRetryAndSend.mockResolvedValue(undefined);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "confirmation-9",
+            kind: "confirmation",
+            confirmationAction,
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: discard })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: send }));
+    expect(mockRetryAndSend).toHaveBeenCalledWith("confirmation-9");
+  });
+
   it("draws a parked act with why it waits, and sends or drops it from the row", async () => {
     mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);

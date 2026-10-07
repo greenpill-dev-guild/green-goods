@@ -46,6 +46,21 @@ function mount(selectedKey: string | null = null, error: unknown = null) {
 }
 
 describe("WorkCommitmentSelection", () => {
+  it("announces the selected promise and exact requirement without opening the picker", () => {
+    mount("9:1");
+    expect(screen.getByRole("button", { name: "Choose a Promise" })).toHaveAccessibleDescription(
+      "Restore the north beds Requirement 2 · Plant seedlings · 0 of 2 approved"
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("announces when the work has no promise selected", () => {
+    mount();
+    expect(screen.getByRole("button", { name: "Choose a Promise" })).toHaveAccessibleDescription(
+      "Not for a Promise"
+    );
+  });
+
   it("shows action and progress to distinguish repeated promise requirements", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Choose a Promise" }));

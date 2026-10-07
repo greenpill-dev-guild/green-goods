@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { useState } from "react";
 import { WorkCommitmentSelection } from "./WorkCommitmentSelection";
 
@@ -56,6 +56,15 @@ export default meta;
 type Story = StoryObj<typeof WorkCommitmentSelection>;
 export const ChoosePromise: Story = {};
 export const ExactRequirementSelected: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("button", { name: "Choose a Promise" })
+    ).toHaveAccessibleDescription(
+      "Restore the north beds before the autumn planting Requirement 2 · Plant seedlings · 0 of 2 approved"
+    );
+  },
   args: { selectedKey: "9:1", intentStatus: "valid" },
 };
 export const EligibilityUnavailable: Story = {

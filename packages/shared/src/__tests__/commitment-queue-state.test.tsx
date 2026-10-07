@@ -135,6 +135,33 @@ describe("useCommitmentQueueState", () => {
     expect(result.current.pendingActs.size).toBe(1);
   });
 
+  it("preserves submission and confirmation as distinct pending operations", async () => {
+    mocks.getJobs.mockResolvedValue([
+      creation({
+        id: "submit-9",
+        kind: "confirmation",
+        payload: { action: "submit", commitmentId: 9n },
+      }),
+      creation({
+        id: "confirm-10",
+        kind: "confirmation",
+        payload: { action: "confirm", commitmentId: 10n },
+      }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingActs.size).toBe(2));
+    expect(result.current.pendingActs.get("9")).toMatchObject({
+      jobId: "submit-9",
+      confirmationAction: "submit",
+      discardable: true,
+    });
+    expect(result.current.pendingActs.get("10")).toMatchObject({
+      jobId: "confirm-10",
+      confirmationAction: "confirm",
+      discardable: true,
+    });
+  });
+
   it("says why a queued act's last send failed, in copy a row can show", async () => {
     // A wallet reader's act waits for their own send, so the row has to say what
     // went wrong the last time: the network it needed, or the kind of failure.
