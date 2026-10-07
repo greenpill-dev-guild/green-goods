@@ -1,7 +1,7 @@
 /** Real virtual-authenticator ceremony; a strict substitute rejects server verification. */
 // TEST-QUALITY: allow-small-test-file - one browser ceremony owns this integration boundary
 import { expect, test } from "@playwright/test";
-import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts/routes";
+import { PUBLIC_AGENT_ROUTES } from "../../packages/shared/src/public-contracts/routes";
 import { TEST_URLS } from "../helpers/test-utils";
 
 test.use({ baseURL: TEST_URLS.client, serviceWorkers: "block" });
