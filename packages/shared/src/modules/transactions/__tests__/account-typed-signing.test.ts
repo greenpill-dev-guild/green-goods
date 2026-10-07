@@ -35,10 +35,17 @@ describe("typed-data signatures use the transaction account", () => {
     const sender = new PasskeySender(client, { resolveSmartAccountClient: async () => client });
     return { client, sender, sign };
   }
-  it("delegates the exact typed data to the chain-resolved smart account", async () => {
+  it.each([
+    sepolia.id,
+    BigInt(sepolia.id),
+  ])("delegates domain chain %s to the shared passkey account", async (chainId) => {
     const { sender, sign, client } = passkey();
-    await expect(sender.signTypedData(request)).resolves.toBe("0x1234");
-    expect(sign).toHaveBeenCalledExactlyOnceWith(request.data);
+    const signedFor = {
+      ...request,
+      data: { ...request.data, domain: { ...request.data.domain, chainId } },
+    };
+    await expect(sender.signTypedData(signedFor)).resolves.toBe("0x1234");
+    expect(sign).toHaveBeenCalledExactlyOnceWith(signedFor.data);
     expect(client.sendUserOperation).not.toHaveBeenCalled();
   });
   it("refuses another account or a mismatched domain before the passkey prompt", async () => {
@@ -73,7 +80,11 @@ describe("typed-data signatures use the transaction account", () => {
     "embedded",
   ] as const)("signs the %s domain and checks ownership again after the prompt", async (mode) => {
     const account = privateKeyToAccount(generatePrivateKey()); // Ephemeral key, never written or printed.
-    const signedFor = { ...request, account: account.address };
+    const signedFor = {
+      ...request,
+      account: account.address,
+      data: { ...request.data, domain: { ...request.data.domain, chainId: BigInt(sepolia.id) } },
+    };
     let connected = account.address;
     const signTypedData = vi.fn(async (_config, input: AccountTypedDataRequest) =>
       account.signTypedData(input.data)
