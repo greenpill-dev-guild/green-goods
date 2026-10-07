@@ -6,7 +6,26 @@ import { trackPrivateQueueEvent } from "./job-analytics";
 import { workCompletionScope } from "./work-completions";
 import { dependentWorkLinkPayload } from "../commitment-pooling/work-link-intent";
 import { canonicalJobPayload, commitmentJobIdentity } from "../commitment-pooling/job-identity";
-import { payloadWithoutSendRecord } from "./queue-policy";
+import { isTerminallyFailedJob, payloadWithoutSendRecord } from "./queue-policy";
+import { compareAddresses } from "../../utils/blockchain/address";
+
+function linkedPayloadFor(
+  dependent: NonNullable<WorkJobPayload["dependentWorkLink"]>,
+  sourceWorkJobId: string
+) {
+  return {
+    ...dependentWorkLinkPayload(
+      dependent.clientWorkId,
+      {
+        commitmentId: dependent.commitmentId,
+        requirementIndex: dependent.requirementIndex,
+        garden: dependent.gardenAddress,
+      },
+      sourceWorkJobId
+    ),
+    operationKey: dependent.operationKey,
+  };
+}
 
 /** Work, its files and its dependent link are admitted as one durable write. */
 export async function admitStoredJob<T = unknown>(
@@ -91,35 +110,53 @@ export async function admitStoredJob<T = unknown>(
               }
             }
           }
-          const existing = findExistingWorkJob(
-            await db.jobs.where("userAddress").equals(jobData.userAddress).toArray(),
-            jobData as Job
-          );
-          if (existing) return existing.id;
-          const dependent =
+          const scopedJobs = await db.jobs
+            .where("userAddress")
+            .equals(jobData.userAddress)
+            .toArray();
+          const existing = findExistingWorkJob(scopedJobs, jobData as Job);
+          const incomingDependent =
             jobData.kind === "work"
               ? (jobData.payload as WorkJobPayload).dependentWorkLink
               : undefined;
+          const storedPayload = existing?.payload as WorkJobPayload | undefined;
+          const storedDependent = storedPayload?.dependentWorkLink;
+          const sourceId = existing?.id ?? id;
+          if (
+            incomingDependent &&
+            storedPayload &&
+            ((jobData.payload as WorkJobPayload).actionUID !== storedPayload.actionUID ||
+              !compareAddresses(
+                (jobData.payload as WorkJobPayload).gardenAddress,
+                storedPayload.gardenAddress
+              ) ||
+              (storedDependent &&
+                canonicalJobPayload(linkedPayloadFor(storedDependent, sourceId)) !==
+                  canonicalJobPayload(linkedPayloadFor(incomingDependent, sourceId))))
+          )
+            throw new Error("work-link-intent-mismatch");
+          const dependent = storedDependent ?? incomingDependent;
           if (dependent) {
-            const linkedPayload = {
-              ...dependentWorkLinkPayload(
-                dependent.clientWorkId,
-                {
-                  commitmentId: dependent.commitmentId,
-                  requirementIndex: dependent.requirementIndex,
-                  garden: dependent.gardenAddress,
-                },
-                id
-              ),
-              operationKey: dependent.operationKey,
-            };
+            const linkedPayload = linkedPayloadFor(dependent, sourceId);
             const identity = commitmentJobIdentity("workLink", linkedPayload);
-            const existingLink = (
-              await db.jobs.where("userAddress").equals(jobData.userAddress).toArray()
-            ).find(
+            const activeLinks = scopedJobs.filter(
               (row) =>
+                row.kind === "workLink" &&
                 row.chainId === jobData.chainId &&
-                commitmentJobIdentity(row.kind, row.payload) === identity
+                !isTerminallyFailedJob(row)
+            );
+            // Older Work may already have a child without the sealed target on its payload.
+            if (
+              activeLinks.some(
+                (row) =>
+                  (row.payload as { sourceWorkJobId?: string }).sourceWorkJobId === sourceId &&
+                  canonicalJobPayload(payloadWithoutSendRecord(row)) !==
+                    canonicalJobPayload(linkedPayload)
+              )
+            )
+              throw new Error("work-link-intent-mismatch");
+            const existingLink = activeLinks.find(
+              (row) => commitmentJobIdentity(row.kind, row.payload) === identity
             );
             if (existingLink) {
               if (
@@ -140,7 +177,13 @@ export async function admitStoredJob<T = unknown>(
                 synced: false,
               });
             }
+            if (existing && !storedDependent) {
+              await db.jobs.update(existing.id, {
+                payload: { ...storedPayload, dependentWorkLink: dependent },
+              });
+            }
           }
+          if (existing) return existing.id;
           await db.jobs.add(jobData as Job);
           if (imageRows.length > 0) await db.job_images.bulkAdd(imageRows);
           return id;

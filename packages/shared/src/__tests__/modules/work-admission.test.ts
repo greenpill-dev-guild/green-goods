@@ -22,6 +22,7 @@ import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 import { dependentWorkLinkPayload } from "../../modules/commitment-pooling/work-link-intent";
+import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 
 // Whether a waiting HEIC photo can convert is each test's call.
 const heic = vi.hoisted(() => ({
@@ -131,6 +132,193 @@ async function declinedWalletWork(linkIntent?: DraftWorkLink) {
 }
 
 describe("PWA durable submission boundary", () => {
+  it.each([
+    true,
+    false,
+  ])("backfills a legacy Work before another cancelled signature (missing child: %s)", async (missingChild) => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    if (missingChild) await jobQueueDB.deleteJob((await links())[0].id);
+    const photos = await jobQueueDB.getImagesForJob(source.id);
+
+    await expect(submitWork(command, ports)).rejects.toThrow("User rejected the request");
+
+    expect(await queued()).toHaveLength(1);
+    expect(await links()).toHaveLength(1);
+    expect((await links())[0].payload).toMatchObject({
+      sourceWorkJobId: source.id,
+      commitmentId: 14n,
+      requirementIndex: 0,
+    });
+    expect((await queued())[0].payload).toMatchObject({
+      dependentWorkLink: { commitmentId: 14n, requirementIndex: 0 },
+    });
+    expect(await jobQueueDB.getImagesForJob(source.id)).toEqual(photos);
+  });
+
+  it.each([
+    { commitmentId: "15" },
+    { requirementIndex: 1 },
+  ])("rejects a different target before adopting and sending queued Work: %s", async (change) => {
+    const { command, ports, send, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    command.linkIntent = { ...LINK, ...change };
+    ports.direct.submitWork = send;
+
+    await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
+
+    expect(send).not.toHaveBeenCalled();
+    expect((await queued())[0].id).toBe(source.id);
+    const links = (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })
+    ).filter(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0].payload).toMatchObject({ commitmentId: 14n, requirementIndex: 0 });
+  });
+
+  it("refuses to backfill a target that conflicts with a legacy Work's existing child", async () => {
+    const { command, ports, send, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    command.linkIntent = { ...LINK, requirementIndex: 1 };
+    ports.direct.submitWork = send;
+
+    await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
+
+    expect(send).not.toHaveBeenCalled();
+    expect((await queued())[0].payload).toEqual(legacyPayload);
+  });
+
+  it.each([
+    { gardenAddress: "0x3333333333333333333333333333333333333333" as const, actionUID: 1 },
+    { gardenAddress: LINK.garden as `0x${string}`, actionUID: 2 },
+  ])("checks the stored Work's garden and action before legacy backfill: %s", async (change) => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const originalLink = (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })
+    ).find(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+    )!;
+    await jobQueueDB.deleteJob(originalLink.id);
+    Object.assign(command, change, {
+      linkIntent: { ...LINK, garden: change.gardenAddress, actionUID: change.actionUID },
+    });
+
+    await expect(ports.queue.admit!(command as ResolvedSubmitWorkCommand)).rejects.toThrow(
+      "work-link-intent-mismatch"
+    );
+
+    expect((await queued())[0].payload).toEqual(legacyPayload);
+    expect(
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      )
+    ).toEqual([]);
+  });
+
+  it("rolls back the dependent link when sealing a legacy Work fails", async () => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    await jobQueueDB.deleteJob((await links())[0].id);
+    const failure = vi
+      .spyOn(db.jobs, "update")
+      .mockRejectedValueOnce(new Error("backfill-write-failed"));
+    try {
+      await expect(ports.queue.admit!(command as ResolvedSubmitWorkCommand)).rejects.toThrow(
+        "backfill-write-failed"
+      );
+      expect(await links()).toEqual([]);
+      expect((await queued())[0].payload).toEqual(legacyPayload);
+    } finally {
+      failure.mockRestore();
+    }
+  });
+
+  it.each([
+    0, 1,
+  ])("admits replacement Work after an edited cancelled draft, preserving terminal links (requirement: %s)", async (requirementIndex) => {
+    const { command, ports, send, queued, wizardSaves } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    const originalLink = (await links())[0];
+    const edited = await wizardSaves({
+      feedback: "Watered another bed",
+      linkIntent: { ...LINK, requirementIndex },
+    });
+    expect(await returnChangedWorkToDraft(edited, jobQueue)).toBe(true);
+    expect(await queued()).toEqual([]);
+    expect(isTerminallyFailedJob((await links())[0])).toBe(true);
+    const returned = (await draftDB.getDraft(edited.id))!;
+    command.draft = {
+      ...command.draft,
+      feedback: returned.feedback!,
+      uploadCheckpoint: returned.uploadCheckpoint,
+    };
+    Object.assign(
+      command,
+      await createDraftUploadPersistence(returned, command.draft, { current: null })
+    );
+
+    await expect(submitWork(command, ports)).rejects.toThrow("User rejected the request");
+
+    const replacement = (await queued())[0];
+    expect(replacement.id).not.toBe(source.id);
+    const activeLinks = (await links()).filter((job) => !isTerminallyFailedJob(job));
+    expect(activeLinks).toHaveLength(1);
+    expect(activeLinks[0].payload).toMatchObject({
+      sourceWorkJobId: replacement.id,
+      requirementIndex,
+    });
+    expect((await links()).find((job) => job.id === originalLink.id)).toMatchObject({
+      attempts: 5,
+      lastError: "identity_conflict:source-work-terminal",
+    });
+    ports.direct.submitWork = send;
+    const outcome = await submitWork(command, ports);
+    await expect(
+      jobQueue.addJob(
+        "workLink",
+        dependentWorkLinkPayload(
+          command.clientWorkId!,
+          {
+            commitmentId: 14n,
+            requirementIndex,
+            garden: LINK.garden as `0x${string}`,
+          },
+          outcome.jobId
+        ) as Parameters<typeof jobQueue.addJob<"workLink">>[1],
+        command.userAddress!,
+        { chainId: 42161 }
+      )
+    ).resolves.toBe(activeLinks[0].id);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the original dependent link through cancelled signing, queue-only recovery and draft retirement", async () => {
     const original = LINK;
     const { command, ports, send, draftId, queued, wizardSaves } =
