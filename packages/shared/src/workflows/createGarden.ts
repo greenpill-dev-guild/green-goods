@@ -49,6 +49,7 @@ type BaseEvents =
   | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "RESET" }
+  | { type: "SWITCH_SCOPE" }
   | { type: "EDIT" }
   | { type: "RETRY" }
   | { type: "CREATE_ANOTHER" }
@@ -165,6 +166,7 @@ export const createGardenMachine = createGardenSetup.createMachine({
   context: {
     retryCount: 0,
   },
+  on: { SWITCH_SCOPE: { target: ".idle", actions: "clearContext" } },
   states: {
     idle: {
       on: {

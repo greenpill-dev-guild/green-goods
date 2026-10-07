@@ -19,6 +19,7 @@ export interface ActionOperationCall extends ActionOperationCommand {
 export interface ActionOperationResult {
   hash?: `0x${string}`;
   success: boolean;
+  confirmation?: "pending";
   error?: { name: string; message: string; action?: string };
 }
 
@@ -76,7 +77,7 @@ export function createDefaultActionOperationPorts(input: {
               { assertOwnership }
             );
             if (result.confirmation === "pending") {
-              throw new TransactionConfirmationPendingError();
+              throw new TransactionConfirmationPendingError(result);
             }
             return result.hash;
           },

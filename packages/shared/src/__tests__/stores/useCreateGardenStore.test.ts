@@ -105,14 +105,64 @@ it("retains an accepted submission across draft reset and session rehydration", 
       confirmation: "pending" as const,
     },
   };
-  useCreateGardenStore.setState({ pendingSubmission });
+  useCreateGardenStore.getState().recordPendingSubmission(pendingSubmission);
   useCreateGardenStore.getState().reset();
-  expect(useCreateGardenStore.getState().pendingSubmission).toEqual(pendingSubmission);
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toEqual(pendingSubmission);
   const saved = sessionStorage.getItem("green-goods:create-garden")!;
-  useCreateGardenStore.setState({ pendingSubmission: undefined });
+  useCreateGardenStore
+    .getState()
+    .clearPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId);
   sessionStorage.setItem("green-goods:create-garden", saved);
   await useCreateGardenStore.persist.rehydrate();
-  expect(useCreateGardenStore.getState().pendingSubmission).toEqual(pendingSubmission);
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toEqual(pendingSubmission);
   resetCreateGardenStore();
-  expect(useCreateGardenStore.getState().pendingSubmission).toBeUndefined();
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toBeUndefined();
+});
+
+it("partitions accepted garden submissions by both account and chain", () => {
+  resetCreateGardenStore();
+  const pending = {
+    accountAddress: MEMBER as `0x${string}`,
+    chainId: 11155111,
+    gardenName: "First",
+    result: { hash: "0xProposal" as const, sponsored: false, confirmation: "pending" as const },
+  };
+  const store = useCreateGardenStore.getState();
+  store.recordPendingSubmission(pending);
+  store.recordPendingSubmission({ ...pending, accountAddress: OPERATOR as `0x${string}` });
+  store.recordPendingSubmission({ ...pending, chainId: 42161 });
+  store.clearPendingSubmission(MEMBER, 11155111);
+  expect(store.getPendingSubmission(MEMBER, 11155111)).toBeUndefined();
+  expect(store.getPendingSubmission(MEMBER, 42161)).toBeDefined();
+  expect(store.getPendingSubmission(OPERATOR, 11155111)).toBeDefined();
+});
+it("migrates the earlier singleton proposal into its original identity scope", async () => {
+  resetCreateGardenStore();
+  const pendingSubmission = {
+    accountAddress: MEMBER,
+    chainId: 11155111,
+    gardenName: "First",
+    result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
+  };
+  sessionStorage.setItem(
+    "green-goods:create-garden",
+    JSON.stringify({ state: { pendingSubmission }, version: 0 })
+  );
+  await useCreateGardenStore.persist.rehydrate();
+  expect(useCreateGardenStore.getState().getPendingSubmission(MEMBER, 11155111)).toEqual(
+    pendingSubmission
+  );
+  expect(useCreateGardenStore.getState().getPendingSubmission(OPERATOR, 11155111)).toBeUndefined();
 });

@@ -133,8 +133,13 @@ export class TransactionRevertedError extends Error {
 
 /** Submitted without a canonical execution receipt; never announce success or resend automatically. */
 export class TransactionConfirmationPendingError extends Error {
-  constructor() {
+  constructor(readonly submission?: TxResult) {
     super("transaction-confirmation-pending");
     this.name = "TransactionConfirmationPendingError";
   }
+}
+
+/** Identity of a submitted transaction, independent of the active screen. */
+export function getTransactionScopeKey(account: Address, chainId: number): string {
+  return `${chainId}:${account.toLowerCase()}`;
 }

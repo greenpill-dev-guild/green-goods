@@ -11,6 +11,7 @@ import {
   ReviewStep,
 } from "@/components/Action/CreateActionSteps";
 import { actionSendStatus } from "@/components/Action/CreateActionSteps/reviewStatus";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
@@ -49,6 +50,7 @@ export default function CreateAction() {
 
   // One reading of the send, so the status row and the footer never disagree.
   const status = actionSendStatus({
+    pending: createAction.isPendingRegistration,
     phase: flowSendPhase({
       sending: createAction.isSending,
       sent: createAction.isSent,
@@ -80,7 +82,15 @@ export default function CreateAction() {
 
   const activeStep = createAction.stepConfigs[createAction.currentStep];
 
-  const footer = (
+  const footer = createAction.isPendingRegistration ? (
+    <AdminButton
+      type="button"
+      disabled={createAction.isCheckingConfirmation}
+      onClick={() => void createAction.checkConfirmation()}
+    >
+      {formatMessage({ id: "app.account.checkConfirmation", defaultMessage: "Check confirmation" })}
+    </AdminButton>
+  ) : (
     <FlowSendFooter
       stepIndex={createAction.currentStep}
       isLast={createAction.currentStep === createAction.stepConfigs.length - 1}

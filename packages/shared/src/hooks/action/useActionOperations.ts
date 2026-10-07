@@ -9,7 +9,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi } from "viem";
-import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import {
+  getTransactionScopeKey,
+  TransactionConfirmationPendingError,
+} from "../../modules/transactions/types";
 import { useIntl } from "react-intl";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -21,7 +24,13 @@ import {
   executeActionOperation,
 } from "../../modules/action/action-operation-command";
 import { Capital, Domain } from "../../types/domain";
-import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { reconcileTransaction } from "../../modules/transactions/confirmation";
+import { useActionRegistrationStore } from "../../stores/useActionRegistrationStore";
+import {
+  ActionRegistryABI,
+  getNetworkContracts,
+  createClients,
+} from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useToastAction } from "../app/useToastAction";
 import { actionsKeys } from "../../config/query-keys/garden";
@@ -55,6 +64,42 @@ export function useActionOperations(chainId: number) {
   const { formatMessage } = useIntl();
   const contracts = getNetworkContracts(chainId);
   const queryClient = useQueryClient();
+  const registrationScope = address ? getTransactionScopeKey(address, chainId) : null;
+  const pendingRegistration = useActionRegistrationStore((state) =>
+    registrationScope ? state.pending[registrationScope] : undefined
+  );
+
+  const reconcileRegistration = async (): Promise<ActionOperationResult> => {
+    if (!address || !registrationScope) return { success: false };
+    const pending = useActionRegistrationStore.getState().pending[registrationScope];
+    if (!pending) return { success: false };
+    if (!sender) return { success: false, confirmation: "pending", hash: pending.hash };
+    const outcome = await reconcileTransaction(sender, pending, (hash) =>
+      createClients(chainId).publicClient.getTransactionReceipt({ hash })
+    );
+    if (useActionRegistrationStore.getState().pending[registrationScope] !== pending)
+      return { success: false, confirmation: "pending", hash: pending.hash };
+    void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
+    if (outcome.status === "confirmed") {
+      useActionRegistrationStore.getState().clear(address, chainId);
+      scheduleBackgroundRefetch();
+      return { success: true, hash: outcome.transactionHash };
+    }
+    if (outcome.status === "reverted") {
+      useActionRegistrationStore.getState().clear(address, chainId);
+      return {
+        success: false,
+        error: {
+          name: "TransactionReverted",
+          message: formatMessage({
+            id: "app.account.transactionReverted",
+            defaultMessage: "Transaction reverted. The action was not recorded.",
+          }),
+        },
+      };
+    }
+    return { success: false, confirmation: "pending", hash: pending.hash };
+  };
 
   // Schedule background refetch to sync with indexer
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
@@ -95,6 +140,10 @@ export function useActionOperations(chainId: number) {
     };
 
     try {
+      if (call.functionName === "registerAction" && registrationScope) {
+        const pending = useActionRegistrationStore.getState().pending[registrationScope];
+        if (pending) return { success: false, confirmation: "pending", hash: pending.hash };
+      }
       const result = await executeActionOperation(
         call,
         createDefaultActionOperationPorts({ executeWithToast, transactionSender: sender })
@@ -110,6 +159,21 @@ export function useActionOperations(chainId: number) {
       }
       return result;
     } catch (error) {
+      if (error instanceof TransactionConfirmationPendingError && error.submission) {
+        if (call.functionName === "registerAction")
+          useActionRegistrationStore.getState().record(address, chainId, error.submission);
+        void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
+        scheduleBackgroundRefetch();
+        return {
+          success: false,
+          confirmation: "pending",
+          hash: error.submission.hash,
+          error: {
+            name: error.name,
+            message: formatMessage({ id: "app.account.transactionPending" }),
+          },
+        };
+      }
       const parsed =
         error instanceof TransactionConfirmationPendingError
           ? {
@@ -241,6 +305,9 @@ export function useActionOperations(chainId: number) {
 
   return {
     assertReady,
+    pendingRegistration,
+    registrationScope,
+    reconcileRegistration,
     registerAction,
     updateActionStartTime,
     updateActionEndTime,

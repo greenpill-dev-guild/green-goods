@@ -18,6 +18,7 @@ const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
 const mockOnSubmit = vi.fn();
 const mockCreateAnother = vi.fn();
+const mockCheckConfirmation = vi.fn();
 
 // Where the flow stands: a test moves it to the Review and through its send.
 const controllerState = vi.hoisted(() => ({
@@ -25,6 +26,7 @@ const controllerState = vi.hoisted(() => ({
   isSending: false,
   isSent: false,
   hasError: false,
+  isPendingRegistration: false,
 }));
 
 vi.mock("@green-goods/shared/components/Button", () => ({
@@ -116,6 +118,9 @@ vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", 
     isDirty: false,
     isSending: controllerState.isSending,
     isSent: controllerState.isSent,
+    isPendingRegistration: controllerState.isPendingRegistration,
+    isCheckingConfirmation: false,
+    checkConfirmation: mockCheckConfirmation,
     onSubmit: mockOnSubmit,
     txErrorView: { severity: "warning" },
     stepConfigs: [
@@ -359,6 +364,7 @@ describe("views/Actions/CreateAction", () => {
       isSending: false,
       isSent: false,
       hasError: false,
+      isPendingRegistration: false,
     });
   });
 
@@ -449,4 +455,21 @@ describe("views/Actions/CreateAction", () => {
       expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
     });
   });
+});
+
+it("holds pending action registration with a confirmation check and no Try Again", async () => {
+  vi.clearAllMocks();
+  controllerState.currentStep = 3;
+  controllerState.isSending = true;
+  controllerState.isSent = false;
+  controllerState.hasError = false;
+  controllerState.isPendingRegistration = true;
+  renderWithIntl(<CreateAction />);
+  expect(
+    screen.queryByRole("button", { name: /try again|create another/i })
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("Transaction submitted")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /check confirmation/i }));
+  expect(mockCheckConfirmation).toHaveBeenCalled();
+  expect(mockOnSubmit).not.toHaveBeenCalled();
 });

@@ -12,6 +12,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
+import { reconcileTransaction } from "../transactions/confirmation";
 import type { BroadcastConfirmation, TransactionSender, TxResult } from "../transactions/types";
 
 export interface CreateGardenCommand {
@@ -220,27 +221,12 @@ export function createDefaultCreateGardenPorts(input: {
       },
     },
     sender: {
-      reconcile: async (hash, chainId) => {
-        try {
-          if (input.transactionSender.reconcileBroadcast) {
-            const outcome = await input.transactionSender.reconcileBroadcast({
-              kind: "transaction",
-              hash,
-            });
-            if (outcome.status !== "unresolved") return outcome;
-          }
-          // An opaque Safe proposal ID is not an execution transaction hash.
-          // Without a wallet resolver its outcome remains unknown, never retryable.
-          if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) return { status: "unresolved" };
-          const { publicClient } = createClients(chainId);
-          const receipt = await publicClient.getTransactionReceipt({ hash });
-          return receipt.status === "success"
-            ? { status: "confirmed", transactionHash: receipt.transactionHash }
-            : { status: "reverted" };
-        } catch {
-          return { status: "unresolved" };
-        }
-      },
+      reconcile: (hash, chainId) =>
+        reconcileTransaction(
+          input.transactionSender,
+          { hash, sponsored: false, confirmation: "pending" },
+          (hash) => createClients(chainId).publicClient.getTransactionReceipt({ hash })
+        ),
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const sender = input.transactionSender;
         const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);

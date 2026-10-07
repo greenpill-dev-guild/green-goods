@@ -57,6 +57,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [step, setStep] = useState<ListingStep>("idle");
+  const [confirmationError, setConfirmationError] = useState<Error | null>(null);
 
   const pendingSubmission = useRef<{
     result: TxResult;
@@ -93,6 +94,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         setStep("done");
       } else if (outcome?.status === "reverted") {
         pendingSubmission.current = null;
+        setConfirmationError(new Error(formatMessage({ id: "app.listing.stepError" })));
         setStep("error");
       } else {
         // The registered signature identifies this exact signed order even when
@@ -124,11 +126,12 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     } finally {
       setIsChecking(false);
     }
-  }, [isChecking, refreshListings]);
+  }, [isChecking, refreshListings, formatMessage]);
 
   const mutation = useMutation({
     mutationFn: async (params: CreateListingParams) => {
       if (pendingSubmission.current) return;
+      setConfirmationError(null);
       if (!gardenAddress) throw new Error("Garden address required");
       if (!signer || !sender)
         throw new Error(
@@ -270,6 +273,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const reset = useCallback(() => {
     if (pendingSubmission.current) return;
     setStep("idle");
+    setConfirmationError(null);
     mutation.reset();
   }, [mutation]);
 
@@ -277,7 +281,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     createListing: (params) => mutation.mutateAsync(params),
     step,
     isCreating: mutation.isPending || step === "pending" || isChecking,
-    error: mutation.error as Error | null,
+    error: (mutation.error as Error | null) ?? confirmationError,
     checkConfirmation,
     reset,
   };

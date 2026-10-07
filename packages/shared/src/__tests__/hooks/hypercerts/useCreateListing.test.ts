@@ -53,6 +53,7 @@ const mockAssertMarketplaceReady = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
 const mockReadContract = vi.fn();
+const mockReconcileBroadcast = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
 const mockSender = () => ({
@@ -60,6 +61,7 @@ const mockSender = () => ({
   sendContractCall: mockSendTransaction,
   signTypedData: vi.fn(),
   assertOwnership: mockOwnership,
+  reconcileBroadcast: mockReconcileBroadcast,
 });
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
@@ -143,6 +145,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
     vi.clearAllMocks();
     authMode = mode;
     mockReadContract.mockReset().mockResolvedValue(0n);
+    mockReconcileBroadcast.mockReset().mockResolvedValue({ status: "unresolved" });
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
@@ -258,6 +261,41 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
   });
 
   describe("invalidation", () => {
+    it("reports a confirmed revert and clears it when the flow resets", async () => {
+      mockSendTransaction.mockResolvedValue({
+        hash: "0xproposal",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
+      });
+      const params = {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as const,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      };
+      await act(() => result.current.createListing(params));
+      mockReconcileBroadcast.mockResolvedValue({ status: "reverted" });
+      await act(() => result.current.checkConfirmation());
+      expect(result.current.step).toBe("error");
+      expect(result.current.error?.message).toBe("Failed to create listing");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(1);
+      await act(() => result.current.reset());
+      expect(result.current.error).toBeNull();
+      expect(result.current.step).toBe("idle");
+      await act(() => result.current.createListing(params));
+      expect(result.current.error).toBeNull();
+      expect(result.current.step).toBe("pending");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(2);
+    });
+
     it("keeps a pending submission out of error and prevents a retry", async () => {
       mockSendTransaction.mockResolvedValue({
         hash: "0xtxhash",

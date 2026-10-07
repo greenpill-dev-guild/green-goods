@@ -28,6 +28,7 @@ import {
 } from "@wagmi/core";
 import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
+import { isCanonicalTransactionHash } from "./confirmation";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -65,14 +66,6 @@ async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }
-}
-
-/**
- * Check whether a hash is a canonical 66-char tx hash (0x + 64 hex chars).
- * Safe-style wallets can return longer or non-standard identifiers.
- */
-function isCanonicalTxHash(hash: string): hash is `0x${string}` {
-  return /^0x[a-fA-F0-9]{64}$/.test(hash);
 }
 
 /** Injectable dependency for testability */
@@ -284,7 +277,7 @@ export class WalletSender implements TransactionSender {
     // Some Safe-style wallets return a non-canonical hash-like identifier.
     // waitForTransactionReceipt only accepts canonical tx hashes, so skip
     // waiting and preserve a pending result for the off-chain Safe flow.
-    if (!isCanonicalTxHash(hash)) {
+    if (!isCanonicalTransactionHash(hash)) {
       // No address or hash material in the log context: aggregated logs must
       // stay free of identifying transaction data (short Safe identifiers
       // would otherwise be logged in full via a "preview").
