@@ -163,6 +163,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   async function withdraw() {
     const scope = join.scopeKey;
     setSuccessMessage(undefined);
+    setIgnoreMutationError(false);
     setFeedbackRevision((value) => value + 1);
     try {
       const completed = await feedback.run("withdrawing", () => join.withdrawRequest());
