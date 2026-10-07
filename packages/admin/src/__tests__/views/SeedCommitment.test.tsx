@@ -466,7 +466,9 @@ describe("SeedCommitmentDialog", () => {
     renderSeed();
     // Every step names the pool the promises land in.
     expect(within(dialog()).getAllByText("Rocinha’s pool").length).toBeGreaterThan(0);
-    const select = within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
+    const select = within(dialog()).getByLabelText(
+      /what does this commitment tie to/i
+    ) as HTMLSelectElement;
     const labels = Array.from(select.options).map((option) => option.textContent);
     expect(labels).toEqual([
       expect.stringMatching(/season · season of first rains/i),
@@ -474,6 +476,39 @@ describe("SeedCommitmentDialog", () => {
       expect.stringMatching(/no cycle/i),
     ]);
     expect(select.value).toBe("12");
+  });
+
+  it("asks for context before the two work types, keeping a campaign separate from support", async () => {
+    renderSeed();
+    const context = within(dialog()).getByLabelText(/what does this commitment tie to/i);
+    const work = within(dialog()).getByRole("radiogroup", { name: /what type of work/i });
+    expect(within(work).getAllByRole("radio")).toHaveLength(2);
+    expect(context.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(work).getByRole("radio", { name: /support/i })).toBeChecked();
+    fireEvent.change(context, { target: { value: "13" } });
+    await toProof();
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    create();
+    await waitFor(() => expect(mocks.built).toHaveLength(1));
+    expect(mocks.built[0]).toMatchObject({ cycleId: 13n, commitmentType: 1, requirements: [] });
+  });
+
+  it("copies an earlier campaign promise as support while retaining its other answers", async () => {
+    mocks.again = {
+      kind: "SEASON_CAMPAIGN",
+      title: "Market rides",
+      unitLabel: "rides",
+      targetUnits: 16,
+    };
+    renderSeed({ fromCommitmentId: 9n });
+    expect(within(dialog()).getByRole("radio", { name: /support/i })).toBeChecked();
+    await toProof();
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    create();
+    await waitFor(() => expect(mocks.built).toHaveLength(1));
+    expect(mocks.built[0]).toMatchObject({ cycleId: 12n, commitmentType: 1, targetUnits: 16n });
   });
 
   it("opens on the earlier promise's answers, the steward's extras included, in this pool's season", async () => {
@@ -492,7 +527,10 @@ describe("SeedCommitmentDialog", () => {
       expect(within(dialog()).getByLabelText(/^title/i)).toHaveValue("Market rides")
     );
     // The season is this pool's own, never the earlier promise's.
-    expect((within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement).value).toBe("12");
+    expect(
+      (within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement)
+        .value
+    ).toBe("12");
   });
 
   it("creates a promise with the steward's answers, and ends on Done", async () => {
@@ -513,7 +551,7 @@ describe("SeedCommitmentDialog", () => {
       poolId: 7n,
       cycleId: 12n,
       direction: 0,
-      commitmentType: 2,
+      commitmentType: 1,
       claimMode: 0,
       unitLabel: "rides",
       targetUnits: 16n,
@@ -753,7 +791,8 @@ describe("SeedCommitmentDialog", () => {
     mocks.protocolRegistered = false;
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
-    const cycleSelect = () => within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
+    const cycleSelect = () =>
+      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
     // Cold load: no season yet, and no protocol pool, so the one-time defaults
     // are cycle-less with the fallback off.
     expect(cycleSelect().value).toBe("0");
@@ -772,7 +811,8 @@ describe("SeedCommitmentDialog", () => {
   it("never overwrites a choice the steward already made with a late default", () => {
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
-    const cycleSelect = () => within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
+    const cycleSelect = () =>
+      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
     fireEvent.change(cycleSelect(), { target: { value: "13" } });
 
     mocks.console = consoleFor();
