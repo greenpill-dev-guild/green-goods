@@ -10,7 +10,7 @@
  */
 
 // Approvals
-export type { EncodedApprovalCall, MarketplaceApprovals } from "./approvals";
+export type { MarketplaceApprovalCall, MarketplaceApprovals } from "./approvals";
 export { buildApprovalTransactions, checkMarketplaceApprovals } from "./approvals";
 // Client
 export {

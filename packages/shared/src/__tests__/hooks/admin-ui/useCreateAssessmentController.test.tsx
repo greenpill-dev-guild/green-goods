@@ -14,7 +14,11 @@ import { Domain } from "../../../types/domain";
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const CREATE_PATH = "/hub/assess/create";
 // The garden documents Agroforestry only (bit 1), unless a test unsets it.
-const domainsState = vi.hoisted(() => ({ data: 2 as number | undefined }));
+const domainsState = vi.hoisted(() => ({
+  data: 2 as number | undefined,
+  primaryAddress: "0x2222222222222222222222222222222222222222" as string | undefined,
+  walletAddress: "0x2222222222222222222222222222222222222222" as string | undefined,
+}));
 const mockStartCreation = vi.fn((_payload: unknown) => true);
 const mockSubmitCreation = vi.fn();
 const mockResetWorkflow = vi.fn();
@@ -44,7 +48,11 @@ const workflow = vi.hoisted(() => {
 });
 
 vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: "0x2222222222222222222222222222222222222222" }),
+  useAccount: () => ({ address: domainsState.walletAddress }),
+}));
+
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => domainsState.primaryAddress,
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
@@ -171,9 +179,26 @@ function fillAssessment() {
 describe("useCreateAssessmentController submit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    domainsState.primaryAddress = "0x2222222222222222222222222222222222222222";
+    domainsState.walletAddress = domainsState.primaryAddress;
     domainsState.data = 1 << Domain.AGRO;
     workflow.set("idle");
     useCreateAssessmentStore.getState().reset();
+  });
+
+  it("submits an authorized primary/passkey account without a Wagmi wallet", async () => {
+    domainsState.primaryAddress = "0x7777777777777777777777777777777777777777";
+    domainsState.walletAddress = undefined;
+    fillAssessment();
+    const { result } = renderController();
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(mockStartCreation).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Canopy baseline" })
+    );
+    expect(mockSubmitCreation).toHaveBeenCalled();
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
   it("sends a restored domain the garden does not document back to the domain step", async () => {

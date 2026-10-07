@@ -17,6 +17,7 @@
  */
 
 import {
+  signTypedData as defaultSignTypedData,
   ConnectorNotConnectedError,
   getAccount as defaultGetAccount,
   getCapabilities as defaultGetCapabilities,
@@ -39,7 +40,9 @@ import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
   TransactionReplacementError,
+  assertTypedDataChain,
   TransactionRevertedError,
+  type AccountTypedDataRequest,
   type ContractCall,
   type TransactionSender,
   type TransactionSendOptions,
@@ -75,6 +78,7 @@ function isCanonicalTxHash(hash: string): hash is `0x${string}` {
 
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
+  signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   waitForTransactionReceipt: (
     config: Config,
     params: {
@@ -172,6 +176,10 @@ export class WalletSender implements TransactionSender {
           >
         )(config, params),
     };
+    this.deps.signTypedData ??= (config, request) =>
+      defaultSignTypedData(config, { ...request.data, account: request.account } as Parameters<
+        typeof defaultSignTypedData
+      >[1]);
     this.deps.getAccount ??= () => defaultGetAccount(this.config);
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
@@ -218,6 +226,23 @@ export class WalletSender implements TransactionSender {
     await this.deps.ensureWalletChain?.(chainId, reason, () => this.assertSigner(call, options));
     await this.deps.assertWriteSafety?.();
     await this.assertSigner(call, options);
+  }
+
+  async signTypedData(
+    request: AccountTypedDataRequest,
+    options: TransactionSendOptions = {}
+  ): Promise<Hex> {
+    assertTypedDataChain(request);
+    const assertSigner = async () => {
+      await options.assertOwnership?.();
+      assertWalletAccount(request.account, this.deps.getAccount?.().address);
+    };
+    await assertSigner();
+    await this.deps.ensureWalletChain?.(request.chainId, "write", assertSigner);
+    await assertSigner();
+    const signature = await this.deps.signTypedData!(this.config, request);
+    await assertSigner();
+    return signature;
   }
 
   async sendContractCall(

@@ -1,7 +1,6 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { formatEther } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
-import { getChain } from "../../config/chains";
 import type { CreateGardenParams } from "../../types/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import {
@@ -13,8 +12,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import { readyWalletClient } from "../transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
+import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
 
 export interface CreateGardenCommand {
   params: CreateGardenParams;
@@ -38,6 +36,7 @@ export interface CreateGardenPorts {
       config: GardenContractConfig;
       accountAddress: `0x${string}`;
       chainId: number;
+      ccipFee: bigint;
     }): Promise<{ success: boolean; error?: { message: string } }>;
     waitForReceipt(hash: `0x${string}`, chainId: number): Promise<void>;
     estimateTransaction(input: {
@@ -103,6 +102,7 @@ export async function createGarden(
     config,
     accountAddress: command.accountAddress,
     chainId: command.chainId,
+    ccipFee,
   });
   if (!simulation.success) {
     throw new Error(simulation.error?.message ?? "Transaction simulation failed");
@@ -155,8 +155,10 @@ export async function estimateGardenCreation(
 }
 
 export function createDefaultCreateGardenPorts(input: {
+  transactionSender: TransactionSender;
   addPending(hash: `0x${string}`): void;
 }): CreateGardenPorts {
+  const confirmed = new Set<`0x${string}`>();
   return {
     reader: {
       contracts: getNetworkContracts,
@@ -181,21 +183,24 @@ export function createDefaultCreateGardenPorts(input: {
           return 0n;
         }
       },
-      simulate: ({ gardenToken, config, accountAddress, chainId }) =>
+      simulate: ({ gardenToken, config, accountAddress, chainId, ccipFee }) =>
         simulateTransaction(
           gardenToken,
           GardenTokenABI,
           "mintGarden",
           [config],
           accountAddress,
-          chainId
+          chainId,
+          ccipFee
         ),
       waitForReceipt: async (hash, chainId) => {
-        await waitForTransactionReceipt(getWagmiConfig(), {
+        if (confirmed.has(hash)) return;
+        const receipt = await waitForTransactionReceipt(getWagmiConfig(), {
           hash,
           chainId,
           timeout: TX_RECEIPT_TIMEOUT_MS,
         });
+        if (receipt.status !== "success") throw new Error("Garden creation transaction reverted");
       },
       estimateTransaction: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const { publicClient } = createClients(chainId);
@@ -213,17 +218,24 @@ export function createDefaultCreateGardenPorts(input: {
     },
     sender: {
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
-        const walletClient = await readyWalletClient(chainId, accountAddress);
-        await assertLocalArbitrumForkWallet();
-        return walletClient.writeContract({
-          address: gardenToken,
-          abi: GardenTokenABI,
-          functionName: "mintGarden",
-          account: accountAddress,
-          args: [config],
-          value: ccipFee,
-          chain: getChain(chainId),
-        });
+        const sender = input.transactionSender;
+        const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
+        await assertOwnership();
+        const result = await sender.sendContractCall(
+          {
+            address: gardenToken,
+            abi: GardenTokenABI,
+            functionName: "mintGarden",
+            account: accountAddress,
+            args: [config],
+            value: ccipFee,
+            chainId,
+          },
+          { assertOwnership }
+        );
+        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
+        confirmed.add(result.hash);
+        return result.hash;
       },
     },
     documents: { addPending: (hash) => input.addPending(hash) },

@@ -42,7 +42,9 @@ export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
-  const { registerAction, isLoading } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
+  const { registerAction, isLoading, assertReady } = useActionOperations(
+    CREATE_ACTION_DEFAULT_CHAIN_ID
+  );
   const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const actionCreateGardenAddress = createActionContracts.gardenToken;
   const [currentStep, setCurrentStep] = useState(0);
@@ -185,6 +187,7 @@ export function useCreateActionController() {
     const actionDomain = data.domain as Domain;
 
     try {
+      await assertReady();
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );

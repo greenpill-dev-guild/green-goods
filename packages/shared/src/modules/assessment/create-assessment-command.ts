@@ -1,17 +1,13 @@
-import { EAS, SchemaEncoder, type Transaction } from "@ethereum-attestation-service/eas-sdk";
-import { type Eip1193Provider, ethers } from "ethers";
+import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { parseEventLogs, zeroHash, type TransactionReceipt } from "viem";
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { getAssessmentSchemas } from "./schemas";
 import { getEASConfig } from "../../config/blockchain";
 import type { Address, AssessmentWorkflowParams } from "../../types/domain";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { createClients, EASABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
-import {
-  ensureAppKitWalletChain,
-  readyWalletClient,
-  retryOnWalletChainMismatch,
-  WalletChainMismatchError,
-} from "../transactions/chain-guard";
 
 const DOMAIN_MAP: Record<string, number> = {
   solar: 0,
@@ -24,6 +20,13 @@ export interface CreateAssessmentCommand {
   params: AssessmentWorkflowParams;
   chainId: number;
   onReady(): void;
+}
+
+export class AssessmentConfirmationUnavailableError extends Error {
+  constructor() {
+    super("assessment-confirmation-unavailable");
+    this.name = "AssessmentConfirmationUnavailableError";
+  }
 }
 
 interface AssessmentSchemaConfig {
@@ -158,7 +161,7 @@ export async function createAssessment(
       ? [
           { name: "assessmentKind", value: 0, type: "uint8" },
           { name: "cycleId", value: 0, type: "uint256" },
-          { name: "baselineUID", value: ethers.ZeroHash, type: "bytes32" },
+          { name: "baselineUID", value: zeroHash, type: "bytes32" },
         ]
       : []),
   ]);
@@ -187,53 +190,14 @@ function toUnixSeconds(value?: string | number | null): number {
 }
 
 export function createDefaultCreateAssessmentPorts(input: {
-  /** The steward the assessment was prepared for. The wallet must still sign as them. */
+  /** The account the assessment was prepared for; the sender must still belong to it. */
   account: Address;
+  transactionSender: TransactionSender;
   reportEvidenceFailures(details: { failedCount: number; totalCount: number }): void;
   reportMetricsFailure(error: unknown): void;
 }): CreateAssessmentPorts {
   let chain: number | null = null;
   let easAddress: string | null = null;
-
-  /**
-   * EAS, signing as the wallet as it stands now. Asked for once before the
-   * uploads, so a wallet that cannot sign stops the work early, and again when
-   * the attestation is sent: the uploads can run for minutes, long enough for
-   * the wallet to have moved network or changed hands.
-   *
-   * Every other wallet write goes through viem, which asks the wallet its
-   * network right before `eth_sendTransaction` and refuses any other. ethers
-   * and the EAS SDK send on whichever network the wallet is on, so the wallet
-   * they are handed makes that check itself. ethers reports what a wallet
-   * throws as an error of its own, so `onRefusal` is told the reason.
-   */
-  const connectEas = async (
-    onRefusal?: (refusal: WalletChainMismatchError) => void
-  ): Promise<EAS> => {
-    if (chain === null || !easAddress) throw new Error("Assessment sender was not prepared");
-    const sendOn = chain;
-    const walletClient = await readyWalletClient(sendOn, input.account);
-    const wallet = walletClient.transport as Eip1193Provider;
-    const provider = new ethers.BrowserProvider({
-      request: async (request) => {
-        if (request.method === "eth_sendTransaction") {
-          const walletChainId = Number(await wallet.request({ method: "eth_chainId" }));
-          if (walletChainId !== sendOn) {
-            const refusal = new WalletChainMismatchError({
-              targetChainId: sendOn,
-              walletChainId: Number.isSafeInteger(walletChainId) ? walletChainId : undefined,
-            });
-            onRefusal?.(refusal);
-            throw refusal;
-          }
-        }
-        return wallet.request(request);
-      },
-    });
-    const eas = new EAS(easAddress);
-    eas.connect(await provider.getSigner(walletClient.account.address));
-    return eas;
-  };
 
   return {
     reader: {
@@ -242,7 +206,7 @@ export function createDefaultCreateAssessmentPorts(input: {
         const [schema] = getAssessmentSchemas(getEASConfig(chainId));
         return {
           easAddress: contracts.eas,
-          schemaUid: schema?.uid ?? ethers.ZeroHash,
+          schemaUid: schema?.uid ?? zeroHash,
           schema: schema?.schema ?? "",
           schemaVersion: schema?.version,
         };
@@ -252,45 +216,78 @@ export function createDefaultCreateAssessmentPorts(input: {
     sender: {
       ensureChain: async (chainId) => {
         chain = chainId;
-        await ensureAppKitWalletChain(chainId);
+        await input.transactionSender.assertOwnership?.(input.account, chainId);
       },
       connect: async (address) => {
         easAddress = address;
-        await connectEas();
+        if (chain === null) throw new Error("Assessment sender was not prepared");
+        await input.transactionSender.assertOwnership?.(input.account, chain);
       },
       attest: async ({ schemaUid, gardenId, encodedData }) => {
-        let refusal: WalletChainMismatchError | undefined;
-        const connect = () => {
-          refusal = undefined;
-          return connectEas((refused) => {
-            refusal = refused;
-          });
-        };
-        let eas = await connect();
-        // A refusal comes before the wallet is asked to send. Nothing was
-        // signed, so the wallet is readied again and one more attempt cannot
-        // send twice.
-        return retryOnWalletChainMismatch(
-          async () => {
-            const transaction: Transaction<string> = await eas.attest({
-              schema: schemaUid,
-              data: {
-                recipient: gardenId,
-                expirationTime: 0n,
-                revocable: false,
-                data: encodedData,
+        if (chain === null || !easAddress) throw new Error("Assessment sender was not prepared");
+        const sender = input.transactionSender;
+        const sendOn = chain;
+        const sendTo = easAddress;
+        const assertOwnership = () => sender.assertOwnership?.(input.account, sendOn);
+        await assertOwnership();
+        const result = await sender.sendContractCall(
+          {
+            address: sendTo as Address,
+            account: input.account,
+            chainId: sendOn,
+            abi: EASABI,
+            functionName: "attest",
+            args: [
+              {
+                schema: schemaUid,
+                data: {
+                  recipient: gardenId,
+                  expirationTime: 0n,
+                  revocable: false,
+                  refUID: zeroHash,
+                  data: encodedData,
+                  value: 0n,
+                },
               },
-            });
-            try {
-              return await transaction.wait();
-            } catch (error) {
-              throw refusal ?? error;
-            }
+            ],
           },
-          async () => {
-            eas = await connect();
-          }
+          { assertOwnership }
         );
+        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
+        const publicClient = createClients(sendOn).publicClient;
+        let receipt: TransactionReceipt;
+        try {
+          receipt = await publicClient.waitForTransactionReceipt({
+            hash: result.hash,
+            timeout: TX_RECEIPT_TIMEOUT_MS,
+          });
+        } catch {
+          // The sender confirmed execution. Do not expose the RPC request or imply it failed.
+          throw new AssessmentConfirmationUnavailableError();
+        }
+        if (receipt.status !== "success") throw new Error("Assessment transaction reverted");
+        const attested = parseEventLogs({
+          abi: EASABI,
+          eventName: "Attested",
+          logs: receipt.logs,
+        }).find((log) => {
+          const args = log.args as {
+            recipient?: string;
+            attester?: string;
+            schemaUID?: string;
+            uid?: string;
+          };
+          return (
+            log.address.toLowerCase() === sendTo.toLowerCase() &&
+            args.recipient?.toLowerCase() === gardenId.toLowerCase() &&
+            args.attester?.toLowerCase() === input.account.toLowerCase() &&
+            args.schemaUID?.toLowerCase() === schemaUid.toLowerCase() &&
+            Boolean(args.uid && !isZeroBytes32(args.uid))
+          );
+        });
+        const uid = (attested?.args as { uid?: string } | undefined)?.uid;
+        if (!uid) throw new Error("Assessment receipt has no matching attestation");
+        return uid.toLowerCase();
       },
     },
     documents: {

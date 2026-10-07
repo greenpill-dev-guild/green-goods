@@ -100,7 +100,7 @@ export function SeedCommitmentDialog({
     if (delay !== null) setWindowTimer(() => setWindowNow(Date.now()), delay);
     return clearWindowTimer;
   }, [open, actions, windowNow, setWindowTimer, clearWindowTimer]);
-  const jobs = useCommitmentJobs({ chainId });
+  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   const [stepIndex, setStepIndex] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const stepRef = useStepFocus<HTMLDivElement>(stepIndex);

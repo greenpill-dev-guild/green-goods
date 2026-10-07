@@ -151,7 +151,7 @@ export function useCommitmentDialogController(input: {
     attributions: detail?.workAttributions ?? [],
     enabled: Boolean(detail),
   });
-  const jobs = useCommitmentJobs({ chainId });
+  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   // What this reader already signed: `confirmFulfillment` reverts
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
   // ready in between. Same key as the Hub queue's read, so both share one answer.

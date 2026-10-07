@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionEditorController } from "../../../hooks/admin-ui/actions/useActionEditorController";
 
 const mocks = vi.hoisted(() => ({
+  assertReady: vi.fn(),
   clearDraft: vi.fn(),
   getFileByHash: vi.fn(),
   loggerError: vi.fn(),
@@ -68,6 +69,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     isLoading: false,
+    assertReady: mocks.assertReady,
     updateActionEndTime: mocks.updateEndTime,
     updateActionInstructions: mocks.updateInstructions,
     updateActionStartTime: mocks.updateStartTime,
@@ -157,6 +159,25 @@ describe("useActionEditorController", () => {
     });
 
     expect(mocks.loggerError).toHaveBeenCalledWith("Failed to update action", { error: failure });
+    expect(mocks.toastError).toHaveBeenCalledOnce();
+    expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it("retains the draft when an operation resolves with a failed result", async () => {
+    mocks.updateTitle.mockResolvedValue({
+      success: false,
+      error: { message: "Simulation failed" },
+    });
+    const { result } = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() => expect(result.current.form.getValues("title")).toBe("Original action"));
+    await act(async () => {
+      await result.current.submit({
+        title: "Updated action",
+        startTime: originalStart,
+        endTime: originalEnd,
+      });
+    });
     expect(mocks.toastError).toHaveBeenCalledOnce();
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.clearDraft).not.toHaveBeenCalled();

@@ -11,7 +11,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import { useAccount } from "wagmi";
+import { useIntl } from "react-intl";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { fromPromise } from "xstate";
 import {
   trackAdminGardenCreateFailed,
@@ -52,7 +54,9 @@ function getFormStatus(): CreateGardenFormStatus {
 }
 
 export function useCreateGardenWorkflow() {
-  const { address } = useAccount();
+  const address = usePrimaryAddress() ?? undefined;
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
   const updateTransactionStatus = useAdminStore(
@@ -75,6 +79,8 @@ export function useCreateGardenWorkflow() {
   // Keep mutable dependencies current for the long-lived machine actor/actions.
   const dependenciesRef = useRef({
     address,
+    sender,
+    formatMessage,
     chainId: selectedChainId,
     addPendingTransaction,
     queryClient,
@@ -99,6 +105,8 @@ export function useCreateGardenWorkflow() {
     dependenciesRef.current = {
       ...dependenciesRef.current,
       address,
+      sender,
+      formatMessage,
       chainId: selectedChainId,
       addPendingTransaction,
       queryClient,
@@ -110,6 +118,8 @@ export function useCreateGardenWorkflow() {
     };
   }, [
     address,
+    sender,
+    formatMessage,
     selectedChainId,
     addPendingTransaction,
     queryClient,
@@ -133,6 +143,8 @@ export function useCreateGardenWorkflow() {
 
             const {
               address: currentAddress,
+              sender: currentSender,
+              formatMessage: message,
               chainId: currentChainId,
               addPendingTransaction: addPendingTx,
               queryClient: latestQueryClient,
@@ -140,8 +152,10 @@ export function useCreateGardenWorkflow() {
             } = dependenciesRef.current;
 
             if (!currentAddress || !isAddress(currentAddress)) {
-              throw new Error("Connect a wallet to deploy the garden");
+              throw new Error(message({ id: "app.account.signInRequired" }));
             }
+            if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
+            await currentSender.assertOwnership?.(currentAddress, currentChainId);
             const accountAddress = currentAddress as `0x${string}`;
 
             trackAdminGardenCreateStarted({
@@ -153,6 +167,7 @@ export function useCreateGardenWorkflow() {
               const txHash = await createGarden(
                 { params, accountAddress, chainId: currentChainId },
                 createDefaultCreateGardenPorts({
+                  transactionSender: currentSender,
                   addPending: (hash) => addPendingTx(hash, "garden:create"),
                 })
               );
@@ -287,15 +302,23 @@ export function useCreateGardenWorkflow() {
       throw new Error("Garden form is incomplete");
     }
 
-    const currentAddress = dependenciesRef.current.address;
+    const {
+      address: currentAddress,
+      sender: currentSender,
+      formatMessage: message,
+    } = dependenciesRef.current;
     const currentChainId = dependenciesRef.current.chainId;
 
     if (!currentAddress || !isAddress(currentAddress)) {
-      throw new Error("Connect a wallet to estimate deployment cost");
+      throw new Error(message({ id: "app.account.signInRequired" }));
     }
     const accountAddress = currentAddress as `0x${string}`;
 
-    const ports = createDefaultCreateGardenPorts({ addPending: () => {} });
+    if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
+    const ports = createDefaultCreateGardenPorts({
+      transactionSender: currentSender,
+      addPending: () => {},
+    });
     return estimateGardenCreation(
       { params, accountAddress, chainId: currentChainId },
       { reader: ports.reader }
