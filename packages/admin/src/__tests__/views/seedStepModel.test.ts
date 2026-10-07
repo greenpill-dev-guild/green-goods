@@ -3,8 +3,12 @@ import type { SeedCopyProgress } from "@green-goods/shared/hooks/admin-ui/pool/u
 import {
   COMMITMENT_COMPOSER_DEFAULTS,
   COMMITMENT_COMPOSER_ERROR_IDS,
+  commitmentComposerSchema,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { createIntl } from "react-intl";
+import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
 import { describe, expect, it } from "vitest";
 import {
   carriedOverUsd,
@@ -31,6 +35,41 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 const formatMessage = ({ defaultMessage }: { defaultMessage: string }) => defaultMessage;
 
 describe("seedStepModel", () => {
+  it.each([
+    ["en", en],
+    ["es", es],
+    ["pt", pt],
+  ] as const)("translates every displayed requirement row error in %s", (locale, messages) => {
+    const format = createIntl({ locale, messages }).formatMessage;
+    const cases = [
+      [[{ actionUID: "", requiredCount: 1 }], "actionChoose"],
+      [
+        [
+          { actionUID: "1", requiredCount: 1 },
+          { actionUID: "1", requiredCount: 1 },
+        ],
+        "actionDuplicate",
+      ],
+      [[{ actionUID: "1", requiredCount: 1.5 }], "actionCountWhole"],
+      [[{ actionUID: "1", requiredCount: 0 }], "actionCount"],
+      [[{ actionUID: "1", requiredCount: Number.NaN }], "actionCount"],
+      [[{ actionUID: "1", requiredCount: 4_294_967_296 }], "actionCountLarge"],
+    ] as const;
+    for (const [requirements, key] of cases) {
+      const parsed = commitmentComposerSchema.safeParse({
+        ...COMMITMENT_COMPOSER_DEFAULTS,
+        kind: "GARDEN_WORK",
+        requirements,
+      });
+      const issue = parsed.error?.issues.find(
+        (entry) => entry.path[0] === "requirements" && entry.path.length === 3
+      );
+      expect(issue).toBeDefined();
+      expect(seedErrorText(issue!.message, format)).toBe(
+        messages[`cockpit.garden.pool.seed.error.${key}`]
+      );
+    }
+  });
   it("declares the four steps and the fields each step owns", () => {
     expect(STEPS).toEqual(["what", "howMuch", "proof", "review"]);
     expect(STEP_FIELDS.what).toContain("title");

@@ -546,6 +546,7 @@ describe("SubmitWorkPanel submit behavior", () => {
         data: undefined,
         error: null,
         lastSubmissionOutcome: null,
+        getLastSubmissionOutcome: () => mockState.mutation.lastSubmissionOutcome ?? null,
         reset: vi.fn(),
         ...mockState.mutation,
       };

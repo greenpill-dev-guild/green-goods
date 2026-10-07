@@ -96,6 +96,18 @@ function Harness({
 }
 
 describe("SeedStepHowMuch", () => {
+  it("explains missing actions and associates a blank action error with its control", async () => {
+    renderWithProviders(<Harness unitLabel="hours" />);
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    expect(await screen.findByText("Add at least one action")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Action")).toHaveAttribute("aria-invalid", "true")
+    );
+    expect(screen.getByLabelText("Action")).toHaveAccessibleDescription("Choose an action");
+  });
+
   it("uses the real composer validation for a service's unit, amount and due date", async () => {
     renderWithProviders(<Harness kind="SERVICE" />);
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));

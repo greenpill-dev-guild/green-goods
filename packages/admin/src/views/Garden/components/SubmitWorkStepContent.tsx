@@ -44,6 +44,8 @@ export function SubmitWorkStepContent({
     handleFilesChange,
     handleSelectAction,
     images,
+    isPreparingMedia,
+    progressMessage,
     mediaFeedback,
     removeImage,
     selectDomain,
@@ -124,6 +126,11 @@ export function SubmitWorkStepContent({
           onFilesChange={handleFilesChange}
           disabled={busy}
         />
+        {isPreparingMedia ? (
+          <p role="status" className="body-sm text-text-sub">
+            {progressMessage}
+          </p>
+        ) : null}
         <SubmitWorkPhotos
           images={images}
           minRequired={getMinRequiredWorkImages(selectedAction)}

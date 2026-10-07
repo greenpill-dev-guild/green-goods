@@ -15,7 +15,7 @@ import {
 } from "../../modules/commitment-pooling/jobs";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
-import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
+import { EASABI, CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
 import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
 import { executeWorkJob } from "../../modules/job-queue/work-executor";
@@ -2366,5 +2366,98 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("confirmed queued work recovery", () => {
+  const uid = `0x${"a9".repeat(32)}` as const;
+  const published = {
+    data: "0x1234" as const,
+    metadata: { title: "Planting", clientWorkId: "confirmed-recovery" },
+    media: ["uploaded-photo"],
+  };
+  const receiptLog = {
+    address: EAS_CONFIG.EAS.address,
+    data: encodeAbiParameters([{ type: "bytes32" }], [uid]),
+    topics: encodeEventTopics({
+      abi: EASABI,
+      eventName: "Attested",
+      args: { recipient: GARDEN, attester: USER, schemaUID: EAS_CONFIG.WORK.uid },
+    }),
+  } as import("viem").Log;
+  async function admitted() {
+    const clientWorkId = crypto.randomUUID();
+    const id = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId,
+        title: "Planting",
+        gardenAddress: GARDEN,
+        actionUID: 1,
+        feedback: "Done",
+        media: [new File(["photo"], "photo.jpg", { type: "image/jpeg" })],
+        uploadCheckpoint: {
+          submittedAt: "2026-10-06",
+          files: {},
+          published: { ...published, metadata: { ...published.metadata, clientWorkId } },
+          broadcast: { kind: "transaction", hash: HASH },
+          transactionHash: HASH,
+        },
+      },
+    });
+    return (await jobQueueDB.getJob(id)) as Job<WorkJobPayload>;
+  }
+  it("recovers the exact card and stores it before deleting the completed job", async () => {
+    const queued = await admitted();
+    const sender = createMockTransactionSender();
+    await executeWorkJob(queued.id, queued, 11155111, sender, {
+      easConfig: EAS_CONFIG,
+      reconcile: async () => "confirmed",
+      confirmedReads: {
+        receipt: async () => ({ status: "success", logs: [receiptLog] }),
+        attestation: async () => ({
+          uid,
+          schema: EAS_CONFIG.WORK.uid as `0x${string}`,
+          recipient: GARDEN,
+          attester: USER,
+          data: published.data,
+          time: 1800000000n,
+        }),
+      },
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    await jobQueueDB.storeClientWorkIdMapping(queued.payload.clientWorkId!, HASH, queued.id);
+    await jobQueueDB.deleteJob(queued.id);
+    const completion = await jobQueueDB.getWorkCompletion(
+      USER,
+      11155111,
+      queued.payload.clientWorkId!
+    );
+    expect(completion?.work).toMatchObject({ id: uid, media: published.media, status: "pending" });
+    expect(await jobQueueDB.getImagesForJob(queued.id)).toEqual([]);
+  });
+  it("retains the queue and original photo after a failed proof read, without another send", async () => {
+    const queued = await admitted();
+    const sender = createMockTransactionSender();
+    await expect(
+      executeWorkJob(queued.id, queued, 11155111, sender, {
+        easConfig: EAS_CONFIG,
+        reconcile: async () => "confirmed",
+        confirmedReads: {
+          receipt: async () => ({ status: "success", logs: [receiptLog] }),
+          attestation: async () => {
+            throw new Error("RPC unavailable");
+          },
+        },
+      })
+    ).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(await jobQueueDB.getImagesForJob(queued.id)).toHaveLength(1);
+    expect(
+      await jobQueueDB.getWorkCompletion(USER, 11155111, queued.payload.clientWorkId!)
+    ).toBeUndefined();
+    await jobQueueDB.deleteJob(queued.id);
   });
 });

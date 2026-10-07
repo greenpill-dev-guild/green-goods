@@ -143,6 +143,7 @@ export async function submitWorkDirectly(
     actionUID,
   });
   let attestationData: `0x${string}`;
+  let uploadedContent: { metadata: Record<string, unknown>; media: string[] } | undefined;
   try {
     attestationData = await encodeWorkData(
       {
@@ -153,6 +154,9 @@ export async function submitWorkDirectly(
       },
       chainId,
       {
+        onEncoded: (content) => {
+          uploadedContent = content;
+        },
         clientWorkId: options.clientWorkId,
         checkpoint: options.checkpoint,
         onCheckpoint: options.onCheckpoint,
@@ -259,8 +263,10 @@ export async function submitWorkDirectly(
         actionUID,
         title: workTitle,
         feedback: draft.feedback || "",
-        metadata: JSON.stringify({ clientWorkId: options.clientWorkId }),
-        media: [],
+        metadata: JSON.stringify(
+          uploadedContent?.metadata ?? { clientWorkId: options.clientWorkId }
+        ),
+        media: uploadedContent?.media ?? [],
         createdAt: Math.floor(Date.now() / 1000),
       }
     : undefined;

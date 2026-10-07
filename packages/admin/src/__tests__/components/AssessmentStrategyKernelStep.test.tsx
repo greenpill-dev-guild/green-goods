@@ -22,6 +22,39 @@ describe("StrategyKernelStep", () => {
     useCreateAssessmentStore.getState().reset();
   });
 
+  it("keeps newly added outcomes neutral until blur or the next validation attempt", () => {
+    const view = render(
+      <IntlProvider locale="en" messages={{}} onError={() => {}}>
+        <StrategyKernelStep showValidation validationAttempt={1} isSubmitting={false} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("textbox", { name: "Outcome" })).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Outcome" }));
+    const [existing, added] = screen.getAllByRole("textbox", { name: "Outcome" });
+    expect(existing).toHaveAttribute("aria-invalid", "true");
+    expect(added).not.toHaveAttribute("aria-invalid", "true");
+    fireEvent.blur(added);
+    expect(added).toHaveAttribute("aria-invalid", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Add Outcome" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove Outcome" })[0]);
+    expect(screen.getAllByRole("textbox", { name: "Outcome" })[1]).not.toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+    view.rerender(
+      <IntlProvider locale="en" messages={{}} onError={() => {}}>
+        <StrategyKernelStep showValidation validationAttempt={2} isSubmitting={false} />
+      </IntlProvider>
+    );
+    expect(screen.getAllByRole("textbox", { name: "Outcome" })[1]).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    );
+  });
+
   it("names each part in plain words, with the method as helper text and no Solar fallback", () => {
     // A restored draft can carry a stale domain; it reads as none, never as Solar.
     useCreateAssessmentStore.setState((state) => ({

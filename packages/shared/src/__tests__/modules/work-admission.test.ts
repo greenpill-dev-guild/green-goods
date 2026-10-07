@@ -20,6 +20,7 @@ import {
 } from "../../modules/work/draft-lifecycle";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 
 // Whether a waiting HEIC photo can convert is each test's call.
 const heic = vi.hoisted(() => ({
@@ -119,6 +120,59 @@ async function declinedWalletWork() {
 }
 
 describe("PWA durable submission boundary", () => {
+  it("retains an admin broadcast and checks its receipt without broadcasting again", async () => {
+    const { command, ports } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    const broadcast = vi.fn();
+    let confirmed = false;
+    ports.direct.submitWork = vi.fn(async (input) => {
+      if (!input.draft.uploadCheckpoint?.transactionHash) {
+        broadcast();
+        await input.onBroadcast?.(hash);
+      }
+      if (!confirmed) throw new AwaitingWorkConfirmation(hash);
+      return hash;
+    });
+    const outcome = await submitWork(command, ports);
+    expect(outcome.kind).toBe("awaiting-confirmation");
+    const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    const retained = jobs.find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    )!;
+    expect(retained.payload).toMatchObject({ uploadCheckpoint: { transactionHash: hash } });
+    expect(retained.meta?.requiresExplicitSend).toBe(true);
+    await expect(
+      submitWork({ ...command, draft: { ...command.draft, uploadCheckpoint: undefined } }, ports)
+    ).resolves.toMatchObject({ kind: "awaiting-confirmation", jobId: retained.id });
+    confirmed = true;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "direct",
+      txHash: hash,
+    });
+    expect(broadcast).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps admin offline and unsent network failures out of queued-success outcomes", async () => {
+    const { command, ports, send } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    ports.connectivity.confirm = async () => false;
+    await expect(submitWork(command, ports)).rejects.toThrow("Offline queue is disabled");
+    expect(send).not.toHaveBeenCalled();
+    const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
+    expect(
+      jobs.some((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId)
+    ).toBe(false);
+    ports.connectivity.confirm = async () => true;
+    ports.direct.submitWork = vi.fn().mockRejectedValue(new Error("Network request failed"));
+    await expect(submitWork(command, ports)).rejects.toThrow("Network request failed");
+    const pending = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    expect(
+      pending.find((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId)
+        ?.meta?.requiresExplicitSend
+    ).toBe(true);
+  });
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
     ports.connectivity = { isOnline: () => true, confirm: async () => false };

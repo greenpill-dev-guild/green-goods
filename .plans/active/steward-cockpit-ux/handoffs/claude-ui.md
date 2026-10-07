@@ -4,7 +4,7 @@
 
 - Owner: Claude
 - Branch: per PR (see the execution sub-lanes in `status.json`)
-- Status: ready; work happens in the PR handoffs
+- Status: source delivered; aggregate receipt reconciliation remains blocked
 
 ## Scope
 
@@ -22,7 +22,7 @@
 
 ## Validation
 
-- Pending lane implementation.
+- All five PRs are merged. See the plan reconciliation and per-PR handoffs for historical proof; the aggregate receipt below remains pending.
 
 ## Validation Receipt
 

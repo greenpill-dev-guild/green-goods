@@ -10,6 +10,11 @@ export interface WorkCompletion {
   userAddress: string;
   chainId: number;
   transactionHash: string;
+  /** Optional for completions written by older builds. */
+  work?: import("../../types/domain").Work;
+  /** Keep attestation identity after the indexed read retires the temporary card. */
+  workUID?: string;
+  indexedAt?: number;
   jobId: string;
   createdAt: number;
 }

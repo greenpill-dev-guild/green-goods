@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -288,6 +288,44 @@ describe("GardenJoinRequestDialog", () => {
     expect(withdrawRequest).toHaveBeenCalledOnce();
     expect(await screen.findByText(/Your request was withdrawn/)).toBeVisible();
     expect(scrollFeedbackIntoView).toHaveBeenCalled();
+  });
+
+  it.each([
+    "automatic",
+    "explicit",
+  ] as const)("shows a failed withdrawal after an %s status refresh", async (refresh) => {
+    hookState.request = { id: "pending-1", state: "pending" };
+    hookState.canRefreshStatus = refresh === "automatic";
+    withdrawRequest.mockImplementationOnce(async () => {
+      const error = new GardenJoinRequestTransportError("Unavailable", 503, "provider_unavailable");
+      hookState.mutationError = error;
+      throw error;
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <IntlProvider locale="en" messages={enMessages}>
+          <GardenJoinRequestDialog gardenAddress="0x1111111111111111111111111111111111111111" />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Request to Join" }));
+    if (refresh === "explicit") {
+      await user.click(screen.getByRole("button", { name: "Check Request Status" }));
+      await screen.findByText("Checked just now.");
+    }
+    await waitFor(() =>
+      expect(checkStatus).toHaveBeenCalledWith({ allowSignature: refresh === "explicit" })
+    );
+    await user.click(screen.getByRole("button", { name: "Withdraw Request" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Garden join requests are unavailable right now. Please try again later."
+    );
+    expect(withdrawRequest).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
+    expect(screen.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
   });
 
   it("keeps an uncertain save blocked after dialog remount", async () => {

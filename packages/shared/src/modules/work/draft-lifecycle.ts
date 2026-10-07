@@ -47,10 +47,12 @@ export async function deleteWorkDraft(id: string, mode: "discard" | "retire" = "
       await draftDB.deleteDraft(id);
     });
     if (current()) {
-      const completed = useWorkFlowStore.getState().submissionCompleted;
-      useWorkFlowStore.getState().reset();
-      formResets.forEach((reset) => reset());
-      if (mode === "retire") useWorkFlowStore.setState({ submissionCompleted: completed });
+      if (mode === "retire" && useWorkFlowStore.getState().submissionCompleted) {
+        useWorkFlowStore.setState({ draftDeleting: false });
+      } else {
+        useWorkFlowStore.getState().reset();
+        formResets.forEach((reset) => reset());
+      }
     }
   } catch (error) {
     if (current())
@@ -61,6 +63,15 @@ export async function deleteWorkDraft(id: string, mode: "discard" | "retire" = "
       });
     throw error;
   }
+}
+
+/** Clear the retired composer after navigation has removed it from the screen. */
+export function resetRetiredWorkDraft(scope: string | null, epoch: number) {
+  const state = useWorkFlowStore.getState();
+  if (state.draftScope !== scope || state.draftEpoch !== epoch || !state.submissionCompleted)
+    return;
+  state.reset();
+  formResets.forEach((reset) => reset());
 }
 
 /**

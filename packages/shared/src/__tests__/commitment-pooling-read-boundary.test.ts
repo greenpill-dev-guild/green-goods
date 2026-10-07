@@ -8,6 +8,8 @@ import {
   getCommitmentSeries,
 } from "../modules/commitment-pooling/data";
 
+import { groupCommitmentsForDisplay } from "../modules/commitment-pooling/display-groups";
+
 const mocks = vi.hoisted(() => ({ query: vi.fn() }));
 
 vi.mock("../modules/data/graphql-client", () => ({
@@ -41,6 +43,7 @@ const indexedTerms = {
   confirmationThreshold: 1,
   protocolFallbackEnabled: false,
   considerationRail: "NONE",
+  considerationAmount: null,
   considerationSource: null,
   considerationToken: null,
   needUID: null,
@@ -57,6 +60,87 @@ describe("commitment pooling public read boundary", () => {
         data: { [emptyFieldByOperation[operation]]: [] },
       })
     );
+  });
+
+  it("recognizes the absent reward event on a created no-reward commitment", async () => {
+    mocks.query.mockResolvedValue({
+      data: {
+        Commitment: [
+          {
+            ...indexedTerms,
+            id: "42161-11",
+            chainId: 42161,
+            commitmentId: "11",
+            creationSeen: true,
+            state: "REQUESTED",
+            requirementCount: 0,
+            considerationRail: null,
+          },
+        ],
+      },
+    });
+    await expect(getCommitments({ chainId: 42161 })).resolves.toMatchObject([
+      { considerationRail: "NONE", requirements: [] },
+    ]);
+  });
+
+  it("folds five published no-reward copies into one display group", async () => {
+    mocks.query.mockResolvedValue({
+      data: {
+        Commitment: Array.from({ length: 5 }, (_, i) => ({
+          ...indexedTerms,
+          id: `42161-${i + 1}`,
+          chainId: 42161,
+          commitmentId: String(i + 1),
+          creationSeen: true,
+          state: "REQUESTED",
+          requirementCount: 0,
+          considerationRail: null,
+          metadataCID: "cid-group",
+        })),
+      },
+    });
+    const commitments = await getCommitments({ chainId: 42161 });
+    const entries = groupCommitmentsForDisplay({
+      commitments,
+      metadataByCID: new Map([
+        [
+          "cid-group",
+          { version: 1, title: "Garden work", displayGroup: { version: 1, id: "group-work-0001" } },
+        ],
+      ]),
+    });
+    expect(entries).toMatchObject([
+      { kind: "group", children: Array.from({ length: 5 }, (_, i) => ({ id: `42161-${i + 1}` })) },
+    ]);
+  });
+
+  it.each([
+    { considerationAmount: "5" },
+    { considerationAmount: undefined },
+    { considerationSource: indexedTerms.creator },
+    { considerationToken: indexedTerms.creator },
+  ])("keeps an ambiguous missing reward rail unknown: %j", async (terms) => {
+    mocks.query.mockResolvedValue({
+      data: {
+        Commitment: [
+          {
+            ...indexedTerms,
+            id: "42161-11",
+            chainId: 42161,
+            commitmentId: "11",
+            creationSeen: true,
+            state: "REQUESTED",
+            requirementCount: 0,
+            considerationRail: null,
+            ...terms,
+          },
+        ],
+      },
+    });
+    await expect(getCommitments({ chainId: 42161 })).resolves.toMatchObject([
+      { considerationRail: null, requirements: null },
+    ]);
   });
 
   it("puts the correct seen flag in every ordinary list query", async () => {

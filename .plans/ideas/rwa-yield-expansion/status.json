@@ -2,7 +2,7 @@
   "version": 1,
   "feature": {
     "slug": "rwa-yield-expansion",
-    "title": "RWA Yield Expansion Research (Arbitrum environmental and solar assets)",
+    "title": "Conservative Arbitrum Yield Strategy Research",
     "kind": "feature",
     "stage": "ideas"
   },
@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-04-17",
-    "updated_at": "2026-06-27T00:02:14.997Z"
+    "updated_at": "2026-10-06T22:48:50Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,13 +22,15 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-05-10T22:34:44.492Z",
     "parentIssue": "RESR-9",
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing"
   },
   "notes": [
-    "Research-first backlog item for Arbitrum environmental and solar yield assets.",
-    "No contract, shared hook, admin, or client implementation should start until asset source, custody/compliance boundary, yield path, risk model, and proof requirements are locked.",
+    "Research-first comparison of conservative Arbitrum yield strategies against the current Aave baseline. Environmental and solar assets are optional candidates, not preselected products.",
+    "No implementation, audit engagement, dependency, migration, deployment or allocation is authorized by this research hub. A future build needs separately accepted scope and current evidence on principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery.",
     "The older Conservative/Balanced preset plan remains historical context only; do not treat it as current build-ready execution order.",
-    "Afo deferred this out of active product work on 2026-04-26. Keep as June implementation/backlog, not part of the April closeout push."
+    "Historical deferral (2026-04-26): Afo removed this from active product work. The former June implementation/backlog schedule is superseded; no current implementation date is accepted.",
+    "2026-10-06 reconciliation: Aligned brief, specification and evaluation with current RESR-9 conservative strategy research. P2 idea placement retained; old preset rates/dates/design are historical hypotheses and all implementation lanes remain n/a."
   ],
   "lanes": {
     "ui": {
@@ -37,7 +39,7 @@
       "branch": "claude/ui/rwa-yield-expansion",
       "depends_on": ["state_api", "contracts"],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "No UI implementation lane is active while this hub is research-first. Reopen only after the Arbitrum environmental/solar asset research locks an implementation boundary.",
+      "handoff_note": "No UI lane is active. RESR-9 compares conservative Arbitrum strategies; environmental/solar assets and preset architecture are optional hypotheses. Research does not authorize implementation. A future build requires separately accepted scope and current proof before this lane can be activated.",
       "skill_tags": ["ui", "react", "web3"]
     },
     "state_api": {
@@ -46,7 +48,7 @@
       "branch": "codex/state-api/rwa-yield-expansion",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "No shared state/API implementation lane is active while this hub is research-first. Reopen only after asset data contracts, yield path, and risk/proof requirements are agreed.",
+      "handoff_note": "No shared state/API lane is active. RESR-9 compares conservative Arbitrum strategies; environmental/solar assets and preset architecture are optional hypotheses. Research does not authorize implementation. A future build requires separately accepted scope and current proof before this lane can be activated.",
       "skill_tags": ["react", "tanstack-query", "data-layer", "testing"]
     },
     "contracts": {
@@ -55,7 +57,7 @@
       "branch": "codex/contracts/rwa-yield-expansion",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "No contract implementation lane is active while this hub is research-first. Do not start adapters, preset registries, or queue contracts until the Arbitrum environmental/solar asset path is validated.",
+      "handoff_note": "No contract lane is active. RESR-9 compares conservative Arbitrum strategies; environmental/solar assets and preset architecture are optional hypotheses. Research does not authorize implementation. A future build requires separately accepted scope and current proof before this lane can be activated.",
       "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
@@ -66,7 +68,7 @@
       "branch": "claude/qa-pass-1/rwa-yield-expansion",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "No QA lane is active while this hub is research-first. Add QA once a concrete implementation plan is promoted.",
+      "handoff_note": "No QA lane is active. RESR-9 compares conservative Arbitrum strategies; environmental/solar assets and preset architecture are optional hypotheses. Research does not authorize implementation. A future build requires separately accepted scope and current proof before this lane can be activated.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
@@ -78,7 +80,7 @@
       "branch_trigger": "claude/qa-pass-1/rwa-yield-expansion",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "No second QA lane is active while this hub is research-first. Add validation once a concrete implementation plan is promoted.",
+      "handoff_note": "No second QA lane is active. RESR-9 compares conservative Arbitrum strategies; environmental/solar assets and preset architecture are optional hypotheses. Research does not authorize implementation. A future build requires separately accepted scope and current proof before this lane can be activated.",
       "skill_tags": ["testing", "review", "contracts"]
     }
   },
@@ -138,6 +140,30 @@
       "status": "moved_to_ideas",
       "branch": null,
       "note": "Moved to ideas and neutralized lane mirroring until activation."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Aligned brief, specification and evaluation with current RESR-9 conservative strategy research. P2 idea placement retained; old preset rates/dates/design are historical hypotheses and all implementation lanes remain n/a."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-06T22:48:50Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_boundary_reconciled",
+      "branch": null,
+      "note": "Aligned the machine title, current notes and lane gates with conservative Arbitrum strategy research. Environmental/solar assets are optional; the June schedule is historical. All lanes remain n/a and no implementation, Linear write or sync confirmation is recorded."
     }
   ],
   "taxonomy": {

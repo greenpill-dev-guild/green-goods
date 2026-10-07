@@ -145,6 +145,7 @@ const STEPS = [
 /** The controller at one moment of a send, on the Review unless a test says otherwise. */
 function controllerAt(overrides: Partial<Controller> = {}): Controller {
   return {
+    validationAttempt: 0,
     canReview: true,
     currentStep: STEPS.length - 1,
     goToStep: vi.fn(),

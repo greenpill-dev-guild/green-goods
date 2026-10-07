@@ -10,6 +10,7 @@ import { isTerminalDatabaseOpenError, openDexieDatabase } from "./database-open"
 import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
+import { recordWorkCompletion, workCompletionScope } from "./work-completions";
 
 const log = createLogger({ source: "job-queue/db" });
 export const CLAIM_TTL_MS = 60_000;
@@ -19,10 +20,6 @@ export interface JobFilter {
   userAddress: string;
   kind?: string;
   synced?: boolean;
-}
-
-function workScope(address: string, chainId: number, clientWorkId: string): string {
-  return `${chainId}:${address.toLowerCase()}:${clientWorkId}`;
 }
 
 /**
@@ -138,7 +135,7 @@ class JobQueueStore {
               const clientId = (jobData.payload as WorkJobPayload).clientWorkId;
               if (clientId) {
                 const completed = await db.work_completions.get(
-                  workScope(jobData.userAddress, jobData.chainId!, clientId)
+                  workCompletionScope(jobData.userAddress, jobData.chainId!, clientId)
                 );
                 if (completed) return completed.jobId;
                 const legacy = await db.client_work_id_mappings.get(clientId);
@@ -371,18 +368,7 @@ class JobQueueStore {
       db.work_completions,
       db.client_work_id_mappings,
       async () => {
-        const job = await db.jobs.get(jobId);
-        if (job?.chainId) {
-          await db.work_completions.put({
-            scope: workScope(job.userAddress, job.chainId, clientWorkId),
-            clientWorkId,
-            userAddress: job.userAddress.toLowerCase(),
-            chainId: job.chainId,
-            transactionHash: attestationId,
-            jobId,
-            createdAt: Date.now(),
-          });
-        }
+        await recordWorkCompletion(db, clientWorkId, attestationId, jobId);
         await db.client_work_id_mappings.put({
           clientWorkId,
           attestationId,
@@ -399,7 +385,19 @@ class JobQueueStore {
     clientWorkId: string
   ): Promise<WorkCompletion | undefined> {
     const db = await this.init();
-    return db.work_completions.get(workScope(address, chainId, clientWorkId));
+    return db.work_completions.get(workCompletionScope(address, chainId, clientWorkId));
+  }
+
+  /** Confirmed cards remain readable after the upload jobs and files are removed. */
+  observeWorkCompletions(address: string, chainId: number): Observable<WorkCompletion[]> {
+    return this.observe(async () => {
+      const db = await this.init();
+      const prefix = `${chainId}:${address.toLowerCase()}:`;
+      return db.work_completions
+        .where("scope")
+        .between(prefix, `${prefix}\uffff`, true, true)
+        .toArray();
+    });
   }
 
   async acquireExecutionClaim(ids: string[], token: string): Promise<boolean> {

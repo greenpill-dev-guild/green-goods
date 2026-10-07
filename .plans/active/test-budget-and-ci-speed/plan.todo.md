@@ -1,12 +1,18 @@
 # Test budget and CI feedback plan
 
 **Feature Slug**: `test-budget-and-ci-speed`
-**Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`, as are the push gate's dated-report routing (`57916fed7`) and D13 (the test lease). The post-release plan (D14) is recorded in § After the release; its remaining work waits for the 2.0.0 release and snapshot 09 on 2026-10-05. Afo separately authorized Software Factory SF01–SF04 to start now; their local implementation and verification are recorded below, with SF03 Admin qualification subsequently passing in the fourth batch. SF09 reporting and SF11 Address repair are locally verified after explicit dependency approval. SF10 Codex loading is observed; Claude Desktop Code remains pending. See the fourth-batch handoff.
+**Stage**: `active`
+**Status**: `ACTIVE — Software Factory locally implemented through batch 5; live observations and snapshot 09 pending`
 **Created**: 2026-09-19
-**Last Updated**: 2026-10-04
+**Last Updated**: `2026-10-06`
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
+
+## Status reconciliation (2026-10-06)
+
+The latest source record is [batch 5](handoffs/software-factory-batch-5.md), which supersedes the opening fourth-batch summary. SF05–SF08 and SF12 have recorded local acceptance; SF10 still requires an actual Claude Desktop Code observation and SF13 retains four ordinary-task categories plus the routine-dispatch observation. These handoffs record local acceptance. This status PR does not certify CI for the owning implementation range.
+
+Snapshot 09 was scheduled for October 5 and remains unchecked in this hub as of October 6. Confirm whether its external scorecard exists before measuring again; if absent, record the actual next measurement date rather than treating the scheduled date as completion. D14's release prerequisite and the human-controlled restart, cleanup and dependency steps remain intact.
 
 ## Current execution truth (2026-09-28)
 

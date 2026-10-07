@@ -162,5 +162,7 @@ pilot remains the owner; no new scheduled automation or billed synthetic task wa
 
 The unrelated `.plans/active/agent-messaging-channels/` directory still lacks `status.json`,
 so the repository-wide Plan Hub validator cannot pass. Its files were left untouched.
+
+**Correction, 2026-10-06 (PR #1045):** that historical blocker is resolved. The messaging hub has `status.json` in the reviewed parent and current tree. `node scripts/harness/plan-hub.mjs validate` passes for all 24 hubs; do not carry the missing-file condition forward as a global-validation or closeout blocker. The observational obligations above remain open.
 Current-head GitHub CI and publication are also pending. Optional SF09 PR-text export remains
 deferred; existing runner diagnostics and the reports above provide the local evidence.

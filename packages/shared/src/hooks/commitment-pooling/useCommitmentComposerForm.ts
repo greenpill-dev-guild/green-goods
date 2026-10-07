@@ -51,8 +51,8 @@ const MAX_REQUIRED_COUNT = 4_294_967_295;
 const requirementSchema = z.object({
   actionUID: actionUIDSchema,
   requiredCount: z
-    .number()
-    .int()
+    .number({ error: "Needs a count of at least 1" })
+    .int("Enter a whole count")
     .min(1, "Needs a count of at least 1")
     .max(MAX_REQUIRED_COUNT, "That count is too large"),
 });

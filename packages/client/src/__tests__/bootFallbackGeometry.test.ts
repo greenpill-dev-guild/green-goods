@@ -245,6 +245,8 @@ interface ScenePair {
 
 // The sign-in scaffold, slot for slot: root, block, logo, line, the two control slots, the
 // message zone and the text link. The note is the one the could-not-open screen puts in slot two.
+// Match Tailwind's rem units, not their 16px-default conversions: browser text settings must
+// scale the static scene and React by the same amount.
 const SCENE_PAIRS: ScenePair[] = [
   {
     classLiteral: "min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2",
@@ -255,33 +257,33 @@ const SCENE_PAIRS: ScenePair[] = [
       "flex-direction: column; /* flex-col */",
       "align-items: center; /* items-center */",
       "min-height: 100vh; /* min-h-screen */",
-      "padding: 8px 16px; /* py-2 px-4 */",
+      "padding: 0.5rem 1rem; /* py-2 px-4 */",
     ],
   },
   {
     classLiteral: "flex w-full max-w-sm flex-col items-center",
     source: "scaffold",
     selector: ".boot-pwa-content",
-    boot: ["width: 100%; /* w-full */", "max-width: 384px; /* max-w-sm */"],
+    boot: ["width: 100%; /* w-full */", "max-width: 24rem; /* max-w-sm */"],
   },
   {
     classLiteral: "flex-shrink-0 mb-4",
     source: "scaffold",
     selector: ".boot-pwa-logo-slot",
-    boot: ["margin-bottom: 16px; /* mb-4 */"],
+    boot: ["margin-bottom: 1rem; /* mb-4 */"],
   },
   {
     classLiteral: "h-24 w-auto sm:h-28",
     source: "scaffold",
     selector: ".boot-pwa-content img",
-    boot: ["width: auto; /* w-auto */", "height: 96px; /* h-24 */"],
-    sm: ["height: 112px; /* sm:h-28 */"],
+    boot: ["width: auto; /* w-auto */", "height: 6rem; /* h-24 */"],
+    sm: ["height: 7rem; /* sm:h-28 */"],
   },
   {
     classLiteral: "h-8 flex items-center justify-center mb-5",
     source: "scaffold",
     selector: ".boot-pwa-message-slot",
-    boot: ["height: 32px; /* h-8 */", "margin-bottom: 20px; /* mb-5 */"],
+    boot: ["height: 2rem; /* h-8 */", "margin-bottom: 1.25rem; /* mb-5 */"],
   },
   {
     classLiteral: "text-base font-[650] text-text-strong-950",
@@ -293,32 +295,32 @@ const SCENE_PAIRS: ScenePair[] = [
     classLiteral: "w-full flex flex-col items-center gap-3",
     source: "scaffold",
     selector: ".boot-pwa-stack",
-    boot: ["gap: 12px; /* gap-3 */"],
+    boot: ["gap: 0.75rem; /* gap-3 */"],
   },
   {
     classLiteral: "w-full h-11 flex items-center justify-center",
     source: "scaffold",
     selector: ".boot-pwa-note-slot",
-    boot: ["height: 44px; /* h-11 */"],
+    boot: ["height: 2.75rem; /* h-11 */"],
   },
   {
     classLiteral: "relative w-full h-20 overflow-y-auto",
     source: "scaffold",
     selector: ".boot-pwa-zone",
-    boot: ["height: 80px; /* h-20: sign-in's message zone */"],
+    boot: ["height: 5rem; /* h-20: sign-in's message zone */"],
   },
   {
     classLiteral: "h-5 flex items-center justify-center",
     source: "scaffold",
     selector: ".boot-pwa-link",
-    boot: ["height: 20px; /* h-5: sign-in's text link */"],
+    boot: ["height: 1.25rem; /* h-5: sign-in's text link */"],
   },
   {
     classLiteral: "w-full self-start pt-1 text-center text-sm leading-5 text-text-sub-600",
     source: "launch",
     selector: ".boot-pwa-note-slot p",
     boot: [
-      "padding-top: 4px; /* pt-1 */",
+      "padding-top: 0.25rem; /* pt-1 */",
       "font-size: 0.875rem; /* text-sm */",
       "line-height: 1.25rem; /* leading-5 */",
     ],
@@ -333,7 +335,7 @@ describe("installed app loading scene parity", () => {
     const rule = ruleBody(BOOT_CSS, pair.selector);
     for (const declaration of pair.boot) expect(rule).toContain(declaration);
     if (pair.sm) {
-      const smRule = ruleBody(mediaBlocks("min-width: 640px"), pair.selector);
+      const smRule = ruleBody(mediaBlocks("min-width: 40rem"), pair.selector);
       for (const declaration of pair.sm) expect(smRule).toContain(declaration);
     }
   });
@@ -342,11 +344,14 @@ describe("installed app loading scene parity", () => {
     expect(BOOT_CSS).toMatch(/\n {6}\.boot-pwa-action-slot,\n {6}\.boot-pwa-note-slot \{/);
   });
 
-  it("splits the free space 7:3 above and below the block, as the scaffold does", () => {
-    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 7 }}");
-    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 3 }}");
-    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::before")).toContain("flex-grow: 7;");
-    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain("flex-grow: 3;");
+  it("splits the free space 11:9 above and below the block, as the scaffold does", () => {
+    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 11 }}");
+    expect(SCAFFOLD_SOURCE).toContain('style={{ flexGrow: 9, flexBasis: "calc(20px * 20 / 11)" }}');
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::before")).toContain("flex-grow: 11;");
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain("flex-grow: 9;");
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain(
+      "flex-basis: calc(20px * 20 / 11);"
+    );
   });
 
   it("lays the scene out in the scaffold's order: logo, line, action, note, zone, link", () => {

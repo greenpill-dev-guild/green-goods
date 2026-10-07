@@ -1,7 +1,7 @@
 # Commitment Credit — August Companion
 
 **Slug**: `commitment-credit-follow-on`
-**Stage**: `backlog — contracts (PR #695) and state/API (PR #722) merged; UI not started`
+**Stage**: `backlog`
 **Priority**: `p1`
 
 ## Outcome

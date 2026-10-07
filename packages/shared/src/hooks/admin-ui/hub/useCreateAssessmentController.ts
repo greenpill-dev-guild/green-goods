@@ -490,6 +490,7 @@ export function useCreateAssessmentController() {
     normalizedGardenDomainMask,
     reviewForm: isSent && submittedForm ? submittedForm : form,
     showValidation: stepValidation.showValidation,
+    validationAttempt: stepValidation.validationAttempt,
     stepConfigs,
     txErrorView: txError.view,
   };

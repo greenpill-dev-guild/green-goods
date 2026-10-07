@@ -10,7 +10,7 @@ Keep lane handoffs short and factual. Use one file per lane:
 
 The [current build sequence](../plan.todo.md#current-build-sequence) and
 [technical brief](../technical-brief.md#12-implementation-order-and-acceptance) own scope.
-Historical step numbers do not dispatch work. Tracker reconciliation precedes implementation;
+Historical step numbers do not dispatch work. The PRD-998 parent_only start gate completed on 2026-09-27;
 provider, privacy and live account gates apply to their corresponding stages.
 
 Each handoff should capture:

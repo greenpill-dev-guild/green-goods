@@ -1,7 +1,8 @@
 # Domain Coherence — Action Domains × Impact Dimensions
 
+**Stage**: `ideas`
 **Slug**: `domain-coherence`
-**Status**: `IDEA / MAY EXPLORATION`
+**Status**: `IDEA — residual dimension-model discovery; taxonomy research delivered separately`
 **Created**: `2026-04-25`
 **Priority**: `p2` (outcome-shaping; pairs with `yield-to-impact-codification`)
 **Branch**: `feature/domain-coherence` (when implementation begins)

@@ -633,8 +633,10 @@
          logo and the line under it are where sign-in and the could-not-open
          screen draw them and nothing moves on handover. Each mirrored
          declaration names its Tailwind class; bootFallbackGeometry.test.ts fails
-         when either side changes, so update both together. Every slot is
-         reserved in every state: the 7:3 split depends on the block's height. */
+         when either side changes, so update both together. Mirrored sizes and the
+         logo breakpoint use rem, as Tailwind does, so browser text settings
+         scale both scenes together. Every slot is reserved in every state:
+         the 11:9 split depends on the block's height. */
       .boot-pwa-shell {
         position: relative;
         display: flex; /* flex */
@@ -642,7 +644,7 @@
         align-items: center; /* items-center */
         min-height: 100vh; /* min-h-screen */
         box-sizing: border-box;
-        padding: 8px 16px; /* py-2 px-4 */
+        padding: 0.5rem 1rem; /* py-2 px-4 */
         overflow-x: hidden;
         overflow-y: auto;
         background: var(--boot-canvas);
@@ -650,41 +652,43 @@
         text-align: center;
       }
 
-      /* Golden anchor: free space splits 7:3 above and below the block. */
+      /* Shared anchor: free space splits 11:9 above and below the block. */
       .boot-pwa-shell::before {
-        flex-grow: 7;
+        flex-grow: 11;
         content: "";
       }
 
       .boot-pwa-shell::after {
-        flex-grow: 3;
+        flex-grow: 9;
+        /* 20px / the upper spacer's 55% share raises the block by 20px. */
+        flex-basis: calc(20px * 20 / 11);
         content: "";
       }
 
       .boot-pwa-content {
         display: flex;
         width: 100%; /* w-full */
-        max-width: 384px; /* max-w-sm */
+        max-width: 24rem; /* max-w-sm */
         flex-direction: column;
         align-items: center;
       }
 
       .boot-pwa-logo-slot {
         flex-shrink: 0;
-        margin-bottom: 16px; /* mb-4 */
+        margin-bottom: 1rem; /* mb-4 */
       }
 
       .boot-pwa-content img {
         display: block;
         width: auto; /* w-auto */
-        height: 96px; /* h-24 */
+        height: 6rem; /* h-24 */
       }
 
       .boot-pwa-message-slot {
         display: flex;
         width: 100%;
-        height: 32px; /* h-8 */
-        margin-bottom: 20px; /* mb-5 */
+        height: 2rem; /* h-8 */
+        margin-bottom: 1.25rem; /* mb-5 */
         align-items: center;
         justify-content: center;
       }
@@ -702,14 +706,14 @@
         width: 100%;
         flex-direction: column;
         align-items: center;
-        gap: 12px; /* gap-3 */
+        gap: 0.75rem; /* gap-3 */
       }
 
       .boot-pwa-action-slot,
       .boot-pwa-note-slot {
         display: flex;
         width: 100%;
-        height: 44px; /* h-11 */
+        height: 2.75rem; /* h-11 */
         align-items: center;
         justify-content: center;
       }
@@ -723,7 +727,7 @@
       .boot-pwa-note-slot p {
         width: 100%;
         margin: 0;
-        padding-top: 4px; /* pt-1 */
+        padding-top: 0.25rem; /* pt-1 */
         color: var(--boot-muted);
         font-size: 0.875rem; /* text-sm */
         line-height: 1.25rem; /* leading-5 */
@@ -731,30 +735,30 @@
 
       .boot-pwa-zone {
         width: 100%;
-        height: 80px; /* h-20: sign-in's message zone */
+        height: 5rem; /* h-20: sign-in's message zone */
       }
 
       .boot-pwa-link {
-        height: 20px; /* h-5: sign-in's text link */
+        height: 1.25rem; /* h-5: sign-in's text link */
       }
 
       /* The app's button: the shared Button at its default size (44px, the
          16px app corner, a 16px regular label), full width as on sign-in. */
       .boot-pwa-action-slot .boot-reload-button {
         width: 100%; /* w-full */
-        min-height: 44px;
+        min-height: 2.75rem;
         margin-top: 0;
         border-radius: 16px;
-        padding: 0 16px;
+        padding: 0 1rem;
         font-size: 1rem;
         font-weight: 400;
         line-height: 1.5rem;
         white-space: nowrap;
       }
 
-      @media (min-width: 640px) {
+      @media (min-width: 40rem) {
         .boot-pwa-content img {
-          height: 112px; /* sm:h-28 */
+          height: 7rem; /* sm:h-28 */
         }
       }
 
@@ -764,11 +768,11 @@
       @media (max-width: 240px) {
         .boot-pwa-message-slot {
           height: auto;
-          min-height: 32px;
+          min-height: 2rem;
         }
 
         .boot-pwa-action-slot .boot-reload-button {
-          padding-inline: 12px;
+          padding-inline: 0.75rem;
           font-size: 0.875rem;
           white-space: normal;
         }
