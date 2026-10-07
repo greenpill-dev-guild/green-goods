@@ -4270,7 +4270,7 @@
   "cockpit.garden.pool.seed.error.titleTooLong": "Encurte o título para {max, number} caracteres ou menos.",
   "cockpit.garden.pool.seed.error.unitRequired": "Diga o que você está contando.",
   "cockpit.garden.pool.seed.error.unitTooLong": "Encurte a unidade para {max, number} caracteres ou menos.",
-  "cockpit.garden.pool.seed.kind": "Como esta promessa será cumprida?",
+  "cockpit.garden.pool.seed.kind": "Tipo",
   "cockpit.garden.pool.seed.kind.gardenWork": "Trabalho do jardim",
   "cockpit.garden.pool.seed.kind.gardenWorkHint": "Trabalho vinculado aprovado pelos responsáveis do jardim",
   "cockpit.garden.pool.seed.kind.seasonCampaign": "Compromisso de temporada / campanha",
@@ -6809,5 +6809,6 @@
   "app.commitment.queue.discard.workLink": "Descartar vínculo não enviado",
   "app.commitment.queue.operation.confirmation": "Confirmar esta promessa",
   "app.commitment.queue.send.confirmation": "Enviar confirmação",
-  "app.commitment.queue.discard.confirmation": "Descartar confirmação não enviada"
+  "app.commitment.queue.discard.confirmation": "Descartar confirmação não enviada",
+  "cockpit.garden.pool.seed.kind.prompt": "Como esta promessa será cumprida?"
 }

@@ -4270,7 +4270,7 @@
   "cockpit.garden.pool.seed.error.titleTooLong": "Shorten the title to {max, number} characters or fewer.",
   "cockpit.garden.pool.seed.error.unitRequired": "Say what you are counting.",
   "cockpit.garden.pool.seed.error.unitTooLong": "Shorten the unit to {max, number} characters or fewer.",
-  "cockpit.garden.pool.seed.kind": "How will this promise be completed?",
+  "cockpit.garden.pool.seed.kind": "Type",
   "cockpit.garden.pool.seed.kind.gardenWork": "Garden work",
   "cockpit.garden.pool.seed.kind.gardenWorkHint": "Linked work approved by garden stewards",
   "cockpit.garden.pool.seed.kind.seasonCampaign": "Season / campaign commitment",
@@ -6809,5 +6809,6 @@
   "app.commitment.queue.discard.workLink": "Discard unsent link",
   "app.commitment.queue.operation.confirmation": "Confirming this promise",
   "app.commitment.queue.send.confirmation": "Send confirmation",
-  "app.commitment.queue.discard.confirmation": "Discard unsent confirmation"
+  "app.commitment.queue.discard.confirmation": "Discard unsent confirmation",
+  "cockpit.garden.pool.seed.kind.prompt": "How will this promise be completed?"
 }

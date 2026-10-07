@@ -38,7 +38,7 @@ export function SeedStepWhat({
       <fieldset className="space-y-2" disabled={busy}>
         <legend className="body-sm font-semibold text-text-strong">
           {formatMessage({
-            id: "cockpit.garden.pool.seed.kind",
+            id: "cockpit.garden.pool.seed.kind.prompt",
             defaultMessage: "How will this promise be completed?",
           })}
         </legend>
@@ -48,7 +48,7 @@ export function SeedStepWhat({
           render={({ field }) => (
             <AdminChoiceGroup
               ariaLabel={formatMessage({
-                id: "cockpit.garden.pool.seed.kind",
+                id: "cockpit.garden.pool.seed.kind.prompt",
                 defaultMessage: "How will this promise be completed?",
               })}
               value={field.value}
