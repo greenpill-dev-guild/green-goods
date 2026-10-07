@@ -1,5 +1,6 @@
 import type { PendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
 import en from "@green-goods/shared/i18n/en.json";
+import type { WorkDashboardReturnState } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
@@ -14,6 +15,7 @@ let mockReviewerGardenIds: string[] = [];
 let mockProofs: PendingProof[] = [];
 let mockQueueUnreadable = false;
 let mockInitialPendingFilter: string | undefined;
+let mockReturnState: WorkDashboardReturnState | undefined;
 const mockQueueRefresh = vi.fn();
 let mockOnPhone = 0;
 const mockDiscardWork = vi.fn(async () => true);
@@ -240,6 +242,8 @@ const mockRegisterOpenSheet = vi.fn(() => () => undefined);
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (
     selector: (s: {
+      dashboardNavigationId: string;
+      workDashboardReturnState?: WorkDashboardReturnState;
       workDashboardInitialTab?: string;
       workDashboardInitialPendingFilter?: string;
       rememberWorkDashboard: () => void;
@@ -247,7 +251,9 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
     }) => unknown
   ) =>
     selector({
-      workDashboardInitialTab: undefined,
+      dashboardNavigationId: "dashboard-session",
+      workDashboardReturnState: mockReturnState,
+      workDashboardInitialTab: mockReturnState?.tab,
       workDashboardInitialPendingFilter: mockInitialPendingFilter,
       rememberWorkDashboard: vi.fn(),
       registerOpenSheet: mockRegisterOpenSheet,
@@ -321,6 +327,7 @@ describe("WorkDashboard", () => {
     mockProofs = [];
     mockQueueUnreadable = false;
     mockInitialPendingFilter = undefined;
+    mockReturnState = undefined;
     mockOnPhone = 0;
     mockIsOnline = true;
     mockUploads = idleUploads();
@@ -669,7 +676,13 @@ describe("WorkDashboard", () => {
     expect(onClose).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith(
       "/home/0x00000000000000000000000000000000000000a1/commitments/7",
-      { state: { from: "dashboard" }, viewTransition: true }
+      {
+        state: {
+          from: "dashboard",
+          dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+        },
+        viewTransition: true,
+      }
     );
   });
 
@@ -697,7 +710,13 @@ describe("WorkDashboard", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       "/home/0x00000000000000000000000000000000000000a1/commitments/7/proof",
-      { state: { from: "dashboard" }, viewTransition: true }
+      {
+        state: {
+          from: "dashboard",
+          dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+        },
+        viewTransition: true,
+      }
     );
   });
 
@@ -819,12 +838,96 @@ describe("WorkDashboard", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
-      state: { from: "dashboard", returnTo: "/home", workStatus: "approved" },
+      state: {
+        from: "dashboard",
+        returnTo: "/home",
+        workStatus: "approved",
+        dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+      },
       viewTransition: true,
     });
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
       mockNavigate.mock.invocationCallOrder[0]
     );
+  });
+
+  it("restores scroll when late content fits, then lets the reader scroll freely", async () => {
+    mockReturnState = {
+      tab: "pending",
+      pendingFilter: "all",
+      completedFilter: "all",
+      timeFilter: "month",
+      scrollTop: 420,
+    };
+    // Model browser clamping while this sheet's child lists are still loading.
+    let capacity = 0;
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(
+          this,
+          this.id === "work-dashboard-scroll" ? Math.min(value, capacity) : value
+        );
+      },
+    });
+    try {
+      const view = renderDashboard();
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+      expect(scroller.scrollTop).toBe(0);
+      capacity = 800;
+      scroller.append(document.createElement("p"));
+      await waitFor(() => expect(scroller.scrollTop).toBe(420));
+      scroller.scrollTop = 170;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(170);
+      view.unmount();
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
+  });
+
+  it("hands clamped scroll restoration to the reader before later row updates", async () => {
+    mockReturnState = {
+      tab: "pending",
+      pendingFilter: "all",
+      completedFilter: "all",
+      timeFilter: "month",
+      scrollTop: 420,
+    };
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(this, this.id === "work-dashboard-scroll" ? Math.min(value, 150) : value);
+      },
+    });
+    try {
+      const view = renderDashboard();
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+      expect(scroller.scrollTop).toBe(150);
+      fireEvent.wheel(scroller, { deltaY: -80 });
+      scroller.scrollTop = 70;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(70);
+      view.unmount();
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
   });
 
   it("owns dashboard scrolling explicitly and resets that owner on tab changes", () => {

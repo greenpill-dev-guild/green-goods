@@ -1,3 +1,4 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
@@ -460,4 +461,35 @@ export const CompletedSpanishWeekOffline: Story = {
     savedAt: todayAt(10, 2),
   },
   parameters: { locale: "es" },
+};
+
+/** Native browser clamping must not let later row updates undo the reader's scroll. */
+export const ClampedScrollReturn: Story = {
+  tags: ["autodocs", "storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const scroller = canvasElement.ownerDocument.getElementById("work-dashboard-scroll");
+    if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+    await waitFor(() => expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight));
+    const completed = fn();
+    const dispose = restoreDashboardScroll(
+      scroller,
+      () => scroller,
+      scroller.scrollHeight + 100,
+      completed
+    );
+    const update = canvasElement.ownerDocument.createElement("p");
+    update.textContent = "An indexed row changed";
+    try {
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+      scroller.dispatchEvent(new WheelEvent("wheel", { bubbles: true, deltaY: -100 }));
+      scroller.scrollTop = 0;
+      scroller.append(update);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      expect(scroller.scrollTop).toBe(0);
+      expect(completed).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+      update.remove();
+    }
+  },
 };

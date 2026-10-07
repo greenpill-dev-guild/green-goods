@@ -270,6 +270,23 @@ describe("canLinkWork", () => {
 });
 
 describe("selectStatusBand", () => {
+  it.each([
+    "provider",
+    "contributor",
+    "confirmer",
+  ] as const)("explains garden work approvals to the %s without instructing a manual send", (seat) => {
+    const band = selectStatusBand({
+      commitment: { derivedState: "EVIDENCE_SUBMITTED", commitmentType: "DOMAIN_IMPACT" },
+      seat,
+    });
+    expect(band?.bodyId).toBe(
+      seat === "confirmer"
+        ? "app.commitment.band.work.reviewer"
+        : "app.commitment.band.work.required"
+    );
+    expect(band?.named).toBeUndefined();
+  });
+
   it("tells the provider they cannot confirm, rather than asking them to", () => {
     const band = selectStatusBand({
       commitment: { derivedState: "READY_FOR_CONFIRMATION" },

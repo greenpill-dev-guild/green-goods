@@ -12,7 +12,8 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen } from "../test-utils";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 /** Rows navigate into a commitment, so the sheet needs a router around it. */
 const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
@@ -185,7 +186,10 @@ describe("CommitmentsSheet", () => {
       expect(screen.getByText("Garden claim")).toBeInTheDocument();
       expect(screen.getByText(/Nobody can confirm their own work/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /3 hours/ }));
-      expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+      expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+        viewTransition: true,
+        state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+      });
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
@@ -242,8 +246,47 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
-    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+      viewTransition: true,
+      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("records the displayed Live tab after the reader loses the steward role", async () => {
+    const user = userEvent.setup();
+    const previous = useUIStore.getState().commitmentsSheetReturnState;
+    useUIStore.setState({ commitmentsSheetReturnState: undefined });
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: commitment(), seat: "provider", needsYou: true }] })
+    );
+    mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: true }));
+    const onClose = vi.fn();
+    const view = render(<CommitmentsSheet isOpen onClose={onClose} />);
+    try {
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+      mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: false }));
+      view.rerender(
+        <MemoryRouter>
+          <CommitmentsSheet isOpen onClose={onClose} />
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("tab", { name: /live/i })).toHaveAttribute("aria-selected", "true");
+      await user.click(screen.getByRole("button", { name: /3 hours/ }));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/",
+        expect.objectContaining({
+          state: expect.objectContaining({
+            dashboardEntry: expect.objectContaining({
+              snapshot: expect.objectContaining({ tab: "live" }),
+            }),
+          }),
+        })
+      );
+    } finally {
+      view.unmount();
+      useUIStore.setState({ commitmentsSheetReturnState: previous });
+    }
   });
 
   it("opens settled commitments from the History tab the same way", async () => {
@@ -265,7 +308,10 @@ describe("CommitmentsSheet", () => {
     await user.click(screen.getByRole("tab", { name: /history/i }));
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
-    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+      viewTransition: true,
+      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -506,6 +552,56 @@ describe("CommitmentsSheet", () => {
     expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
     // The count is unchanged by a filter: it reports the tab, not the view.
     expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
+    const scroller = document.querySelector<HTMLElement>(".overflow-y-auto");
+    if (!scroller) throw new Error("Commitments scroll owner is missing");
+    scroller.scrollTop = 172;
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+    expect(mockNavigate).toHaveBeenNthCalledWith(1, "/", {
+      replace: true,
+      state: {
+        dashboardEntry: expect.objectContaining({
+          path: "/",
+          snapshot: { kind: "commitments", tab: "live", direction: "OFFER", scrollTop: 172 },
+        }),
+      },
+    });
+  });
+
+  it("keeps the reader's scroll after a clamped promise dashboard return", async () => {
+    const previous = useUIStore.getState().commitmentsSheetReturnState;
+    useUIStore.setState({
+      commitmentsSheetReturnState: { tab: "live", direction: "all", scrollTop: 420 },
+    });
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(
+          this,
+          this.classList.contains("overflow-y-auto") ? Math.min(value, 150) : value
+        );
+      },
+    });
+    try {
+      const view = render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      const scroller = document.querySelector<HTMLElement>(".overflow-y-auto");
+      if (!scroller) throw new Error("Commitments scroll owner is missing");
+      expect(scroller.scrollTop).toBe(150);
+      fireEvent.touchStart(scroller);
+      scroller.scrollTop = 70;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(70);
+      view.unmount();
+    } finally {
+      useUIStore.setState({ commitmentsSheetReturnState: previous });
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
   });
 
   it("shows the member their own settled record, lapsed included", async () => {

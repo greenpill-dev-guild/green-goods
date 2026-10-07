@@ -245,12 +245,12 @@ export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(
                   button_previous: cn(
                     "absolute left-0 h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   button_next: cn(
                     "absolute right-0 h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   month_grid: "w-full border-collapse",
                   weekdays: "flex",
@@ -259,18 +259,22 @@ export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(
                   week: "flex mt-1",
                   day: cn(
                     "w-9 h-9 flex items-center justify-center text-sm",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   day_button: cn(
                     "w-full h-full flex items-center justify-center rounded-lg",
-                    "hover:bg-bg-soft-200 transition cursor-pointer",
-                    "focus:outline-none"
+                    "hover:bg-bg-soft-200 [[data-selected]_&]:hover:bg-transparent transition cursor-pointer",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0"
                   ),
-                  selected: "bg-primary-base text-white-0 font-semibold hover:bg-primary-dark",
-                  range_start: "rounded-l-lg rounded-r-none bg-primary-base text-white-0",
-                  range_end: "rounded-r-lg rounded-l-none bg-primary-base text-white-0",
-                  range_middle: "rounded-none bg-primary-lighter text-primary-dark",
-                  today: "font-bold text-primary-base",
+                  selected:
+                    "bg-primary-action text-primary-action-foreground font-semibold hover:bg-primary-action-hover",
+                  range_start:
+                    "rounded-l-lg rounded-r-none bg-primary-action text-primary-action-foreground",
+                  range_end:
+                    "rounded-r-lg rounded-l-none bg-primary-action text-primary-action-foreground",
+                  range_middle:
+                    "rounded-none bg-primary-alpha-10 text-primary-on-surface hover:bg-primary-alpha-16",
+                  today: "font-bold [&:not([data-selected])]:text-primary-on-surface",
                   outside: "text-text-disabled opacity-50",
                   disabled: "text-text-disabled opacity-30 cursor-not-allowed hover:bg-transparent",
                   hidden: "invisible",

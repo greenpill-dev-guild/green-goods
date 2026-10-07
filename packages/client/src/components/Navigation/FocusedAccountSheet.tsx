@@ -42,7 +42,7 @@ export function AccountRow({
     <Card>
       <div className="flex w-full items-center gap-3">
         <Avatar>
-          <div className="mx-auto flex items-center justify-center text-center text-primary [&>svg]:w-4">
+          <div className="mx-auto flex items-center justify-center text-center text-primary-on-surface [&>svg]:w-4">
             {icon}
           </div>
         </Avatar>

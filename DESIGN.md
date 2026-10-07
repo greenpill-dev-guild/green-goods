@@ -140,9 +140,9 @@ This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/
 
 Any green fill that carries text, a number, or a glyph uses the darker `tertiary-action` role with white `on-tertiary-action`: filled CTAs, count badges, step markers, selected chips, and pills. White on `tertiary-action` measures 5.72:1; white on bright `tertiary` is 2.36:1, and dark `on-tertiary` on it reads muddy at 4.64:1 (DL-017).
 
-The brighter `tertiary` garden green stays on text-free accents: icons, active nav marks, dots, progress lines, soft highlights, and low-volume brand accents.
+The brighter `tertiary` garden green remains on decorative text-free accents, soft highlights and low-volume brand illustrations. Interactive marks use the theme-aware foreground below.
 
-Green *text* on a surface (active tab and nav labels, links, selected titles) uses `--primary-on-surface`: `tertiary-action` in light (5.72:1 on white) and `tertiary` in dark, where the deep step reads 3.1:1. A red fill that carries white text uses `--error-action` (red-700, 5.26:1 in both themes) (DL-053).
+Green interactive foregrounds on a surface (active tab and nav labels, their icons and indicators, links, selected titles and focus marks) use `--primary-on-surface`: `tertiary-action` in light (5.72:1 on white) and `tertiary` in dark, where the deep step reads 3.1:1. Decorative bright marks and independent domain/status palettes keep their own roles (DL-086). A red fill that carries white text uses `--error-action` (red-700, 5.26:1 in both themes) (DL-053).
 
 ---
 

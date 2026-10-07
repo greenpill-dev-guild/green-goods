@@ -9,16 +9,15 @@ import {
   type InboxCommitment,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import type { CommitmentsDirectionFilter } from "@green-goods/shared/stores/useUIStore";
 import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
 import { PWA_SHEET_SCROLL_CLASSNAME } from "@/components/Pwa/sheetScrollStyles";
 import { gardenAddressFor, groupByGarden } from "./grouping";
 
-type DirectionFilter = "all" | "OFFER" | "REQUEST";
-
-const DIRECTION_FILTERS: { id: DirectionFilter; labelId: string }[] = [
+const DIRECTION_FILTERS: { id: CommitmentsDirectionFilter; labelId: string }[] = [
   { id: "all", labelId: "app.commitments.filter.all" },
   { id: "OFFER", labelId: "app.commitments.filter.offers" },
   { id: "REQUEST", labelId: "app.commitments.filter.requests" },
@@ -26,6 +25,8 @@ const DIRECTION_FILTERS: { id: DirectionFilter; labelId: string }[] = [
 
 export interface LiveTabProps {
   inbox: CommitmentsInbox;
+  direction: CommitmentsDirectionFilter;
+  onDirectionChange: (direction: CommitmentsDirectionFilter) => void;
   pools: CommitmentPoolRecord[];
   gardens: Garden[];
   /** A queued promise goes only when the reader sends it (a wallet sign-in). */
@@ -42,13 +43,20 @@ export interface LiveTabProps {
  * chip: it leads the sort and drives the badge, so it can never be filtered
  * out of sight.
  */
-export function LiveTab({ inbox, pools, gardens, sendsFromTap, onOpenCommitment }: LiveTabProps) {
+export function LiveTab({
+  inbox,
+  pools,
+  gardens,
+  sendsFromTap,
+  onOpenCommitment,
+  direction,
+  onDirectionChange,
+}: LiveTabProps) {
   const { formatMessage } = useIntl();
   const isOnline = useOnlineStatus();
   const { byCID } = useCommitmentMetadata(
     useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
   );
-  const [direction, setDirection] = useState<DirectionFilter>("all");
 
   const { visible, groups } = useMemo(() => {
     const filtered: InboxCommitment[] =
@@ -132,7 +140,7 @@ export function LiveTab({ inbox, pools, gardens, sendsFromTap, onOpenCommitment 
         {DIRECTION_FILTERS.map((filter) => {
           const selected = filter.id === direction;
           return (
-            <Chip key={filter.id} selected={selected} onClick={() => setDirection(filter.id)}>
+            <Chip key={filter.id} selected={selected} onClick={() => onDirectionChange(filter.id)}>
               {formatMessage({ id: filter.labelId })}
             </Chip>
           );

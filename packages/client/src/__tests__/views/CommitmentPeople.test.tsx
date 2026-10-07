@@ -44,6 +44,7 @@ describe("CommitmentPeople", () => {
         leadProvider: PROVIDER,
       }),
       seat: "confirmer",
+      viewer: ASKER,
     });
 
     // One "Confirms it" row names the asker; they need no second row saying they asked.
@@ -67,6 +68,30 @@ describe("CommitmentPeople", () => {
     expect(screen.getByText("Asked for this")).toBeInTheDocument();
     expect(screen.queryByText("Confirms it")).not.toBeInTheDocument();
     expect(screen.queryByText("You")).not.toBeInTheDocument();
+  });
+
+  it("recognizes the requester from their account when another person confirms", () => {
+    renderPeople({
+      commitment: commitmentFixture({
+        direction: "REQUEST",
+        creator: ASKER,
+        leadProvider: PROVIDER,
+        confirmers: [NAMED_CONFIRMER],
+      }),
+      viewer: ASKER,
+      seat: "bystander",
+    });
+    expect(within(row("Asked for this")).getByText("You")).toBeInTheDocument();
+    expect(within(row("Asked for this")).getByText(ASKER)).toBeInTheDocument();
+  });
+
+  it("does not label another account as You based only on a seat", () => {
+    renderPeople({
+      commitment: commitmentFixture({ leadProvider: PROVIDER }),
+      viewer: HELPER,
+      seat: "provider",
+    });
+    expect(within(row("Doing this")).queryByText("You")).not.toBeInTheDocument();
   });
 
   it("names the asker, never the garden that took the request up, as who confirms it", () => {
