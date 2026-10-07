@@ -58,11 +58,7 @@ describe("useToastAction", () => {
 
   it("announces an accepted pending submission without success or failure", async () => {
     const { result } = renderHook(() => useToastAction(), { wrapper });
-    const pending = new TransactionConfirmationPendingError({
-      hash: "0xProposal",
-      sponsored: false,
-      confirmation: "pending",
-    });
+    const pending = new TransactionConfirmationPendingError();
     await act(async () => {
       await expect(
         result.current.executeWithToast(async () => {
