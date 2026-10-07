@@ -49,7 +49,6 @@ export interface Config {
   joinRequestsProductionReady: boolean;
 
   // Passkey directory
-  passkeyDirectoryEnabled: boolean;
   /** The hosted passkey server that predates the directory; its names stay taken. */
   passkeyHostedDirectoryUrl?: string;
 
@@ -96,6 +95,8 @@ export function loadConfig(): Config {
   const nodeEnv = process.env.NODE_ENV || "development";
   const networkConfig = getDefaultChain();
   const chain = CHAIN_MAP[networkConfig.chainId] || sepolia;
+  const pimlicoApiKey =
+    process.env.PIMLICO_API_KEY?.trim() || process.env.VITE_PIMLICO_API_KEY?.trim();
 
   const telegramRuntimeDisabled = process.env.AGENT_DISABLE_TELEGRAM_RUNTIME === "true";
   const telegramToken =
@@ -180,8 +181,9 @@ export function loadConfig(): Config {
     joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
 
     // Passkey directory
-    passkeyDirectoryEnabled: process.env.PASSKEY_DIRECTORY_ENABLED === "true",
-    passkeyHostedDirectoryUrl: process.env.PASSKEY_HOSTED_DIRECTORY_URL,
+    passkeyHostedDirectoryUrl: pimlicoApiKey
+      ? `https://api.pimlico.io/v2/${networkConfig.chainId}/rpc?apikey=${encodeURIComponent(pimlicoApiKey)}`
+      : undefined,
 
     // Analytics
     posthogApiKey,
@@ -361,13 +363,9 @@ export function validateConfig(config: Config): void {
     );
   }
 
-  if (
-    config.isProduction &&
-    config.passkeyDirectoryEnabled &&
-    !config.passkeyHostedDirectoryUrl?.trim()
-  ) {
+  if (config.isProduction && !config.passkeyHostedDirectoryUrl) {
     errors.push(
-      "PASSKEY_HOSTED_DIRECTORY_URL is required when the passkey directory is enabled in production, " +
+      "PIMLICO_API_KEY or VITE_PIMLICO_API_KEY is required in production, " +
         "so names registered on the hosted passkey server stay taken."
     );
   }

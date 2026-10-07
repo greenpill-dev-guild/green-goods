@@ -11,7 +11,7 @@ import {
 } from "../../config/passkeyServer";
 
 const DIRECTORY_URL = "https://agent.greengoods.app/public/passkeys/rpc";
-const DIRECTORY_ENV = { VITE_PASSKEY_DIRECTORY_URL: DIRECTORY_URL };
+const DIRECTORY_ENV = { PROD: true };
 
 const locationFor = (origin: string): Pick<Location, "hostname" | "origin" | "protocol"> => {
   const url = new URL(origin);
@@ -32,30 +32,43 @@ describe("config/passkeyServer", () => {
       expect(isPasskeyServerEnabled({ DEV: true, PROD: false })).toBe(false);
     });
 
-    it("honors explicit env overrides", () => {
+    it("keeps production server-backed and honors local development overrides", () => {
       expect(isPasskeyServerEnabled({ PROD: true, VITE_PASSKEY_SERVER_ENABLED: "false" })).toBe(
-        false
+        true
       );
       expect(
         isPasskeyServerEnabled({ DEV: true, PROD: false, VITE_PASSKEY_SERVER_ENABLED: "true" })
       ).toBe(true);
     });
-
-    it("counts a build pointed at the passkey directory as server-backed, whatever the hosted flag says", () => {
-      const pointed = { VITE_PASSKEY_DIRECTORY_URL: DIRECTORY_URL };
-
-      expect(isPasskeyServerEnabled({ DEV: true, PROD: false, ...pointed })).toBe(true);
-      expect(isPasskeyServerEnabled({ ...pointed, VITE_PASSKEY_SERVER_ENABLED: "false" })).toBe(
-        true
-      );
-      expect(isPasskeyServerEnabled({ DEV: true, VITE_PASSKEY_DIRECTORY_URL: "  " })).toBe(false);
-    });
   });
 
   describe("passkey directory client", () => {
-    it("is absent until a build names the directory", () => {
+    it("keeps local-only development separate from the production directory", () => {
       expect(createPasskeyDirectoryClient({})).toBeNull();
       expect(createPasskeyDirectoryClient(DIRECTORY_ENV)).not.toBeNull();
+    });
+
+    it.each([
+      [DIRECTORY_ENV, DIRECTORY_URL],
+      [{ PROD: true, VITE_API_BASE_URL: "https://agent.greengoods.app/" }, DIRECTORY_URL],
+      [
+        {
+          DEV: true,
+          VITE_PASSKEY_SERVER_ENABLED: "true",
+          VITE_API_BASE_URL: "http://127.0.0.1:3005/",
+        },
+        "http://127.0.0.1:3005/public/passkeys/rpc",
+      ],
+    ])("uses the existing agent API address for lookup", async (env, expectedUrl) => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: [] }), {
+          headers: { "content-type": "application/json" },
+        })
+      );
+      await expect(
+        createPasskeyDirectoryClient(env)?.getCredentials({ context: { userName: "ana" } })
+      ).resolves.toEqual([]);
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(expectedUrl);
     });
 
     // A registration answers one challenge. If the client sent it twice, the directory would
@@ -190,7 +203,8 @@ describe("config/passkeyServer", () => {
       for (const origin of [
         "https://greengoods.app",
         "https://www.greengoods.app",
-        "https://staging.greengoods.app",
+        "https://beta.greengoods.app",
+        "https://beta.admin.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -211,7 +225,7 @@ describe("config/passkeyServer", () => {
     it("keeps the domain first filter separate from the directory's approved-origin list", () => {
       for (const origin of [
         "https://unapproved.greengoods.app",
-        "https://staging-admin.greengoods.app",
+        "https://beta.admin.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -239,8 +253,8 @@ describe("config/passkeyServer", () => {
       });
     });
 
-    it("enforces custom staging RP IDs", () => {
-      const env = { VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
+    it("enforces custom RP IDs only for development", () => {
+      const env = { DEV: true, VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
 
       expect(
         classifyPasskeyCeremonyContext({
@@ -265,9 +279,22 @@ describe("config/passkeyServer", () => {
     });
 
     it("returns custom RP ID from env overrides", () => {
-      expect(getPasskeyRpId({ VITE_PASSKEY_RP_ID: " Staging.GreenGoods.App " })).toBe(
+      expect(getPasskeyRpId({ DEV: true, VITE_PASSKEY_RP_ID: " Staging.GreenGoods.App " })).toBe(
         "staging.greengoods.app"
       );
+    });
+
+    it("allows beta admin despite a retired production RP override", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { PROD: true, VITE_PASSKEY_RP_ID: "staging-admin.greengoods.app" },
+          location: locationFor("https://beta.admin.greengoods.app"),
+        })
+      ).toEqual({
+        supported: true,
+        rpId: "greengoods.app",
+        origin: "https://beta.admin.greengoods.app",
+      });
     });
   });
 });

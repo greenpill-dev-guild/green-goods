@@ -28,15 +28,12 @@ const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 // Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
 // lives only in Fly secrets, so this live preflight is what guards the list.
-// The staging names are DNS aliases of the beta deployments.
 const PRODUCTION_AGENT_BROWSER_ORIGINS = [
   "https://greengoods.app",
   "https://www.greengoods.app",
   "https://admin.greengoods.app",
   "https://beta.greengoods.app",
   "https://beta.admin.greengoods.app",
-  "https://staging.greengoods.app",
-  "https://staging-admin.greengoods.app",
 ];
 // An origin the agent must refuse with HTTP 403, so an allowlist that admits anything fails too.
 const PRODUCTION_AGENT_REFUSED_ORIGIN = "https://not-allowed.example.com";

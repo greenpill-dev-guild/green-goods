@@ -88,7 +88,7 @@ describe("AdminSignIn", () => {
   });
 
   it("wires the real disconnected admin entry point to Shared passkey sign-in", async () => {
-    vi.stubEnv("VITE_PASSKEY_DIRECTORY_URL", "http://127.0.0.1:3005/public/passkeys/rpc");
+    vi.stubEnv("VITE_PASSKEY_SERVER_ENABLED", "true");
     render(
       <MemoryRouter>
         <AdminAccessStateRenderer state={{ status: "disconnected" }} ready={<div>Ready</div>} />

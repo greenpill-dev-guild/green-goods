@@ -76,18 +76,20 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           </AdminButton>
         </form>
       ) : null}
-      {controller.error ? (
-        <p id={errorId} role="alert" className="body-sm text-error-dark">
-          {controller.error}
-        </p>
-      ) : null}
-      {controller.isSigningIn ? (
-        <p role="status" className="body-sm text-text-sub">
-          {formatMessage({
-            id: "app.login.loading.authenticating",
-            defaultMessage: "Signing you in...",
-          })}
-        </p>
+      {hasPasskeyEntry ? (
+        <div className="h-16 overflow-y-auto" data-testid="admin-sign-in-feedback">
+          <p id={errorId} role="alert" className="body-sm text-error-dark">
+            {controller.error}
+          </p>
+          {controller.isSigningIn ? (
+            <p role="status" className="body-sm text-text-sub">
+              {formatMessage({
+                id: "app.login.loading.authenticating",
+                defaultMessage: "Signing you in...",
+              })}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       <ConnectButton
         size="lg"

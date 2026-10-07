@@ -1,6 +1,7 @@
 /** Real virtual-authenticator ceremony; a strict substitute rejects server verification. */
 // TEST-QUALITY: allow-small-test-file - one browser ceremony owns this integration boundary
 import { expect, test } from "@playwright/test";
+import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts/routes";
 import { TEST_URLS } from "../helpers/test-utils";
 
 test.use({ baseURL: TEST_URLS.client, serviceWorkers: "block" });
@@ -25,7 +26,10 @@ test("server rejection after credential creation stays signed out and permits re
   page.on("pageerror", (error) => {
     throw error;
   });
-  await page.route("https://api.pimlico.io/**", async (route) => {
+  await page.route(`**${PUBLIC_AGENT_ROUTES.passkeyDirectory}`, async (route) => {
+    expect(route.request().url()).toBe(
+      `http://localhost:3005${PUBLIC_AGENT_ROUTES.passkeyDirectory}`
+    );
     const { id, method, params } = route.request().postDataJSON();
     calls.push(method);
     let result: unknown;
