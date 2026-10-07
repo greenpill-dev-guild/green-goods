@@ -334,10 +334,15 @@ describe("useCreateAssessmentWorkflow", () => {
       assertOwnership: mocks.assertOwnership,
       sendContractCall: mocks.send,
     };
-    mocks.send.mockResolvedValueOnce({
-      hash: "0xSafeProposal",
-      sponsored: false,
-      confirmation: "pending",
+    const operation = `0x${"cd".repeat(32)}` as const;
+    mocks.send.mockImplementationOnce(async (_call, options) => {
+      await options.onBroadcastReference({
+        kind: "user-operation",
+        hash: operation,
+        chainId: 11155111,
+      });
+      expect(sessionStorage.getItem("green-goods:assessment-submissions")).toContain(operation);
+      throw new Error("Receipt RPC timeout");
     });
     const client = createTestQueryClient();
     const first = renderWorkflow(client);

@@ -167,7 +167,7 @@ export function useCreateAssessmentController() {
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
-  const isSubmitting = state.matches("submitting") || isPending;
+  const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSent = state.matches("success");
 
@@ -390,7 +390,7 @@ export function useCreateAssessmentController() {
     );
 
   const handleSubmit = async () => {
-    if (isSubmitting || isSent) return;
+    if (isSubmitting || isPending || isSent) return;
     // A restored draft may select a domain this garden no longer documents.
     // Return to the domain step so the steward can choose a valid one.
     const allowedDomains =
@@ -484,7 +484,7 @@ export function useCreateAssessmentController() {
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
-    isDirty,
+    isDirty: isDirty && !isPending,
     isSent,
     isSubmitting,
     isPending,

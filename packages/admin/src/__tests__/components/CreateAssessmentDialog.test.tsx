@@ -402,6 +402,19 @@ describe("CreateAssessment dialog", () => {
     });
   });
 
+  it("allows a persisted pending assessment to close while retaining confirmation controls", async () => {
+    const handleClose = vi.fn();
+    createAssessmentControllerOverride.current = () =>
+      controllerAt({ isPending: true, isSubmitting: false, isDirty: false, handleClose });
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("button", { name: "Check confirmation" })).toBeEnabled();
+    fireEvent.click(screen.getByLabelText(/close/i));
+    expect(handleClose).toHaveBeenCalledOnce();
+  });
+
   it("does not fire the close path while assessment submission is pending", async () => {
     const handleClose = vi.fn();
     createAssessmentControllerOverride.current = () =>

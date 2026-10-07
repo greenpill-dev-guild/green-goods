@@ -35,6 +35,7 @@ import {
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   TransactionReplacementError,
+  assertTypedDataChain,
   TransactionRevertedError,
   type AccountTypedDataRequest,
   type ContractCall,
@@ -138,8 +139,7 @@ export class EmbeddedSender implements TransactionSender {
     request: AccountTypedDataRequest,
     options: TransactionSendOptions = {}
   ): Promise<Hex> {
-    if (request.data.domain?.chainId !== request.chainId)
-      throw new Error("typed-data-chain-mismatch");
+    assertTypedDataChain(request);
     const assertSigner = async () => {
       await options.assertOwnership?.();
       assertWalletAccount(request.account, this.deps.getAccount?.().address);

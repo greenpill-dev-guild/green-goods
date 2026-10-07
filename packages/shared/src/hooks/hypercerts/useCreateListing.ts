@@ -24,6 +24,8 @@ import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
+import { sendCheckpointedCall } from "../../modules/transactions/confirmation";
+import type { TxResult } from "../../modules/transactions/types";
 import {
   listingSubmissionKey,
   useListingSubmissionStore,
@@ -68,6 +70,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   activeScope.current = scope;
   const pending = useListingSubmissionStore((state) => (scope ? state.pending[scope] : undefined));
   const [isChecking, setIsChecking] = useState(false);
+  const sending = useRef(false);
 
   const refreshListings = useCallback(
     (garden: Address, onChain: number) => {
@@ -79,14 +82,17 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   );
 
   const checkConfirmation = useCallback(async () => {
-    if (!scope || !pending || !sender || isChecking) return;
+    if (!scope || !pending || !sender || isChecking || sending.current) return;
     setIsChecking(true);
     refreshListings(pending.garden, pending.chainId);
     try {
-      const outcome = await sender.reconcileBroadcast?.({
-        kind: "transaction",
-        hash: pending.result.hash,
-      });
+      const outcome = await sender.reconcileBroadcast?.(
+        pending.result.broadcastReference ?? {
+          kind: "transaction",
+          hash: pending.result.hash,
+          chainId: pending.chainId,
+        }
+      );
       const isCurrent = () =>
         activeScope.current === scope &&
         useListingSubmissionStore.getState().pending[scope] === pending;
@@ -131,6 +137,12 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   }, [scope, pending, sender, isChecking, refreshListings, formatMessage]);
 
   const mutation = useMutation({
+    onMutate: () => {
+      sending.current = true;
+    },
+    onSettled: () => {
+      sending.current = false;
+    },
     mutationFn: async (params: CreateListingParams) => {
       if (scope && useListingSubmissionStore.getState().pending[scope]) return;
       setConfirmationError(null);
@@ -208,9 +220,31 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
 
       setStep("confirming");
 
-      const result = await sender.sendContractCall(call, {
-        assertOwnership: () => sender.assertOwnership?.(signer, chainId),
-      });
+      const clearCheckpoint = (result: TxResult) => {
+        if (
+          scope &&
+          useListingSubmissionStore.getState().pending[scope]?.result.hash ===
+            (result.broadcastReference?.hash ?? result.hash)
+        )
+          useListingSubmissionStore.getState().clear(scope);
+      };
+      const result = await sendCheckpointedCall(
+        sender,
+        call,
+        (result) => {
+          useListingSubmissionStore.getState().record({
+            account: signer,
+            result,
+            chainId,
+            garden: gardenAddress,
+            signature,
+            hypercertId: params.hypercertId.toString(),
+            currency: params.currency,
+          });
+        },
+        clearCheckpoint,
+        { assertOwnership: () => sender.assertOwnership?.(signer, chainId) }
+      );
       if (result.confirmation === "pending") {
         useListingSubmissionStore.getState().record({
           account: signer,
@@ -229,6 +263,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         return;
       }
 
+      clearCheckpoint(result);
       if (activeScope.current === scope) setStep("done");
       logger.info("[useCreateListing] Listing created successfully", {
         gardenAddress,

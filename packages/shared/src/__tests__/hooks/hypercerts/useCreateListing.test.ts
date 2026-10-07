@@ -264,10 +264,15 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
 
   describe("invalidation", () => {
     it("restores a pending listing after reload without another signature or broadcast", async () => {
-      mockSendTransaction.mockResolvedValueOnce({
-        hash: "0xProposal",
-        sponsored: false,
-        confirmation: "pending",
+      const operation = `0x${"cd".repeat(32)}` as const;
+      mockSendTransaction.mockImplementationOnce(async (_call, options) => {
+        await options.onBroadcastReference({
+          kind: "user-operation",
+          hash: operation,
+          chainId: TEST_CHAIN_ID,
+        });
+        expect(sessionStorage.getItem("green-goods:listing-submissions")).toContain(operation);
+        throw new Error("Receipt RPC timeout");
       });
       const params = {
         hypercertId: 1n,

@@ -28,7 +28,7 @@ export interface ContractCall {
 }
 
 export type BroadcastReference =
-  | { kind: "transaction"; hash: Hex }
+  | { kind: "transaction"; hash: Hex; chainId?: number; account?: Address }
   | { kind: "user-operation"; hash: Hex; chainId?: number };
 
 export type BroadcastConfirmation =
@@ -37,6 +37,8 @@ export type BroadcastConfirmation =
 
 /** Result of a transaction submission */
 export interface TxResult {
+  /** A UserOperation/proposal identity is not an execution transaction hash. */
+  broadcastReference?: BroadcastReference;
   /** Opaque wallet identifiers have no execution receipt yet. */
   confirmation?: "pending";
   hash: Hex;
@@ -71,6 +73,19 @@ export interface AccountTypedDataRequest {
   account: Address;
   chainId: number;
   data: TypedDataDefinition;
+}
+
+/** Viem permits bigint chain IDs; signing must still match the execution chain exactly. */
+export function assertTypedDataChain(request: AccountTypedDataRequest): void {
+  const domainChainId = request.data.domain?.chainId;
+  if (
+    !Number.isSafeInteger(request.chainId) ||
+    request.chainId <= 0 ||
+    (typeof domainChainId === "bigint"
+      ? domainChainId !== BigInt(request.chainId)
+      : domainChainId !== request.chainId)
+  )
+    throw new Error("typed-data-chain-mismatch");
 }
 
 export interface TransactionSender {

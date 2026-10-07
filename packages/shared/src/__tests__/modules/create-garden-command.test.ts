@@ -7,7 +7,7 @@ import {
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
 import { beforeEach } from "vitest";
-import type { TransactionSender } from "../../modules/transactions/types";
+import type { TransactionSender, TxResult } from "../../modules/transactions/types";
 import { WeightScheme } from "../../types/gardens-community";
 
 const mocks = vi.hoisted(() => ({
@@ -194,6 +194,44 @@ describe("garden writes through the shared account sender", () => {
     );
     expect(mocks.waitReceipt).not.toHaveBeenCalled(); // The shared sender has already confirmed it.
   });
+  it("checkpoints a garden UserOperation before receipt failure and recovers without minting twice", async () => {
+    const { sender } = adapter("passkey");
+    const operation = `0x${"cd".repeat(32)}` as const;
+    let saved: TxResult | undefined;
+    vi.mocked(sender.sendContractCall).mockImplementationOnce(async (_call, options) => {
+      await options?.onBroadcastReference?.({
+        kind: "user-operation",
+        hash: operation,
+        chainId: command.chainId,
+      });
+      expect(saved?.broadcastReference?.hash).toBe(operation);
+      throw new Error("Receipt RPC timeout");
+    });
+    const ports = createDefaultCreateGardenPorts({
+      transactionSender: sender,
+      addPending: vi.fn(),
+      checkpoint: (result) => {
+        saved = result;
+      },
+    });
+    expect(await createGarden(command, ports)).toMatchObject({
+      hash: operation,
+      confirmation: "pending",
+    });
+    const restored = JSON.parse(JSON.stringify(saved)) as TxResult;
+    sender.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValue({ status: "confirmed", transactionHash: txHash });
+    expect(
+      await ports.sender.reconcile(restored.hash, command.chainId, restored.broadcastReference)
+    ).toEqual({ status: "confirmed", transactionHash: txHash });
+    expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
+      kind: "user-operation",
+      hash: operation,
+      chainId: command.chainId,
+    });
+    expect(sender.sendContractCall).toHaveBeenCalledOnce();
+  });
   it("rejects an intervening account change before signing", async () => {
     const { sender, ports } = adapter("passkey");
     vi.mocked(sender.assertOwnership!).mockRejectedValueOnce(
@@ -264,6 +302,7 @@ it("uses wallet execution evidence to resolve an opaque proposal without sending
   expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
     kind: "transaction",
     hash: "0xSafeProposalIdentifier",
+    chainId: command.chainId,
   });
   expect(sender.sendContractCall).not.toHaveBeenCalled();
 });

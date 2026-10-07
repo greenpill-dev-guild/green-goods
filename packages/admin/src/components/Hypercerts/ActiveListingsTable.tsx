@@ -61,54 +61,79 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     error: cancellationError,
   } = useCancelListing(gardenAddress);
 
+  const confirmationControl = pendingCancellation ? (
+    <Alert variant="info">
+      <AdminButton
+        size="sm"
+        disabled={isCheckingConfirmation}
+        onClick={() => void checkConfirmation()}
+      >
+        {intl.formatMessage({
+          id: "app.account.checkConfirmation",
+          defaultMessage: "Check confirmation",
+        })}
+      </AdminButton>
+    </Alert>
+  ) : null;
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-8">
-        <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.loading",
-            defaultMessage: "Loading listings...",
-          })}
-        </span>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="flex items-center justify-center gap-2 py-8">
+          <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
+          <span className="body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.loading",
+              defaultMessage: "Loading listings...",
+            })}
+          </span>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="error">
-        {intl.formatMessage({
-          id: "app.admin.listings.loadError",
-          defaultMessage: "Failed to load listings",
-        })}
-      </Alert>
+      <>
+        {confirmationControl}
+        <Alert variant="error">
+          {intl.formatMessage({
+            id: "app.admin.listings.loadError",
+            defaultMessage: "Failed to load listings",
+          })}
+        </Alert>
+      </>
     );
   }
 
   if (listings.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
-        <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-        <p className="mt-2 body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.empty",
-            defaultMessage: "No active listings",
-          })}
-        </p>
-        <p className="mt-1 body-xs text-text-disabled">
-          {intl.formatMessage({
-            id: "app.admin.listings.emptyHint",
-            defaultMessage:
-              "List your hypercerts for yield to allow supporters to purchase fractions",
-          })}
-        </p>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
+          <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
+          <p className="mt-2 body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.empty",
+              defaultMessage: "No active listings",
+            })}
+          </p>
+          <p className="mt-1 body-xs text-text-disabled">
+            {intl.formatMessage({
+              id: "app.admin.listings.emptyHint",
+              defaultMessage:
+                "List your hypercerts for yield to allow supporters to purchase fractions",
+            })}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
+      {confirmationControl}
       {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
       <table className="w-full text-left body-sm">
         <thead>

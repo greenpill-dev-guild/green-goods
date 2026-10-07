@@ -88,7 +88,7 @@ export function useActionOperations(chainId: number, actionUID?: string) {
       else if (outcome.status === "reverted") store.clearEdit(key);
       if (outcome.status === "reverted")
         toastService.error({
-          title: "Transaction reverted",
+          title: formatMessage({ id: "app.account.transactionRevertedTitle" }),
           message: formatMessage({ id: "app.account.transactionReverted" }),
         });
       void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
@@ -197,7 +197,28 @@ export function useActionOperations(chainId: number, actionUID?: string) {
       }
       const result = await executeActionOperation(
         call,
-        createDefaultActionOperationPorts({ executeWithToast, transactionSender: sender })
+        createDefaultActionOperationPorts({
+          executeWithToast,
+          transactionSender: sender,
+          checkpoint: (_call, pending) => {
+            if (call.functionName === "registerAction")
+              useActionRegistrationStore.getState().record(address, chainId, pending);
+            else if (editKey)
+              useActionRegistrationStore.getState().recordEdit(editKey, fingerprint, pending);
+          },
+          clearCheckpoint: (_call, result) => {
+            const hash = result.broadcastReference?.hash ?? result.hash;
+            const store = useActionRegistrationStore.getState();
+            if (
+              call.functionName === "registerAction" &&
+              registrationScope &&
+              store.pending[registrationScope]?.hash === hash
+            )
+              store.clear(address, chainId);
+            else if (editKey && store.edits[editKey]?.result.hash === hash)
+              store.clearEdit(editKey);
+          },
+        })
       );
       if (!result.success) {
         toastService.error({

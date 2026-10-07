@@ -368,6 +368,8 @@ it("keeps an accepted registration pending without retry, failure telemetry or d
   const { result } = renderHook(() => useCreateActionController(), { wrapper });
   await act(() => result.current.onSubmit(createActionDefaultValues()));
   expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
   expect(result.current.hasError).toBe(false);
   expect(mockClearViewState).not.toHaveBeenCalled();
   expect(mockTrackFailed).not.toHaveBeenCalled();
@@ -392,6 +394,8 @@ it.each([
   );
   const { result } = renderHook(() => useCreateActionController(), { wrapper });
   expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
   expect(result.current.currentStep).toBe(3);
   await act(() => result.current.checkConfirmation());
   if (outcome === "confirmed") {

@@ -132,7 +132,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
           isPending: () => Boolean(getPending()),
         },
         actors: {
-          reconcileAssessment: fromPromise<string | null>(async () => {
+          reconcileAssessment: fromPromise<string | null>(async ({ signal }) => {
             const key = activeKeyRef.current;
             const pending = getPending();
             const { address: currentAddress, sender: currentSender } = identityRef.current;
@@ -146,6 +146,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               return null;
             const outcome = await reconcileAssessmentSubmission(pending, currentSender);
             if (
+              signal.aborted ||
               activeKeyRef.current !== key ||
               getPending() !== pending ||
               identityRef.current.address?.toLowerCase() !== pending.account.toLowerCase() ||
@@ -192,6 +193,20 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   createDefaultCreateAssessmentPorts({
                     account: currentAddress,
                     transactionSender: currentSender,
+                    checkpoint: (submission) =>
+                      useAssessmentSubmissionStore.getState().record(submission),
+                    clearCheckpoint: (submission) => {
+                      const key = assessmentSubmissionKey(
+                        submission.account,
+                        submission.chainId,
+                        submission.gardenId
+                      );
+                      if (
+                        useAssessmentSubmissionStore.getState().pending[key]?.result.hash ===
+                        (submission.result.broadcastReference?.hash ?? submission.result.hash)
+                      )
+                        useAssessmentSubmissionStore.getState().clear(key);
+                    },
                     reportEvidenceFailures: ({ failedCount, totalCount }) => {
                       logger.warn("Some evidence media uploads failed", {
                         source: "useCreateAssessmentWorkflow",

@@ -316,12 +316,28 @@ describe("useCreateAssessmentController submit", () => {
     const { result } = renderController();
     act(() => workflow.set("pending"));
     expect(result.current.isPending).toBe(true);
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.isDirty).toBe(false);
     expect(result.current.currentStep).toBe(REVIEW_STEP);
     expect(result.current.hasError).toBe(false);
     await act(() => result.current.handleSubmit());
     expect(mockResetWorkflow).not.toHaveBeenCalled();
     expect(mockStartCreation).not.toHaveBeenCalled();
     expect(mockSubmitCreation).not.toHaveBeenCalled();
+  });
+
+  it("allows pending assessments to leave without discarding or submitting again", async () => {
+    fillAssessment();
+    const { result, guard, router } = renderController();
+    act(() => workflow.set("pending"));
+    await act(async () => {
+      await result.current.handleSubmit();
+      await router.navigate("/hub/work");
+    });
+    expect(router.state.location.pathname).toBe("/hub/work");
+    expect(guard.current.confirmOpen).toBe(false);
+    expect(mockSubmitCreation).not.toHaveBeenCalled();
+    expect(mockResetWorkflow).not.toHaveBeenCalled();
   });
 
   it("keeps a successful send on the Review, with its answers, and never asks to discard", async () => {

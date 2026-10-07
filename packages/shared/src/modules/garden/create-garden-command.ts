@@ -12,8 +12,13 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import { reconcileTransaction } from "../transactions/confirmation";
-import type { BroadcastConfirmation, TransactionSender, TxResult } from "../transactions/types";
+import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import type {
+  BroadcastReference,
+  BroadcastConfirmation,
+  TransactionSender,
+  TxResult,
+} from "../transactions/types";
 
 export interface CreateGardenCommand {
   params: CreateGardenParams;
@@ -56,7 +61,11 @@ export interface CreateGardenPorts {
       chainId: number;
       ccipFee: bigint;
     }): Promise<TxResult>;
-    reconcile(hash: `0x${string}`, chainId: number): Promise<BroadcastConfirmation>;
+    reconcile(
+      hash: `0x${string}`,
+      chainId: number,
+      reference?: BroadcastReference
+    ): Promise<BroadcastConfirmation>;
   };
   documents: { addPending(hash: `0x${string}`, submittedAt: number): void };
   clock: { now(): number };
@@ -161,6 +170,8 @@ export async function estimateGardenCreation(
 export function createDefaultCreateGardenPorts(input: {
   transactionSender: TransactionSender;
   addPending(hash: `0x${string}`): void;
+  checkpoint?: (result: TxResult) => void;
+  clearCheckpoint?: (result: TxResult) => void;
 }): CreateGardenPorts {
   const confirmed = new Set<`0x${string}`>();
   return {
@@ -221,17 +232,23 @@ export function createDefaultCreateGardenPorts(input: {
       },
     },
     sender: {
-      reconcile: (hash, chainId) =>
+      reconcile: (hash, chainId, broadcastReference) =>
         reconcileTransaction(
           input.transactionSender,
-          { hash, sponsored: false, confirmation: "pending" },
+          {
+            hash,
+            sponsored: false,
+            confirmation: "pending",
+            broadcastReference: broadcastReference ?? { kind: "transaction", hash, chainId },
+          },
           (hash) => createClients(chainId).publicClient.getTransactionReceipt({ hash })
         ),
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const sender = input.transactionSender;
         const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
         await assertOwnership();
-        const result = await sender.sendContractCall(
+        const result = await sendCheckpointedCall(
+          sender,
           {
             address: gardenToken,
             abi: GardenTokenABI,
@@ -241,9 +258,14 @@ export function createDefaultCreateGardenPorts(input: {
             value: ccipFee,
             chainId,
           },
+          (result) => input.checkpoint?.(result),
+          (result) => input.clearCheckpoint?.(result),
           { assertOwnership }
         );
-        if (result.confirmation !== "pending") confirmed.add(result.hash);
+        if (result.confirmation !== "pending") {
+          confirmed.add(result.hash);
+          input.clearCheckpoint?.(result);
+        }
         return result;
       },
     },

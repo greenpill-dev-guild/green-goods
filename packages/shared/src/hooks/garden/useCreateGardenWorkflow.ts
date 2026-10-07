@@ -142,7 +142,7 @@ export function useCreateGardenWorkflow() {
     () =>
       createGardenMachine.provide({
         actors: {
-          reconcileGarden: fromPromise<TxResult, TxResult>(async ({ input }) => {
+          reconcileGarden: fromPromise<TxResult, TxResult>(async ({ input, signal }) => {
             const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
             const pending = activeAddress
               ? useCreateGardenStore.getState().getPendingSubmission(activeAddress, activeChainId)
@@ -159,8 +159,13 @@ export function useCreateGardenWorkflow() {
               transactionSender: currentSender,
               addPending: () => {},
             });
-            const outcome = await ports.sender.reconcile(pending.result.hash, pending.chainId);
+            const outcome = await ports.sender.reconcile(
+              pending.result.hash,
+              pending.chainId,
+              pending.result.broadcastReference
+            );
             if (
+              signal.aborted ||
               useCreateGardenStore
                 .getState()
                 .getPendingSubmission(pending.accountAddress, pending.chainId) !== pending ||
@@ -237,6 +242,21 @@ export function useCreateGardenWorkflow() {
               const ports = createDefaultCreateGardenPorts({
                 transactionSender: currentSender,
                 addPending: (hash) => addPendingTx(hash, "garden:create"),
+                checkpoint: (result) =>
+                  useCreateGardenStore.getState().recordPendingSubmission({
+                    accountAddress,
+                    chainId: currentChainId,
+                    result,
+                    gardenName: params.name,
+                  }),
+                clearCheckpoint: (result) => {
+                  const store = useCreateGardenStore.getState();
+                  if (
+                    store.getPendingSubmission(accountAddress, currentChainId)?.result.hash ===
+                    (result.broadcastReference?.hash ?? result.hash)
+                  )
+                    store.clearPendingSubmission(accountAddress, currentChainId);
+                },
               });
               const result = await createGarden(
                 { params, accountAddress, chainId: currentChainId },

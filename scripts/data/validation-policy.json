@@ -1600,6 +1600,7 @@
         "packages/shared/src/modules/marketplace/signing.ts",
         "packages/shared/src/modules/transactions/bundling-sender.ts",
         "packages/shared/src/modules/transactions/chain-guard.ts",
+        "packages/shared/src/modules/transactions/confirmation.ts",
         "packages/shared/src/modules/transactions/embedded-sender.ts",
         "packages/shared/src/modules/transactions/factory.ts",
         "packages/shared/src/modules/transactions/passkey-sender.ts",

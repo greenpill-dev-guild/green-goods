@@ -332,10 +332,15 @@ describe("useActionOperations", () => {
 
     it("preserves a pending registration across hook remount without another send", async () => {
       vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
-      send.mockResolvedValueOnce({
-        hash: "0xOpaqueProposal",
-        sponsored: false,
-        confirmation: "pending",
+      const operation = `0x${"cd".repeat(32)}` as const;
+      send.mockImplementationOnce(async (_call, options) => {
+        await options.onBroadcastReference({
+          kind: "user-operation",
+          hash: operation,
+          chainId: 11155111,
+        });
+        expect(sessionStorage.getItem("green-goods:action-registrations")).toContain(operation);
+        throw new Error("Receipt RPC timeout");
       });
       const params = {
         startTime: 1234567890,
@@ -350,7 +355,7 @@ describe("useActionOperations", () => {
       const first = renderHook(() => useActionOperations(11155111));
       const accepted = await runInAct(() => first.result.current.registerAction(params));
       expect(accepted.confirmation).toBe("pending");
-      expect(first.result.current.pendingRegistration?.hash).toBe("0xOpaqueProposal");
+      expect(first.result.current.pendingRegistration?.hash).toBe(operation);
       first.unmount();
       const restored = renderHook(() => useActionOperations(11155111));
       await runInAct(() => restored.result.current.registerAction(params));

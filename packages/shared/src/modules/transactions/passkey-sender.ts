@@ -19,6 +19,7 @@ import { getUserOperationHash } from "viem/account-abstraction";
 import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import {
+  assertTypedDataChain,
   TransactionRevertedError,
   type BroadcastConfirmation,
   type BroadcastReference,
@@ -55,8 +56,7 @@ export class PasskeySender implements TransactionSender {
     request: AccountTypedDataRequest,
     options: TransactionSendOptions = {}
   ): Promise<Hex> {
-    if (request.data.domain?.chainId !== request.chainId)
-      throw new Error("typed-data-chain-mismatch");
+    assertTypedDataChain(request);
     if (!this.deps.resolveSmartAccountClient)
       throw new SmartAccountClientError("resolver_unavailable");
     const client = await this.deps.resolveSmartAccountClient(request.chainId);

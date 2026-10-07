@@ -10,7 +10,7 @@ import {
   type TransactionSender,
   type TxResult,
 } from "../transactions/types";
-import { reconcileTransaction } from "../transactions/confirmation";
+import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
 
@@ -218,6 +218,8 @@ export function createDefaultCreateAssessmentPorts(input: {
   transactionSender: TransactionSender;
   reportEvidenceFailures(details: { failedCount: number; totalCount: number }): void;
   reportMetricsFailure(error: unknown): void;
+  checkpoint?: (submission: AssessmentSubmission) => void;
+  clearCheckpoint?: (submission: AssessmentSubmission) => void;
 }): CreateAssessmentPorts {
   let chain: number | null = null;
   let easAddress: string | null = null;
@@ -253,7 +255,16 @@ export function createDefaultCreateAssessmentPorts(input: {
         const sendTo = easAddress;
         const assertOwnership = () => sender.assertOwnership?.(input.account, sendOn);
         await assertOwnership();
-        const result = await sender.sendContractCall(
+        const toSubmission = (result: TxResult): AssessmentSubmission => ({
+          account: input.account,
+          chainId: sendOn,
+          gardenId,
+          easAddress: sendTo,
+          schemaUid,
+          result,
+        });
+        const result = await sendCheckpointedCall(
+          sender,
           {
             address: sendTo as Address,
             account: input.account,
@@ -274,6 +285,8 @@ export function createDefaultCreateAssessmentPorts(input: {
               },
             ],
           },
+          (result) => input.checkpoint?.(toSubmission(result)),
+          (result) => input.clearCheckpoint?.(toSubmission(result)),
           { assertOwnership }
         );
         const submission = {
@@ -304,6 +317,7 @@ export function createDefaultCreateAssessmentPorts(input: {
             submission,
             "Assessment receipt has no matching attestation"
           );
+        input.clearCheckpoint?.(submission);
         return uid;
       },
     },

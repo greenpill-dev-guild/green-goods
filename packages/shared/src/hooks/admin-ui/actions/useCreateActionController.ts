@@ -318,7 +318,7 @@ export function useCreateActionController() {
   };
 
   const checkConfirmation = async () => {
-    if (isCheckingConfirmation) return;
+    if (isCheckingConfirmation || isLoading || send === "sending") return;
     const scope = registrationScope;
     setIsCheckingConfirmation(true);
     try {
@@ -387,10 +387,10 @@ export function useCreateActionController() {
     handleNext: stepValidation.handleNext,
     hasError: send === "failed",
     // A registered action is not in progress, so closing its done state never asks.
-    isDirty: form.formState.isDirty && !isSent,
-    isSending: send === "sending" || isLoading || isPendingRegistration,
+    isDirty: form.formState.isDirty && !isSent && !isPendingRegistration,
+    isSending: send === "sending" || isLoading,
     isPendingRegistration,
-    isCheckingConfirmation,
+    isCheckingConfirmation: isCheckingConfirmation || isLoading,
     checkConfirmation,
     isSent,
     onSubmit,

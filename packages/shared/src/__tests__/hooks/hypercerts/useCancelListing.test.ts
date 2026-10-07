@@ -127,10 +127,15 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
     "confirmed",
     "reverted",
   ] as const)("preserves an accepted cancellation across reload and reconciles %s", async (status) => {
-    mockSendTransaction.mockResolvedValueOnce({
-      hash: "0xCancelProposal",
-      sponsored: false,
-      confirmation: "pending",
+    const operation = `0x${"cd".repeat(32)}` as const;
+    mockSendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBroadcastReference({
+        kind: "user-operation",
+        hash: operation,
+        chainId: TEST_CHAIN_ID,
+      });
+      expect(sessionStorage.getItem("green-goods:listing-submissions")).toContain(operation);
+      throw new Error("Receipt RPC timeout");
     });
     const first = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), { queryClient });
     await act(() => first.result.current.cancelListing(42));

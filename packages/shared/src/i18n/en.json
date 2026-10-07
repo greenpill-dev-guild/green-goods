@@ -6793,5 +6793,6 @@
   "admin.garden.deploy.pendingTitle": "Awaiting wallet execution",
   "admin.garden.deploy.pendingMessage": "Your wallet accepted this submission, but execution is not confirmed. Check your wallet for approval or execution. Do not submit another deployment while this one is pending.",
   "app.account.checkConfirmation": "Check confirmation",
+  "app.account.transactionRevertedTitle": "Transaction reverted",
   "app.account.transactionReverted": "Transaction reverted. Your change was not recorded."
 }

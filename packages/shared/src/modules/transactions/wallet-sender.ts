@@ -29,6 +29,7 @@ import {
 import type { Abi, Hex } from "viem";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
+import { reconcileWalletBroadcast } from "./wallet-reconciliation";
 import { logger } from "../app/logger";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { WalletNetworkSwitchReason } from "../app/walletNetworkSwitchAnalytics";
@@ -41,6 +42,7 @@ import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import {
   type AtomicBatchOptions,
   TransactionReplacementError,
+  assertTypedDataChain,
   TransactionRevertedError,
   type AccountTypedDataRequest,
   type ContractCall,
@@ -70,6 +72,7 @@ async function withinMs<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
+  reconcileBroadcast?: TransactionSender["reconcileBroadcast"];
   signTypedData?: (config: Config, request: AccountTypedDataRequest) => Promise<Hex>;
   waitForTransactionReceipt: (
     config: Config,
@@ -176,7 +179,12 @@ export class WalletSender implements TransactionSender {
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
     this.deps.ensureWalletChain ??= (chainId, reason, beforeSwitch) =>
       ensureWagmiWalletChain(this.config, chainId, reason, beforeSwitch);
+    this.deps.reconcileBroadcast ??= (reference) =>
+      reconcileWalletBroadcast(this.config, reference, this.deps.getAccount?.().address);
   }
+
+  reconcileBroadcast: NonNullable<TransactionSender["reconcileBroadcast"]> = (reference) =>
+    this.deps.reconcileBroadcast!(reference);
 
   /**
    * The call with the address it is for: the one it names, or else the one
@@ -224,8 +232,7 @@ export class WalletSender implements TransactionSender {
     request: AccountTypedDataRequest,
     options: TransactionSendOptions = {}
   ): Promise<Hex> {
-    if (request.data.domain?.chainId !== request.chainId)
-      throw new Error("typed-data-chain-mismatch");
+    assertTypedDataChain(request);
     const assertSigner = async () => {
       await options.assertOwnership?.();
       assertWalletAccount(request.account, this.deps.getAccount?.().address);
