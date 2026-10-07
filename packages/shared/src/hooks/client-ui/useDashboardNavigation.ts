@@ -41,15 +41,20 @@ export function useDashboardNavigation() {
       });
     return {
       leave: (snapshot: DashboardSnapshot, to: To, rowState?: Record<string, unknown>) => {
-        if (scope)
-          navigate(path, {
-            replace: true,
-            state: { ...state, dashboardEntry: { scope, path, snapshot } },
+        const openRecord = () =>
+          navigate(to, {
+            viewTransition: true,
+            state: { ...rowState, ...(scope ? { dashboardBack: { scope, path } } : {}) },
           });
-        navigate(to, {
-          viewTransition: true,
-          state: { ...rowState, ...(scope ? { dashboardBack: { scope, path } } : {}) },
+        if (!scope) return openRecord();
+        const saved = navigate(path, {
+          replace: true,
+          state: { ...state, dashboardEntry: { scope, path, snapshot } },
         });
+        // Data routers commit asynchronously. Save the source before pushing the record,
+        // otherwise the push cancels the replacement and Back has no dashboard to restore.
+        if (saved) return saved.then(openRecord);
+        return openRecord();
       },
       forward,
       /** True only when this session recorded the immediately preceding page. */
