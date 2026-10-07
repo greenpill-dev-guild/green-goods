@@ -7,7 +7,7 @@
  * @module modules/transactions/types
  */
 
-import type { Abi, Hex } from "viem";
+import type { Abi, Hex, TypedDataDefinition } from "viem";
 import type { Address } from "../../types/domain";
 
 /** A single contract call to execute */
@@ -67,7 +67,15 @@ export interface AtomicBatchOptions {
  * Each auth mode implements this interface with different underlying
  * mechanisms (UserOps, EIP-5792, direct wallet tx).
  */
+export interface AccountTypedDataRequest {
+  account: Address;
+  chainId: number;
+  data: TypedDataDefinition;
+}
+
 export interface TransactionSender {
+  /** Sign an order with the same account and chain as its subsequent transaction. */
+  signTypedData?(request: AccountTypedDataRequest, options?: TransactionSendOptions): Promise<Hex>;
   assertOwnership?: (address: Address, chainId: number) => void | Promise<void>;
   reconcileBroadcast?: (reference: BroadcastReference) => Promise<BroadcastConfirmation>;
   /** Send a single contract call */
@@ -120,5 +128,13 @@ export class TransactionRevertedError extends Error {
   ) {
     super(message);
     this.name = "TransactionRevertedError";
+  }
+}
+
+/** Submitted without a canonical execution receipt; never announce success or resend automatically. */
+export class TransactionConfirmationPendingError extends Error {
+  constructor() {
+    super("transaction-confirmation-pending");
+    this.name = "TransactionConfirmationPendingError";
   }
 }

@@ -9,20 +9,28 @@ import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
-import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { renderHookWithProviders as renderHookWithQueryClient } from "../../test-utils/render-helpers";
 
 const CHAIN = 11155111;
 const STEWARD = "0x2222222222222222222222222222222222222222";
 const SMART_ACCOUNT = "0x5555555555555555555555555555555555555555";
-const GRANT_EXCHANGE = { to: "0x3333333333333333333333333333333333333333", data: "0xgrant" };
-const APPROVE_MINTER = { to: "0x4444444444444444444444444444444444444444", data: "0xapprove" };
+const GRANT_EXCHANGE = {
+  abi: [],
+  functionName: "grantApprovals",
+  args: [],
+  address: "0x3333333333333333333333333333333333333333",
+};
+const APPROVE_MINTER = {
+  abi: [],
+  functionName: "setApprovalForAll",
+  args: [],
+  address: "0x4444444444444444444444444444444444444444",
+};
 
 const mocks = vi.hoisted(() => ({
-  auth: {} as {
-    smartAccountClient: unknown;
-    smartAccountAddress: string | null;
-    eoaAddress: string | null;
-  },
+  authMode: "wallet" as "wallet" | "passkey",
+  address: "0x2222222222222222222222222222222222222222",
+  assertOwnership: vi.fn(),
   buildApprovalTransactions: vi.fn(),
   readyWalletClient: vi.fn(),
   sendTransaction: vi.fn(),
@@ -30,7 +38,16 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
 }));
 
-vi.mock("../../../hooks/auth/useAuth", () => ({ useAuth: () => mocks.auth }));
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mocks.address,
+}));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => ({
+    authMode: mocks.authMode,
+    assertOwnership: mocks.assertOwnership,
+    sendContractCall: mocks.sendTransaction,
+  }),
+}));
 
 vi.mock("../../../stores/useAdminStore", () => ({
   useAdminStore: (selector: (state: { selectedChainId: number }) => unknown) =>
@@ -72,13 +89,15 @@ describe("useMarketplaceApprovals grant", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = createTestQueryClient();
-    mocks.auth = { smartAccountClient: null, smartAccountAddress: null, eoaAddress: STEWARD };
+    mocks.authMode = "wallet";
+    mocks.address = STEWARD;
+    mocks.assertOwnership.mockReset();
     mocks.buildApprovalTransactions.mockResolvedValue({
       grantExchange: GRANT_EXCHANGE,
       approveMinter: APPROVE_MINTER,
     });
     mocks.readyWalletClient.mockResolvedValue({ sendTransaction: mocks.sendTransaction });
-    mocks.sendTransaction.mockResolvedValue("0xtxhash");
+    mocks.sendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
     mocks.waitForTransactionReceipt.mockResolvedValue({});
   });
 
@@ -86,24 +105,17 @@ describe("useMarketplaceApprovals grant", () => {
     grant();
 
     await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledTimes(2));
-    expect(mocks.readyWalletClient.mock.calls).toEqual([
-      [CHAIN, STEWARD],
-      [CHAIN, STEWARD],
-    ]);
+    expect(mocks.assertOwnership).toHaveBeenCalledWith(STEWARD, CHAIN);
     expect(mocks.sendTransaction.mock.calls.map(([sent]) => sent)).toEqual([
-      expect.objectContaining({ ...GRANT_EXCHANGE, account: STEWARD }),
-      expect.objectContaining({ ...APPROVE_MINTER, account: STEWARD }),
+      expect.objectContaining({ ...GRANT_EXCHANGE, account: STEWARD, chainId: CHAIN }),
+      expect.objectContaining({ ...APPROVE_MINTER, account: STEWARD, chainId: CHAIN }),
     ]);
-    // The second approval is asked for only once the first has landed.
-    expect(mocks.waitForTransactionReceipt.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.readyWalletClient.mock.invocationCallOrder[1]
-    );
   });
 
   // Regression: with no wallet client at render the grant resolved without
   // sending anything, and the caller saw a success.
   it("fails, and sends nothing, when the wallet cannot be readied", async () => {
-    mocks.readyWalletClient.mockRejectedValue(new Error("Connector not connected."));
+    mocks.assertOwnership.mockRejectedValueOnce(new Error("Connector not connected."));
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
     grant();
@@ -124,25 +136,33 @@ describe("useMarketplaceApprovals grant", () => {
     grant();
 
     await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledOnce());
-    expect(mocks.sendTransaction).toHaveBeenCalledWith(expect.objectContaining(APPROVE_MINTER));
+    expect(mocks.sendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining(APPROVE_MINTER),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
   });
 
   it("sends through the smart account without asking the wallet", async () => {
-    const sendUserOperation = vi.fn().mockResolvedValue("0xop");
-    mocks.auth = {
-      smartAccountClient: {
-        account: { address: SMART_ACCOUNT },
-        sendUserOperation,
-        getUserOperationReceipt: vi.fn().mockResolvedValue({}),
-      },
-      smartAccountAddress: SMART_ACCOUNT,
-      eoaAddress: null,
-    };
-
+    mocks.authMode = "passkey";
+    mocks.address = SMART_ACCOUNT;
     grant();
-
-    await waitFor(() => expect(sendUserOperation).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledTimes(2));
+    expect(mocks.sendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ account: SMART_ACCOUNT, chainId: CHAIN }),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
     expect(mocks.readyWalletClient).not.toHaveBeenCalled();
-    expect(mocks.sendTransaction).not.toHaveBeenCalled();
+  });
+  it("stops before the second approval when the first has not confirmed", async () => {
+    mocks.sendTransaction.mockResolvedValueOnce({
+      hash: "0xopaque",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    grant();
+    await waitFor(() => expect(mocks.loggerError).toHaveBeenCalled());
+    expect(mocks.sendTransaction).toHaveBeenCalledOnce();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

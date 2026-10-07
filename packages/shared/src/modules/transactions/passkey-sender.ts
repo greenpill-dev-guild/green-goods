@@ -8,7 +8,7 @@
  */
 
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, type Hex } from "viem";
 import type { SmartAccountClientResolver } from "../../types/auth";
 import {
   assertSmartAccountClient,
@@ -22,6 +22,7 @@ import {
   TransactionRevertedError,
   type BroadcastConfirmation,
   type BroadcastReference,
+  type AccountTypedDataRequest,
   type ContractCall,
   type TransactionSender,
   type TransactionSendOptions,
@@ -48,6 +49,28 @@ export class PasskeySender implements TransactionSender {
       assertWriteSafety: async () => assertLocalArbitrumForkSmartAccountsDisabled(),
     };
     this.deps.assertWriteSafety ??= async () => assertLocalArbitrumForkSmartAccountsDisabled();
+  }
+
+  async signTypedData(
+    request: AccountTypedDataRequest,
+    options: TransactionSendOptions = {}
+  ): Promise<Hex> {
+    if (request.data.domain?.chainId !== request.chainId)
+      throw new Error("typed-data-chain-mismatch");
+    if (!this.deps.resolveSmartAccountClient)
+      throw new SmartAccountClientError("resolver_unavailable");
+    const client = await this.deps.resolveSmartAccountClient(request.chainId);
+    assertSmartAccountClient(client, request.chainId, this.client.account!.address);
+    assertSmartAccountClient(client, request.chainId, request.account);
+    const assertSigner = async () => {
+      assertSmartAccountClientResolverActive(this.deps.resolveSmartAccountClient);
+      await options.assertOwnership?.();
+    };
+    await assertSigner();
+    // The account owns Kernel's ERC-1271 signature wrapping; an EOA cannot sign for it.
+    const signature = await client.account!.signTypedData(request.data);
+    await assertSigner();
+    return signature;
   }
 
   async sendContractCall(

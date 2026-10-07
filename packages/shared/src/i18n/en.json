@@ -821,6 +821,9 @@
   "app.assessment.table.tags": "Tags",
   "app.assessment.table.title": "Title",
   "app.assessment.table.type": "Type",
+  "app.assessment.accountRequired": "Sign in required",
+  "app.assessment.accountRequiredMessage": "Sign in to your account before submitting an assessment.",
+  "app.assessment.confirmationUnavailable": "Your assessment transaction was confirmed, but its record is temporarily unavailable. Check your assessments before submitting again.",
   "app.assessment.walletRequired": "Wallet required",
   "app.assessment.walletRequiredMessage": "Please connect your wallet before submitting an assessment.",
   "app.balance.empty": "No tokens yet",
@@ -6775,5 +6778,9 @@
   "public.reporting.browser.open": "Open in Browser",
   "public.reporting.browser.warning": "Open this in Safari or Chrome. Passkeys and wallets may fail here.",
   "public.reporting.browser.copied": "Link copied. If nothing opened, paste it in Safari or Chrome.",
-  "public.reporting.browser.noPasskey": "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet."
+  "public.reporting.browser.noPasskey": "Passkeys aren't available here. Open in Safari or Chrome, or use a wallet.",
+  "app.account.signInRequired": "Sign in to your account before continuing.",
+  "app.account.signerNotReady": "Your account is still connecting. Please try again in a moment.",
+  "app.account.transactionSubmitted": "Transaction submitted",
+  "app.account.transactionPending": "Transaction submitted. Check its confirmation before trying again."
 }

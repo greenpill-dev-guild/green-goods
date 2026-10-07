@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { useAccount } from "wagmi";
 import { fromPromise } from "xstate";
 import { toastService } from "../../components/toast";
 import {
@@ -14,6 +13,7 @@ import { logger } from "../../modules/app/logger";
 import {
   createAssessment,
   createDefaultCreateAssessmentPorts,
+  AssessmentConfirmationUnavailableError,
 } from "../../modules/assessment/create-assessment-command";
 import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
@@ -26,6 +26,10 @@ import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { withoutQuotedRequest } from "../../utils/errors/extract-message";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
 export type { AssessmentDraftRecord } from "./useAssessmentDraft";
@@ -38,7 +42,8 @@ export interface UseCreateAssessmentWorkflowOptions {
 export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflowOptions = {}) {
   const { gardenId: draftGardenId } = options;
   const { formatMessage } = useIntl();
-  const { address } = useAccount();
+  const address = usePrimaryAddress() ?? undefined;
+  const sender = useTransactionSender();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
 
   // Draft persistence
@@ -84,13 +89,14 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
-  const addressRef = useRef(address);
+  const identityRef = useRef({ address, sender });
+  const confirmationPendingRef = useRef(false);
   const chainIdRef = useRef(selectedChainId);
   const formatMessageRef = useRef(formatMessage);
 
   useEffect(() => {
-    addressRef.current = address;
-  }, [address]);
+    identityRef.current = { address, sender };
+  }, [address, sender]);
   useEffect(() => {
     chainIdRef.current = selectedChainId;
   }, [selectedChainId]);
@@ -101,14 +107,25 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const machine = useMemo(
     () =>
       createAssessmentMachine.provide({
+        guards: {
+          canRetry: ({ context }) => !confirmationPendingRef.current && context.retryCount < 3,
+        },
         actors: {
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
             async ({ input: params }) => {
-              const currentAddress = addressRef.current;
+              const { address: currentAddress, sender: currentSender } = identityRef.current;
               const currentChainId = chainIdRef.current;
 
               if (!currentAddress) {
-                throw new Error("Wallet not connected");
+                throw new Error(
+                  formatMessageRef.current({
+                    id: "app.assessment.accountRequiredMessage",
+                    defaultMessage: "Sign in to your account before submitting an assessment.",
+                  })
+                );
+              }
+              if (!currentSender) {
+                throw new Error(formatMessageRef.current({ id: "app.account.signerNotReady" }));
               }
 
               try {
@@ -126,6 +143,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   },
                   createDefaultCreateAssessmentPorts({
                     account: currentAddress,
+                    transactionSender: currentSender,
                     reportEvidenceFailures: ({ failedCount, totalCount }) => {
                       logger.warn("Some evidence media uploads failed", {
                         source: "useCreateAssessmentWorkflow",
@@ -169,13 +187,28 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 });
                 return newAttestationUID;
               } catch (error) {
+                confirmationPendingRef.current =
+                  error instanceof AssessmentConfirmationUnavailableError ||
+                  error instanceof TransactionConfirmationPendingError;
+                const message =
+                  error instanceof AssessmentConfirmationUnavailableError
+                    ? formatMessageRef.current({
+                        id: "app.assessment.confirmationUnavailable",
+                        defaultMessage:
+                          "Your assessment transaction was confirmed, but its record is temporarily unavailable. Check your assessments before submitting again.",
+                      })
+                    : error instanceof TransactionConfirmationPendingError
+                      ? formatMessageRef.current({ id: "app.account.transactionPending" })
+                      : withoutQuotedRequest(
+                          error instanceof Error ? error.message : String(error)
+                        );
                 trackAdminAssessmentCreateFailed({
                   gardenId: params.gardenId,
                   assessmentType: params.assessmentType,
                   chainId: currentChainId,
-                  error: error instanceof Error ? error.message : String(error),
+                  error: message,
                 });
-                throw error;
+                throw new Error(message);
               }
             }
           ),
@@ -243,6 +276,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   }, [send]);
 
   const reset = useCallback(() => {
+    confirmationPendingRef.current = false;
     send({ type: "RESET" });
   }, [send]);
 
@@ -311,7 +345,8 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     submitCreation,
     retry,
     reset,
-    canRetry: state.matches("error") && state.context.retryCount < 3,
+    canRetry:
+      state.matches("error") && !confirmationPendingRef.current && state.context.retryCount < 3,
     draft,
   };
 }

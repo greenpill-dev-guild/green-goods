@@ -35,7 +35,7 @@ const TX = `0x${"12".repeat(32)}` as const;
 const harness = vi.hoisted(() => ({
   queue: null as unknown as JobQueueHandle,
   sender: {
-    authMode: "wallet" as const,
+    authMode: "wallet" as "wallet" | "passkey",
     sendContractCall: () => Promise.reject(new Error("unused")),
   },
 }));
@@ -62,16 +62,22 @@ const confirm = { act: "confirm", commitmentId: 9n, gardenAddress: GARDEN } as c
 // The failure toast, as the person reads it (the test wrapper's catalog is English).
 const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
 
-function setUp(execute: (...args: unknown[]) => Promise<JobExecution>) {
+function setUp(
+  execute: (...args: unknown[]) => Promise<JobExecution>,
+  options: Parameters<typeof useCommitmentJobs>[0] = {}
+) {
   const store = createInMemoryJobQueueStore();
   const executors = { execute: vi.fn(execute) };
   harness.queue = createJobQueue(createJobQueueDependencies({ store, executors }));
-  const jobs = renderHookWithProviders(() => useCommitmentJobs()).result;
+  const jobs = renderHookWithProviders(() => useCommitmentJobs(options)).result;
   return { store, executors, jobs };
 }
 
 describe("useCommitmentJobs over the real queue, signed in with a wallet", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    harness.sender.authMode = "wallet";
+  });
 
   it("sends the act from the tap and leaves nothing behind", async () => {
     const { store, executors, jobs } = setUp(async () => ({ status: "complete", txHash: TX }));
@@ -299,5 +305,43 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
 
     await retryQueuedCommitmentJob(jobId, harness.sender as never);
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+  });
+  it("settles an Admin passkey creation from its tap, without a background flush", async () => {
+    harness.sender.authMode = "passkey";
+    let pass = 0;
+    const { store, executors, jobs } = setUp(
+      async () => (++pass === 1 ? { status: "submitted", txHash: TX } : { status: "complete" }),
+      { execution: "foreground" }
+    );
+    await jobs.current.enqueue({
+      act: "create",
+      payload: { clientCommitmentId: "passkey-draft", gardenAddress: GARDEN } as never,
+    });
+    expect(executors.execute).toHaveBeenCalledTimes(2);
+    expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+  });
+  it("preserves a declined Admin passkey proof for explicit retry", async () => {
+    harness.sender.authMode = "passkey";
+    const { store, jobs } = setUp(
+      async () => {
+        throw new Error("User rejected the request");
+      },
+      { execution: "foreground" }
+    );
+    await jobs.current.enqueue({
+      act: "evidence",
+      payload: {
+        clientEvidenceId: "passkey-proof",
+        commitmentId: 9n,
+        creditedContributors: [VIEWER],
+        gardenAddress: GARDEN,
+        note: "Proof retained",
+      },
+    });
+    const [kept] = await store.getJobs({ userAddress: VIEWER });
+    expect(kept?.payload).toMatchObject({
+      clientEvidenceId: "passkey-proof",
+      note: "Proof retained",
+    });
   });
 });

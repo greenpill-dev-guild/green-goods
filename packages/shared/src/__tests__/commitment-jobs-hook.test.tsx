@@ -47,8 +47,8 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({
 }));
 vi.mock("../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 42161 }));
 
-function jobs() {
-  return renderHookWithProviders(() => useCommitmentJobs()).result;
+function jobs(options: Parameters<typeof useCommitmentJobs>[0] = {}) {
+  return renderHookWithProviders(() => useCommitmentJobs(options)).result;
 }
 
 describe("useCommitmentJobs", () => {
@@ -160,6 +160,30 @@ describe("useCommitmentJobs", () => {
         transactionSender: mocks.sender,
         explicit: true,
       });
+    });
+
+    it.each([
+      "passkey",
+      "wallet",
+      "embedded",
+    ] as const)("sends Admin %s acts from the tap without a background provider", async (authMode) => {
+      mocks.sender = { authMode };
+      const result = jobs({ execution: "foreground" });
+      await result.current.enqueue(confirm);
+      expect(result.current.sendsFromTap).toBe(true);
+      expect(mocks.processJob).toHaveBeenCalledWith("job-1", {
+        transactionSender: mocks.sender,
+        explicit: true,
+      });
+      expect(await result.current.sendQueued({ jobId: "job-1", commitmentId: 9n })).toBe("landed");
+      expect(mocks.processJob).toHaveBeenCalledTimes(2);
+    });
+    it("keeps a durable Admin job while its signer reconnects", async () => {
+      const result = jobs({ execution: "foreground" });
+      await expect(result.current.enqueue(confirm)).rejects.toThrow(/sign in/i);
+      expect(mocks.addJob).toHaveBeenCalledOnce();
+      expect(mocks.processJob).not.toHaveBeenCalled();
+      expect(mocks.discardJob).not.toHaveBeenCalled();
     });
 
     it.each([

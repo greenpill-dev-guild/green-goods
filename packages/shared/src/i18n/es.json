@@ -821,6 +821,9 @@
   "app.assessment.table.tags": "Etiquetas",
   "app.assessment.table.title": "Título",
   "app.assessment.table.type": "Tipo",
+  "app.assessment.accountRequired": "Debes iniciar sesión",
+  "app.assessment.accountRequiredMessage": "Inicia sesión en tu cuenta antes de enviar una evaluación.",
+  "app.assessment.confirmationUnavailable": "La transacción de tu evaluación se confirmó, pero su registro no está disponible temporalmente. Revisa tus evaluaciones antes de volver a enviarla.",
   "app.assessment.walletRequired": "Se requiere billetera",
   "app.assessment.walletRequiredMessage": "Conecta tu billetera antes de enviar una evaluación.",
   "app.balance.empty": "Aún no hay tokens",
@@ -6775,5 +6778,9 @@
   "public.reporting.browser.open": "Abrir en navegador",
   "public.reporting.browser.warning": "Ábrelo en Safari o Chrome. Las llaves de acceso y carteras pueden fallar aquí.",
   "public.reporting.browser.copied": "Enlace copiado. Si no se abrió nada, pégalo en Safari o Chrome.",
-  "public.reporting.browser.noPasskey": "Aquí no hay llaves de acceso. Abre Safari o Chrome, o usa una cartera."
+  "public.reporting.browser.noPasskey": "Aquí no hay llaves de acceso. Abre Safari o Chrome, o usa una cartera.",
+  "app.account.signInRequired": "Inicia sesión en tu cuenta antes de continuar.",
+  "app.account.signerNotReady": "Tu cuenta todavía se está conectando. Vuelve a intentarlo en un momento.",
+  "app.account.transactionSubmitted": "Transacción enviada",
+  "app.account.transactionPending": "Transacción enviada. Comprueba su confirmación antes de volver a intentarlo."
 }

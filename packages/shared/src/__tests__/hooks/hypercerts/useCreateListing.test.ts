@@ -14,7 +14,7 @@ import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
-import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { renderHookWithProviders as renderHookWithQueryClient } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -52,8 +52,17 @@ const mockValidateOrder = vi.fn();
 const mockAssertMarketplaceReady = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
-const mockReadyWalletClient = vi.fn(async (..._args: unknown[]) => ({
-  sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
+let authMode: "wallet" | "passkey" = "wallet";
+const mockOwnership = vi.fn();
+const mockSender = () => ({
+  authMode,
+  sendContractCall: mockSendTransaction,
+  signTypedData: vi.fn(),
+  assertOwnership: mockOwnership,
+});
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mockSender(),
 }));
 
 vi.mock("../../../modules/marketplace/signing", () => ({
@@ -77,11 +86,6 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   }),
 }));
 
-// The hook takes its wallet client from the guard when the act runs.
-vi.mock("../../../modules/transactions/chain-guard", () => ({
-  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
-}));
-
 vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
@@ -89,14 +93,6 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
-  }),
-}));
-
-vi.mock("../../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({
-    smartAccountClient: null,
-    smartAccountAddress: null,
-    eoaAddress: "0x2222222222222222222222222222222222222222",
   }),
 }));
 
@@ -130,16 +126,18 @@ vi.mock("viem", () => ({
 }));
 
 import { type ListingStep, useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
+import { toastService } from "../../../components/Toast/toast.service";
 
 // ============================================
 // Test Suite
 // ============================================
 
-describe("useCreateListing", () => {
+describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode) => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    authMode = mode;
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
@@ -169,7 +167,7 @@ describe("useCreateListing", () => {
     });
     mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
     mockSignMakerAsk.mockResolvedValue("0xsignature");
-    mockSendTransaction.mockResolvedValue("0xtxhash");
+    mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
   });
 
   describe("initial state", () => {
@@ -255,6 +253,44 @@ describe("useCreateListing", () => {
   });
 
   describe("invalidation", () => {
+    it("keeps an unconfirmed submission out of success and warns before retrying", async () => {
+      mockSendTransaction.mockResolvedValue({
+        hash: "0xtxhash",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.createListing({
+            hypercertId: 1n,
+            fractionId: 1n,
+            currency: "0x0000000000000000000000000000000000000000",
+            pricePerUnit: 1000n,
+            minUnitAmount: 1n,
+            maxUnitAmount: 1000n,
+            minUnitsToKeep: 0n,
+            sellLeftover: false,
+            durationDays: 30,
+          })
+        ).rejects.toThrow();
+      });
+
+      await waitFor(() => expect(result.current.step).toBe("error"));
+      expect(result.current.error?.message).toBe(
+        "Transaction submitted. Check its confirmation before trying again."
+      );
+      expect(toastService.error).toHaveBeenCalledWith({
+        title: "Transaction submitted",
+        message: "Transaction submitted. Check its confirmation before trying again.",
+      });
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(mockInvalidateQueries).not.toHaveBeenCalled();
+    });
+
     it("keeps marketplace listing invalidation after a successful listing", async () => {
       const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
         queryClient,
@@ -274,11 +310,15 @@ describe("useCreateListing", () => {
         });
       });
 
-      // Readied once to sign the order and again to register it, for the signer.
-      expect(mockReadyWalletClient.mock.calls).toEqual([
-        [TEST_CHAIN_ID, TEST_SIGNER],
-        [TEST_CHAIN_ID, TEST_SIGNER],
-      ]);
+      expect(mockSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          account: TEST_SIGNER,
+          chainId: TEST_CHAIN_ID,
+          address: TEST_MODULE,
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
+      );
+      expect(mockOwnership).toHaveBeenCalledWith(TEST_SIGNER, TEST_CHAIN_ID);
       await waitFor(() => {
         expect(mockInvalidateQueries).toHaveBeenCalledWith({
           queryKey: ["greengoods", "marketplace", "orders"],

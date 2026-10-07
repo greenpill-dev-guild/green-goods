@@ -88,6 +88,7 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
 
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
+    assertReady: vi.fn(),
     registerAction: (...args: unknown[]) => mockRegisterAction(...args),
     isLoading: false,
   }),

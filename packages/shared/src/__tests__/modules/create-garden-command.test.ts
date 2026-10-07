@@ -1,11 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  createDefaultCreateGardenPorts,
   createGarden,
   estimateGardenCreation,
   type CreateGardenCommand,
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
+import { beforeEach } from "vitest";
+import type { TransactionSender } from "../../modules/transactions/types";
 import { WeightScheme } from "../../types/gardens-community";
+
+const mocks = vi.hoisted(() => ({
+  simulate: vi.fn(),
+  readContract: vi.fn(),
+  waitReceipt: vi.fn(),
+}));
+vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
+vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
+vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
+vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
+  getNetworkContracts: () => ({ gardenToken, greenGoodsENS }),
+  createClients: () => ({ publicClient: { readContract: mocks.readContract } }),
+}));
 
 const gardenToken = "0x1111111111111111111111111111111111111111" as const;
 const greenGoodsENS = "0x2222222222222222222222222222222222222222" as const;
@@ -118,5 +135,75 @@ describe("estimateGardenCreation", () => {
     expect(ports.reader.estimateTransaction).toHaveBeenCalledWith(
       expect.objectContaining({ gardenToken, ccipFee: 5n })
     );
+  });
+});
+
+describe("garden writes through the shared account sender", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.simulate.mockResolvedValue({ success: true });
+    mocks.readContract.mockResolvedValue(5n);
+    mocks.waitReceipt.mockResolvedValue({ status: "success" });
+  });
+  function adapter(authMode: "wallet" | "passkey") {
+    const sender: TransactionSender = {
+      authMode,
+      supportsSponsorship: authMode === "passkey",
+      supportsBatching: false,
+      assertOwnership: vi.fn(),
+      sendContractCall: vi
+        .fn()
+        .mockResolvedValue({ hash: txHash, sponsored: authMode === "passkey" }),
+    };
+    return {
+      sender,
+      ports: createDefaultCreateGardenPorts({ transactionSender: sender, addPending: vi.fn() }),
+    };
+  }
+  it.each([
+    "wallet",
+    "passkey",
+  ] as const)("simulates and sends the %s account with the same chain and CCIP value", async (authMode) => {
+    const { sender, ports } = adapter(authMode);
+    await expect(createGarden(command, ports)).resolves.toBe(txHash);
+    expect(mocks.simulate).toHaveBeenCalledWith(
+      gardenToken,
+      expect.any(Array),
+      "mintGarden",
+      [command.params],
+      accountAddress,
+      command.chainId,
+      5n
+    );
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: accountAddress,
+        chainId: command.chainId,
+        address: gardenToken,
+        functionName: "mintGarden",
+        args: [command.params],
+        value: 5n,
+      }),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
+    expect(mocks.waitReceipt).not.toHaveBeenCalled(); // The shared sender has already confirmed it.
+  });
+  it("rejects an intervening account change before signing", async () => {
+    const { sender, ports } = adapter("passkey");
+    vi.mocked(sender.assertOwnership!).mockRejectedValueOnce(
+      new Error("submission-ownership-changed")
+    );
+    await expect(createGarden(command, ports)).rejects.toThrow("submission-ownership-changed");
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+  it("does not mark a pending wallet submission confirmed when its receipt reverted", async () => {
+    const { sender, ports } = adapter("wallet");
+    vi.mocked(sender.sendContractCall).mockResolvedValueOnce({
+      hash: txHash,
+      sponsored: false,
+      confirmation: "pending",
+    });
+    mocks.waitReceipt.mockResolvedValueOnce({ status: "reverted" });
+    await expect(createGarden(command, ports)).rejects.toThrow("reverted");
   });
 });

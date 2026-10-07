@@ -28,7 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
-import { useAccount } from "wagmi";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useShallow } from "zustand/react/shallow";
 import { selectAssessmentDirtyState } from "../../../stores/transitions/create-assessment";
 
@@ -115,7 +115,7 @@ export function useCreateAssessmentController() {
   const { formatMessage } = intl;
   const stepConfigs = useCreateAssessmentStepConfigs();
   const navigate = useNavigate();
-  const { address } = useAccount();
+  const address = usePrimaryAddress();
   const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
@@ -426,10 +426,10 @@ export function useCreateAssessmentController() {
 
     if (!address) {
       refuseSubmit(
-        { id: "app.assessment.walletRequired", defaultMessage: "Wallet required" },
+        { id: "app.assessment.accountRequired", defaultMessage: "Sign in required" },
         {
-          id: "app.assessment.walletRequiredMessage",
-          defaultMessage: "Please connect your wallet before submitting an assessment.",
+          id: "app.assessment.accountRequiredMessage",
+          defaultMessage: "Sign in to your account before submitting an assessment.",
         }
       );
       return;

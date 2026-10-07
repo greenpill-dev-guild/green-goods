@@ -6,23 +6,17 @@
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { createPublicClientForChain } from "../../config/pimlico";
-import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
   buildApprovalTransactions,
   checkMarketplaceApprovals,
   type MarketplaceApprovals,
 } from "../../modules/marketplace/approvals";
-import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
-import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { useAuth } from "../auth/useAuth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useIntl } from "react-intl";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { marketplaceKeys } from "../../config/query-keys/hypercert";
@@ -37,11 +31,11 @@ export interface UseMarketplaceApprovalsResult {
 }
 
 export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
-  const { smartAccountAddress, eoaAddress, smartAccountClient } = useAuth();
+  const steward = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-
-  const steward = (smartAccountAddress || eoaAddress) as Address | undefined;
 
   const { data, isLoading, error } = useQuery({
     queryKey: marketplaceKeys.approvals(steward ?? ("" as Address), chainId),
@@ -58,59 +52,25 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
 
   const grantMutation = useMutation({
     mutationFn: async () => {
-      if (!steward) throw new Error("Connect a wallet first");
+      if (!steward || !sender)
+        throw new Error(
+          formatMessage({
+            id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      await sender.assertOwnership?.(steward, chainId);
 
       const txs = await buildApprovalTransactions(steward, chainId);
 
-      const publicClient = createPublicClientForChain(chainId);
-
-      // Execute approval transactions sequentially
-      if (txs.grantExchange) {
-        logger.info("[useMarketplaceApprovals] Granting exchange approval", { steward, chainId });
-        if (smartAccountClient) {
-          assertLocalArbitrumForkSmartAccountsDisabled();
-
-          const hash = await smartAccountClient.sendUserOperation({
-            account: smartAccountClient.account,
-            calls: [{ to: txs.grantExchange.to, data: txs.grantExchange.data, value: 0n }],
-          });
-          await smartAccountClient.getUserOperationReceipt({ hash });
-        } else {
-          const walletClient = await readyWalletClient(chainId, steward);
-          await assertLocalArbitrumForkWallet();
-
-          const hash = await walletClient.sendTransaction({
-            to: txs.grantExchange.to,
-            data: txs.grantExchange.data,
-            account: steward,
-            chain: getChain(chainId),
-          });
-          await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
-        }
-      }
-
-      if (txs.approveMinter) {
-        logger.info("[useMarketplaceApprovals] Granting minter approval", { steward, chainId });
-        if (smartAccountClient) {
-          assertLocalArbitrumForkSmartAccountsDisabled();
-
-          const hash = await smartAccountClient.sendUserOperation({
-            account: smartAccountClient.account,
-            calls: [{ to: txs.approveMinter.to, data: txs.approveMinter.data, value: 0n }],
-          });
-          await smartAccountClient.getUserOperationReceipt({ hash });
-        } else {
-          const walletClient = await readyWalletClient(chainId, steward);
-          await assertLocalArbitrumForkWallet();
-
-          const hash = await walletClient.sendTransaction({
-            to: txs.approveMinter.to,
-            data: txs.approveMinter.data,
-            account: steward,
-            chain: getChain(chainId),
-          });
-          await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
-        }
+      // The second approval starts only after the first has confirmed.
+      for (const call of [txs.grantExchange, txs.approveMinter]) {
+        if (!call) continue;
+        const result = await sender.sendContractCall(
+          { ...call, account: steward, chainId },
+          { assertOwnership: () => sender.assertOwnership?.(steward, chainId) }
+        );
+        if (result.confirmation === "pending")
+          throw new Error(formatMessage({ id: "app.account.transactionPending" }));
       }
     },
     onSuccess: () => {

@@ -8,28 +8,24 @@
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { type Address, encodeFunctionData, type Hex } from "viem";
+import { type Address, type Hex } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
+import { getOrderNonces } from "../../modules/marketplace/client";
 import {
   buildMakerAsk,
   type MakerAskOrder,
   signMakerAsk,
   validateOrder,
 } from "../../modules/marketplace/signing";
-import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
-import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { useAuth } from "../auth/useAuth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useIntl } from "react-intl";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
@@ -50,7 +46,9 @@ export interface UseBatchListForYieldResult {
 const INITIAL_PROGRESS: BatchProgress = { total: 0, signed: 0, status: "idle" };
 
 export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYieldResult {
-  const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
+  const signer = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState<BatchProgress>(INITIAL_PROGRESS);
@@ -60,9 +58,13 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       if (!gardenAddress) throw new Error("Garden address required");
       if (listings.length === 0) throw new Error("No listings to create");
 
-      const signer = (smartAccountAddress || eoaAddress) as Address;
-      if (!signer) throw new Error("Connect a wallet first");
-      const signingClient = await readyWalletClient(chainId, signer);
+      if (!signer || !sender)
+        throw new Error(
+          formatMessage({
+            id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      await sender.assertOwnership?.(signer, chainId);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -75,7 +77,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
         chainId,
       });
 
-      // Build and sign all maker asks sequentially (each requires wallet popup)
+      // Build and sign all maker asks sequentially (each uses the signed-in account)
       const hypercertIds: bigint[] = [];
       const makerAskStructs: Array<{
         quoteType: number;
@@ -98,14 +100,15 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
 
       for (let i = 0; i < listings.length; i++) {
         const params = listings[i];
-        const makerAsk: MakerAskOrder = buildMakerAsk(params, signer, chainId);
+        const nonces = await getOrderNonces(signer, chainId, createPublicClientForChain(chainId));
+        const makerAsk: MakerAskOrder = buildMakerAsk(params, signer, chainId, nonces);
 
         const validation = validateOrder(makerAsk, chainId);
         if (!validation.valid) {
           throw new Error(`Order #${i + 1} validation failed: ${validation.errors.join(", ")}`);
         }
 
-        const signature = await signMakerAsk(makerAsk, signingClient, chainId);
+        const signature = await signMakerAsk(makerAsk, sender, chainId);
 
         hypercertIds.push(params.hypercertId);
         makerAskStructs.push({
@@ -133,40 +136,22 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       // Submit batch transaction
       setProgress((prev) => ({ ...prev, status: "submitting" }));
 
-      const callData = encodeFunctionData({
+      const call = {
+        address: moduleAddress,
+        account: signer,
+        chainId,
         abi: HYPERCERTS_MODULE_ABI,
         functionName: "batchListForYield",
         args: [gardenAddress, hypercertIds, makerAskStructs, signatures],
-      });
+      };
 
       setProgress((prev) => ({ ...prev, status: "confirming" }));
 
-      if (smartAccountClient) {
-        assertLocalArbitrumForkSmartAccountsDisabled();
-
-        const hash = await smartAccountClient.sendUserOperation({
-          account: smartAccountClient.account,
-          calls: [{ to: moduleAddress, data: callData, value: 0n }],
-        });
-        await smartAccountClient.getUserOperationReceipt({ hash });
-      } else {
-        const publicClient = createPublicClientForChain(chainId);
-        // Every signature above was a wallet prompt, so the wallet is readied
-        // again for the send.
-        const walletClient = await readyWalletClient(chainId, signer);
-        await assertLocalArbitrumForkWallet();
-
-        const txHash = await walletClient.sendTransaction({
-          to: moduleAddress,
-          data: callData,
-          account: signer,
-          chain: getChain(chainId),
-        });
-        await publicClient.waitForTransactionReceipt({
-          hash: txHash,
-          timeout: TX_RECEIPT_TIMEOUT_MS,
-        });
-      }
+      const result = await sender.sendContractCall(call, {
+        assertOwnership: () => sender.assertOwnership?.(signer, chainId),
+      });
+      if (result.confirmation === "pending")
+        throw new Error(formatMessage({ id: "app.account.transactionPending" }));
 
       setProgress((prev) => ({ ...prev, status: "done" }));
       logger.info("[useBatchListForYield] Batch listing complete", {
