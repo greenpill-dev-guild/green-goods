@@ -1,3 +1,4 @@
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
@@ -48,6 +49,34 @@ const withPortuguese: Decorator = (Story) => (
  */
 const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
   const { controller, history } = promisePageFixture(stage);
+  mocked(usePrimaryAddress).mockReturnValue(controller.viewer);
+  // This case exercises required Garden Work; the proof-only stages remain legacy promises.
+  if (stage === "working" && controller.detail) {
+    const commitment = controller.detail.commitment;
+    controller.detail = {
+      ...controller.detail,
+      commitment: {
+        ...commitment,
+        commitmentType: "DOMAIN_IMPACT",
+        requirements: [{ actionUID: 44n, requiredCount: 1 }],
+      },
+      requirements: [
+        {
+          id: `${commitment.chainId}-${commitment.commitmentId}-0`,
+          chainId: commitment.chainId,
+          commitmentId: commitment.commitmentId,
+          requirementIndex: 0,
+          creationSeen: true,
+          domain: null,
+          actionUID: 44n,
+          requiredCount: 1,
+          approvedCount: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      ],
+    };
+  }
   mocked(useGardenCommitmentController).mockReturnValue(controller);
   mocked(useCommitmentActivity).mockReturnValue({
     events: history,
@@ -68,6 +97,7 @@ const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
   );
   mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
   return resetHookMocks(
+    usePrimaryAddress,
     useGardenCommitmentController,
     useCommitmentActivity,
     useCommitmentCycle,
@@ -108,7 +138,7 @@ export const InProgress: Story = {
     await expect(canvas.getByText("Riverside Commons Garden")).toBeVisible();
     // Work approval advances a Garden Work promise; no manual send is implied.
     await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-      "Garden stewards approve the work"
+      "Link the required work below. Garden stewards approve it; no separate send is needed."
     );
     await expect(canvas.getByText("Steward")).toBeVisible();
     // The title wraps rather than truncating: it never clips, however wide the page.
