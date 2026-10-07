@@ -77,6 +77,9 @@ const DEFAULT_APPROVALS_STATE = {
   error: null,
   grantApprovals: mockGrantApprovals,
   isGranting: false,
+  isPending: false,
+  isChecking: false,
+  checkPending: vi.fn(),
 };
 
 const READY_READINESS = {
@@ -226,5 +229,20 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
       expect(screen.getByText(/wallet rejected the request/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /approve all/i })).toBeInTheDocument();
     });
+  });
+  it("blocks approval retry and provides a read-only check for an accepted proposal", async () => {
+    const checkPending = vi.fn();
+    mockUseMarketplaceApprovals.mockReturnValue({
+      ...DEFAULT_APPROVALS_STATE,
+      isFullyApproved: false,
+      isPending: true,
+      checkPending,
+    });
+    mockGetMarketplaceReadiness.mockReturnValue(READY_READINESS);
+    renderGate();
+    expect(screen.getByRole("button", { name: "Approve All" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
+    expect(checkPending).toHaveBeenCalledOnce();
+    expect(mockGrantApprovals).not.toHaveBeenCalled();
   });
 });

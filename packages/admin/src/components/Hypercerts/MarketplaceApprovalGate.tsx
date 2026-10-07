@@ -68,8 +68,17 @@ export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprov
 
 function ApprovalGateInner({ children }: { children: React.ReactNode }) {
   const { formatMessage } = useIntl();
-  const { approvals, isFullyApproved, isLoading, grantApprovals, isGranting, error } =
-    useMarketplaceApprovals();
+  const {
+    approvals,
+    isFullyApproved,
+    isLoading,
+    grantApprovals,
+    isGranting,
+    isPending,
+    checkPending,
+    isChecking,
+    error,
+  } = useMarketplaceApprovals();
 
   if (isLoading) {
     return (
@@ -133,12 +142,28 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             />
           </div>
 
+          {isPending && (
+            <p role="status" className="mt-3 body-xs text-text-soft">
+              {formatMessage({ id: "app.account.transactionPending" })}
+            </p>
+          )}
+          {isPending && (
+            <AdminButton
+              type="button"
+              onClick={checkPending}
+              disabled={isChecking}
+              loading={isChecking}
+              className="mt-4"
+            >
+              {formatMessage({ id: "app.admin.work.submit.checkConfirmation" })}
+            </AdminButton>
+          )}
           {error && <p className="mt-3 body-xs text-error-base">{error.message}</p>}
 
           <AdminButton
             type="button"
             onClick={() => grantApprovals()}
-            disabled={isGranting}
+            disabled={isGranting || isPending}
             loading={isGranting}
             leadingIcon={<RiShieldCheckLine className="h-4 w-4" />}
             className="mt-4"

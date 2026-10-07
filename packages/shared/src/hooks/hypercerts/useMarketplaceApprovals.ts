@@ -4,6 +4,17 @@
  * 1. transferManager.grantApprovals([exchange])
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
+import { readMarketplaceSubmissionOutcome } from "../../modules/marketplace/pending";
+import {
+  marketplaceSubmissionScope,
+  useMarketplacePendingStore,
+  type MarketplacePendingSubmission,
+} from "../../stores/useMarketplacePendingStore";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
+import {
+  TransactionRevertedError,
+  TransactionReplacementError,
+} from "../../modules/transactions/types";
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
@@ -28,6 +39,9 @@ export interface UseMarketplaceApprovalsResult {
   error: Error | null;
   grantApprovals: () => void;
   isGranting: boolean;
+  isPending: boolean;
+  checkPending: () => void;
+  isChecking: boolean;
 }
 
 export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
@@ -36,8 +50,11 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const scope = marketplaceSubmissionScope(chainId, steward);
+  const pending = useMarketplacePendingStore((state) => (scope ? state.pending[scope] : undefined));
+  const store = useMarketplacePendingStore.getState;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: marketplaceKeys.approvals(steward ?? ("" as Address), chainId),
     queryFn: steward
       ? () => {
@@ -50,6 +67,16 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
 
   const isFullyApproved = Boolean(data?.exchangeApproved && data?.minterApproved);
 
+  const checkMutation = useMutation({
+    mutationFn: async () => {
+      if (!scope || pending?.kind !== "approval") return;
+      const outcome = await readMarketplaceSubmissionOutcome(pending, sender, chainId);
+      const refreshed = await refetch();
+      if (outcome.status === "reverted" || (!refreshed.isError && refreshed.data?.[pending.step]))
+        store().clear(scope, pending);
+    },
+  });
+
   const grantMutation = useMutation({
     mutationFn: async () => {
       if (!steward || !sender)
@@ -58,19 +85,50 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             id: !steward ? "app.account.signInRequired" : "app.account.signerNotReady",
           })
         );
-      await sender.assertOwnership?.(steward, chainId);
-
-      const txs = await buildApprovalTransactions(steward, chainId);
-
-      // The second approval starts only after the first has confirmed.
-      for (const call of [txs.grantExchange, txs.approveMinter]) {
-        if (!call) continue;
-        const result = await sender.sendContractCall(
-          { ...call, account: steward, chainId },
-          { assertOwnership: () => sender.assertOwnership?.(steward, chainId) }
-        );
-        if (result.confirmation === "pending")
-          throw new Error(formatMessage({ id: "app.account.transactionPending" }));
+      if (!scope || !store().begin(scope)) return;
+      try {
+        await sender.assertOwnership?.(steward, chainId);
+        const txs = await buildApprovalTransactions(steward, chainId);
+        // The second approval starts only after the first has confirmed.
+        for (const [step, call] of [
+          ["exchangeApproved", txs.grantExchange],
+          ["minterApproved", txs.approveMinter],
+        ] as const) {
+          if (!call) continue;
+          const record: MarketplacePendingSubmission = { kind: "approval", step };
+          try {
+            const result = await sender.sendContractCall(
+              { ...call, account: steward, chainId },
+              {
+                assertOwnership: () => sender.assertOwnership?.(steward, chainId),
+                onBeforeBroadcast: async (reference) => {
+                  store().checkpoint(scope, { ...record, reference });
+                },
+                onBroadcastReference: async (reference) => {
+                  store().checkpoint(scope, { ...record, reference });
+                },
+              }
+            );
+            if (result.confirmation === "pending") {
+              store().checkpoint(scope, {
+                ...record,
+                reference: { kind: "transaction", hash: result.hash },
+              });
+              return;
+            }
+            store().clear(scope);
+          } catch (error) {
+            if (
+              error instanceof TransactionRevertedError ||
+              error instanceof TransactionReplacementError ||
+              (isCancelledTxError(error) && !store().pending[scope]?.reference)
+            )
+              store().clear(scope);
+            throw error;
+          }
+        }
+      } finally {
+        store().finish(scope);
       }
     },
     onSuccess: () => {
@@ -92,10 +150,13 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     approvals: data ?? null,
     isFullyApproved,
     isLoading,
-    error: error as Error | null,
+    error: (checkMutation.error ?? grantMutation.error ?? error) as Error | null,
     grantApprovals: () => {
       grantMutation.mutate();
     },
     isGranting: grantMutation.isPending,
+    isPending: Boolean(pending) && !grantMutation.isPending,
+    checkPending: () => checkMutation.mutate(),
+    isChecking: checkMutation.isPending,
   };
 }

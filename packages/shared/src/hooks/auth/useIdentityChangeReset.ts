@@ -90,6 +90,8 @@ export function useIdentityChangeReset(primaryAddress: Hex | null, isReady: bool
 function forgetAccount(account: string): void {
   // Each part on its own: a store whose storage refuses the write has already
   // reset in memory, and must not keep the rest from resetting too.
+  // useMarketplacePendingStore stays: accepted approvals/batches are keyed by
+  // chainId:address:operation and must still block retries when that account returns.
   const parts = [
     () => useUIStore.getState().resetForAccountChange(),
     () => useGardenStateStore.getState().clearAll(),

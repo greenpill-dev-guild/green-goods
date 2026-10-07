@@ -7,7 +7,7 @@
  */
 
 import { type QueryClient } from "@tanstack/react-query";
-import { act } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders as renderHookWithQueryClient } from "../../test-utils/render-helpers";
@@ -26,6 +26,8 @@ const mockSignMakerAsk = vi.fn();
 const mockValidateOrder = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
+const mockReadContract = vi.fn();
+const mockGetReceipt = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
 const mockSender = () => ({
@@ -55,6 +57,7 @@ vi.mock("../../../modules/marketplace/signing", () => ({
 
 vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
   HYPERCERTS_MODULE_ABI: [],
+  MARKETPLACE_ADAPTER_ABI: [],
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
@@ -71,6 +74,8 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
+    readContract: mockReadContract,
+    getTransactionReceipt: mockGetReceipt,
   }),
 }));
 
@@ -102,6 +107,7 @@ vi.mock("viem", () => ({
   encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
 }));
 
+import { useMarketplacePendingStore } from "../../../stores/useMarketplacePendingStore";
 import {
   type BatchProgress,
   useBatchListForYield,
@@ -116,6 +122,9 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useMarketplacePendingStore.setState({ pending: {}, active: {} });
+    mockReadContract.mockResolvedValue(0n);
+    mockGetReceipt.mockRejectedValue(new Error("not mined"));
     authMode = mode;
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
@@ -124,6 +133,7 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
       missingFields: [],
       addresses: {
         hypercertsModule: TEST_MODULE,
+        marketplaceAdapter: TEST_MODULE,
       },
     });
     mockGetOrderNonces.mockResolvedValue({ globalNonce: 4n, orderNonce: 1n });
@@ -332,5 +342,103 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
       });
       expect(result.current.error).toBeNull();
     });
+  });
+  it("keeps accepted batches pending across reset/remount and rejects unrelated orders", async () => {
+    mockSendTransaction.mockResolvedValueOnce({ hash: "0xproposal", confirmation: "pending" });
+    const listings = [
+      {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      },
+    ];
+    const first = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+      queryClient,
+    });
+    await act(async () => {
+      await first.result.current.batchList(listings);
+    });
+    await waitFor(() => expect(first.result.current.progress.status).toBe("pending"));
+    expect(first.result.current.error).toBeNull();
+    act(() => first.result.current.reset());
+    expect(first.result.current.progress.status).toBe("pending");
+    first.unmount();
+    await useMarketplacePendingStore.persist.rehydrate();
+    const next = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+      queryClient,
+    });
+    await act(async () => {
+      await next.result.current.batchList(listings);
+    });
+    expect(mockSendTransaction).toHaveBeenCalledOnce();
+    expect(mockSignMakerAsk).toHaveBeenCalledOnce();
+    await act(async () => {
+      await next.result.current.checkPending();
+    });
+    expect(next.result.current.progress.status).toBe("pending");
+    expect(mockGetReceipt).not.toHaveBeenCalled();
+    mockReadContract.mockImplementation(async ({ functionName }) =>
+      functionName === "activeOrders"
+        ? 5n
+        : [1n, "0x", "0xwrong-signature", 0n, 0n, 0n, TEST_SIGNER]
+    );
+    await act(async () => {
+      await next.result.current.checkPending();
+    });
+    expect(next.result.current.progress.status).toBe("pending");
+    mockReadContract.mockImplementation(async ({ functionName }) =>
+      functionName === "activeOrders" ? 5n : [1n, "0x", "0xsignature", 0n, 0n, 0n, TEST_SIGNER]
+    );
+    await act(async () => {
+      await next.result.current.checkPending();
+    });
+    expect(next.result.current.progress.status).toBe("done");
+    expect(mockInvalidateQueries).toHaveBeenCalled();
+    expect(mockSendTransaction).toHaveBeenCalledOnce();
+  });
+  it("only releases a failed batch after an actual reverted receipt", async () => {
+    const hash = `0x${"ab".repeat(32)}`;
+    mockSendTransaction.mockResolvedValueOnce({ hash, confirmation: "pending" });
+    const listings = [
+      {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      },
+    ];
+    const view = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+      queryClient,
+    });
+    await act(async () => {
+      await view.result.current.batchList(listings);
+    });
+    await waitFor(() => expect(view.result.current.progress.status).toBe("pending"));
+    await act(async () => {
+      await view.result.current.checkPending();
+    });
+    expect(view.result.current.progress.status).toBe("pending");
+    mockGetReceipt.mockResolvedValueOnce({ status: "reverted", transactionHash: hash });
+    await act(async () => {
+      await view.result.current.checkPending();
+    });
+    expect(view.result.current.progress.status).toBe("error");
+    expect(mockSendTransaction).toHaveBeenCalledOnce();
+    await act(async () => {
+      await view.result.current.batchList(listings);
+    });
+    expect(mockSendTransaction).toHaveBeenCalledTimes(2);
+    expect(view.result.current.progress.status).toBe("done");
   });
 });
