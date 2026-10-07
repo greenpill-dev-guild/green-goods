@@ -40,12 +40,15 @@ function Dashboard({ snapshot }: { snapshot: DashboardSnapshot }) {
     </button>
   );
 }
-function Detail() {
+function Detail({ linked = false }: { linked?: boolean }) {
   const dashboard = useDashboardNavigation();
   const navigate = useNavigate();
   return (
     <>
-      <p>Record detail</p>
+      <p>{linked ? "Linked work" : "Record detail"}</p>
+      <button onClick={() => dashboard.forward("/home/garden-1/work/work-1")}>
+        Open linked work
+      </button>
       <button onClick={() => dashboard.back()}>App Back</button>
       <button onClick={() => navigate(-1)}>History Back</button>
     </>
@@ -62,6 +65,7 @@ function journey(snapshot: DashboardSnapshot) {
         children: [
           { path: "/home", loader: async () => null, element: <Dashboard snapshot={snapshot} /> },
           { path: "/home/garden-1/detail", element: <Detail /> },
+          { path: "/home/garden-1/work/work-1", element: <Detail linked /> },
         ],
       },
     ],
@@ -106,6 +110,40 @@ describe("dashboard returns through the PWA data router", () => {
           commitmentsSheetReturnState: snapshot,
         });
       }
+    } finally {
+      view.unmount();
+      router.dispose();
+    }
+  });
+  it.each([
+    "App Back",
+    "History Back",
+  ])("keeps the commitments origin through linked work and %s", async (back) => {
+    const router = journey(commitments);
+    const view = render(<RouterProvider router={router} />);
+    try {
+      await screen.findByRole("button", { name: "Inspect record" });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Inspect record" }));
+      });
+      await screen.findByText("Record detail");
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Open linked work" }));
+      });
+      expect(await screen.findByText("Linked work")).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: back }));
+      });
+      expect(await screen.findByText("Record detail")).toBeInTheDocument();
+      expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: back }));
+      });
+      expect(await screen.findByRole("button", { name: "Inspect record" })).toBeInTheDocument();
+      expect(useUIStore.getState()).toMatchObject({
+        isCommitmentsSheetOpen: true,
+        commitmentsSheetReturnState: commitments,
+      });
     } finally {
       view.unmount();
       router.dispose();
