@@ -1,6 +1,7 @@
 import { isAddress, type Address } from "viem";
 
 import type { DraftWorkLink } from "../../types/job-queue";
+import type { WorkLinkJobPayload } from "./job-types";
 
 export interface WorkLinkIntent {
   commitmentId: bigint;
@@ -13,6 +14,22 @@ export interface WorkLinkIntent {
 }
 
 export type WorkLinkChoice = WorkLinkIntent;
+
+/** One operation identity shared by admission, the wizard and queue recovery. */
+export function dependentWorkLinkPayload(
+  clientWorkId: string,
+  target: Pick<WorkLinkIntent, "commitmentId" | "requirementIndex" | "garden">,
+  sourceWorkJobId?: string
+): Omit<Extract<WorkLinkJobPayload, { clientWorkId: string }>, "operationKey"> {
+  return {
+    clientOperationId: `work-link:${clientWorkId}:${target.commitmentId}:${target.requirementIndex}`,
+    commitmentId: target.commitmentId,
+    clientWorkId,
+    ...(sourceWorkJobId ? { sourceWorkJobId } : {}),
+    requirementIndex: target.requirementIndex,
+    gardenAddress: target.garden,
+  };
+}
 
 /** The same requirement of the same promise, for the same action in the same garden. */
 export function sameWorkLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
