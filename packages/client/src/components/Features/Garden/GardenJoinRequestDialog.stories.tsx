@@ -240,6 +240,37 @@ export const Pending: Story = {
   },
 };
 
+export const WithdrawalFailedAfterRefresh: Story = {
+  beforeEach: () => {
+    const state = joinRequests({
+      hasCheckedStatus: true,
+      canRefreshStatus: true,
+      request: selfRequest(),
+      mutationState: { ...IDLE },
+    });
+    state.withdrawRequest = fn(async () => {
+      const error = new GardenJoinRequestTransportError("Unavailable", 503, "provider_unavailable");
+      state.mutationState.error = error;
+      throw error;
+    });
+    return withJoinRequests(state)();
+  },
+  play: async () => {
+    const sheet = await openSheet();
+    await expect(
+      mocked(useGardenJoinRequests).mock.results[0].value.checkStatus
+    ).toHaveBeenCalledWith({
+      allowSignature: false,
+    });
+    await userEvent.click(sheet.getByRole("button", { name: "Withdraw Request" }));
+    await expect(await sheet.findByRole("alert")).toHaveTextContent(
+      "Garden join requests are unavailable right now. Please try again later."
+    );
+    await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
+    await expect(sheet.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
+  },
+};
+
 export const Welcomed: Story = {
   beforeEach: withJoinRequests({
     hasCheckedStatus: true,
