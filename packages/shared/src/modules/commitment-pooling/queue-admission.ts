@@ -1,4 +1,4 @@
-import type { JobKindMap } from "../../types/job-queue";
+import type { JobKindMap, WorkJobPayload } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
 import type { JobAdmission } from "../job-queue/ports";
 import {
@@ -7,6 +7,8 @@ import {
   type CommitmentJobKind,
   type CommitmentJobPayloadMap,
 } from "./jobs";
+import { dependentWorkLinkPayload, fromDraftWorkLink } from "./work-link-intent";
+import { compareAddresses } from "../../utils/blockchain/address";
 
 interface CommitmentAdmissionDependencies {
   isAvailable(chainId: number): boolean;
@@ -17,7 +19,7 @@ interface CommitmentAdmissionDependencies {
 export function createCommitmentQueueAdmission(
   dependencies: CommitmentAdmissionDependencies
 ): JobAdmission {
-  return {
+  const admission: JobAdmission = {
     prepare<K extends keyof JobKindMap>({
       kind,
       payload,
@@ -29,6 +31,30 @@ export function createCommitmentQueueAdmission(
       chainId: number;
       userAddress: string;
     }): JobKindMap[K] {
+      if (kind === "work") {
+        const { linkIntent, ...work } = payload as WorkJobPayload;
+        if (!linkIntent) return work as JobKindMap[K];
+        const link = fromDraftWorkLink(linkIntent);
+        if (
+          !link ||
+          !work.clientWorkId ||
+          link.actionUID !== work.actionUID ||
+          !compareAddresses(link.garden, work.gardenAddress)
+        )
+          throw new Error("work-link-intent-mismatch");
+        return {
+          ...work,
+          dependentWorkLink: admission.prepare({
+            kind: "workLink",
+            payload: dependentWorkLinkPayload(
+              work.clientWorkId,
+              link
+            ) as CommitmentJobPayloadMap["workLink"],
+            chainId,
+            userAddress,
+          }),
+        } as JobKindMap[K];
+      }
       if (!COMMITMENT_JOB_KINDS.includes(kind as CommitmentJobKind)) return payload;
       if (!dependencies.isAvailable(chainId)) {
         throw new Error("Commitment Pooling is unavailable on this chain");
@@ -46,4 +72,5 @@ export function createCommitmentQueueAdmission(
       }) as JobKindMap[K];
     },
   };
+  return admission;
 }

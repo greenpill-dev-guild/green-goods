@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { assertEnvParity, assertSentryDsnResolvable } from "./env-parity.mjs";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "./env-parity.mjs";
 import {
   parseSchemaText,
   readEnvironment,
@@ -131,4 +135,22 @@ test("rejects an unreadable schema in a production Vercel build", () => {
       }),
     /Refusing to ship a production build without schema validation/
   );
+});
+
+test("drops Vercel's VITE_-prefixed copies and keeps what the build and the app read", () => {
+  const env = {
+    VITE_VERCEL_GIT_COMMIT_MESSAGE: "fix: a commit message nobody in the browser needs",
+    VITE_VERCEL_TARGET_ENV: "staging",
+    VERCEL_GIT_COMMIT_SHA: "0123abc",
+    VERCEL_TARGET_ENV: "staging",
+    VITE_CHAIN_ID: "11155111",
+  };
+
+  dropVercelFrameworkVariables(env);
+
+  assert.deepEqual(env, {
+    VERCEL_GIT_COMMIT_SHA: "0123abc",
+    VERCEL_TARGET_ENV: "staging",
+    VITE_CHAIN_ID: "11155111",
+  });
 });

@@ -51,6 +51,7 @@ describe("bootAdmin", () => {
     if (originalLocalStorage) {
       Object.defineProperty(window, "localStorage", originalLocalStorage);
     }
+    window.localStorage.removeItem("gg-language");
     vi.restoreAllMocks();
   });
 
@@ -59,6 +60,25 @@ describe("bootAdmin", () => {
       outcome = await bootAdmin({ container, services: services(overrides) });
     });
     return outcome!;
+  }
+
+  /** Boots with the application tree held back, so the first frame stays on screen. */
+  async function bootToFirstFrame() {
+    let release: (() => void) | null = null;
+    const gate = new Promise<{ default: typeof Ready }>((resolve) => {
+      release = () => resolve({ default: Ready });
+    });
+    let pending!: Promise<BootOutcome>;
+    await act(async () => {
+      pending = bootAdmin({ container, services: services({ loadRoot: () => gate }) });
+      await Promise.resolve();
+    });
+    return async () => {
+      await act(async () => {
+        release?.();
+        outcome = await pending;
+      });
+    };
   }
 
   it("mounts the application after every optional service succeeds", async () => {
@@ -164,23 +184,36 @@ describe("bootAdmin", () => {
   });
 
   it("never leaves the root empty between the first frame and the application", async () => {
-    let release: (() => void) | null = null;
-    const gate = new Promise<{ default: typeof Ready }>((resolve) => {
-      release = () => resolve({ default: Ready });
-    });
-    let pending!: Promise<BootOutcome>;
-    await act(async () => {
-      pending = bootAdmin({ container, services: services({ loadRoot: () => gate }) });
-      await Promise.resolve();
-    });
+    const finish = await bootToFirstFrame();
 
     expect(container.querySelector('[data-component="AdminBootShell"]')).not.toBeNull();
     expect(container.textContent).toContain("Loading Green Goods Admin");
 
-    await act(async () => {
-      release?.();
-      outcome = await pending;
-    });
+    await finish();
     expect(container.querySelector('[data-testid="admin-ready"]')).not.toBeNull();
+  });
+
+  it("writes the first frame in the stored language, not the browser's, and declares it", async () => {
+    window.localStorage.setItem("gg-language", "es");
+    const finish = await bootToFirstFrame();
+
+    const shell = container.querySelector('[data-component="AdminBootShell"]');
+    expect(shell?.textContent).toContain("Cargando Green Goods Admin");
+    expect(shell?.getAttribute("lang")).toBe("es");
+
+    await finish();
+  });
+
+  it("writes the recovery card in the browser's language when none is stored, and declares it", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["fr-FR", "pt-BR"]);
+    await boot({
+      loadRoot: async () => {
+        throw new TypeError("Failed to fetch dynamically imported module");
+      },
+    });
+
+    const card = container.querySelector('[data-component="AdminBootRecovery"]');
+    expect(card?.textContent).toContain("O Green Goods Admin não conseguiu iniciar");
+    expect(card?.getAttribute("lang")).toBe("pt");
   });
 });

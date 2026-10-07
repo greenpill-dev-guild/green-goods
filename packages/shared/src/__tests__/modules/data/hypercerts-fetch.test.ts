@@ -13,6 +13,7 @@
 import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
 import type { RequestDocument } from "graphql-request";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../../../modules/app/logger";
 import type { GraphQLReader } from "../../../modules/data/graphql-client";
 
 import { getGardenHypercerts } from "../../../modules/data/hypercerts-fetch";
@@ -49,5 +50,40 @@ describe("getGardenHypercerts query contract (PRD-559 regression)", () => {
     expect(query).not.toMatch(/\$gardenId:\s*ID!/);
     expect(variables).toMatchObject({ gardenId: "0xGardenAddress", chainId: 42161 });
     expect(source).toBe("getGardenHypercerts");
+  });
+});
+
+describe("getGardenHypercerts read failures", () => {
+  type ReadResult = { data: unknown; error?: undefined } | { data?: undefined; error: Error };
+
+  function readerReturning(result: ReadResult): GraphQLReader {
+    return {
+      async query<TData>() {
+        return result as { data: TData; error?: undefined } | { data?: undefined; error: Error };
+      },
+    };
+  }
+
+  // The Hub and the garden Impact tab say "none yet" for an empty list and
+  // "could not load" for a failed read. A failure that resolved to an empty list
+  // told a steward the garden had no hypercerts during an indexer outage.
+  it("tells a failed read from a garden with no hypercerts", async () => {
+    const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
+    const failure = new Error("indexer unavailable");
+
+    await expect(
+      getGardenHypercerts("0xGarden", 42161, undefined, 50, readerReturning({ error: failure }))
+    ).rejects.toBe(failure);
+    await expect(
+      getGardenHypercerts(
+        "0xGarden",
+        42161,
+        undefined,
+        50,
+        readerReturning({ data: { Hypercert: [] } })
+      )
+    ).resolves.toEqual([]);
+
+    logged.mockRestore();
   });
 });

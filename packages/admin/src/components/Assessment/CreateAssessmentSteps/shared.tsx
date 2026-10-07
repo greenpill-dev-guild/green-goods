@@ -107,7 +107,7 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
       "Describe the energy access situation, infrastructure being deployed, and target community.",
     diagnosisPlaceholder:
       "e.g., Rural households in Sector 5 rely on diesel generators averaging 4 hours daily. High fuel cost ($12/week) limits productive electricity use and creates indoor health risks...",
-    smartOutcomeExample: "e.g., Generate 500 kWh/month from newly installed panels",
+    smartOutcomeExample: "e.g., Households in the neighbourhood have reliable power after dark",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Standard rooftop installation with proven equipment and trained installers.",
@@ -127,7 +127,7 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
       "Describe the site conditions, species mix, and restoration or production goals.",
     diagnosisPlaceholder:
       "e.g., Degraded pastureland from cattle overgrazing has reduced soil organic matter to <1%. Native species corridors are fragmented, limiting pollinator pathways...",
-    smartOutcomeExample: "e.g., Plant 200 native species seedlings across 5 hectares",
+    smartOutcomeExample: "e.g., Native forest grows back on the degraded pasture",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Monoculture planting with established nursery stock and known survival rates.",
@@ -146,7 +146,7 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     descriptionHelp: "Describe the training program, target audience, and learning objectives.",
     diagnosisPlaceholder:
       "e.g., Field operators lack standardized training on solar panel maintenance, leading to 35% system degradation in year 1. Knowledge transfer relies on informal peer learning...",
-    smartOutcomeExample: "e.g., Train 30 field operators to maintenance certification level",
+    smartOutcomeExample: "e.g., Local technicians maintain the solar systems on their own",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Standardized curriculum with certified instructors and known pass rates.",
@@ -166,7 +166,7 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     descriptionHelp: "Describe the waste stream, collection infrastructure, and target outcomes.",
     diagnosisPlaceholder:
       "e.g., Unmanaged plastic waste accumulates along 2km of riverbank at 500kg/week. No formal collection infrastructure exists. Local informal recyclers recover <10% of recyclables...",
-    smartOutcomeExample: "e.g., Divert 2 tonnes of recyclable waste from landfill per month",
+    smartOutcomeExample: "e.g., The riverbank stays clear of plastic waste",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Established collection routes with trained sorters and known buyer network.",
@@ -187,49 +187,78 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
 export function Section({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
-  description: string;
+  /** What the section asks for. The Review's sections restate answers, so they carry none. */
+  description?: string;
+  /**
+   * The section's one act, a compact button such as the Add for its list. It
+   * sits at the end of the title row, above the list, so the list growing
+   * never moves it.
+   */
+  action?: ReactNode;
   children: ReactNode;
 }) {
+  const heading = <h3 className="min-w-0 text-title-md font-semibold text-text-strong">{title}</h3>;
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-title-md font-semibold text-text-strong">{title}</h3>
-        <p className="mt-0.5 body-sm text-text-soft">{description}</p>
+        {action ? (
+          <div className="flex items-start justify-between gap-3">
+            {heading}
+            {/* A 28px button sits on the title's 24px line with the 6px a compact
+                button reserves around its finger box. That room is taken back
+                here, where nothing beside it can be pressed, so the header stays
+                as tall as a section without an act. */}
+            <div className="-my-2 flex shrink-0">{action}</div>
+          </div>
+        ) : (
+          heading
+        )}
+        {description ? <p className="mt-0.5 body-sm text-text-soft">{description}</p> : null}
       </div>
       {children}
     </section>
   );
 }
 
+/**
+ * One answer on the Review step: its label over its value, wrapped in full so
+ * nothing the attestation carries is cut short. A list of answers goes in as
+ * children; an answer left empty reads "Not provided". Rows sit in a `<dl>`.
+ */
 export function ReviewRow({
   label,
   value,
-  multiline = false,
+  wide = false,
+  children,
 }: {
   label: string;
   value?: string | null;
-  multiline?: boolean;
+  /** Long text: the row takes the section's full width. */
+  wide?: boolean;
+  children?: ReactNode;
 }) {
   const intl = useIntl();
+  const provided = Boolean(children) || Boolean(value && value.trim().length > 0);
   return (
-    <div>
-      <p className="body-xs font-semibold uppercase text-text-soft">{label}</p>
-      <p
+    <div className={cn("min-w-0", wide && "sm:col-span-2")}>
+      <dt className="label-xs text-text-soft">{label}</dt>
+      <dd
         className={cn(
-          "mt-1 body-sm text-text-sub",
-          multiline ? "whitespace-pre-wrap break-words" : "truncate"
+          "mt-0.5 whitespace-pre-wrap break-words body-sm",
+          provided ? "text-text-strong" : "text-text-soft"
         )}
       >
-        {value && value.trim().length > 0
-          ? value
+        {provided
+          ? (children ?? value)
           : intl.formatMessage({
               id: "admin.assessment.review.notProvided",
               defaultMessage: "Not provided",
             })}
-      </p>
+      </dd>
     </div>
   );
 }

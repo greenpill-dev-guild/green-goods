@@ -1,3 +1,4 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { DraftStatus } from "./DraftStatus";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
@@ -165,6 +166,11 @@ const Work: React.FC = () => {
     commitmentId: choice.commitmentId,
     requirementIndex: choice.requirementIndex,
     title: choice.commitmentTitle,
+    approvedCount: choice.approvedCount,
+    requiredCount: choice.requiredCount,
+    dueDate: choice.dueDate,
+    actionTitle: actions.find((action) => action.id === `${DEFAULT_CHAIN_ID}-${choice.actionUID}`)
+      ?.title,
   }));
   // Once a promise is chosen at Start, every later step names it after its
   // heading (D16, O9); the card opens the promise, which can unlink the work.
@@ -364,6 +370,7 @@ const Work: React.FC = () => {
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
         onStartFresh={draft.startFresh}
+        onManage={draft.manage}
         imageCount={images.length}
       />
       <TopNav onBackClick={currentTab.backButton} overlay>

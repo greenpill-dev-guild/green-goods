@@ -133,12 +133,14 @@ export function FormFlow({
     );
   }
 
+  // Page layout: the reading column sits inside the route frame. Below 600px
+  // the shell's phone gutter is the only side inset, so the column adds none.
   return (
     <div
       data-component="FormFlow"
       data-layout={layout}
       aria-label={ariaLabel}
-      className={cn("mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6", className)}
+      className={cn("mx-auto w-full max-w-6xl py-4 min-[600px]:px-4 sm:px-6 sm:py-6", className)}
     >
       {sectionsBlock}
 

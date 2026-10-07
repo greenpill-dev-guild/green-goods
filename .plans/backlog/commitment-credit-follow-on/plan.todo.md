@@ -2,8 +2,12 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `backlog`
-**Status**: `BACKLOG — contracts (PR #695) and state/API (PR #722, including the review follow-up) are merged; the UI never started and waits until after the September QA month`
-**Last Updated**: `2026-09-10`
+**Status**: `BACKLOG — backend merged; UI and release remain gated`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+PRD-785 and PRD-786 are Done; PRD-787 remains Todo with an October 21 due date. Contracts and state/API are delivered, while the retained state/API handoff still records a checkpoint proof limit. The machine lane is blocked on reconciling that historical receipt, not further source implementation. UI, deployment/address pinning, post-deploy replay and QA stay separate. The old September-only deferral is historical; this reassessment does not dispatch UI.
 
 ## Promotion record and remaining dispatch gates
 

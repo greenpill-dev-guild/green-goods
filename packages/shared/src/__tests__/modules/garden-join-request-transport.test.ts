@@ -33,6 +33,31 @@ describe("garden join request transport", () => {
       )
     ).rejects.toMatchObject({ outcomeUnknown: false });
   });
+  it("accepts an empty status read authorized by an explicit create grant", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ ok: true, request: null }))
+    );
+    const grant = {
+      ...proof,
+      readSelf: {
+        audience: "https://client.example",
+        content: { displayName: "Maya", requestedVia: "garden_detail" as const },
+      },
+    };
+    await expect(
+      gardenJoinRequestTransport.mine(GARDEN, grant, "https://agent.example")
+    ).resolves.toEqual({ ok: true, request: null });
+    await expect(
+      gardenJoinRequestTransport.create(
+        GARDEN,
+        grant.readSelf.content,
+        grant,
+        "https://agent.example"
+      )
+    ).rejects.toMatchObject({ outcomeUnknown: true });
+  });
+
   it.each([
     ["request_not_saved", false],
     ["provider_unavailable", true],

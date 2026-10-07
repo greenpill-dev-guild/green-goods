@@ -1,11 +1,10 @@
 /**
  * Client Fork Tests
  *
- * E2E tests that run against an Anvil fork of Sepolia.
- * These tests verify real blockchain interactions with deterministic state.
- *
- * Prerequisites:
- * - Client dev server: bun run dev -- client
+ * Contract-side checks run against an Anvil fork of Sepolia.
+ * Legacy Client smoke cases require a caller-managed Client surface; the preset
+ * does not start or retarget a Sepolia test server. These cases do not certify
+ * browser-to-fork-to-indexer integration or authenticated-session behavior.
  *
  * Run with: bun run browser e2e --preset fork
  */
@@ -158,7 +157,7 @@ test.describe("Fork Integration Tests", () => {
   });
 
   test.describe("Client with Fork Backend", () => {
-    test("client can load with forked chain", async ({ page }) => {
+    test("caller-managed client can load", async ({ page }) => {
       // Navigate to client
       await page.goto("/");
       await page.waitForLoadState("domcontentloaded");
@@ -175,7 +174,7 @@ test.describe("Fork Integration Tests", () => {
       expect(url).toMatch(/\/(login|landing)?$/);
     });
 
-    test("authenticated user can view gardens from fork", async ({ page }) => {
+    test("creates a garden on fork with a caller-managed client smoke check", async ({ page }) => {
       const helper = new ClientTestHelper(page);
 
       // First, create a garden on the fork

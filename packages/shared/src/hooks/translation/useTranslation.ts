@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
 import { browserTranslator, type Translator } from "../../modules/translation/browser-translator";
-import { AppContext } from "../../providers/App";
 
 type TranslatableValue =
   | string
@@ -20,7 +20,8 @@ export function useTranslation<T extends TranslatableValue>(
   isTranslating: boolean;
   isSupported: boolean;
 } {
-  const { locale } = useContext(AppContext);
+  // The language on screen, so translated content changes with the page copy.
+  const { locale } = useIntl();
   const [translated, setTranslated] = useState<T>(content);
   const [isTranslating, setIsTranslating] = useState(false);
 

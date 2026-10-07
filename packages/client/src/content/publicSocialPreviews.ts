@@ -67,7 +67,7 @@ export const publicSocialPreviews = {
     title: "Green Goods",
     description:
       "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste.",
-    cardTitle: "From good intentions to green outcomes.",
+    cardTitle: "From good intentions to green outcomes",
     cardTitleAccent: "good",
     cardLede:
       "Green Goods turns everyday contributions into a trusted public record of how places grow healthier together.",
@@ -80,9 +80,9 @@ export const publicSocialPreviews = {
     title: "Fund | Green Goods",
     description:
       "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons.",
-    cardTitle: "A small gesture, growing over many seasons.",
+    cardTitle: "A small gesture, growing over many seasons",
     cardTitleAccent: "growing",
-    cardTitleLines: ["A small gesture,", "growing over", "many seasons."],
+    cardTitleLines: ["A small gesture,", "growing over", "many seasons"],
     cardLede:
       "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons. Every contribution lands with a Garden, not a platform.",
     cardLedeLines: [
@@ -99,9 +99,9 @@ export const publicSocialPreviews = {
     title: "Impact | Green Goods",
     description:
       "See how Garden work becomes evidence through public records, assessments, and confirmed proof markers.",
-    cardTitle: "See how Garden work becomes evidence.",
+    cardTitle: "See how Garden work becomes evidence",
     cardTitleAccent: "evidence",
-    cardTitleLines: ["See how Garden", "work becomes", "evidence."],
+    cardTitleLines: ["See how Garden", "work becomes", "evidence"],
     cardLede:
       "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
     cardLedeLines: [
@@ -118,9 +118,9 @@ export const publicSocialPreviews = {
     title: "Actions | Green Goods",
     description:
       "Browse the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
-    cardTitle: "A field guide for regenerative work.",
+    cardTitle: "A field guide for regenerative work",
     cardTitleAccent: "regenerative work",
-    cardTitleLines: ["A field guide for", "regenerative", "work."],
+    cardTitleLines: ["A field guide for", "regenerative", "work"],
     cardLede:
       "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
     cardLedeLines: [
@@ -137,9 +137,9 @@ export const publicSocialPreviews = {
     title: "Gardens | Green Goods",
     description:
       "Explore the Gardens growing a public record of regenerative work across real places and communities.",
-    cardTitle: "Explore the Gardens growing the public record.",
+    cardTitle: "Explore the Gardens growing the public record",
     cardTitleAccent: "Gardens",
-    cardTitleLines: ["Explore the", "Gardens growing", "the public record."],
+    cardTitleLines: ["Explore the", "Gardens growing", "the public record"],
     cardLede:
       "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Gardens with open membership welcome new gardeners through the app.",
     cardLedeLines: [
@@ -156,9 +156,9 @@ export const publicSocialPreviews = {
     title: "Cookie Jars | Green Goods",
     description:
       "Shared cookie jars hold funds for seasonal work, event rewards, and Garden cohort budgets.",
-    cardTitle: "Shared cookie jars for seasonal campaign work.",
+    cardTitle: "Shared cookie jars for seasonal campaign work",
     cardTitleAccent: "cookie jars",
-    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work."],
+    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work"],
     cardLede:
       "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
     cardLedeLines: [

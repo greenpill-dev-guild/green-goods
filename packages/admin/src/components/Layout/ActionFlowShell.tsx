@@ -4,7 +4,7 @@ import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
 import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiArrowLeftLine } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { AdminIconButton } from "../AdminButton";
 import { type ActionFlowStep, ActionFlowStepper } from "./ActionFlowStepper";
 
@@ -92,6 +92,16 @@ export function ActionFlowShell({
   "aria-label": ariaLabel,
 }: ActionFlowShellProps) {
   const hasSteps = Boolean(steps && steps.length > 0);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const wasComplete = useRef(false);
+  useLayoutEffect(() => {
+    if (complete && !wasComplete.current) {
+      const scrollBody = bodyRef.current?.parentElement;
+      if (scrollBody) scrollBody.scrollTop = 0;
+      bodyRef.current?.focus({ preventScroll: true });
+    }
+    wasComplete.current = complete;
+  }, [complete]);
 
   return (
     <div
@@ -185,6 +195,8 @@ export function ActionFlowShell({
 
         <SheetBody padded={false} className="min-w-0">
           <div
+            ref={bodyRef}
+            tabIndex={-1}
             data-region="action-flow-body"
             aria-label={ariaLabel}
             className={cn("mx-auto w-full px-4 py-4 sm:px-6", contentClassName ?? "max-w-3xl")}

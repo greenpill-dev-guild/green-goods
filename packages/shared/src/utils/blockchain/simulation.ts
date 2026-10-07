@@ -67,7 +67,8 @@ export async function simulateTransaction(
   functionName: string,
   args: unknown[] = [],
   account: Address,
-  chainId?: number
+  chainId?: number,
+  value?: bigint
 ): Promise<SimulationResult> {
   try {
     const result = await simulateContract(getWagmiConfig(), {
@@ -77,6 +78,7 @@ export async function simulateTransaction(
       args,
       account,
       chainId,
+      ...(value !== undefined ? { value } : {}),
     });
 
     return {

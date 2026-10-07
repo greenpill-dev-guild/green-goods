@@ -1,5 +1,9 @@
 # Commitment Pooling - Claude QA Pass 1 Handoff
 
+## Status reconciliation (2026-10-06)
+
+The historical Linear QA issue is Done. The gates below describe the historical hub certification boundary and are not a request to reopen that issue. Current deployed acceptance belongs to [PRD-1009](https://linear.app/greenpill-dev-guild/issue/PRD-1009), paired with [PRD-1030](https://linear.app/greenpill-dev-guild/issue/PRD-1030). These updates record no new QA pass; the outstanding receipt reconciliation stays explicit in `status.json`.
+
 ## Status
 
 - Machine lane: qa_pass_1

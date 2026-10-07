@@ -16,6 +16,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { useIntl } from "react-intl";
 import type { Hex } from "viem";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
@@ -249,20 +250,33 @@ async function sendAndSettle(
  *   is lost. Proof is the exception: its composer lets go of the draft once the
  *   queue has it, so a declined proof stays, marked for the person's own send,
  *   and the promise offers Send Now and Discard (`keepDeclined`).
- * - Failed any other way: the job stays. The queued row and the failed-act
- *   surface carry it from here, with Try Again.
+ * - Failed any other way, a declined network switch included: the job stays. The
+ *   queued row carries it from here, with Send Now and Discard. Pressing the
+ *   form's button again is the same act, so the queue answers with this job
+ *   (`isSameCreationPlacedAgain`) and it is sent again as it was queued; a press
+ *   whose answers changed is refused, and this job is left as it was.
+ *
+ * Every tap starts the job on a fresh run of tries, as Send Now does. A press
+ * that reaches a job already queued would otherwise add to its failures until
+ * the queue gave up on it, and the press after that would file a second
+ * creation beside the spent one.
  */
 async function sendFromTap(
   jobId: string,
   sender: TransactionSender | null,
   report?: (event: CommitmentSendReport) => void,
-  { keepDeclined = false }: { keepDeclined?: boolean } = {}
+  {
+    keepDeclined = false,
+    foreground = false,
+  }: { keepDeclined?: boolean; foreground?: boolean } = {}
 ): Promise<void> {
-  if (sender?.authMode !== "wallet") {
-    // No prompt to answer here: the background flush sends it.
+  if (!foreground && sender?.authMode !== "wallet") {
+    // The client background processor owns these sends.
     tell(report, { stage: "queued" });
     return;
   }
+  if (!sender) throw new Error("Sign in before sending a commitment");
+  await jobQueue.retryJob(jobId);
   const result = await sendAndSettle(jobId, sender, report);
   if (result.success) {
     tell(report, { stage: "landed", txHash: result.txHash ?? null });
@@ -311,15 +325,21 @@ export async function retryQueuedCommitmentJob(
   throw new Error(result.error ?? SEND_FAILED);
 }
 
-export function useCommitmentJobs(options: { chainId?: number } = {}) {
+export function useCommitmentJobs(
+  options: { chainId?: number; execution?: "background" | "foreground" } = {}
+) {
   const currentChainId = useCurrentChain();
   const chainId = options.chainId ?? currentChainId;
+  const foreground = options.execution === "foreground";
   const viewer = usePrimaryAddress();
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
+  const { formatMessage } = useIntl();
   const handleError = createMutationErrorHandler({
     source: "useCommitmentJobs",
     toastContext: "commitment",
+    // A wrong network and an earlier version still queued read in the person's language.
+    formatMessage,
   });
 
   const mutation = useMutation({
@@ -332,7 +352,10 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
           : undefined;
       // From here the act is durable: whatever the send does, the queue holds it.
       tell(report, { stage: "admitted", jobId, ...(followUpJobId ? { followUpJobId } : {}) });
-      await sendFromTap(jobId, sender, report, { keepDeclined: input.act === "evidence" });
+      await sendFromTap(jobId, sender, report, {
+        keepDeclined: input.act === "evidence",
+        foreground,
+      });
       return jobId;
     },
     onSuccess: async (_jobId, input) => {
@@ -358,16 +381,21 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
   const sendQueued = useCallback(
     async ({ jobId, commitmentId }: { jobId: string; commitmentId: bigint }) => {
       let outcome: "landed" | "queued" = "queued";
-      await sendFromTap(jobId, sender, (event) => {
-        if (event.stage === "landed") outcome = "landed";
-      });
+      await sendFromTap(
+        jobId,
+        sender,
+        (event) => {
+          if (event.stage === "landed") outcome = "landed";
+        },
+        { foreground }
+      );
       await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       await queryClient.invalidateQueries({
         queryKey: commitmentPoolingKeys.commitment(chainId, commitmentId),
       });
       return outcome;
     },
-    [chainId, queryClient, sender]
+    [chainId, queryClient, sender, foreground]
   );
 
   return {
@@ -377,8 +405,8 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
     sendQueued,
     isPending: mutation.isPending,
     error: mutation.error,
-    /** A wallet reader's act is sent from the tap; anyone else's by the background flush. */
-    sendsFromTap: sender?.authMode === "wallet",
+    /** Admin sends from the tap in every auth mode; the client retains its background policy. */
+    sendsFromTap: foreground || sender?.authMode === "wallet",
     /** Absent until somebody is signed in; every act needs an owner. */
     viewer: viewer as Address | null,
   };

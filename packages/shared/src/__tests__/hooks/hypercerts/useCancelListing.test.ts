@@ -9,17 +9,29 @@ import { type QueryClient } from "@tanstack/react-query";
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test-utils/query-client";
-import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
+import { renderHookWithProviders as renderHookWithQueryClient } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
 const mockAssertMarketplaceReady = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
 const mockEncodeFunctionData = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
+let authMode: "wallet" | "passkey" = "wallet";
+const mockOwnership = vi.fn();
+const mockSender = () => ({
+  authMode,
+  sendContractCall: mockSendTransaction,
+  signTypedData: vi.fn(),
+  assertOwnership: mockOwnership,
+});
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mockSender(),
+}));
+
 const mockWaitForTransactionReceipt = vi.fn();
 
 // ============================================
@@ -41,10 +53,6 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   }),
 }));
 
-vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
-}));
-
 vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
@@ -52,22 +60,6 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
-  }),
-}));
-
-vi.mock("wagmi", () => ({
-  useWalletClient: () => ({
-    data: {
-      sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
-    },
-  }),
-}));
-
-vi.mock("../../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({
-    smartAccountClient: null,
-    smartAccountAddress: null,
-    eoaAddress: "0x2222222222222222222222222222222222222222",
   }),
 }));
 
@@ -105,11 +97,12 @@ import { useCancelListing } from "../../../hooks/hypercerts/useCancelListing";
 // Test Suite
 // ============================================
 
-describe("useCancelListing", () => {
+describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode) => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    authMode = mode;
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
@@ -120,7 +113,7 @@ describe("useCancelListing", () => {
       },
     });
     mockEncodeFunctionData.mockReturnValue("0xencoded");
-    mockSendTransaction.mockResolvedValue("0xtxhash");
+    mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
     mockWaitForTransactionReceipt.mockResolvedValue({});
   });
 
@@ -209,6 +202,14 @@ describe("useCancelListing", () => {
       await result.current.cancelListing(42);
     });
 
+    expect(mockSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: TEST_SIGNER,
+        chainId: TEST_CHAIN_ID,
+        functionName: "delistFromYield",
+      }),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
       queryKey: ["greengoods", "marketplace", "orders"],
     });

@@ -17,8 +17,10 @@ import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { suspendUploadPreparation } from "./upload-preparation";
 import { type WalletSubmissionStage } from "./wallet-submission/types";
+import type { DraftWorkLink } from "../../types/job-queue";
 
 export interface SubmitWorkCommand {
+  linkIntent?: DraftWorkLink | null;
   assertOwnership?: () => void | Promise<void>;
   onBroadcast?: (hash: `0x${string}`) => Promise<void>;
   onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
@@ -33,6 +35,8 @@ export interface SubmitWorkCommand {
   draft: WorkDraft;
   images: File[];
   allowOfflineQueue: boolean;
+  /** Retain an online wallet send for confirmation recovery without offline fallback. */
+  retainSubmission?: boolean;
 }
 
 export interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
@@ -80,7 +84,13 @@ export interface SubmitWorkPorts {
 }
 
 export type SubmitWorkOutcome =
-  | { kind: "direct"; txHash: `0x${string}`; sponsored: false; clientWorkId: string }
+  | {
+      kind: "direct";
+      txHash: `0x${string}`;
+      sponsored: false;
+      clientWorkId: string;
+      jobId?: string;
+    }
   | {
       kind: "queued" | "awaiting-confirmation";
       txHash: `0x${string}`;
@@ -157,7 +167,14 @@ export async function submitWork(
     ...command,
     clientWorkId: command.clientWorkId ?? ports.newClientWorkId?.() ?? crypto.randomUUID(),
   });
-  if (resolved.allowOfflineQueue && ports.queue.admit) return submitAdmittedWork(resolved, ports);
+  if ((resolved.allowOfflineQueue || resolved.retainSubmission) && ports.queue.admit) {
+    if (
+      !resolved.allowOfflineQueue &&
+      (resolved.authMode !== "wallet" || !(await ports.connectivity.confirm()))
+    )
+      throw new Error("Offline queue is disabled for this submission surface");
+    return submitAdmittedWork(resolved, ports);
+  }
   const online = await ports.connectivity.confirm();
 
   const awaitConfirmation = async (): Promise<SubmitWorkOutcome> => {
@@ -307,6 +324,7 @@ export function createDefaultSubmitWorkPorts(
             ...draft,
             ...(title ? { title } : {}),
             clientWorkId: input.clientWorkId,
+            linkIntent: input.linkIntent,
             gardenAddress: input.gardenAddress,
             actionUID: input.actionUID,
             media: input.images,
@@ -317,6 +335,7 @@ export function createDefaultSubmitWorkPorts(
             clientWorkId: input.clientWorkId,
             authMode: input.authMode,
             admissionToken,
+            ...(!input.allowOfflineQueue ? { requiresExplicitSend: true } : {}),
           }
         );
         const job = await jobQueueDB.getJob(jobId);

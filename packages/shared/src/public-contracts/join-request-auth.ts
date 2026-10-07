@@ -10,6 +10,11 @@ export function buildGardenJoinProofMessage(
   proof: Omit<GardenJoinProofEnvelope, "signature" | "factory" | "factoryData">,
   content: GardenJoinProofContent = {}
 ): string {
+  // A status read reconstructs the original signed create content. A create
+  // verifier supplies its actual body, so changing that body still invalidates it.
+  if (proof.readSelf && Object.keys(content).length === 0) {
+    content = { ...proof.readSelf.content, note: proof.readSelf.content.note ?? null };
+  }
   const lines = [
     "Green Goods Garden Join Request",
     "Version: 1",
@@ -21,6 +26,10 @@ export function buildGardenJoinProofMessage(
     `Issued at: ${proof.issuedAt}`,
     `Expires at: ${proof.expiresAt}`,
   ];
+  if (proof.readSelf) {
+    lines.push("Also authorize: read own join-request status until proof expiry");
+    lines.push(`Audience: ${escapeProofField(proof.readSelf.audience)}`);
+  }
   if (proof.requestId) lines.push(`Request ID: ${escapeProofField(proof.requestId)}`);
   if (proof.cursor) lines.push(`Cursor: ${escapeProofField(proof.cursor)}`);
   if (proof.expectedRevision !== undefined) {

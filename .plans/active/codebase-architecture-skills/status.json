@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-24T20:01:54.686Z",
-    "updated_at": "2026-09-28T13:22:23.877Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -41,7 +41,9 @@
     "Linear is parent-only; candidates and execution detail stay in this hub.",
     "The 2026-09-22 coverage ratchet checkpoint closed on 2026-09-28 by decision D3 (no raise; eleven measured critical-path floors replace it). The hub stays active for the agent workflow reliability follow-up.",
     "Implementation stays on the current develop branch; no branch or PR fan-out.",
-    "2026-09-26 authorized agent workflow reliability follow-up: handoffs/agent-workflow-reliability.md. Historical lane proof is preserved; live session confirmation and five-task pilot are pending."
+    "2026-09-26 authorized agent workflow reliability follow-up: handoffs/agent-workflow-reliability.md. Historical lane proof is preserved; live session confirmation and five-task pilot are pending.",
+    "2026-10-04 Software Factory follow-through: actual Codex app SessionStart context and PreToolUse/PostToolUse edit notices observed in the implementation conversation and matched to their owning scripts. No synthetic-event substitution or hook/config changes. Claude Desktop Code and unobserved events remain pending. The ordinary bug-fix pilot category is recorded from the smoke-fixture repair; four categories remain. See eval.md for scope and evidence.",
+    "2026-10-06 reconciliation: Corrected the obsolete ratchet-only summary. Current work is Claude Desktop hook observation and four remaining ordinary-task pilot categories; existing certification and concurrent changes are preserved."
   ],
   "lanes": {
     "ui": {
@@ -201,6 +203,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Closed the 2026-09-22 coverage_ratchet checkpoint by decision D3 (2026-09-28): no two-point raise; the eleven measured critical-path floors replace it; global floors and parity arrays unchanged. The lane stays in progress for the agent workflow reliability follow-up."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "Corrected the obsolete ratchet-only summary. Current work is Claude Desktop hook observation and four remaining ordinary-task pilot categories; existing certification and concurrent changes are preserved."
     }
   ]
 }

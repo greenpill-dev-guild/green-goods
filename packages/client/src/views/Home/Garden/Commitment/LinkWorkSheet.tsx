@@ -1,6 +1,5 @@
 import type { Action, Work } from "@green-goods/shared/types/domain";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
-import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
 import { type CommitmentRequirementRecord } from "@green-goods/shared/commitment-pooling";
@@ -86,7 +85,7 @@ export function LinkWorkSheet({
       : requirementIndex === null
         ? null
         : (eligibleRows.find((row) => row.requirementIndex === requirementIndex) ?? null);
-  const canConfirm = Boolean(workUID) && chosenRow !== null && !isPending;
+  const canConfirm = chosenWork !== null && chosenRow !== null && !isPending;
 
   return (
     <DialogShell
@@ -103,7 +102,8 @@ export function LinkWorkSheet({
           disabled: !canConfirm,
           loading: isPending,
           onClick: () => {
-            if (workUID && chosenRow) onConfirm(workUID, chosenRow.requirementIndex, operationId);
+            if (chosenWork && chosenRow)
+              onConfirm(chosenWork.id, chosenRow.requirementIndex, operationId);
           },
         },
         secondary: {
@@ -115,37 +115,11 @@ export function LinkWorkSheet({
     >
       <div className="space-y-4">
         {eligibleWorks.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-sm text-text-sub-600">
-              {formatMessage({ id: "app.commitment.link.empty" })}
-            </p>
-            <ul
-              className="space-y-2"
-              aria-label={formatMessage({ id: "app.commitment.link.rows" })}
-            >
-              {requirements.map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    data-pressable="row"
-                    onClick={() => onSubmitRequirement(row)}
-                    aria-label={formatMessage(
-                      { id: "app.commitment.link.submitRequirement" },
-                      { requirement: row.requirementIndex + 1 }
-                    )}
-                    className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-alpha-24"
-                  >
-                    {formatMessage({ id: "app.commitment.link.submitRequirementCta" })}
-                    <span className="mt-0.5 block text-xs font-normal text-text-sub-600">
-                      {actionTitle(row.actionUID)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="text-sm text-text-sub-600">
+            {formatMessage({ id: "app.commitment.link.empty" })}
+          </p>
         ) : (
-          <fieldset>
+          <fieldset disabled={isPending}>
             <SheetHeading as="legend">
               {formatMessage({ id: "app.commitment.link.work" })}
             </SheetHeading>
@@ -171,7 +145,7 @@ export function LinkWorkSheet({
                         setWorkUID(work.id);
                         setOperationId(crypto.randomUUID());
                       }}
-                      className="accent-[var(--color-primary-on-surface)]"
+                      className="accent-primary-on-surface"
                     />
                     <label
                       htmlFor={id}
@@ -199,37 +173,44 @@ export function LinkWorkSheet({
           </fieldset>
         )}
 
-        {eligibleRows.length > 1 ? (
-          <div>
-            <label className="block text-sm font-medium text-text-strong-950" htmlFor="link-row">
+        {chosenWork && eligibleRows.length > 1 ? (
+          <fieldset disabled={isPending}>
+            <SheetHeading as="legend">
               {formatMessage({ id: "app.commitment.link.row" })}
-            </label>
-            <NativeSelect
-              id="link-row"
-              value={requirementIndex ?? ""}
-              onChange={(event) => {
-                setRequirementIndex(event.target.value === "" ? null : Number(event.target.value));
-                setOperationId(crypto.randomUUID());
-              }}
-              className="mt-1.5"
-            >
-              <option value="">{formatMessage({ id: "app.commitment.link.rowChoose" })}</option>
+            </SheetHeading>
+            <div className="mt-2 space-y-2">
               {eligibleRows.map((row) => (
-                <option key={row.id} value={row.requirementIndex}>
-                  {formatMessage(
-                    { id: "app.commitment.link.rowOptionNamed" },
-                    {
-                      requirement: row.requirementIndex + 1,
-                      action: actionTitle(row.actionUID),
-                      done: Math.min(row.approvedCount, row.requiredCount),
-                      of: row.requiredCount,
-                    }
-                  )}
-                </option>
+                <label
+                  key={row.id}
+                  className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-3 text-sm text-text-strong-950 focus-within:ring-2 focus-within:ring-primary-on-surface"
+                >
+                  <input
+                    type="radio"
+                    name="link-requirement"
+                    value={row.requirementIndex}
+                    checked={requirementIndex === row.requirementIndex}
+                    onChange={() => {
+                      setRequirementIndex(row.requirementIndex);
+                      setOperationId(crypto.randomUUID());
+                    }}
+                    className="shrink-0 accent-primary-on-surface"
+                  />
+                  <span>
+                    {formatMessage(
+                      { id: "app.commitment.link.rowOptionNamed" },
+                      {
+                        requirement: row.requirementIndex + 1,
+                        action: actionTitle(row.actionUID),
+                        done: Math.min(row.approvedCount, row.requiredCount),
+                        of: row.requiredCount,
+                      }
+                    )}
+                  </span>
+                </label>
               ))}
-            </NativeSelect>
-          </div>
-        ) : chosenRow ? (
+            </div>
+          </fieldset>
+        ) : chosenWork && chosenRow ? (
           <p className="text-sm text-text-sub-600">
             {formatMessage(
               { id: "app.commitment.link.rowBound" },
@@ -237,6 +218,43 @@ export function LinkWorkSheet({
             )}
           </p>
         ) : null}
+
+        <section>
+          <SheetHeading>{formatMessage({ id: "app.commitment.link.newWork" })}</SheetHeading>
+          <ul
+            className="mt-2 space-y-2"
+            aria-label={formatMessage({ id: "app.commitment.link.rows" })}
+          >
+            {requirements.map((row) => (
+              <li key={row.id}>
+                <button
+                  type="button"
+                  data-pressable="row"
+                  onClick={() => onSubmitRequirement(row)}
+                  disabled={isPending}
+                  aria-label={formatMessage(
+                    { id: "app.commitment.link.submitRequirement" },
+                    { requirement: row.requirementIndex + 1 }
+                  )}
+                  className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-left text-sm font-medium text-text-strong-950 tap-target-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
+                >
+                  {formatMessage({ id: "app.commitment.link.submitRequirementCta" })}
+                  <span className="mt-0.5 block text-xs font-normal text-text-sub-600">
+                    {formatMessage(
+                      { id: "app.commitment.link.rowOptionNamed" },
+                      {
+                        requirement: row.requirementIndex + 1,
+                        action: actionTitle(row.actionUID),
+                        done: Math.min(row.approvedCount, row.requiredCount),
+                        of: row.requiredCount,
+                      }
+                    )}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </DialogShell>
   );

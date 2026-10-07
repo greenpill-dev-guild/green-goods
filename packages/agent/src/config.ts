@@ -48,6 +48,11 @@ export interface Config {
   joinRequestsEncryptionKey?: string;
   joinRequestsProductionReady: boolean;
 
+  // Passkey directory
+  passkeyDirectoryEnabled: boolean;
+  /** The hosted passkey server that predates the directory; its names stay taken. */
+  passkeyHostedDirectoryUrl?: string;
+
   // API
   botApiToken?: string;
   publicAllowedOrigins?: string;
@@ -173,6 +178,10 @@ export function loadConfig(): Config {
     joinRequestsEnabled: process.env.JOIN_REQUESTS_ENABLED === "true",
     joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
     joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
+
+    // Passkey directory
+    passkeyDirectoryEnabled: process.env.PASSKEY_DIRECTORY_ENABLED === "true",
+    passkeyHostedDirectoryUrl: process.env.PASSKEY_HOSTED_DIRECTORY_URL,
 
     // Analytics
     posthogApiKey,
@@ -349,6 +358,17 @@ export function validateConfig(config: Config): void {
   if (config.isProduction && config.joinRequestsEnabled && !config.joinRequestsProductionReady) {
     errors.push(
       "JOIN_REQUESTS_PRODUCTION_READY=true is required after every production activation gate is recorded."
+    );
+  }
+
+  if (
+    config.isProduction &&
+    config.passkeyDirectoryEnabled &&
+    !config.passkeyHostedDirectoryUrl?.trim()
+  ) {
+    errors.push(
+      "PASSKEY_HOSTED_DIRECTORY_URL is required when the passkey directory is enabled in production, " +
+        "so names registered on the hosted passkey server stay taken."
     );
   }
 

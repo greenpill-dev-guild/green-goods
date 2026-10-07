@@ -65,11 +65,29 @@ FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Media tools pinned to this image's Debian trixie release. Office conversion uses both Writer
+# and Calc in a bubblewrap namespace with prlimit bounds; it never falls back to an unsandboxed
+# process. Conversion fails closed when the runtime host lacks user-namespace support.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      poppler-utils=25.03.0-5+deb13u4 \
+      ffmpeg=7:7.1.5-0+deb13u1 \
+      libreoffice-writer=4:25.2.3-2+deb13u7 \
+      libreoffice-calc=4:25.2.3-2+deb13u7 \
+      bubblewrap=0.12.0-1~deb13u1 \
+      util-linux=2.41.5-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pdfinfo -v \
+    && ffmpeg -hide_banner -version | head -n 1 \
+    && ffprobe -hide_banner -version | head -n 1
+
 # Copy production dependencies and runtime workspace files only.
 # Env vars are injected by the runtime platform;
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/packages/agent/node_modules ./packages/agent/node_modules
+# Shared resolves runtime peers through its own Bun workspace links (for example zod).
+COPY --from=prod-deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=base /app/packages/agent/package.json ./packages/agent/package.json
 COPY --from=base /app/packages/agent/dist ./packages/agent/dist

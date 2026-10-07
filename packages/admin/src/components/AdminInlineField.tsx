@@ -114,12 +114,13 @@ export function AdminInlineField({
         />
         {action}
       </div>
-      {/* Supporting slot — family anatomy: reserved line, m3 roles, alert on error. */}
+      {/* Supporting slot — family anatomy: reserved line, m3 roles, alert on error.
+          `/4` pins a message to the 16px the slot reserves (see AdminTextField). */}
       <p
         id={`${inputId}-helper-text`}
         role={hasError ? "alert" : undefined}
         className={cn(
-          "min-h-4 px-3 text-body-sm",
+          "min-h-4 px-3 text-body-sm/4",
           hasError ? "[color:rgb(var(--m3-error))]" : "[color:rgb(var(--m3-on-surface-variant))]",
           disabled && "[color:rgb(var(--m3-on-surface)/0.38)]"
         )}

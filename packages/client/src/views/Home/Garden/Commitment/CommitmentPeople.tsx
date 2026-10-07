@@ -15,8 +15,9 @@ import {
   RiTimeLine,
   RiUserLine,
 } from "@remixicon/react";
-import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+
+import { Fact } from "@/components/Display";
 
 export interface CommitmentPeopleProps {
   commitment: CommitmentReadModel;
@@ -66,7 +67,6 @@ export function confirmerOf(
 export function CommitmentPeople({
   commitment,
   contributors,
-  seat,
   units,
   viewer,
   stewards,
@@ -92,6 +92,15 @@ export function CommitmentPeople({
     asker && !same(asker, commitment.leadProvider) && !same(asker, confirmer)
   );
   const you = formatMessage({ id: "app.commitment.people.you" });
+  const identity = (address: Address) =>
+    same(address, viewer) ? (
+      <div className="min-w-0 text-right">
+        <span className="block font-semibold text-primary-on-surface">{you}</span>
+        <AddressDisplay address={address} className="text-xs text-text-sub-600" />
+      </div>
+    ) : (
+      <AddressDisplay address={address} />
+    );
   const confirmerIsSteward = Boolean(
     confirmer && stewards.some((steward) => same(steward, confirmer))
   );
@@ -127,8 +136,7 @@ export function CommitmentPeople({
         <Fact
           icon={<RiUserLine />}
           label={formatMessage({ id: "app.commitment.people.provider" })}
-          value={<AddressDisplay address={commitment.leadProvider} />}
-          tag={seat === "provider" ? you : null}
+          value={identity(commitment.leadProvider)}
         />
       ) : null}
 
@@ -136,7 +144,7 @@ export function CommitmentPeople({
         <Fact
           icon={<RiQuestionAnswerLine />}
           label={formatMessage({ id: "app.commitment.people.askedBy" })}
-          value={<AddressDisplay address={asker} />}
+          value={identity(asker)}
         />
       ) : null}
 
@@ -166,11 +174,9 @@ export function CommitmentPeople({
         <Fact
           icon={<RiShieldCheckLine />}
           label={formatMessage({ id: "app.commitment.people.confirmer" })}
-          value={<AddressDisplay address={(confirmer ?? confirmingGarden) as Address} />}
+          value={identity((confirmer ?? confirmingGarden) as Address)}
           tag={
-            seat === "confirmer" ? (
-              you
-            ) : confirmerIsSteward ? (
+            confirmerIsSteward ? (
               <>
                 <RiShieldCheckLine className="h-3 w-3" aria-hidden="true" />
                 {formatMessage({ id: "app.roles.steward" })}
@@ -186,38 +192,5 @@ export function CommitmentPeople({
         </p>
       ) : null}
     </dl>
-  );
-}
-
-/** One labelled fact: an icon and its label on the start side, the value on the end. */
-export function Fact({
-  icon,
-  label,
-  value,
-  tag = null,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-  /** "You", or the role the person holds, beside the value. */
-  tag?: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2.5">
-      <dt className="flex shrink-0 items-center gap-2 text-xs text-text-sub-600">
-        <span className="flex text-text-soft-400 [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true">
-          {icon}
-        </span>
-        {label}
-      </dt>
-      <dd className="flex min-w-0 items-center justify-end gap-1 text-right text-sm text-text-strong-950">
-        {value}
-        {tag ? (
-          <span className="ms-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600">
-            {tag}
-          </span>
-        ) : null}
-      </dd>
-    </div>
   );
 }

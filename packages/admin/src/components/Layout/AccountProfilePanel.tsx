@@ -20,9 +20,12 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
+import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 export interface AccountProfilePanelProps {
   controller: AccountProfileController;
+  /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
+  layout?: AccountPanelLayout;
   className?: string;
 }
 
@@ -48,13 +51,17 @@ function IdentityChip({ children }: { children: ReactNode }) {
  *    the workspace (same action as the AppBar GardenChip).
  * 4. Sign out — pinned footer (identity action lives with identity).
  */
-export function AccountProfilePanel({ controller, className }: AccountProfilePanelProps) {
+export function AccountProfilePanel({
+  controller,
+  layout = "sheet",
+  className,
+}: AccountProfilePanelProps) {
   const { formatMessage } = useIntl();
   const {
     authMethodLabel,
     avatarFallback,
     eligibleGardens,
-    eoaAddress,
+    primaryAddress,
     headline,
     roleLabel,
     selectedGardenChoiceId,
@@ -64,7 +71,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
 
   return (
     <>
-      <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
+      <SheetBody {...accountPanelBodyProps(layout, className)}>
         {/* Identity header — who is signed in, at headline weight. */}
         <div className="flex items-center gap-4">
           <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
@@ -79,7 +86,7 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
           </div>
         </div>
 
-        {eoaAddress ? (
+        {primaryAddress ? (
           <>
             <SheetDivider />
 
@@ -92,9 +99,9 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
                 </h2>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
-                <AddressDisplay address={eoaAddress as Address} showCopyButton />
+                <AddressDisplay address={primaryAddress as Address} showCopyButton />
                 <a
-                  href={getBlockExplorerAddressUrl(DEFAULT_CHAIN_ID, eoaAddress)}
+                  href={getBlockExplorerAddressUrl(DEFAULT_CHAIN_ID, primaryAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex shrink-0 items-center gap-1 label-xs text-text-sub transition-colors hover:text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
@@ -170,7 +177,10 @@ export function AccountProfilePanel({ controller, className }: AccountProfilePan
   );
 }
 
-export function AccountProfilePanelContainer({ className }: { className?: string }) {
+export function AccountProfilePanelContainer({
+  layout,
+  className,
+}: Pick<AccountProfilePanelProps, "layout" | "className">) {
   const controller = useAccountProfileController();
-  return <AccountProfilePanel controller={controller} className={className} />;
+  return <AccountProfilePanel controller={controller} layout={layout} className={className} />;
 }

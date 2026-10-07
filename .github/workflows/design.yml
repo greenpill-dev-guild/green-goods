@@ -19,6 +19,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
@@ -46,11 +47,13 @@ on:
       - "!packages/shared/src/**/*.spec.*"
       - "scripts/data/design-token-usage-baseline.tsv"
       - "scripts/design/**"
+      - "scripts/quality/check-docs-design-parity.mjs"
       - "scripts/quality/check-story-coverage.ts"
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
+      - "scripts/dev/playwright-setup.test.mjs"
       - ".github/workflows/design.yml"
   pull_request:
     paths:
@@ -62,6 +65,7 @@ on:
       - "docs/DESIGN.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
       - "packages/admin/DESIGN.md"
@@ -89,11 +93,13 @@ on:
       - "!packages/shared/src/**/*.spec.*"
       - "scripts/data/design-token-usage-baseline.tsv"
       - "scripts/design/**"
+      - "scripts/quality/check-docs-design-parity.mjs"
       - "scripts/quality/check-story-coverage.ts"
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
+      - "scripts/dev/playwright-setup.test.mjs"
       - ".github/workflows/design.yml"
 
 permissions:
@@ -125,8 +131,11 @@ jobs:
       - name: Check design tokens
         run: bun run check --only design-tokens
 
-      - name: Run design guidance guardrail tests
-        run: node --test scripts/design/check-guidance-examples.test.mjs
+      - name: Check docs design parity
+        run: bun run check --only docs-design-parity
+
+      - name: Run design guardrail tests
+        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/dev/playwright-setup.test.mjs
 
       - name: Check banned vocabulary
         run: bun run check --only vocabulary
@@ -152,6 +161,26 @@ jobs:
         run: bun run --filter @green-goods/shared check:story-quality
 
       - name: Produce client PWA token audit
+        run: node scripts/design/md-generate.mjs --check
+
+      - name: Locate client PWA token audit
+        id: pwa_audit_file
+        if: ${{ always() && !cancelled() }}
+        shell: bash
+        run: |
+          if [ -f output/design/client-pwa-token-audit.md ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload client PWA token audit
+        if: ${{ always() && !cancelled() && steps.pwa_audit_file.outputs.present == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: client-pwa-token-audit
+          path: output/design/client-pwa-token-audit.md
+          if-no-files-found: error
+
+      - name: Check runtime design tokens
         run: bun run check --only design-tokens
 
       - name: Install Playwright Chromium
@@ -168,9 +197,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: storybook-static
-          path: |
-            packages/shared/storybook-static
-            output/design/client-pwa-token-audit.md
+          path: packages/shared/storybook-static
 
       - name: Publish Storybook to Chromatic
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_chromatic && env.CHROMATIC_PROJECT_TOKEN != '' }}

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   captureWorkFile,
   isHeicFile,
+  isWorkPhoto,
   validateWorkAttachments,
   roundWorkLocation,
   validateWorkVideo,
@@ -20,6 +21,15 @@ describe("work attachment boundaries", () => {
     const video = new File(["clip"], "clip.mp4", { type: "video/mp4" });
     expect(validateWorkAttachments([video], [], 0)).toEqual([]);
     expect(validateWorkAttachments([video], [], 1)).toContain("photos-required");
+  });
+  it("counts a JPEG, PNG or WebP as a photo, and a waiting HEIC only where one is kept", () => {
+    const file = (name: string, type: string) => new File(["x"], name, { type });
+    for (const type of ["image/jpeg", "image/png", "image/webp"]) {
+      expect(isWorkPhoto(file("garden", type))).toBe(true);
+    }
+    expect(isWorkPhoto(file("clip.mp4", "video/mp4"))).toBe(false);
+    expect(isWorkPhoto(file("garden.heic", "image/heic"))).toBe(false);
+    expect(isWorkPhoto(file("garden.heic", "image/heic"), { pendingHeic: "accept" })).toBe(true);
   });
   it("recognises a HEIC photo by type or by name, since Android often reports no type", () => {
     expect(isHeicFile(new File(["h"], "garden.heic", { type: "image/heic" }))).toBe(true);

@@ -57,7 +57,7 @@ export function PwaApp() {
       persistence={persistence}
       onRestored={dropPersistedPoolingReads}
     >
-      <AppErrorBoundary>
+      <AppErrorBoundary view="frame">
         <RouterProvider router={pwaRouter} />
       </AppErrorBoundary>
     </QueryPersistenceProvider>

@@ -5,7 +5,7 @@ import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
   EditorialPrimaryLink,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
@@ -85,12 +85,9 @@ export default function Home() {
           {
             id: "public.home.hero.title",
             defaultMessage:
-              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+              "<line>From <accent>good</accent></line> <line>intentions to</line> <line><accent>green</accent> outcomes</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-            noBreak: (chunks) => <span className="whitespace-nowrap">{chunks}</span>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.home.hero.lede",

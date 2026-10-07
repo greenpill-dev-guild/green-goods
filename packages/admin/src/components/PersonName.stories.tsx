@@ -46,7 +46,7 @@ const meta: Meta<typeof PersonName> = {
     docs: {
       description: {
         component:
-          "What the cockpit calls a person (PRD-1025 D11): their Green Goods name first, then their ENS name, then a short address, never a raw hex string. One lookup and one style, 14px semibold, so a confirmer chip, a member suggestion and a row waiting for approval name the same person the same way. The full address stays in the hover title.",
+          "What the cockpit calls a person (PRD-1025 D11): their Green Goods name first, then their ENS name, then a short address, never a raw hex string. One lookup and one style, 14px semibold, so a confirmer chip, a member suggestion and a Review Promises row name the same person the same way. The full address stays in the hover title.",
       },
     },
   },

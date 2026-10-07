@@ -93,3 +93,14 @@ export const MissingTitle: Story = {
 };
 
 export const Queuing: Story = { args: { busy: true } };
+
+export const GardenWork: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "GARDEN_WORK",
+      title: "Plant and care for the north beds",
+      cycleId: "12",
+    },
+  },
+};

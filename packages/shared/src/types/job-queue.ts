@@ -83,6 +83,12 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  /** Admission input; replaced with a canonical dependent job before persistence. */
+  linkIntent?: DraftWorkLink | null;
+  /** Kept with the admitted Work so cancellation cannot lose its original target. */
+  dependentWorkLink?: Extract<WorkLinkJobPayload, { clientWorkId: string }>;
+  /** Receipt-verified snapshot, committed with the completion before the queued files leave. */
+  confirmedWork?: import("./domain").Work;
   location?: ApproximateWorkLocation;
   uploadCheckpoint?: WorkUploadCheckpoint;
   /** Stable identity encoded into metadata; optional only for persisted legacy jobs. */
@@ -285,6 +291,11 @@ export interface WorkDraftRecord {
   tags?: string[];
   location?: ApproximateWorkLocation;
   revision?: number;
+  /**
+   * Counts the saves that changed the work itself: its garden, action, words,
+   * details, time, tags, place or attachments. Moving between steps does not.
+   */
+  contentRevision?: number;
   clientWorkId?: string;
   uploadCheckpoint?: WorkUploadCheckpoint;
   id: string;

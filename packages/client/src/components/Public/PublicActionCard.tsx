@@ -1,4 +1,5 @@
 import type { Action } from "@green-goods/shared/types/domain";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -24,9 +25,14 @@ const DOMAIN_INK_CLASSES: Record<EditorialDomain, string> = {
  * Editorial dialect: no border, no shadow, hairline-only chrome. Domain tag
  * carries the Action's domain ink (umber / moss / violet / harbour) so the
  * grid reads as a field index rather than a generic card wall.
+ *
+ * The title and description read in the visitor's language when the template
+ * stores a reviewed translation for it, and in English otherwise. `onOpen`
+ * hands back the template as given, not the translated copy.
  */
 export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
+  const { title, description } = localizeAction(action, locale);
   const slug = domainSlug(action.domain);
   const domainKey: EditorialDomain = (slug ?? "all") as EditorialDomain;
   const domainLabel = formatMessage({
@@ -44,7 +50,7 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-editorial-warm">
         <ImageWithFallback
           src={action.media[0] ?? "/images/no-image-placeholder.png"}
-          alt={action.title}
+          alt={title}
           className="h-full w-full object-cover"
         />
       </div>
@@ -58,16 +64,13 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
       </span>
       <h3
         className="font-serif text-xl font-normal leading-[1.18] tracking-[-0.01em] text-text-strong-950 group-hover:text-primary-action"
-        title={action.title}
+        title={title}
       >
-        <span className="line-clamp-2">{action.title}</span>
+        <span className="line-clamp-2">{title}</span>
       </h3>
-      {action.description ? (
-        <p
-          className="line-clamp-3 text-sm leading-[1.55] text-text-sub-600"
-          title={action.description}
-        >
-          {action.description}
+      {description ? (
+        <p className="line-clamp-3 text-sm leading-[1.55] text-text-sub-600" title={description}>
+          {description}
         </p>
       ) : null}
     </button>

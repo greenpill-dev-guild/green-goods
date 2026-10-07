@@ -23,13 +23,33 @@ import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
-import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
+import type {
+  CommitmentJobKind,
+  ConfirmationJobPayload,
+} from "../../modules/commitment-pooling/job-types";
 import {
   COMMITMENT_JOB_KINDS,
   commitmentJobPrerequisite,
 } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
+import { parseContractError } from "../../utils/errors/contract-errors";
+import { classifyTxError } from "../../utils/errors/tx-error-classifier";
+
+/**
+ * Why a queued act's last send did not go, as translated copy a row may show:
+ * a message id and the values it takes, never the queue's own text.
+ */
+export interface FailedSendReason {
+  messageId: string;
+  values?: Record<string, string>;
+  /**
+   * The wallet was on another network, or would not move to the one the act
+   * needed. A declined switch marks an act as a declined signature does, so a
+   * row reads this to say which of the two it was.
+   */
+  walletNetwork?: true;
+}
 
 /** A commitment composed on this phone that has not reached the chain yet. */
 export interface PendingCommitmentCreation {
@@ -54,6 +74,8 @@ export interface PendingCommitmentCreation {
   groupDueDate?: string;
   /** A recorded send must still be reconciled after the deadline. */
   hasRecordedSend?: boolean;
+  /** Why its last send failed; absent when none has, and once it is tried again. */
+  sendFailure?: FailedSendReason;
   createdAt: number;
 }
 
@@ -65,10 +87,14 @@ export interface PendingCommitmentCreation {
 export interface PendingCommitmentAct {
   jobId: string;
   kind: CommitmentJobKind;
+  /** Submission asks the confirmer to review; confirmation records their decision. */
+  confirmationAction?: ConfirmationJobPayload["action"];
   /** Why the last flush left it waiting, when the queue recorded a reason. */
   waitingReason: string | null;
   /** Whether throwing it away is safe (its transaction was never sent). */
   discardable: boolean;
+  /** Why its last send failed; absent when none has, and once it is tried again. */
+  sendFailure?: FailedSendReason;
   createdAt: number;
 }
 
@@ -153,6 +179,24 @@ function explainTerminalFailure(
     return { reason: "commitmentClosed", retryable: false };
   }
   return { reason: "identityConflict", retryable: false };
+}
+
+/**
+ * Why a send that failed did not go. A wallet on another network says which one
+ * the act needed; any other failure reads as its kind (the connection, gas, a
+ * refusal by the chain), in the words inline transaction errors already use.
+ */
+function explainFailedSend(lastError?: string): FailedSendReason | undefined {
+  if (!lastError) return undefined;
+  const parsed = parseContractError(lastError);
+  if (parsed.name === "WalletOnAnotherNetwork" && parsed.messageKey) {
+    return {
+      messageId: parsed.messageKey,
+      ...(parsed.messageValues ? { values: parsed.messageValues } : {}),
+      walletNetwork: true,
+    };
+  }
+  return { messageId: classifyTxError(lastError).messageKey };
 }
 
 /**
@@ -260,6 +304,8 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           // Creations record submittedTxHash in meta; acts use sendCheckpoint.
           // Discardability also accounts for a broadcast retained in memory.
           hasRecordedSend: !isDiscardableJob(job),
+          // One that gave up says so in its own words, not as a failed send.
+          sendFailure: failed ? undefined : explainFailedSend(job.lastError),
           createdAt: job.createdAt,
         });
       }
@@ -283,8 +329,12 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
+          ...(job.kind === "confirmation"
+            ? { confirmationAction: (job.payload as ConfirmationJobPayload).action }
+            : {}),
           waitingReason: pendingActWaitingReason(job),
           discardable: isDiscardableJob(job),
+          sendFailure: explainFailedSend(job.lastError),
           createdAt: job.createdAt,
         });
       } else if (job.kind === "commitment") hasPendingCreate = true;

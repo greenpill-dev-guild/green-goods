@@ -511,6 +511,19 @@
   to   { opacity: 0; transform: scale(0.96); }
 }
 
+/* The side sheet travels its own width plus its inset, so it starts and ends
+ * fully past the viewport's right edge. Like the bottom sheet, it is a solid
+ * surface that moves without a fade. */
+@keyframes dialogSlideInFromRight {
+  from { transform: translate3d(calc(100% + 1rem), 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes dialogSlideOutToRight {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(calc(100% + 1rem), 0, 0); }
+}
+
 @keyframes scrimFadeIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scrimFadeOut { from { opacity: 1; } to { opacity: 0; } }
 
@@ -552,6 +565,18 @@
 [data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
   animation: dialogZoomOut var(--spring-spatial-duration)
     var(--spring-spatial-easing) both;
+}
+
+/* Side sheet enter/exit — DialogShell docked to the right edge. The extra
+ * attribute outranks the centered rules above. */
+[data-component="DialogShell"][data-slot="surface"][data-placement="right"][data-state="open"] {
+  animation: dialogSlideInFromRight var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+
+[data-component="DialogShell"][data-slot="surface"][data-placement="right"][data-state="closed"] {
+  animation: dialogSlideOutToRight var(--spring-spatial-exit-duration)
+    var(--spring-spatial-exit-easing) both;
 }
 
 /* Image viewer — pure fade */
@@ -866,6 +891,11 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+  }
+
+  /* The side sheet runs from its top inset to its bottom one, not to the centered cap. */
+  [data-component="DialogShell"][data-slot="surface"][data-placement="right"] {
+    max-height: none;
   }
 
   [data-component="DialogShell"][data-slot="surface"] > [data-component="SheetActions"] {

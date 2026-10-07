@@ -60,15 +60,19 @@ export function checkRateLimitWithPolicy(
     route === "join_request_create" ||
     route === "join_request_read" ||
     route === "join_request_resolve";
+  const isPasskeyRoute = route === "passkey_registration" || route === "passkey_lookup";
   const usesOriginIndependentKeys =
-    isJoinRequestRoute || route === "garden_impact_read" || route === "commitment_impact_read";
+    isJoinRequestRoute ||
+    isPasskeyRoute ||
+    route === "garden_impact_read" ||
+    route === "commitment_impact_read";
   if (usesOriginIndependentKeys) {
     const aggregateRoute = route === "join_request_create" ? "join_request_create_ip" : route;
     const aggregateIpResult = limiter.check(
       publicIpMaterialRateLimitKey({
         route: aggregateRoute,
         request: c.req.raw,
-        material: "all-gardens",
+        material: isPasskeyRoute ? "all-names" : "all-gardens",
         trustedProxy: deps.trustedProxy,
       }),
       PUBLIC_RATE_LIMIT_POLICIES[aggregateRoute],
@@ -99,7 +103,7 @@ export function checkRateLimitWithPolicy(
     ? publicIpMaterialRateLimitKey({
         route,
         request: c.req.raw,
-        material,
+        material: isPasskeyRoute ? `name:${material}` : material,
         trustedProxy: deps.trustedProxy,
       })
     : publicRateLimitKey({

@@ -1,0 +1,99 @@
+import { registerGrantActivationRoutes } from "./grant-activation";
+import type { Hono } from "hono";
+import * as z from "zod";
+import { gardenLabel } from "../../../services/reporting/coordinator/prompting";
+import type { ReportingCore } from "../../../services/reporting/runtime";
+import { grantById, type GrantRecord } from "../../../services/reporting/grants-store";
+import { approveGrant, pauseGrant } from "../../../services/reporting/grants";
+import { proposeGrant } from "../../../services/reporting/grant-proposal";
+import { currentSession, failure, limited, type MessagingRouteDeps, readBody } from "./http";
+
+const approvalSchema = z.object({
+  expectedVersion: z.number().int().min(1),
+  policyDigest: z.string().regex(/^0x[0-9a-f]{64}$/),
+  enableReference: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+});
+
+function view(grant: GrantRecord, core: ReportingCore) {
+  return {
+    ok: true as const,
+    grant: {
+      grantId: grant.id,
+      gardenLabel: gardenLabel(core.gardens, grant.gardenAddress),
+      purpose: grant.purpose,
+      state: grant.state,
+      version: grant.version,
+      policy: grant.policy,
+      policyDigest: grant.policyDigest,
+      permissionId: grant.permissionId,
+      submissionsUsed: grant.submissionsReserved + grant.submissionsConsumed,
+      revocationDescriptor: grant.revocationDescriptor
+        ? JSON.parse(grant.revocationDescriptor)
+        : null,
+    },
+  };
+}
+
+/**
+ * Kernel execution grants, behind the grant session the chat issued. Without configured grant
+ * dependencies (delegation disabled) every call answers `unsupported_scope`.
+ */
+export function registerGrantRoutes(app: Hono, deps: MessagingRouteDeps): void {
+  registerGrantActivationRoutes(app, deps);
+  app.post("/messaging/execution-grants", async (c) => {
+    const session = currentSession(c, deps, true);
+    if (!session) return failure(c, "access_required");
+    if (limited(c, deps, "messaging_mutation", session.accessId)) return failure(c, "rate_limited");
+    if (!deps.grants || session.request.resourceKind !== "grant" || !session.request.resourceId)
+      return failure(c, "unsupported_scope");
+    const core = deps.core();
+    const resourceId = session.request.resourceId;
+    const metadata = core.db
+      .query(
+        session.request.purpose === "grant_review"
+          ? `SELECT w.garden_address FROM review_intents r JOIN work_records w
+         ON w.chain_id = r.chain_id AND w.work_uid = r.work_uid WHERE r.id = $id`
+          : "SELECT garden_address FROM work_drafts WHERE id = $id"
+      )
+      .get({ id: resourceId }) as { garden_address: string | null } | null;
+    const garden = metadata?.garden_address;
+    if (!garden) return failure(c, "unavailable");
+    const result = await proposeGrant({ core, chain: deps.chain, ...deps.grants }, session, garden);
+    return result.ok ? c.json(view(result.grant, deps.core()), 201) : failure(c, result.errorCode);
+  });
+
+  app.get("/messaging/execution-grants/:id", (c) => {
+    const session = currentSession(c, deps, false);
+    if (!session) return failure(c, "access_required");
+    const grant = grantById(deps.core(), c.req.param("id"));
+    return grant && grant.accountBindingId === session.accountBindingId
+      ? c.json(view(grant, deps.core()))
+      : failure(c, "unavailable");
+  });
+
+  app.post("/messaging/execution-grants/:id/approval", async (c) => {
+    const session = currentSession(c, deps, true);
+    if (!session) return failure(c, "access_required");
+    if (!deps.grants) return failure(c, "unsupported_scope");
+    const body = await readBody(c, approvalSchema);
+    if (!body) return failure(c, "invalid_request");
+    const result = approveGrant(deps.core(), session, {
+      grantId: c.req.param("id"),
+      expectedVersion: body.expectedVersion,
+      policyDigest: body.policyDigest,
+      enableReference: body.enableReference as `0x${string}`,
+    });
+    return result.ok ? c.json(view(result.grant, deps.core())) : failure(c, result.errorCode);
+  });
+
+  app.post("/messaging/execution-grants/:id/pause", (c) => {
+    const session = currentSession(c, deps, true);
+    if (!session) return failure(c, "access_required");
+    const core = deps.core();
+    const grant = grantById(core, c.req.param("id"));
+    if (!grant || grant.accountBindingId !== session.accountBindingId)
+      return failure(c, "unavailable");
+    pauseGrant(core, grant.id, session.participantId);
+    return c.json(view(grantById(core, grant.id) as GrantRecord, core));
+  });
+}

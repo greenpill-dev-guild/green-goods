@@ -8,9 +8,21 @@ import {
   type SubmitWorkCommand,
 } from "../../modules/work/submit-work-command";
 import type { Action } from "../../types/domain";
-import type { WorkJobPayload } from "../../types/job-queue";
+import type { DraftWorkLink, WorkDraftRecord, WorkJobPayload } from "../../types/job-queue";
 import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
+import { draftDB } from "../../modules/job-queue/draft-db";
+import {
+  deleteDraftOfQueuedWork,
+  listWorkDrafts,
+  returnChangedWorkToDraft,
+} from "../../modules/work/draft-lifecycle";
+import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
+import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import { dependentWorkLinkPayload } from "../../modules/commitment-pooling/work-link-intent";
+import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 
 // Whether a waiting HEIC photo can convert is each test's call.
 const heic = vi.hoisted(() => ({
@@ -18,6 +30,15 @@ const heic = vi.hoisted(() => ({
 }));
 vi.mock("../../modules/work/heic-conversion", () => heic);
 const hash = `0x${"12".repeat(32)}` as const;
+const LINK: DraftWorkLink = {
+  commitmentId: "14",
+  requirementIndex: 0,
+  actionUID: 1,
+  garden: "0x1111111111111111111111111111111111111111",
+  commitmentTitle: "Water seedlings",
+  requirementLabel: "Watering",
+  returnTo: "/home",
+};
 function fixture() {
   const command: SubmitWorkCommand = {
     clientWorkId: crypto.randomUUID(),
@@ -53,7 +74,411 @@ function fixture() {
   ports.direct.submitWork = send;
   return { command, ports, send };
 }
+
+/**
+ * Submit from the wizard with a wallet whose prompt is declined: the draft is
+ * saved first, as the wizard saves it, and the queue admits the work before
+ * the wallet asks.
+ */
+async function declinedWalletWork(linkIntent?: DraftWorkLink) {
+  const { command, ports, send } = fixture();
+  if (linkIntent) command.chainId = 42161;
+  const photo = new File([new Uint8Array([1, 2, 3, 4])], "bed.jpg", { type: "image/jpeg" });
+  const draftId = crypto.randomUUID();
+  const wizardSaves = (change: Partial<WorkDraftRecord> = {}) =>
+    draftDB.saveSnapshot(
+      command.userAddress!,
+      command.chainId,
+      draftId,
+      {
+        gardenAddress: command.gardenAddress,
+        actionUID: 1,
+        feedback: command.draft.feedback,
+        ...change,
+      },
+      [photo],
+      []
+    );
+  const record = await wizardSaves(linkIntent ? { linkIntent } : {});
+  Object.assign(
+    command,
+    await createDraftUploadPersistence(record, command.draft, { current: null }),
+    { images: [photo] }
+  );
+  ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
+    await input.onCheckpoint?.({
+      submittedAt: new Date().toISOString(),
+      files: {},
+      broadcastPending: true,
+      broadcastPendingAt: new Date().toISOString(),
+    });
+    throw new WorkSubmissionError(
+      "User rejected the request.",
+      "transaction",
+      "batch",
+      Object.assign(new Error("User rejected the request."), { code: 4001 })
+    );
+  });
+  await expect(submitWork(command, ports)).rejects.toThrow();
+  const queued = async () =>
+    (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "work", synced: false })
+    ).filter((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId);
+  const listedDrafts = async () =>
+    (await listWorkDrafts(command.userAddress!, command.chainId)).filter(
+      (draft) => draft.id === draftId
+    );
+  return { command, ports, send, draftId, queued, listedDrafts, wizardSaves };
+}
+
 describe("PWA durable submission boundary", () => {
+  it.each([
+    true,
+    false,
+  ])("backfills a legacy Work before another cancelled signature (missing child: %s)", async (missingChild) => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    if (missingChild) await jobQueueDB.deleteJob((await links())[0].id);
+    const photos = await jobQueueDB.getImagesForJob(source.id);
+
+    await expect(submitWork(command, ports)).rejects.toThrow("User rejected the request");
+
+    expect(await queued()).toHaveLength(1);
+    expect(await links()).toHaveLength(1);
+    expect((await links())[0].payload).toMatchObject({
+      sourceWorkJobId: source.id,
+      commitmentId: 14n,
+      requirementIndex: 0,
+    });
+    expect((await queued())[0].payload).toMatchObject({
+      dependentWorkLink: { commitmentId: 14n, requirementIndex: 0 },
+    });
+    expect(await jobQueueDB.getImagesForJob(source.id)).toEqual(photos);
+  });
+
+  it.each([
+    { commitmentId: "15" },
+    { requirementIndex: 1 },
+  ])("rejects a different target before adopting and sending queued Work: %s", async (change) => {
+    const { command, ports, send, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    command.linkIntent = { ...LINK, ...change };
+    ports.direct.submitWork = send;
+
+    await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
+
+    expect(send).not.toHaveBeenCalled();
+    expect((await queued())[0].id).toBe(source.id);
+    const links = (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })
+    ).filter(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0].payload).toMatchObject({ commitmentId: 14n, requirementIndex: 0 });
+  });
+
+  it("refuses to backfill a target that conflicts with a legacy Work's existing child", async () => {
+    const { command, ports, send, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    command.linkIntent = { ...LINK, requirementIndex: 1 };
+    ports.direct.submitWork = send;
+
+    await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
+
+    expect(send).not.toHaveBeenCalled();
+    expect((await queued())[0].payload).toEqual(legacyPayload);
+  });
+
+  it.each([
+    { gardenAddress: "0x3333333333333333333333333333333333333333" as const, actionUID: 1 },
+    { gardenAddress: LINK.garden as `0x${string}`, actionUID: 2 },
+  ])("checks the stored Work's garden and action before legacy backfill: %s", async (change) => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const originalLink = (
+      await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })
+    ).find(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+    )!;
+    await jobQueueDB.deleteJob(originalLink.id);
+    Object.assign(command, change, {
+      linkIntent: { ...LINK, garden: change.gardenAddress, actionUID: change.actionUID },
+    });
+
+    await expect(ports.queue.admit!(command as ResolvedSubmitWorkCommand)).rejects.toThrow(
+      "work-link-intent-mismatch"
+    );
+
+    expect((await queued())[0].payload).toEqual(legacyPayload);
+    expect(
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      )
+    ).toEqual([]);
+  });
+
+  it("rolls back the dependent link when sealing a legacy Work fails", async () => {
+    const { command, ports, queued } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const db = await jobQueueDB.init();
+    const { dependentWorkLink: _link, ...legacyPayload } = source.payload as WorkJobPayload;
+    await db.jobs.update(source.id, { payload: legacyPayload });
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    await jobQueueDB.deleteJob((await links())[0].id);
+    const failure = vi
+      .spyOn(db.jobs, "update")
+      .mockRejectedValueOnce(new Error("backfill-write-failed"));
+    try {
+      await expect(ports.queue.admit!(command as ResolvedSubmitWorkCommand)).rejects.toThrow(
+        "backfill-write-failed"
+      );
+      expect(await links()).toEqual([]);
+      expect((await queued())[0].payload).toEqual(legacyPayload);
+    } finally {
+      failure.mockRestore();
+    }
+  });
+
+  it.each([
+    0, 1,
+  ])("admits replacement Work after an edited cancelled draft, preserving terminal links (requirement: %s)", async (requirementIndex) => {
+    const { command, ports, send, queued, wizardSaves } = await declinedWalletWork(LINK);
+    const source = (await queued())[0];
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    const originalLink = (await links())[0];
+    const edited = await wizardSaves({
+      feedback: "Watered another bed",
+      linkIntent: { ...LINK, requirementIndex },
+    });
+    expect(await returnChangedWorkToDraft(edited, jobQueue)).toBe(true);
+    expect(await queued()).toEqual([]);
+    expect(isTerminallyFailedJob((await links())[0])).toBe(true);
+    const returned = (await draftDB.getDraft(edited.id))!;
+    command.draft = {
+      ...command.draft,
+      feedback: returned.feedback!,
+      uploadCheckpoint: returned.uploadCheckpoint,
+    };
+    Object.assign(
+      command,
+      await createDraftUploadPersistence(returned, command.draft, { current: null })
+    );
+
+    await expect(submitWork(command, ports)).rejects.toThrow("User rejected the request");
+
+    const replacement = (await queued())[0];
+    expect(replacement.id).not.toBe(source.id);
+    const activeLinks = (await links()).filter((job) => !isTerminallyFailedJob(job));
+    expect(activeLinks).toHaveLength(1);
+    expect(activeLinks[0].payload).toMatchObject({
+      sourceWorkJobId: replacement.id,
+      requirementIndex,
+    });
+    expect((await links()).find((job) => job.id === originalLink.id)).toMatchObject({
+      attempts: 5,
+      lastError: "identity_conflict:source-work-terminal",
+    });
+    ports.direct.submitWork = send;
+    const outcome = await submitWork(command, ports);
+    await expect(
+      jobQueue.addJob(
+        "workLink",
+        dependentWorkLinkPayload(
+          command.clientWorkId!,
+          {
+            commitmentId: 14n,
+            requirementIndex,
+            garden: LINK.garden as `0x${string}`,
+          },
+          outcome.jobId
+        ) as Parameters<typeof jobQueue.addJob<"workLink">>[1],
+        command.userAddress!,
+        { chainId: 42161 }
+      )
+    ).resolves.toBe(activeLinks[0].id);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the original dependent link through cancelled signing, queue-only recovery and draft retirement", async () => {
+    const original = LINK;
+    const { command, ports, send, draftId, queued, wizardSaves } =
+      await declinedWalletWork(original);
+    const source = (await queued())[0];
+    const links = async () =>
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress!, kind: "workLink" })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      );
+    expect(await links()).toHaveLength(1);
+    expect((await links())[0]).toMatchObject({
+      chainId: 42161,
+      payload: {
+        commitmentId: 14n,
+        requirementIndex: 0,
+        sourceWorkJobId: source.id,
+        gardenAddress: original.garden,
+        clientWorkId: command.clientWorkId,
+      },
+    });
+    // A later edited draft cannot retarget the version already admitted to the queue.
+    await wizardSaves({ linkIntent: { ...original, commitmentId: "15", requirementIndex: 1 } });
+    ports.direct.submitWork = send;
+    const outcome = await submitWork(command, ports);
+    expect(outcome.kind).toBe("direct");
+    const admittedLink = (await links())[0];
+    await expect(
+      jobQueue.addJob(
+        "workLink",
+        dependentWorkLinkPayload(
+          command.clientWorkId!,
+          {
+            commitmentId: 14n,
+            requirementIndex: 0,
+            garden: original.garden as `0x${string}`,
+          },
+          outcome.jobId
+        ) as Parameters<typeof jobQueue.addJob<"workLink">>[1],
+        command.userAddress!,
+        { chainId: 42161 }
+      )
+    ).resolves.toBe(admittedLink.id);
+    await deleteDraftOfQueuedWork(source, "retire");
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
+    expect(await links()).toHaveLength(1);
+    expect((await links())[0].payload).toMatchObject({ commitmentId: 14n, requirementIndex: 0 });
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "direct" });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(await links()).toHaveLength(1);
+    await jobQueueDB.deleteJob((await links())[0].id);
+  });
+
+  it("rolls back the Work and dependent link when photo storage fails, before signing", async () => {
+    const { command, ports, send } = fixture();
+    command.chainId = 42161;
+    command.linkIntent = LINK;
+    command.images = [new File(["photo"], "seedlings.jpg", { type: "image/jpeg" })];
+    const db = await jobQueueDB.init();
+    const failure = vi
+      .spyOn(db.job_images, "bulkAdd")
+      .mockRejectedValueOnce(new Error("photo-storage-failed"));
+    try {
+      await expect(submitWork(command, ports)).rejects.toThrow("photo-storage-failed");
+      expect(send).not.toHaveBeenCalled();
+      const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
+      expect(
+        jobs.filter(
+          (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+        )
+      ).toEqual([]);
+    } finally {
+      failure.mockRestore();
+    }
+  });
+
+  it("admits concurrent retries as one Work and one dependent link", async () => {
+    const { command, ports } = fixture();
+    command.chainId = 42161;
+    command.linkIntent = LINK;
+    const [first, retry] = await Promise.all([
+      ports.queue.admit!(command as ResolvedSubmitWorkCommand),
+      ports.queue.admit!(command as ResolvedSubmitWorkCommand),
+    ]);
+    expect(first.jobId).toBe(retry.jobId);
+    const jobs = (await jobQueueDB.getJobs({ userAddress: command.userAddress! })).filter(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+    );
+    expect(jobs.map((job) => job.kind).sort()).toEqual(["work", "workLink"]);
+    await Promise.all(jobs.map((job) => jobQueueDB.deleteJob(job.id)));
+  });
+
+  it.each([
+    { garden: "0x3333333333333333333333333333333333333333" },
+    { actionUID: 2 },
+    { commitmentId: "invalid" },
+  ])("rejects a mismatched dependent target before admitting or signing Work: %s", async (change) => {
+    const { command, ports, send } = fixture();
+    command.chainId = 42161;
+    command.linkIntent = { ...LINK, ...change };
+    await expect(submitWork(command, ports)).rejects.toThrow("work-link-intent-mismatch");
+    expect(send).not.toHaveBeenCalled();
+    expect(
+      (await jobQueueDB.getJobs({ userAddress: command.userAddress! })).filter(
+        (job) => (job.payload as { clientWorkId?: string }).clientWorkId === command.clientWorkId
+      )
+    ).toEqual([]);
+  });
+  it("retains an admin broadcast and checks its receipt without broadcasting again", async () => {
+    const { command, ports } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    const broadcast = vi.fn();
+    let confirmed = false;
+    ports.direct.submitWork = vi.fn(async (input) => {
+      if (!input.draft.uploadCheckpoint?.transactionHash) {
+        broadcast();
+        await input.onBroadcast?.(hash);
+      }
+      if (!confirmed) throw new AwaitingWorkConfirmation(hash);
+      return hash;
+    });
+    const outcome = await submitWork(command, ports);
+    expect(outcome.kind).toBe("awaiting-confirmation");
+    const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    const retained = jobs.find(
+      (job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId
+    )!;
+    expect(retained.payload).toMatchObject({ uploadCheckpoint: { transactionHash: hash } });
+    expect(retained.meta?.requiresExplicitSend).toBe(true);
+    await expect(
+      submitWork({ ...command, draft: { ...command.draft, uploadCheckpoint: undefined } }, ports)
+    ).resolves.toMatchObject({ kind: "awaiting-confirmation", jobId: retained.id });
+    confirmed = true;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "direct",
+      txHash: hash,
+    });
+    expect(broadcast).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps admin offline and unsent network failures out of queued-success outcomes", async () => {
+    const { command, ports, send } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    ports.connectivity.confirm = async () => false;
+    await expect(submitWork(command, ports)).rejects.toThrow("Offline queue is disabled");
+    expect(send).not.toHaveBeenCalled();
+    const jobs = await jobQueueDB.getJobs({ userAddress: command.userAddress! });
+    expect(
+      jobs.some((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId)
+    ).toBe(false);
+    ports.connectivity.confirm = async () => true;
+    ports.direct.submitWork = vi.fn().mockRejectedValue(new Error("Network request failed"));
+    await expect(submitWork(command, ports)).rejects.toThrow("Network request failed");
+    const pending = await jobQueueDB.getJobs({ userAddress: command.userAddress!, synced: false });
+    expect(
+      pending.find((job) => (job.payload as WorkJobPayload).clientWorkId === command.clientWorkId)
+        ?.meta?.requiresExplicitSend
+    ).toBe(true);
+  });
   it("queues a submission instead of sending while the connection is unconfirmed", async () => {
     const { command, ports, send } = fixture();
     ports.connectivity = { isOnline: () => true, confirm: async () => false };
@@ -114,6 +539,210 @@ describe("PWA durable submission boundary", () => {
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.broadcastPending).toBeFalsy();
     // A refusal clears the whole intent, its chain head too.
     expect((kept?.payload as WorkJobPayload).uploadCheckpoint?.intentChainTime).toBeUndefined();
+  });
+
+  it("lists declined wallet work once, keeps all of it, and sends it once when Submit asks again", async () => {
+    const { command, ports, send, draftId, queued, listedDrafts } = await declinedWalletWork();
+
+    // Your Work reads the queue and the drafts: the work is one item, as queued.
+    const [job] = await queued();
+    expect(await queued()).toHaveLength(1);
+    expect(await listedDrafts()).toEqual([]);
+    // Nothing is lost: the queue has the photo, and the composer still has its draft.
+    expect(await jobQueueDB.getImagesForJob(job.id)).toHaveLength(1);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(1);
+
+    let whileSending: string | null | undefined;
+    ports.direct.submitWork = vi.fn(async (input: SubmitWorkCommand) => {
+      // The Submit that is sending the work answers for its own draft.
+      whileSending = await deleteDraftOfQueuedWork(job, "retire");
+      return send(input);
+    });
+    await expect(submitWork(command, ports)).resolves.toMatchObject({
+      kind: "direct",
+      txHash: hash,
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(whileSending).toBeNull();
+    // Sent: the queue let go of it. The draft is the composer's to retire, and with nothing
+    // queued to remove it through, it is listed again and never left out of reach.
+    expect(await queued()).toEqual([]);
+    expect(await listedDrafts()).toHaveLength(1);
+    // Work sent from Your Work has no composer: the queue's report retires its draft.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe("removed");
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
+  });
+
+  it.each([
+    {
+      saved: "only moved to another step",
+      change: { currentStep: "details" as const },
+      kept: false,
+    },
+    { saved: "changed the work", change: { feedback: "Watered the east bed too" }, kept: true },
+    {
+      saved: "changed the work and was declined again",
+      change: { feedback: "Watered the east bed too" },
+      askedAgain: true,
+      kept: true,
+    },
+  ])("keeps the draft of work sent from Your Work when the wizard $saved after the decline: $kept", async ({
+    change,
+    askedAgain,
+    kept,
+  }) => {
+    const { command, ports, draftId, queued, wizardSaves } = await declinedWalletWork();
+    await wizardSaves(change);
+    // Asking again does not refresh the queued work, so it still holds the first version.
+    if (askedAgain) await expect(submitWork(command, ports)).rejects.toThrow();
+    const [job] = await queued();
+
+    // Upload all sends the work as it was queued. A draft that holds more than that was not sent.
+    expect(await deleteDraftOfQueuedWork(job, "retire")).toBe(kept ? "kept" : "removed");
+    expect((await draftDB.getDraft(draftId))?.feedback).toBe(kept ? change.feedback : undefined);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(kept ? 1 : 0);
+  });
+
+  it("discards declined work as one act: its draft and both sets of attachments, then the work", async () => {
+    const { draftId, queued, listedDrafts } = await declinedWalletWork();
+    const [job] = await queued();
+    const discard = () =>
+      jobQueue.discardJob(job.id, async (work) => {
+        await deleteDraftOfQueuedWork(work, "discard");
+      });
+
+    // A draft that cannot be removed stops the discard before the queued work is touched.
+    const blocked = vi.spyOn(draftDB, "deleteDraft").mockRejectedValueOnce(new Error("blocked"));
+    await expect(discard()).rejects.toThrow("blocked");
+    blocked.mockRestore();
+    expect(await queued()).toHaveLength(1);
+    expect(await draftDB.getDraft(draftId)).toBeDefined();
+
+    expect(await discard()).toBe(true);
+    expect(await queued()).toEqual([]);
+    expect(await jobQueueDB.getImagesForJob(job.id)).toEqual([]);
+    expect(await listedDrafts()).toEqual([]);
+    expect(await draftDB.getDraft(draftId)).toBeUndefined();
+    expect(await draftDB.getImagesForDraft(draftId)).toEqual([]);
+  });
+
+  it("still lists every draft when the upload queue cannot be read", async () => {
+    const { listedDrafts } = await declinedWalletWork();
+    const read = vi.spyOn(jobQueueDB, "getJobs").mockRejectedValueOnce(new Error("blocked"));
+    try {
+      expect(await listedDrafts()).toHaveLength(1);
+    } finally {
+      read.mockRestore();
+    }
+  });
+
+  it("turns declined work back into a draft when the wizard changes it, and Submit then sends that version once", async () => {
+    const { command, ports, send, draftId, queued, listedDrafts, wizardSaves } =
+      await declinedWalletWork();
+    const [first] = await queued();
+    const changed = "Watered the east bed too";
+
+    // A save that only moves between steps leaves the queued work where it is.
+    const moved = await wizardSaves({ currentStep: "details" });
+    expect(await returnChangedWorkToDraft(moved, jobQueue)).toBe(false);
+    expect(await queued()).toHaveLength(1);
+
+    // The draft takes the copy's upload record before the copy goes. While that write fails
+    // the copy stays, because the draft still holds the declined prompt's send intent.
+    const edited = await wizardSaves({ feedback: changed });
+    const blocked = vi.spyOn(draftDB, "updateDraft").mockRejectedValueOnce(new Error("blocked"));
+    await expect(returnChangedWorkToDraft(edited, jobQueue)).rejects.toThrow("blocked");
+    blocked.mockRestore();
+    expect(await queued()).toHaveLength(1);
+
+    // Another tab preparing the copy holds its claim. The copy is still unsent, so this is not
+    // "nothing to take back": it rejects, and the save that asked does not count as done.
+    expect(await jobQueueDB.acquireExecutionClaim([first.id], "another-tab")).toBe(true);
+    await expect(returnChangedWorkToDraft(edited, jobQueue)).rejects.toThrow("queued-copy-held");
+    expect(await queued()).toHaveLength(1);
+    await jobQueueDB.releaseExecutionClaim([first.id], "another-tab");
+
+    expect(await returnChangedWorkToDraft(edited, jobQueue)).toBe(true);
+    // No first version is left to upload from Your Work: the work is one draft again.
+    expect(await queued()).toEqual([]);
+    expect(await jobQueueDB.getImagesForJob(first.id)).toEqual([]);
+    expect(await listedDrafts()).toHaveLength(1);
+    expect(await draftDB.getImagesForDraft(draftId)).toHaveLength(1);
+
+    // Submit queues the work as it now stands and sends it. The declined prompt's send
+    // intent stayed with the discarded copy, so this is a send, not a wait for the old one.
+    const draft = (await draftDB.getDraft(draftId))!;
+    command.draft.feedback = changed;
+    Object.assign(
+      command,
+      await createDraftUploadPersistence(draft, command.draft, { current: null })
+    );
+    ports.direct.submitWork = send;
+    await expect(submitWork(command, ports)).resolves.toMatchObject({ kind: "direct" });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0].draft.feedback).toBe(changed);
+  });
+
+  it("leaves a queued copy that may have been sent, and keeps the changed draft when it lands", async () => {
+    const { queued, wizardSaves } = await declinedWalletWork();
+    const [job] = await queued();
+    await jobQueueDB.amendJob(job.id, (stored) => {
+      (stored.payload as WorkJobPayload).uploadCheckpoint = {
+        submittedAt: new Date().toISOString(),
+        files: {},
+        transactionHash: hash,
+      };
+    });
+
+    const changed = await wizardSaves({ feedback: "Watered the east bed too" });
+    expect(await returnChangedWorkToDraft(changed, jobQueue)).toBe(false);
+
+    const [sent] = await queued();
+    expect(sent.id).toBe(job.id);
+    expect(await deleteDraftOfQueuedWork(sent, "retire")).toBe("kept");
+  });
+
+  it("sends the changed work when a passkey Submit asks again after a decline", async () => {
+    const { command, ports } = fixture();
+    command.authMode = "passkey";
+    ports.sender = createMockTransactionSender();
+    const draftId = crypto.randomUUID();
+    const wizardSaves = (feedback: string) =>
+      draftDB.saveSnapshot(
+        command.userAddress!,
+        command.chainId,
+        draftId,
+        { gardenAddress: command.gardenAddress, actionUID: 1, feedback },
+        [],
+        []
+      );
+    const retained = { current: null };
+    // As the wizard does: save, which returns changed work to its draft, then Submit.
+    const submit = async (feedback: string) => {
+      command.draft.feedback = feedback;
+      await returnChangedWorkToDraft(await wizardSaves(feedback), jobQueue);
+      const record = (await draftDB.getDraft(draftId))!;
+      Object.assign(command, await createDraftUploadPersistence(record, command.draft, retained));
+      return submitWork(command, ports);
+    };
+    const sent: string[] = [];
+    ports.queue.process = vi
+      .fn()
+      .mockImplementationOnce(async (jobId: string) => {
+        const job = (await jobQueueDB.getJob(jobId))!;
+        await jobQueueDB.updateJob({ ...job, meta: { ...job.meta, requiresExplicitSend: true } });
+        return { success: false, error: "send-cancelled", skipped: true };
+      })
+      .mockImplementationOnce(async (jobId: string) => {
+        sent.push(((await jobQueueDB.getJob(jobId))!.payload as WorkJobPayload).feedback);
+        return { success: true, txHash: hash };
+      });
+
+    await expect(submit("Watered the seedlings")).rejects.toMatchObject({ code: 4001 });
+    await expect(submit("Watered the east bed too")).resolves.toMatchObject({ kind: "processed" });
+
+    expect(sent).toEqual(["Watered the east bed too"]);
   });
 
   it("holds the send lock through an open wallet prompt", async () => {

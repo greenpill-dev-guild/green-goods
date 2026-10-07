@@ -1,4 +1,5 @@
 import type { AuthPasskeyReason } from "../modules/app/analytics-events";
+import { withoutQuotedRequest } from "../utils/errors/extract-message";
 import { isPasskeyCredentialUnavailableError } from "../utils/errors/tx-error-classifier";
 
 export class PasskeyServerLookupError extends Error {
@@ -18,7 +19,11 @@ export function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
   if (error instanceof PasskeyServerLookupError) return "server_unavailable";
   if (isPasskeyCredentialUnavailableError(error)) return "credential_not_found";
   const name = error instanceof Error ? error.name : "";
-  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  // A passkey server's refusal quotes the request, typed name included. Read only what failed:
+  // this reason also decides whether sign-in falls back to the account the device remembers.
+  const message = withoutQuotedRequest(
+    error instanceof Error ? error.message : String(error)
+  ).toLowerCase();
   if (
     CANCELLED_ERROR_NAMES.has(name) ||
     message.includes("cancel") ||

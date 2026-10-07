@@ -140,7 +140,7 @@ This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/
 
 Any green fill that carries text, a number, or a glyph uses the darker `tertiary-action` role with white `on-tertiary-action`: filled CTAs, count badges, step markers, selected chips, and pills. White on `tertiary-action` measures 5.72:1; white on bright `tertiary` is 2.36:1, and dark `on-tertiary` on it reads muddy at 4.64:1 (DL-017).
 
-The brighter `tertiary` garden green remains available for soft highlights and low-volume brand decoration. In the installed PWA, green labels, icons, navigation indicators, selection borders, switches and native selection controls share the theme-aware `--primary-on-surface` role (PRD-1150).
+The brighter `tertiary` garden green remains available for soft highlights and low-volume brand decoration. In the installed PWA, green labels, icons, navigation indicators, selection borders, switches and native selection controls share the theme-aware `--primary-on-surface` role (DL-086; PRD-1150).
 
 Green foregrounds and selection marks on a PWA surface use `--primary-on-surface`: `tertiary-action` in light (5.72:1 on white) and `tertiary` in dark, where the deep step reads 3.1:1. Filled controls with white text or glyphs keep the `--primary-action` / `--primary-action-foreground` pair. Domain and status colors retain their own meaning. A red fill that carries white text uses `--error-action` (red-700, 5.26:1 in both themes) (DL-053).
 

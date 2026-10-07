@@ -104,7 +104,7 @@ export const AppBar = () => {
                 </span>
               )}
             </div>
-            <p className={cn("text-sm", isActive && "text-primary-on-surface")}>{title}</p>
+            <p className="text-sm">{title}</p>
           </Link>
         );
       })}

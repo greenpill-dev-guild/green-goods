@@ -1,4 +1,5 @@
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
 import { IntlProvider } from "react-intl";
 vi.mock("../../modules/job-queue/draft-db", () => ({
   draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
@@ -254,6 +255,46 @@ describe("hooks/work/useWorkMutation", () => {
     actions: [createMockAction({ id: "1" })],
     userAddress: MOCK_ADDRESSES.user,
   };
+
+  it("keeps the admin identity across confirmation checks and gives Submit Another a new identity", async () => {
+    const broadcast = vi.fn();
+    vi.mocked(submitWorkDirectly).mockImplementation(
+      async (_draft, _garden, _action, _title, _chain, _images, options) => {
+        if (!options?.checkpoint?.transactionHash) {
+          broadcast();
+          await options?.onBroadcast?.(MOCK_TX_HASH);
+        }
+        throw new AwaitingWorkConfirmation(MOCK_TX_HASH);
+      }
+    );
+    const { result } = renderHook(
+      () =>
+        useWorkMutation({
+          ...defaultOptions,
+          completeClientFlow: false,
+          allowOfflineQueue: false,
+          retainSubmission: true,
+        }),
+      { wrapper: createWrapper() }
+    );
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    const first = result.current.lastSubmissionOutcome;
+    expect(first?.kind).toBe("awaiting-confirmation");
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(result.current.lastSubmissionOutcome?.clientWorkId).toBe(first?.clientWorkId);
+    expect(broadcast).toHaveBeenCalledTimes(1);
+    act(() => result.current.reset());
+    expect(result.current.lastSubmissionOutcome).toBeNull();
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(result.current.lastSubmissionOutcome?.clientWorkId).not.toBe(first?.clientWorkId);
+    expect(broadcast).toHaveBeenCalledTimes(2);
+  });
 
   it("keeps the sent outcome available for linking when the active draft changes", async () => {
     let finish!: (hash: `0x${string}`) => void;

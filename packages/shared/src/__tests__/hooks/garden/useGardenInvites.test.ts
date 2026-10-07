@@ -7,17 +7,13 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockAddress = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
 const mockWriteContract = vi.fn();
+const mockReadyWalletClient = vi.fn(async (..._args: unknown[]) => ({
+  writeContract: mockWriteContract,
+}));
 
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: mockAddress() }),
-  useWalletClient: () => ({
-    data: {
-      writeContract: mockWriteContract,
-      chain: { id: 11155111 },
-    },
-  }),
 }));
 
 vi.mock("viem", () => ({
@@ -30,7 +26,7 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
@@ -76,6 +72,10 @@ describe("useGardenInvites", () => {
     });
 
     expect(inviteLink).toContain("/home/garden?invite=");
+    expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(
+      11155111,
+      "0xUser1234567890123456789012345678901234"
+    );
     expect(result.current.invites).toHaveLength(1);
     expect(result.current.invites[0]).toMatchObject({
       garden: GARDEN_ADDRESS,

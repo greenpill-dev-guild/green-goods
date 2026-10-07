@@ -90,7 +90,7 @@ const messages: Record<string, string> = {
   "public.home.hero.title.line1": "From good intentions to ",
   "public.home.hero.title.line2": "green outcomes",
   "public.home.hero.title":
-    "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+    "<line>From <accent>good</accent></line> <line>intentions to</line> <line><accent>green</accent> outcomes</line>",
   "public.home.hero.lede":
     "Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together.",
   "public.home.hero.exploreGardens": "Explore Gardens",
@@ -173,8 +173,9 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
+    // Anchored: a string argument matches part of the text and would let a closing period back in.
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "From good intentions to green outcomes."
+      /^From good intentions to green outcomes$/
     );
     expect(screen.queryByText("Create your account")).not.toBeInTheDocument();
   });

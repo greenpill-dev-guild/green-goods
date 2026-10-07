@@ -56,8 +56,9 @@ vi.mock("../../../hooks/garden/useGardenOperations", () => ({
   }),
 }));
 
+const mockUseGardenVaults = vi.fn((..._args: unknown[]) => ({ vaults: [], isLoading: false }));
 vi.mock("../../../hooks/vault/useGardenVaults", () => ({
-  useGardenVaults: () => ({ vaults: [], isLoading: false }),
+  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
 }));
 
 vi.mock("../../../hooks/cookie-jar/useGardenCookieJars", () => ({
@@ -157,6 +158,17 @@ describe("useGardenDetailData eligible garden fallback", () => {
       canAddMembers: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       isOwnerOfGarden: vi.fn(() => false),
     });
+  });
+
+  it.each([
+    { id: recoveredGarden.id, address: recoveredGarden.id, enabled: true },
+    { id: "community-garden", address: undefined, enabled: false },
+    { id: "0xwrong", address: undefined, enabled: false },
+    { id: undefined, address: undefined, enabled: false },
+  ])("scopes vault reads safely for route $id", ({ id, address, enabled }) => {
+    renderHook(() => useGardenDetailData(id));
+
+    expect(mockUseGardenVaults).toHaveBeenCalledWith(address, { enabled });
   });
 
   it("uses a role-confirmed eligible garden when the base garden list is stale", () => {

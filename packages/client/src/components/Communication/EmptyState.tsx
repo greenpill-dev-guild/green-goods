@@ -16,6 +16,13 @@ export interface EmptyStateProps {
    */
   placement?: "center" | "sheet" | "list";
   className?: string;
+  /**
+   * The title's level where the page's outline needs another: `h1` when the state is the whole
+   * page, `h2` directly under a page heading, as on the public reporting pages.
+   */
+  titleAs?: "h1" | "h2" | "h3";
+  /** Lets the page name itself by the state's title. */
+  headingId?: string;
 }
 
 const toneClassNames: Record<EmptyStateTone, string> = {
@@ -32,6 +39,8 @@ export function EmptyState({
   tone = "neutral",
   placement = "center",
   className,
+  titleAs: Title = "h3",
+  headingId,
 }: EmptyStateProps) {
   return (
     <div
@@ -57,7 +66,9 @@ export function EmptyState({
         <span className="flex items-center justify-center [&>svg]:h-6 [&>svg]:w-6">{icon}</span>
       </div>
       <div className="mt-3 max-w-sm">
-        <h3 className="text-sm font-semibold text-text-strong-950">{title}</h3>
+        <Title id={headingId} className="text-sm font-semibold text-text-strong-950">
+          {title}
+        </Title>
         {description ? (
           <p className="mt-1 text-sm leading-relaxed text-text-sub-600">{description}</p>
         ) : null}

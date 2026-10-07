@@ -18,6 +18,7 @@ import {
 } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -33,7 +34,9 @@ import {
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowSendFooter, flowSendPhase, SingleSendNote } from "@/components/Layout/FlowSendFooter";
 import { isCampaignCookieJarDraftDirty } from "./campaignCookieJarDraft";
+import { campaignCreateStatus } from "./campaignCreateStatus";
 import {
   CampaignCookieJarCreatedState,
   CampaignCookieJarSubmittedState,
@@ -43,19 +46,16 @@ import type {
   CampaignCookieJarCreateDialogProps,
   CampaignCookieJarCreateWorkspaceProps,
 } from "./CampaignCookieJarCreateWorkspace.types";
-import {
-  CampaignCreateFooter,
-  CampaignCreateStepBody,
-  campaignCreateSteps,
-} from "./CampaignCookieJarCreateSteps";
+import { CampaignCreateStepBody, campaignCreateSteps } from "./CampaignCookieJarCreateSteps";
 import { gardensForAggregation, parseAmountInput } from "./helpers";
 
 /**
  * Create Cookie Jar: a flow dialog like every other create (DL-046), opened
  * from the Campaign Cookie Jars card on the protocol garden's Payouts. Steps:
- * Campaign, Payout, Eligible gardens, Review (Advanced is a detour there); the
- * created and submitted states are its final state. Each opening starts a new
- * draft.
+ * Campaign, Payout, Eligible gardens, Review (Advanced is a detour there). It
+ * ends on the Review: the send shows in its status row, and once the jar
+ * exists the Review shows it and the footer becomes Done (DL-080). Each
+ * opening starts a new draft.
  */
 export function CampaignCookieJarCreateDialog({
   open,
@@ -64,7 +64,7 @@ export function CampaignCookieJarCreateDialog({
   return open ? <CampaignCookieJarCreateWorkspace {...workspace} /> : null;
 }
 
-/** The flow's draft, its steps, and its final states, inside the dialog. */
+/** The flow's draft, its steps, and its Review's done state, inside the dialog. */
 export function CampaignCookieJarCreateWorkspace({
   onClose,
   initialStep = 0,
@@ -297,9 +297,30 @@ export function CampaignCookieJarCreateWorkspace({
     );
   };
   const steps = campaignCreateSteps(formatMessage);
-  const [stepIndex, setStepIndex] = useState(Math.min(initialStep, steps.length - 1));
-  const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
   const done = Boolean(createdJarAddress || createdJarPendingHash);
+  const [chosenStepIndex, setStepIndex] = useState(Math.min(initialStep, steps.length - 1));
+  // The Review stays up once the jar exists: the way on is Done.
+  const stepIndex = done ? steps.length - 1 : chosenStepIndex;
+  const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
+  const txError = useTxErrorMessages(createJar.error);
+  // One reading of the send, so the status row and the footer never disagree.
+  const status = campaignCreateStatus({
+    phase: flowSendPhase({
+      sending: createJar.isPending,
+      sent: done,
+      failed: Boolean(createJar.error),
+    }),
+    awaitingJarAddress: !createdJarAddress && Boolean(createdJarPendingHash),
+    failure: {
+      tone: txError.view.severity,
+      title: txError.title,
+      description: txError.message,
+    },
+    formatMessage,
+  });
+  const { phase } = status;
+  // While it sends, and once it is sent, no step reopens.
+  const editable = phase === "ready" || phase === "failed";
   const isDirty =
     !done &&
     isCampaignCookieJarDraftDirty(
@@ -335,7 +356,6 @@ export function CampaignCookieJarCreateWorkspace({
     moduleConfigured,
     isDeployer,
     roleLoading,
-    createError: createJar.error,
     createPending: createJar.isPending,
     gardensLoading,
     factoryLoading,
@@ -383,34 +403,31 @@ export function CampaignCookieJarCreateWorkspace({
   };
   const activeStep = steps[stepIndex];
 
-  const body = createdJarAddress ? (
-    <div ref={completionRef}>
-      <CampaignCookieJarCreatedState
-        jarAddress={createdJarAddress}
-        onBackToList={onClose}
-        onCreateAnother={() => {
-          resetCreateForm();
-          setStepIndex(0);
-        }}
-      />
-    </div>
+  const startAnother = () => {
+    resetCreateForm();
+    setStepIndex(0);
+  };
+
+  const outcome = createdJarAddress ? (
+    <CampaignCookieJarCreatedState jarAddress={createdJarAddress} />
   ) : createdJarPendingHash ? (
+    <CampaignCookieJarSubmittedState
+      hash={createdJarPendingHash}
+      manualInput={createdJarManualInput}
+      manualAddress={createdJarManualAddress}
+      onManualInputChange={setCreatedJarManualInput}
+      onUseManualAddress={() => {
+        if (!createdJarManualAddress) return;
+        applyCreatedJarAddress(createdJarManualAddress);
+      }}
+    />
+  ) : null;
+
+  const body = activeStep ? (
     <div ref={completionRef}>
-      <CampaignCookieJarSubmittedState
-        hash={createdJarPendingHash}
-        manualInput={createdJarManualInput}
-        manualAddress={createdJarManualAddress}
-        onManualInputChange={setCreatedJarManualInput}
-        onUseManualAddress={() => {
-          if (!createdJarManualAddress) return;
-          applyCreatedJarAddress(createdJarManualAddress);
-        }}
-        onBackToList={onClose}
-      />
-    </div>
-  ) : activeStep ? (
-    <div ref={stepRef} tabIndex={-1} className="outline-none">
-      <CampaignCreateStepBody step={activeStep} form={form} />
+      <div ref={stepRef} tabIndex={-1} className="outline-none">
+        <CampaignCreateStepBody step={activeStep} form={form} status={status} outcome={outcome} />
+      </div>
     </div>
   ) : null;
 
@@ -430,25 +447,40 @@ export function CampaignCookieJarCreateWorkspace({
         <ActionFlowShell
           layout="dialog"
           title={title}
-          steps={done ? undefined : steps}
+          steps={steps}
           currentStep={stepIndex + 1}
-          onStepClick={(step) => {
-            if (!createJar.isPending) setStepIndex(step - 1);
-          }}
+          complete={phase === "sent"}
+          onStepClick={editable ? (step) => setStepIndex(step - 1) : undefined}
           footer={
-            done ? undefined : (
-              <CampaignCreateFooter
-                formatMessage={formatMessage}
-                isFirstStep={stepIndex === 0}
-                isLastStep={stepIndex === steps.length - 1}
-                pending={createJar.isPending}
-                canCreate={form.canCreate}
-                onCancel={() => dirtyClose.onOpenChange(false)}
-                onBack={() => setStepIndex((index) => Math.max(0, index - 1))}
-                onNext={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
-                onCreate={handleCreate}
-              />
-            )
+            <FlowSendFooter
+              stepIndex={stepIndex}
+              isLast={stepIndex === steps.length - 1}
+              phase={phase}
+              sendLabel={formatMessage({
+                id: "cockpit.community.cookies.create",
+                defaultMessage: "Create Cookie Jar",
+              })}
+              note={<SingleSendNote phase={phase} />}
+              sendDisabled={!form.canCreate}
+              // A fresh jar once this one exists; a create still waiting on its
+              // address finishes first.
+              another={
+                createdJarAddress
+                  ? {
+                      label: formatMessage({
+                        id: "cockpit.community.cookies.createAnother",
+                        defaultMessage: "Create Another",
+                      }),
+                      onClick: startAnother,
+                    }
+                  : undefined
+              }
+              onCancel={() => dirtyClose.onOpenChange(false)}
+              onBack={() => setStepIndex((index) => Math.max(0, index - 1))}
+              onNext={() => setStepIndex((index) => Math.min(steps.length - 1, index + 1))}
+              onSend={handleCreate}
+              onDone={onClose}
+            />
           }
         >
           {body}

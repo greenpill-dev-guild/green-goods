@@ -9,6 +9,7 @@ import {
   type PendingProof,
   usePendingProof,
 } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
@@ -133,6 +134,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
   const { drafts, deleteDraft, isDeleting } = useDrafts();
   const proofs = usePendingProof({ chainId, viewer });
   const queue = useCommitmentQueueState(viewer);
+  const { sendsFromTap } = useCommitmentJobs({ chainId });
   const { data: actions = [] } = useActions();
   const onRecord = [...submissions.filter((work) => !isOnThisDevice(work)), ...toReview];
   const { linked } = useLinkedWorkUIDs({ chainId, workUIDs: onRecord.map((work) => work.id) });
@@ -141,6 +143,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     intl,
     isOnline: !isOffline,
     pausedForDataSaver: uploads.pausedForDataSaver,
+    sendsFromTap,
     actionTitle: (actionUID) => findActionByUID(actions, actionUID)?.title,
     isLinked: (work) => {
       const clientWorkId = clientWorkIdOf(work);

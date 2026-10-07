@@ -212,9 +212,9 @@ describe("HubWorkCard", () => {
   });
 
   it("shows the action title when it differs from the work title", () => {
-    // The Hub queue search matches on the action title (filterPendingWorks /
-    // filterAssessmentQueue), so a hover-only title would render a search hit
-    // with no visible matching text.
+    // The Work tab's search matches on the action title (filterWorksByScope),
+    // so a hover-only title would render a search hit with no visible matching
+    // text.
     renderCard({ actionTitle: "Compost rotation" });
 
     expect(screen.getByText("Compost rotation")).toBeInTheDocument();

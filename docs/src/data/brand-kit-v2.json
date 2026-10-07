@@ -1,0 +1,3039 @@
+{
+  "sourceFile": "https://www.figma.com/design/v4nQIhK4MPgWHKs8K8BpfI/Branding",
+  "sourceNodes": {
+    "symbol-green": "121804:79",
+    "symbol-white": "121804:88",
+    "symbol-black": "121831:10",
+    "logo-green": "121807:373",
+    "logo-white": "121831:30",
+    "logo-black": "121831:40"
+  },
+  "colors": {
+    "dark-green": "#367D44",
+    "green": "#3E8E4E",
+    "white": "#FFFFFF",
+    "black": "#000000",
+    "forest-green": "#367D41",
+    "light-green": "#46A359",
+    "sienna": "#A0522D",
+    "sky-blue": "#87CEEB"
+  },
+  "note": "Primary variants are native Figma exports. Dark green is derived from the dominant opaque color of docs/static/img/green-goods-logo.png (#367D44). Palette extras recolor only the green paths using colors shown on the branding board. Square layouts scale vector paths uniformly; text remains outlined. App icons have explicit opaque backgrounds. Figma board was not modified.",
+  "files": [
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original.svg"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-64.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-128.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-256.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-500.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-512.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-750.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-1024.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-original/green-goods-dark-green-symbol-square-original-2048.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large.svg"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-64.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-128.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-256.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-500.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-512.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-750.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-1024.png"
+    },
+    {
+      "file": "primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/symbol-square-large/green-goods-dark-green-symbol-square-large-2048.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard.svg"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-256.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-500.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-512.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-750.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-1024.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-standard/green-goods-dark-green-logo-square-standard-2048.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large.svg"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-256.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-500.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-512.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-750.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-1024.png"
+    },
+    {
+      "file": "primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-square-large/green-goods-dark-green-logo-square-large-2048.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide.svg"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-256.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-512.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-816.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-1224.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-1632.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-2448.png"
+    },
+    {
+      "file": "primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/primary/dark-green/logo-wide/green-goods-dark-green-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/dark-green/favicon.svg"
+    },
+    {
+      "file": "favicons/dark-green/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-16.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-32.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-48.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-64.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-128.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/dark-green/favicon-256.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original.svg"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-64.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-128.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-256.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-500.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-512.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-750.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-1024.png"
+    },
+    {
+      "file": "primary/green/symbol-square-original/green-goods-green-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-original/green-goods-green-symbol-square-original-2048.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large.svg"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-64.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-128.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-256.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-500.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-512.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-750.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-1024.png"
+    },
+    {
+      "file": "primary/green/symbol-square-large/green-goods-green-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/symbol-square-large/green-goods-green-symbol-square-large-2048.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard.svg"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-256.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-500.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-512.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-750.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-1024.png"
+    },
+    {
+      "file": "primary/green/logo-square-standard/green-goods-green-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-standard/green-goods-green-logo-square-standard-2048.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large.svg"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-256.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-500.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-512.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-750.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-1024.png"
+    },
+    {
+      "file": "primary/green/logo-square-large/green-goods-green-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-square-large/green-goods-green-logo-square-large-2048.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide.svg"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-256.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-512.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-816.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-1224.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-1632.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-2448.png"
+    },
+    {
+      "file": "primary/green/logo-wide/green-goods-green-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/primary/green/logo-wide/green-goods-green-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/green/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/green/favicon.svg"
+    },
+    {
+      "file": "favicons/green/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-16.png"
+    },
+    {
+      "file": "favicons/green/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-32.png"
+    },
+    {
+      "file": "favicons/green/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-48.png"
+    },
+    {
+      "file": "favicons/green/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-64.png"
+    },
+    {
+      "file": "favicons/green/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-128.png"
+    },
+    {
+      "file": "favicons/green/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/green/favicon-256.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original.svg"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-64.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-128.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-256.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-500.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-512.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-750.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-1024.png"
+    },
+    {
+      "file": "primary/white/symbol-square-original/green-goods-white-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-original/green-goods-white-symbol-square-original-2048.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large.svg"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-64.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-128.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-256.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-500.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-512.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-750.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-1024.png"
+    },
+    {
+      "file": "primary/white/symbol-square-large/green-goods-white-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/symbol-square-large/green-goods-white-symbol-square-large-2048.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard.svg"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-256.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-500.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-512.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-750.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-1024.png"
+    },
+    {
+      "file": "primary/white/logo-square-standard/green-goods-white-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-standard/green-goods-white-logo-square-standard-2048.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large.svg"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-256.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-500.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-512.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-750.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-1024.png"
+    },
+    {
+      "file": "primary/white/logo-square-large/green-goods-white-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-square-large/green-goods-white-logo-square-large-2048.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide.svg"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-256.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-512.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-816.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-1224.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-1632.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-2448.png"
+    },
+    {
+      "file": "primary/white/logo-wide/green-goods-white-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/primary/white/logo-wide/green-goods-white-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/white/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/white/favicon.svg"
+    },
+    {
+      "file": "favicons/white/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-16.png"
+    },
+    {
+      "file": "favicons/white/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-32.png"
+    },
+    {
+      "file": "favicons/white/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-48.png"
+    },
+    {
+      "file": "favicons/white/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-64.png"
+    },
+    {
+      "file": "favicons/white/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-128.png"
+    },
+    {
+      "file": "favicons/white/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/white/favicon-256.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original.svg"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-64.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-128.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-256.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-500.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-512.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-750.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-1024.png"
+    },
+    {
+      "file": "primary/black/symbol-square-original/green-goods-black-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-original/green-goods-black-symbol-square-original-2048.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large.svg"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-64.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-128.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-256.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-500.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-512.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-750.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-1024.png"
+    },
+    {
+      "file": "primary/black/symbol-square-large/green-goods-black-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/symbol-square-large/green-goods-black-symbol-square-large-2048.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard.svg"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-256.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-500.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-512.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-750.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-1024.png"
+    },
+    {
+      "file": "primary/black/logo-square-standard/green-goods-black-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-standard/green-goods-black-logo-square-standard-2048.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large.svg"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-256.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-500.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-512.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-750.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-1024.png"
+    },
+    {
+      "file": "primary/black/logo-square-large/green-goods-black-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-square-large/green-goods-black-logo-square-large-2048.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide.svg"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-256.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-512.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-816.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-1224.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-1632.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-2448.png"
+    },
+    {
+      "file": "primary/black/logo-wide/green-goods-black-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/primary/black/logo-wide/green-goods-black-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/black/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/black/favicon.svg"
+    },
+    {
+      "file": "favicons/black/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-16.png"
+    },
+    {
+      "file": "favicons/black/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-32.png"
+    },
+    {
+      "file": "favicons/black/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-48.png"
+    },
+    {
+      "file": "favicons/black/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-64.png"
+    },
+    {
+      "file": "favicons/black/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-128.png"
+    },
+    {
+      "file": "favicons/black/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/black/favicon-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original.svg"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-64.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-128.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-500.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-512.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-750.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-1024.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-original/green-goods-forest-green-symbol-square-original-2048.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large.svg"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-64.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-128.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/symbol-square-large/green-goods-forest-green-symbol-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard.svg"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-500.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-512.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-750.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-1024.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-standard/green-goods-forest-green-logo-square-standard-2048.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large.svg"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-square-large/green-goods-forest-green-logo-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide.svg"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-256.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-512.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-816.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-1224.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-1632.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-2448.png"
+    },
+    {
+      "file": "palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/forest-green/logo-wide/green-goods-forest-green-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/forest-green/favicon.svg"
+    },
+    {
+      "file": "favicons/forest-green/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-16.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-32.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-48.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-64.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-128.png"
+    },
+    {
+      "file": "favicons/forest-green/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/forest-green/favicon-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original.svg"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-64.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-128.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-500.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-512.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-750.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-1024.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-original/green-goods-light-green-symbol-square-original-2048.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large.svg"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-64.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-128.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/symbol-square-large/green-goods-light-green-symbol-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard.svg"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-500.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-512.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-750.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-1024.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-standard/green-goods-light-green-logo-square-standard-2048.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large.svg"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-square-large/green-goods-light-green-logo-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide.svg"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-256.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-512.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-816.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-1224.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-1632.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-2448.png"
+    },
+    {
+      "file": "palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/light-green/logo-wide/green-goods-light-green-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/light-green/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/light-green/favicon.svg"
+    },
+    {
+      "file": "favicons/light-green/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-16.png"
+    },
+    {
+      "file": "favicons/light-green/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-32.png"
+    },
+    {
+      "file": "favicons/light-green/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-48.png"
+    },
+    {
+      "file": "favicons/light-green/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-64.png"
+    },
+    {
+      "file": "favicons/light-green/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-128.png"
+    },
+    {
+      "file": "favicons/light-green/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/light-green/favicon-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original.svg"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-64.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-128.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-500.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-512.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-750.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-1024.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-original/green-goods-sienna-symbol-square-original-2048.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large.svg"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-64.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-128.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/symbol-square-large/green-goods-sienna-symbol-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard.svg"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-500.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-512.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-750.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-1024.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-standard/green-goods-sienna-logo-square-standard-2048.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large.svg"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-square-large/green-goods-sienna-logo-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide.svg"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-256.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-512.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-816.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-1224.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-1632.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-2448.png"
+    },
+    {
+      "file": "palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sienna/logo-wide/green-goods-sienna-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/sienna/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/sienna/favicon.svg"
+    },
+    {
+      "file": "favicons/sienna/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-16.png"
+    },
+    {
+      "file": "favicons/sienna/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-32.png"
+    },
+    {
+      "file": "favicons/sienna/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-48.png"
+    },
+    {
+      "file": "favicons/sienna/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-64.png"
+    },
+    {
+      "file": "favicons/sienna/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-128.png"
+    },
+    {
+      "file": "favicons/sienna/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sienna/favicon-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original.svg"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-64.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-128.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-500.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-512.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-750.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-1024.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-original/green-goods-sky-blue-symbol-square-original-2048.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large.svg"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-64.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-128.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/symbol-square-large/green-goods-sky-blue-symbol-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard.svg"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-500.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-512.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-750.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-1024.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-standard/green-goods-sky-blue-logo-square-standard-2048.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large.svg"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-500.png",
+      "format": "png",
+      "width": 500,
+      "height": 500,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-500.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-512.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-750.png",
+      "format": "png",
+      "width": 750,
+      "height": 750,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-750.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-1024.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-2048.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-square-large/green-goods-sky-blue-logo-square-large-2048.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide.svg",
+      "format": "svg",
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide.svg"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 130,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-256.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 260,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-512.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-816.png",
+      "format": "png",
+      "width": 816,
+      "height": 414,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-816.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-1224.png",
+      "format": "png",
+      "width": 1224,
+      "height": 621,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-1224.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-1632.png",
+      "format": "png",
+      "width": 1632,
+      "height": 828,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-1632.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-2448.png",
+      "format": "png",
+      "width": 2448,
+      "height": 1242,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-2448.png"
+    },
+    {
+      "file": "palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-3264.png",
+      "format": "png",
+      "width": 3264,
+      "height": 1656,
+      "opaque": false,
+      "url": "/brand/v2/palette-extras/sky-blue/logo-wide/green-goods-sky-blue-logo-wide-3264.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon.svg",
+      "format": "svg",
+      "url": "/brand/v2/favicons/sky-blue/favicon.svg"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-16.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-32.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-48.png",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-48.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-64.png",
+      "format": "png",
+      "width": 64,
+      "height": 64,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-64.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-128.png",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-128.png"
+    },
+    {
+      "file": "favicons/sky-blue/favicon-256.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "opaque": false,
+      "url": "/brand/v2/favicons/sky-blue/favicon-256.png"
+    },
+    {
+      "file": "app-icons/white-on-green/app-icon-180.png",
+      "format": "png",
+      "width": 180,
+      "height": 180,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/app-icon-180.png"
+    },
+    {
+      "file": "app-icons/white-on-green/app-icon-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/app-icon-192.png"
+    },
+    {
+      "file": "app-icons/white-on-green/app-icon-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/app-icon-512.png"
+    },
+    {
+      "file": "app-icons/white-on-green/app-icon-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/app-icon-1024.png"
+    },
+    {
+      "file": "app-icons/white-on-green/maskable-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/maskable-192.png"
+    },
+    {
+      "file": "app-icons/white-on-green/maskable-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/white-on-green/maskable-512.png"
+    },
+    {
+      "file": "app-icons/green-on-white/app-icon-180.png",
+      "format": "png",
+      "width": 180,
+      "height": 180,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/app-icon-180.png"
+    },
+    {
+      "file": "app-icons/green-on-white/app-icon-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/app-icon-192.png"
+    },
+    {
+      "file": "app-icons/green-on-white/app-icon-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/app-icon-512.png"
+    },
+    {
+      "file": "app-icons/green-on-white/app-icon-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/app-icon-1024.png"
+    },
+    {
+      "file": "app-icons/green-on-white/maskable-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/maskable-192.png"
+    },
+    {
+      "file": "app-icons/green-on-white/maskable-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "opaque": true,
+      "url": "/brand/v2/app-icons/green-on-white/maskable-512.png"
+    },
+    {
+      "file": "favicons/dark-green/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/dark-green/favicon.ico"
+    },
+    {
+      "file": "favicons/green/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/green/favicon.ico"
+    },
+    {
+      "file": "favicons/white/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/white/favicon.ico"
+    },
+    {
+      "file": "favicons/black/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/black/favicon.ico"
+    },
+    {
+      "file": "favicons/forest-green/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/forest-green/favicon.ico"
+    },
+    {
+      "file": "favicons/light-green/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/light-green/favicon.ico"
+    },
+    {
+      "file": "favicons/sienna/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/sienna/favicon.ico"
+    },
+    {
+      "file": "favicons/sky-blue/favicon.ico",
+      "format": "ico",
+      "sizes": [16, 32, 48, 64, 128, 256],
+      "url": "/brand/v2/favicons/sky-blue/favicon.ico"
+    }
+  ],
+  "derivedColorSources": {
+    "dark-green": {
+      "color": "#367D44",
+      "source": "docs/static/img/green-goods-logo.png",
+      "method": "Dominant fully opaque RGB pixel; applied to original Figma vector paths"
+    }
+  }
+}

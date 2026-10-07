@@ -26,7 +26,6 @@ import {
   submitWork,
   type SubmitWorkOutcome,
 } from "../../modules/work/submit-work-command";
-import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
@@ -63,6 +62,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     userAddress,
     completeClientFlow = true,
     allowOfflineQueue = true,
+    retainSubmission = false,
     onProgress,
     onSuccess,
     onError,
@@ -95,7 +95,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const ownsFlow = (origin: Origin | undefined) =>
     ownsSession(origin) &&
     (!completeClientFlow || origin?.activeDraftId === useWorkFlowStore.getState().activeDraftId);
-  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const retainedCheckpoint = useRef<{
     id: string;
     checkpoint: NonNullable<WorkDraft["uploadCheckpoint"]>;
@@ -105,6 +104,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     null
   );
   const lastSubmissionOutcomeRef = useRef<SubmitWorkOutcome | null>(null);
+  const retainedSubmission = useRef<{ scope: string; id: string } | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -166,9 +166,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const persistence = persistedDraft
         ? await createDraftUploadPersistence(persistedDraft, draft, retainedCheckpoint)
         : {};
+      if (retainSubmission) {
+        const scope = `${origin.identity}:${origin.generation}:${gardenAddress}:${actionUID}`;
+        if (retainedSubmission.current?.scope !== scope)
+          retainedSubmission.current = { scope, id: crypto.randomUUID() };
+      }
       const outcome = await submitWork(
         {
           ...persistence,
+          ...(retainSubmission ? { clientWorkId: retainedSubmission.current!.id } : {}),
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
           },
@@ -181,6 +187,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           draft,
           images,
           allowOfflineQueue,
+          retainSubmission,
         },
         createDefaultSubmitWorkPorts({
           sender,
@@ -386,10 +393,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         scheduleFollowUp();
       }
 
-      if (completeClientFlow) {
-        openWorkDashboard();
-      }
-
       onSuccess?.(txHash);
 
       if (DEBUG_ENABLED) {
@@ -446,6 +449,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   return {
     ...useSafeMutation(mutation),
+    reset: () => {
+      retainedSubmission.current = null;
+      lastSubmissionOutcomeRef.current = null;
+      setLastSubmissionOutcome(null);
+      mutation.reset();
+    },
     lastSubmissionOutcome,
     getLastSubmissionOutcome: () => lastSubmissionOutcomeRef.current,
     clearLastSubmissionOutcome: () => {

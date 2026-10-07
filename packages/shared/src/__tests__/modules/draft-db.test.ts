@@ -175,8 +175,23 @@ describe("complete draft snapshots", () => {
       "draft-limit"
     );
     expect(await draftDB.getDraftCount(account, 11155111)).toBe(20);
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(true);
     await draftDB.saveSnapshot(account, 11155111, "limit-0", { feedback: "updated" }, [], []);
-    for (let index = 0; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
+    await draftDB.deleteDraft("limit-0");
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(false);
+    for (let index = 1; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
+  });
+  it("releases the active pointer only while it still names the draft", async () => {
+    await draftDB.saveSnapshot(account, 11155111, "first", { feedback: "first" }, [], []);
+    // Another tab has since opened a different draft.
+    await draftDB.saveSnapshot(account, 11155111, "second", { feedback: "second" }, [], []);
+    await draftDB.releaseActiveDraft(account, 11155111, "first");
+    expect(await draftDB.getActiveDraft(account, 11155111)).toBe("second");
+    await draftDB.releaseActiveDraft(account, 11155111, "second");
+    expect(await draftDB.getActiveDraft(account, 11155111)).toBeNull();
+    expect(await draftDB.getDraftCount(account, 11155111)).toBe(2);
+    await draftDB.deleteDraft("first");
+    await draftDB.deleteDraft("second");
   });
   it("cancels stale saves before committing and refuses another account's ID", async () => {
     await expect(

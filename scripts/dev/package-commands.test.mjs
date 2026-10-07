@@ -57,6 +57,7 @@ test("agent default and explicit paths preserve Node and SQLite lanes", () => {
   const sqlite = resolve("agent", "test", ["src/__tests__/storage.sqlite.test.ts"]);
   assert.equal(sqlite.steps.length, 1);
   assert.deepEqual(sqlite.steps[0], all.steps[1]);
+  assert.deepEqual(resolve("agent", "test", ["src/__tests__/reporting/report-flow.sqlite.test.ts"]).steps, [all.steps[1]]);
   assert.equal(resolve("agent", "test", ["--scope", "unit", "--coverage"]).steps[0].args[0], "scripts/run-coverage.mjs");
 });
 
@@ -522,17 +523,26 @@ test("a run that outlasts the wait starts the suite on the conservative worker c
   assert.equal(scanned, 0);
 });
 
-test("the process list comes from ps, includes this process, and is empty when ps cannot run", () => {
-  const output = "  101   100 node /work/x/node_modules/vitest/vitest.mjs run\n    7     1 /sbin/launchd\n";
-  assert.deepEqual(listSystemProcesses(() => output), [
+test("the process list parses ps output and is empty when the subprocess fails", (t) => {
+  // Exercise the subprocess boundary without requiring host process-inspection permission.
+  const root = mkdtempSync(join(tmpdir(), "process-list-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const ps = join(root, "ps");
+  writeFileSync(ps, `#!/bin/sh
+[ "$#" -eq 3 ] && [ "$1" = "-A" ] && [ "$2" = "-o" ] && [ "$3" = "pid=,ppid=,command=" ] || exit 2
+printf '%s\\n' '  101   100 node /work/x/node_modules/vitest/vitest.mjs run' '    7     1 /sbin/launchd' 'malformed row'
+`);
+  chmodSync(ps, 0o700);
+  const runPs = (command, args, options) => {
+    assert.equal(command, "ps");
+    return execFileSync(join(root, command), args, options);
+  };
+  assert.deepEqual(listSystemProcesses(runPs), [
     { pid: 101, ppid: 100, command: "node /work/x/node_modules/vitest/vitest.mjs run" },
     { pid: 7, ppid: 1, command: "/sbin/launchd" },
   ]);
-  assert.deepEqual(
-    listSystemProcesses(() => {
-      throw new Error("ps: command not found");
-    }),
-    [],
-  );
-  assert.ok(listSystemProcesses().some((entry) => entry.pid === process.pid));
+  writeFileSync(ps, "#!/bin/sh\nexit 1\n");
+  assert.deepEqual(listSystemProcesses(runPs), []);
+  rmSync(ps);
+  assert.deepEqual(listSystemProcesses(runPs), []);
 });

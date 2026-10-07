@@ -41,6 +41,9 @@ vi.mock("../../../hooks/roles/useGardenMembership", () => ({
     refetch: vi.fn(),
   }),
 }));
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({ sendsFromTap: false }),
+}));
 vi.mock("../../../providers/JobQueue", () => ({
   useJobQueue: () => ({ flush: mocks.flush, retryAndSend: mocks.retryAndSend }),
 }));

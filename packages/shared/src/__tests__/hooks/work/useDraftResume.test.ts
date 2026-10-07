@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   removeLegacy: vi.fn(),
   save: vi.fn(),
   draft: vi.fn(),
+  release: vi.fn(),
+  atLimit: vi.fn(),
   marker: undefined as unknown,
   user: "0x1111111111111111111111111111111111111111" as string | null,
 }));
@@ -27,6 +29,8 @@ vi.mock("../../../modules/job-queue/draft-db", () => ({
     getActiveDraft: mocks.active,
     getDraft: mocks.draft,
     saveSnapshot: mocks.save,
+    releaseActiveDraft: mocks.release,
+    isAtDraftLimit: mocks.atLimit,
     getDraftsForUser: vi.fn().mockResolvedValue([]),
   },
 }));
@@ -42,14 +46,6 @@ vi.mock("idb-keyval", () => ({
   },
 }));
 const options = () => ({
-  formState: {
-    images: [],
-    gardenAddress: null,
-    actionUID: null,
-    feedback: "",
-    timeSpentMinutes: 0,
-  },
-  isOnIntroTab: true,
   searchParams: new URLSearchParams(),
   setSearchParams: vi.fn(),
   restoreForm: vi.fn(),
@@ -63,6 +59,8 @@ beforeEach(() => {
   mocks.clear.mockReset().mockResolvedValue(undefined);
   mocks.active.mockReset().mockResolvedValue(null);
   mocks.draft.mockReset().mockResolvedValue(undefined);
+  mocks.release.mockReset().mockResolvedValue(undefined);
+  mocks.atLimit.mockReset().mockResolvedValue(false);
   mocks.legacy.mockReset().mockResolvedValue(undefined);
   mocks.removeLegacy.mockReset().mockResolvedValue(undefined);
   mocks.save
@@ -88,6 +86,12 @@ describe("draft hydration and recovery", () => {
       expect.objectContaining({ restoreForm: expect.any(Function) })
     );
     expect(useWorkFlowStore.getState().draftHydrated).toBe(true);
+    // Saving stays off until the prompt is answered, by Continue Draft or by closing it.
+    expect(useWorkFlowStore.getState().draftChoicePending).toBe(true);
+    await act(async () => {
+      await result.current.handleContinueDraft();
+    });
+    expect(useWorkFlowStore.getState().draftChoicePending).toBe(false);
   });
   it("retains an explicit URL and blocks writes when restoration fails", async () => {
     mocks.resume.mockRejectedValue(new Error("unreadable-media"));
@@ -127,11 +131,11 @@ describe("draft hydration and recovery", () => {
       expect.objectContaining({ name: "photo.jpg", kind: "media" }),
     ]);
   });
-  it("propagates discard failure instead of clearing the visible draft", async () => {
+  it("keeps the visible draft and the prompt when the draft can't be set aside", async () => {
     mocks.active.mockResolvedValue("saved-id");
-    mocks.clear.mockRejectedValue(new Error("quota"));
+    mocks.release.mockRejectedValue(new Error("quota"));
     mocks.resume.mockImplementation(async () => {
-      useWorkFlowStore.setState({ activeDraftId: "saved-id" });
+      useWorkFlowStore.setState({ activeDraftId: "saved-id", feedback: "saved work" });
       return "intro";
     });
     const { result } = renderHook(() => useDraftResume(options()));
@@ -140,6 +144,33 @@ describe("draft hydration and recovery", () => {
       await expect(result.current.handleStartFresh()).rejects.toThrow("quota");
     });
     expect(result.current.showDraftSheet).toBe(true);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: "saved-id",
+      feedback: "saved work",
+      draftDeleting: false,
+      draftChoicePending: true,
+    });
+    expect(mocks.release).toHaveBeenCalledWith(mocks.user, 11155111, "saved-id");
+    expect(mocks.clear).not.toHaveBeenCalled();
+  });
+  it("still discards recovered photos when the person starts fresh mid-recovery", async () => {
+    mocks.legacy.mockResolvedValue([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
+    mocks.removeLegacy.mockRejectedValueOnce(new Error("cleanup failed"));
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
+    });
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    await act(async () => {
+      await expect(result.current.handleContinueDraft()).rejects.toThrow("cleanup failed");
+    });
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    expect(mocks.clear).toHaveBeenCalledOnce();
+    expect(mocks.release).not.toHaveBeenCalled();
+    expect(mocks.atLimit).not.toHaveBeenCalled();
   });
   it("clears the visible form on logout before another account can hydrate", async () => {
     const input = options();
@@ -242,7 +273,14 @@ describe("the promise a draft was for", () => {
   };
 
   it("comes back into the page when the draft resumes", async () => {
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const input = { ...options(), searchParams: new URLSearchParams("draftId=draft-1") };
     renderHook(() => useDraftResume(input));
     await waitFor(() => expect(input.setSearchParams).toHaveBeenCalled());
@@ -263,7 +301,14 @@ describe("the promise a draft was for", () => {
         activeDraftId: "draft-1",
         draftLinkCleared,
       });
-      mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+      mocks.draft.mockResolvedValue({
+        id: "draft-1",
+        userAddress: mocks.user,
+        chainId: 11155111,
+        gardenAddress: GARDEN,
+        actionUID: 5,
+        linkIntent: kept,
+      });
     };
 
     it("puts the draft's promise back into the page without reloading the draft", async () => {
@@ -290,7 +335,14 @@ describe("the promise a draft was for", () => {
 
   it("gives way to a promise the page was opened for", async () => {
     mocks.active.mockResolvedValue("draft-1");
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const page = writeWorkLinkIntent(new URLSearchParams(), {
       ...kept,
       commitmentId: 9n,
@@ -298,15 +350,30 @@ describe("the promise a draft was for", () => {
       returnTo: `/home/${GARDEN}/commitments/9`,
     });
     const input = { ...options(), searchParams: page };
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
+    });
     const { result } = renderHook(() => useDraftResume(input));
-    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
 
+    expect(result.current.showDraftSheet).toBe(false);
+    expect(mocks.resume).not.toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledWith(mocks.user, 11155111, "draft-1");
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
     expect(input.setSearchParams).not.toHaveBeenCalled();
   });
 
   it("leaves with the old draft when the person starts fresh", async () => {
     mocks.active.mockResolvedValue("draft-1");
-    mocks.draft.mockResolvedValue({ id: "draft-1", linkIntent: kept });
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
     const input = options();
     const { result } = renderHook(() => useDraftResume(input));
     await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledTimes(1));

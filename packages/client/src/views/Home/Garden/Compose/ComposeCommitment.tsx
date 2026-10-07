@@ -137,7 +137,11 @@ function ComposeCommitmentForm({
           <p className="max-w-sm text-sm text-text-sub-600">
             {formatMessage(
               {
-                id: controller.isOnline ? "app.compose.done.body" : "app.compose.done.offlineBody",
+                id: controller.isOnline
+                  ? "app.compose.done.body"
+                  : controller.sendsFromTap
+                    ? "app.compose.done.offlineBodyUnsent"
+                    : "app.compose.done.offlineBody",
               },
               { direction }
             )}
@@ -230,6 +234,7 @@ function ComposeCommitmentForm({
           <ComposeReview
             values={controller.values}
             isOnline={controller.isOnline}
+            sendsFromTap={controller.sendsFromTap}
             hasPool={controller.hasPool}
             gardenName={controller.gardenName}
             openCycles={controller.openCycles}

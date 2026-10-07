@@ -257,6 +257,7 @@ export async function prepareMediaForUpload(
 
 export {
   isHeicFile,
+  isWorkPhoto,
   roundWorkLocation,
   validateWorkAttachments,
   validateWorkVideo,

@@ -403,7 +403,7 @@ export {
   buildApprovalTransactions,
   buildMakerAsk,
   checkMarketplaceApprovals,
-  type EncodedApprovalCall,
+  type MarketplaceApprovalCall,
   getMarketplaceAddresses,
   // Client
   getMarketplaceClient,

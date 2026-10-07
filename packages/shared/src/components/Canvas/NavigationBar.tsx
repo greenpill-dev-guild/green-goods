@@ -28,8 +28,6 @@ export type FabAction = Pick<
 >;
 
 export interface FabConfig {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
   actions: FabAction[];
   onAction: (actionId: string) => void;
 }

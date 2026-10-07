@@ -157,7 +157,7 @@ export function VaultsPageContent({
         title={formatMessage(
           {
             id: "public.vaults.hero.title",
-            defaultMessage: "Public goods campaigns, powered by <accent>Octant vaults</accent>.",
+            defaultMessage: "Public goods campaigns, powered by <accent>Octant vaults</accent>",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

@@ -201,6 +201,15 @@ export function getAppKit() {
 }
 
 /**
+ * The AppKit instance if the app has already created it. Unlike `getAppKit`, this never
+ * creates one, so code that only adapts to AppKit (the wallet network guard) stays inert
+ * in tests and hosts that never mounted `AppKitProvider`.
+ */
+export function peekAppKit() {
+  return appKitInstance;
+}
+
+/**
  * Get the singleton Wagmi config (lazily initialized).
  * Throws in SSR — all call sites are inside WagmiProvider (browser-only).
  */

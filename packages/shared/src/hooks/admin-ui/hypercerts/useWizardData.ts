@@ -68,7 +68,13 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const wizardExternalUrl = useHypercertWizardStore((s) => s.externalUrl);
   const wizardDraftId = useHypercertWizardStore((s) => s.draftId);
 
-  const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
+  const {
+    currentStep,
+    nextStep,
+    previousStep: workflowPreviousStep,
+    setStep: workflowSetStep,
+    canProceed,
+  } = useCreateHypercertWorkflow();
 
   const { attestations, isLoading, hasError } = useHypercertAttestations(gardenId);
   const { data: assessments } = useGardenAssessments(gardenId);
@@ -95,6 +101,31 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   }, [selectedAssessment, updateMetadata]);
 
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
+  // A mint refused before the wallet is asked (IPFS unavailable, an invalid
+  // allowlist, a steward check that failed) never reaches the mint machine, so
+  // the Review reads it from here, in the words the toast used to carry.
+  const [preflightError, setPreflightError] = useState<{ title: string; message: string } | null>(
+    null
+  );
+
+  // A failed mint stays on the Review, where Try Again resumes it from its last
+  // finished stage. Leaving the Review to change an answer drops that attempt,
+  // so the next Mint sends the answers as they then stand.
+  const leaveFailedMint = useCallback(() => {
+    setPreflightError(null);
+    if (mintingState.status === "failed") cancel();
+  }, [cancel, mintingState.status]);
+  const previousStep = useCallback(() => {
+    leaveFailedMint();
+    workflowPreviousStep();
+  }, [leaveFailedMint, workflowPreviousStep]);
+  const setStep = useCallback(
+    (step: number) => {
+      leaveFailedMint();
+      workflowSetStep(step);
+    },
+    [leaveFailedMint, workflowSetStep]
+  );
 
   // Track if the steward has made changes worth protecting.
   const { isDirty, isPristine } = useMemo(
@@ -173,11 +204,16 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   useEffect(() => {
     if (!selectedAttestationIds.length) return;
+    // Once a mint has started, its own bundle can show up in the list it is
+    // pruned against, even after a failure (a receipt poll that failed for a
+    // mint that landed). Pruning then would empty the Review and its record;
+    // Try Again resumes that same attempt, and leaving the Review drops it.
+    if (mintingState.status !== "idle") return;
     const pruned = selectedAttestationIds.filter((id) => !bundledAttestations[id]);
     if (pruned.length !== selectedAttestationIds.length) {
       setSelectedAttestations(pruned);
     }
-  }, [bundledAttestations, selectedAttestationIds, setSelectedAttestations]);
+  }, [bundledAttestations, mintingState.status, selectedAttestationIds, setSelectedAttestations]);
 
   const contributorWeights = useHypercertContributorWeights(selectedAttestations);
 
@@ -299,6 +335,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
       return;
     }
 
+    setPreflightError(null);
     try {
       await mint({
         draft,
@@ -313,11 +350,10 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
         category: categorized.category,
         metadata: categorized.metadata,
       });
-      toastService.error({
+      // The Review's status row says it, with Try Again.
+      setPreflightError({
         title: formatMessage({ id: "app.hypercerts.mint.error.generic.title" }),
         message: formatMessage({ id: getErrorMessageKey(categorized) }),
-        context: "hypercert minting",
-        suppressLogging: true,
       });
     }
   }, [
@@ -336,10 +372,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const steps = useWizardSteps(formatMessage);
 
   const nextDisabled = !(canProceed?.(currentStep) ?? false);
-  const submitLabel =
-    mintingState.status === "failed"
-      ? formatMessage({ id: "app.hypercerts.mint.retry" })
-      : formatMessage({ id: "app.hypercerts.mint.submit" });
 
   const validationMessage = useValidationMessage({
     currentStep,
@@ -427,8 +459,8 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     cancel,
     retry,
     isSubmitting,
+    preflightError,
     nextDisabled,
-    submitLabel,
     validationMessage,
 
     // Navigation guards

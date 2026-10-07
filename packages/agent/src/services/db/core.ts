@@ -23,6 +23,7 @@ import * as fundingIntents from "./funding-intents";
 import * as gardenJoinRequests from "./garden-join-requests";
 import * as idempotency from "./idempotency";
 import { type ClaimIdempotencyInput, type IdempotencyRecord } from "./idempotency";
+import { passkeyDirectoryQueries } from "./passkey-directory";
 import * as pendingWork from "./pending-work";
 import * as profileAvatars from "./profile-avatars";
 import * as savedOffers from "./saved-offers";
@@ -205,6 +206,8 @@ class DB {
   async listPendingFundingIntents(limit = 1000) {
     return fundingIntents.listPendingFundingIntents(this.db, limit);
   }
+
+  passkeyDirectory = () => passkeyDirectoryQueries(this.db);
 
   // ===========================================================================
   // PROFILE AVATARS

@@ -11,7 +11,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildWorkFormSchema,
+  normalizeNumberDetail,
   useWorkLocation,
+  WORK_FORM_ERROR_IDS,
   type WorkFormData,
 } from "../../hooks/work/useWorkForm";
 import type { WorkInput } from "../../types/domain";
@@ -60,6 +62,54 @@ describe("hooks/work/useWorkForm", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.timeSpentMinutes).toBe(3600);
+      }
+    });
+
+    it("lets time spent stay empty", () => {
+      const result = buildWorkFormSchema([]).safeParse({ feedback: "", timeSpentMinutes: "" });
+
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.timeSpentMinutes).toBeUndefined();
+    });
+
+    // What a details form holds for a field the person never filled: nothing until the field
+    // mounts, then the field's own empty value. The same in either app.
+    const EMPTY_VALUES: Record<WorkInput["type"], unknown[]> = {
+      number: [undefined],
+      text: [undefined, ""],
+      textarea: [undefined, ""],
+      select: [undefined, ""],
+      band: [undefined, ""],
+      "multi-select": [undefined, []],
+      repeater: [undefined, []],
+    };
+    const detail = (type: WorkInput["type"], required: boolean): WorkInput => ({
+      key: "detail",
+      title: "Detail",
+      placeholder: "",
+      type,
+      required,
+      options: [],
+    });
+    const messages = (inputs: WorkInput[], value: unknown) =>
+      buildWorkFormSchema(inputs)
+        .safeParse({ feedback: "", detail: value })
+        .error?.issues.map((issue) => issue.message);
+
+    it.each(
+      Object.entries(EMPTY_VALUES)
+    )("lets an empty optional %s through and tells a required one it is required", (type, empties) => {
+      for (const empty of empties) {
+        expect(messages([detail(type as WorkInput["type"], false)], empty)).toBeUndefined();
+        expect(messages([detail(type as WorkInput["type"], true)], empty)).toEqual([
+          WORK_FORM_ERROR_IDS.required,
+        ]);
+      }
+    });
+
+    it("tells a number below zero so, required or not", () => {
+      for (const required of [true, false]) {
+        expect(messages([detail("number", required)], -4)).toEqual([WORK_FORM_ERROR_IDS.belowZero]);
       }
     });
 
@@ -368,6 +418,21 @@ describe("hooks/work/useWorkForm", () => {
     ).toEqual({ lat: 12.346, lng: -23.457 });
     expect(schema.parse({ location: undefined }).location).toBeUndefined();
     expect(schema.safeParse({ location: { lat: 91, lng: 0 } }).success).toBe(false);
+  });
+});
+
+describe("normalizeNumberDetail", () => {
+  it.each([
+    ["", undefined],
+    [undefined, undefined],
+    [null, undefined],
+    ["abc", undefined],
+    ["12", 12],
+    ["1.5", 1.5],
+    ["-4", -4],
+    [7, 7],
+  ])("reads %j as %j", (raw, value) => {
+    expect(normalizeNumberDetail(raw)).toBe(value);
   });
 });
 

@@ -1,10 +1,11 @@
 /**
  * Garden role definitions shared across hooks and utilities.
  *
- * Role keys are the in-repo name; the deployed Solidity enum and its access
- * functions keep the older `Operator` wire name, which is why `steward` maps to
- * `isOperator` below. The sidecar records the divergence under
- * `garden-role.canonical.display_labels`.
+ * Role keys are the in-repo name, and the Solidity enum member is `Steward`
+ * too. The deployed access functions keep the older operator name, which is
+ * why `steward` maps to `isOperator` and `isOperatorOf` below. Garden accounts
+ * already deployed cannot be upgraded, so `isOperator` stays the name to call
+ * on them.
  *
  * Centralized configuration for all 6 garden roles:
  * - Role IDs (for contract calls)

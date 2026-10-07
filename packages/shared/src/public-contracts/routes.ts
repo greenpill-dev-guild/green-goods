@@ -8,6 +8,7 @@ export const PUBLIC_AGENT_ROUTES = {
   gardenImpact: "/public/gardens/:chainId/:gardenAddress/impact",
   commitmentImpact: "/public/commitments/:chainId/impact",
   uploadSign: "/api/uploads/sign",
+  passkeyDirectory: "/public/passkeys/rpc",
   thirdwebWebhook: "/webhooks/thirdweb",
 } as const;
 

@@ -2,11 +2,15 @@
 
 **Feature Slug**: `codebase-architecture-skills`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `ACTIVE — agent workflow observations and four remaining pilot categories`
 **Created**: `2026-08-24`
-**Last Updated**: `2026-09-28`
+**Last Updated**: `2026-10-06`
 **Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
+
+## Status reconciliation (2026-10-06)
+
+The coverage-ratchet checkpoint closed by decision D3 on September 28. PRD-835 remains In Progress for the separate workflow reliability follow-up. Codex hook loading and one ordinary bug-fix observation are recorded; Claude Desktop Code and four pilot categories remain pending. Historical QA passes certify their original scope, not the reopened follow-up.
 
 ## Decision Log
 
@@ -116,8 +120,8 @@
   - Shared: `62.76 / 54.01 / 61.29 / 64.29` against floors `61 / 52 / 59 / 62`.
   - Admin: `52.75 / 48.37 / 47.38 / 54.39` against floors `51 / 47 / 44 / 53`.
   - Client: `64.87 / 57.69 / 63.62 / 66.56` against floors `63 / 56 / 62 / 64`.
-- The implementation is certified for its current scope. The Plan Hub and PRD-835 stay active only
-  for the separate `2026-09-22` two-point coverage-ratchet checkpoint.
+- The implementation is certified for its current scope. The `2026-09-22` coverage-ratchet checkpoint closed by D3 on September 28.
+  The Plan Hub and PRD-835 now stay active for the agent workflow reliability follow-up.
 ## Agent workflow reliability follow-up — 2026-09-26
 
 Authorized by the user's implementation request; original architecture decisions and certification
@@ -129,5 +133,6 @@ below remain historical. Execution and proof: [follow-up handoff](handoffs/agent
 - [x] Add warning-only personal skill availability to the existing doctor.
 - [x] Wire focused regression selection, verify receipt freshness, and run required checks;
   the pre-existing Git-environment test failure is recorded in the handoff.
-- [ ] Observe hook loading in a normal Claude Desktop Code and Codex session (pending).
-- [ ] Observe the five next authorized task scenarios in the evaluation rubric (pending).
+- [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
+- [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
+- [ ] Observe the five next authorized task scenarios in the evaluation rubric (one bug-fix observation recorded; four categories pending).

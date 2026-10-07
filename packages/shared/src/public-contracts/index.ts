@@ -55,6 +55,16 @@ export type {
   PublicUploadSignValidationResult,
 } from "./upload-signing";
 
+export {
+  isRegistrablePasskeyName,
+  normalizePasskeyName,
+  PASSKEY_NAME_MAX_LENGTH,
+  PASSKEY_NAME_MIN_LENGTH,
+  PASSKEY_RP_ID,
+  PASSKEY_RP_NAME,
+  type PasskeyDirectoryCredential,
+} from "./passkey-directory";
+
 export * from "./core";
 export * from "./saved-offers";
 

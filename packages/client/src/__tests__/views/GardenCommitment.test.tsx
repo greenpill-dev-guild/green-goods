@@ -57,6 +57,10 @@ const mockActs = {
   declineClaim: vi.fn(),
 } satisfies GardenCommitmentActs;
 
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => VIEWER,
+}));
+
 vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
     ...(await importOriginal()),
@@ -269,6 +273,7 @@ function controller(
       pendingAct: null,
       proofSending: false,
       proofOnItsWay: null,
+      sendsFromTap: false,
       isUnavailable: false,
       refresh: vi.fn(),
     },
@@ -332,6 +337,47 @@ describe("GardenCommitment", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
     expect(screen.getByRole("button", { name: "Add Proof" })).toBeInTheDocument();
+  });
+
+  it("makes required work the primary action while keeping optional proof available", () => {
+    render();
+    expect(screen.getByRole("button", { name: "Link Work" })).toHaveAttribute(
+      "data-component",
+      "CommitmentActionBar"
+    );
+    expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+      "data-component",
+      "CommitmentActionBarSecondary"
+    );
+  });
+
+  it("keeps proof primary once all required work is approved", () => {
+    mockUseController.mockReturnValue(
+      controller({ detail: detail({ requirements: [requirement(0, 44n, 2, 2)] }) })
+    );
+    render();
+    expect(screen.getByRole("button", { name: "Add Proof" })).toHaveAttribute(
+      "data-component",
+      "CommitmentActionBar"
+    );
+    expect(screen.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
+      "The required work is approved"
+    );
+  });
+
+  it("offers new work alongside eligible existing work", async () => {
+    mockUseController.mockReturnValue(
+      controller({
+        detail: detail({ requirements: [requirement(0, 44n, 2, 0)] }),
+        linkableWorks: [work()],
+        workGarden: GARDEN,
+      })
+    );
+    render();
+    await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
+    expect(screen.getByRole("radio", { name: /Prune the north beds/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Submit work for requirement 1" }));
+    expect(screen.getByText("Work submission")).toBeInTheDocument();
   });
 
   it("parses an invalid route id as not found", () => {
@@ -727,13 +773,18 @@ describe("GardenCommitment", () => {
     await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
     await userEvent.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
 
-    const row = screen.getByRole("combobox", { name: "Which row it fulfils" });
+    const row = screen.getByRole("group", { name: "Which row it fulfils" });
     expect(
-      within(row).getByRole("option", { name: /Requirement 1.*Prune the north beds/ })
+      within(row).getByRole("radio", { name: /Requirement 1.*Prune the north beds/ })
     ).toBeInTheDocument();
     expect(
-      within(row).getByRole("option", { name: /Requirement 2.*Prune the north beds/ })
+      within(row).getByRole("radio", { name: /Requirement 2.*Prune the north beds/ })
     ).toBeInTheDocument();
+    await userEvent.click(
+      within(row).getByRole("radio", { name: /Requirement 2.*Prune the north beds/ })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Link This Work" }));
+    expect(mockActs.linkWork).toHaveBeenCalledWith(WORK, 1, expect.any(String));
   });
 
   it("shows linked work, opens it, and names requirement progress", async () => {
@@ -859,6 +910,65 @@ describe("GardenCommitment", () => {
     expect(screen.queryByText(/to take this up\./i)).not.toBeInTheDocument();
   });
 
+  it.each([
+    [
+      "submit",
+      "Sending this promise for confirmation",
+      "Send for confirmation",
+      "Discard unsent submission",
+    ],
+    ["confirm", "Confirming this promise", "Send confirmation", "Discard unsent confirmation"],
+  ] as const)("names a queued %s operation accurately", async (confirmationAction, title, send, discard) => {
+    mockRetryAndSend.mockResolvedValue(undefined);
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "confirmation-9",
+            kind: "confirmation",
+            confirmationAction,
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: discard })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: send }));
+    expect(mockRetryAndSend).toHaveBeenCalledWith("confirmation-9");
+  });
+
+  it.each([
+    "takeUp",
+    "askToTakeUp",
+  ] as const)("names queued %s without assuming it requires approval", (actKind) => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByRole("button", { name: "Send take-up" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeEnabled();
+  });
+
   it("draws a parked act with why it waits, and sends or drops it from the row", async () => {
     mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);
@@ -881,12 +991,108 @@ describe("GardenCommitment", () => {
     render();
     expect(screen.queryByText(/your last act here is waiting/i)).not.toBeInTheDocument();
     expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+    expect(screen.getByText("Taking up this promise")).toBeInTheDocument();
     expect(screen.getByText(/sends once your garden membership lands/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Send Now" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send take-up" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
-    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard unsent take-up" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
     expect(mockFlush).not.toHaveBeenCalled();
+  });
+
+  describe("a parked act, for a reader who sends from their own tap (a wallet sign-in)", () => {
+    const parked = (act: Record<string, unknown>) =>
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          sendsFromTap: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+            ...act,
+          },
+        },
+      });
+
+    // A declined network switch leaves the act marked as a declined signature
+    // does ("send-intent-expired"); any other network failure leaves it plain.
+    it.each([
+      null,
+      "send-intent-expired",
+    ])("says it was not sent and why, and offers the send and the discard (waiting reason: %s)", (waitingReason) => {
+      mockUseController.mockReturnValue(
+        parked({
+          waitingReason,
+          sendFailure: {
+            messageId: "app.errors.wallet.wrongNetwork.message",
+            values: { network: "Arbitrum One" },
+            walletNetwork: true,
+          },
+        })
+      );
+      render();
+
+      expect(screen.getByText("Saved on this phone, not sent")).toBeInTheDocument();
+      // Only the change of network was declined, so it never reads as a signature.
+      expect(screen.queryByText(/signature cancelled/i)).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
+        )
+      ).toBeInTheDocument();
+      // Nothing sends it for them, so nothing may say it will.
+      expect(screen.queryByText(/sends when you're connected/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Send take-up" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeEnabled();
+    });
+
+    it("says an act that was never tried waits for their send", () => {
+      mockUseController.mockReturnValue(parked({}));
+      render();
+
+      expect(screen.getByText(/waits on this phone until you send it/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sends when you're connected/i)).not.toBeInTheDocument();
+    });
+
+    it("never says an act waiting for their membership sends on its own", () => {
+      mockUseController.mockReturnValue(parked({ waitingReason: "membership-unavailable" }));
+      render();
+
+      expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+      expect(screen.getByText("Taking up this promise")).toBeInTheDocument();
+      expect(screen.getByText(/send it once it has/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/sends once your garden membership lands/i)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("keeps saying a parked act sends itself for a reader the background flush sends for", () => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind: null,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            sendFailure: { messageId: "app.errors.blockchain.network.message" },
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+
+    expect(screen.getByText(/sends when you're connected/i)).toBeInTheDocument();
   });
 
   it("locks the parked row while this screen's own send is running", () => {
@@ -910,8 +1116,8 @@ describe("GardenCommitment", () => {
     render();
     // A discard now could delete the record of a transaction about to broadcast.
     expect(screen.getByText("Sending from this phone")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send Now" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Discard" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send take-up" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeDisabled();
   });
 
   it("says so when Discard is refused, instead of silently redrawing the row", async () => {
@@ -933,7 +1139,7 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard unsent take-up" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
     expect(await screen.findByText(/couldn't be discarded/i)).toBeInTheDocument();
   });
@@ -962,7 +1168,9 @@ describe("GardenCommitment", () => {
     expect(
       screen.getByText(/can't be discarded or sent twice while we check/i)
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Discard unsent take-up" })
+    ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
   });

@@ -15,7 +15,8 @@ export interface PwaStatusStyle {
 
 export const pwaStatusStyles = {
   primary: {
-    // Green labels, icons and selection marks share the theme-aware role (PRD-1150).
+    // Interactive text and marks share one theme-aware foreground: deep green
+    // on light surfaces and the readable brighter green on dark surfaces.
     text: "text-primary-on-surface",
     icon: "text-primary-on-surface",
     surface: "bg-primary-alpha-10",
@@ -26,7 +27,7 @@ export const pwaStatusStyles = {
     progress: "bg-primary-on-surface",
     spinnerBorder: "border-t-primary-on-surface",
     focus:
-      "focus-visible:ring-2 focus-visible:ring-primary-alpha-24 focus-visible:border-primary-on-surface active:border-primary-on-surface",
+      "focus-visible:ring-2 focus-visible:ring-primary-on-surface focus-visible:border-primary-on-surface active:border-primary-on-surface",
     foreground: "text-primary-action-foreground",
   },
   information: {

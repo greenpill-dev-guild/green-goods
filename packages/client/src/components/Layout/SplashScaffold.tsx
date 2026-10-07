@@ -4,7 +4,7 @@ import type React from "react";
 
 /**
  * Ritual surface — the full-screen login ceremony frame used after boot has
- * resolved. It owns the root container, the golden-anchored constant-height
+ * resolved. It owns the root container, the shared, constant-height
  * block, the logo, the title slot, and EVERY reserved zone wrapper.
  *
  * Slot model: every auth state renders the same skeleton —
@@ -20,20 +20,34 @@ import type React from "react";
  * string fits, and anything longer scrolls INSIDE instead of pushing the
  * tertiary link down.
  *
- * Vertical anchor: the two flexGrow spacers split the free space 7:3, landing
- * the logo center near the golden section at the EXACT same Y in every state —
+ * Vertical anchor: the two flexGrow spacers split the free space 11:9, keeping
+ * the block higher while the logo has the EXACT same Y in every state —
  * the LayoutStability storybook-ci test pins the logo, both slot zones, the
  * input (across form panels), the primary (within each cluster), and the
  * tertiary link. The spacers use inline flexGrow (nothing for a Tailwind
  * content scan to miss); zone heights are STANDARD classes (`h-11`, `h-20`,
  * `h-8`, `h-5`), which the shared Storybook scan generates (storybook.css
  * declares `@source "../../client/src"`).
+ *
+ * One geometry for every screen that draws the logo: sign-in in all its states,
+ * the app's own loading screen, and the screen shown when the app could not
+ * open. GEOMETRY SYNC: the loading screen is static HTML that paints before
+ * this file loads (`.boot-pwa-shell` in index.html) and mirrors this scaffold
+ * slot for slot; bootFallbackGeometry.test.ts fails when either side changes, so
+ * update both together. A screen with one action may put a quiet note in slot
+ * two, aligned to the slot's top.
  */
 interface SplashScaffoldProps {
   /** Pulse the logo (loading states). */
   pulse?: boolean;
   /** Title / wordmark line (APP_NAME, or a loading message). */
   title: React.ReactNode;
+  /**
+   * How the line reads. The app's name keeps the wordmark's voice; a sentence
+   * ("Signing you in...", "Green Goods couldn't open.") takes the loading
+   * screen's. Both sit centred in the same slot, so the line never moves.
+   */
+  titleVoice?: "name" | "status";
   /** Slot 1 — entry primary or the form input. */
   slotOne?: React.ReactNode;
   /** Slot 2 — entry secondary, or the form primary. Reserved when empty. */
@@ -53,14 +67,15 @@ const SLOT_CLASS = "w-full h-11 flex items-center justify-center";
 export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
   pulse = false,
   title,
+  titleVoice = "name",
   slotOne,
   slotTwo,
   message,
   tertiary,
 }) => (
   <div className="min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2">
-    {/* Golden anchor — free space splits 7:3 above/below the constant block. */}
-    <div aria-hidden="true" style={{ flexGrow: 7 }} />
+    {/* Shared anchor — free space splits 11:9 above/below the constant block. */}
+    <div aria-hidden="true" style={{ flexGrow: 11 }} />
 
     <div className="flex w-full max-w-sm flex-col items-center">
       {/* ───────────────────────────────────────────────────────────────────────
@@ -83,7 +98,14 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
 
       {/* TITLE / MESSAGE — fixed-height slot. */}
       <div className="h-8 flex items-center justify-center mb-5">
-        <h3 className="text-center text-[1.25rem] font-bold text-primary-dark transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
+        <h3
+          className={cn(
+            "text-center transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+            titleVoice === "name"
+              ? "text-[1.25rem] font-bold text-primary-on-surface"
+              : "text-base font-[650] text-text-strong-950"
+          )}
+        >
           {title}
         </h3>
       </div>
@@ -105,6 +127,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
       </div>
     </div>
 
-    <div aria-hidden="true" style={{ flexGrow: 3 }} />
+    {/* Reserve 20px / the upper spacer's 55% share to raise the block by 20px. */}
+    <div aria-hidden="true" style={{ flexGrow: 9, flexBasis: "calc(20px * 20 / 11)" }} />
   </div>
 );

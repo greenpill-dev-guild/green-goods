@@ -37,7 +37,7 @@ const messages: Record<string, string> = {
   "public.home.proof.gardens": "Gardens tended",
   "public.home.proof.gardensNote": "Active places under continuous documentation.",
   "public.home.proof.contributors": "Hands at work",
-  "public.home.proof.contributorsNote": "Gardeners with a role in at least one Garden.",
+  "public.home.proof.contributorsNote": "Gardeners and stewards in any Garden.",
   "public.home.proof.works": "Entries logged",
   "public.home.proof.worksNote": "Panel checks, soil cores, workshop notes.",
   "public.home.proof.assessments": "Assessments recorded",

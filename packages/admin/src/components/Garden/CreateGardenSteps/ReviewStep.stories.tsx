@@ -1,5 +1,5 @@
 import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
-import { Domain } from "@green-goods/shared/types/domain";
+import { type Address, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { FIXTURE_IMAGE_BANNER } from "../../../../../shared/.storybook/fixtures";
@@ -13,8 +13,8 @@ interface Seed {
   bannerImage?: string;
   domains?: Domain[];
   openJoining?: boolean;
-  gardeners?: string[];
-  stewards?: string[];
+  gardeners?: Address[];
+  stewards?: Address[];
 }
 
 function WithStoreState({ seed, children }: { seed: Seed; children: React.ReactNode }) {

@@ -23,7 +23,6 @@ export const SubmittedNeedsAddress: Story = {
       manualAddress={STORYBOOK_CAMPAIGN_JAR}
       onManualInputChange={() => undefined}
       onUseManualAddress={() => undefined}
-      onBackToList={() => undefined}
     />
   ),
 };

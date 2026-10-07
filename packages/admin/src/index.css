@@ -353,6 +353,11 @@
   --admin-appbar-height: 3.5rem;
   --admin-main-max-width: min(1680px, calc(100vw - 2rem));
   --admin-main-inline-gutter: clamp(0.875rem, 1.5vw, 1.5rem);
+  /* The phone page gutter: below 600px this is the only space between the
+     screen edge and the page. The app bar row and the main scroll area take it
+     once, through --admin-main-inline-gutter in the phone block below; the
+     route frame and the views inside it add no side padding there. */
+  --admin-main-inline-gutter-mobile: 0.75rem;
   --admin-main-sheet-bottom-gap: 0.5rem;
   /* Nav floats closer to the edge to reclaim vertical space (QA refinement);
      drives both the floating-pill bottom and the sheet-clearance calc below. */
@@ -804,6 +809,10 @@
 
 @media (max-width: 599px) {
   :root {
+    /* One side inset on a phone: the width cap's 1rem margins go, and the
+       gutter becomes the phone gutter. */
+    --admin-main-max-width: 100%;
+    --admin-main-inline-gutter: var(--admin-main-inline-gutter-mobile);
     --admin-sheet-side-inset: var(--admin-sheet-mobile-side-inset, 0.75rem);
     --admin-sheet-bottom: calc(
       var(--admin-nav-height-mobile, calc(5rem + env(safe-area-inset-bottom))) + var(--admin-sheet-bottom-gap-mobile, 1rem)

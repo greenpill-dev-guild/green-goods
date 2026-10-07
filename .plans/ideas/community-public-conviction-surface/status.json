@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-07-19T21:55:22.080Z",
-    "updated_at": "2026-07-19T21:55:22.080Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,7 +37,8 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-10-06 reconciliation: The original public conviction proposal remains parked. Confirm an actual community allocation need and the current public-browser direction before any build. Re-audit shared conviction hooks and the conviction-data-integrity backlog at activation; old persona-gap claims are hypotheses, not current rendered findings."
   ],
   "lanes": {
     "ui": {
@@ -141,6 +142,14 @@
       "status": "legacy_idea_standardized",
       "branch": null,
       "note": "Migrated the legacy idea into a discoverable standard hub without promoting it to backlog."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "The original public conviction proposal remains parked. Confirm an actual community allocation need and the current public-browser direction before any build. Re-audit shared conviction hooks and the conviction-data-integrity backlog at activation; old persona-gap claims are hypotheses, not current rendered findings."
     }
   ]
 }

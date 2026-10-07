@@ -201,8 +201,19 @@ export const ActionsTablet: Story = {
   render: () => <PublicActions />,
   play: async ({ canvasElement }) => {
     const domains = section(canvasElement, "public-actions-domains-title").querySelectorAll("li");
+    const heroTitle = canvasElement.querySelector("#public-actions-hero-title")!;
+    // A face that arrives late reflows the title, so its lines are counted once fonts settle.
+    await document.fonts.ready;
     await waitFor(() => {
       expect(window.innerWidth).toBe(1024);
+      // Left to the card's measure this title fits in two lines, so it is authored as three
+      // like the other core pages'. A fallback face can wrap further, hence "at least".
+      expect(
+        Math.round(
+          heroTitle.getBoundingClientRect().height /
+            Number.parseFloat(getComputedStyle(heroTitle).lineHeight)
+        )
+      ).toBeGreaterThanOrEqual(3);
       expect(domains).toHaveLength(4);
       expect(domains[0].getBoundingClientRect().width).toBeGreaterThan(400);
       expect(domains[1].getBoundingClientRect().top).toBeCloseTo(

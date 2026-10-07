@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { WorkSendCancelledError, classifySendFailure } from "../../../modules/work/send-outcome";
 import { isWorkSubmissionCancelled } from "../../../modules/work/work-confirmation";
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 
 const declinedPasskey = () =>
   new DOMException("The operation either timed out or was not allowed.", "NotAllowedError");
@@ -51,6 +52,50 @@ describe("what a failed send means for the work it carried", () => {
     expect(
       classifySendFailure(lostResponse(), { intentRecorded: true, broadcastKnown: false })
     ).toEqual({ kind: "may-have-sent" });
+  });
+
+  it("clears the intent when the write was refused for the wallet's network, which is before anything is signed", () => {
+    const afterIntent = { intentRecorded: true, broadcastKnown: false };
+    // viem's refusal, as wagmi's write wraps it, and the chain guard's on a retry.
+    const viemRefusal = new Error("Contract write failed", {
+      cause: Object.assign(new Error("The current chain of the wallet does not match"), {
+        name: "ChainMismatchError",
+      }),
+    });
+    const guardRefusal = Object.assign(new Error("Wrong wallet network."), {
+      name: "WalletChainMismatchError",
+    });
+    expect(classifySendFailure(viemRefusal, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+    expect(classifySendFailure(guardRefusal, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+    // viem refused, then a check ahead of the retry failed: no second attempt was made.
+    const neverRetried = new WalletWriteNotRetriedError(new Error("submission-ownership-changed"));
+    expect(classifySendFailure(neverRetried, afterIntent)).toEqual({
+      kind: "not-sent",
+      cancelled: false,
+    });
+
+    // wagmi raises this one while waiting on a batch the wallet already accepted.
+    const afterAcceptedBatch = Object.assign(new Error("The connector's chain does not match"), {
+      name: "ConnectorChainMismatchError",
+    });
+    expect(classifySendFailure(afterAcceptedBatch, afterIntent)).toEqual({ kind: "may-have-sent" });
+  });
+
+  // A bundle records its jobs' intents before the batch's own checks run.
+  it("clears the intent when the sender refused the connected account, which is before anything is signed", () => {
+    const changedHands = Object.assign(new Error("Wallet account changed before submission"), {
+      name: "WalletAccountMismatchError",
+      code: "account_mismatch",
+    });
+    expect(
+      classifySendFailure(changedHands, { intentRecorded: true, broadcastKnown: false })
+    ).toEqual({ kind: "not-sent", cancelled: false });
   });
 
   // A node can answer with either after its own broadcast: -32000 also carries

@@ -40,7 +40,21 @@ export interface WorkDashboardReturnState {
   scrollTop: number;
 }
 
+export type CommitmentsDirectionFilter = "all" | "OFFER" | "REQUEST";
+export interface CommitmentsDashboardReturnState {
+  tab: "live" | "over-time" | "to-confirm";
+  direction: CommitmentsDirectionFilter;
+  scrollTop: number;
+}
+
+export type DashboardSnapshot =
+  | ({ kind: "work" } & WorkDashboardReturnState)
+  | ({ kind: "commitments" } & CommitmentsDashboardReturnState);
+
 export type UIState = {
+  /** Invalidates history snapshots when the signed-in identity changes; never persisted. */
+  dashboardNavigationId: string;
+  commitmentsSheetReturnState?: CommitmentsDashboardReturnState;
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
   /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
@@ -114,6 +128,8 @@ export type UIState = {
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
+      dashboardNavigationId: crypto.randomUUID(),
+      commitmentsSheetReturnState: undefined,
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,
@@ -146,6 +162,8 @@ export const useUIStore = create<UIState>()(
       resetGardenFilters: () => set({ gardenFilters: DEFAULT_GARDEN_FILTERS }),
       resetForAccountChange: () =>
         set({
+          dashboardNavigationId: crypto.randomUUID(),
+          commitmentsSheetReturnState: undefined,
           gardenFilters: DEFAULT_GARDEN_FILTERS,
           isGardenFilterOpen: false,
           isEndowmentSheetOpen: false,
@@ -166,7 +184,8 @@ export const useUIStore = create<UIState>()(
       closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
       isCommitmentsSheetOpen: false,
-      openCommitmentsSheet: () => set({ isCommitmentsSheetOpen: true }),
+      openCommitmentsSheet: () =>
+        set({ isCommitmentsSheetOpen: true, commitmentsSheetReturnState: undefined }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
       openSheetCount: 0,

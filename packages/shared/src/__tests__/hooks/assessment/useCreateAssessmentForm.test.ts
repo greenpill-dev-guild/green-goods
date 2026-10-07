@@ -7,7 +7,12 @@ import {
 import { CynefinPhase, Domain, type SmartOutcome } from "../../../types/domain";
 
 function createValidFormData(
-  overrides: { smartOutcomes?: SmartOutcome[]; domain?: Domain | null } = {}
+  overrides: {
+    smartOutcomes?: SmartOutcome[];
+    domain?: Domain | null;
+    reportingPeriodStart?: string;
+    reportingPeriodEnd?: string;
+  } = {}
 ) {
   return {
     title: "Kigali Community Solar",
@@ -37,6 +42,23 @@ describe("createAssessmentFormSchema", () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["domain"]);
+  });
+
+  // The send machine is held to the same rule (createAssessmentMachine.test.ts):
+  // a period names whole days, so only an end before the start is out of order.
+  it.each([
+    { period: "ends before it starts", start: "2026-07-28", end: "2026-07-27", accepted: false },
+    { period: "is one day", start: "2026-07-27", end: "2026-07-27", accepted: true },
+    { period: "ends after it starts", start: "2026-07-27", end: "2026-07-28", accepted: true },
+  ])("a reporting period that $period: accepted $accepted", ({ start, end, accepted }) => {
+    const result = createAssessmentFormSchema.safeParse(
+      createValidFormData({ reportingPeriodStart: start, reportingPeriodEnd: end })
+    );
+
+    expect(result.success).toBe(accepted);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path[0])).toEqual(["reportingPeriodEnd"]);
+    }
   });
 
   it("accepts different metrics within one assessment", () => {

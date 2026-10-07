@@ -20,9 +20,7 @@ export const router = createRouter([
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
     errorElement: <RouteErrorBoundary />,
-    hydrateFallbackElement: (
-      <HydrationFallback appName="Green Goods Admin" showIcon message="Loading..." />
-    ),
+    hydrateFallbackElement: <HydrationFallback appName="Green Goods Admin" showIcon showMessage />,
     children: [
       {
         path: "login",

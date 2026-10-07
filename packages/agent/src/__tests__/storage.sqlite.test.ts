@@ -15,7 +15,9 @@ import {
 } from "../services/garden-join-requests";
 import type { SavedOfferCipher } from "../services/saved-offers";
 import { createSavedOfferCipher } from "../services/saved-offers";
+import { createSqlitePasskeyDirectoryStore } from "../services/passkey-directory-adapters";
 import { gardenJoinRequestStoreContract } from "./test-utils/garden-join-request-contract";
+import { passkeyDirectoryStoreContract } from "./test-utils/passkey-directory-store-contract";
 
 let databaseDirectory: string;
 let databasePath: string;
@@ -362,3 +364,7 @@ gardenJoinRequestStoreContract("SQLite garden join request store", () => {
       ).map(({ nonce }) => nonce),
   };
 });
+
+passkeyDirectoryStoreContract("SQLite passkey directory store", () =>
+  createSqlitePasskeyDirectoryStore()
+);

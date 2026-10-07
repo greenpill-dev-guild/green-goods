@@ -13,6 +13,7 @@ import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
 import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
+import { getTelemetrySink, isTelemetryReady } from "./telemetry-sink";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
@@ -135,14 +136,6 @@ export function getAppContext(): {
 // INITIALIZATION CHECK
 // ============================================================================
 
-/**
- * Check if PostHog is initialized and ready to capture events.
- * PostHogProvider initializes PostHog - we just check if it's ready.
- */
-function isPostHogReady(): boolean {
-  return telemetrySink.isReady?.() ?? false;
-}
-
 // ============================================================================
 // THROTTLING (only for diagnostic events)
 // ============================================================================
@@ -238,33 +231,6 @@ export interface TrackOptions {
   includeSessionId?: boolean;
 }
 
-export interface TelemetrySink {
-  capture(event: string, properties: Record<string, unknown>): void;
-  identify?(distinctId: string, properties?: Record<string, unknown>): void;
-  reset?(): void;
-  getDistinctId?(): string;
-  register?(properties: Record<string, unknown>): void;
-  isReady?(): boolean;
-}
-
-const noOpTelemetrySink: TelemetrySink = {
-  capture() {
-    if (IS_DEBUG && !IS_DEV) logger.warn("[PostHog] Not ready, skipping capture");
-  },
-  isReady: () => false,
-};
-
-let telemetrySink: TelemetrySink = noOpTelemetrySink;
-
-/** Replace the event transport while preserving tracking policy and enrichment. */
-export function registerTelemetrySink(sink: TelemetrySink): () => void {
-  const previous = telemetrySink;
-  telemetrySink = sink;
-  return () => {
-    if (telemetrySink === sink) telemetrySink = previous;
-  };
-}
-
 /**
  * Track a custom event with automatic enrichment.
  *
@@ -283,12 +249,35 @@ export function track(
     return;
   }
 
+  const enrichedProperties = enrichEventProperties(event, properties, options);
+
+  if (IS_DEBUG) {
+    logger.info(`[PostHog] track: ${event}`, enrichedProperties);
+  }
+
+  try {
+    getTelemetrySink().capture(event, enrichedProperties);
+  } catch (error) {
+    // Telemetry is best effort. A sink that throws must never fail what the
+    // caller was doing: a wallet that switched network, a send that went out.
+    logger.warn(`[PostHog] capture failed: ${event}`, { error: String(error) });
+  }
+}
+
+/**
+ * The context `track` adds to every event, read at the moment it is called. An event kept for
+ * later delivery takes it when it happens, so it describes that moment and not the delivery.
+ */
+export function enrichEventProperties(
+  event: string,
+  properties: Record<string, unknown> = {},
+  options: TrackOptions = {}
+): Record<string, unknown> {
   const anonymousIdentity = options.anonymizeIdentity
     ? createAnonymousTelemetryIdentity(event)
     : {};
 
-  // Enrich with context
-  const enrichedProperties = {
+  return {
     ...properties,
     is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
     connection_type:
@@ -300,12 +289,6 @@ export function track(
     ...(options.includeSessionId === false ? {} : { session_id: getSessionId() }),
     ...anonymousIdentity,
   };
-
-  if (IS_DEBUG) {
-    logger.info(`[PostHog] track: ${event}`, enrichedProperties);
-  }
-
-  telemetrySink.capture(event, enrichedProperties);
 }
 
 // ============================================================================
@@ -322,8 +305,8 @@ export function identify(distinctId: string) {
   if (IS_DEBUG) {
     logger.info(`[PostHog] identify: ${distinctId}`);
   }
-  if (IS_DEV || !isPostHogReady()) return;
-  telemetrySink.identify?.(distinctId);
+  if (IS_DEV || !isTelemetryReady()) return;
+  getTelemetrySink().identify?.(distinctId);
 }
 
 /**
@@ -348,9 +331,9 @@ export function identifyWithProperties(
       properties as Record<string, unknown>
     );
   }
-  if (IS_DEV || !isPostHogReady()) return;
+  if (IS_DEV || !isTelemetryReady()) return;
 
-  telemetrySink.identify?.(distinctId, {
+  getTelemetrySink().identify?.(distinctId, {
     // Standard person properties
     auth_mode: properties.auth_mode,
     app: properties.app,
@@ -371,8 +354,8 @@ export function reset() {
   if (IS_DEBUG) {
     logger.info("[PostHog] reset");
   }
-  if (IS_DEV || !isPostHogReady()) return;
-  telemetrySink.reset?.();
+  if (IS_DEV || !isTelemetryReady()) return;
+  getTelemetrySink().reset?.();
 }
 
 /**
@@ -382,10 +365,10 @@ export function getDistinctId(): string {
   if (IS_DEV) {
     return "dev-user-id";
   }
-  if (!isPostHogReady()) {
+  if (!isTelemetryReady()) {
     return "not-initialized";
   }
-  return telemetrySink.getDistinctId?.() ?? "not-initialized";
+  return getTelemetrySink().getDistinctId?.() ?? "not-initialized";
 }
 
 // ============================================================================
@@ -539,7 +522,7 @@ export function registerGlobalProperties(): boolean {
     }
     return true;
   }
-  if (!isPostHogReady()) {
+  if (!isTelemetryReady()) {
     if (IS_DEBUG) {
       logger.warn("[PostHog] Not ready, skipping global properties registration");
     }
@@ -549,7 +532,7 @@ export function registerGlobalProperties(): boolean {
   const context = getAppContext();
 
   // Register super properties - these are included in all events
-  telemetrySink.register?.({
+  getTelemetrySink().register?.({
     app_version: context.app_version,
     environment: context.environment,
     chain_id: context.chain_id,

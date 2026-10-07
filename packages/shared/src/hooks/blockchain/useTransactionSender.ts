@@ -1,4 +1,4 @@
-import { getAccount, getWalletClient } from "@wagmi/core";
+import { ConnectorNotConnectedError, getAccount } from "@wagmi/core";
 /**
  * React hook wrapper around the TransactionSender factory.
  *
@@ -105,12 +105,21 @@ export function useTransactionSender(): TransactionSender | null {
           )
             throw new Error("submission-ownership-changed");
         } else {
-          const wallet = await getWalletClient(config, { chainId });
-          const activeChainId = getAccount(config).chainId;
-          if (
-            wallet?.account?.address.toLowerCase() !== address.toLowerCase() ||
-            (activeChainId !== undefined && activeChainId !== chainId)
-          )
+          // This checks who signs. The network is the sender's job: its chain
+          // guard moves the wallet to `chainId` just before writing, and the
+          // write refuses any other network. Asking wagmi for a wallet client
+          // on `chainId` here refused every queued wallet act while the wallet
+          // sat on another network, before the guard could switch it
+          // (2026-10-01). The connection's account is what that client would
+          // have signed with.
+          const wallet = getAccount(config);
+          // A wallet that dropped while the member stays signed in, or one wagmi
+          // is still reconnecting (its connector is a stored stub), fails the
+          // way the wallet client did: as a wallet to reconnect, not as someone
+          // else's job to skip quietly.
+          if (!wallet.address || typeof wallet.connector?.getChainId !== "function")
+            throw new ConnectorNotConnectedError();
+          if (wallet.address.toLowerCase() !== address.toLowerCase())
             throw new Error("submission-ownership-changed");
         }
         if (generation !== session.current.generation)

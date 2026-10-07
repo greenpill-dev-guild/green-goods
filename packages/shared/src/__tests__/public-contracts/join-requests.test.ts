@@ -77,6 +77,58 @@ describe("garden join request public contract", () => {
     expect(decodeGardenJoinAuthorization(authorization)).toEqual(proof);
   });
 
+  it("signs an explicit audience and bounded normalized content for status recovery", () => {
+    const grant = {
+      ...proof,
+      readSelf: {
+        audience: "https://greengoods.app",
+        content: { displayName: "Maya", requestedVia: "garden_detail" as const },
+      },
+    };
+    const message = buildGardenJoinProofMessage(grant, {
+      displayName: "Maya",
+      note: null,
+      requestedVia: "garden_detail",
+    });
+    expect(buildGardenJoinProofMessage(grant)).toBe(message);
+    expect(message).toContain("Also authorize: read own join-request status until proof expiry");
+    expect(message).toContain("Audience: https://greengoods.app");
+    expect(validateGardenJoinProofEnvelope(grant, { nowSeconds: issuedAt })).toMatchObject({
+      ok: true,
+      value: { readSelf: grant.readSelf },
+    });
+    expect(
+      buildGardenJoinProofMessage(
+        { ...grant, readSelf: undefined },
+        { displayName: "Maya", note: null, requestedVia: "garden_detail" }
+      )
+    ).not.toBe(message);
+  });
+  it("rejects malformed, unsafe and non-create read grants", () => {
+    const content = { displayName: "Maya", requestedVia: "garden_detail" };
+    for (const readSelf of [
+      null,
+      {},
+      { audience: "https://greengoods.app/path", content },
+      { audience: "http://remote.example", content },
+      { audience: "https://greengoods.app", content: { ...content, note: "x".repeat(501) } },
+    ]) {
+      expect(
+        validateGardenJoinProofEnvelope({ ...proof, readSelf }, { nowSeconds: issuedAt })
+      ).toMatchObject({ ok: false });
+    }
+    expect(
+      validateGardenJoinProofEnvelope(
+        {
+          ...proof,
+          action: "read_self",
+          readSelf: { audience: "https://greengoods.app", content },
+        },
+        { nowSeconds: issuedAt }
+      )
+    ).toMatchObject({ ok: false });
+  });
+
   it("rejects expired, overlong, and action-mismatched proofs", () => {
     expect(
       validateGardenJoinProofEnvelope(proof, {

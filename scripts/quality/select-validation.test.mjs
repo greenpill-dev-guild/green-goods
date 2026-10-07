@@ -467,7 +467,7 @@ test("validation tooling paths escalate to sensitive risk", () => {
   assert.deepEqual(ids(plan), ["validation-system-test"]);
 });
 
-test("isolated client behavior accepts focused proof without forcing a package build", () => {
+test("work inspection adds qualified browser proof without forcing a package build", () => {
   const plan = selectValidation({
     intent: "qa",
     changedPaths: ["packages/client/src/views/Home/Garden/Work.tsx"],
@@ -480,6 +480,7 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "client-test",
     "staged-modules",
     "ontology",
+    "browser-work-exploration",
   ]);
   assert.equal(
     plan.checks.find((check) => check.id === "client-test").command,
@@ -490,9 +491,9 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "bun --bun run oxlint 'packages/client/src/views/Home/Garden/Work.tsx' --deny-warnings",
   );
   assert.equal(plan.budget.targetSeconds, 90);
-  // Measured budgets: the focused client suite and its hygiene fit the QA target.
-  assert.equal(plan.budget.withinTarget, true);
-  assert.ok(plan.budget.estimatedWallSeconds <= plan.budget.targetSeconds);
+  // The qualified browser journey adds a measured cost; QA warns without dropping proof.
+  assert.equal(plan.budget.withinTarget, false);
+  assert.ok(plan.budget.estimatedWallSeconds > plan.budget.targetSeconds);
   assert.equal(plan.budget.rule, "Budgets warn and profile; they never skip selected or mandatory checks.");
   assert.equal(plan.checks.at(-1).state, "pending");
 });
@@ -1088,7 +1089,7 @@ test("CLI capability detection reports pinned submodule readiness", () => {
   });
 
   assert.deepEqual(calls, [{ cwd: "/workspace" }]);
-  assert.deepEqual(capabilities, { contractSubmodules: false });
+  assert.deepEqual(capabilities, { contractSubmodules: false, playwrightChromium: false });
 });
 
 test("conditional validation rules honor their declared intents", () => {
@@ -2269,6 +2270,39 @@ test("a new hook that reaches a signing or sending primitive defaults to critica
   assert.notEqual(readPlan.risk, "critical");
 });
 
+test("account-abstraction signing keeps aliased callers critical without escalating operation readers", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "modules/reporting/activation.ts": [
+      "export async function activate(account: { signUserOperation: (operation: unknown) => Promise<string> }) {",
+      "  return account.signUserOperation({});",
+      "}",
+      "export function activationStatus() { return \"pending\"; }",
+    ].join("\n"),
+    "hooks/reporting/useActivation.ts": [
+      'import { activate as submit } from "../../modules/reporting/activation";',
+      "export const useActivation = (account: never) => submit(account);",
+    ].join("\n"),
+    "hooks/reporting/useActivationStatus.ts": [
+      'import { activationStatus } from "../../modules/reporting/activation";',
+      "export const useActivationStatus = () => activationStatus();",
+    ].join("\n"),
+  });
+  const signing = [
+    "packages/shared/src/modules/reporting/activation.ts",
+    "packages/shared/src/hooks/reporting/useActivation.ts",
+  ];
+  const reader = "packages/shared/src/hooks/reporting/useActivationStatus.ts";
+  const mutationPaths = mutationPathsAmong([...signing, reader], { root, primitives });
+  assert.deepEqual(mutationPaths, [...signing].sort());
+  for (const changedPath of signing) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths });
+    assert.equal(plan.risk, "critical", changedPath);
+    assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
+  }
+  assert.notEqual(selectValidation({ intent: "push", changedPaths: [reader], mutationPaths }).risk, "critical");
+});
+
 test("mutation capability that travels by reference keeps a new file critical, in hooks and beyond", (t) => {
   const { sharedMutationPrimitives: primitives } = loadPolicy();
   const root = mutationFixture(t, {
@@ -2646,4 +2680,38 @@ test("every dated plan report selects immutable-plan-reports in the push gate", 
   ]) {
     assert.ok(!push(path).includes("immutable-plan-reports"), path);
   }
+});
+
+test("qualified browser checks follow their sources, block on missing Chromium and retain critical overrides", () => {
+  for (const [id, changedPath] of [
+    ['browser-passkey', 'packages/shared/src/workflows/authServices.ts'],
+    ['browser-work-exploration', 'packages/client/src/views/Home/Garden/Work.tsx'],
+    ['browser-pwa-preview', 'packages/client/src/sw/sw.ts'],
+  ]) {
+    const plan = selectValidation({ intent: 'qa', changedPaths: [changedPath], environment: { capabilities: { playwrightChromium: false } } });
+    const check = plan.checks.find(item => item.id === id);
+    assert.ok(check, `${id} selected for ${changedPath}`);
+    assert.ok(check.blockedBy.includes('playwrightChromium'));
+    assert.ok(!ids(selectValidation({ intent: 'qa', changedPaths: ['docs/README.md'] })).includes(id));
+    if (id === 'browser-passkey') assert.ok(plan.checks.some(item => item.mandatory && item.id === 'shared-test'));
+  }
+});
+
+test("browser entrypoint and lifecycle edits trigger the required Client workflow", () => {
+  for (const changedPath of ["scripts/dev/browser.js", "scripts/dev/test-e2e.js", "scripts/dev/node-cli.js", "scripts/lib/command-runner.mjs", "scripts/lib/dev-shared.js"]) {
+    assert.ok(selectExpectedWorkflows({ intent: "merge", ci: true, changedPaths: [changedPath] }).includes("Client"), changedPath);
+  }
+});
+
+test("browser proof fingerprints change with fixture, profile, toolchain and replay seed", () => {
+  const plan = selectValidation({ intent: 'qa', changedPaths: ['tests/specs/client.exploration.spec.ts'], workingCopyFingerprint: 'source-and-fixture-a' });
+  const check = plan.checks.find(item => item.id === 'browser-work-exploration');
+  assert.ok(check);
+  const original = buildReceiptInputs(plan, check, { environment: 'seed-17' }).fingerprint;
+  for (const changed of [
+    { ...plan, workingCopyFingerprint: 'source-and-fixture-b' },
+    { ...plan, environment: { ...plan.environment, profile: 'production' } },
+    { ...plan, environment: { ...plan.environment, toolchain: { playwright: 'different-revision' } } },
+  ]) assert.notEqual(buildReceiptInputs(changed, check, { environment: 'seed-17' }).fingerprint, original);
+  assert.notEqual(buildReceiptInputs(plan, check, { environment: 'seed-42' }).fingerprint, original);
 });

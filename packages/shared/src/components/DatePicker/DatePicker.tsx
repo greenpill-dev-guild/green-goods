@@ -5,9 +5,12 @@ import { type DateAfter, type DateBefore, DayPicker } from "react-day-picker";
 import { cn } from "../../utils/styles/cn";
 
 export interface DatePickerProps {
-  /** Currently selected date as Unix timestamp (seconds) */
+  /**
+   * The selected day as Unix seconds. The picker shows the local calendar day of
+   * this instant, so pass local midnight of the day to show.
+   */
   value?: number | null;
-  /** Called when a date is selected, receives Unix timestamp (seconds) or null */
+  /** Receives local midnight of the picked day as Unix seconds, or null. */
   onChange?: (timestamp: number | null) => void;
   /** Placeholder text when no date is selected */
   placeholder?: string;
@@ -72,11 +75,15 @@ function dateToTimestamp(date: Date | undefined): number | null {
  * Select trigger), so it takes the surface's field corner and height and lines
  * up with the fields beside it; the label rides `gg-field-label` (DL-031).
  *
+ * The picker works in local calendar days. A caller that persists a day as UTC
+ * midnight has to cross that boundary on the way in and out, or the day shifts
+ * for anyone away from UTC (`utils/calendar-date`).
+ *
  * @example
  * <DatePicker
  *   label="Start Date"
- *   value={draft.workTimeframeStart}
- *   onChange={(timestamp) => onUpdate({ workTimeframeStart: timestamp ?? 0 })}
+ *   value={utcDayToPickerValue(draft.workTimeframeStart)}
+ *   onChange={(picked) => onUpdate({ workTimeframeStart: pickerValueToUtcDay(picked) ?? 0 })}
  *   placeholder="Select start date"
  *   required
  * />
@@ -206,18 +213,22 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                   root: "w-fit",
                   months: "flex flex-col",
                   month: "space-y-3",
-                  month_caption: "flex justify-center relative items-center h-9",
+                  // Not a positioned box: the nav is laid across this same row
+                  // and comes first in the DOM, so a positioned caption would
+                  // paint over the arrows and take the pointer on their inner
+                  // half.
+                  month_caption: "flex justify-center items-center h-9",
                   caption_label: "text-sm font-semibold text-text-strong-950",
                   nav: "flex items-center gap-1 absolute inset-x-0 justify-between",
                   button_previous: cn(
                     "h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   button_next: cn(
                     "h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   month_grid: "w-full border-collapse",
                   weekdays: "flex",
@@ -226,18 +237,18 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                   week: "flex mt-1",
                   day: cn(
                     "w-9 h-9 flex items-center justify-center text-sm rounded-lg",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   day_button: cn(
                     "w-full h-full flex items-center justify-center rounded-lg",
-                    "hover:bg-bg-soft-200 transition cursor-pointer",
-                    "focus:outline-none"
+                    "hover:bg-bg-soft-200 [[data-selected]_&]:hover:bg-transparent transition cursor-pointer",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0"
                   ),
                   selected: cn(
-                    "bg-primary-base text-white-0 font-semibold",
-                    "hover:bg-primary-dark"
+                    "bg-primary-action text-primary-action-foreground font-semibold",
+                    "hover:bg-primary-action-hover"
                   ),
-                  today: "font-bold text-primary-base",
+                  today: "font-bold [&:not([data-selected])]:text-primary-on-surface",
                   outside: "text-text-disabled opacity-50",
                   disabled: "text-text-disabled opacity-30 cursor-not-allowed hover:bg-transparent",
                   hidden: "invisible",

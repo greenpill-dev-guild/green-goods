@@ -49,8 +49,11 @@ export function commitmentJobIdentity(kind: string, payload: unknown): string | 
  * settle the team before the proof and its credit were on the record.
  */
 export function commitmentJobPrerequisite(kind: string, payload: unknown): string | null {
-  if (kind !== "confirmation" || !payload || typeof payload !== "object") return null;
+  if (!payload || typeof payload !== "object") return null;
   const value = payload as Record<string, unknown>;
+  if (kind === "workLink")
+    return typeof value.sourceWorkJobId === "string" ? value.sourceWorkJobId : null;
+  if (kind !== "confirmation") return null;
   return value.action === "submit" && typeof value.afterEvidenceJobId === "string"
     ? value.afterEvidenceJobId
     : null;
@@ -67,6 +70,39 @@ export function canonicalJobPayload(payload: unknown): string {
     const raw = this[key];
     return typeof raw === "bigint" ? { __bigint: raw.toString() } : value;
   });
+}
+
+const SECONDS_PER_DAY = 86_400n;
+
+/**
+ * Whether a creation being admitted is the queued one, placed again. The
+ * composer builds the payload on every press, so the same answers come back
+ * different in two fields the member never set:
+ *
+ * - The deadline counts whole days from the press. Placed again it falls later
+ *   by the time in between, so a queued deadline no later than the new one, and
+ *   less than a day before it, is the same deadline. A changed answer moves it
+ *   by a day or more.
+ * - The words travel in the job until the executor publishes them and writes
+ *   their CID back. While both payloads carry the words, the words are compared
+ *   and the CID is not.
+ *
+ * The queue then answers with the job it holds, which is sent as it was queued:
+ * its deadline and its CID stand, and nothing is rebuilt. Any other difference
+ * is a different commitment behind the same id, which the queue still refuses.
+ */
+export function isSameCreationPlacedAgain(kind: string, queued: unknown, next: unknown): boolean {
+  if (kind !== "commitment" || !queued || !next) return false;
+  if (typeof queued !== "object" || typeof next !== "object") return false;
+  const { dueDate: queuedDue, ...queuedTerms } = queued as Record<string, unknown>;
+  const { dueDate: nextDue, ...nextTerms } = next as Record<string, unknown>;
+  if (typeof queuedDue !== "bigint" || typeof nextDue !== "bigint") return false;
+  const later = nextDue - queuedDue;
+  if (later < 0n || later >= SECONDS_PER_DAY) return false;
+  const wordsTravel = Boolean(queuedTerms.metadata && nextTerms.metadata);
+  const terms = (payload: Record<string, unknown>) =>
+    canonicalJobPayload(wordsTravel ? { ...payload, metadataCID: "" } : payload);
+  return terms(queuedTerms) === terms(nextTerms);
 }
 
 export function toCommitmentJob(job: Job, chainId: number, moduleAddress: Address): CommitmentJob {

@@ -81,7 +81,7 @@ export function SeedCommitmentDialog({
 }: SeedCommitmentDialogProps) {
   const { formatMessage } = useIntl();
   const noteId = useId();
-  // The Pool tab stays mounted behind this flow and owns the visit.
+  // The Promises tab stays mounted behind this flow and owns the visit.
   const pool = usePoolConsoleController({ chainId, garden, visit: "join" });
   // Seeding into the protocol pool (the Green Goods Community Garden's own):
   // requests default to steward review. The pool says which it is, so the
@@ -100,7 +100,7 @@ export function SeedCommitmentDialog({
     if (delay !== null) setWindowTimer(() => setWindowNow(Date.now()), delay);
     return clearWindowTimer;
   }, [open, actions, windowNow, setWindowTimer, clearWindowTimer]);
-  const jobs = useCommitmentJobs({ chainId });
+  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   const [stepIndex, setStepIndex] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
@@ -207,7 +207,7 @@ export function SeedCommitmentDialog({
   const busy = tray.isSending;
   const finished = status.phase === "created" || status.phase === "finishLater";
   // Closing loses only answers that exist nowhere else: a copy left in the
-  // queue is finished from the pool tab.
+  // queue is finished from the Promises tab.
   const answersAtStake =
     !finished &&
     (tray.copies === null ||
@@ -257,7 +257,9 @@ export function SeedCommitmentDialog({
   });
 
   const goNext = useCallback(async () => {
-    const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")));
+    const valid = await form.trigger(stepFieldsFor(currentStep, form.getValues("kind")), {
+      shouldFocus: true,
+    });
     if (valid && !closedSeedActions(form.getValues(), actions, chainId, Date.now()).length)
       setStepIndex((index) => index + 1);
   }, [form, currentStep, actions, chainId]);
