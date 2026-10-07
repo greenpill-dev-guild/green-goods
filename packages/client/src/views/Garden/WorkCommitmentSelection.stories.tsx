@@ -20,6 +20,8 @@ const meta: Meta<typeof WorkCommitmentSelection> = {
   component: WorkCommitmentSelection,
   tags: ["autodocs"],
   parameters: { layout: "padded" },
+  // Exact requirement fixtures contain BigInts; they are exercised through the picker.
+  argTypes: { choices: { control: false } },
   args: {
     choices: [
       {
