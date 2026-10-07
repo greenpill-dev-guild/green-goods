@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => ({
   normalizeWorkMediaFiles: vi.fn(),
   saveOnExit: vi.fn(),
   autoSaveFields: null as null | Record<string, unknown>,
+  autoSaveEnabled: true,
+  isResumingFromUrl: false,
+  setDraftGarden: vi.fn(),
+  setDraftAction: vi.fn(),
   setFlowState: vi.fn(),
   linkCleared: false,
   toastError: vi.fn(),
@@ -34,6 +38,10 @@ const mocks = vi.hoisted(() => ({
   joinGarden: vi.fn(),
   joinState: { isJoining: false, joiningGardenId: null as string | null },
   askAgain: vi.fn(),
+}));
+
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x9999999999999999999999999999999999999999",
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -91,8 +99,13 @@ vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
     missingAttachments: [],
     removeMissingAttachment: vi.fn(),
   }),
-  useDraftAutoSave: (fields: Record<string, unknown>) => {
+  useDraftAutoSave: (
+    fields: Record<string, unknown>,
+    _images: unknown,
+    options: { enabled: boolean }
+  ) => {
     mocks.autoSaveFields = fields;
+    mocks.autoSaveEnabled = options.enabled;
     return { saveOnExit: mocks.saveOnExit };
   },
 }));
@@ -110,6 +123,7 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
     showDraftSheet: false,
+    isResumingFromUrl: mocks.isResumingFromUrl,
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
@@ -144,13 +158,13 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         submissionCompleted: false,
         workSubmissionJourneyId: "journey-1",
         ensureWorkSubmissionJourneyId: mocks.ensureJourney,
-        setGardenAddress: vi.fn(),
+        setGardenAddress: mocks.setDraftGarden,
         audioNotes: [],
         setAudioNotes: vi.fn(),
         draftLinkCleared: mocks.linkCleared,
       }),
     {
-      getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: vi.fn() }),
+      getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: mocks.setDraftAction }),
       setState: mocks.setFlowState,
     }
   ),
@@ -219,6 +233,7 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
 import { useUIStore } from "../../../stores/useUIStore";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -253,9 +268,11 @@ const commitmentLinkIntent = {
 let navigateShareRoute: ((path: string) => void) | null = null;
 let exitPath = "";
 let exitNavigation = "";
+let exitState: Record<string, unknown> | null = null;
 
 function ExitPathCapture({ children }: { children: ReactNode }) {
   exitPath = useLocation().pathname;
+  exitState = useLocation().state;
   exitNavigation = useNavigationType();
   return children;
 }
@@ -306,10 +323,51 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
     mocks.autoSaveFields = null;
+    mocks.autoSaveEnabled = true;
+    mocks.isResumingFromUrl = false;
     mocks.linkCleared = false;
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
+  });
+
+  it("waits for draft reconciliation before applying or saving an incoming promise", () => {
+    mocks.isResumingFromUrl = true;
+    mocks.choices = [commitmentLinkIntent];
+    const params = new URLSearchParams({
+      linkCommitmentId: "9",
+      linkRequirementIndex: "0",
+      linkActionUID: "1",
+      linkGarden: commitmentLinkIntent.garden,
+      linkCommitmentTitle: "Trees",
+      linkRequirementLabel: "1",
+      returnTo: commitmentLinkIntent.returnTo,
+    });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(
+        MemoryRouter,
+        { initialEntries: [`/home/garden?${params}`] },
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      );
+    const view = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper }
+    );
+    expect(mocks.setDraftGarden).not.toHaveBeenCalled();
+    expect(mocks.setDraftAction).not.toHaveBeenCalled();
+    expect(mocks.autoSaveEnabled).toBe(false);
+    expect(view.result.current.canProceed).toBe(false);
+
+    mocks.isResumingFromUrl = false;
+    view.rerender();
+    expect(mocks.setDraftGarden).toHaveBeenCalledWith(commitmentLinkIntent.garden);
+    expect(mocks.setDraftAction).toHaveBeenCalledWith(1);
+    expect(mocks.autoSaveEnabled).toBe(true);
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -371,6 +429,47 @@ describe("useWorkSubmissionFlowController", () => {
     expect(mocks.saveOnExit).toHaveBeenCalledTimes(1);
   });
 
+  it("preserves the dashboard trail when a promise query changes before leaving work", () => {
+    const parent = "/home/garden-1/commitments/9";
+    const dashboardBack = {
+      scope: `${DEFAULT_CHAIN_ID}:0x9999999999999999999999999999999999999999:${useUIStore.getState().dashboardNavigationId}`,
+      path: parent,
+    };
+    function LinkedWorkWrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        MemoryRouter,
+        {
+          initialEntries: [
+            parent,
+            {
+              pathname: "/home/garden",
+              state: { dashboardBack },
+            },
+          ],
+        },
+        createElement(
+          ExitPathCapture,
+          null,
+          createElement(IntlProvider, { locale: "en", messages: {} }, children)
+        )
+      );
+    }
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: LinkedWorkWrapper }
+    );
+    act(() => result.current.clearLinkIntent());
+    expect(exitState).toEqual({ dashboardBack });
+    act(() => result.current.exit());
+    expect(exitPath).toBe(parent);
+    expect(exitNavigation).toBe("POP");
+  });
+
   it.each([
     {
       from: "a prompt whose address holds the draft's promise",
@@ -397,10 +496,8 @@ describe("useWorkSubmissionFlowController", () => {
 
     act(() => result.current.draft.manage());
 
-    expect(useUIStore.getState()).toMatchObject({
-      isWorkDashboardOpen: true,
-      workDashboardInitialTab: "pending",
-      workDashboardInitialPendingFilter: "editing",
+    expect(exitState).toMatchObject({
+      dashboardEntry: { snapshot: { kind: "work", tab: "pending", pendingFilter: "editing" } },
     });
     expect(exitPath).toBe("/home");
     // Back returns to the visit, except where its address would pass the draft's promise off

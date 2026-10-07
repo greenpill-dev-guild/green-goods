@@ -227,5 +227,8 @@ export const OutcomesHoldStill: Story = {
       await expect(metricPlace()).toEqual(metricAt);
     }
     for (const row of rows()) await onTheStepEdges(row.getBoundingClientRect());
+    await expect(canvas.getAllByText("The change you want to see")).toHaveLength(1);
+    await expect(canvas.getAllByText("What you'll count")).toHaveLength(1);
+    await expect(canvas.getAllByText("How much")).toHaveLength(1);
   },
 };

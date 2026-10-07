@@ -356,14 +356,14 @@ export const Garden: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-                      <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <RiMapPin2Fill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
                       <span className="truncate" title={location}>
                         {location}
                       </span>
                     </div>
                     <span className="hidden sm:inline text-text-soft-400">•</span>
                     <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-                      <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <RiCalendarEventFill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
                       <span className="truncate" title={foundedLabel}>
                         {foundedLabel}
                       </span>

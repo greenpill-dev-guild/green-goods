@@ -54,3 +54,14 @@ export const AllDomains: Story = {
     </div>
   ),
 };
+
+export const RecordDomains: Story = {
+  args: { variant: "inline" },
+  render: (args) => (
+    <div className="flex flex-col gap-3 bg-bg-white-0 p-4">
+      {[Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE].map((domain) => (
+        <DomainBadge key={domain} {...args} domain={domain} />
+      ))}
+    </div>
+  ),
+};

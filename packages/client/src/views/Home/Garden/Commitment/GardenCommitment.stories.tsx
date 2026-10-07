@@ -106,9 +106,9 @@ export const InProgress: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Autumn Planting 2026")).toBeVisible();
     await expect(canvas.getByText("Riverside Commons Garden")).toBeVisible();
-    // The status sentence names who confirms it, the same person the facts tag as steward.
+    // Work approval advances a Garden Work promise; no manual send is implied.
     await expect(canvas.getByRole("region", { name: "Where this stands" })).toHaveTextContent(
-      "send it to tomas to confirm"
+      "Garden stewards approve the work"
     );
     await expect(canvas.getByText("Steward")).toBeVisible();
     // The title wraps rather than truncating: it never clips, however wide the page.
@@ -120,7 +120,7 @@ export const InProgress: Story = {
     const proof = canvas.getByRole("button", { name: "Add Proof" });
     const [linkBox, proofBox] = [link.getBoundingClientRect(), proof.getBoundingClientRect()];
     await expect(linkBox.top).toBe(proofBox.top);
-    await expect(proofBox.left).toBeGreaterThan(linkBox.left);
+    await expect(linkBox.left).toBeGreaterThan(proofBox.left);
     await expect(proofBox.height).toBe(48);
     await expect(Math.abs(linkBox.width - proofBox.width)).toBeLessThanOrEqual(1);
   },

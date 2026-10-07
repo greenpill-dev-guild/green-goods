@@ -11,6 +11,7 @@ interface AssessmentOutcomeFieldsProps {
   metrics: readonly { key: string; label: string; unit: string }[];
   selectedMetricCounts: ReadonlyMap<string, number>;
   errors: Partial<Record<OutcomeField, string>>;
+  helpIds: Record<OutcomeField, string>;
   isSubmitting: boolean;
   canRemove: boolean;
   onChange: (field: OutcomeField, value: string | number) => void;
@@ -24,6 +25,7 @@ export function AssessmentOutcomeFields({
   metrics,
   selectedMetricCounts,
   errors,
+  helpIds,
   isSubmitting,
   canRemove,
   onChange,
@@ -51,10 +53,7 @@ export function AssessmentOutcomeFields({
         onChange={(e) => onChange("description", e.target.value)}
         onBlur={() => onBlur("description")}
         error={errors.description}
-        helperText={formatMessage({
-          id: "app.admin.assessment.strategyKernel.outcomeHelp",
-          defaultMessage: "The change you want to see",
-        })}
+        inputProps={{ "aria-describedby": helpIds.description }}
       />
 
       <AdminSelect
@@ -68,10 +67,7 @@ export function AssessmentOutcomeFields({
         onChange={(e) => onChange("metric", e.target.value)}
         onBlur={() => onBlur("metric")}
         error={errors.metric}
-        helperText={formatMessage({
-          id: "app.admin.assessment.strategyKernel.metricHelp",
-          defaultMessage: "What you'll count",
-        })}
+        selectProps={{ "aria-describedby": helpIds.metric }}
       >
         <option value="">
           {formatMessage({
@@ -102,11 +98,7 @@ export function AssessmentOutcomeFields({
         onChange={(e) => onChange("target", e.target.valueAsNumber)}
         onBlur={() => onBlur("target")}
         error={errors.target}
-        helperText={formatMessage({
-          id: "app.admin.assessment.strategyKernel.targetHelp",
-          defaultMessage: "How much",
-        })}
-        inputProps={{ min: 0, step: "any" }}
+        inputProps={{ min: 0, step: "any", "aria-describedby": helpIds.target }}
       />
 
       {/* Always in its column, so adding a second outcome never
@@ -124,5 +116,56 @@ export function AssessmentOutcomeFields({
         <RiDeleteBinLine />
       </AdminIconButton>
     </div>
+  );
+}
+
+/** The collection teaches the three field meanings once; every row references these definitions. */
+export function AssessmentOutcomeHelp({ helpIds }: { helpIds: Record<OutcomeField, string> }) {
+  const { formatMessage } = useIntl();
+  return (
+    <dl className="grid gap-2 body-xs sm:grid-cols-3">
+      <div>
+        <dt className="font-medium text-text-strong">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.outcomeFieldLabel",
+            defaultMessage: "Outcome",
+          })}
+        </dt>
+        <dd id={helpIds.description} className="text-text-soft">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.outcomeHelp",
+            defaultMessage: "The change you want to see",
+          })}
+        </dd>
+      </div>
+      <div>
+        <dt className="font-medium text-text-strong">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.metricFieldLabel",
+            defaultMessage: "Metric",
+          })}
+        </dt>
+        <dd id={helpIds.metric} className="text-text-soft">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.metricHelp",
+            defaultMessage: "What you'll count",
+          })}
+        </dd>
+      </div>
+      <div>
+        <dt className="font-medium text-text-strong">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.targetFieldLabel",
+            defaultMessage: "Target",
+          })}
+        </dt>
+        <dd id={helpIds.target} className="text-text-soft">
+          {formatMessage({
+            id: "app.admin.assessment.strategyKernel.targetHelp",
+            defaultMessage: "How much",
+          })}
+        </dd>
+      </div>
+    </dl>
   );
 }

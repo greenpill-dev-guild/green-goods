@@ -7,8 +7,9 @@
  * the moment the prompt opens, and the next save gets a record of its own.
  */
 import { act, cleanup, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getAddress } from "viem";
 import { useDraftAutoSave } from "../../../hooks/work/useDraftAutoSave";
 import { useDraftResume } from "../../../hooks/work/useDraftResume";
 import {
@@ -19,6 +20,7 @@ import {
 import { draftDB } from "../../../modules/job-queue/draft-db";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
 import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+import { WorkTab } from "../../../stores/workFlowTypes";
 import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
@@ -79,14 +81,6 @@ function useWizard({
   linkIntent: ReturnType<typeof toDraftWorkLink> | undefined;
 }) {
   const resume = useDraftResume({
-    formState: {
-      images: [],
-      gardenAddress: null,
-      actionUID: null,
-      feedback: "",
-      timeSpentMinutes: 0,
-    },
-    isOnIntroTab: true,
     searchParams,
     setSearchParams,
     restoreForm,
@@ -99,8 +93,14 @@ function useWizard({
   const { saveOnExit } = useDraftAutoSave(
     { gardenAddress, actionUID, feedback, details, linkIntent },
     images,
-    { enabled: !resume.legacyRecovery }
+    { enabled: !resume.legacyRecovery && !resume.isResumingFromUrl }
   );
+  useEffect(() => {
+    const intent = parseWorkLinkIntent(searchParams);
+    if (resume.isResumingFromUrl || !intent) return;
+    useWorkFlowStore.getState().setGardenAddress(intent.garden);
+    useWorkFlowStore.getState().setActionUID(intent.actionUID);
+  }, [searchParams, resume.isResumingFromUrl]);
   return { ...resume, saveOnExit };
 }
 
@@ -199,11 +199,8 @@ describe("Start Fresh on a saved work draft", () => {
 
   it("leaves the saved draft its own promise when the page was opened for another", async () => {
     const saved = await saveDraftWithPhoto();
-    const { result, setSearchParams } = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
-
-    await act(async () => {
-      await result.current.handleStartFresh();
-    });
+    const { result, setSearchParams } = openWizard(ANOTHER_PROMISE_PAGE);
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
 
     // The page's promise was never written onto the draft that was set aside.
     expect(await draftDB.getDraft("old")).toEqual(saved);
@@ -224,9 +221,8 @@ describe("Start Fresh on a saved work draft", () => {
     (await openOnSavedDraft()).unmount();
     await queueDraftWrite(async () => undefined);
 
-    // The next visit, in the same session, is for another promise. It asks again, and the
-    // draft is not carried on and saved for that promise meanwhile.
-    const { result } = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
+    // A generic next visit asks again, without silently treating dismissal as Continue.
+    const { result } = await openOnSavedDraft();
 
     expect(result.current.showDraftSheet).toBe(true);
     expect(await result.current.saveOnExit()).toBeNull();
@@ -324,10 +320,8 @@ describe("Start Fresh on a saved work draft", () => {
   it("comes back for the promise its page was opened for after making room", async () => {
     await fillDraftSlots(19);
     await saveDraftWithPhoto();
-    const first = await openOnSavedDraft(ANOTHER_PROMISE_PAGE);
-    await act(async () => {
-      await expect(first.result.current.handleStartFresh()).rejects.toThrow("draft-limit");
-    });
+    const first = openWizard(ANOTHER_PROMISE_PAGE);
+    await waitFor(() => expect(useWorkFlowStore.getState().draftError).toBe("draft-limit"));
     // The address is the page's own, so Back may return to it.
     let draftsPromiseInAddress = true;
     act(() => {
@@ -340,14 +334,12 @@ describe("Start Fresh on a saved work draft", () => {
 
     // Back through the Garden tab, whose address names no promise. Mounted as the development
     // build mounts it, the first load is interrupted and must not spend the promise.
-    const { result, setSearchParams } = await openOnSavedDraft("", { strict: true });
+    const { result, setSearchParams } = openWizard("", { strict: true });
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
     const restored = setSearchParams.mock.lastCall?.[0] as URLSearchParams;
     expect(restored.get("linkCommitmentId")).toBe("9");
-    await act(async () => {
-      await result.current.handleStartFresh();
-    });
 
-    // It is the page's promise, so Start Fresh leaves it, and the draft set aside keeps its own.
+    // It is the page's promise, and the draft set aside keeps its own.
     expect(setSearchParams).toHaveBeenCalledOnce();
     expect((await draftDB.getDraft("old"))?.linkIntent?.commitmentId).toBe("12");
     act(() => useWorkFlowStore.getState().setFeedback("reset the fence posts"));
@@ -386,6 +378,123 @@ describe("Start Fresh on a saved work draft", () => {
     }
     expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBeNull();
     expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+    expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
+  });
+});
+
+describe("entering work from a promise", () => {
+  it.each([
+    { name: "cold promise change", warm: false, change: { commitmentId: 9n } },
+    { name: "warm promise change", warm: true, change: { commitmentId: 9n } },
+    { name: "another requirement", warm: false, change: { requirementIndex: 1 } },
+    { name: "another action", warm: false, change: { actionUID: 6 } },
+    {
+      name: "another garden",
+      warm: false,
+      change: { garden: "0x1111111111111111111111111111111111111111" as const },
+    },
+  ])("sets unrelated work aside for $name", async ({ warm, change }) => {
+    const saved = await saveDraftWithPhoto();
+    if (warm) {
+      const previous = await openOnSavedDraft();
+      await act(async () => previous.result.current.handleContinueDraft());
+      act(() => useWorkFlowStore.getState().setActiveTab(WorkTab.Review));
+      previous.unmount();
+      await queueDraftWrite(async () => undefined);
+    }
+    const before = await draftDB.getDraft("old");
+    const intent = { ...PROMISE, commitmentId: 12n, ...change };
+    intent.returnTo = `/home/${intent.garden}/commitments/${intent.commitmentId}`;
+    const { result } = openWizard(writeWorkLinkIntent(new URLSearchParams(), intent).toString());
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
+
+    expect(result.current.showDraftSheet).toBe(false);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeTab: WorkTab.Intro,
+      gardenAddress: intent.garden,
+      actionUID: intent.actionUID,
+      feedback: "",
+      images: [],
+    });
+    act(() => useWorkFlowStore.getState().setFeedback("new fence work"));
+    let next: string | null = null;
+    await act(async () => {
+      next = await result.current.saveOnExit();
+    });
+    expect(next).not.toBe("old");
+    expect(await draftDB.getDraft("old")).toEqual(before ?? saved);
+    expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
+    expect(await draftDB.getDraft(next as string)).toMatchObject({
+      gardenAddress: intent.garden,
+      actionUID: intent.actionUID,
+      feedback: "new fence work",
+      linkIntent: {
+        commitmentId: intent.commitmentId.toString(),
+        requirementIndex: intent.requirementIndex,
+      },
+    });
+    expect(await draftDB.getImagesForDraft(next as string)).toEqual([]);
+  });
+
+  it("waits for an outgoing save before setting aside its draft", async () => {
+    await saveDraftWithPhoto();
+    let finishSave!: () => void;
+    const writing = queueDraftWrite(async () => {
+      await new Promise<void>((resolve) => {
+        finishSave = resolve;
+      });
+      await draftDB.updateDraft("old", { feedback: "last edit before leaving" });
+    });
+    const { result } = openWizard(ANOTHER_PROMISE_PAGE);
+    try {
+      await waitFor(() => expect(finishSave).toBeDefined());
+      expect(result.current.isResumingFromUrl).toBe(true);
+      expect(await result.current.saveOnExit()).toBeNull();
+      expect(await draftDB.getActiveDraft(ACCOUNT, CHAIN)).toBe("old");
+    } finally {
+      finishSave();
+      await act(async () => {
+        await writing;
+      });
+    }
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
+    expect((await draftDB.getDraft("old"))?.feedback).toBe("last edit before leaving");
+    expect(useWorkFlowStore.getState().feedback).toBe("");
+  });
+
+  it.each([
+    true,
+    false,
+  ])("resumes matching work directly, whether already linked or unlinked (%s)", async (linked) => {
+    await saveDraftWithPhoto();
+    if (!linked) await draftDB.updateDraft("old", { linkIntent: undefined });
+    const query = writeWorkLinkIntent(new URLSearchParams(), {
+      ...PROMISE,
+      commitmentId: 12n,
+      garden: getAddress(GARDEN),
+    });
+    const { result } = openWizard(query.toString());
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
+    expect(result.current.showDraftSheet).toBe(false);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: "old",
+      feedback: "mulched the east beds",
+    });
+    expect(useWorkFlowStore.getState().images.map((file) => file.name)).toEqual(["beds.jpg"]);
+  });
+
+  it("keeps the original work intact when a separate draft would exceed the limit", async () => {
+    await fillDraftSlots(19);
+    const saved = await saveDraftWithPhoto();
+    const { result } = openWizard(ANOTHER_PROMISE_PAGE);
+    await waitFor(() => expect(useWorkFlowStore.getState().draftError).toBe("draft-limit"));
+    expect(await result.current.saveOnExit()).toBeNull();
+    expect(await draftDB.getDraft("old")).toEqual(saved);
+    expect(await draftDB.getDraftCount(ACCOUNT, CHAIN)).toBe(20);
+    await draftDB.deleteDraft("slot-0");
+    act(() => result.current.retryHydration());
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
+    expect(useWorkFlowStore.getState().feedback).toBe("");
     expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
   });
 });

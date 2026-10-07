@@ -417,6 +417,7 @@
     "./hooks/blockchain/useSendableTokens": "./src/hooks/blockchain/useSendableTokens.ts",
     "./hooks/blockchain/useSendToken": "./src/hooks/blockchain/useSendToken.ts",
     "./hooks/blockchain/useWalletNetworkAlignment": "./src/hooks/blockchain/useWalletNetworkAlignment.ts",
+    "./hooks/client-ui/useDashboardNavigation": "./src/hooks/client-ui/useDashboardNavigation.ts",
     "./hooks/client-ui/auth/useLoginScreenController": "./src/hooks/client-ui/auth/useLoginScreenController.ts",
     "./hooks/client-ui/commitment/composerBeats": "./src/hooks/client-ui/commitment/composerBeats.ts",
     "./hooks/client-ui/commitment/controller.types": "./src/hooks/client-ui/commitment/controller.types.ts",

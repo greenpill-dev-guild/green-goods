@@ -86,6 +86,12 @@ export function ComposeReview({
 
   const rows: { label: string; value: string }[] = [
     {
+      label: formatMessage({ id: "app.compose.review.yourRole" }),
+      value: formatMessage({
+        id: isRequest ? "app.compose.review.roleRequest" : "app.compose.review.roleOffer",
+      }),
+    },
+    {
       label: formatMessage({ id: "app.compose.review.garden" }),
       value: gardenName ?? formatMessage({ id: "app.compose.review.thisGarden" }),
     },

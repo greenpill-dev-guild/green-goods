@@ -9,9 +9,14 @@ import {
   useCommitmentsToConfirm,
 } from "@green-goods/shared/commitment-pooling";
 import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
+import {
+  useUIStore,
+  type CommitmentsDashboardReturnState,
+  type CommitmentsDirectionFilter,
+} from "@green-goods/shared/stores/useUIStore";
 
 import { AppSheet, type AppSheetTab } from "@/components/Sheets/AppSheet";
 import { LiveTab } from "./LiveTab";
@@ -37,7 +42,15 @@ interface CommitmentsSheetProps {
  */
 export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
-  const [activeTab, setActiveTab] = useState("live");
+  const returnState = useUIStore((state) => state.commitmentsSheetReturnState);
+  const [activeTab, setActiveTab] = useState<CommitmentsDashboardReturnState["tab"]>(
+    returnState?.tab ?? "live"
+  );
+  const [direction, setDirection] = useState<CommitmentsDirectionFilter>(
+    returnState?.direction ?? "all"
+  );
+  const contentRef = useRef<HTMLDivElement>(null);
+  const restoredScroll = useRef(false);
   const chainId = DEFAULT_CHAIN_ID;
   const viewer = usePrimaryAddress();
 
@@ -47,22 +60,31 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   const { data: gardens = [] } = useGardens();
   const { series } = useCommitmentSeries({ chainId, holder: viewer ?? undefined });
   const { sendsFromTap } = useCommitmentJobs({ chainId });
-  const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
 
   // The sheet sits beside the garden outlet rather than above a route of its
   // own, so opening a commitment has to put the sheet away first or it would
   // stay drawn over the very screen it just opened.
   const openCommitment = useCallback(
     (gardenAddress: string, commitmentId: bigint) => {
-      onClose();
       // The pool names its garden in lowercase; the route is happier with the
       // garden's own id when the list has it.
       const canonical =
         gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase())?.id ??
         gardenAddress;
-      navigate(`/home/${canonical}/commitments/${commitmentId.toString()}`);
+      dashboardNavigation.leave(
+        {
+          kind: "commitments",
+          tab: activeTab,
+          direction,
+          scrollTop:
+            contentRef.current?.querySelector<HTMLElement>(".overflow-y-auto")?.scrollTop ?? 0,
+        },
+        `/home/${canonical}/commitments/${commitmentId.toString()}`
+      );
+      onClose();
     },
-    [onClose, navigate, gardens]
+    [onClose, dashboardNavigation, gardens, activeTab, direction]
   );
 
   const tabs: AppSheetTab[] = [
@@ -95,41 +117,72 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   // longer exists and no panel under it. Fall back to the tab that always does.
   const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "live";
 
+  useLayoutEffect(() => {
+    if (!isOpen || !returnState || restoredScroll.current || selectedTab !== returnState.tab)
+      return;
+    if (direction !== returnState.direction) {
+      restoredScroll.current = true;
+      return;
+    }
+    const content = contentRef.current;
+    if (!content) return;
+    const restore = () => {
+      const scroller = content.querySelector<HTMLElement>(".overflow-y-auto");
+      if (!scroller) return;
+      scroller.scrollTop = returnState.scrollTop;
+      if (scroller.scrollTop >= returnState.scrollTop) {
+        restoredScroll.current = true;
+        observer.disconnect();
+      }
+    };
+    const observer = new MutationObserver(restore);
+    observer.observe(content, { childList: true, subtree: true });
+    restore();
+    return () => observer.disconnect();
+  }, [isOpen, returnState, selectedTab, direction]);
+
   return (
     <AppSheet
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        dashboardNavigation.clear();
+        onClose();
+      }}
       header={{
         title: formatMessage({ id: "app.commitments.title" }),
         description: formatMessage({ id: "app.commitments.subtitle" }),
       }}
       tabs={tabs}
       activeTab={selectedTab}
-      onTabChange={setActiveTab}
+      onTabChange={(tab) => setActiveTab(tab as CommitmentsDashboardReturnState["tab"])}
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       size="full"
     >
-      {selectedTab === "live" && (
-        <LiveTab
-          inbox={inbox}
-          pools={pools}
-          gardens={gardens}
-          sendsFromTap={sendsFromTap}
-          onOpenCommitment={openCommitment}
-        />
-      )}
-      {selectedTab === "over-time" && (
-        <OverTimeTab
-          inbox={inbox}
-          pools={pools}
-          gardens={gardens}
-          series={series}
-          onOpenCommitment={openCommitment}
-        />
-      )}
-      {selectedTab === "to-confirm" && toConfirm.isSteward && (
-        <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
-      )}
+      <div ref={contentRef} className="flex min-h-0 flex-1 flex-col">
+        {selectedTab === "live" && (
+          <LiveTab
+            inbox={inbox}
+            pools={pools}
+            gardens={gardens}
+            sendsFromTap={sendsFromTap}
+            direction={direction}
+            onDirectionChange={setDirection}
+            onOpenCommitment={openCommitment}
+          />
+        )}
+        {selectedTab === "over-time" && (
+          <OverTimeTab
+            inbox={inbox}
+            pools={pools}
+            gardens={gardens}
+            series={series}
+            onOpenCommitment={openCommitment}
+          />
+        )}
+        {selectedTab === "to-confirm" && toConfirm.isSteward && (
+          <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
+        )}
+      </div>
     </AppSheet>
   );
 };

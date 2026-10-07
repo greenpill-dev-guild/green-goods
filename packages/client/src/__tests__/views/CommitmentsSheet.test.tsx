@@ -185,7 +185,10 @@ describe("CommitmentsSheet", () => {
       expect(screen.getByText("Garden claim")).toBeInTheDocument();
       expect(screen.getByText(/Nobody can confirm their own work/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /3 hours/ }));
-      expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+      expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+        viewTransition: true,
+        state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+      });
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
@@ -242,7 +245,10 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
-    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+      viewTransition: true,
+      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -265,7 +271,10 @@ describe("CommitmentsSheet", () => {
     await user.click(screen.getByRole("tab", { name: /history/i }));
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
 
-    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
+      viewTransition: true,
+      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -506,6 +515,19 @@ describe("CommitmentsSheet", () => {
     expect(screen.queryByText("3 rides")).not.toBeInTheDocument();
     // The count is unchanged by a filter: it reports the tab, not the view.
     expect(screen.getByTestId("tab-live")).toHaveTextContent("1");
+    const scroller = document.querySelector<HTMLElement>(".overflow-y-auto");
+    if (!scroller) throw new Error("Commitments scroll owner is missing");
+    scroller.scrollTop = 172;
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+    expect(mockNavigate).toHaveBeenNthCalledWith(1, "/", {
+      replace: true,
+      state: {
+        dashboardEntry: expect.objectContaining({
+          path: "/",
+          snapshot: { kind: "commitments", tab: "live", direction: "OFFER", scrollTop: 172 },
+        }),
+      },
+    });
   });
 
   it("shows the member their own settled record, lapsed included", async () => {

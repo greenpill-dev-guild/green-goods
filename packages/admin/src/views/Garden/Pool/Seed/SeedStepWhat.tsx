@@ -35,92 +35,108 @@ export function SeedStepWhat({
 
   return (
     <div className="space-y-4">
-      <Controller
-        control={form.control}
-        name="kind"
-        render={({ field }) => (
-          <AdminChoiceGroup
-            ariaLabel={formatMessage({
-              id: "cockpit.garden.pool.seed.kind",
-              defaultMessage: "Type",
-            })}
-            value={field.value}
-            onChange={(kind) => {
-              field.onChange(kind);
-              // Garden work is counted in hours; the actions are what is approved.
-              if (kind === "GARDEN_WORK") {
-                form.setValue("unitLabel", "hours", { shouldDirty: true, shouldValidate: true });
-              }
-            }}
-            options={[
-              {
-                value: "SEASON_CAMPAIGN",
-                label: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.seasonCampaign",
-                  defaultMessage: "Season / campaign commitment",
-                }),
-                description: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.seasonCampaignHint",
-                  defaultMessage: "The pool offers or requests",
-                }),
-              },
-              {
-                value: "SERVICE",
-                label: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.service",
-                  defaultMessage: "Support / service",
-                }),
-                description: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.serviceHint",
-                  defaultMessage: "Kept by proof",
-                }),
-              },
-              {
-                value: "GARDEN_WORK",
-                label: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.gardenWork",
-                  defaultMessage: "Garden work (impact)",
-                }),
-                description: formatMessage({
-                  id: "cockpit.garden.pool.seed.kind.gardenWorkHint",
-                  defaultMessage: "Kept by approved actions",
-                }),
-              },
-            ]}
-          />
-        )}
-      />
-      <Controller
-        control={form.control}
-        name="direction"
-        render={({ field }) => (
-          <AdminChoiceGroup
-            ariaLabel={formatMessage({
-              id: "cockpit.garden.pool.seed.direction",
-              defaultMessage: "Direction",
-            })}
-            value={field.value}
-            onChange={field.onChange}
-            columns={2}
-            options={[
-              {
-                value: "OFFER",
-                label: formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.offer",
-                  defaultMessage: "The pool offers",
-                }),
-              },
-              {
-                value: "REQUEST",
-                label: formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.request",
-                  defaultMessage: "The pool requests",
-                }),
-              },
-            ]}
-          />
-        )}
-      />
+      <fieldset className="space-y-2" disabled={busy}>
+        <legend className="body-sm font-semibold text-text-strong">
+          {formatMessage({
+            id: "cockpit.garden.pool.seed.kind",
+            defaultMessage: "How will this promise be completed?",
+          })}
+        </legend>
+        <Controller
+          control={form.control}
+          name="kind"
+          render={({ field }) => (
+            <AdminChoiceGroup
+              ariaLabel={formatMessage({
+                id: "cockpit.garden.pool.seed.kind",
+                defaultMessage: "How will this promise be completed?",
+              })}
+              value={field.value}
+              onChange={(kind) => {
+                field.onChange(kind);
+                // Garden work is counted in hours; the actions are what is approved.
+                if (kind === "GARDEN_WORK") {
+                  form.setValue("unitLabel", "hours", { shouldDirty: true, shouldValidate: true });
+                }
+              }}
+              options={[
+                {
+                  value: "SEASON_CAMPAIGN",
+                  label: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.seasonCampaign",
+                    defaultMessage: "Season / campaign commitment",
+                  }),
+                  description: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.seasonCampaignHint",
+                    defaultMessage: "Proof of a season or campaign promise",
+                  }),
+                },
+                {
+                  value: "SERVICE",
+                  label: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.service",
+                    defaultMessage: "Support / service",
+                  }),
+                  description: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.serviceHint",
+                    defaultMessage: "Proof of the support or service delivered",
+                  }),
+                },
+                {
+                  value: "GARDEN_WORK",
+                  label: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.gardenWork",
+                    defaultMessage: "Garden work",
+                  }),
+                  description: formatMessage({
+                    id: "cockpit.garden.pool.seed.kind.gardenWorkHint",
+                    defaultMessage: "Linked work approved by garden stewards",
+                  }),
+                },
+              ]}
+            />
+          )}
+        />
+      </fieldset>
+      <fieldset className="space-y-2" disabled={busy}>
+        <legend className="body-sm font-semibold text-text-strong">
+          {formatMessage({
+            id: "cockpit.garden.pool.seed.direction",
+            defaultMessage: "What is the pool doing?",
+          })}
+        </legend>
+        <Controller
+          control={form.control}
+          name="direction"
+          render={({ field }) => (
+            <AdminChoiceGroup
+              ariaLabel={formatMessage({
+                id: "cockpit.garden.pool.seed.direction",
+                defaultMessage: "What is the pool doing?",
+              })}
+              value={field.value}
+              onChange={field.onChange}
+              columns={2}
+              options={[
+                {
+                  value: "OFFER",
+                  label: formatMessage({
+                    id: "cockpit.garden.pool.seed.direction.offer",
+                    defaultMessage: "The pool offers",
+                  }),
+                },
+                {
+                  value: "REQUEST",
+                  label: formatMessage({
+                    id: "cockpit.garden.pool.seed.direction.request",
+                    defaultMessage: "The pool requests",
+                  }),
+                },
+              ]}
+            />
+          )}
+        />
+      </fieldset>
       <AdminSelect
         id={`${noteId}-cycle`}
         label={formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" })}

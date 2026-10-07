@@ -90,8 +90,8 @@ export const WalletNotSentWrongNetwork: Story = {
     await expect(canvas.queryByText(/signature cancelled/i)).toBeNull();
     // Nothing sends it for them, so the row must not say it will.
     await expect(canvas.queryByText(/sends when you're connected/i)).toBeNull();
-    await expect(canvas.getByRole("button", { name: "Send Now" })).toBeEnabled();
-    await expect(canvas.getByRole("button", { name: "Discard" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Send take-up request" })).toBeEnabled();
+    await expect(canvas.getByRole("button", { name: "Discard unsent request" })).toBeEnabled();
   },
 };
 

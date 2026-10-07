@@ -126,7 +126,10 @@ const GardenMemberItem = memo(function GardenMemberItem({
         ) : null}
         {member.isGardener ? (
           <span className="text-xs text-text-sub-600 flex items-center gap-1">
-            <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+            <RiCalendarEventFill
+              className="w-3.5 h-3.5 text-primary-on-surface"
+              aria-hidden="true"
+            />
             {intl.formatMessage({
               id: "app.garden.gardeners.registered",
               defaultMessage: "Gardener since",
@@ -267,7 +270,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                   <>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2 text-sm">
-                        <RiUserLine className="w-4 h-4 text-primary" />
+                        <RiUserLine className="w-4 h-4 text-primary-on-surface" />
                         <span className="truncate font-semibold" title={selectedPreferredEnsName}>
                           {selectedPreferredEnsName}
                         </span>
@@ -284,7 +287,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-sm">
-                        <RiWallet3Fill className="w-4 h-4 text-primary" />
+                        <RiWallet3Fill className="w-4 h-4 text-primary-on-surface" />
                         <span className="text-text-sub-600 font-mono text-xs">
                           {formatAddress(selected.account)}
                         </span>
@@ -310,7 +313,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               {selected.email && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2 text-sm">
-                    <RiMailFill className="w-4 h-4 text-primary" />
+                    <RiMailFill className="w-4 h-4 text-primary-on-surface" />
                     <span className="truncate" title={selected.email}>
                       {selected.email}
                     </span>
@@ -329,7 +332,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               {selected.phone && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2 text-sm">
-                    <RiPhoneLine className="w-4 h-4 text-primary" />
+                    <RiPhoneLine className="w-4 h-4 text-primary-on-surface" />
                     <span className="truncate" title={selected.phone}>
                       {selected.phone}
                     </span>

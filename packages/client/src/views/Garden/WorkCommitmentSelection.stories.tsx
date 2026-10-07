@@ -1,0 +1,62 @@
+import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
+import { useState } from "react";
+import { WorkCommitmentSelection } from "./WorkCommitmentSelection";
+
+type Props = Parameters<typeof WorkCommitmentSelection>[0];
+function Picker(props: Props) {
+  const [selectedKey, setSelectedKey] = useState(props.selectedKey);
+  return (
+    <WorkCommitmentSelection
+      {...props}
+      selectedKey={selectedKey}
+      onSelectedKeyChange={setSelectedKey}
+    />
+  );
+}
+
+const meta: Meta<typeof WorkCommitmentSelection> = {
+  title: "Client/Work/WorkCommitmentSelection",
+  component: WorkCommitmentSelection,
+  tags: ["autodocs"],
+  parameters: { layout: "padded" },
+  args: {
+    choices: [
+      {
+        key: "9:0",
+        commitmentId: 9n,
+        requirementIndex: 0,
+        title: "Restore the north beds before the autumn planting",
+        actionTitle: "Plant seedlings",
+        approvedCount: 1,
+        requiredCount: 3,
+        dueDate: 1791331200n,
+      },
+      {
+        key: "9:1",
+        commitmentId: 9n,
+        requirementIndex: 1,
+        title: "Restore the north beds before the autumn planting",
+        actionTitle: "Plant seedlings",
+        approvedCount: 0,
+        requiredCount: 2,
+      },
+    ],
+    isLoading: false,
+    error: null,
+    intentStatus: "none",
+    selectedKey: null,
+    onRetry: fn(),
+  },
+  render: (args) => <Picker {...args} />,
+};
+export default meta;
+type Story = StoryObj<typeof WorkCommitmentSelection>;
+export const ChoosePromise: Story = {};
+export const ExactRequirementSelected: Story = {
+  args: { selectedKey: "9:1", intentStatus: "valid" },
+};
+export const EligibilityUnavailable: Story = {
+  args: { intentStatus: "unavailable", error: new Error("Read unavailable") },
+};
+export const NoMatchingPromises: Story = { args: { choices: [] } };

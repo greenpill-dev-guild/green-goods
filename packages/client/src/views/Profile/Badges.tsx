@@ -31,13 +31,13 @@ type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeSta
 function badgeIcon(slug: string) {
   switch (slug) {
     case "genesis":
-      return <RiSeedlingLine className="h-5 w-5 text-primary" />;
+      return <RiSeedlingLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-work":
-      return <RiHammerLine className="h-5 w-5 text-primary" />;
+      return <RiHammerLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-support":
-      return <RiCoinsLine className="h-5 w-5 text-primary" />;
+      return <RiCoinsLine className="h-5 w-5 text-primary-on-surface" />;
     default:
-      return <RiAwardLine className="h-5 w-5 text-primary" />;
+      return <RiAwardLine className="h-5 w-5 text-primary-on-surface" />;
   }
 }
 

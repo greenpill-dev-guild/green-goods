@@ -33,8 +33,10 @@ export function useWorkSubmissionPresentationModel({
   const selectedGarden = useMemo(
     () =>
       gardenAddress
-        ? (gardens.find((garden) => garden.id === gardenAddress) ??
-          (joinableCommunityGarden?.id === gardenAddress ? joinableCommunityGarden : null))
+        ? (gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase()) ??
+          (joinableCommunityGarden?.id.toLowerCase() === gardenAddress.toLowerCase()
+            ? joinableCommunityGarden
+            : null))
         : null,
     [gardenAddress, gardens, joinableCommunityGarden]
   );
