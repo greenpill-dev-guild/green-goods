@@ -1,7 +1,7 @@
 # Release QA cohesion follow-up
 
-Status: implementation complete; verification partial, pending locked-dependency installation and rendered proof. Working-tree evidence only; publication is not authorized.
-Base: origin/develop 18d60000a8c1098b967f19e9f12dcd36545eda47.
+Status: implementation complete; publication requested. Complete local critical validation, push gate and current-head CI are in progress. Existing aggregate hub state is preserved.
+Initial base: origin/develop 18d60000a8c1098b967f19e9f12dcd36545eda47. Publication base: origin/develop aaacc1b14665dc97e1d9400fbcb70d930220ec6f, integrated on the isolated branch.
 Owner: Codex; existing Commitment Pooling and Steward Cockpit hubs keep their aggregate execution state.
 Issue context: PRD-1137; related PRD-1148, PRD-1149, PRD-1150, PRD-1151. Existing priority walkthroughs remain independent release evidence.
 
@@ -81,3 +81,18 @@ Agent/model: Codex/GPT-6 | Coverage: isolated implementation segment beginning 2
 | wait | unknown → ongoing | Explicit locked-dependency install approval pending; rendered proof and complete critical checkpoint remain open |
 
 Human corrections: 0 in this segment; attention unknown. Overlapping agent phases are not summed as task duration.
+
+## Publication continuation
+
+The user requested a pull request and ready-for-review transition, then explicitly approved `bun install --frozen-lockfile`. The frozen installation completed without a lockfile or dependency declaration change. Reused library links were detached first so installation did not write through them into the original checkout. No credential-bearing root environment was copied; Storybook uses non-secret test configuration and synthetic fixtures.
+
+Branch: `fix/release-qa-cohesion`, as required by the executable branch policy. Design standards were committed separately from the admin implementation. Latest develop recovery behavior was integrated, retaining the authoritative address comparison helper and shared dependent-link payload. Presentation tests cover both garden sources, casing, and unavailable-selection identity.
+
+Fresh merged evidence: 16 Shared files passed, 310 tests with 6 existing governed skips, including every certified seam's registered proof and the integrated wizard/presentation/intent boundaries. The four seam fingerprints and review dates were refreshed after this review and proof. Shared source and test/story typechecks and Client test/story typechecks pass; the corrected draft integration fixture retains 17 passing cases. The complete local gate is still in progress; no full-gate or CI-readiness claim is made here.
+
+Rendered proof: **Storybook in Brave, synthetic fixtures, 2026-10-07**, serving this isolated checkout. The promise picker was inspected at 375×812 and 1280×800 in light/dark themes; keyboard radio movement kept the sheet open and Done retained the exact requirement. The client Solar assessment card and the admin list's four distinct domain icons/labels rendered. The admin outcome story rendered four field rows with one shared definition collection and preserved row labels. Initial mock-loader failure disappeared after isolated installation. A newly observed BigInt controls-panel failure was corrected by disabling the generic control for the structured fixture; the picker itself retains typed BigInt requirement identities. Authenticated installed-PWA proof remains pending and is not represented by this Storybook evidence.
+
+Task record: final release QA cohesion publication | Type: fix | Outcome: ongoing.
+Agent/model: Codex/GPT-6 | Coverage: publication continuation after user authorization, UTC start unknown.
+Phases entered: investigate (latest base and publishing rules); implement (integration and bounded story/test fixture corrections); verify (fresh merged proofs, typechecks and rendered Storybook); review (staged source and sensitive surfaces); publish (local commits, PR not yet created); wait (dependency approval resolved).
+Human corrections: 0; attention unknown. Final publication SHA, Push Gate and CI results belong in the PR and chat closeout, without recertifying the existing hubs' historical lanes.

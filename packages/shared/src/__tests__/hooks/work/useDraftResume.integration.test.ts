@@ -16,6 +16,7 @@ import {
   parseWorkLinkIntent,
   toDraftWorkLink,
   writeWorkLinkIntent,
+  type WorkLinkIntent,
 } from "../../../modules/commitment-pooling/work-link-intent";
 import { draftDB } from "../../../modules/job-queue/draft-db";
 import { queueDraftWrite } from "../../../modules/work/draft-lifecycle";
@@ -403,7 +404,7 @@ describe("entering work from a promise", () => {
       await queueDraftWrite(async () => undefined);
     }
     const before = await draftDB.getDraft("old");
-    const intent = { ...PROMISE, commitmentId: 12n, ...change };
+    const intent: WorkLinkIntent = { ...PROMISE, commitmentId: 12n, ...change };
     intent.returnTo = `/home/${intent.garden}/commitments/${intent.commitmentId}`;
     const { result } = openWizard(writeWorkLinkIntent(new URLSearchParams(), intent).toString());
     await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
@@ -417,14 +418,15 @@ describe("entering work from a promise", () => {
       images: [],
     });
     act(() => useWorkFlowStore.getState().setFeedback("new fence work"));
-    let next: string | null = null;
+    let next!: string | null;
     await act(async () => {
       next = await result.current.saveOnExit();
     });
     expect(next).not.toBe("old");
+    if (next === null) throw new Error("Expected a separate saved draft");
     expect(await draftDB.getDraft("old")).toEqual(before ?? saved);
     expect(await draftDB.getImagesForDraft("old")).toHaveLength(1);
-    expect(await draftDB.getDraft(next as string)).toMatchObject({
+    expect(await draftDB.getDraft(next)).toMatchObject({
       gardenAddress: intent.garden,
       actionUID: intent.actionUID,
       feedback: "new fence work",
@@ -433,7 +435,7 @@ describe("entering work from a promise", () => {
         requirementIndex: intent.requirementIndex,
       },
     });
-    expect(await draftDB.getImagesForDraft(next as string)).toEqual([]);
+    expect(await draftDB.getImagesForDraft(next)).toEqual([]);
   });
 
   it("waits for an outgoing save before setting aside its draft", async () => {
