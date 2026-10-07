@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ readyWalletClient: vi.fn(), getReceipt: vi.fn(
 
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
-  createClients: () => ({ publicClient: { getTransactionReceipt: mocks.getReceipt } }),
+  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
 }));
 
 import {
@@ -300,7 +300,7 @@ describe("the passkey assessment sender", () => {
       },
       expect.objectContaining({ assertOwnership: expect.any(Function) })
     );
-    expect(mocks.getReceipt).toHaveBeenCalledWith({ hash: HASH });
+    expect(mocks.getReceipt).toHaveBeenCalledWith({ hash: HASH, timeout: 120_000 });
     expect(f.assertOwnership).toHaveBeenCalledWith(ACCOUNT, 11155111);
   });
   it("encodes the EAS call through the real PasskeySender and confirmed UserOperation path", async () => {

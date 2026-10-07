@@ -6789,5 +6789,8 @@
   "app.account.signInRequired": "Entre na sua conta antes de continuar.",
   "app.account.signerNotReady": "Sua conta ainda está se conectando. Tente novamente em instantes.",
   "app.account.transactionSubmitted": "Transação enviada",
-  "app.account.transactionPending": "Transação enviada. Verifique sua confirmação antes de tentar novamente."
+  "app.account.transactionPending": "Transação enviada. Verifique sua confirmação antes de tentar novamente.",
+  "admin.garden.deploy.pendingTitle": "Aguardando execução da carteira",
+  "admin.garden.deploy.pendingMessage": "Sua carteira aceitou este envio, mas a execução não foi confirmada. Verifique a aprovação ou execução na carteira. Não envie outra implantação enquanto esta estiver pendente.",
+  "app.account.checkConfirmation": "Verificar confirmação"
 }

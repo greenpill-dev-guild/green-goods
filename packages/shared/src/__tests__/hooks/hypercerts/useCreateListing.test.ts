@@ -42,7 +42,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
-  toastService: { error: vi.fn(), success: vi.fn(), loading: vi.fn() },
+  toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn(), loading: vi.fn() },
 }));
 
 const mockBuildMakerAsk = vi.fn();
@@ -52,6 +52,7 @@ const mockValidateOrder = vi.fn();
 const mockAssertMarketplaceReady = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
+const mockReadContract = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
 const mockSender = () => ({
@@ -77,11 +78,13 @@ vi.mock("../../../modules/marketplace/client", () => ({
 
 vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
   HYPERCERTS_MODULE_ABI: [],
+  MARKETPLACE_ADAPTER_ABI: [],
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
   assertMarketplaceReady: (...args: unknown[]) => mockAssertMarketplaceReady(...args),
   getNetworkContracts: () => ({
+    marketplaceAdapter: "0x4444444444444444444444444444444444444444",
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
 }));
@@ -93,6 +96,7 @@ vi.mock("../../../config/default-chain", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
+    readContract: mockReadContract,
   }),
 }));
 
@@ -138,6 +142,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
   beforeEach(() => {
     vi.clearAllMocks();
     authMode = mode;
+    mockReadContract.mockReset().mockResolvedValue(0n);
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
       available: true,
@@ -253,7 +258,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
   });
 
   describe("invalidation", () => {
-    it("keeps an unconfirmed submission out of success and warns before retrying", async () => {
+    it("keeps a pending submission out of error and prevents a retry", async () => {
       mockSendTransaction.mockResolvedValue({
         hash: "0xtxhash",
         sponsored: false,
@@ -263,32 +268,40 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
         queryClient,
       });
 
+      const params = {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as const,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      };
+      await act(() => result.current.createListing(params));
+      await waitFor(() => expect(result.current.step).toBe("pending"));
+      expect(result.current.error).toBeNull();
+      expect(toastService.info).toHaveBeenCalled();
+      expect(toastService.error).not.toHaveBeenCalled();
+      expect(mockInvalidateQueries).toHaveBeenCalled();
       await act(async () => {
-        await expect(
-          result.current.createListing({
-            hypercertId: 1n,
-            fractionId: 1n,
-            currency: "0x0000000000000000000000000000000000000000",
-            pricePerUnit: 1000n,
-            minUnitAmount: 1n,
-            maxUnitAmount: 1000n,
-            minUnitsToKeep: 0n,
-            sellLeftover: false,
-            durationDays: 30,
-          })
-        ).rejects.toThrow();
+        result.current.reset();
+        await result.current.createListing(params);
+        await result.current.checkConfirmation();
       });
-
-      await waitFor(() => expect(result.current.step).toBe("error"));
-      expect(result.current.error?.message).toBe(
-        "Transaction submitted. Check its confirmation before trying again."
-      );
-      expect(toastService.error).toHaveBeenCalledWith({
-        title: "Transaction submitted",
-        message: "Transaction submitted. Check its confirmation before trying again.",
-      });
-      expect(toastService.success).not.toHaveBeenCalled();
-      expect(mockInvalidateQueries).not.toHaveBeenCalled();
+      expect(result.current.step).toBe("pending");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSignMakerAsk).toHaveBeenCalledTimes(1);
+      mockReadContract
+        .mockResolvedValueOnce(1n)
+        .mockResolvedValueOnce([1n, "0x", "0xother-signature"]);
+      await act(() => result.current.checkConfirmation());
+      expect(result.current.step).toBe("pending");
+      mockReadContract.mockResolvedValueOnce(1n).mockResolvedValueOnce([1n, "0x", "0xsignature"]);
+      await act(() => result.current.checkConfirmation());
+      expect(result.current.step).toBe("done");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(1);
     });
 
     it("keeps marketplace listing invalidation after a successful listing", async () => {

@@ -154,3 +154,29 @@ describe("useAdminLoginController", () => {
     expect(result.current.isSigningIn).toBe(false);
   });
 });
+
+it("ignores stale actor failures on mount and while starting a new ceremony", async () => {
+  mocks.context.mockReturnValue({ supported: true });
+  mocks.login.mockResolvedValue(undefined);
+  const oldError = new Error("Passkey authentication was cancelled");
+  mocks.auth.mockReturnValue({
+    hasStoredCredential: false,
+    isAuthenticating: false,
+    error: oldError,
+  });
+  const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
+  expect(result.current.error).toBeNull();
+  act(() => result.current.setUsername("qa-steward"));
+  await act(() => result.current.signInByName());
+  rerender();
+  expect(result.current.error).toBeNull();
+  mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: true, error: null });
+  rerender();
+  mocks.auth.mockReturnValue({
+    hasStoredCredential: false,
+    isAuthenticating: false,
+    error: new Error("No passkey found"),
+  });
+  rerender();
+  expect(result.current.error).toBe("No passkey found for that username.");
+});

@@ -1,3 +1,4 @@
+import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { parseEventLogs, zeroHash, type TransactionReceipt } from "viem";
 import { getAssessmentSchemas } from "./schemas";
@@ -256,7 +257,10 @@ export function createDefaultCreateAssessmentPorts(input: {
         const publicClient = createClients(sendOn).publicClient;
         let receipt: TransactionReceipt;
         try {
-          receipt = await publicClient.getTransactionReceipt({ hash: result.hash });
+          receipt = await publicClient.waitForTransactionReceipt({
+            hash: result.hash,
+            timeout: TX_RECEIPT_TIMEOUT_MS,
+          });
         } catch {
           // The sender confirmed execution. Do not expose the RPC request or imply it failed.
           throw new AssessmentConfirmationUnavailableError();

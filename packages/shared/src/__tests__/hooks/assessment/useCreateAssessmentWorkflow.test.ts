@@ -141,7 +141,7 @@ vi.mock("../../../components/toast", () => ({
 vi.mock("../../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ eas: EAS_ADDRESS }),
-  createClients: () => ({ publicClient: { getTransactionReceipt: mocks.getReceipt } }),
+  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
 }));
 
 vi.mock("../../../config/blockchain", () => ({

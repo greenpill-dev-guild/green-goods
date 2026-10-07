@@ -181,3 +181,27 @@ describe("components/Hypercerts/CreateListingDialog", () => {
     });
   });
 });
+
+it("shows a pending listing with confirmation checking and no retry or second signature", async () => {
+  const check = vi.fn();
+  mockUseCreateListing.mockReturnValue({
+    ...DEFAULT_HOOK_STATE,
+    step: "pending",
+    isCreating: true,
+    checkConfirmation: check,
+  });
+  render(
+    createElement(CreateListingDialog, {
+      open: true,
+      onOpenChange: vi.fn(),
+      gardenAddress: "0x1111111111111111111111111111111111111111",
+      hypercertId: 1n,
+      fractionId: 2n,
+    })
+  );
+  expect(screen.queryByRole("button", { name: /try again|sign & list/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("Transaction submitted");
+  await userEvent.click(screen.getByRole("button", { name: /check confirmation/i }));
+  expect(check).toHaveBeenCalledOnce();
+  expect(mockCreateListing).not.toHaveBeenCalled();
+});

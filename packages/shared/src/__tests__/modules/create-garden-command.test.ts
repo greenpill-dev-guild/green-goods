@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   simulate: vi.fn(),
   readContract: vi.fn(),
   waitReceipt: vi.fn(),
+  receipt: vi.fn(),
 }));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
 vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
@@ -21,7 +22,9 @@ vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ gardenToken, greenGoodsENS }),
-  createClients: () => ({ publicClient: { readContract: mocks.readContract } }),
+  createClients: () => ({
+    publicClient: { readContract: mocks.readContract, getTransactionReceipt: mocks.receipt },
+  }),
 }));
 
 const gardenToken = "0x1111111111111111111111111111111111111111" as const;
@@ -65,9 +68,10 @@ function createPorts(events: string[] = []): CreateGardenPorts {
       estimateTransaction: vi.fn(async () => ({ gasEstimate: 10n, gasPrice: 3n })),
     },
     sender: {
+      reconcile: vi.fn(async () => ({ status: "unresolved" as const })),
       send: vi.fn(async () => {
         events.push("send");
-        return txHash;
+        return { hash: txHash, sponsored: false };
       }),
     },
     documents: {
@@ -84,7 +88,7 @@ describe("createGarden", () => {
     const events: string[] = [];
     const ports = createPorts(events);
 
-    await expect(createGarden(command, ports)).resolves.toBe(txHash);
+    await expect(createGarden(command, ports)).resolves.toMatchObject({ hash: txHash });
 
     expect(events).toEqual(["fee", "simulate", "send", "pending", "receipt"]);
     expect(ports.reader.simulate).toHaveBeenCalledWith(
@@ -155,9 +159,11 @@ describe("garden writes through the shared account sender", () => {
         .fn()
         .mockResolvedValue({ hash: txHash, sponsored: authMode === "passkey" }),
     };
+    const addPending = vi.fn();
     return {
       sender,
-      ports: createDefaultCreateGardenPorts({ transactionSender: sender, addPending: vi.fn() }),
+      addPending,
+      ports: createDefaultCreateGardenPorts({ transactionSender: sender, addPending }),
     };
   }
   it.each([
@@ -165,7 +171,7 @@ describe("garden writes through the shared account sender", () => {
     "passkey",
   ] as const)("simulates and sends the %s account with the same chain and CCIP value", async (authMode) => {
     const { sender, ports } = adapter(authMode);
-    await expect(createGarden(command, ports)).resolves.toBe(txHash);
+    await expect(createGarden(command, ports)).resolves.toMatchObject({ hash: txHash });
     expect(mocks.simulate).toHaveBeenCalledWith(
       gardenToken,
       expect.any(Array),
@@ -196,14 +202,68 @@ describe("garden writes through the shared account sender", () => {
     await expect(createGarden(command, ports)).rejects.toThrow("submission-ownership-changed");
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
-  it("does not mark a pending wallet submission confirmed when its receipt reverted", async () => {
-    const { sender, ports } = adapter("wallet");
+  it("preserves an opaque Safe submission without waiting for a receipt or resending", async () => {
+    const { sender, ports, addPending } = adapter("wallet");
     vi.mocked(sender.sendContractCall).mockResolvedValueOnce({
-      hash: txHash,
+      hash: "0xSafeProposalIdentifier",
       sponsored: false,
       confirmation: "pending",
     });
-    mocks.waitReceipt.mockResolvedValueOnce({ status: "reverted" });
-    await expect(createGarden(command, ports)).rejects.toThrow("reverted");
+    await expect(createGarden(command, ports)).resolves.toMatchObject({
+      hash: "0xSafeProposalIdentifier",
+      confirmation: "pending",
+    });
+
+    expect(addPending).toHaveBeenCalledWith("0xSafeProposalIdentifier");
+    expect(mocks.waitReceipt).not.toHaveBeenCalled();
+    await expect(
+      ports.sender.reconcile("0xSafeProposalIdentifier", command.chainId)
+    ).resolves.toEqual({ status: "unresolved" });
+    expect(mocks.receipt).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("garden confirmation reconciliation", () => {
+  it.each(["success", "reverted"])("reads an existing canonical receipt: %s", async (status) => {
+    const sender = { sendContractCall: vi.fn() } as unknown as TransactionSender;
+    const ports = createDefaultCreateGardenPorts({
+      transactionSender: sender,
+      addPending: vi.fn(),
+    });
+    const hash = `0x${"ab".repeat(32)}` as const;
+    mocks.receipt.mockResolvedValueOnce({ status, transactionHash: hash });
+    await expect(ports.sender.reconcile(hash, command.chainId)).resolves.toEqual(
+      status === "success" ? { status: "confirmed", transactionHash: hash } : { status: "reverted" }
+    );
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+  it("keeps unavailable execution evidence pending", async () => {
+    mocks.receipt.mockRejectedValueOnce(new Error("RPC unavailable"));
+    const ports = createDefaultCreateGardenPorts({
+      transactionSender: { sendContractCall: vi.fn() } as unknown as TransactionSender,
+      addPending: vi.fn(),
+    });
+    await expect(ports.sender.reconcile(`0x${"ab".repeat(32)}`, command.chainId)).resolves.toEqual({
+      status: "unresolved",
+    });
+  });
+});
+
+it("uses wallet execution evidence to resolve an opaque proposal without sending", async () => {
+  const sender = {
+    sendContractCall: vi.fn(),
+    reconcileBroadcast: vi
+      .fn()
+      .mockResolvedValue({ status: "confirmed", transactionHash: `0x${"ab".repeat(32)}` }),
+  } as unknown as TransactionSender;
+  const ports = createDefaultCreateGardenPorts({ transactionSender: sender, addPending: vi.fn() });
+  await expect(
+    ports.sender.reconcile("0xSafeProposalIdentifier", command.chainId)
+  ).resolves.toMatchObject({ status: "confirmed" });
+  expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
+    kind: "transaction",
+    hash: "0xSafeProposalIdentifier",
+  });
+  expect(sender.sendContractCall).not.toHaveBeenCalled();
 });

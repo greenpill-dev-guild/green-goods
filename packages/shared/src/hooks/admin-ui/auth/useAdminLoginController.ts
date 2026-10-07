@@ -15,12 +15,20 @@ import { getFriendlyLoginErrorMessage } from "../../auth/login-error-message";
 export function useAdminLoginController() {
   const intl = useIntl();
   const { loginWithPasskey } = useAuthActions();
-  const { hasStoredCredential, isAuthenticating, error: authError } = useAuthState();
+  const {
+    hasStoredCredential,
+    isAuthenticating,
+    isAuthenticated,
+    error: authError,
+  } = useAuthState();
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   const mounted = useRef(true);
+  const awaitingActorRef = useRef<{ initialError: unknown; sawAuthenticating: boolean } | null>(
+    null
+  );
 
   useEffect(() => {
     mounted.current = true;
@@ -31,10 +39,17 @@ export function useAdminLoginController() {
 
   // Auth actions dispatch an actor event; the ceremony result arrives through state.
   useEffect(() => {
-    if (authError && !isAuthenticating) {
+    const attempt = awaitingActorRef.current;
+    if (!attempt) return;
+    if (isAuthenticating) {
+      attempt.sawAuthenticating = true;
+    } else if (isAuthenticated) {
+      awaitingActorRef.current = null;
+    } else if (authError && (attempt.sawAuthenticating || authError !== attempt.initialError)) {
+      awaitingActorRef.current = null;
       setError(getFriendlyLoginErrorMessage(authError, intl));
     }
-  }, [authError, intl, isAuthenticating]);
+  }, [authError, intl, isAuthenticating, isAuthenticated]);
 
   const signIn = useCallback(
     async (requestedName?: string) => {
@@ -64,8 +79,10 @@ export function useAdminLoginController() {
       setPending(true);
       setError(null);
       try {
+        awaitingActorRef.current = { initialError: authError, sawAuthenticating: false };
         await loginWithPasskey(name);
       } catch (cause) {
+        awaitingActorRef.current = null;
         if (mounted.current) setError(getFriendlyLoginErrorMessage(cause, intl));
         const message =
           cause instanceof Error ? withoutQuotedRequest(cause.message).toLowerCase() : "";
@@ -83,7 +100,7 @@ export function useAdminLoginController() {
         if (mounted.current) setPending(false);
       }
     },
-    [hasStoredCredential, intl, isAuthenticating, loginWithPasskey]
+    [authError, hasStoredCredential, intl, isAuthenticating, loginWithPasskey]
   );
 
   return {

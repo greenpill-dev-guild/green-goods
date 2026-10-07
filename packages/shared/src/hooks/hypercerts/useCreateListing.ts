@@ -8,8 +8,8 @@
  * @module hooks/hypercerts/useCreateListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
-import { type Address } from "viem";
+import { useCallback, useRef, useState } from "react";
+import { type Address, type Hex } from "viem";
 import { toastService } from "../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -19,14 +19,17 @@ import { getOrderNonces } from "../../modules/marketplace/client";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../modules/marketplace/signing";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
-import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
+import { assertMarketplaceReady, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
-import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { type TxResult } from "../../modules/transactions/types";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
-import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
+import {
+  HYPERCERTS_MODULE_ABI,
+  MARKETPLACE_ADAPTER_ABI,
+} from "../../utils/blockchain/hypercert-abis";
 
 export type ListingStep =
   | "idle"
@@ -34,6 +37,7 @@ export type ListingStep =
   | "signing"
   | "registering"
   | "confirming"
+  | "pending"
   | "done"
   | "error";
 
@@ -43,6 +47,7 @@ export interface UseCreateListingResult {
   isCreating: boolean;
   error: Error | null;
   reset: () => void;
+  checkConfirmation: () => Promise<void>;
 }
 
 export function useCreateListing(gardenAddress?: Address): UseCreateListingResult {
@@ -53,8 +58,77 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const queryClient = useQueryClient();
   const [step, setStep] = useState<ListingStep>("idle");
 
+  const pendingSubmission = useRef<{
+    result: TxResult;
+    signature: Hex;
+    hypercertId: bigint;
+    currency: Address;
+    chainId: number;
+    garden: Address;
+    sender: NonNullable<typeof sender>;
+  } | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+
+  const refreshListings = useCallback(
+    (garden: Address, onChain: number) => {
+      for (const queryKey of queryInvalidation.onMarketplaceListingChanged(garden, onChain)) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
+    },
+    [queryClient]
+  );
+
+  const checkConfirmation = useCallback(async () => {
+    const pending = pendingSubmission.current;
+    if (!pending || isChecking) return;
+    setIsChecking(true);
+    refreshListings(pending.garden, pending.chainId);
+    try {
+      const outcome = await pending.sender.reconcileBroadcast?.({
+        kind: "transaction",
+        hash: pending.result.hash,
+      });
+      if (outcome?.status === "confirmed") {
+        pendingSubmission.current = null;
+        setStep("done");
+      } else if (outcome?.status === "reverted") {
+        pendingSubmission.current = null;
+        setStep("error");
+      } else {
+        // The registered signature identifies this exact signed order even when
+        // the wallet only returned an off-chain proposal ID.
+        const client = createPublicClientForChain(pending.chainId);
+        const address = getNetworkContracts(pending.chainId).marketplaceAdapter;
+        const orderId = await client.readContract({
+          address,
+          abi: MARKETPLACE_ADAPTER_ABI,
+          functionName: "activeOrders",
+          args: [pending.hypercertId, pending.currency],
+        });
+        if (orderId > 0n) {
+          const order = await client.readContract({
+            address,
+            abi: MARKETPLACE_ADAPTER_ABI,
+            functionName: "orders",
+            args: [orderId],
+          });
+          if (order[2].toLowerCase() === pending.signature.toLowerCase()) {
+            pendingSubmission.current = null;
+            setStep("done");
+          }
+        }
+      }
+      refreshListings(pending.garden, pending.chainId);
+    } catch {
+      // A failed read says nothing about execution; keep the submission pending.
+    } finally {
+      setIsChecking(false);
+    }
+  }, [isChecking, refreshListings]);
+
   const mutation = useMutation({
     mutationFn: async (params: CreateListingParams) => {
+      if (pendingSubmission.current) return;
       if (!gardenAddress) throw new Error("Garden address required");
       if (!signer || !sender)
         throw new Error(
@@ -132,7 +206,23 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       const result = await sender.sendContractCall(call, {
         assertOwnership: () => sender.assertOwnership?.(signer, chainId),
       });
-      if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
+      if (result.confirmation === "pending") {
+        pendingSubmission.current = {
+          result,
+          chainId,
+          garden: gardenAddress,
+          sender,
+          signature,
+          hypercertId: params.hypercertId,
+          currency: params.currency,
+        };
+        setStep("pending");
+        toastService.info({
+          title: formatMessage({ id: "app.account.transactionSubmitted" }),
+          message: formatMessage({ id: "app.account.transactionPending" }),
+        });
+        return;
+      }
 
       setStep("done");
       logger.info("[useCreateListing] Listing created successfully", {
@@ -155,18 +245,10 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       setStep("error");
 
       const { title, message, parsed } = parseAndFormatError(error);
-      const displayMessage =
-        error instanceof TransactionConfirmationPendingError
-          ? formatMessage({ id: "app.account.transactionPending" })
-          : parsed.isKnown
-            ? message
-            : "Failed to create listing. Please try again.";
-      const displayTitle =
-        error instanceof TransactionConfirmationPendingError
-          ? formatMessage({ id: "app.account.transactionSubmitted" })
-          : parsed.isKnown
-            ? title
-            : "Listing failed";
+      const displayMessage = parsed.isKnown
+        ? message
+        : "Failed to create listing. Please try again.";
+      const displayTitle = parsed.isKnown ? title : "Listing failed";
 
       logger.error("[useCreateListing] Failed to create listing", {
         gardenAddress,
@@ -186,6 +268,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   });
 
   const reset = useCallback(() => {
+    if (pendingSubmission.current) return;
     setStep("idle");
     mutation.reset();
   }, [mutation]);
@@ -193,11 +276,9 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   return {
     createListing: (params) => mutation.mutateAsync(params),
     step,
-    isCreating: mutation.isPending,
-    error:
-      mutation.error instanceof TransactionConfirmationPendingError
-        ? new Error(formatMessage({ id: "app.account.transactionPending" }))
-        : (mutation.error as Error | null),
+    isCreating: mutation.isPending || step === "pending" || isChecking,
+    error: mutation.error as Error | null,
+    checkConfirmation,
     reset,
   };
 }

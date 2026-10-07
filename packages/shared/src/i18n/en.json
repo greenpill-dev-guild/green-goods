@@ -6789,5 +6789,8 @@
   "app.account.signInRequired": "Sign in to your account before continuing.",
   "app.account.signerNotReady": "Your account is still connecting. Please try again in a moment.",
   "app.account.transactionSubmitted": "Transaction submitted",
-  "app.account.transactionPending": "Transaction submitted. Check its confirmation before trying again."
+  "app.account.transactionPending": "Transaction submitted. Check its confirmation before trying again.",
+  "admin.garden.deploy.pendingTitle": "Awaiting wallet execution",
+  "admin.garden.deploy.pendingMessage": "Your wallet accepted this submission, but execution is not confirmed. Check your wallet for approval or execution. Do not submit another deployment while this one is pending.",
+  "app.account.checkConfirmation": "Check confirmation"
 }

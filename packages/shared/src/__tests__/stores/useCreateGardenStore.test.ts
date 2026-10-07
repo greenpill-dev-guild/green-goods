@@ -92,3 +92,27 @@ describe("stores/useCreateGardenStore", () => {
     expect(useCreateGardenStore.getState().isStepValid("details")).toBe(false);
   });
 });
+
+it("retains an accepted submission across draft reset and session rehydration", async () => {
+  resetCreateGardenStore();
+  const pendingSubmission = {
+    accountAddress: MEMBER as `0x${string}`,
+    chainId: 11155111,
+    gardenName: "Pending garden",
+    result: {
+      hash: "0xSafeProposalIdentifier" as const,
+      sponsored: false,
+      confirmation: "pending" as const,
+    },
+  };
+  useCreateGardenStore.setState({ pendingSubmission });
+  useCreateGardenStore.getState().reset();
+  expect(useCreateGardenStore.getState().pendingSubmission).toEqual(pendingSubmission);
+  const saved = sessionStorage.getItem("green-goods:create-garden")!;
+  useCreateGardenStore.setState({ pendingSubmission: undefined });
+  sessionStorage.setItem("green-goods:create-garden", saved);
+  await useCreateGardenStore.persist.rehydrate();
+  expect(useCreateGardenStore.getState().pendingSubmission).toEqual(pendingSubmission);
+  resetCreateGardenStore();
+  expect(useCreateGardenStore.getState().pendingSubmission).toBeUndefined();
+});

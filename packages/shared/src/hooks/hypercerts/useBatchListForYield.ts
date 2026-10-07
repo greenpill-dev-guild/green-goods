@@ -7,7 +7,7 @@
  * @module hooks/hypercerts/useBatchListForYield
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { type Address, type Hex } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -32,7 +32,7 @@ import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 export interface BatchProgress {
   total: number;
   signed: number;
-  status: "idle" | "signing" | "submitting" | "confirming" | "done" | "error";
+  status: "idle" | "signing" | "submitting" | "confirming" | "done" | "pending" | "error";
 }
 
 export interface UseBatchListForYieldResult {
@@ -53,8 +53,11 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
   const queryClient = useQueryClient();
   const [progress, setProgress] = useState<BatchProgress>(INITIAL_PROGRESS);
 
+  const pendingSubmission = useRef(false);
+
   const mutation = useMutation({
     mutationFn: async (listings: CreateListingParams[]) => {
+      if (pendingSubmission.current) return;
       if (!gardenAddress) throw new Error("Garden address required");
       if (listings.length === 0) throw new Error("No listings to create");
 
@@ -150,8 +153,11 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       const result = await sender.sendContractCall(call, {
         assertOwnership: () => sender.assertOwnership?.(signer, chainId),
       });
-      if (result.confirmation === "pending")
-        throw new Error(formatMessage({ id: "app.account.transactionPending" }));
+      if (result.confirmation === "pending") {
+        pendingSubmission.current = true;
+        setProgress((prev) => ({ ...prev, status: "pending" }));
+        return;
+      }
 
       setProgress((prev) => ({ ...prev, status: "done" }));
       logger.info("[useBatchListForYield] Batch listing complete", {
@@ -181,13 +187,14 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
   });
 
   const reset = useCallback(() => {
+    if (pendingSubmission.current) return;
     setProgress(INITIAL_PROGRESS);
     mutation.reset();
   }, [mutation]);
 
   return {
     batchList: (listings) => mutation.mutateAsync(listings),
-    isBatching: mutation.isPending,
+    isBatching: mutation.isPending || progress.status === "pending",
     progress,
     error: mutation.error as Error | null,
     reset,

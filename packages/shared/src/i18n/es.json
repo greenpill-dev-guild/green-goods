@@ -6789,5 +6789,8 @@
   "app.account.signInRequired": "Inicia sesión en tu cuenta antes de continuar.",
   "app.account.signerNotReady": "Tu cuenta todavía se está conectando. Vuelve a intentarlo en un momento.",
   "app.account.transactionSubmitted": "Transacción enviada",
-  "app.account.transactionPending": "Transacción enviada. Comprueba su confirmación antes de volver a intentarlo."
+  "app.account.transactionPending": "Transacción enviada. Comprueba su confirmación antes de volver a intentarlo.",
+  "admin.garden.deploy.pendingTitle": "Esperando la ejecución de la billetera",
+  "admin.garden.deploy.pendingMessage": "Tu billetera aceptó este envío, pero la ejecución no está confirmada. Revisa la aprobación o ejecución en tu billetera. No envíes otro despliegue mientras este esté pendiente.",
+  "app.account.checkConfirmation": "Comprobar confirmación"
 }

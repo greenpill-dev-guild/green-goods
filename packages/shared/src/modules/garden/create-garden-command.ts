@@ -12,7 +12,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import type { TransactionSender } from "../transactions/types";
+import type { BroadcastConfirmation, TransactionSender, TxResult } from "../transactions/types";
 
 export interface CreateGardenCommand {
   params: CreateGardenParams;
@@ -54,7 +54,8 @@ export interface CreateGardenPorts {
       accountAddress: `0x${string}`;
       chainId: number;
       ccipFee: bigint;
-    }): Promise<`0x${string}`>;
+    }): Promise<TxResult>;
+    reconcile(hash: `0x${string}`, chainId: number): Promise<BroadcastConfirmation>;
   };
   documents: { addPending(hash: `0x${string}`, submittedAt: number): void };
   clock: { now(): number };
@@ -88,7 +89,7 @@ function buildGardenContractConfig(params: CreateGardenParams): GardenContractCo
 export async function createGarden(
   command: CreateGardenCommand,
   ports: CreateGardenPorts
-): Promise<`0x${string}`> {
+): Promise<TxResult> {
   const config = buildGardenContractConfig(command.params);
   const contracts = ports.reader.contracts(command.chainId);
   const ccipFee = await ports.reader.estimateCcipFee({
@@ -107,16 +108,18 @@ export async function createGarden(
   if (!simulation.success) {
     throw new Error(simulation.error?.message ?? "Transaction simulation failed");
   }
-  const txHash = await ports.sender.send({
+  const result = await ports.sender.send({
     gardenToken: contracts.gardenToken as `0x${string}`,
     config,
     accountAddress: command.accountAddress,
     chainId: command.chainId,
     ccipFee,
   });
-  ports.documents.addPending(txHash, ports.clock.now());
-  await ports.reader.waitForReceipt(txHash, command.chainId);
-  return txHash;
+  ports.documents.addPending(result.hash, ports.clock.now());
+  if (result.confirmation !== "pending") {
+    await ports.reader.waitForReceipt(result.hash, command.chainId);
+  }
+  return result;
 }
 
 export async function estimateGardenCreation(
@@ -217,6 +220,27 @@ export function createDefaultCreateGardenPorts(input: {
       },
     },
     sender: {
+      reconcile: async (hash, chainId) => {
+        try {
+          if (input.transactionSender.reconcileBroadcast) {
+            const outcome = await input.transactionSender.reconcileBroadcast({
+              kind: "transaction",
+              hash,
+            });
+            if (outcome.status !== "unresolved") return outcome;
+          }
+          // An opaque Safe proposal ID is not an execution transaction hash.
+          // Without a wallet resolver its outcome remains unknown, never retryable.
+          if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) return { status: "unresolved" };
+          const { publicClient } = createClients(chainId);
+          const receipt = await publicClient.getTransactionReceipt({ hash });
+          return receipt.status === "success"
+            ? { status: "confirmed", transactionHash: receipt.transactionHash }
+            : { status: "reverted" };
+        } catch {
+          return { status: "unresolved" };
+        }
+      },
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const sender = input.transactionSender;
         const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
@@ -234,7 +258,7 @@ export function createDefaultCreateGardenPorts(input: {
           { assertOwnership }
         );
         if (result.confirmation !== "pending") confirmed.add(result.hash);
-        return result.hash;
+        return result;
       },
     },
     documents: { addPending: (hash) => input.addPending(hash) },

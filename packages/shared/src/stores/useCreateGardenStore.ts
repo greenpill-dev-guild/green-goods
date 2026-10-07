@@ -1,5 +1,6 @@
 import { getAddress, isAddress } from "viem";
 import { create } from "zustand";
+import type { TxResult } from "../modules/transactions/types";
 import { persist } from "zustand/middleware";
 
 import {
@@ -41,6 +42,13 @@ export interface CreateGardenStep {
 }
 
 export interface CreateGardenStore {
+  // The accepted submission belongs to this account and chain, not the editable draft.
+  pendingSubmission?: {
+    accountAddress: Address;
+    chainId: number;
+    gardenName: string;
+    result: TxResult;
+  };
   form: CreateGardenFormState;
   steps: CreateGardenStep[];
   currentStep: number;
@@ -234,6 +242,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         const p = persisted as Partial<CreateGardenStore>;
         return {
           ...current,
+          pendingSubmission: p.pendingSubmission,
           currentStep: p.currentStep ?? current.currentStep,
           form: {
             ...createEmptyGardenForm(),
@@ -241,15 +250,20 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           },
         };
       },
-      // Only persist form and currentStep, not steps (static) or functions
+      // Persist the draft and its accepted submission, not static steps or functions
       partialize: (state) =>
-        ({ form: state.form, currentStep: state.currentStep }) as CreateGardenStore,
+        ({
+          form: state.form,
+          currentStep: state.currentStep,
+          pendingSubmission: state.pendingSubmission,
+        }) as CreateGardenStore,
     }
   )
 );
 
 export function resetCreateGardenStore() {
   useCreateGardenStore.setState({
+    pendingSubmission: undefined,
     form: createEmptyGardenForm(),
     steps: defaultSteps,
     currentStep: 0,
