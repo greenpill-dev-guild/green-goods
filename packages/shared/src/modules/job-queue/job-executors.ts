@@ -162,7 +162,7 @@ export async function executeCommitmentQueueJob(
   // the team before the proof and its credit were on the record. A proof that
   // landed has left the queue; one that was discarded took this send with it.
   const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
-  if (proofJobId) {
+  if (proofJobId && job.kind !== "workLink") {
     const proof = await store.getJob(proofJobId);
     if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
   }
@@ -189,6 +189,7 @@ export async function executeCommitmentQueueJob(
         if (source && !source.synced && source.attempts >= 5) {
           return { status: "identity-conflict", reason: "source-work-terminal" };
         }
+        if (source && !source.synced) return { status: "waiting", reason: "work-not-indexed" };
       }
       const resolution = await (deps.resolveWorkIdentity ?? resolveDeferredWorkIdentity)({
         clientWorkId: payload.clientWorkId,

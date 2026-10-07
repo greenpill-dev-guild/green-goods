@@ -10,6 +10,7 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import {
+  dependentWorkLinkPayload,
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
   sameWorkLinkIdentity,
@@ -53,7 +54,7 @@ interface PendingLinkRecovery {
     clientWorkId: string;
     sourceWorkJobId?: string;
     requirementIndex: number;
-    gardenAddress: `0x${string}`;
+    gardenAddress: Address;
   };
   error: unknown;
   /** False when the Work was only saved on this device (a queued outcome) and nothing was sent. */
@@ -304,14 +305,11 @@ export function useWorkSubmissionFlowController({
         const workSent = outcome.kind === "direct" || outcome.kind === "processed";
         setLinkSchedulingWorkSent(workSent);
         setIsQueueingDependentLink(workSent);
-        const payload: PendingLinkRecovery["payload"] = {
-          clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
-          commitmentId: linkIntent.commitmentId,
-          clientWorkId: outcome.clientWorkId,
-          ...(outcome.kind === "direct" ? {} : { sourceWorkJobId: outcome.jobId }),
-          requirementIndex: linkIntent.requirementIndex,
-          gardenAddress: linkIntent.garden as `0x${string}`,
-        };
+        const payload: PendingLinkRecovery["payload"] = dependentWorkLinkPayload(
+          outcome.clientWorkId,
+          linkIntent,
+          outcome.jobId
+        );
         try {
           await commitmentJobs.enqueue({ act: "workLink", payload });
           setPendingLinkRecovery(null);

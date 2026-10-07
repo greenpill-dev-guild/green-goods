@@ -83,6 +83,10 @@ export interface JobProcessor<TPayload = unknown, TEncoded = unknown> {
 // ============================================
 
 export interface WorkJobPayload {
+  /** Admission input; replaced with a canonical dependent job before persistence. */
+  linkIntent?: DraftWorkLink | null;
+  /** Kept with the admitted Work so cancellation cannot lose its original target. */
+  dependentWorkLink?: Extract<WorkLinkJobPayload, { clientWorkId: string }>;
   /** Receipt-verified snapshot, committed with the completion before the queued files leave. */
   confirmedWork?: import("./domain").Work;
   location?: ApproximateWorkLocation;

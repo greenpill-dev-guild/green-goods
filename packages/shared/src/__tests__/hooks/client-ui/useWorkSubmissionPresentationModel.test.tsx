@@ -45,6 +45,7 @@ describe("work review garden identity", () => {
       { wrapper: createIntlWrapper() }
     );
     expect(result.current.reviewData.garden.name).toBe("East beds");
+    expect(result.current.reviewData.garden.id).toBe((gardens[0] ?? joinable)?.id);
   });
 
   it("does not substitute a different garden when the selected one is unavailable", () => {
@@ -53,7 +54,7 @@ describe("work review garden identity", () => {
         useWorkSubmissionPresentationModel({
           actions: [],
           gardens: [garden],
-          joinableCommunityGarden: null,
+          joinableCommunityGarden: garden,
           actionUID: null,
           gardenAddress: "0x1111111111111111111111111111111111111111",
           selectedDomain: null,
@@ -61,5 +62,6 @@ describe("work review garden identity", () => {
       { wrapper: createIntlWrapper() }
     );
     expect(result.current.reviewData.garden.name).toBe("Unknown garden");
+    expect(result.current.reviewData.garden.id).toBe("0x1111111111111111111111111111111111111111");
   });
 });
