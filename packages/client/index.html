@@ -296,16 +296,16 @@
 
       /* The loader stays up until auth is ready, then hands off to html, body,
          and SplashScaffold, which all paint bg-white-0; taking the same token
-         leaves the handoff seamless. The dark action fallback exists because a
-         dark canvas drops the old one to 1.7:1 when the stylesheet never
-         arrived. */
+         leaves the handoff seamless. The dark action fallback mirrors the PWA's
+         mint/ink pair even when the stylesheet never arrives (DL-088). */
       html[data-boot-presentation="pwa"] #boot-fallback {
         --boot-canvas: var(--color-bg-white-0, #ffffff);
       }
 
       html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
         --boot-canvas: var(--color-bg-white-0, #0c0a09);
-        --boot-action: var(--color-primary-action, #1a7544);
+        --boot-action: var(--color-primary-action, #c2f5da);
+        --boot-action-fg: var(--color-primary-action-foreground, #0c0a09);
       }
 
       .boot-editorial-shell {

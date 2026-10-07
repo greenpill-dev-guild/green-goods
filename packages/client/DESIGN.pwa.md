@@ -72,13 +72,13 @@ dialect: installed-pwa
 
 ## Color Adaptation
 
-The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (DL-086; PRD-1150):
-- Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and the readable bright accent in dark.
-- Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action tokens with white text, never bright green (DL-017).
-- Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause is a filled control with a white glyph, so it uses the action pair.
+The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
+- Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and pale mint `tertiary-dark` (`#C2F5DA`) in dark.
+- Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action pair: deep green with white content in light, mint with near-black `on-tertiary-dark` ink in dark. Dark hover uses `tertiary-dark-hover` (`#84EBB4`).
+- Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause uses the theme's filled-action pair.
 - Soft green highlights may retain the tertiary tint. Domain and status colors stay independent; success, warning, error and information marks are not brand accents.
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
-- No PWA-specific token overrides; values come from shared tokens.
+- Shared runtime aliases scope the mint palette to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. The static boot fallback mirrors the dark action pair before styles load.
 
 **Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. Foundation palette remains — only the accent shifts.
 

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, within } from "storybook/test";
 import tokens from "../../styles/design-md.generated.json";
+import { Button } from "../Button";
 import { Switch } from "../Form/ControlPrimitives";
 
 function hexToRgb(hex: string) {
@@ -42,13 +43,9 @@ function TokenRow({ theme }: { theme: "light" | "dark" }) {
         >
           Active nav
         </span>
-        <button
-          data-testid={`${theme}-action`}
-          type="button"
-          className="rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground hover:bg-primary-action-hover"
-        >
+        <Button data-testid={`${theme}-action`} type="button">
           Fund garden
-        </button>
+        </Button>
       </div>
       <div className="mt-4 h-2 rounded-full bg-bg-soft-200">
         <div
@@ -118,21 +115,24 @@ function expectPwaAliasRow(canvas: ReturnType<typeof within>, theme: "light" | "
   const radio = canvas.getByTestId(`${theme}-radio`);
   const selected = canvas.getByTestId(`${theme}-selected`);
   const interactiveColor = hexToRgb(
-    theme === "light" ? tokens.colors["tertiary-action"] : tokens.colors.tertiary
+    theme === "light" ? tokens.colors["tertiary-action"] : tokens.colors["tertiary-dark"]
+  );
+  const actionForeground = hexToRgb(
+    theme === "light" ? tokens.colors["on-tertiary-action"] : tokens.colors["on-tertiary-dark"]
   );
 
   // Brand decoration retains its palette; controls share the readable foreground for their theme.
   expect(getComputedStyle(accent).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
-  expect(getComputedStyle(count).backgroundColor).toBe(hexToRgb(tokens.colors["tertiary-action"]));
-  expect(getComputedStyle(count).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
+  expect(getComputedStyle(count).backgroundColor).toBe(interactiveColor);
+  expect(getComputedStyle(count).color).toBe(actionForeground);
   expect(getComputedStyle(active).color).toBe(interactiveColor);
   expect(getComputedStyle(progress).backgroundColor).toBe(interactiveColor);
   expect(getComputedStyle(selectionSwitch).backgroundColor).toBe(interactiveColor);
   expect(getComputedStyle(checkbox).accentColor).toBe(interactiveColor);
   expect(getComputedStyle(radio).accentColor).toBe(interactiveColor);
   expect(getComputedStyle(selected).borderColor).toBe(interactiveColor);
-  expect(getComputedStyle(action).backgroundColor).toBe(hexToRgb(tokens.colors["tertiary-action"]));
-  expect(getComputedStyle(action).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
+  expect(getComputedStyle(action).backgroundColor).toBe(interactiveColor);
+  expect(getComputedStyle(action).color).toBe(actionForeground);
 }
 
 export const AccentAndActionAliases: Story = {
@@ -146,5 +146,10 @@ export const AccentAndActionAliases: Story = {
     const canvas = within(canvasElement);
     expectPwaAliasRow(canvas, "light");
     expectPwaAliasRow(canvas, "dark");
+    expect(
+      getComputedStyle(canvas.getByTestId("dark-action"))
+        .getPropertyValue("--primary-action-hover")
+        .trim()
+    ).toBe(hexToRgb(tokens.colors["tertiary-dark-hover"]).slice(4, -1).replaceAll(",", ""));
   },
 };

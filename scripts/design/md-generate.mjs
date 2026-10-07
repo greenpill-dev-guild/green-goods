@@ -82,7 +82,7 @@ function getExpectedTokenData(design) {
         designToken: "colors.tertiary-action",
         implementation: "--primary-on-surface, --color-primary-on-surface, text-primary-on-surface",
         purpose:
-          "Theme-aware PWA labels, icons, navigation indicators and selection controls: tertiary-action in light, tertiary in dark (PRD-1150).",
+          "Theme-aware PWA labels, icons, navigation indicators and selection controls: tertiary-action in light, tertiary-dark mint in the dark PWA (DL-088; PRD-1150).",
       },
       {
         designToken: "colors.on-tertiary",
@@ -94,18 +94,23 @@ function getExpectedTokenData(design) {
         designToken: "colors.tertiary-action",
         implementation: "--primary-action, --color-primary-action, bg-primary-action",
         purpose:
-          "Contrast-safe fill for every green shape that carries text: filled actions, count badges, step markers, selected chips.",
+          "Contrast-safe green fills: tertiary-action with white in light; tertiary-dark with on-tertiary-dark ink in the dark PWA (DL-088).",
       },
       {
         designToken: "colors.tertiary-action-hover",
         implementation: "--primary-action-hover, bg-primary-action-hover",
-        purpose: "Hover state for contrast-safe filled text actions.",
+        purpose: "Light PWA filled-action hover. Dark PWA hover uses tertiary-dark-hover.",
       },
       {
         designToken: "colors.on-tertiary-action",
         implementation:
           "--primary-action-foreground, --color-primary-action-foreground, text-primary-action-foreground",
-        purpose: "Foreground for every text-bearing green fill.",
+        purpose: "Light PWA and non-PWA green-fill foreground. Dark PWA fills use on-tertiary-dark ink.",
+      },
+      {
+        designToken: "colors.tertiary-dark, colors.tertiary-dark-hover, colors.on-tertiary-dark",
+        implementation: "Dark PWA --primary-on-surface, --primary-action, --primary-action-hover, --primary-action-foreground",
+        purpose: "Pale mint foregrounds and filled actions with near-black ink, scoped to PWA and Storybook app surfaces (DL-088).",
       },
       {
         designToken: "rounded.*",
@@ -117,9 +122,9 @@ function getExpectedTokenData(design) {
       primaryRole:
         "DesignMD colors.primary is ink/charcoal and must not be mapped to --color-primary.",
       tertiaryRole:
-        "DesignMD colors.tertiary is the existing bright PWA green accent implementation.",
+        "DesignMD colors.tertiary supplies bright brand decoration; dark PWA controls use colors.tertiary-dark.",
       actionRole:
-        "DesignMD colors.tertiary-action is the fill for every green shape that carries text, numbers, or glyphs, with white foreground.",
+        "PWA green fills use colors.tertiary-action with white in light and colors.tertiary-dark with on-tertiary-dark ink in dark.",
       shellFreeze:
         "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /home/garden and /home/:id/work/:workId AppBar hiding.",
     },
