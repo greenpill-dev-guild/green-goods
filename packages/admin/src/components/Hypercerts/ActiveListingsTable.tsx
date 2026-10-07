@@ -52,7 +52,14 @@ function formatTimeRemaining(
 export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveListingsTableProps) {
   const intl = useIntl();
   const { listings, isLoading, error } = useHypercertListings(gardenAddress);
-  const { cancelListing, isCancelling } = useCancelListing(gardenAddress);
+  const {
+    cancelListing,
+    isCancelling,
+    pendingCancellation,
+    isCheckingConfirmation,
+    checkConfirmation,
+    error: cancellationError,
+  } = useCancelListing(gardenAddress);
 
   if (isLoading) {
     return (
@@ -102,6 +109,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
+      {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
       <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
@@ -184,13 +192,26 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                     <AdminButton
                       variant="danger"
                       size="sm"
-                      onClick={() => cancelListing(listing.orderId)}
-                      loading={isCancelling}
+                      onClick={() =>
+                        pendingCancellation ? checkConfirmation() : cancelListing(listing.orderId)
+                      }
+                      loading={!pendingCancellation && isCancelling}
+                      disabled={
+                        isCheckingConfirmation ||
+                        (Boolean(pendingCancellation) &&
+                          pendingCancellation?.orderId !== listing.orderId)
+                      }
                       leadingIcon={<RiCloseLine />}
                     >
                       {intl.formatMessage({
-                        id: "app.admin.listings.cancel",
-                        defaultMessage: "Cancel",
+                        id:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "app.account.checkConfirmation"
+                            : "app.admin.listings.cancel",
+                        defaultMessage:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "Check confirmation"
+                            : "Cancel",
                       })}
                     </AdminButton>
                   ) : (

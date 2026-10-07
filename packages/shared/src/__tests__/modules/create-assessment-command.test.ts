@@ -12,11 +12,17 @@ const mocks = vi.hoisted(() => ({ readyWalletClient: vi.fn(), getReceipt: vi.fn(
 
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
-  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
+  createClients: () => ({
+    publicClient: {
+      waitForTransactionReceipt: mocks.getReceipt,
+      getTransactionReceipt: mocks.getReceipt,
+    },
+  }),
 }));
 
 import {
   createDefaultCreateAssessmentPorts,
+  reconcileAssessmentSubmission,
   createAssessment,
   resolveAssessmentDomain,
   type CreateAssessmentCommand,
@@ -257,7 +263,9 @@ describe("the passkey assessment sender", () => {
         [(logOverrides.uid ?? attestationUid) as `0x${string}`]
       ),
     };
-    mocks.getReceipt.mockReset().mockResolvedValue({ status: "success", logs: [log] });
+    mocks.getReceipt
+      .mockReset()
+      .mockResolvedValue({ status: "success", transactionHash: HASH, logs: [log] });
     const dependencies = createDefaultCreateAssessmentPorts({
       account: ACCOUNT,
       transactionSender: passkeySenderOverride ?? transactionSender,
@@ -271,6 +279,41 @@ describe("the passkey assessment sender", () => {
     };
     return { send, assertOwnership, sendContractCall };
   }
+  it.each([
+    "confirmed",
+    "mismatched",
+    "unavailable",
+    "opaque",
+  ] as const)("reconciles accepted EAS evidence without attesting again: %s", async (status) => {
+    const f = fixture(status === "mismatched" ? { recipient: ACCOUNT } : {});
+    if (status === "unavailable")
+      mocks.getReceipt.mockRejectedValueOnce(new Error("RPC unavailable"));
+    const sender: TransactionSender = {
+      authMode: "passkey",
+      supportsBatching: false,
+      supportsSponsorship: true,
+      assertOwnership: f.assertOwnership,
+      sendContractCall: f.sendContractCall,
+    };
+    const outcome = await reconcileAssessmentSubmission(
+      {
+        account: ACCOUNT,
+        chainId: 11155111,
+        gardenId,
+        easAddress: EAS,
+        schemaUid: SCHEMA,
+        result: { hash: status === "opaque" ? "0xProposal" : HASH, sponsored: false },
+      },
+      sender
+    );
+    expect(outcome).toEqual(
+      status === "confirmed"
+        ? { status: "confirmed", uid: attestationUid }
+        : { status: "unresolved" }
+    );
+    expect(f.sendContractCall).not.toHaveBeenCalled();
+    if (status === "opaque") expect(mocks.getReceipt).not.toHaveBeenCalled();
+  });
   it.each([
     "wallet",
     "passkey",

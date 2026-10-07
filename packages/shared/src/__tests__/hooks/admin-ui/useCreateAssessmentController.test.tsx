@@ -109,6 +109,9 @@ vi.mock("../../../hooks/assessment/useCreateAssessmentWorkflow", async () => {
           workflow.set("idle");
         },
         canRetry: false,
+        isPending: value === "pending" || value === "reconciling",
+        isCheckingConfirmation: value === "reconciling",
+        checkConfirmation: vi.fn(),
         draft: {
           loadDraft: async () => null,
           saveDraft: (payload: unknown) => mockSaveDraft(payload),
@@ -306,6 +309,19 @@ describe("useCreateAssessmentController submit", () => {
     // The store walks as far as the controller lists.
     act(() => useCreateAssessmentStore.getState().goToStep(REVIEW_STEP));
     expect(result.current.currentStep).toBe(REVIEW_STEP);
+  });
+
+  it("keeps an indeterminate assessment on Review and refuses the normal submit/reset path", async () => {
+    fillAssessment();
+    const { result } = renderController();
+    act(() => workflow.set("pending"));
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.currentStep).toBe(REVIEW_STEP);
+    expect(result.current.hasError).toBe(false);
+    await act(() => result.current.handleSubmit());
+    expect(mockResetWorkflow).not.toHaveBeenCalled();
+    expect(mockStartCreation).not.toHaveBeenCalled();
+    expect(mockSubmitCreation).not.toHaveBeenCalled();
   });
 
   it("keeps a successful send on the Review, with its answers, and never asks to discard", async () => {

@@ -335,7 +335,7 @@ export function useCreateActionController() {
             result.error?.message ??
               formatMessage({
                 id: "app.account.transactionReverted",
-                defaultMessage: "Transaction reverted. The action was not recorded.",
+                defaultMessage: "Transaction reverted. Your change was not recorded.",
               })
           )
         );

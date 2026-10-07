@@ -6793,5 +6793,5 @@
   "admin.garden.deploy.pendingTitle": "Aguardando execução da carteira",
   "admin.garden.deploy.pendingMessage": "Sua carteira aceitou este envio, mas a execução não foi confirmada. Verifique a aprovação ou execução na carteira. Não envie outra implantação enquanto esta estiver pendente.",
   "app.account.checkConfirmation": "Verificar confirmação",
-  "app.account.transactionReverted": "A transação foi revertida. A ação não foi registrada."
+  "app.account.transactionReverted": "A transação foi revertida. A alteração não foi registrada."
 }

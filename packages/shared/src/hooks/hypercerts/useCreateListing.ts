@@ -8,8 +8,8 @@
  * @module hooks/hypercerts/useCreateListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
-import { type Address, type Hex } from "viem";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Address } from "viem";
 import { toastService } from "../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { createPublicClientForChain } from "../../config/pimlico";
@@ -24,7 +24,10 @@ import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
-import { type TxResult } from "../../modules/transactions/types";
+import {
+  listingSubmissionKey,
+  useListingSubmissionStore,
+} from "../../stores/useListingSubmissionStore";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import {
   HYPERCERTS_MODULE_ABI,
@@ -59,15 +62,11 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const [step, setStep] = useState<ListingStep>("idle");
   const [confirmationError, setConfirmationError] = useState<Error | null>(null);
 
-  const pendingSubmission = useRef<{
-    result: TxResult;
-    signature: Hex;
-    hypercertId: bigint;
-    currency: Address;
-    chainId: number;
-    garden: Address;
-    sender: NonNullable<typeof sender>;
-  } | null>(null);
+  const scope =
+    signer && gardenAddress ? listingSubmissionKey(signer, chainId, gardenAddress) : null;
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const pending = useListingSubmissionStore((state) => (scope ? state.pending[scope] : undefined));
   const [isChecking, setIsChecking] = useState(false);
 
   const refreshListings = useCallback(
@@ -80,20 +79,23 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   );
 
   const checkConfirmation = useCallback(async () => {
-    const pending = pendingSubmission.current;
-    if (!pending || isChecking) return;
+    if (!scope || !pending || !sender || isChecking) return;
     setIsChecking(true);
     refreshListings(pending.garden, pending.chainId);
     try {
-      const outcome = await pending.sender.reconcileBroadcast?.({
+      const outcome = await sender.reconcileBroadcast?.({
         kind: "transaction",
         hash: pending.result.hash,
       });
+      const isCurrent = () =>
+        activeScope.current === scope &&
+        useListingSubmissionStore.getState().pending[scope] === pending;
+      if (!isCurrent()) return;
       if (outcome?.status === "confirmed") {
-        pendingSubmission.current = null;
+        useListingSubmissionStore.getState().clear(scope);
         setStep("done");
       } else if (outcome?.status === "reverted") {
-        pendingSubmission.current = null;
+        useListingSubmissionStore.getState().clear(scope);
         setConfirmationError(new Error(formatMessage({ id: "app.listing.stepError" })));
         setStep("error");
       } else {
@@ -105,7 +107,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
           address,
           abi: MARKETPLACE_ADAPTER_ABI,
           functionName: "activeOrders",
-          args: [pending.hypercertId, pending.currency],
+          args: [BigInt(pending.hypercertId), pending.currency],
         });
         if (orderId > 0n) {
           const order = await client.readContract({
@@ -114,8 +116,8 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
             functionName: "orders",
             args: [orderId],
           });
-          if (order[2].toLowerCase() === pending.signature.toLowerCase()) {
-            pendingSubmission.current = null;
+          if (isCurrent() && order[2].toLowerCase() === pending.signature.toLowerCase()) {
+            useListingSubmissionStore.getState().clear(scope);
             setStep("done");
           }
         }
@@ -126,11 +128,11 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     } finally {
       setIsChecking(false);
     }
-  }, [isChecking, refreshListings, formatMessage]);
+  }, [scope, pending, sender, isChecking, refreshListings, formatMessage]);
 
   const mutation = useMutation({
     mutationFn: async (params: CreateListingParams) => {
-      if (pendingSubmission.current) return;
+      if (scope && useListingSubmissionStore.getState().pending[scope]) return;
       setConfirmationError(null);
       if (!gardenAddress) throw new Error("Garden address required");
       if (!signer || !sender)
@@ -210,16 +212,16 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         assertOwnership: () => sender.assertOwnership?.(signer, chainId),
       });
       if (result.confirmation === "pending") {
-        pendingSubmission.current = {
+        useListingSubmissionStore.getState().record({
+          account: signer,
           result,
           chainId,
           garden: gardenAddress,
-          sender,
           signature,
-          hypercertId: params.hypercertId,
+          hypercertId: params.hypercertId.toString(),
           currency: params.currency,
-        };
-        setStep("pending");
+        });
+        if (activeScope.current === scope) setStep("pending");
         toastService.info({
           title: formatMessage({ id: "app.account.transactionSubmitted" }),
           message: formatMessage({ id: "app.account.transactionPending" }),
@@ -227,7 +229,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         return;
       }
 
-      setStep("done");
+      if (activeScope.current === scope) setStep("done");
       logger.info("[useCreateListing] Listing created successfully", {
         gardenAddress,
         hypercertId: params.hypercertId.toString(),
@@ -245,6 +247,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       }
     },
     onError: (error) => {
+      if (activeScope.current !== scope) return;
       setStep("error");
 
       const { title, message, parsed } = parseAndFormatError(error);
@@ -271,16 +274,25 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   });
 
   const reset = useCallback(() => {
-    if (pendingSubmission.current) return;
+    if (scope && useListingSubmissionStore.getState().pending[scope]) return;
     setStep("idle");
     setConfirmationError(null);
     mutation.reset();
-  }, [mutation]);
+  }, [mutation, scope]);
+
+  const previousScope = useRef(scope);
+  useEffect(() => {
+    if (previousScope.current === scope) return;
+    previousScope.current = scope;
+    setStep("idle");
+    setConfirmationError(null);
+    mutation.reset();
+  }, [scope, mutation]);
 
   return {
     createListing: (params) => mutation.mutateAsync(params),
-    step,
-    isCreating: mutation.isPending || step === "pending" || isChecking,
+    step: pending ? "pending" : step,
+    isCreating: mutation.isPending || Boolean(pending) || isChecking,
     error: (mutation.error as Error | null) ?? confirmationError,
     checkConfirmation,
     reset,

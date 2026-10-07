@@ -6793,5 +6793,5 @@
   "admin.garden.deploy.pendingTitle": "Esperando la ejecución de la billetera",
   "admin.garden.deploy.pendingMessage": "Tu billetera aceptó este envío, pero la ejecución no está confirmada. Revisa la aprobación o ejecución en tu billetera. No envíes otro despliegue mientras este esté pendiente.",
   "app.account.checkConfirmation": "Comprobar confirmación",
-  "app.account.transactionReverted": "La transacción se revirtió. La acción no se registró."
+  "app.account.transactionReverted": "La transacción se revirtió. El cambio no se registró."
 }

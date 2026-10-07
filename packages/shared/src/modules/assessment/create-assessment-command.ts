@@ -5,7 +5,12 @@ import { getAssessmentSchemas } from "./schemas";
 import { getEASConfig } from "../../config/blockchain";
 import type { Address, AssessmentWorkflowParams } from "../../types/domain";
 import { createClients, EASABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
+import {
+  TransactionConfirmationPendingError,
+  type TransactionSender,
+  type TxResult,
+} from "../transactions/types";
+import { reconcileTransaction } from "../transactions/confirmation";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
 
@@ -22,9 +27,27 @@ export interface CreateAssessmentCommand {
   onReady(): void;
 }
 
+export interface AssessmentSubmission {
+  account: Address;
+  chainId: number;
+  gardenId: Address;
+  easAddress: string;
+  schemaUid: string;
+  result: TxResult;
+}
+
+export class AssessmentSubmissionPendingError extends TransactionConfirmationPendingError {
+  constructor(readonly assessmentSubmission: AssessmentSubmission) {
+    super(assessmentSubmission.result);
+  }
+}
+
 export class AssessmentConfirmationUnavailableError extends Error {
-  constructor() {
-    super("assessment-confirmation-unavailable");
+  constructor(
+    readonly assessmentSubmission: AssessmentSubmission,
+    message = "assessment-confirmation-unavailable"
+  ) {
+    super(message);
     this.name = "AssessmentConfirmationUnavailableError";
   }
 }
@@ -253,7 +276,16 @@ export function createDefaultCreateAssessmentPorts(input: {
           },
           { assertOwnership }
         );
-        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
+        const submission = {
+          account: input.account,
+          chainId: sendOn,
+          gardenId,
+          easAddress: sendTo,
+          schemaUid,
+          result,
+        };
+        if (result.confirmation === "pending")
+          throw new AssessmentSubmissionPendingError(submission);
         const publicClient = createClients(sendOn).publicClient;
         let receipt: TransactionReceipt;
         try {
@@ -263,31 +295,16 @@ export function createDefaultCreateAssessmentPorts(input: {
           });
         } catch {
           // The sender confirmed execution. Do not expose the RPC request or imply it failed.
-          throw new AssessmentConfirmationUnavailableError();
+          throw new AssessmentConfirmationUnavailableError(submission);
         }
         if (receipt.status !== "success") throw new Error("Assessment transaction reverted");
-        const attested = parseEventLogs({
-          abi: EASABI,
-          eventName: "Attested",
-          logs: receipt.logs,
-        }).find((log) => {
-          const args = log.args as {
-            recipient?: string;
-            attester?: string;
-            schemaUID?: string;
-            uid?: string;
-          };
-          return (
-            log.address.toLowerCase() === sendTo.toLowerCase() &&
-            args.recipient?.toLowerCase() === gardenId.toLowerCase() &&
-            args.attester?.toLowerCase() === input.account.toLowerCase() &&
-            args.schemaUID?.toLowerCase() === schemaUid.toLowerCase() &&
-            Boolean(args.uid && !isZeroBytes32(args.uid))
+        const uid = readAssessmentUid(receipt, submission);
+        if (!uid)
+          throw new AssessmentConfirmationUnavailableError(
+            submission,
+            "Assessment receipt has no matching attestation"
           );
-        });
-        const uid = (attested?.args as { uid?: string } | undefined)?.uid;
-        if (!uid) throw new Error("Assessment receipt has no matching attestation");
-        return uid.toLowerCase();
+        return uid;
       },
     },
     documents: {
@@ -298,4 +315,55 @@ export function createDefaultCreateAssessmentPorts(input: {
     },
     clock: { toUnixSeconds },
   };
+}
+
+function readAssessmentUid(
+  receipt: TransactionReceipt,
+  submission: AssessmentSubmission
+): string | undefined {
+  const attested = parseEventLogs({
+    abi: EASABI,
+    eventName: "Attested",
+    logs: receipt.logs,
+  }).find((log) => {
+    const args = log.args as {
+      recipient?: string;
+      attester?: string;
+      schemaUID?: string;
+      uid?: string;
+    };
+    return (
+      log.address.toLowerCase() === submission.easAddress.toLowerCase() &&
+      args.recipient?.toLowerCase() === submission.gardenId.toLowerCase() &&
+      args.attester?.toLowerCase() === submission.account.toLowerCase() &&
+      args.schemaUID?.toLowerCase() === submission.schemaUid.toLowerCase() &&
+      Boolean(args.uid && !isZeroBytes32(args.uid))
+    );
+  });
+  const uid = (attested?.args as { uid?: string } | undefined)?.uid;
+  return uid?.toLowerCase();
+}
+
+/** Recover the exact EAS record of an accepted submission without another attest. */
+export async function reconcileAssessmentSubmission(
+  submission: AssessmentSubmission,
+  sender: TransactionSender
+): Promise<
+  { status: "confirmed"; uid: string } | { status: "unresolved" } | { status: "reverted" }
+> {
+  let receipt: TransactionReceipt | undefined;
+  const client = createClients(submission.chainId).publicClient;
+  const outcome = await reconcileTransaction(sender, submission.result, async (hash) => {
+    receipt = await client.getTransactionReceipt({ hash });
+    return receipt;
+  });
+  if (outcome.status !== "confirmed") return outcome;
+  try {
+    receipt ??= await client.getTransactionReceipt({ hash: outcome.transactionHash });
+    if (receipt.status === "reverted") return { status: "reverted" };
+    const uid = readAssessmentUid(receipt, submission);
+    return uid ? { status: "confirmed", uid } : { status: "unresolved" };
+  } catch {
+    return { status: "unresolved" };
+  }
 }

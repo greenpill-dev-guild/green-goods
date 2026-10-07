@@ -52,7 +52,7 @@ export type { ActionOperationResult } from "../../modules/action/action-operatio
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useActionOperations(chainId: number) {
+export function useActionOperations(chainId: number, actionUID?: string) {
   // Loading counter — fixes the shared-boolean bug where concurrent
   // operations could prematurely clear the loading state.
   const loadingCount = useRef(0);
@@ -68,6 +68,43 @@ export function useActionOperations(chainId: number) {
   const pendingRegistration = useActionRegistrationStore((state) =>
     registrationScope ? state.pending[registrationScope] : undefined
   );
+  const edits = useActionRegistrationStore((state) => state.edits);
+  const pendingEdits = Object.entries(edits).filter(
+    ([key, edit]) =>
+      registrationScope &&
+      key.startsWith(`${registrationScope}:`) &&
+      (!actionUID || key.endsWith(`:${actionUID}`)) &&
+      !edit.confirmed
+  );
+  const reconcileEdits = async () => {
+    if (!sender) return;
+    for (const [key, edit] of pendingEdits) {
+      const outcome = await reconcileTransaction(sender, edit.result, (hash) =>
+        createClients(chainId).publicClient.getTransactionReceipt({ hash })
+      );
+      const store = useActionRegistrationStore.getState();
+      if (store.edits[key] !== edit) continue;
+      if (outcome.status === "confirmed") store.confirmEdit(key);
+      else if (outcome.status === "reverted") store.clearEdit(key);
+      if (outcome.status === "reverted")
+        toastService.error({
+          title: "Transaction reverted",
+          message: formatMessage({ id: "app.account.transactionReverted" }),
+        });
+      void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
+    }
+  };
+  const clearCompletedEdits = () => {
+    for (const [key, edit] of Object.entries(useActionRegistrationStore.getState().edits)) {
+      if (
+        edit.confirmed &&
+        registrationScope &&
+        key.startsWith(`${registrationScope}:`) &&
+        (!actionUID || key.endsWith(`:${actionUID}`))
+      )
+        useActionRegistrationStore.getState().clearEdit(key);
+    }
+  };
 
   const reconcileRegistration = async (): Promise<ActionOperationResult> => {
     if (!address || !registrationScope) return { success: false };
@@ -93,7 +130,7 @@ export function useActionOperations(chainId: number) {
           name: "TransactionReverted",
           message: formatMessage({
             id: "app.account.transactionReverted",
-            defaultMessage: "Transaction reverted. The action was not recorded.",
+            defaultMessage: "Transaction reverted. Your change was not recorded.",
           }),
         },
       };
@@ -138,11 +175,25 @@ export function useActionOperations(chainId: number) {
       account: address as `0x${string}`,
       chainId,
     };
+    const editKey =
+      registrationScope && call.functionName !== "registerAction"
+        ? `${registrationScope}:${call.functionName}:${String(call.args[0])}`
+        : null;
+    const fingerprint = JSON.stringify(call.args, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    );
 
     try {
       if (call.functionName === "registerAction" && registrationScope) {
         const pending = useActionRegistrationStore.getState().pending[registrationScope];
         if (pending) return { success: false, confirmation: "pending", hash: pending.hash };
+      }
+      if (editKey) {
+        const edit = useActionRegistrationStore.getState().edits[editKey];
+        if (edit && !edit.confirmed)
+          return { success: false, confirmation: "pending", hash: edit.result.hash };
+        if (edit?.confirmed && edit.fingerprint === fingerprint)
+          return { success: true, hash: edit.result.hash };
       }
       const result = await executeActionOperation(
         call,
@@ -162,6 +213,8 @@ export function useActionOperations(chainId: number) {
       if (error instanceof TransactionConfirmationPendingError && error.submission) {
         if (call.functionName === "registerAction")
           useActionRegistrationStore.getState().record(address, chainId, error.submission);
+        else if (editKey)
+          useActionRegistrationStore.getState().recordEdit(editKey, fingerprint, error.submission);
         void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
         scheduleBackgroundRefetch();
         return {
@@ -308,6 +361,9 @@ export function useActionOperations(chainId: number) {
     pendingRegistration,
     registrationScope,
     reconcileRegistration,
+    pendingEdits,
+    reconcileEdits,
+    clearCompletedEdits,
     registerAction,
     updateActionStartTime,
     updateActionEndTime,

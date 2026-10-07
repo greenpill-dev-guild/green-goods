@@ -133,6 +133,7 @@ vi.mock("viem", () => ({
 
 import { type ListingStep, useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
 import { toastService } from "../../../components/Toast/toast.service";
+import { useListingSubmissionStore } from "../../../stores/useListingSubmissionStore";
 
 // ============================================
 // Test Suite
@@ -143,6 +144,7 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useListingSubmissionStore.setState({ pending: {} });
     authMode = mode;
     mockReadContract.mockReset().mockResolvedValue(0n);
     mockReconcileBroadcast.mockReset().mockResolvedValue({ status: "unresolved" });
@@ -261,6 +263,52 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
   });
 
   describe("invalidation", () => {
+    it("restores a pending listing after reload without another signature or broadcast", async () => {
+      mockSendTransaction.mockResolvedValueOnce({
+        hash: "0xProposal",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const params = {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as const,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      };
+      const first = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), { queryClient });
+      await act(() => first.result.current.createListing(params));
+      const saved = sessionStorage.getItem("green-goods:listing-submissions")!;
+      first.unmount();
+      useListingSubmissionStore.setState({ pending: {} });
+      sessionStorage.setItem("green-goods:listing-submissions", saved);
+      await useListingSubmissionStore.persist.rehydrate();
+      const restored = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN), {
+        queryClient,
+      });
+      expect(restored.result.current.step).toBe("pending");
+      await act(async () => {
+        restored.result.current.reset();
+        await restored.result.current.createListing(params);
+        await restored.result.current.checkConfirmation();
+      });
+      expect(restored.result.current.step).toBe("pending");
+      expect(mockSendTransaction).toHaveBeenCalledOnce();
+      expect(mockSignMakerAsk).toHaveBeenCalledOnce();
+      mockReconcileBroadcast.mockResolvedValueOnce({
+        status: "confirmed",
+        transactionHash: `0x${"66".repeat(32)}`,
+      });
+      await act(() => restored.result.current.checkConfirmation());
+      expect(restored.result.current.step).toBe("done");
+      expect(Object.keys(useListingSubmissionStore.getState().pending)).toHaveLength(0);
+      expect(mockSendTransaction).toHaveBeenCalledOnce();
+    });
+
     it("reports a confirmed revert and clears it when the flow resets", async () => {
       mockSendTransaction.mockResolvedValue({
         hash: "0xproposal",
