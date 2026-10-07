@@ -72,7 +72,11 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       if (!scope || pending?.kind !== "approval") return;
       const outcome = await readMarketplaceSubmissionOutcome(pending, sender, chainId);
       const refreshed = await refetch();
-      if (outcome.status === "reverted" || (!refreshed.isError && refreshed.data?.[pending.step]))
+      if (
+        outcome.status === "confirmed" ||
+        outcome.status === "reverted" ||
+        (!refreshed.isError && refreshed.data?.[pending.step])
+      )
         store().clear(scope, pending);
     },
   });

@@ -105,6 +105,7 @@ async function admitAndSend(
   if (completed)
     return {
       kind: "direct",
+      jobId: completed.jobId,
       sponsored: false,
       clientWorkId: input.clientWorkId,
       txHash: completed.transactionHash as `0x${string}`,
@@ -180,6 +181,7 @@ async function admitAndSend(
       return completion
         ? {
             kind: "direct",
+            jobId: completion.jobId,
             sponsored: false,
             clientWorkId: input.clientWorkId,
             txHash: completion.transactionHash as `0x${string}`,
@@ -261,7 +263,13 @@ async function admitAndSend(
       forgetWorkBroadcast(job.id);
       await jobQueueDB.deleteJob(job.id).catch(() => undefined);
       jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash });
-      return { kind: "direct", txHash, sponsored: false, clientWorkId: input.clientWorkId };
+      return {
+        kind: "direct",
+        txHash,
+        sponsored: false,
+        clientWorkId: input.clientWorkId,
+        jobId: job.id,
+      };
     } catch (error) {
       if (error instanceof WorkTransactionReverted) {
         job.meta = { ...job.meta, workTransactionReverted: true };

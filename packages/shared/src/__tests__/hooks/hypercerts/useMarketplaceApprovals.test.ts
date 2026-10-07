@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   waitForTransactionReceipt: vi.fn(),
   loggerError: vi.fn(),
   checkApprovals: vi.fn(),
+  getReceipt: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -68,6 +69,7 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: mocks.waitForTransactionReceipt,
+    getTransactionReceipt: mocks.getReceipt,
   }),
 }));
 
@@ -253,5 +255,20 @@ describe("useMarketplaceApprovals grant", () => {
     act(() => first.result.current.grantApprovals());
     await waitFor(() => expect(mocks.loggerError).toHaveBeenCalled());
     expect(first.result.current.isPending).toBe(false);
+  });
+  it("releases a confirmed submission even if approval state subsequently changes", async () => {
+    const hash = `0x${"ab".repeat(32)}`;
+    mocks.getReceipt.mockResolvedValue({ status: "success", transactionHash: hash });
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBroadcastReference({ kind: "transaction", hash });
+      throw new Error("receipt unavailable");
+    });
+    const view = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.isPending).toBe(true));
+    act(() => view.result.current.checkPending());
+    await waitFor(() => expect(view.result.current.isPending).toBe(false));
+    expect(mocks.sendTransaction).toHaveBeenCalledOnce();
+    expect(mocks.getReceipt).toHaveBeenCalledWith({ hash });
   });
 });
