@@ -253,6 +253,42 @@ describe("CommitmentsSheet", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("records the displayed Live tab after the reader loses the steward role", async () => {
+    const user = userEvent.setup();
+    const previous = useUIStore.getState().commitmentsSheetReturnState;
+    useUIStore.setState({ commitmentsSheetReturnState: undefined });
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: commitment(), seat: "provider", needsYou: true }] })
+    );
+    mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: true }));
+    const onClose = vi.fn();
+    const view = render(<CommitmentsSheet isOpen onClose={onClose} />);
+    try {
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+      mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: false }));
+      view.rerender(
+        <MemoryRouter>
+          <CommitmentsSheet isOpen onClose={onClose} />
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("tab", { name: /live/i })).toHaveAttribute("aria-selected", "true");
+      await user.click(screen.getByRole("button", { name: /3 hours/ }));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        "/",
+        expect.objectContaining({
+          state: expect.objectContaining({
+            dashboardEntry: expect.objectContaining({
+              snapshot: expect.objectContaining({ tab: "live" }),
+            }),
+          }),
+        })
+      );
+    } finally {
+      view.unmount();
+      useUIStore.setState({ commitmentsSheetReturnState: previous });
+    }
+  });
+
   it("opens settled commitments from the History tab the same way", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

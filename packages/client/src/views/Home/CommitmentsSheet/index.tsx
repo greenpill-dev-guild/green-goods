@@ -63,31 +63,6 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   const { sendsFromTap } = useCommitmentJobs({ chainId });
   const dashboardNavigation = useDashboardNavigation();
 
-  // The sheet sits beside the garden outlet rather than above a route of its
-  // own, so opening a commitment has to put the sheet away first or it would
-  // stay drawn over the very screen it just opened.
-  const openCommitment = useCallback(
-    (gardenAddress: string, commitmentId: bigint) => {
-      // The pool names its garden in lowercase; the route is happier with the
-      // garden's own id when the list has it.
-      const canonical =
-        gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase())?.id ??
-        gardenAddress;
-      dashboardNavigation.leave(
-        {
-          kind: "commitments",
-          tab: activeTab,
-          direction,
-          scrollTop:
-            contentRef.current?.querySelector<HTMLElement>(".overflow-y-auto")?.scrollTop ?? 0,
-        },
-        `/home/${canonical}/commitments/${commitmentId.toString()}`
-      );
-      onClose();
-    },
-    [onClose, dashboardNavigation, gardens, activeTab, direction]
-  );
-
   const tabs: AppSheetTab[] = [
     {
       id: "live",
@@ -117,6 +92,31 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   // account) while To confirm is selected would reopen it with a tab that no
   // longer exists and no panel under it. Fall back to the tab that always does.
   const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "live";
+
+  // The sheet sits beside the garden outlet rather than above a route of its
+  // own, so opening a commitment has to put the sheet away first or it would
+  // stay drawn over the very screen it just opened.
+  const openCommitment = useCallback(
+    (gardenAddress: string, commitmentId: bigint) => {
+      // The pool names its garden in lowercase; the route is happier with the
+      // garden's own id when the list has it.
+      const canonical =
+        gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase())?.id ??
+        gardenAddress;
+      dashboardNavigation.leave(
+        {
+          kind: "commitments",
+          tab: selectedTab,
+          direction,
+          scrollTop:
+            contentRef.current?.querySelector<HTMLElement>(".overflow-y-auto")?.scrollTop ?? 0,
+        },
+        `/home/${canonical}/commitments/${commitmentId.toString()}`
+      );
+      onClose();
+    },
+    [onClose, dashboardNavigation, gardens, selectedTab, direction]
+  );
 
   useLayoutEffect(() => {
     if (!isOpen || !returnState || restoredScroll.current || selectedTab !== returnState.tab)

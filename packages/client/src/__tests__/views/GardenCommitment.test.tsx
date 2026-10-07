@@ -944,6 +944,31 @@ describe("GardenCommitment", () => {
     expect(mockRetryAndSend).toHaveBeenCalledWith("confirmation-9");
   });
 
+  it.each([
+    "takeUp",
+    "askToTakeUp",
+  ] as const)("names queued %s without assuming it requires approval", (actKind) => {
+    mockUseController.mockReturnValue(
+      controller({
+        actKind,
+        queue: {
+          ...controller().queue,
+          hasPendingJob: true,
+          pendingAct: {
+            jobId: "claim-9",
+            kind: "claim",
+            waitingReason: null,
+            discardable: true,
+            createdAt: 1,
+          },
+        },
+      })
+    );
+    render();
+    expect(screen.getByRole("button", { name: "Send take-up" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeEnabled();
+  });
+
   it("draws a parked act with why it waits, and sends or drops it from the row", async () => {
     mockRetryAndSend.mockResolvedValue(undefined);
     mockDiscardJob.mockResolvedValue(true);
@@ -968,9 +993,9 @@ describe("GardenCommitment", () => {
     expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
     expect(screen.getByText("Taking up this promise")).toBeInTheDocument();
     expect(screen.getByText(/sends once your garden membership lands/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Send take-up request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Send take-up" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
-    await userEvent.click(screen.getByRole("button", { name: "Discard unsent request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard unsent take-up" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
     expect(mockFlush).not.toHaveBeenCalled();
   });
@@ -1022,8 +1047,8 @@ describe("GardenCommitment", () => {
       ).toBeInTheDocument();
       // Nothing sends it for them, so nothing may say it will.
       expect(screen.queryByText(/sends when you're connected/i)).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Send take-up request" })).toBeEnabled();
-      expect(screen.getByRole("button", { name: "Discard unsent request" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Send take-up" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeEnabled();
     });
 
     it("says an act that was never tried waits for their send", () => {
@@ -1091,8 +1116,8 @@ describe("GardenCommitment", () => {
     render();
     // A discard now could delete the record of a transaction about to broadcast.
     expect(screen.getByText("Sending from this phone")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send take-up request" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Discard unsent request" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send take-up" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard unsent take-up" })).toBeDisabled();
   });
 
   it("says so when Discard is refused, instead of silently redrawing the row", async () => {
@@ -1114,7 +1139,7 @@ describe("GardenCommitment", () => {
       })
     );
     render();
-    await userEvent.click(screen.getByRole("button", { name: "Discard unsent request" }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard unsent take-up" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("claim-9");
     expect(await screen.findByText(/couldn't be discarded/i)).toBeInTheDocument();
   });
@@ -1144,7 +1169,7 @@ describe("GardenCommitment", () => {
       screen.getByText(/can't be discarded or sent twice while we check/i)
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Discard unsent request" })
+      screen.queryByRole("button", { name: "Discard unsent take-up" })
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Check Again" }));
     expect(mockRetryAndSend).toHaveBeenCalledWith("claim-9");
