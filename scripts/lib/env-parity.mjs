@@ -50,6 +50,17 @@ export function assertEnvParity({ app, env = process.env, schemaPath, logger = c
     return { checked: true, missing, empty };
   }
 
+  // Beta runs real authentication too. Shipping without these keys makes login fail
+  // before the browser can request a passkey or connect a wallet.
+  const missingAuthKeys = [...missing, ...empty].filter((key) =>
+    ["VITE_PIMLICO_API_KEY", "VITE_WALLETCONNECT_PROJECT_ID"].includes(key)
+  );
+  if (env.VERCEL && missingAuthKeys.length > 0) {
+    throw new Error(
+      `[env-parity] ${app} authentication keys are incomplete (${missingAuthKeys.sort().join(", ")}). Refusing to ship a deployment with broken sign-in.`
+    );
+  }
+
   const labels = [
     missing.length > 0 ? `missing: ${missing.sort().join(", ")}` : null,
     empty.length > 0 ? `empty: ${empty.sort().join(", ")}` : null,

@@ -110,6 +110,43 @@ test("enforces annotated keys for production and only warns for preview", () => 
   }
 });
 
+test("rejects missing or empty authentication keys on beta but allows local builds", () => {
+  const root = mkdtempSync(join(tmpdir(), "env-auth-parity-"));
+  const schemaPath = join(root, "env.schema");
+  const keys = ["VITE_PIMLICO_API_KEY", "VITE_WALLETCONNECT_PROJECT_ID"];
+  writeFileSync(
+    schemaPath,
+    keys.map((key) => `${key}= # @required-in production-admin`).join("\n")
+  );
+  try {
+    for (const key of keys) {
+      for (const value of [undefined, ""]) {
+        const authEnv = Object.fromEntries(keys.map((name) => [name, "configured"]));
+        authEnv[key] = value;
+        assert.throws(
+          () => assertEnvParity({
+            app: "admin",
+            env: { ...authEnv, VERCEL: "1", VERCEL_ENV: "preview" },
+            schemaPath,
+          }),
+          new RegExp(`authentication keys are incomplete \\(${key}\\)`)
+        );
+      }
+    }
+    assert.doesNotThrow(() => assertEnvParity({ app: "admin", env: {}, schemaPath }));
+    assert.doesNotThrow(() => assertEnvParity({
+      app: "admin",
+      env: {
+        VERCEL: "1", VERCEL_ENV: "preview",
+        VITE_PIMLICO_API_KEY: "configured", VITE_WALLETCONNECT_PROJECT_ID: "configured",
+      },
+      schemaPath,
+    }));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("fails soft for an unreadable schema outside production Vercel", () => {
   const warnings = [];
 

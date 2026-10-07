@@ -65,7 +65,7 @@
     "vite": "8.2.1",
     "websocket-driver": "0.7.5",
     "ethers": "6.17.0",
-    "viem": "2.55.0"
+    "viem": "2.55.13"
   },
   "resolutions": {
     "uint8arrays": "^5.1.0"
@@ -78,7 +78,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "uint8arrays": "^5.1.1",
-    "viem": "2.55.0"
+    "viem": "2.55.13"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
