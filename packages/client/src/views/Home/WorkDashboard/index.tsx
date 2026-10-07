@@ -19,6 +19,7 @@ import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCoun
 import { logger } from "@green-goods/shared/modules/app/logger";
 import {
   useUIStore,
+  type DashboardSnapshot,
   type WorkDashboardCompletedFilter,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
@@ -260,19 +261,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Leaving for a row's own page remembers the tab, filter and scroll, so Back
   // from that page can reopen Your Work where it was.
   const leaveFor = (path: string, state?: Record<string, unknown>) => {
+    const snapshot: DashboardSnapshot = {
+      kind: "work",
+      tab: activeTab,
+      pendingFilter,
+      completedFilter,
+      timeFilter,
+      scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
+    };
     onClose?.();
-    dashboardNavigation.leave(
-      {
-        kind: "work",
-        tab: activeTab,
-        pendingFilter,
-        completedFilter,
-        timeFilter,
-        scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
-      },
-      path,
-      state
-    );
+    dashboardNavigation.leave(snapshot, path, state);
   };
 
   // Navigation handler - handles both Work and WorkApproval shapes

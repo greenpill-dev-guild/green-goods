@@ -788,7 +788,10 @@ describe("WorkDashboard", () => {
   });
 
   it("opens the original work route from the My work reviewed completed filter", () => {
-    const onClose = vi.fn();
+    const onClose = vi.fn(() => {
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (scroller) scroller.scrollTop = 0;
+    });
     mockUseMyWorks.mockReturnValue({
       data: [
         {
@@ -834,9 +837,24 @@ describe("WorkDashboard", () => {
     fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
+    const scroller = document.getElementById("work-dashboard-scroll");
+    if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+    scroller.scrollTop = 217;
     fireEvent.click(screen.getByText("Reviewed planting"));
 
     expect(onClose).toHaveBeenCalledOnce();
+    expect(mockNavigate).toHaveBeenCalledWith("/", {
+      replace: true,
+      state: {
+        dashboardEntry: expect.objectContaining({
+          snapshot: expect.objectContaining({
+            tab: "completed",
+            completedFilter: "myWorkReviewed",
+            scrollTop: 217,
+          }),
+        }),
+      },
+    });
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
       state: {
         from: "dashboard",
