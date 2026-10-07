@@ -13,6 +13,7 @@ import {
   type MarketplacePendingSubmission,
 } from "../../stores/useMarketplacePendingStore";
 import {
+  clearMarketplacePendingAfterWalletReview,
   isPendingBatchRegistered,
   readMarketplaceSubmissionOutcome,
 } from "../../modules/marketplace/pending";
@@ -20,8 +21,9 @@ import {
   TransactionRevertedError,
   TransactionReplacementError,
 } from "../../modules/transactions/types";
+import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { type Address, type Hex } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -56,6 +58,8 @@ export interface UseBatchListForYieldResult {
   error: Error | null;
   reset: () => void;
   checkPending: () => Promise<void>;
+  isChecking: boolean;
+  confirmWalletCancellation: (confirmedInWallet: boolean) => Promise<void>;
 }
 
 const INITIAL_PROGRESS: BatchProgress = { total: 0, signed: 0, status: "idle" };
@@ -201,7 +205,8 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
         if (
           error instanceof TransactionRevertedError ||
           error instanceof TransactionReplacementError ||
-          (isCancelledTxError(error) && !store().pending[scope]?.reference)
+          ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
+            !store().pending[scope]?.reference)
         )
           store().clear(scope);
         throw error;
@@ -236,35 +241,80 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
     mutation.reset();
   }, [mutation, scope, store]);
 
+  const checking = useRef(false);
+  const checkMutation = useMutation({
+    mutationFn: async () => {
+      if (!scope || !signer || pending?.kind !== "batch") return;
+      const outcome = await readMarketplaceSubmissionOutcome(pending, sender, chainId);
+      const registered =
+        outcome.status !== "reverted" &&
+        (outcome.status === "confirmed" ||
+          (await isPendingBatchRegistered(pending, signer, chainId)));
+      if (gardenAddress)
+        for (const queryKey of queryInvalidation.onMarketplaceListingChanged(
+          gardenAddress,
+          chainId
+        ))
+          await queryClient.invalidateQueries({ queryKey });
+      if (outcome.status === "reverted" || registered) {
+        store().clear(scope, pending);
+        setProgress({
+          total: pending.orders.length,
+          signed: pending.orders.length,
+          status: registered ? "done" : "error",
+        });
+      }
+    },
+    onError: () => logger.warn("[useBatchListForYield] Pending confirmation unavailable"),
+  });
   const checkPending = async () => {
-    if (!scope || !signer || pending?.kind !== "batch") return;
-    const outcome = await readMarketplaceSubmissionOutcome(pending, sender, chainId);
-    const registered =
-      outcome.status !== "reverted" &&
-      (outcome.status === "confirmed" ||
-        (await isPendingBatchRegistered(pending, signer, chainId)));
-    if (gardenAddress)
-      for (const queryKey of queryInvalidation.onMarketplaceListingChanged(gardenAddress, chainId))
-        await queryClient.invalidateQueries({ queryKey });
-    if (outcome.status === "reverted" || registered) {
-      store().clear(scope, pending);
-      setProgress({
-        total: pending.orders.length,
-        signed: pending.orders.length,
-        status: registered ? "done" : "error",
-      });
+    if (checking.current) return;
+    checking.current = true;
+    try {
+      await checkMutation.mutateAsync();
+    } catch {
+      /* The error is exposed below; the pending record remains intact. */
+    } finally {
+      checking.current = false;
     }
   };
+  const clearMutation = useMutation({
+    mutationFn: async (confirmedInWallet: boolean) => {
+      if (!scope || !pending || !signer || !sender) throw new Error("signer-not-ready");
+      await clearMarketplacePendingAfterWalletReview(
+        scope,
+        pending,
+        sender,
+        signer,
+        chainId,
+        confirmedInWallet
+      );
+      setProgress(INITIAL_PROGRESS);
+      mutation.reset();
+      checkMutation.reset();
+      if (gardenAddress)
+        for (const queryKey of queryInvalidation.onMarketplaceListingChanged(
+          gardenAddress,
+          chainId
+        ))
+          await queryClient.invalidateQueries({ queryKey });
+    },
+  });
 
   return {
     checkPending,
+    isChecking: checkMutation.isPending,
+    confirmWalletCancellation: (confirmedInWallet) => clearMutation.mutateAsync(confirmedInWallet),
     batchList: (listings) => mutation.mutateAsync(listings),
     isBatching: mutation.isPending,
     progress:
       pending?.kind === "batch" && !mutation.isPending
         ? { total: pending.orders.length, signed: pending.orders.length, status: "pending" }
         : progress,
-    error: mutation.error as Error | null,
+    error:
+      checkMutation.error || clearMutation.error
+        ? new Error(formatMessage({ id: "app.account.pendingRecoveryUnavailable" }))
+        : (mutation.error as Error | null),
     reset,
   };
 }

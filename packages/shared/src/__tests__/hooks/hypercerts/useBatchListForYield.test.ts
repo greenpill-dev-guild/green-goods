@@ -107,6 +107,7 @@ vi.mock("viem", () => ({
   encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
 }));
 
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 import { useMarketplacePendingStore } from "../../../stores/useMarketplacePendingStore";
 import {
   type BatchProgress,
@@ -440,5 +441,53 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
     });
     expect(mockSendTransaction).toHaveBeenCalledTimes(2);
     expect(view.result.current.progress.status).toBe("done");
+  });
+  it("retains pending on RPC errors and only releases cancelled proposals after wallet review", async () => {
+    const listings = [
+      {
+        hypercertId: 1n,
+        fractionId: 1n,
+        currency: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+        pricePerUnit: 1000n,
+        minUnitAmount: 1n,
+        maxUnitAmount: 1000n,
+        minUnitsToKeep: 0n,
+        sellLeftover: false,
+        durationDays: 30,
+      },
+    ];
+    mockSendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBeforeBroadcast();
+      throw new WalletWriteNotRetriedError(new Error("switch refused"));
+    });
+    const view = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+      queryClient,
+    });
+    await act(async () => {
+      await expect(view.result.current.batchList(listings)).rejects.toThrow("switch refused");
+    });
+    expect(view.result.current.progress.status).toBe("error");
+    mockSendTransaction.mockResolvedValueOnce({ hash: "0xproposal", confirmation: "pending" });
+    await act(async () => {
+      await view.result.current.batchList(listings);
+    });
+    await waitFor(() => expect(view.result.current.progress.status).toBe("pending"));
+    mockReadContract.mockRejectedValueOnce(new Error("RPC unavailable"));
+    await act(async () => {
+      await expect(view.result.current.checkPending()).resolves.toBeUndefined();
+    });
+    expect(view.result.current.progress.status).toBe("pending");
+    await waitFor(() => expect(view.result.current.error).not.toBeNull());
+    await act(async () => {
+      await expect(view.result.current.confirmWalletCancellation(false)).rejects.toThrow(
+        "confirmation-required"
+      );
+    });
+    expect(view.result.current.progress.status).toBe("pending");
+    await act(async () => {
+      await view.result.current.confirmWalletCancellation(true);
+    });
+    expect(view.result.current.progress.status).toBe("idle");
+    expect(mockSendTransaction).toHaveBeenCalledTimes(2);
   });
 });

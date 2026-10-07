@@ -6789,5 +6789,10 @@
   "app.account.signInRequired": "Entre na sua conta antes de continuar.",
   "app.account.signerNotReady": "Sua conta ainda está se conectando. Tente novamente em instantes.",
   "app.account.transactionSubmitted": "Transação enviada",
-  "app.account.transactionPending": "Transação enviada. Verifique sua confirmação antes de tentar novamente."
+  "app.account.transactionPending": "Transação enviada. Verifique sua confirmação antes de tentar novamente.",
+  "app.account.pendingRecoveryUnavailable": "Não foi possível atualizar o estado pendente. Confira sua carteira e tente novamente.",
+  "app.account.reviewCancellation": "Revisar cancelamento",
+  "app.account.confirmCancellationTitle": "Permitir outra tentativa?",
+  "app.account.confirmCancellationDescription": "Primeiro confirme na sua carteira que esta proposta foi rejeitada ou cancelada. Isto apenas permite tentar novamente; não cancela a proposta. Se ela ainda puder ser executada, outra tentativa poderá enviá-la duas vezes.",
+  "app.account.confirmCancellation": "Confirmei o cancelamento"
 }

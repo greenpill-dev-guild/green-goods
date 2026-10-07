@@ -4,12 +4,16 @@
  * 1. transferManager.grantApprovals([exchange])
  * 2. hypercertMinter.setApprovalForAll(transferManager, true)
  */
-import { readMarketplaceSubmissionOutcome } from "../../modules/marketplace/pending";
+import {
+  clearMarketplacePendingAfterWalletReview,
+  readMarketplaceSubmissionOutcome,
+} from "../../modules/marketplace/pending";
 import {
   marketplaceSubmissionScope,
   useMarketplacePendingStore,
   type MarketplacePendingSubmission,
 } from "../../stores/useMarketplacePendingStore";
+import { refusedForWalletNetwork } from "../../utils/errors/wallet-network-refusal";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import {
   TransactionRevertedError,
@@ -42,6 +46,10 @@ export interface UseMarketplaceApprovalsResult {
   isPending: boolean;
   checkPending: () => void;
   isChecking: boolean;
+  confirmWalletCancellation: (confirmedInWallet: boolean) => Promise<void>;
+  isClearing: boolean;
+  pendingStep: keyof MarketplaceApprovals | null;
+  pendingReference: string | null;
 }
 
 export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
@@ -125,7 +133,8 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
             if (
               error instanceof TransactionRevertedError ||
               error instanceof TransactionReplacementError ||
-              (isCancelledTxError(error) && !store().pending[scope]?.reference)
+              ((isCancelledTxError(error) || refusedForWalletNetwork(error)) &&
+                !store().pending[scope]?.reference)
             )
               store().clear(scope);
             throw error;
@@ -150,11 +159,33 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     },
   });
 
+  const clearMutation = useMutation({
+    mutationFn: async (confirmedInWallet: boolean) => {
+      if (!scope || !pending || !steward || !sender) throw new Error("signer-not-ready");
+      await clearMarketplacePendingAfterWalletReview(
+        scope,
+        pending,
+        sender,
+        steward,
+        chainId,
+        confirmedInWallet
+      );
+      grantMutation.reset();
+      checkMutation.reset();
+    },
+  });
+
   return {
+    confirmWalletCancellation: (confirmedInWallet) => clearMutation.mutateAsync(confirmedInWallet),
+    isClearing: clearMutation.isPending,
+    pendingStep: pending?.kind === "approval" ? pending.step : null,
+    pendingReference: pending?.reference?.hash ?? null,
     approvals: data ?? null,
     isFullyApproved,
     isLoading,
-    error: (checkMutation.error ?? grantMutation.error ?? error) as Error | null,
+    error: clearMutation.error
+      ? new Error(formatMessage({ id: "app.account.pendingRecoveryUnavailable" }))
+      : ((checkMutation.error ?? grantMutation.error ?? error) as Error | null),
     grantApprovals: () => {
       grantMutation.mutate();
     },

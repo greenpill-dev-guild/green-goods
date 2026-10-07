@@ -79,6 +79,8 @@ const DEFAULT_APPROVALS_STATE = {
   isGranting: false,
   isPending: false,
   isChecking: false,
+  isClearing: false,
+  confirmWalletCancellation: vi.fn(),
   checkPending: vi.fn(),
 };
 
@@ -243,6 +245,23 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
     expect(screen.getByRole("button", { name: "Approve All" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
     expect(checkPending).toHaveBeenCalledOnce();
+    expect(mockGrantApprovals).not.toHaveBeenCalled();
+  });
+  it("requires a separate cancellation confirmation before clearing the local block", async () => {
+    const confirmWalletCancellation = vi.fn().mockResolvedValue(undefined);
+    mockUseMarketplaceApprovals.mockReturnValue({
+      ...DEFAULT_APPROVALS_STATE,
+      isFullyApproved: false,
+      isPending: true,
+      confirmWalletCancellation,
+    });
+    mockGetMarketplaceReadiness.mockReturnValue(READY_READINESS);
+    renderGate();
+    await userEvent.click(screen.getByRole("button", { name: "Review Cancellation" }));
+    expect(confirmWalletCancellation).not.toHaveBeenCalled();
+    expect(screen.getByText(/does not cancel the proposal/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "I confirmed cancellation" }));
+    expect(confirmWalletCancellation).toHaveBeenCalledWith(true);
     expect(mockGrantApprovals).not.toHaveBeenCalled();
   });
 });

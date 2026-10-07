@@ -1,5 +1,8 @@
 import { createPublicClientForChain } from "../../config/pimlico";
-import type { MarketplacePendingSubmission } from "../../stores/useMarketplacePendingStore";
+import {
+  useMarketplacePendingStore,
+  type MarketplacePendingSubmission,
+} from "../../stores/useMarketplacePendingStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { MARKETPLACE_ADAPTER_ABI } from "../../utils/blockchain/hypercert-abis";
 import type { Address } from "../../types/domain";
@@ -59,4 +62,27 @@ export async function isPendingBatchRegistered(
     })
   );
   return found.length > 0 && found.every(Boolean);
+}
+
+/**
+ * The wallet owner verifies cancellation in their wallet before explicitly
+ * releasing the local block. This does not cancel a proposal or infer its
+ * status from an opaque ID; a later send still needs separate authorization.
+ */
+export async function clearMarketplacePendingAfterWalletReview(
+  scope: string,
+  pending: MarketplacePendingSubmission,
+  sender: TransactionSender,
+  account: Address,
+  chainId: number,
+  confirmedInWallet: boolean
+): Promise<void> {
+  if (!confirmedInWallet) throw new Error("wallet-cancellation-confirmation-required");
+  const current = () => useMarketplacePendingStore.getState();
+  if (current().active[scope] || current().pending[scope] !== pending)
+    throw new Error("pending-submission-changed");
+  await sender.assertOwnership?.(account, chainId);
+  if (current().active[scope] || current().pending[scope] !== pending)
+    throw new Error("pending-submission-changed");
+  current().clear(scope, pending);
 }

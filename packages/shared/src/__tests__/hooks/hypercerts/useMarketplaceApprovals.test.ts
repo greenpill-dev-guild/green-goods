@@ -5,6 +5,7 @@
  * Covers the grant: the two one-time approvals a steward gives before listing.
  */
 
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -270,5 +271,36 @@ describe("useMarketplaceApprovals grant", () => {
     await waitFor(() => expect(view.result.current.isPending).toBe(false));
     expect(mocks.sendTransaction).toHaveBeenCalledOnce();
     expect(mocks.getReceipt).toHaveBeenCalledWith({ hash });
+  });
+  it("clears a proven pre-broadcast refusal but requires explicit wallet review for an opaque cancellation", async () => {
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBeforeBroadcast();
+      throw new WalletWriteNotRetriedError(new Error("switch refused"));
+    });
+    const view = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.error).not.toBeNull());
+    expect(view.result.current.isPending).toBe(false);
+    mocks.sendTransaction.mockResolvedValueOnce({ hash: "0xproposal", confirmation: "pending" });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.isPending).toBe(true));
+    await act(async () => {
+      await expect(view.result.current.confirmWalletCancellation(false)).rejects.toThrow(
+        "confirmation-required"
+      );
+    });
+    expect(view.result.current.isPending).toBe(true);
+    mocks.assertOwnership.mockRejectedValueOnce(new Error("account changed"));
+    await act(async () => {
+      await expect(view.result.current.confirmWalletCancellation(true)).rejects.toThrow(
+        "account changed"
+      );
+    });
+    expect(view.result.current.isPending).toBe(true);
+    await act(async () => {
+      await view.result.current.confirmWalletCancellation(true);
+    });
+    expect(view.result.current.isPending).toBe(false);
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(2);
   });
 });

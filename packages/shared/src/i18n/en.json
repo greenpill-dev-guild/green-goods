@@ -6789,5 +6789,10 @@
   "app.account.signInRequired": "Sign in to your account before continuing.",
   "app.account.signerNotReady": "Your account is still connecting. Please try again in a moment.",
   "app.account.transactionSubmitted": "Transaction submitted",
-  "app.account.transactionPending": "Transaction submitted. Check its confirmation before trying again."
+  "app.account.transactionPending": "Transaction submitted. Check its confirmation before trying again.",
+  "app.account.pendingRecoveryUnavailable": "Pending status could not be updated. Check your wallet and try again.",
+  "app.account.reviewCancellation": "Review Cancellation",
+  "app.account.confirmCancellationTitle": "Allow another attempt?",
+  "app.account.confirmCancellationDescription": "First confirm in your wallet that this proposal was rejected or cancelled. This only lets you try again; it does not cancel the proposal. If it can still execute, another attempt may submit it twice.",
+  "app.account.confirmCancellation": "I confirmed cancellation"
 }
