@@ -721,6 +721,37 @@ describe("commitment queue executor", () => {
     );
   });
 
+  it("does not send an admitted dependent link while its cancelled Work still waits", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("work", {}, { meta: { requiresExplicitSend: true } }));
+    const sender = createMockTransactionSender();
+    const resolver = vi.fn().mockResolvedValue({ status: "resolved", workUID: HASH });
+    await expect(
+      executeCommitmentQueueJob(
+        "job-work-link",
+        job("workLink", {
+          clientOperationId: "operation",
+          commitmentId: 1n,
+          clientWorkId: "client-work-1",
+          sourceWorkJobId: "job-work",
+          requirementIndex: 0,
+          operationKey: HASH,
+          gardenAddress: GARDEN,
+        }),
+        42161,
+        sender,
+        {
+          demoActive: () => false,
+          reads: reads(),
+          store: queueStore,
+          resolveWorkIdentity: resolver,
+        }
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "work-not-indexed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
   it("throws retryable metadata failures so the ordinary retry budget applies", async () => {
     const queued = job("workLink", {
       clientOperationId: "operation",
