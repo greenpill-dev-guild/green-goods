@@ -11,11 +11,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import {
-  getTransactionScopeKey,
-  TransactionRevertedError,
-  type TxResult,
-} from "../../modules/transactions/types";
 import { useIntl } from "react-intl";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -88,7 +83,6 @@ export function useCreateGardenWorkflow() {
     formatMessage,
     chainId: selectedChainId,
     addPendingTransaction,
-    updateTransactionStatus,
     queryClient,
     storeNextStep,
     storePreviousStep,
@@ -115,7 +109,6 @@ export function useCreateGardenWorkflow() {
       formatMessage,
       chainId: selectedChainId,
       addPendingTransaction,
-      updateTransactionStatus,
       queryClient,
       storeNextStep,
       storePreviousStep,
@@ -129,7 +122,6 @@ export function useCreateGardenWorkflow() {
     formatMessage,
     selectedChainId,
     addPendingTransaction,
-    updateTransactionStatus,
     queryClient,
     storeNextStep,
     storePreviousStep,
@@ -142,75 +134,8 @@ export function useCreateGardenWorkflow() {
     () =>
       createGardenMachine.provide({
         actors: {
-          reconcileGarden: fromPromise<TxResult, TxResult>(async ({ input, signal }) => {
-            const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
-            const pending = activeAddress
-              ? useCreateGardenStore.getState().getPendingSubmission(activeAddress, activeChainId)
-              : undefined;
-            const { address: currentAddress, sender: currentSender } = dependenciesRef.current;
-            if (
-              !pending ||
-              !currentSender ||
-              currentAddress?.toLowerCase() !== pending.accountAddress.toLowerCase() ||
-              dependenciesRef.current.chainId !== pending.chainId
-            )
-              return input;
-            const ports = createDefaultCreateGardenPorts({
-              transactionSender: currentSender,
-              addPending: () => {},
-            });
-            const outcome = await ports.sender.reconcile(
-              pending.result.hash,
-              pending.chainId,
-              pending.result.broadcastReference
-            );
-            if (
-              signal.aborted ||
-              useCreateGardenStore
-                .getState()
-                .getPendingSubmission(pending.accountAddress, pending.chainId) !== pending ||
-              dependenciesRef.current.address?.toLowerCase() !==
-                pending.accountAddress.toLowerCase() ||
-              dependenciesRef.current.chainId !== pending.chainId
-            )
-              return input;
-            if (outcome.status === "unresolved") return input;
-            if (outcome.status === "reverted") {
-              dependenciesRef.current.updateTransactionStatus(pending.result.hash, "failed");
-              useCreateGardenStore
-                .getState()
-                .clearPendingSubmission(pending.accountAddress, pending.chainId);
-              throw new TransactionRevertedError(
-                pending.result.hash,
-                "Garden creation transaction reverted"
-              );
-            }
-            if (outcome.status !== "confirmed") return input;
-            dependenciesRef.current.updateTransactionStatus(pending.result.hash, "confirmed");
-            trackAdminGardenCreateSuccess({
-              gardenName: pending.gardenName,
-              gardenAddress: getNetworkContracts(pending.chainId).gardenToken,
-              chainId: pending.chainId,
-              txHash: outcome.transactionHash,
-            });
-            queryInvalidation
-              .invalidateGardens(pending.chainId)
-              .forEach((queryKey) =>
-                dependenciesRef.current.queryClient.invalidateQueries({ queryKey })
-              );
-            dependenciesRef.current.scheduleGardenRefresh();
-            useCreateGardenStore
-              .getState()
-              .clearPendingSubmission(pending.accountAddress, pending.chainId);
-            return { hash: outcome.transactionHash, sponsored: input.sponsored };
-          }),
-          submitGarden: fromPromise<TxResult, void>(async () => {
+          submitGarden: fromPromise<string, void>(async () => {
             const gardenStoreState = useCreateGardenStore.getState();
-            const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
-            const existing = activeAddress
-              ? gardenStoreState.getPendingSubmission(activeAddress, activeChainId)
-              : undefined;
-            if (existing) return existing.result;
             const params = gardenStoreState.getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
@@ -239,39 +164,13 @@ export function useCreateGardenWorkflow() {
             });
 
             try {
-              const ports = createDefaultCreateGardenPorts({
-                transactionSender: currentSender,
-                addPending: (hash) => addPendingTx(hash, "garden:create"),
-                checkpoint: (result) =>
-                  useCreateGardenStore.getState().recordPendingSubmission({
-                    accountAddress,
-                    chainId: currentChainId,
-                    result,
-                    gardenName: params.name,
-                  }),
-                clearCheckpoint: (result) => {
-                  const store = useCreateGardenStore.getState();
-                  if (
-                    store.getPendingSubmission(accountAddress, currentChainId)?.result.hash ===
-                    (result.broadcastReference?.hash ?? result.hash)
-                  )
-                    store.clearPendingSubmission(accountAddress, currentChainId);
-                },
-              });
-              const result = await createGarden(
+              const txHash = await createGarden(
                 { params, accountAddress, chainId: currentChainId },
-                ports
+                createDefaultCreateGardenPorts({
+                  transactionSender: currentSender,
+                  addPending: (hash) => addPendingTx(hash, "garden:create"),
+                })
               );
-              if (result.confirmation === "pending") {
-                useCreateGardenStore.getState().recordPendingSubmission({
-                  accountAddress,
-                  chainId: currentChainId,
-                  result,
-                  gardenName: params.name,
-                });
-                return result;
-              }
-              const txHash = result.hash;
               const contracts = getNetworkContracts(currentChainId);
 
               trackAdminGardenCreateSuccess({
@@ -288,7 +187,7 @@ export function useCreateGardenWorkflow() {
               // Schedule follow-up for indexer lag
               scheduleRefresh();
 
-              return result;
+              return txHash;
             } catch (error) {
               trackAdminGardenCreateFailed({
                 gardenName: params.name,
@@ -318,26 +217,7 @@ export function useCreateGardenWorkflow() {
   );
 
   const [state, send] = useMachine(machine);
-  const scope = address ? getTransactionScopeKey(address, selectedChainId) : null;
-  const previousScope = useRef(scope);
-  useEffect(() => {
-    if (previousScope.current === scope) return;
-    previousScope.current = scope;
-    send({ type: "SWITCH_SCOPE" });
-    if (!address) return;
-    send({ type: "OPEN" });
-    const pending = useCreateGardenStore.getState().getPendingSubmission(address, selectedChainId);
-    if (pending) send({ type: "RESTORE_PENDING", submission: pending.result });
-    else {
-      const formStatus = getFormStatus();
-      if (formStatus.isReviewReady) send({ type: "REVIEW", formStatus });
-    }
-  }, [scope, address, selectedChainId, send]);
-  const isSubmitting =
-    state.matches("submitting") ||
-    state.matches("pending") ||
-    state.matches("reconciling") ||
-    isLockPending;
+  const isSubmitting = state.matches("submitting") || isLockPending;
   useBeforeUnloadWhilePending(isSubmitting);
 
   useEffect(() => {
@@ -351,25 +231,13 @@ export function useCreateGardenWorkflow() {
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {
     send({ type: "OPEN" });
-    const { address: currentAddress, chainId } = dependenciesRef.current;
-    const pending = currentAddress
-      ? useCreateGardenStore.getState().getPendingSubmission(currentAddress, chainId)
-      : undefined;
-    if (
-      pending &&
-      currentAddress?.toLowerCase() === pending.accountAddress.toLowerCase() &&
-      chainId === pending.chainId
-    ) {
-      send({ type: "RESTORE_PENDING", submission: pending.result });
-    }
   }, [send]);
 
   const closeFlow = useCallback(() => {
-    if (isSubmitting) return;
     storeReset();
     void draft.clearDraft();
     send({ type: "CLOSE" });
-  }, [send, storeReset, draft, isSubmitting]);
+  }, [send, storeReset, draft]);
 
   const goNext = useCallback(() => {
     const formStatus = getFormStatus();
@@ -466,13 +334,10 @@ export function useCreateGardenWorkflow() {
   }, [send]);
 
   const createAnother = useCallback(() => {
-    if (!state.matches("success")) return;
     storeReset();
     void draft.clearDraft();
     send({ type: "CREATE_ANOTHER" });
-  }, [send, storeReset, draft, state]);
-
-  const checkConfirmation = useCallback(() => send({ type: "CHECK_CONFIRMATION" }), [send]);
+  }, [send, storeReset, draft]);
 
   return {
     state,
@@ -484,7 +349,6 @@ export function useCreateGardenWorkflow() {
     submitCreation,
     estimateCreationCost,
     retry,
-    checkConfirmation,
     edit,
     createAnother,
     draft,

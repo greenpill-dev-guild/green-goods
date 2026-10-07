@@ -50,17 +50,11 @@ const DOMAIN_OPTIONS = [
 
 interface ReviewStoryArgs {
   phase?: FlowSendPhase;
-  pending?: boolean;
   failure?: keyof typeof FAILURES;
   overrides?: Partial<CreateActionFormData>;
 }
 
-function ReviewStepHarness({
-  phase = "ready",
-  failure = "declined",
-  overrides,
-  pending,
-}: ReviewStoryArgs) {
+function ReviewStepHarness({ phase = "ready", failure = "declined", overrides }: ReviewStoryArgs) {
   const { formatMessage } = useIntl();
   const defaults: CreateActionFormData = {
     title: "Riverbank cleanup cycle",
@@ -117,7 +111,7 @@ function ReviewStepHarness({
     resolver: createActionResolver,
     mode: "onChange",
   });
-  const status = actionSendStatus({ phase, pending, failure: FAILURES[failure], formatMessage });
+  const status = actionSendStatus({ phase, failure: FAILURES[failure], formatMessage });
   return <ReviewStep form={form} domainOptions={DOMAIN_OPTIONS} status={status} />;
 }
 
@@ -225,8 +219,6 @@ export const NoCustomFields: Story = {
     },
   },
 };
-
-export const Pending: Story = { args: { phase: "sending", pending: true } };
 
 export const Sending: Story = { args: { phase: "sending" } };
 

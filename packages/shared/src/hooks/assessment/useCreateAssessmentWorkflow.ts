@@ -14,8 +14,6 @@ import {
   createAssessment,
   createDefaultCreateAssessmentPorts,
   AssessmentConfirmationUnavailableError,
-  AssessmentSubmissionPendingError,
-  reconcileAssessmentSubmission,
 } from "../../modules/assessment/create-assessment-command";
 import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
@@ -30,15 +28,8 @@ import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import {
-  getTransactionScopeKey,
-  TransactionConfirmationPendingError,
-} from "../../modules/transactions/types";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import { withoutQuotedRequest } from "../../utils/errors/extract-message";
-import {
-  assessmentSubmissionKey,
-  useAssessmentSubmissionStore,
-} from "../../stores/useAssessmentSubmissionStore";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
 export type { AssessmentDraftRecord } from "./useAssessmentDraft";
@@ -99,18 +90,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
   const identityRef = useRef({ address, sender });
-  const scope =
-    address && draftGardenId
-      ? assessmentSubmissionKey(address, selectedChainId, draftGardenId)
-      : null;
-  const activeKeyRef = useRef(scope);
-  const pendingSubmission = useAssessmentSubmissionStore((state) =>
-    scope ? state.pending[scope] : undefined
-  );
-  const getPending = () =>
-    activeKeyRef.current
-      ? useAssessmentSubmissionStore.getState().pending[activeKeyRef.current]
-      : undefined;
+  const confirmationPendingRef = useRef(false);
   const chainIdRef = useRef(selectedChainId);
   const formatMessageRef = useRef(formatMessage);
 
@@ -128,42 +108,13 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     () =>
       createAssessmentMachine.provide({
         guards: {
-          canRetry: ({ context }) => !getPending() && context.retryCount < 3,
-          isPending: () => Boolean(getPending()),
+          canRetry: ({ context }) => !confirmationPendingRef.current && context.retryCount < 3,
         },
         actors: {
-          reconcileAssessment: fromPromise<string | null>(async ({ signal }) => {
-            const key = activeKeyRef.current;
-            const pending = getPending();
-            const { address: currentAddress, sender: currentSender } = identityRef.current;
-            if (
-              !key ||
-              !pending ||
-              !currentSender ||
-              currentAddress?.toLowerCase() !== pending.account.toLowerCase() ||
-              chainIdRef.current !== pending.chainId
-            )
-              return null;
-            const outcome = await reconcileAssessmentSubmission(pending, currentSender);
-            if (
-              signal.aborted ||
-              activeKeyRef.current !== key ||
-              getPending() !== pending ||
-              identityRef.current.address?.toLowerCase() !== pending.account.toLowerCase() ||
-              chainIdRef.current !== pending.chainId
-            )
-              return null;
-            if (outcome.status === "unresolved") return null;
-            useAssessmentSubmissionStore.getState().clear(key);
-            if (outcome.status === "reverted") throw new Error("Assessment transaction reverted");
-            return outcome.uid;
-          }),
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
             async ({ input: params }) => {
               const { address: currentAddress, sender: currentSender } = identityRef.current;
               const currentChainId = chainIdRef.current;
-              if (getPending())
-                throw new Error(formatMessageRef.current({ id: "app.account.transactionPending" }));
 
               if (!currentAddress) {
                 throw new Error(
@@ -193,20 +144,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   createDefaultCreateAssessmentPorts({
                     account: currentAddress,
                     transactionSender: currentSender,
-                    checkpoint: (submission) =>
-                      useAssessmentSubmissionStore.getState().record(submission),
-                    clearCheckpoint: (submission) => {
-                      const key = assessmentSubmissionKey(
-                        submission.account,
-                        submission.chainId,
-                        submission.gardenId
-                      );
-                      if (
-                        useAssessmentSubmissionStore.getState().pending[key]?.result.hash ===
-                        (submission.result.broadcastReference?.hash ?? submission.result.hash)
-                      )
-                        useAssessmentSubmissionStore.getState().clear(key);
-                    },
                     reportEvidenceFailures: ({ failedCount, totalCount }) => {
                       logger.warn("Some evidence media uploads failed", {
                         source: "useCreateAssessmentWorkflow",
@@ -250,20 +187,21 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 });
                 return newAttestationUID;
               } catch (error) {
-                if (
+                confirmationPendingRef.current =
                   error instanceof AssessmentConfirmationUnavailableError ||
-                  error instanceof AssessmentSubmissionPendingError
-                ) {
-                  useAssessmentSubmissionStore.getState().record(error.assessmentSubmission);
-                  // Accepted execution is neither a failed assessment nor permission to retry.
-                  throw new Error(
-                    formatMessageRef.current({ id: "app.account.transactionPending" })
-                  );
-                }
+                  error instanceof TransactionConfirmationPendingError;
                 const message =
-                  error instanceof TransactionConfirmationPendingError
-                    ? formatMessageRef.current({ id: "app.account.transactionPending" })
-                    : withoutQuotedRequest(error instanceof Error ? error.message : String(error));
+                  error instanceof AssessmentConfirmationUnavailableError
+                    ? formatMessageRef.current({
+                        id: "app.assessment.confirmationUnavailable",
+                        defaultMessage:
+                          "Your assessment transaction was confirmed, but its record is temporarily unavailable. Check your assessments before submitting again.",
+                      })
+                    : error instanceof TransactionConfirmationPendingError
+                      ? formatMessageRef.current({ id: "app.account.transactionPending" })
+                      : withoutQuotedRequest(
+                          error instanceof Error ? error.message : String(error)
+                        );
                 trackAdminAssessmentCreateFailed({
                   gardenId: params.gardenId,
                   assessmentType: params.assessmentType,
@@ -280,31 +218,9 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   );
 
   const [state, send, actor] = useMachine(machine);
-  const identityScope = `${address ? getTransactionScopeKey(address, selectedChainId) : "disconnected"}:${draftGardenId ?? ""}`;
-  const previousScope = useRef(identityScope);
-  useEffect(() => {
-    if (previousScope.current !== identityScope) {
-      previousScope.current = identityScope;
-      activeKeyRef.current = scope;
-      send({ type: "SWITCH_SCOPE" });
-    }
-    if (pendingSubmission && actor.getSnapshot().matches("idle")) {
-      activeKeyRef.current = scope;
-      send({ type: "RESTORE_PENDING", gardenId: pendingSubmission.gardenId });
-    }
-  }, [scope, identityScope, pendingSubmission, send, actor]);
 
   const startCreation = useCallback(
     (params: AssessmentWorkflowParams & { gardenId: Address }) => {
-      if (
-        actor.getSnapshot().matches("pending") ||
-        actor.getSnapshot().matches("reconciling") ||
-        actor.getSnapshot().matches("submitting")
-      )
-        return false;
-      if (address)
-        activeKeyRef.current = assessmentSubmissionKey(address, selectedChainId, params.gardenId);
-      if (getPending()) return false;
       const ipfsStatus = getIpfsInitStatus();
       if (ipfsStatus.status === "failed" || ipfsStatus.status === "skipped_no_config") {
         toastService.error({
@@ -348,16 +264,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       })();
       return true;
     },
-    [
-      send,
-      actor,
-      saveDraft,
-      draftKey,
-      notifyDraftPersistenceIssue,
-      formatMessage,
-      address,
-      selectedChainId,
-    ]
+    [send, actor, saveDraft, draftKey, notifyDraftPersistenceIssue, formatMessage]
   );
 
   const retry = useCallback(() => {
@@ -369,7 +276,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   }, [send]);
 
   const reset = useCallback(() => {
-    if (getPending()) return;
+    confirmationPendingRef.current = false;
     send({ type: "RESET" });
   }, [send]);
 
@@ -377,7 +284,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
   // Invalidate assessment queries and clear draft when workflow reaches success state
   const isSuccess = state.matches("success");
-  const gardenId = state.context.assessmentParams?.gardenId ?? state.context.pendingGardenId;
+  const gardenId = state.context.assessmentParams?.gardenId;
 
   // Progressive re-invalidation covers EAS GraphQL indexer lag at 2s / 5s / 15s — matches
   // the pattern used by vault mutations (useVaultDeposit, useHarvest, useEmergencyPause).
@@ -438,10 +345,8 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     submitCreation,
     retry,
     reset,
-    isPending: state.matches("pending") || state.matches("reconciling"),
-    isCheckingConfirmation: state.matches("reconciling"),
-    checkConfirmation: () => send({ type: "CHECK_CONFIRMATION" }),
-    canRetry: state.matches("error") && !getPending() && state.context.retryCount < 3,
+    canRetry:
+      state.matches("error") && !confirmationPendingRef.current && state.context.retryCount < 3,
     draft,
   };
 }

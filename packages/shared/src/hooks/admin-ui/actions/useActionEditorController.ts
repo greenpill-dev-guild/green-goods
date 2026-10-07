@@ -13,7 +13,6 @@ import {
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { toSafeDate } from "../../../utils/time";
 import type { ActionOperationResult } from "../../../modules/action/action-operation-command";
-import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
 import { useActionOperations } from "../../action/useActionOperations";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAsyncEffect } from "../../utils/useAsyncEffect";
@@ -75,9 +74,7 @@ export function useActionEditorController() {
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((candidate) => candidate.id === id);
-  const operations = useActionOperations(DEFAULT_CHAIN_ID, id?.split("-")[1]);
-  const isPendingEdit = operations.pendingEdits.length > 0;
-  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
+  const operations = useActionOperations(DEFAULT_CHAIN_ID);
   const form = useForm<EditActionFormData>({
     resolver: zodResolver(editActionSchema),
     defaultValues: { title: "", startTime: new Date(), endTime: new Date() },
@@ -224,11 +221,10 @@ export function useActionEditorController() {
   ]);
 
   const submit = async (data: EditActionFormData) => {
-    if (!action || !id || isPendingEdit || operations.isLoading) return;
+    if (!action || !id) return;
     try {
       await operations.assertReady();
       const requireSuccess = (result: ActionOperationResult) => {
-        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
         if (!result.success) throw new Error(result.error?.message ?? "Action update failed");
       };
       const actionUID = id.split("-")[1];
@@ -264,23 +260,11 @@ export function useActionEditorController() {
         requireSuccess(await operations.updateActionInstructions(actionUID, upload.cid));
       }
       toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
-      operations.clearCompletedEdits();
       if (draftPath) clearDraftFormState(draftPath);
       navigate(actionDetailHref);
     } catch (error) {
-      if (error instanceof TransactionConfirmationPendingError) return;
       logger.error("Failed to update action", { error });
       toastService.error({ title: formatMessage({ id: "app.actions.edit.failed" }) });
-    }
-  };
-
-  const checkConfirmation = async () => {
-    if (isCheckingConfirmation) return;
-    setIsCheckingConfirmation(true);
-    try {
-      await operations.reconcileEdits();
-    } finally {
-      setIsCheckingConfirmation(false);
     }
   };
 
@@ -293,10 +277,7 @@ export function useActionEditorController() {
     form,
     instructionConfig,
     isEditingInstructions,
-    isLoading: operations.isLoading || isPendingEdit,
-    isPendingEdit,
-    isCheckingConfirmation,
-    checkConfirmation,
+    isLoading: operations.isLoading,
     isLoadingInstructions,
     setInstructionConfig,
     setIsEditingInstructions,

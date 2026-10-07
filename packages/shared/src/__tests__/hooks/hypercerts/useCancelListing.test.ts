@@ -19,7 +19,6 @@ const mockAssertMarketplaceReady = vi.fn();
 const mockEncodeFunctionData = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
-const mockReconcile = vi.fn();
 let authMode: "wallet" | "passkey" = "wallet";
 const mockOwnership = vi.fn();
 const mockSender = () => ({
@@ -27,7 +26,6 @@ const mockSender = () => ({
   sendContractCall: mockSendTransaction,
   signTypedData: vi.fn(),
   assertOwnership: mockOwnership,
-  reconcileBroadcast: mockReconcile,
 });
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => TEST_SIGNER }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
@@ -94,7 +92,6 @@ vi.mock("viem", () => ({
 }));
 
 import { useCancelListing } from "../../../hooks/hypercerts/useCancelListing";
-import { useListingSubmissionStore } from "../../../stores/useListingSubmissionStore";
 
 // ============================================
 // Test Suite
@@ -105,8 +102,6 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useListingSubmissionStore.setState({ pending: {}, cancellations: {} });
-    mockReconcile.mockReset().mockResolvedValue({ status: "unresolved" });
     authMode = mode;
     queryClient = createTestQueryClient();
     mockAssertMarketplaceReady.mockReturnValue({
@@ -120,44 +115,6 @@ describe.each(["wallet", "passkey"] as const)("useCancelListing with %s", (mode)
     mockEncodeFunctionData.mockReturnValue("0xencoded");
     mockSendTransaction.mockResolvedValue({ hash: "0xtxhash", sponsored: false });
     mockWaitForTransactionReceipt.mockResolvedValue({});
-  });
-
-  it.each([
-    "unresolved",
-    "confirmed",
-    "reverted",
-  ] as const)("preserves an accepted cancellation across reload and reconciles %s", async (status) => {
-    const operation = `0x${"cd".repeat(32)}` as const;
-    mockSendTransaction.mockImplementationOnce(async (_call, options) => {
-      await options.onBroadcastReference({
-        kind: "user-operation",
-        hash: operation,
-        chainId: TEST_CHAIN_ID,
-      });
-      expect(sessionStorage.getItem("green-goods:listing-submissions")).toContain(operation);
-      throw new Error("Receipt RPC timeout");
-    });
-    const first = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), { queryClient });
-    await act(() => first.result.current.cancelListing(42));
-    expect(first.result.current.pendingCancellation?.orderId).toBe(42);
-    expect(first.result.current.error).toBeNull();
-    const saved = sessionStorage.getItem("green-goods:listing-submissions")!;
-    first.unmount();
-    useListingSubmissionStore.setState({ pending: {}, cancellations: {} });
-    sessionStorage.setItem("green-goods:listing-submissions", saved);
-    await useListingSubmissionStore.persist.rehydrate();
-    const restored = renderHookWithQueryClient(() => useCancelListing(TEST_GARDEN), {
-      queryClient,
-    });
-    expect(restored.result.current.isCancelling).toBe(true);
-    await act(() => restored.result.current.cancelListing(42));
-    expect(mockSendTransaction).toHaveBeenCalledOnce();
-    mockReconcile.mockResolvedValueOnce({ status, transactionHash: `0x${"66".repeat(32)}` });
-    await act(() => restored.result.current.checkConfirmation());
-    expect(Boolean(restored.result.current.pendingCancellation)).toBe(status === "unresolved");
-    expect(mockSendTransaction).toHaveBeenCalledOnce();
-    if (status === "reverted") expect(restored.result.current.error?.message).toContain("reverted");
-    if (status === "confirmed") expect(mockInvalidateQueries).toHaveBeenCalled();
   });
 
   it("starts with idle state and no error", () => {

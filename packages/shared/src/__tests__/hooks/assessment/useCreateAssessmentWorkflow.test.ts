@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssessmentWorkflowParams } from "../../../types/domain";
 import type { TransactionSender } from "../../../modules/transactions/types";
-import { useAssessmentSubmissionStore } from "../../../stores/useAssessmentSubmissionStore";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { EASABI } from "../../../utils/blockchain/contracts";
 
@@ -142,12 +141,7 @@ vi.mock("../../../components/toast", () => ({
 vi.mock("../../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ eas: EAS_ADDRESS }),
-  createClients: () => ({
-    publicClient: {
-      waitForTransactionReceipt: mocks.getReceipt,
-      getTransactionReceipt: mocks.getReceipt,
-    },
-  }),
+  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -253,23 +247,17 @@ async function startReady(
 
 async function submitAndWaitFor(
   result: ReturnType<typeof renderWorkflow>["result"],
-  expectedState: "success" | "error" | "pending"
+  expectedState: "success" | "error"
 ) {
   act(() => {
     result.current.submitCreation();
   });
-  await waitFor(() =>
-    expect(
-      result.current.state.matches(expectedState),
-      `Expected ${expectedState}, received ${String(result.current.state.value)}: ${result.current.state.context.error ?? ""}`
-    ).toBe(true)
-  );
+  await waitFor(() => expect(result.current.state.matches(expectedState)).toBe(true));
 }
 
 describe("useCreateAssessmentWorkflow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useAssessmentSubmissionStore.setState({ pending: {} });
     mocks.authMode = "wallet";
     mocks.send.mockReset().mockResolvedValue({ hash: `0x${"66".repeat(32)}`, sponsored: false });
     mocks.assertOwnership.mockReset();
@@ -281,7 +269,6 @@ describe("useCreateAssessmentWorkflow", () => {
       assertOwnership: mocks.assertOwnership,
     };
     mocks.getReceipt.mockReset().mockResolvedValue({
-      transactionHash: `0x${"66".repeat(32)}`,
       status: "success",
       logs: [
         {
@@ -319,120 +306,6 @@ describe("useCreateAssessmentWorkflow", () => {
     mocks.schemaEncode.mockReturnValue("0xencoded-assessment");
     mocks.waitForAttestation.mockResolvedValue(ATTESTATION_UID);
     mocks.easAttest.mockResolvedValue({ wait: mocks.waitForAttestation });
-  });
-
-  it.each([
-    "wallet",
-    "passkey",
-  ] as const)("restores an accepted %s assessment and never resends while evidence is unavailable", async (mode) => {
-    mocks.authMode = mode;
-    const account = mode === "passkey" ? mocks.primaryAddress : OPERATOR_ADDRESS;
-    mocks.sender = {
-      authMode: mode,
-      supportsBatching: false,
-      supportsSponsorship: mode === "passkey",
-      assertOwnership: mocks.assertOwnership,
-      sendContractCall: mocks.send,
-    };
-    const operation = `0x${"cd".repeat(32)}` as const;
-    mocks.send.mockImplementationOnce(async (_call, options) => {
-      await options.onBroadcastReference({
-        kind: "user-operation",
-        hash: operation,
-        chainId: 11155111,
-      });
-      expect(sessionStorage.getItem("green-goods:assessment-submissions")).toContain(operation);
-      throw new Error("Receipt RPC timeout");
-    });
-    const client = createTestQueryClient();
-    const first = renderWorkflow(client);
-    await startReady(first.result);
-    await submitAndWaitFor(first.result, "pending");
-    expect(mocks.trackFailed).not.toHaveBeenCalled();
-    act(() => {
-      first.result.current.reset();
-      first.result.current.retry();
-      first.result.current.submitCreation();
-    });
-    expect(first.result.current.startCreation(createParams())).toBe(false);
-    expect(mocks.send).toHaveBeenCalledOnce();
-    const saved = sessionStorage.getItem("green-goods:assessment-submissions")!;
-    first.unmount();
-    useAssessmentSubmissionStore.setState({ pending: {} });
-    sessionStorage.setItem("green-goods:assessment-submissions", saved);
-    await useAssessmentSubmissionStore.persist.rehydrate();
-    const restored = renderWorkflow(client);
-    await waitFor(() => expect(restored.result.current.isPending).toBe(true));
-    act(() => restored.result.current.checkConfirmation());
-    await waitFor(() => expect(restored.result.current.state.matches("pending")).toBe(true));
-    expect(mocks.clearDraft).not.toHaveBeenCalled();
-    const txHash = `0x${"66".repeat(32)}` as const;
-    mocks.sender!.reconcileBroadcast = vi
-      .fn()
-      .mockResolvedValue({ status: "confirmed", transactionHash: txHash });
-    mocks.getReceipt.mockResolvedValue({
-      status: "success",
-      transactionHash: txHash,
-      logs: [
-        {
-          address: EAS_ADDRESS,
-          topics: encodeEventTopics({
-            abi: EASABI,
-            eventName: "Attested",
-            args: {
-              recipient: GARDEN_ID,
-              attester: account as `0x${string}`,
-              schemaUID: ASSESSMENT_UID as `0x${string}`,
-            },
-          }),
-          data: encodeAbiParameters([{ type: "bytes32" }], [ATTESTATION_UID as `0x${string}`]),
-        },
-      ],
-    });
-    act(() => restored.result.current.checkConfirmation());
-    await waitFor(() => expect(restored.result.current.state.matches("success")).toBe(true));
-    expect(restored.result.current.state.context.txHash).toBe(ATTESTATION_UID);
-    expect(mocks.send).toHaveBeenCalledOnce();
-    await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalled());
-    client.clear();
-  });
-
-  it("reconciles a canonical assessment receipt that was initially unavailable", async () => {
-    mocks.getReceipt.mockRejectedValueOnce(new Error("RPC unavailable"));
-    const client = createTestQueryClient();
-    const { result } = renderWorkflow(client);
-    await startReady(result);
-    await submitAndWaitFor(result, "pending");
-    act(() => result.current.checkConfirmation());
-    await waitFor(() => expect(result.current.state.matches("success")).toBe(true));
-    expect(result.current.state.context.txHash).toBe(ATTESTATION_UID);
-    expect(mocks.send).toHaveBeenCalledOnce();
-    expect(mocks.trackFailed).not.toHaveBeenCalled();
-    client.clear();
-  });
-
-  it("permits another assessment only after the accepted proposal is confirmed reverted", async () => {
-    mocks.send.mockResolvedValueOnce({
-      hash: "0xProposal",
-      sponsored: false,
-      confirmation: "pending",
-    });
-    const client = createTestQueryClient();
-    const { result } = renderWorkflow(client);
-    await startReady(result);
-    await submitAndWaitFor(result, "pending");
-    mocks.sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
-    act(() => result.current.checkConfirmation());
-    await waitFor(() => expect(result.current.state.matches("error")).toBe(true));
-    expect(result.current.state.context.error).toContain("reverted");
-    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(0);
-    expect(mocks.send).toHaveBeenCalledOnce();
-    act(() => result.current.reset());
-    mocks.uploadJson.mockResolvedValue({ cid: "bafy-retry" });
-    await startReady(result);
-    await submitAndWaitFor(result, "success");
-    expect(mocks.send).toHaveBeenCalledTimes(2);
-    client.clear();
   });
 
   it.each([
@@ -519,13 +392,13 @@ describe("useCreateAssessmentWorkflow", () => {
     const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
     await startReady(result);
-    await submitAndWaitFor(result, "pending");
-    expect(result.current.state.context.error).toContain("Transaction submitted");
+    await submitAndWaitFor(result, "error");
+    expect(result.current.state.context.error).toContain("transaction was confirmed");
     expect(result.current.canRetry).toBe(false);
     act(() => result.current.retry());
     expect(mocks.sender?.sendContractCall).toHaveBeenCalledOnce();
     expect(result.current.state.context.error).toContain(
-      "Check its confirmation before trying again"
+      "Check your assessments before submitting again"
     );
     expect(result.current.state.context.error).not.toContain("RPC request details");
     expect(mocks.trackSuccess).not.toHaveBeenCalled();

@@ -10,7 +10,6 @@ type FormatMessage = (descriptor: { id: string; defaultMessage: string }) => str
 
 export function actionSendStatus(input: {
   phase: FlowSendPhase;
-  pending?: boolean;
   /**
    * How the failed send reads, in the words the error itself gave: a declined
    * request as a warning, any other failure as an error.
@@ -19,20 +18,6 @@ export function actionSendStatus(input: {
   formatMessage: FormatMessage;
 }): FlowSendStatus {
   const { phase, failure, formatMessage } = input;
-  if (input.pending)
-    return {
-      phase: "sending",
-      tone: "info",
-      busy: false,
-      title: formatMessage({
-        id: "app.account.transactionSubmitted",
-        defaultMessage: "Transaction submitted",
-      }),
-      description: formatMessage({
-        id: "app.account.transactionPending",
-        defaultMessage: "Transaction submitted. Check its confirmation before trying again.",
-      }),
-    };
   switch (phase) {
     case "ready":
       return {

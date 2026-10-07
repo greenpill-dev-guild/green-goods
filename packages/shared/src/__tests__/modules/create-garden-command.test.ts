@@ -7,14 +7,13 @@ import {
   type CreateGardenPorts,
 } from "../../modules/garden/create-garden-command";
 import { beforeEach } from "vitest";
-import type { TransactionSender, TxResult } from "../../modules/transactions/types";
+import type { TransactionSender } from "../../modules/transactions/types";
 import { WeightScheme } from "../../types/gardens-community";
 
 const mocks = vi.hoisted(() => ({
   simulate: vi.fn(),
   readContract: vi.fn(),
   waitReceipt: vi.fn(),
-  receipt: vi.fn(),
 }));
 vi.mock("../../utils/blockchain/simulation", () => ({ simulateTransaction: mocks.simulate }));
 vi.mock("@wagmi/core", () => ({ waitForTransactionReceipt: mocks.waitReceipt }));
@@ -22,9 +21,7 @@ vi.mock("../../config/appkit", () => ({ getWagmiConfig: () => ({}) }));
 vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ gardenToken, greenGoodsENS }),
-  createClients: () => ({
-    publicClient: { readContract: mocks.readContract, getTransactionReceipt: mocks.receipt },
-  }),
+  createClients: () => ({ publicClient: { readContract: mocks.readContract } }),
 }));
 
 const gardenToken = "0x1111111111111111111111111111111111111111" as const;
@@ -68,10 +65,9 @@ function createPorts(events: string[] = []): CreateGardenPorts {
       estimateTransaction: vi.fn(async () => ({ gasEstimate: 10n, gasPrice: 3n })),
     },
     sender: {
-      reconcile: vi.fn(async () => ({ status: "unresolved" as const })),
       send: vi.fn(async () => {
         events.push("send");
-        return { hash: txHash, sponsored: false };
+        return txHash;
       }),
     },
     documents: {
@@ -88,7 +84,7 @@ describe("createGarden", () => {
     const events: string[] = [];
     const ports = createPorts(events);
 
-    await expect(createGarden(command, ports)).resolves.toMatchObject({ hash: txHash });
+    await expect(createGarden(command, ports)).resolves.toBe(txHash);
 
     expect(events).toEqual(["fee", "simulate", "send", "pending", "receipt"]);
     expect(ports.reader.simulate).toHaveBeenCalledWith(
@@ -159,11 +155,9 @@ describe("garden writes through the shared account sender", () => {
         .fn()
         .mockResolvedValue({ hash: txHash, sponsored: authMode === "passkey" }),
     };
-    const addPending = vi.fn();
     return {
       sender,
-      addPending,
-      ports: createDefaultCreateGardenPorts({ transactionSender: sender, addPending }),
+      ports: createDefaultCreateGardenPorts({ transactionSender: sender, addPending: vi.fn() }),
     };
   }
   it.each([
@@ -171,7 +165,7 @@ describe("garden writes through the shared account sender", () => {
     "passkey",
   ] as const)("simulates and sends the %s account with the same chain and CCIP value", async (authMode) => {
     const { sender, ports } = adapter(authMode);
-    await expect(createGarden(command, ports)).resolves.toMatchObject({ hash: txHash });
+    await expect(createGarden(command, ports)).resolves.toBe(txHash);
     expect(mocks.simulate).toHaveBeenCalledWith(
       gardenToken,
       expect.any(Array),
@@ -194,44 +188,6 @@ describe("garden writes through the shared account sender", () => {
     );
     expect(mocks.waitReceipt).not.toHaveBeenCalled(); // The shared sender has already confirmed it.
   });
-  it("checkpoints a garden UserOperation before receipt failure and recovers without minting twice", async () => {
-    const { sender } = adapter("passkey");
-    const operation = `0x${"cd".repeat(32)}` as const;
-    let saved: TxResult | undefined;
-    vi.mocked(sender.sendContractCall).mockImplementationOnce(async (_call, options) => {
-      await options?.onBroadcastReference?.({
-        kind: "user-operation",
-        hash: operation,
-        chainId: command.chainId,
-      });
-      expect(saved?.broadcastReference?.hash).toBe(operation);
-      throw new Error("Receipt RPC timeout");
-    });
-    const ports = createDefaultCreateGardenPorts({
-      transactionSender: sender,
-      addPending: vi.fn(),
-      checkpoint: (result) => {
-        saved = result;
-      },
-    });
-    expect(await createGarden(command, ports)).toMatchObject({
-      hash: operation,
-      confirmation: "pending",
-    });
-    const restored = JSON.parse(JSON.stringify(saved)) as TxResult;
-    sender.reconcileBroadcast = vi
-      .fn()
-      .mockResolvedValue({ status: "confirmed", transactionHash: txHash });
-    expect(
-      await ports.sender.reconcile(restored.hash, command.chainId, restored.broadcastReference)
-    ).toEqual({ status: "confirmed", transactionHash: txHash });
-    expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
-      kind: "user-operation",
-      hash: operation,
-      chainId: command.chainId,
-    });
-    expect(sender.sendContractCall).toHaveBeenCalledOnce();
-  });
   it("rejects an intervening account change before signing", async () => {
     const { sender, ports } = adapter("passkey");
     vi.mocked(sender.assertOwnership!).mockRejectedValueOnce(
@@ -240,69 +196,14 @@ describe("garden writes through the shared account sender", () => {
     await expect(createGarden(command, ports)).rejects.toThrow("submission-ownership-changed");
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
-  it("preserves an opaque Safe submission without waiting for a receipt or resending", async () => {
-    const { sender, ports, addPending } = adapter("wallet");
+  it("does not pass an unexecuted wallet proposal to a receipt reader", async () => {
+    const { sender, ports } = adapter("wallet");
     vi.mocked(sender.sendContractCall).mockResolvedValueOnce({
-      hash: "0xSafeProposalIdentifier",
+      hash: "0xSafeProposal",
       sponsored: false,
       confirmation: "pending",
     });
-    await expect(createGarden(command, ports)).resolves.toMatchObject({
-      hash: "0xSafeProposalIdentifier",
-      confirmation: "pending",
-    });
-
-    expect(addPending).toHaveBeenCalledWith("0xSafeProposalIdentifier");
+    await expect(createGarden(command, ports)).rejects.toThrow("transaction-confirmation-pending");
     expect(mocks.waitReceipt).not.toHaveBeenCalled();
-    await expect(
-      ports.sender.reconcile("0xSafeProposalIdentifier", command.chainId)
-    ).resolves.toEqual({ status: "unresolved" });
-    expect(mocks.receipt).not.toHaveBeenCalled();
-    expect(sender.sendContractCall).toHaveBeenCalledTimes(1);
   });
-});
-
-describe("garden confirmation reconciliation", () => {
-  it.each(["success", "reverted"])("reads an existing canonical receipt: %s", async (status) => {
-    const sender = { sendContractCall: vi.fn() } as unknown as TransactionSender;
-    const ports = createDefaultCreateGardenPorts({
-      transactionSender: sender,
-      addPending: vi.fn(),
-    });
-    const hash = `0x${"ab".repeat(32)}` as const;
-    mocks.receipt.mockResolvedValueOnce({ status, transactionHash: hash });
-    await expect(ports.sender.reconcile(hash, command.chainId)).resolves.toEqual(
-      status === "success" ? { status: "confirmed", transactionHash: hash } : { status: "reverted" }
-    );
-    expect(sender.sendContractCall).not.toHaveBeenCalled();
-  });
-  it("keeps unavailable execution evidence pending", async () => {
-    mocks.receipt.mockRejectedValueOnce(new Error("RPC unavailable"));
-    const ports = createDefaultCreateGardenPorts({
-      transactionSender: { sendContractCall: vi.fn() } as unknown as TransactionSender,
-      addPending: vi.fn(),
-    });
-    await expect(ports.sender.reconcile(`0x${"ab".repeat(32)}`, command.chainId)).resolves.toEqual({
-      status: "unresolved",
-    });
-  });
-});
-
-it("uses wallet execution evidence to resolve an opaque proposal without sending", async () => {
-  const sender = {
-    sendContractCall: vi.fn(),
-    reconcileBroadcast: vi
-      .fn()
-      .mockResolvedValue({ status: "confirmed", transactionHash: `0x${"ab".repeat(32)}` }),
-  } as unknown as TransactionSender;
-  const ports = createDefaultCreateGardenPorts({ transactionSender: sender, addPending: vi.fn() });
-  await expect(
-    ports.sender.reconcile("0xSafeProposalIdentifier", command.chainId)
-  ).resolves.toMatchObject({ status: "confirmed" });
-  expect(sender.reconcileBroadcast).toHaveBeenCalledWith({
-    kind: "transaction",
-    hash: "0xSafeProposalIdentifier",
-    chainId: command.chainId,
-  });
-  expect(sender.sendContractCall).not.toHaveBeenCalled();
 });

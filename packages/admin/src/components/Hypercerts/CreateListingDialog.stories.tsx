@@ -17,7 +17,7 @@ const meta: Meta<typeof CreateListingDialog> = {
     docs: {
       description: {
         component:
-          "Real `CreateListingDialog` in its configure phase. `useCreateListing` is wired but inert against the mock wagmi transport — clicking *Sign & List* sets the mutation in flight but never resolves. The progress tracker also preserves pending wallet submissions: confirmation checking refreshes listings, while Try Again and Sign & List remain unavailable until execution is resolved.",
+          "Real `CreateListingDialog` in its configure phase. `useCreateListing` is wired but inert against the mock wagmi transport — clicking *Sign & List* sets the mutation in flight but never resolves. The in-progress / done / error visual states are its own step tracker, shown once the mutation moves.",
       },
     },
   },

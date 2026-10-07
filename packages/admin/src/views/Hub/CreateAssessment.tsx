@@ -1,5 +1,4 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { AdminButton } from "@/components/AdminButton";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useCreateAssessmentController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
@@ -46,7 +45,6 @@ export default function CreateAssessment() {
 
   // One reading of the send, so the status row and the footer never disagree.
   const status = assessmentSendStatus({
-    pending: createAssessment.isPending,
     phase: flowSendPhase({
       sending: createAssessment.isSubmitting,
       sent: createAssessment.isSent,
@@ -120,41 +118,28 @@ export default function CreateAssessment() {
         complete={phase === "sent"}
         onStepClick={editable ? (step) => createAssessment.goToStep(step - 1) : undefined}
         footer={
-          createAssessment.isPending ? (
-            <AdminButton
-              type="button"
-              disabled={createAssessment.isCheckingConfirmation}
-              onClick={() => createAssessment.checkConfirmation()}
-            >
-              {formatMessage({
-                id: "app.account.checkConfirmation",
-                defaultMessage: "Check confirmation",
-              })}
-            </AdminButton>
-          ) : (
-            <FlowSendFooter
-              stepIndex={createAssessment.currentStep}
-              isLast={createAssessment.currentStep === createAssessment.stepConfigs.length - 1}
-              phase={phase}
-              sendLabel={formatMessage({
-                id: "app.assessment.submitAssessment",
-                defaultMessage: "Submit Assessment",
-              })}
-              note={<SingleSendNote phase={phase} />}
-              another={{
-                label: formatMessage({
-                  id: "app.assessment.createAnother",
-                  defaultMessage: "Create Another",
-                }),
-                onClick: createAssessment.handleCreateAnother,
-              }}
-              onCancel={createAssessment.handleClose}
-              onBack={createAssessment.handleBack}
-              onNext={createAssessment.handleNext}
-              onSend={createAssessment.handleSubmit}
-              onDone={createAssessment.handleClose}
-            />
-          )
+          <FlowSendFooter
+            stepIndex={createAssessment.currentStep}
+            isLast={createAssessment.currentStep === createAssessment.stepConfigs.length - 1}
+            phase={phase}
+            sendLabel={formatMessage({
+              id: "app.assessment.submitAssessment",
+              defaultMessage: "Submit Assessment",
+            })}
+            note={<SingleSendNote phase={phase} />}
+            another={{
+              label: formatMessage({
+                id: "app.assessment.createAnother",
+                defaultMessage: "Create Another",
+              }),
+              onClick: createAssessment.handleCreateAnother,
+            }}
+            onCancel={createAssessment.handleClose}
+            onBack={createAssessment.handleBack}
+            onNext={createAssessment.handleNext}
+            onSend={createAssessment.handleSubmit}
+            onDone={createAssessment.handleClose}
+          />
         }
       >
         <ErrorBoundary context="CreateAssessment.Wizard">

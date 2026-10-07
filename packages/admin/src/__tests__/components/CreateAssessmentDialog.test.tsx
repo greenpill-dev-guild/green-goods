@@ -162,9 +162,6 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
     isDirty: false,
     isSent: false,
     isSubmitting: false,
-    isPending: false,
-    isCheckingConfirmation: false,
-    checkConfirmation: vi.fn(),
     normalizedGardenDomainMask: 1,
     reviewForm: ANSWERS,
     showValidation: false,
@@ -232,23 +229,6 @@ function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}) {
 const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
 
 describe("CreateAssessment dialog", () => {
-  it("shows confirmation checking for an accepted assessment and cannot retry it", async () => {
-    const controller = controllerAt({
-      isSubmitting: true,
-      isPending: true,
-      isCheckingConfirmation: false,
-      checkConfirmation: vi.fn(),
-    });
-    createAssessmentControllerOverride.current = () => controller;
-    renderCreateAssessment();
-    expect(await screen.findByText("Transaction submitted")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Try Again|Create Another|Submit Assessment/ })
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
-    expect(controller.checkConfirmation).toHaveBeenCalledOnce();
-    expect(controller.handleSubmit).not.toHaveBeenCalled();
-  });
   beforeEach(async () => {
     accountState.address = OPERATOR;
     await idbDel(DRAFT_KEY);
@@ -400,19 +380,6 @@ describe("CreateAssessment dialog", () => {
       expect(router?.state.location.pathname).toBe("/hub/assess/create");
       expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
     });
-  });
-
-  it("allows a persisted pending assessment to close while retaining confirmation controls", async () => {
-    const handleClose = vi.fn();
-    createAssessmentControllerOverride.current = () =>
-      controllerAt({ isPending: true, isSubmitting: false, isDirty: false, handleClose });
-    await act(async () => {
-      renderCreateAssessment();
-      await Promise.resolve();
-    });
-    expect(screen.getByRole("button", { name: "Check confirmation" })).toBeEnabled();
-    fireEvent.click(screen.getByLabelText(/close/i));
-    expect(handleClose).toHaveBeenCalledOnce();
   });
 
   it("does not fire the close path while assessment submission is pending", async () => {

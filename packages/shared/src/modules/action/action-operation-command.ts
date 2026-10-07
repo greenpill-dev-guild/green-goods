@@ -1,12 +1,7 @@
 import type { Abi } from "viem";
 import type { ToastActionOptions } from "../../hooks/app/useToastAction";
-import {
-  TransactionConfirmationPendingError,
-  type TransactionSender,
-  type TxResult,
-} from "../transactions/types";
+import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
-import { sendCheckpointedCall } from "../transactions/confirmation";
 
 export interface ActionOperationCommand {
   functionName: string;
@@ -24,7 +19,6 @@ export interface ActionOperationCall extends ActionOperationCommand {
 export interface ActionOperationResult {
   hash?: `0x${string}`;
   success: boolean;
-  confirmation?: "pending";
   error?: { name: string; message: string; action?: string };
 }
 
@@ -50,8 +44,6 @@ export async function executeActionOperation(
 export function createDefaultActionOperationPorts(input: {
   transactionSender: TransactionSender;
   executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
-  checkpoint?: (call: ActionOperationCall, result: TxResult) => void;
-  clearCheckpoint?: (call: ActionOperationCall, result: TxResult) => void;
 }): ActionOperationPorts {
   return {
     reader: {
@@ -72,8 +64,7 @@ export function createDefaultActionOperationPorts(input: {
             const sender = input.transactionSender;
             const assertOwnership = () => sender.assertOwnership?.(call.account, call.chainId);
             await assertOwnership();
-            const result = await sendCheckpointedCall(
-              sender,
+            const result = await sender.sendContractCall(
               {
                 address: call.contractAddress,
                 abi: call.abi,
@@ -82,14 +73,11 @@ export function createDefaultActionOperationPorts(input: {
                 args: call.args,
                 chainId: call.chainId,
               },
-              (result) => input.checkpoint?.(call, result),
-              (result) => input.clearCheckpoint?.(call, result),
               { assertOwnership }
             );
             if (result.confirmation === "pending") {
-              throw new TransactionConfirmationPendingError(result);
+              throw new TransactionConfirmationPendingError();
             }
-            input.clearCheckpoint?.(call, result);
             return result.hash;
           },
           {

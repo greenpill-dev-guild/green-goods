@@ -8,7 +8,6 @@
  */
 
 import { assign, fromPromise, setup } from "xstate";
-import { TransactionRevertedError, type TxResult } from "../modules/transactions/types";
 
 import { parseContractError } from "../utils/errors/contract-errors";
 import { extractErrorMessage } from "../utils/errors/extract-message";
@@ -33,7 +32,6 @@ export interface CreateGardenContext {
   txHash?: string;
   error?: string;
   retryCount: number;
-  submission?: TxResult;
 }
 
 /**
@@ -49,12 +47,9 @@ type BaseEvents =
   | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "RESET" }
-  | { type: "SWITCH_SCOPE" }
   | { type: "EDIT" }
   | { type: "RETRY" }
-  | { type: "CREATE_ANOTHER" }
-  | { type: "CHECK_CONFIRMATION" }
-  | { type: "RESTORE_PENDING"; submission: TxResult };
+  | { type: "CREATE_ANOTHER" };
 
 export type CreateGardenEvent = BaseEvents | NavigationEvents;
 
@@ -64,27 +59,17 @@ const createGardenSetup = setup({
     events: {} as CreateGardenEvent,
   },
   actions: {
-    clearContext: assign({
-      txHash: undefined,
-      error: undefined,
-      retryCount: 0,
-      submission: undefined,
-    }),
+    clearContext: assign({ txHash: undefined, error: undefined, retryCount: 0 }),
     clearError: assign({ error: undefined }),
-    restorePending: assign(({ event }) =>
-      event.type === "RESTORE_PENDING"
-        ? { submission: event.submission, txHash: event.submission.hash }
-        : {}
-    ),
     goToNextStep: () => {},
     goToPreviousStep: () => {},
     goToReviewStep: () => {},
     goToFirstIncompleteStep: () => {},
     storeTxHash: assign(({ event }) => {
       // XState v5 invoke-done events carry `output` (v4 used `done.invoke.*` type strings)
-      const output = "output" in event ? (event.output as TxResult) : undefined;
+      const output = "output" in event ? (event.output as string) : undefined;
       if (!output) return {};
-      return { txHash: output.hash, submission: output, retryCount: 0 };
+      return { txHash: output, retryCount: 0 };
     }),
     storeFailure: assign(({ event }) => {
       // XState v5 invoke-error events carry `error` (v4 used `error.platform.*` type strings)
@@ -104,11 +89,6 @@ const createGardenSetup = setup({
     }),
   },
   guards: {
-    isConfirmedRevert: ({ event }) =>
-      "error" in event && event.error instanceof TransactionRevertedError,
-    isPending: ({ event }) =>
-      "output" in event && (event.output as TxResult).confirmation === "pending",
-
     /**
      * Check if form can proceed to next step based on event data
      */
@@ -152,9 +132,8 @@ const createGardenSetup = setup({
     canRetry: ({ context }) => context.retryCount < 3,
   },
   actors: {
-    reconcileGarden: fromPromise<TxResult, TxResult>(async ({ input }) => input),
     // Placeholder actor with proper typing - actual implementation provided when machine is used
-    submitGarden: fromPromise<TxResult, void>(async () => {
+    submitGarden: fromPromise<string, void>(async () => {
       throw new Error("submitGarden actor not implemented");
     }),
   },
@@ -166,11 +145,9 @@ export const createGardenMachine = createGardenSetup.createMachine({
   context: {
     retryCount: 0,
   },
-  on: { SWITCH_SCOPE: { target: ".idle", actions: "clearContext" } },
   states: {
     idle: {
       on: {
-        RESTORE_PENDING: { target: "pending", actions: "restorePending" },
         OPEN: {
           target: "collecting",
           actions: "clearContext",
@@ -179,7 +156,6 @@ export const createGardenMachine = createGardenSetup.createMachine({
     },
     collecting: {
       on: {
-        RESTORE_PENDING: { target: "pending", actions: "restorePending" },
         NEXT: [
           {
             guard: "isReviewStep",
@@ -235,10 +211,10 @@ export const createGardenMachine = createGardenSetup.createMachine({
       entry: "clearError",
       invoke: {
         src: "submitGarden",
-        onDone: [
-          { guard: "isPending", target: "pending", actions: "storeTxHash" },
-          { target: "success", actions: "storeTxHash" },
-        ],
+        onDone: {
+          target: "success",
+          actions: "storeTxHash",
+        },
         onError: {
           target: "error",
           actions: ["storeFailure", "incrementRetry"],
@@ -247,28 +223,6 @@ export const createGardenMachine = createGardenSetup.createMachine({
       // CLOSE intentionally omitted: once a transaction is in-flight it cannot
       // be cancelled on-chain. Allowing CLOSE here would hide the real outcome
       // from the user (garden created but UI shows idle).
-    },
-    pending: {
-      on: { CHECK_CONFIRMATION: "reconciling" },
-    },
-    reconciling: {
-      invoke: {
-        src: "reconcileGarden",
-        input: ({ context }) => context.submission!,
-        onDone: [
-          { guard: "isPending", target: "pending", actions: "storeTxHash" },
-          { target: "success", actions: "storeTxHash" },
-        ],
-        // Only a positively confirmed revert may return to a retryable state.
-        onError: [
-          {
-            guard: "isConfirmedRevert",
-            target: "error",
-            actions: ["storeFailure", "incrementRetry"],
-          },
-          { target: "pending" },
-        ],
-      },
     },
     success: {
       on: {

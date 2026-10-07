@@ -1,7 +1,6 @@
 /** @vitest-environment node */
 import { describe, it, expect, vi } from "vitest";
 import type { SmartAccountClient } from "permissionless";
-import { reconcileTransaction, sendCheckpointedCall } from "../confirmation";
 import { PasskeySender } from "../passkey-sender";
 import type { ContractCall } from "../types";
 const operation = `0x${"cd".repeat(32)}` as const;
@@ -19,12 +18,6 @@ function fixture(success: boolean) {
     account: { address: "0x2222222222222222222222222222222222222222" },
     chain: { id: 11155111 },
     sendTransaction: vi.fn().mockResolvedValue(transaction),
-    getUserOperationReceipt: vi.fn().mockResolvedValue({
-      userOpHash: operation,
-      sender: "0x2222222222222222222222222222222222222222",
-      success,
-      receipt: { status: "success", transactionHash: transaction },
-    }),
     sendUserOperation: vi.fn().mockResolvedValue(operation),
     waitForUserOperationReceipt: vi.fn().mockResolvedValue({
       userOpHash: operation,
@@ -73,28 +66,5 @@ describe("Passkey execution confirmation", () => {
       } as Parameters<PasskeySender["sendContractCall"]>[1])
     ).rejects.toThrow("quota");
     expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled();
-  });
-  it("keeps the accepted real sender operation after its receipt RPC times out", async () => {
-    const { client, sender } = fixture(true);
-    client.waitForUserOperationReceipt.mockRejectedValueOnce(new Error("Receipt timeout"));
-    let persisted: unknown;
-    const result = await sendCheckpointedCall(
-      sender,
-      call,
-      (value) => {
-        persisted = value;
-      },
-      vi.fn()
-    );
-    expect(result).toMatchObject({
-      confirmation: "pending",
-      hash: operation,
-      broadcastReference: { kind: "user-operation", hash: operation, chainId: 11155111 },
-    });
-    expect(persisted).toEqual(result);
-    expect(
-      await reconcileTransaction(sender, JSON.parse(JSON.stringify(persisted)), vi.fn())
-    ).toEqual({ status: "confirmed", transactionHash: transaction });
-    expect(client.sendUserOperation).toHaveBeenCalledOnce();
   });
 });

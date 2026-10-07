@@ -44,7 +44,6 @@ const STEP_LABEL_KEYS: Record<ListingStep, { id: string; defaultMessage: string 
   signing: { id: "app.listing.stepSigning", defaultMessage: "Waiting for signature..." },
   registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering on-chain..." },
   confirming: { id: "app.listing.stepConfirming", defaultMessage: "Confirming transaction..." },
-  pending: { id: "app.account.transactionSubmitted", defaultMessage: "Transaction submitted" },
   done: { id: "app.listing.stepDone", defaultMessage: "Listing created!" },
   error: { id: "app.listing.stepError", defaultMessage: "Failed to create listing" },
 };
@@ -61,8 +60,7 @@ export function CreateListingDialog({
   fractionId,
 }: CreateListingDialogProps) {
   const { formatMessage } = useIntl();
-  const { createListing, step, isCreating, error, reset, checkConfirmation } =
-    useCreateListing(gardenAddress);
+  const { createListing, step, isCreating, error, reset } = useCreateListing(gardenAddress);
   const [phase, setPhase] = useState<"configure" | "progress">("configure");
   const [submissionError, setSubmissionError] = useState<Error | null>(null);
 
@@ -150,7 +148,7 @@ export function CreateListingDialog({
         preventClose={isCreating}
         hideCloseButton={isCreating}
         actions={
-          phase === "configure" && step !== "pending" ? (
+          phase === "configure" ? (
             <>
               <AdminButton type="button" variant="text" onClick={handleClose}>
                 {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -171,12 +169,7 @@ export function CreateListingDialog({
                     : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
                 </AdminButton>
               )}
-              {step === "pending" && (
-                <AdminButton type="button" onClick={() => void checkConfirmation()}>
-                  {formatMessage({ id: "app.account.checkConfirmation" })}
-                </AdminButton>
-              )}
-              {isErrorState && step !== "pending" && (
+              {isErrorState && (
                 <AdminButton
                   type="button"
                   onClick={() => {
@@ -192,7 +185,7 @@ export function CreateListingDialog({
           )
         }
       >
-        {phase === "configure" && step !== "pending" ? (
+        {phase === "configure" ? (
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Price per unit */}
             <AdminTextField
@@ -262,11 +255,6 @@ export function CreateListingDialog({
           <div className="space-y-4">
             <ListingProgress step={step} />
 
-            {step === "pending" && (
-              <Alert variant="warning">
-                {formatMessage({ id: "app.account.transactionPending" })}
-              </Alert>
-            )}
             {visibleError && <Alert variant="error">{visibleError.message}</Alert>}
 
             {step === "done" && (
@@ -297,10 +285,8 @@ function ListingProgress({ step }: { step: ListingStep }) {
   return (
     <div className="space-y-3">
       {PROGRESS_STEPS.map((s) => {
-        const isActive = s === step || (step === "pending" && s === "confirming");
-        const isDone =
-          PROGRESS_STEPS.indexOf(s) <
-            PROGRESS_STEPS.indexOf(step === "pending" ? "confirming" : step) || step === "done";
+        const isActive = s === step;
+        const isDone = PROGRESS_STEPS.indexOf(s) < PROGRESS_STEPS.indexOf(step) || step === "done";
 
         const labelKey = STEP_LABEL_KEYS[s];
         const label = labelKey ? formatMessage(labelKey) : "";

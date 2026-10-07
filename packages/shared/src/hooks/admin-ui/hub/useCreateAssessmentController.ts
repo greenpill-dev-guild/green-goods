@@ -161,9 +161,6 @@ export function useCreateAssessmentController() {
     submitCreation,
     reset: resetWorkflow,
     draft,
-    isPending,
-    isCheckingConfirmation,
-    checkConfirmation,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
@@ -390,9 +387,11 @@ export function useCreateAssessmentController() {
     );
 
   const handleSubmit = async () => {
-    if (isSubmitting || isPending || isSent) return;
-    // A restored draft may select a domain this garden no longer documents.
-    // Return to the domain step so the steward can choose a valid one.
+    // The domain step clears a domain this garden does not document, or one
+    // that no longer exists, but a restored draft can reopen on a later step
+    // and never show it. Such a domain is cleared first, with its actions and
+    // metrics, and the steward returns to the domain step to choose again;
+    // validation alone would only say the form is incomplete.
     const allowedDomains =
       normalizedGardenDomainMask === undefined
         ? KNOWN_DOMAINS
@@ -448,7 +447,8 @@ export function useCreateAssessmentController() {
       return;
     }
 
-    // Reset a rejected send so retry uses the edited answers. Accepted sends stay pending.
+    // A failed send keeps the answers it was given, and the machine's own retry
+    // would send those again. Clearing it first sends the answers as they stand.
     if (hasError) resetWorkflow();
     const started = startCreation(payload);
     if (!started) {
@@ -472,7 +472,7 @@ export function useCreateAssessmentController() {
   return {
     canReview,
     // The Review stays up through the done state, after the store let the draft go.
-    currentStep: isSent || isPending ? stepConfigs.length - 1 : currentStep,
+    currentStep: isSent ? stepConfigs.length - 1 : currentStep,
     goToStep,
     errorMessage: txError.message,
     errorTitle: txError.title,
@@ -484,12 +484,9 @@ export function useCreateAssessmentController() {
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
-    isDirty: isDirty && !isPending,
+    isDirty,
     isSent,
     isSubmitting,
-    isPending,
-    isCheckingConfirmation,
-    checkConfirmation,
     normalizedGardenDomainMask,
     reviewForm: isSent && submittedForm ? submittedForm : form,
     showValidation: stepValidation.showValidation,

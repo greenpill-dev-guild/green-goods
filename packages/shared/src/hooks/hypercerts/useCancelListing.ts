@@ -6,7 +6,6 @@
  * @module hooks/hypercerts/useCancelListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
 import { type Address } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
@@ -18,24 +17,11 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
-import {
-  listingSubmissionKey,
-  useListingSubmissionStore,
-} from "../../stores/useListingSubmissionStore";
-import {
-  reconcileTransaction,
-  sendCheckpointedCall,
-} from "../../modules/transactions/confirmation";
-import type { TxResult } from "../../modules/transactions/types";
-import { createPublicClientForChain } from "../../config/pimlico";
 
 export interface UseCancelListingResult {
   cancelListing: (orderId: number) => Promise<void>;
   isCancelling: boolean;
   error: Error | null;
-  pendingCancellation?: { orderId: number; result: TxResult };
-  checkConfirmation: () => Promise<void>;
-  isCheckingConfirmation: boolean;
 }
 
 export function useCancelListing(gardenAddress?: Address): UseCancelListingResult {
@@ -44,47 +30,9 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
   const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const scope =
-    signer && gardenAddress ? listingSubmissionKey(signer, chainId, gardenAddress) : null;
-  const activeScope = useRef(scope);
-  activeScope.current = scope;
-  const pendingCancellation = useListingSubmissionStore((state) =>
-    scope ? state.cancellations[scope] : undefined
-  );
-  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
-  const [confirmationError, setConfirmationError] = useState<Error | null>(null);
-  const refresh = () => {
-    if (gardenAddress)
-      for (const queryKey of queryInvalidation.onMarketplaceListingChanged(gardenAddress, chainId))
-        void queryClient.invalidateQueries({ queryKey });
-  };
-  const checkConfirmation = async () => {
-    if (!scope || !sender || !pendingCancellation || isCheckingConfirmation || mutation.isPending)
-      return;
-    setIsCheckingConfirmation(true);
-    try {
-      const outcome = await reconcileTransaction(sender, pendingCancellation.result, (hash) =>
-        createPublicClientForChain(chainId).getTransactionReceipt({ hash })
-      );
-      if (
-        activeScope.current !== scope ||
-        useListingSubmissionStore.getState().cancellations[scope] !== pendingCancellation
-      )
-        return;
-      if (outcome.status === "unresolved") return;
-      useListingSubmissionStore.getState().clearCancellation(scope);
-      if (outcome.status === "reverted")
-        setConfirmationError(new Error(formatMessage({ id: "app.account.transactionReverted" })));
-      refresh();
-    } finally {
-      setIsCheckingConfirmation(false);
-    }
-  };
 
   const mutation = useMutation({
     mutationFn: async (orderId: number) => {
-      if (scope && useListingSubmissionStore.getState().cancellations[scope]) return;
-      setConfirmationError(null);
       if (!gardenAddress) throw new Error("Garden address required");
       if (!signer || !sender)
         throw new Error(
@@ -112,30 +60,12 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
         args: [gardenAddress, BigInt(orderId)],
       };
 
-      const clearCheckpoint = (result: TxResult) => {
-        if (
-          scope &&
-          useListingSubmissionStore.getState().cancellations[scope]?.result.hash ===
-            (result.broadcastReference?.hash ?? result.hash)
-        )
-          useListingSubmissionStore.getState().clearCancellation(scope);
-      };
-      const result = await sendCheckpointedCall(
-        sender,
-        call,
-        (result) => {
-          if (scope)
-            useListingSubmissionStore.getState().recordCancellation(scope, orderId, result);
-        },
-        clearCheckpoint,
-        { assertOwnership: () => sender.assertOwnership?.(signer, chainId) }
-      );
-      if (result.confirmation === "pending" && scope) {
-        useListingSubmissionStore.getState().recordCancellation(scope, orderId, result);
-        return;
-      }
+      const result = await sender.sendContractCall(call, {
+        assertOwnership: () => sender.assertOwnership?.(signer, chainId),
+      });
+      if (result.confirmation === "pending")
+        throw new Error(formatMessage({ id: "app.account.transactionPending" }));
 
-      clearCheckpoint(result);
       logger.info("[useCancelListing] Listing cancelled", { gardenAddress, orderId });
     },
     onSuccess: () => {
@@ -160,10 +90,7 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
 
   return {
     cancelListing: (orderId) => mutation.mutateAsync(orderId),
-    isCancelling: mutation.isPending || Boolean(pendingCancellation),
-    pendingCancellation,
-    checkConfirmation,
-    isCheckingConfirmation: isCheckingConfirmation || mutation.isPending,
-    error: (mutation.error as Error | null) ?? confirmationError,
+    isCancelling: mutation.isPending,
+    error: mutation.error as Error | null,
   };
 }
