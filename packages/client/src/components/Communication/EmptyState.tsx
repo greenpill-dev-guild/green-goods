@@ -19,7 +19,7 @@ export interface EmptyStateProps {
 }
 
 const toneClassNames: Record<EmptyStateTone, string> = {
-  neutral: "border-stroke-soft-200 bg-bg-weak-50 text-primary",
+  neutral: "border-stroke-soft-200 bg-bg-weak-50 text-primary-on-surface",
   warning: "border-warning-light bg-warning-lighter text-warning-base",
   error: "border-error-light bg-error-lighter text-error-base",
 };

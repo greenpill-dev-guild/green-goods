@@ -171,7 +171,7 @@ export function LinkWorkSheet({
                         setWorkUID(work.id);
                         setOperationId(crypto.randomUUID());
                       }}
-                      className="accent-[var(--color-primary)]"
+                      className="accent-[var(--color-primary-on-surface)]"
                     />
                     <label
                       htmlFor={id}

@@ -70,10 +70,11 @@ dialect: installed-pwa
 
 ## Color Adaptation
 
-The PWA inherits the Warm Earth core. The current green rhythm is protected:
-- Bright tertiary garden green stays on text-free marks: icons, active nav marks (the icon and indicator bar, not the label), dots, progress lines, soft highlights, and value-flow indicators.
+The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (PRD-1150):
+- Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and the readable bright accent in dark.
 - Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action tokens with white text, never bright green (DL-017).
-- Green text on a surface (active tab and AppBar labels, the open FAQ title, links, selected titles) uses `--primary-on-surface`: deep green in light, the bright accent in dark. In an active tab the label takes it while the icon and indicator bar keep the bright accent (DL-053).
+- Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause is a filled control with a white glyph, so it uses the action pair.
+- Soft green highlights may retain the tertiary tint. Domain and status colors stay independent; success, warning, error and information marks are not brand accents.
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
 - No PWA-specific token overrides; values come from shared tokens.
 

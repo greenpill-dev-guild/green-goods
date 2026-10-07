@@ -144,7 +144,7 @@ export function ENSProgressTimeline({
             width: 32,
             height: 32,
             borderRadius: "50%",
-            color: "rgb(var(--primary-base))",
+            color: "rgb(var(--primary-on-surface))",
             background: "rgb(var(--bg-weak-50))",
           }}
         >
@@ -217,7 +217,7 @@ export function ENSProgressTimeline({
               gap: 8,
               alignItems: "center",
               minHeight: 40,
-              color: "rgb(var(--primary-base))",
+              color: "rgb(var(--primary-on-surface))",
             }}
           >
             {intl.formatMessage({

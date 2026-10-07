@@ -78,7 +78,7 @@ function SettingRow({
     <Card>
       <div className="flex flex-row items-center gap-3 w-full">
         <Avatar>
-          <div className="flex items-center justify-center text-center mx-auto text-primary">
+          <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
             {icon}
           </div>
         </Avatar>

@@ -146,7 +146,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 acts.selectMode(value);
               }}
               className={cn(
-                "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+                "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface",
                 mode === value
                   ? "bg-bg-white-0 text-text-strong-950 shadow-sm"
                   : "text-text-sub-600 hover:text-text-strong-950"
@@ -201,7 +201,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                   name="receive-network"
                   checked={receiveCelo === celo}
                   onChange={() => setReceiveCelo(celo)}
-                  className="accent-primary-base"
+                  className="accent-primary-on-surface"
                 />
                 {getNetworkConfigForChain(celo ? 42220 : chainId).name}
               </label>

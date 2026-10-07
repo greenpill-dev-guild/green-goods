@@ -70,7 +70,7 @@ class GardenErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBounda
         <div className="flex flex-col items-center justify-center h-full p-8 bg-bg-white-0">
           <div className="text-center max-w-md">
             <div className="mx-auto mb-4 w-14 h-14 rounded-2xl grid place-items-center bg-primary/10">
-              <RiLeafFill className="w-7 h-7 text-primary" />
+              <RiLeafFill className="w-7 h-7 text-primary-on-surface" />
             </div>
             <h2 className="text-xl font-semibold mb-2 text-text-strong-950">
               {intl?.formatMessage({

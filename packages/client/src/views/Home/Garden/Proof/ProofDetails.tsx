@@ -120,7 +120,7 @@ export function ProofDetails({
                       { id: "app.proof.details.creditOne" },
                       { who: formatAddress(member.address) }
                     )}
-                    className="h-5 w-5 shrink-0 accent-[var(--color-primary)]"
+                    className="h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
                   />
                   <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
                     {/* A choice of who to credit, not an identity card: the name only. */}

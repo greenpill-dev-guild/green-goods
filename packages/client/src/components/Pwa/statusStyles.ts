@@ -15,19 +15,18 @@ export interface PwaStatusStyle {
 
 export const pwaStatusStyles = {
   primary: {
-    // Text takes the contrast-safe role; the bright accent stays on icons,
-    // dots and bars (DL-053).
+    // Green labels, icons and selection marks share the theme-aware role (PRD-1150).
     text: "text-primary-on-surface",
-    icon: "text-primary",
+    icon: "text-primary-on-surface",
     surface: "bg-primary-alpha-10",
     border: "border-primary-alpha-24",
-    dot: "bg-primary",
+    dot: "bg-primary-on-surface",
     // Green fills that carry a number, glyph, or word use the action pair (DL-017).
     badge: "bg-primary-action text-primary-action-foreground",
-    progress: "bg-primary",
-    spinnerBorder: "border-t-primary",
+    progress: "bg-primary-on-surface",
+    spinnerBorder: "border-t-primary-on-surface",
     focus:
-      "focus-visible:ring-2 focus-visible:ring-primary-alpha-24 focus-visible:border-primary active:border-primary",
+      "focus-visible:ring-2 focus-visible:ring-primary-alpha-24 focus-visible:border-primary-on-surface active:border-primary-on-surface",
     foreground: "text-primary-action-foreground",
   },
   information: {

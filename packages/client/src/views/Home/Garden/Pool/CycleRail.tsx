@@ -142,14 +142,17 @@ export function CycleRail({ cycles, selectedCycleId, onSelect, onShowDetails }: 
             "w-full rounded-[var(--radius-lg)] border p-3 text-left",
             onShowDetails && "pe-12",
             selected
-              ? "border-primary-base bg-primary-alpha-10"
+              ? "border-primary-on-surface bg-primary-alpha-10"
               : "border-stroke-soft-200 bg-bg-white-0"
           )}
         >
           <CycleIdentity cycle={cycle} />
           <span className="mt-2 flex min-w-0 items-center gap-1.5">
             {selected ? (
-              <RiCheckboxCircleFill className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <RiCheckboxCircleFill
+                className="h-4 w-4 shrink-0 text-primary-on-surface"
+                aria-hidden="true"
+              />
             ) : null}
             <span className="block truncate text-sm font-medium text-text-strong-950" title={label}>
               {label}

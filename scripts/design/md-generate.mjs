@@ -76,7 +76,13 @@ function getExpectedTokenData(design) {
         implementation:
           "--color-primary, --primary-base, bg-primary, text-primary, text-primary-base",
         purpose:
-          "Protected PWA accent rhythm for text-free marks: active nav, icons, dots, progress lines, filters, and highlights.",
+          "Bright brand decoration and soft highlights. PWA foregrounds and selection marks use the theme-aware primary-on-surface role.",
+      },
+      {
+        designToken: "colors.tertiary-action",
+        implementation: "--primary-on-surface, --color-primary-on-surface, text-primary-on-surface",
+        purpose:
+          "Theme-aware PWA labels, icons, navigation indicators and selection controls: tertiary-action in light, tertiary in dark (PRD-1150).",
       },
       {
         designToken: "colors.on-tertiary",

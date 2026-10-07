@@ -37,7 +37,7 @@ export const FormInfo = ({
     >
       {Icon && (
         <div className="bg-bg-white-0 h-12 w-12 p-3 rounded-full border border-stroke-soft-200">
-          <Icon size={24} className="text-primary" />
+          <Icon size={24} className="text-primary-on-surface" />
         </div>
       )}
       <div className="flex flex-col gap-0.5 grow">

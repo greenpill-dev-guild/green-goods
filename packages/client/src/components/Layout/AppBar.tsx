@@ -87,7 +87,7 @@ export const AppBar = () => {
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "flex flex-col items-center",
-              isActive && "active tab-active text-primary focus:outline-hidden",
+              isActive && "active tab-active text-primary-on-surface focus:outline-hidden",
               !isActive && "text-text-soft-400"
             )}
           >

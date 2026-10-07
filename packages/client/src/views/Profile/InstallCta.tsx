@@ -156,7 +156,7 @@ export const InstallCta: React.FC = () => {
         <Card>
           <div className="flex flex-row items-center gap-3 justify-between w-full">
             <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                 <RiSmartphoneLine className="w-4" />
               </div>
             </Avatar>

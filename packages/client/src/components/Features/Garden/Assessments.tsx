@@ -81,19 +81,28 @@ const AssessmentCard = memo(function AssessmentCard({
 
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary" />} variant="pill">
+          <Badge
+            leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary-on-surface" />}
+            variant="pill"
+          >
             {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
           </Badge>
           <span className="px-2 text-xs text-text-sub-600">{reportingPeriod}</span>
         </div>
         <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiStackLine className="h-4 w-4 text-primary" />} variant="pill">
+          <Badge
+            leadingIcon={<RiStackLine className="h-4 w-4 text-primary-on-surface" />}
+            variant="pill"
+          >
             {intl.formatMessage({ id: "app.garden.assessments.cynefinPhase" })}
           </Badge>
           <span className="px-2 text-xs text-text-sub-600">{cynefinLabel}</span>
         </div>
         <div className="flex flex-col gap-1 sm:col-span-2">
-          <Badge leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary" />} variant="pill">
+          <Badge
+            leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary-on-surface" />}
+            variant="pill"
+          >
             {intl.formatMessage({ id: "app.garden.assessments.sdgAlignment" })}
           </Badge>
           <ul className="flex flex-wrap gap-1 px-2">
@@ -210,7 +219,7 @@ const AttachmentCard = memo(function AttachmentCard({
 
   return (
     <Card className="flex min-h-[160px] flex-col gap-3">
-      <div className="flex items-center gap-2 text-primary">
+      <div className="flex items-center gap-2 text-primary-on-surface">
         <RiFileTextLine className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
         <h3 className="truncate text-base font-semibold text-text-strong-950">{attachment.name}</h3>
       </div>
