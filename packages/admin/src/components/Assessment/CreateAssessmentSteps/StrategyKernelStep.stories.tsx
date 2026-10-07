@@ -40,7 +40,7 @@ const meta: Meta<typeof StrategyKernelStep> = {
     docs: {
       description: {
         component:
-          "Assessment wizard step 2. Diagnosis, SMART outcomes (repeater), and Cynefin phase selector. Every control sits on the step's own edges, and Add Outcome stays in the section's title row. Each outcome row says under its fields what they hold: the change, what is counted, and how much (DL-079). Writes to the persisted Zustand store.",
+          "Assessment wizard step 2. Diagnosis, SMART outcomes (repeater), and Cynefin phase selector. Every control sits on the step's own edges, and Add Outcome stays in the section's title row. The collection explains once what its fields hold: the change, what is counted, and how much (DL-079, DL-087). Writes to the persisted Zustand store.",
       },
     },
   },
