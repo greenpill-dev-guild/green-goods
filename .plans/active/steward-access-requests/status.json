@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-08T06:50:21.435Z",
-    "updated_at": "2026-10-08T07:36:15.855Z"
+    "updated_at": "2026-10-08T08:06:50.069Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,7 +46,7 @@
   "lanes": {
     "ui": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "release/october-2-0-0",
       "depends_on": [],
       "handoff": "handoffs/codex-ui.md",
@@ -68,7 +68,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "release/october-2-0-0",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -112,7 +112,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -179,6 +179,22 @@
       "status": "tdd_recorded",
       "branch": "release/october-2-0-0",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-08T08:06:49.112Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "passed",
+      "branch": "release/october-2-0-0",
+      "note": "Fresh committed automated lane proof recorded for 6cf9020c7; rendered proof is Storybook; release blocked by unrelated report"
+    },
+    {
+      "timestamp": "2026-10-08T08:06:50.070Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "passed",
+      "branch": "release/october-2-0-0",
+      "note": "Fresh committed Shared and Agent suites/builds recorded for 6cf9020c7; live authenticated proof pending; release guard blocked on unrelated report"
     }
   ]
 }

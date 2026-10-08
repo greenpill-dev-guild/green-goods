@@ -17,9 +17,9 @@
 - [x] Shared: RED/GREEN protocol, transport, kind-scoped signing/session/cache and availability support.
 - [x] Agent: RED/GREEN memory/SQLite parity, lossless index migration, private kind filtering and strict target-role admission/reconciliation.
 - [x] Admin: RED/GREEN catalog/link selection, request/review/status/withdraw flow and explicit steward queue role grant.
-- [ ] Integration: typechecks, boundary and ontology guards, legacy membership regression and build proof.
+- [x] Integration: typechecks, boundary and ontology guards, legacy membership regression and build proof.
 - [x] Browser: labeled desktop/mobile request and pending screenshots; record authenticated proof limits.
-- [ ] Current-tree release validation and local commit evidence; push stays subject to the unrelated immutable-report blocker.
+- [x] Current-tree release validation and local commit evidence; gate failure and push blocker recorded. Push remains pending the unrelated immutable-report preservation approval.
 
 ## Validation
 

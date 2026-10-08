@@ -1,6 +1,6 @@
 # Steward Access Requests Evaluation
 
-Implementation is assembled on `release/october-2-0-0`. Parent baseline is `6511e9aaa27599d8e480da8fb6b502c761a72d1b`. Commit-attributed validation is pending; no release readiness claim.
+Implementation is committed on `release/october-2-0-0`. Fresh automated evidence for `6cf9020c771b22010310293c2d4bbb75e3772de0` is recorded in the lane handoffs. Parent baseline is `6511e9aaa27599d8e480da8fb6b502c761a72d1b`. Release publication is blocked; no release readiness claim.
 
 Compare against the specification acceptance boundaries and user-approved UI. Capture focused RED/GREEN proof, package typechecks/builds, strict role confirmation, private queue/identity scope and labeled desktop/mobile screenshots. Release publication remains blocked by the pre-existing historical report modification unless separately authorized preservation is completed.
 
@@ -17,3 +17,5 @@ The first committed release run caught a missing critical classification for the
 The next full run passed Shared (7,267 tests), Client (1,686 tests), their typechecks/builds and the first validation guards, then stopped on four Admin cases in two existing shell suites. Those isolated suites omit wallet providers; their new request child needed the same component boundary stub used by the other shell suites. Existing assertions were preserved. The focused two-file repair command and fresh full-run outcome will be recorded in the committed receipt.
 
 Tests exceed runtime changes because signature compatibility, privilege binding, asynchronous identity scope, migration integrity, and separate adapter/UI behavior need independent proof.
+
+Final committed gate: `node scripts/dev/ci-local.js --intent release`, 2026-10-08T07:49:18Z → 08:01:56Z. 33 fresh passes, one failure at the unchanged historical report guard and one unrun story check. Independent ontology/story checks passed; all 69 plan-hub fixture tests passed. Shared 7,267 tests, Client 1,686, Admin 1,282, Agent 519 unit and 174 SQLite tests passed, along with builds, typechecks, Indexer, Contracts, documentation and repository guards. Full detail and skipped counts are in the State/API receipt. This supersedes provisional evidence for automated implementation claims. Authenticated passkey/API/role-grant proof remains pending.

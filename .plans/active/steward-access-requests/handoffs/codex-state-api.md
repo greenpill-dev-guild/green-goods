@@ -4,11 +4,11 @@
 
 - Owner: Codex
 - Branch: `release/october-2-0-0`
-- Status: implementation assembled; committed validation pending
+- Status: implementation and automated lane proof passed; release publication blocked
 
 ## Scope
 
-- Implement shared types, hooks, query keys, state, job queue, and API flows accepted in `plan.todo.md`, `spec.md`, and `eval.md`.
+- Implement the signed request contracts, kind-scoped hooks/query keys, API authorization and encrypted persistence accepted in `plan.todo.md`, `spec.md`, and `eval.md`.
 - Keep reusable hooks in `packages/shared/src/hooks`.
 
 ## TDD Proof
@@ -23,19 +23,21 @@
 - Signed proof, authorization grants, query keys, list/self/withdraw/resolve and mutation barriers distinguish membership from stewardship. Legacy omitted kind retains existing membership bytes. Old availability responses enable membership only. The server advertises supported kinds.
 - Role confirmation requires Operator or Owner for stewardship; gardener membership is insufficient. Existing gardeners may request stewardship, closed joining does not block it, and existing stewards are rejected as already admitted.
 - SQLite schema version 8 migrates the pending uniqueness index by request kind under an immediate transaction, preserving records and encrypted payloads. Garden caps remain aggregate and rate limits unchanged.
-- Parent read the changed authorization, service, storage and transport lines. Peer API/protocol review found no additional actionable issue. Final committed validation remains pending.
+- Parent read the changed authorization, service, storage and transport lines. Peer API/protocol review found no additional actionable issue. Fresh committed proof is recorded below.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `6cf9020c771b22010310293c2d4bbb75e3772de0`
+- Run at (UTC): 2026-10-08T08:01:56Z
+- Exact command(s): `node scripts/dev/ci-local.js --intent release`; then `node scripts/dev/ci-local.js --intent diagnose --only ontology --only story-quality` and `node --test scripts/harness/plan-hub.test.mjs`.
+- Result: release command exited 1 at the unrelated immutable-report guard, after 33 fresh automated passes; final story check was unrun there. Independent ontology/story checks passed, and all 69 plan-hub fixture tests passed. Shared 7,267 tests plus 19 skipped, Admin 1,282, Client 1,686, Agent 519 unit plus one skipped and 174 SQLite, Indexer, Contracts 2,100 plus 320 contract-script tests, contract release verification, package typechecks/builds, documentation and other guards passed. This is lane proof, not a passing release gate or CI claim.
+- Local evidence: `/private/tmp/green-goods-steward-current-release.log`, `/private/tmp/green-goods-steward-final-supplemental.log`, `/private/tmp/green-goods-steward-final-plan-tests.log`.
+- Validated paths: `packages/`, `package.json`, `bun.lock`, `docs/`, `scripts/`, `.github/`, `.husky/`, `AGENTS.md`, `.claude/`. The unrelated historical report is excluded from lane cleanliness and remains a release blocker.
+- Worktree identity command and result: `git rev-parse --show-toplevel` returned `/Users/afo/Code/greenpill/green-goods`; `git branch --show-current` returned `release/october-2-0-0`. `git status --porcelain=v1 --untracked-files=all -- packages package.json bun.lock docs scripts .github .husky AGENTS.md .claude` returned no output: the validated paths are clean.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 6cf9020c771b22010310293c2d4bbb75e3772de0..HEAD -- packages package.json bun.lock docs scripts .github .husky AGENTS.md .claude` returned exit 0, no output, at receipt write. The follow-up changes only this hub; the same command is rerun after its commit and reported in chat.
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages package.json bun.lock docs scripts .github .husky AGENTS.md .claude` returned no output before recording the receipt. It is rerun after the evidence-only commit.
 
 ## Risks / Blockers
 
-- Record blockers here before changing `status.json`.
+- Release and push remain blocked by `.plans/active/agent-messaging-channels/reports/2026-10-04-conversation-experience-review.md`, an unrelated 19-line historical append. Its contents were preserved untouched; approval to move the append to a new dated artifact remains pending. No guard was bypassed and no push, tag, deployment or merge occurred.
+- Authenticated passkey/API/role-grant proof remains pending; Storybook is the rendered evidence class.
