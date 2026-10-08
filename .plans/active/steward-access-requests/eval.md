@@ -12,4 +12,6 @@ The protocol binds `steward_access` into the signature; omitted kind preserves l
 
 The Shared manifest adds one controller export; no dependencies or lockfile changed. Four certified seam fingerprints were refreshed because the manifest is an input, after confirming their implementation and proof files were unchanged. Two documentation projections were regenerated. No debt baseline or guard was relaxed.
 
+The first committed release run caught a missing critical classification for the new signing controller. Its exact path was added to the existing critical override, preserving the complete check set. Validation-system tests then passed on the provisional repair. Dependent release checks were unrun at that first stop; the full gate will restart after committing the repair. Documentation digests were regenerated for the policy input.
+
 Tests exceed runtime changes because signature compatibility, privilege binding, asynchronous identity scope, migration integrity, and separate adapter/UI behavior need independent proof.

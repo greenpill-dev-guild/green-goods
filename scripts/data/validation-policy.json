@@ -1507,6 +1507,7 @@
         "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
         "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
+        "packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useAddToGroup.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentDialogController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
