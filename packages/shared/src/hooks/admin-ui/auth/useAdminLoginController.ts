@@ -21,7 +21,7 @@ export function useAdminLoginController() {
     isAuthenticated,
     error: authError,
   } = useAuthState();
-  const [mode, setMode] = useState<"create" | "signin">(hasStoredCredential ? "signin" : "create");
+  const [mode, setMode] = useState<"entry" | "create" | "signin">("entry");
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -110,7 +110,7 @@ export function useAdminLoginController() {
 
   return {
     mode,
-    changeMode: (next: "create" | "signin") => {
+    changeMode: (next: "entry" | "create" | "signin") => {
       if (pendingRef.current || isAuthenticating) return;
       awaitingActorRef.current = null;
       setError(null);

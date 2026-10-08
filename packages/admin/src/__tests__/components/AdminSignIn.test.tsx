@@ -50,23 +50,23 @@ describe("AdminSignIn", () => {
     mocks.create.mockResolvedValue(undefined);
   });
 
-  it("submits the creation action and provides a separate path to existing-account sign-in", async () => {
+  it("submits the creation action and returns to the entry through Back", async () => {
     const state = controller({ mode: "create" });
     render(<AdminSignIn controller={state} />);
     expect(screen.getByLabelText("Display name for new account")).toHaveValue("qa-steward");
     await userEvent.click(screen.getByRole("button", { name: "Create Account" }));
     expect(state.createAccountByName).toHaveBeenCalledOnce();
     expect(state.signInByName).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Already have an account?" }));
-    expect(state.changeMode).toHaveBeenCalledWith("signin");
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(state.changeMode).toHaveBeenCalledWith("entry");
   });
 
   it("holds the creation form and mode switch while registration is pending", () => {
     const state = controller({ mode: "create", isSigningIn: true });
     render(<AdminSignIn controller={state} />);
     expect(screen.getByLabelText("Display name for new account")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Already have an account?" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Setting up your account...");
   });
   afterEach(() => {
@@ -86,20 +86,35 @@ describe("AdminSignIn", () => {
   });
 
   it("lets the person explicitly choose the remembered account", async () => {
-    const state = controller({ hasStoredCredential: true, storedUsername: "qa-remembered" });
+    const state = controller({
+      mode: "entry",
+      hasStoredCredential: true,
+      storedUsername: "qa-remembered",
+    });
     render(<AdminSignIn controller={state} />);
     await userEvent.click(screen.getByRole("button", { name: "Continue as qa-remembered" }));
     expect(state.signInWithStoredPasskey).toHaveBeenCalledOnce();
     expect(state.signInByName).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "Create Account" }));
-    expect(state.changeMode).toHaveBeenCalledWith("create");
+    await userEvent.click(screen.getByRole("button", { name: "Recover with Username" }));
+    expect(state.changeMode).toHaveBeenCalledWith("signin");
   });
 
   it("holds the name and both sign-in methods while a ceremony is pending", async () => {
     render(<AdminSignIn controller={controller({ isSigningIn: true })} />);
     expect(screen.getByLabelText("Passkey account name")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Signing you in...");
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(mocks.wallet).not.toHaveBeenCalled();
+  });
+
+  it("keeps the entry choices disabled while a remembered sign-in is pending", async () => {
+    render(
+      <AdminSignIn
+        controller={controller({ mode: "entry", hasStoredCredential: true, isSigningIn: true })}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
     expect(mocks.wallet).not.toHaveBeenCalled();
   });
@@ -110,11 +125,23 @@ describe("AdminSignIn", () => {
     expect(screen.getByLabelText("Passkey account name")).toHaveValue("qa-steward");
   });
 
-  it("keeps wallet-only login when names are disabled and no passkey is remembered", async () => {
+  it("keeps local account creation and wallet login when name recovery is disabled", async () => {
     render(<AdminSignIn controller={controller({ canSignInByName: false })} />);
     expect(screen.queryByLabelText("Passkey account name")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Create Account" }));
     await userEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
     expect(mocks.wallet).toHaveBeenCalledOnce();
+  });
+
+  it("shows the local passkey explainer in the creation form when name recovery is disabled", () => {
+    render(<AdminSignIn controller={controller({ mode: "create", canSignInByName: false })} />);
+    expect(screen.getByLabelText("Display name for new account")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
   });
 
   it("wires the real disconnected admin entry point to Shared passkey sign-in", async () => {
@@ -140,6 +167,9 @@ describe("AdminSignIn", () => {
         <AdminAccessStateRenderer state={{ status: "disconnected" }} ready={<div>Ready</div>} />
       </MemoryRouter>
     );
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Create Account" }));
+    expect(mocks.create).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Display name for new account"), {
       target: { value: " @NEW-STEWARD " },
     });

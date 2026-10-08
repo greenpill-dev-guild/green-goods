@@ -34,8 +34,10 @@ describe("useAdminLoginController", () => {
     mocks.context.mockReturnValue({ supported: true });
   });
 
-  it("starts new users in creation and dispatches registration, not existing-account lookup", async () => {
+  it("starts at the entry and dispatches registration after choosing creation", async () => {
     const { result } = renderHookWithProviders(() => useAdminLoginController());
+    expect(result.current.mode).toBe("entry");
+    act(() => result.current.changeMode("create"));
     expect(result.current.mode).toBe("create");
     act(() => result.current.setUsername(" @NEW-STEWARD "));
     await act(() => result.current.createAccountByName());
@@ -43,10 +45,10 @@ describe("useAdminLoginController", () => {
     expect(mocks.login).not.toHaveBeenCalled();
   });
 
-  it("keeps remembered users in sign-in and lets them explicitly choose creation", () => {
+  it("keeps remembered users at the entry and supports explicit form navigation", () => {
     mocks.auth.mockReturnValue({ hasStoredCredential: true, isAuthenticating: false });
     const { result } = renderHookWithProviders(() => useAdminLoginController());
-    expect(result.current.mode).toBe("signin");
+    expect(result.current.mode).toBe("entry");
     act(() => result.current.changeMode("create"));
     expect(result.current.mode).toBe("create");
     expect(mocks.create).not.toHaveBeenCalled();
