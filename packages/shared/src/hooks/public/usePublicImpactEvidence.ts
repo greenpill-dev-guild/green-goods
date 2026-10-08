@@ -20,7 +20,10 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import {
+  filterGardensWithApprovedWork,
+  isGardenPubliclyVisible,
+} from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
@@ -73,7 +76,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         latestWorkByGarden.set(key, Math.max(latestWorkByGarden.get(key) ?? 0, work.createdAt));
       }
 
-      const gardenSources = visibleGardens.map((garden) => ({
+      const gardenSources = filterGardensWithApprovedWork(visibleGardens, works).map((garden) => ({
         id: garden.id,
         address: garden.id,
         name: garden.name,

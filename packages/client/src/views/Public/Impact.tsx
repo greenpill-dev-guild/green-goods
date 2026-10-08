@@ -247,10 +247,10 @@ export default function ImpactPage() {
   const proofMarkers: PublicProofMarker[] = [
     proofMarker(
       "work",
-      formatMessage({ id: "public.impact.totalWork", defaultMessage: "Work" }),
+      formatMessage({ id: "public.home.proof.works", defaultMessage: "Approved submissions" }),
       formatMessage({
-        id: "public.impact.proof.workNote",
-        defaultMessage: "Field entries logged across Gardens.",
+        id: "public.home.proof.worksNote",
+        defaultMessage: "Work documented by participants and reviewed by Garden stewards.",
       }),
       counts.fieldNoteCount
     ),
@@ -258,17 +258,20 @@ export default function ImpactPage() {
       "assessments",
       formatMessage({ id: "public.impact.totalAssessments", defaultMessage: "Assessments" }),
       formatMessage({
-        id: "public.impact.proof.assessmentsNote",
-        defaultMessage: "Baselines recorded before Work begins.",
+        id: "public.home.proof.assessmentsNote",
+        defaultMessage: "Records describing starting conditions, evidence standards, or progress.",
       }),
       counts.attestationCount
     ),
     proofMarker(
       "gardens",
-      formatMessage({ id: "public.impact.totalGardens", defaultMessage: "Gardens" }),
       formatMessage({
-        id: "public.impact.proof.gardensNote",
-        defaultMessage: "Active places under continuous documentation.",
+        id: "public.home.proof.gardens",
+        defaultMessage: "Gardens with approved work",
+      }),
+      formatMessage({
+        id: "public.home.proof.gardensNote",
+        defaultMessage: "At least one submission approved by a local steward.",
       }),
       counts.gardenCount
     ),
@@ -306,7 +309,7 @@ export default function ImpactPage() {
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
+            "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
         })}
       />
 
@@ -350,7 +353,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify.",
+            "A Garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
         })}
       />
 
@@ -371,7 +374,7 @@ export default function ImpactPage() {
             <EditorialHeading id="public-impact-ledger-title">
               {formatMessage({
                 id: "public.impact.ledger.title",
-                defaultMessage: "Recent evidence across Gardens.",
+                defaultMessage: "Recent work and assessments.",
               })}
             </EditorialHeading>
             <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">

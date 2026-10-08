@@ -103,6 +103,7 @@ export function PublicGetInTouch() {
 
   return (
     <section
+      id="contact"
       ref={sectionRef}
       data-revealed={revealed}
       className="editorial-section-reveal @container bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
@@ -224,12 +225,15 @@ export function PublicGetInTouch() {
 
           <div className="mt-10">
             <EditorialDivider tone="dark" />
+            <h3 className="mt-5 font-serif text-2xl text-editorial-deep-fg">
+              {formatMessage({ id: "public.home.getInTouch.callTitle" })}
+            </h3>
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-xl text-sm leading-relaxed text-editorial-deep-fg/72">
                 {formatMessage({
-                  id: "public.home.getInTouch.scheduleIntro",
+                  id: "public.home.getInTouch.callBody",
                   defaultMessage:
-                    "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
+                    "Talk with Green Goods about a Garden’s work, funding needs, or a larger grant or partnership.",
                 })}
               </p>
               {/* A secondary on the walnut section: linen ink and outline. */}
@@ -239,11 +243,20 @@ export function PublicGetInTouch() {
                 trailingIcon={<span aria-hidden="true">→</span>}
                 className="w-full shrink-0 border-editorial-deep-fg/40 bg-transparent text-editorial-deep-fg hover:bg-editorial-deep-fg/10 sm:w-auto"
               >
-                <a href={publicCuration.appointmentUrl} target="_blank" rel="noreferrer noopener">
-                  {formatMessage({
-                    id: "public.home.getInTouch.scheduleCall",
-                    defaultMessage: "Schedule a Call",
-                  })}
+                <a
+                  href={publicCuration.appointmentUrl || "https://x.com/greengoodsapp"}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  {publicCuration.appointmentUrl
+                    ? formatMessage({
+                        id: "public.home.getInTouch.scheduleCall",
+                        defaultMessage: "Schedule a Call",
+                      })
+                    : formatMessage({
+                        id: "public.home.getInTouch.contact",
+                        defaultMessage: "Contact Green Goods",
+                      })}
                 </a>
               </Button>
             </div>

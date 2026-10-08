@@ -100,7 +100,7 @@ export function PublicProofBand({
           <EditorialHeading id="public-proof-title">
             {formatMessage({
               id: "public.home.proof.title",
-              defaultMessage: "Quantifiable restoration.",
+              defaultMessage: "The public record so far.",
             })}
           </EditorialHeading>
           <div className="mt-5 max-w-md">
@@ -108,7 +108,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
+                  "These counts show documented activity across the Gardens listed here. Steward approval confirms a work submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>

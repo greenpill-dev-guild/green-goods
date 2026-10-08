@@ -58,6 +58,7 @@ sb.mock(import("../src/hooks/garden/useGardenJoinRequests.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useClaimGreenWillBadge.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
 sb.mock(import("../src/hooks/profile/useProfileAvatar.ts"), { spy: true });
+sb.mock(import("../src/hooks/public/usePublicGardens.ts"), { spy: true });
 sb.mock(import("../src/hooks/roles/useHasRole.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useGardenVaults.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useMyVaultDeposits.ts"), { spy: true });

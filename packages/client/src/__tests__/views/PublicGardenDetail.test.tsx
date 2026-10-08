@@ -194,8 +194,8 @@ const messages: Record<string, string> = {
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
-  "public.gardenDetail.stats.entries": "Entries",
-  "public.gardenDetail.stats.handsAtWork": "Hands at work",
+  "public.gardenDetail.stats.entries": "Approved work",
+  "public.gardenDetail.stats.handsAtWork": "Garden members",
   "public.gardenDetail.stats.assessments": "Assessments",
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
@@ -205,8 +205,9 @@ const messages: Record<string, string> = {
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
-  "public.gardenDetail.notes.heading": "Latest field notes",
-  "public.gardenDetail.notes.helper": "What gardeners have logged.",
+  "public.gardenDetail.notes.heading": "Recent approved work",
+  "public.gardenDetail.notes.helper":
+    "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
   "public.gardenDetail.notes.empty": "No field notes yet.",
   "public.gardenDetail.notes.untitled": "Untitled entry",
   "public.gardenDetail.notes.showing": "Showing {shown} of {total}",
@@ -221,15 +222,17 @@ const messages: Record<string, string> = {
   "public.gardenDetail.notes.tags": "Tags",
   "public.gardenDetail.notes.plantTypes": "Plant types",
   "public.gardenDetail.notes.plantCount": "Plant count",
-  "public.gardenDetail.notes.sourceLabel": "View attestation",
+  "public.gardenDetail.notes.sourceLabel": "View Source Record",
   "public.gardenDetail.certificates.heading": "Impact Certificates",
-  "public.gardenDetail.certificates.helper": "Bundles of approved Work.",
+  "public.gardenDetail.certificates.helper":
+    "Shareable records bringing together approved work and the assessments supporting its claims.",
   "public.gardenDetail.certificates.empty": "No Impact Certificates yet.",
   "public.gardenDetail.certificates.untitled": "Untitled certificate",
   "public.gardenDetail.certificates.attestations":
-    "{count, plural, one {# attestation} other {# attestations}}",
+    "{count, plural, one {# source record} other {# source records}}",
   "public.gardenDetail.stewards.heading": "Stewards",
-  "public.gardenDetail.stewards.helper": "Trusted coordinators.",
+  "public.gardenDetail.stewards.helper":
+    "The local coordinators who review submissions and care for this Garden.",
   "public.gardenDetail.stewards.empty": "No stewards are listed for this Garden yet.",
   "public.source.close": "Close",
   "public.nav.installApp": "Install App",
@@ -376,7 +379,7 @@ describe("GardenDetail", () => {
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders field notes, commitments, certificates and stewards in order, all four always present", () => {
+  it("shows approved work and stewards while omitting confirmed empty future sections", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [] }));
     const { container } = renderView();
     // Scoped to the record ladder: PublicInstallCta is a labelled section with
@@ -384,28 +387,23 @@ describe("GardenDetail", () => {
     const headings = Array.from(
       container.querySelectorAll('section[aria-labelledby^="public-garden-detail-"] h2')
     ).map((h) => h.textContent ?? "");
-    expect(headings).toEqual([
-      "Latest field notes",
-      "This Garden is preparing its pool",
-      "Impact Certificates",
-      "Stewards",
-    ]);
-    // Empty sections say so rather than disappearing.
+    expect(headings).toEqual(["Recent approved work", "Stewards"]);
+    // Empty future sections do not distract from the Garden’s work.
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
-    expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
+    expect(screen.queryByText("No Impact Certificates yet.")).not.toBeInTheDocument();
   });
 
   it("renders an em dash rather than 0 when the works read failed", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [], works: true }));
     renderView();
 
-    const entries = screen.getByText("Entries").closest("div") as HTMLElement;
+    const entries = screen.getByText("Approved work").closest("div") as HTMLElement;
     expect(within(entries).getByText("—")).toBeInTheDocument();
     expect(within(entries).queryByText("0")).not.toBeInTheDocument();
     expect(within(entries).getByText("Not available")).toBeInTheDocument();
 
     // Hands at work is read from the Garden's roles, so the failed work read does not hide it.
-    const hands = screen.getByText("Hands at work").closest("div") as HTMLElement;
+    const hands = screen.getByText("Garden members").closest("div") as HTMLElement;
     expect(within(hands).getByText("4")).toBeInTheDocument();
 
     // The section says it could not load; it does not claim the Garden is empty.
@@ -420,7 +418,7 @@ describe("GardenDetail", () => {
     const assessments = screen.getByText("Assessments").closest("div") as HTMLElement;
     expect(within(assessments).getByText("—")).toBeInTheDocument();
 
-    const entries = screen.getByText("Entries").closest("div") as HTMLElement;
+    const entries = screen.getByText("Approved work").closest("div") as HTMLElement;
     expect(within(entries).getByText("2")).toBeInTheDocument();
   });
 
@@ -714,7 +712,7 @@ describe("GardenDetail", () => {
     expect(within(dialog).getByText("12")).toBeInTheDocument();
     expect(within(dialog).getByText("community")).toBeInTheDocument();
     // Chain-aware: the link resolves against the same chain the notes came from.
-    expect(within(dialog).getByRole("link", { name: "View attestation" })).toHaveAttribute(
+    expect(within(dialog).getByRole("link", { name: "View Source Record" })).toHaveAttribute(
       "href",
       "https://explorer.example/42161/0xnote0"
     );

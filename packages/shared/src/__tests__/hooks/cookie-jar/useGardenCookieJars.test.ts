@@ -46,9 +46,13 @@ let readContractCallCount = 0;
 let readContractsCallCount = 0;
 let lastDetailQuery: Record<string, unknown> | undefined;
 let lastDecimalsQuery: Record<string, unknown> | undefined;
+let addressChain: unknown;
+let detailChains: unknown[];
+let decimalsChains: unknown[];
 
 vi.mock("wagmi", () => ({
   useReadContract: (args: Record<string, unknown>) => {
+    addressChain = args.chainId;
     readContractCallCount++;
     // Only the first useReadContract is the jar address fetch
     return {
@@ -66,6 +70,7 @@ vi.mock("wagmi", () => ({
     const enabled = args?.query && (args.query as Record<string, unknown>).enabled;
     // First useReadContracts = jar details, second = decimals
     if (readContractsCallCount % 2 === 0) {
+      decimalsChains = (args.contracts as { chainId?: number }[]).map((call) => call.chainId);
       lastDecimalsQuery = args?.query as Record<string, unknown> | undefined;
       return {
         data: enabled === false ? undefined : mockDecimalsReturn.data,
@@ -75,6 +80,7 @@ vi.mock("wagmi", () => ({
       };
     }
     lastDetailQuery = args?.query as Record<string, unknown> | undefined;
+    detailChains = (args.contracts as { chainId?: number }[]).map((call) => call.chainId);
     return {
       data: enabled === false ? undefined : mockReadContractsReturn.data,
       isLoading: mockReadContractsReturn.isLoading,
@@ -230,6 +236,11 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     expect(jar.decimals).toBe(6);
     expect(result.current.detailErrorCount).toBe(0);
     expect(result.current.hasDetailReadFailure).toBe(false);
+    // Reads must use the garden's configured chain, even before connecting a wallet
+    // or when the wallet is connected to a different network.
+    expect(addressChain).toBe(TEST_CHAIN_ID);
+    expect(detailChains).toEqual(Array(7).fill(TEST_CHAIN_ID));
+    expect(decimalsChains).toEqual([TEST_CHAIN_ID]);
   });
 
   it("handles multiple jars correctly", () => {

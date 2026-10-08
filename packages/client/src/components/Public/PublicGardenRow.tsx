@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
+import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 
 export interface PublicGardenRowProps {
   garden: PublicGardenSummary;
@@ -39,18 +40,20 @@ export interface PublicGardenRowProps {
 export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
   const formatAge = useLocalizedRelativeTime();
+  const description = getPublicGardenDescription(garden, formatMessage);
   const meta: string[] = [
     formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+        defaultMessage: "{count, plural, one {# member} other {# members}}",
       },
       { count: garden.gardenerCount }
     ),
     formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count, plural, one {# entry} other {# entries}}",
+        defaultMessage:
+          "{count, plural, one {# approved submission} other {# approved submissions}}",
       },
       { count: garden.actionCount }
     ),
@@ -126,7 +129,11 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
                 </span>
               ))}
             </p>
-            <GardenVaultMetrics summary={vaultSummary} />
+            {description ? (
+              <p className="line-clamp-2 text-xs leading-relaxed text-text-sub-600">
+                {description}
+              </p>
+            ) : null}
           </div>
         </Link>
 
@@ -148,6 +155,14 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           </EditorialGhostButton>
         </div>
       </div>
+      {vaultSummary?.hasVaults ? (
+        <details className="border-t border-stroke-soft-200 pt-2">
+          <summary className="min-h-11 cursor-pointer text-xs font-medium text-primary-action focus-visible:outline-2 focus-visible:outline-offset-2">
+            {formatMessage({ id: "public.fund.endowmentDetails" })}
+          </summary>
+          <GardenVaultMetrics summary={vaultSummary} />
+        </details>
+      ) : null}
     </div>
   );
 }

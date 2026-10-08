@@ -61,14 +61,15 @@ export function EditorialListRowSkeleton({ className }: { className?: string }) 
                 formatMessage(
                   {
                     id: "public.gardens.gardeners",
-                    defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+                    defaultMessage: "{count, plural, one {# member} other {# members}}",
                   },
                   { count: 0 }
                 ),
                 formatMessage(
                   {
                     id: "public.gardens.works",
-                    defaultMessage: "{count, plural, one {# entry} other {# entries}}",
+                    defaultMessage:
+                      "{count, plural, one {# approved submission} other {# approved submissions}}",
                   },
                   { count: 0 }
                 ),

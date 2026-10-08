@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useReadContract, useReadContracts } from "wagmi";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
@@ -37,7 +37,9 @@ export function useGardenCookieJars(
     isLoading: isLoadingAddresses,
     isPaused: isAddressesPaused,
     error: addressError,
+    refetch: refetchAddresses,
   } = useReadContract({
+    chainId,
     address: moduleAddress as Address,
     abi: COOKIE_JAR_MODULE_ABI,
     functionName: "getGardenJars",
@@ -59,20 +61,22 @@ export function useGardenCookieJars(
   // Step 2: Multicall to read each jar's state
   const jarContracts = useMemo(
     () =>
-      validJarAddresses.flatMap((jarAddr) => [
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "CURRENCY" as const },
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "currencyHeldByJar" as const },
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "maxWithdrawal" as const },
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "withdrawalInterval" as const },
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "paused" as const },
-        {
-          address: jarAddr,
-          abi: COOKIE_JAR_ABI,
-          functionName: "EMERGENCY_WITHDRAWAL_ENABLED" as const,
-        },
-        { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "MIN_DEPOSIT" as const },
-      ]),
-    [validJarAddresses]
+      validJarAddresses.flatMap((jarAddr) =>
+        [
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "CURRENCY" as const },
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "currencyHeldByJar" as const },
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "maxWithdrawal" as const },
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "withdrawalInterval" as const },
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "paused" as const },
+          {
+            address: jarAddr,
+            abi: COOKIE_JAR_ABI,
+            functionName: "EMERGENCY_WITHDRAWAL_ENABLED" as const,
+          },
+          { address: jarAddr, abi: COOKIE_JAR_ABI, functionName: "MIN_DEPOSIT" as const },
+        ].map((contract) => ({ ...contract, chainId }))
+      ),
+    [validJarAddresses, chainId]
   );
 
   const {
@@ -80,6 +84,7 @@ export function useGardenCookieJars(
     isLoading: isLoadingDetails,
     isPaused: isDetailsPaused,
     error: detailsError,
+    refetch: refetchDetails,
   } = useReadContracts({
     contracts: jarContracts,
     allowFailure: true,
@@ -110,17 +115,19 @@ export function useGardenCookieJars(
       currencyAddresses
         .filter((addr): addr is Address => !!addr)
         .map((addr) => ({
+          chainId,
           address: addr,
           abi: ERC20_DECIMALS_ABI,
           functionName: "decimals" as const,
         })),
-    [currencyAddresses]
+    [currencyAddresses, chainId]
   );
 
   const {
     data: decimalsResults,
     isLoading: isLoadingDecimals,
     isPaused: isDecimalsPaused,
+    refetch: refetchDecimals,
   } = useReadContracts({
     contracts: decimalsContracts,
     allowFailure: true,
@@ -177,7 +184,12 @@ export function useGardenCookieJars(
       .filter((jar): jar is CookieJar => jar !== null);
   }, [multicallResults, decimalsResults, validJarAddresses, normalizedGarden]);
 
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchAddresses(), refetchDetails(), refetchDecimals()]);
+  }, [refetchAddresses, refetchDetails, refetchDecimals]);
+
   return {
+    refetch,
     jars,
     isLoading: isLoadingAddresses || isLoadingDetails || isLoadingDecimals,
     /**

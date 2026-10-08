@@ -38,7 +38,7 @@ export function PublicFundingBridge() {
             <EditorialHeading id="public-funding-bridge-title">
               {formatMessage({
                 id: "public.home.funding.title",
-                defaultMessage: "Direct support today. Endowment support over time.",
+                defaultMessage: "Help communities keep going.",
               })}
             </EditorialHeading>
             <div className="mt-5 max-w-md">
@@ -46,7 +46,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.body",
                   defaultMessage:
-                    "Two paths for a Garden's community and funders alike: direct support for the Work today, or a deposit whose yield keeps supporting the Garden over time.",
+                    "Explore a Garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
                 })}
               </EditorialLede>
             </div>
@@ -74,7 +74,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.donateBody",
                     defaultMessage:
-                      "Send direct support to a Garden's shared fund for verified Work.",
+                      "Contribute to the Garden’s shared fund to help its community carry out the work.",
                   })}
                 </p>
               </article>
@@ -84,14 +84,14 @@ export function PublicFundingBridge() {
                 <h3 className="mt-4 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
                   {formatMessage({
                     id: "public.home.funding.endowTitle",
-                    defaultMessage: "Endow",
+                    defaultMessage: "Support over time",
                   })}
                 </h3>
                 <p className="mt-4 text-base leading-[1.6] text-text-sub-600">
                   {formatMessage({
                     id: "public.home.funding.endowBody",
                     defaultMessage:
-                      "Make a long-term deposit. The principal stays in place and remains withdrawable, and the yield supports the Garden's Work.",
+                      "An endowment is a withdrawable deposit whose investment earnings support the Garden. Read its terms and risks before contributing.",
                   })}
                 </p>
               </article>
@@ -123,11 +123,6 @@ export function PublicFundingBridge() {
             labelId: "public.home.funding.readDeeper.community",
             defaultLabel: "How funding flows",
             href: "https://docs.greengoods.app/community/funder-guide",
-          }}
-          builder={{
-            labelId: "public.home.funding.readDeeper.builder",
-            defaultLabel: "Build with our funding contracts",
-            href: "https://docs.greengoods.app/builders/architecture",
           }}
         />
       </div>

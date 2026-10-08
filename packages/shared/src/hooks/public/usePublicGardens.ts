@@ -19,14 +19,17 @@
  * - **No `lastActivity`** field — derived from max `createdAt` across the
  *   garden's approved work; falls back to `Garden.createdAt` when it has none.
  *
- * Failures in the EAS layer are treated as soft (zero stats) so the indexer
- * data still renders. A work whose decision cannot be read is left out.
+ * Discovery requires approved work. An incomplete work read is an error, so
+ * cached results survive and an outage never becomes a successful empty list.
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import {
+  filterGardensWithApprovedWork,
+  isGardenPubliclyVisible,
+} from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getGardens } from "../../modules/data/greengoods";
@@ -100,13 +103,14 @@ export function usePublicGardens(
 
       const gardenAddresses = initializedGardens.map((g) => g.id);
 
-      // Shared with the other public aggregates on the page. Best-effort: a
-      // failed read leaves the gardens with zero stats.
-      const { works: approvedWorks } = await fetchListedApprovedWorks(
+      // Shared with the other public aggregates on the page.
+      const { works: approvedWorks, partial } = await fetchListedApprovedWorks(
         queryClient,
         gardenAddresses,
         chainId
       );
+      if (partial) throw new Error("Public garden work could not be fully loaded");
+      const listedGardens = filterGardensWithApprovedWork(initializedGardens, approvedWorks);
 
       const statsByGarden = new Map<string, { actionCount: number; lastActivityAt: number }>();
 
@@ -120,7 +124,7 @@ export function usePublicGardens(
         statsByGarden.set(key, entry);
       }
 
-      return initializedGardens.map<PublicGardenSummary>((garden) => {
+      return listedGardens.map<PublicGardenSummary>((garden) => {
         const stats = statsByGarden.get(garden.id.toLowerCase());
         // Garden.createdAt arrives in ms (greengoods.ts multiplies by 1000),
         // EAS works arrive in seconds. Normalize lastActivityAt to seconds so

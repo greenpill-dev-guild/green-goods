@@ -354,7 +354,7 @@ export function FieldNoteDialog({
         >
           {formatMessage({
             id: "public.gardenDetail.notes.sourceLabel",
-            defaultMessage: "View attestation",
+            defaultMessage: "View Source Record",
           })}
         </a>
       </p>

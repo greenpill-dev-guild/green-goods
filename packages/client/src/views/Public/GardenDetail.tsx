@@ -21,6 +21,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 import { getPublicHeroImage } from "@/content/publicCuration";
+import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 import { StatCell } from "./GardenDetailAtoms";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
@@ -36,10 +37,9 @@ import { rememberGardenReturn } from "./gardenReturnFocus";
  * an unrelated homepage-polish commit; `DESIGN.browser.md` § `/gardens/:id` had
  * described a page the whole time.
  *
- * Every section always renders. A Garden with no certificates says so rather
- * than dropping the section, which keeps the ordinals stable between Gardens
- * and gives the commitments section (§ 02) a defined pre-launch home for a
- * Garden whose pool is not open yet.
+ * Approved work and local coordinators lead the page. Confirmed empty
+ * certificate and pre-launch pool sections are omitted; failed reads retain
+ * their recovery state.
  *
  * Identity paints from the `usePublicGardens` list — normally warm in cache
  * from the archive the reader just clicked — so the name is on screen before
@@ -74,7 +74,12 @@ export default function GardenDetail() {
   }, [gardens, id]);
 
   const garden = detail?.garden ?? null;
-  const { hypercerts = [], isLoading: hypercertsLoading } = useHypercerts({
+  const {
+    hypercerts = [],
+    isLoading: hypercertsLoading,
+    hasError: hypercertsUnavailable,
+    refetch: refetchHypercerts,
+  } = useHypercerts({
     gardenId: garden?.id,
   });
 
@@ -83,7 +88,7 @@ export default function GardenDetail() {
       return {
         name: garden.name,
         location: garden.location,
-        description: garden.description,
+        description: getPublicGardenDescription(garden, formatMessage),
         bannerImage: garden.bannerImage,
         slug: publicGardenHelpers.deriveSlug(garden.name ?? "", garden.id),
         stewards: (garden.stewards ?? []) as Address[],
@@ -93,14 +98,14 @@ export default function GardenDetail() {
       return {
         name: summary.name,
         location: summary.location,
-        description: summary.description,
+        description: getPublicGardenDescription(summary, formatMessage),
         bannerImage: summary.bannerImage,
         slug: summary.slug,
         stewards: summary.stewards,
       };
     }
     return null;
-  }, [garden, summary]);
+  }, [garden, summary, formatMessage]);
   // Hand the archive a focus target for the reader's way back.
   useEffect(() => {
     rememberGardenReturn(identity?.slug);
@@ -185,7 +190,7 @@ export default function GardenDetail() {
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.entries",
-                defaultMessage: "Entries",
+                defaultMessage: "Approved work",
               })}
               value={detail?.totalFieldNotes}
               loading={detailLoading}
@@ -194,7 +199,7 @@ export default function GardenDetail() {
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.handsAtWork",
-                defaultMessage: "Hands at work",
+                defaultMessage: "Garden members",
               })}
               value={detail?.gardenerCount}
               loading={detailLoading}
@@ -241,26 +246,39 @@ export default function GardenDetail() {
             gardenLoading={detailLoading}
           />
 
-          <CertificatesSection certificates={hypercerts} loading={hypercertsLoading} />
+          <CertificatesSection
+            certificates={hypercerts}
+            loading={detailLoading || hypercertsLoading}
+            unavailable={hypercertsUnavailable}
+            onRetry={() => void refetchHypercerts()}
+          />
 
           <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
-            {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
-            {listed ? (
-              <EditorialPrimaryLink to={fundHref}>
+          <div className="border-t border-stroke-soft-200 pt-10">
+            <p className="mb-6 max-w-2xl text-base leading-relaxed text-text-sub-600">
+              {formatMessage({ id: "public.gardenDetail.supportHelp" })}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
+              {listed ? (
+                <EditorialPrimaryLink to={fundHref}>
+                  {formatMessage({
+                    id: "public.gardenDetail.support",
+                    defaultMessage: "Support This Garden",
+                  })}
+                </EditorialPrimaryLink>
+              ) : null}
+              <EditorialGhostLink to="/impact">
                 {formatMessage({
-                  id: "public.gardenDetail.support",
-                  defaultMessage: "Support This Garden",
+                  id: "public.gardenDetail.evidence.cta",
+                  defaultMessage: "View Public Evidence",
                 })}
-              </EditorialPrimaryLink>
-            ) : null}
-            <EditorialGhostLink to="/impact">
-              {formatMessage({
-                id: "public.gardenDetail.evidence.cta",
-                defaultMessage: "View Public Evidence",
-              })}
-            </EditorialGhostLink>
+              </EditorialGhostLink>
+              <EditorialGhostLink to="/#contact">
+                {formatMessage({ id: "public.gardenDetail.discussFunding" })}
+              </EditorialGhostLink>
+            </div>
           </div>
         </div>
       </div>

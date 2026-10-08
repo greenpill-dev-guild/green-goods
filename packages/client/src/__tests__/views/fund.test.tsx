@@ -239,9 +239,24 @@ function renderView(
  * activity, then the second one's counts.
  */
 const rowCopy: Array<[string, Record<string, string>, string[], string[]]> = [
-  ["en", en, ["2 gardeners", "1 entry", "Active 5 months ago"], ["1 gardener", "0 entries"]],
-  ["es", es, ["2 jardineros", "1 entrada", "Activo hace 5 meses"], ["1 jardinero", "0 entradas"]],
-  ["pt", pt, ["2 jardineiros", "1 entrada", "Ativo há 5 meses"], ["1 jardineiro", "0 entradas"]],
+  [
+    "en",
+    en,
+    ["2 members", "1 approved submission", "Latest work 5 months ago"],
+    ["1 member", "0 approved submissions"],
+  ],
+  [
+    "es",
+    es,
+    ["2 miembros", "1 trabajo aprobado", "Último trabajo hace 5 meses"],
+    ["1 miembro", "0 trabajos aprobados"],
+  ],
+  [
+    "pt",
+    pt,
+    ["2 membros", "1 trabalho aprovado", "Último trabalho há 5 meses"],
+    ["1 membro", "0 trabalhos aprovados"],
+  ],
 ];
 
 describe("FundPage", () => {
@@ -430,7 +445,7 @@ describe("FundPage", () => {
   it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
-      .getByRole("heading", { name: /Gardens accepting support/i })
+      .getByRole("heading", { name: /Find a Garden to support/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
@@ -545,22 +560,23 @@ describe("FundPage", () => {
     });
   });
 
-  it("renders the standalone vault section between the hero and the support paths", () => {
+  it("leads with Gardens and keeps endowment metrics in a closed details section", () => {
     renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Donate now, or Endow for many seasons/i });
-    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
+    const paths = screen.getByRole("heading", { name: /Choose how your support helps/i });
+    const gardens = screen.getByRole("heading", { name: /Find a Garden to support/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(paths.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(vaults.closest("details")).not.toHaveAttribute("open");
+    expect(gardens.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
     expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 03: Choose a Garden")).toBeInTheDocument();
+    expect(screen.getByText("§ 01: Choose a Garden")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {

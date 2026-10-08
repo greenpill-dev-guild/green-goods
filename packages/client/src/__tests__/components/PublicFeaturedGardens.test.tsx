@@ -43,6 +43,7 @@ vi.mock("@/components/Display", () => ({
     }),
 }));
 
+import { publicCuration } from "../../content/publicCuration";
 import { PublicFeaturedGardens } from "../../components/Public/PublicFeaturedGardens";
 
 const messages: Record<string, string> = {
@@ -120,6 +121,23 @@ describe("PublicFeaturedGardens", () => {
 
     const grid = screen.getByTestId("public-featured-grid");
     expect(grid.querySelectorAll("a").length).toBe(4);
+  });
+
+  it("keeps the four editorial selections in order even when a banner fails", () => {
+    const names = ["TAS HUB", "GreenSofa", "Vida Verde", "Rifai Sicilia"];
+    const selected = publicCuration.featuredGardens.map((id, index) =>
+      makeGarden({ id: id.toLowerCase(), name: names[index] })
+    );
+    mockUsePublicGardens.mockReturnValue({
+      data: [makeGarden({ id: "0xextra", lastActivityAt: 9_999_999_999 }), ...selected.reverse()],
+      isLoading: false,
+    });
+    renderSection();
+    fireEvent.error(screen.getByAltText("TAS HUB"));
+    const labels = Array.from(screen.getByTestId("public-featured-grid").querySelectorAll("a")).map(
+      (node) => node.getAttribute("aria-label")
+    );
+    expect(labels).toEqual(names);
   });
 
   it("uses natural masonry columns without artificial stagger offsets", () => {

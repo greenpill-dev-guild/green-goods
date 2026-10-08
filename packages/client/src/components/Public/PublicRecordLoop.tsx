@@ -15,15 +15,6 @@ interface LoopStep {
 const STEPS: readonly LoopStep[] = [
   {
     numeral: "1.",
-    titleId: "public.home.loop.assess",
-    defaultTitle: "Assess the place.",
-    bodyId: "public.home.loop.assessBody",
-    defaultBody:
-      "A Garden gathers gardeners, stewards, evaluators, and (ideally) funders around a real place. Before work starts they record a baseline: what the place needs, and what good looks like.",
-    to: "/impact",
-  },
-  {
-    numeral: "2.",
     titleId: "public.home.loop.work",
     defaultTitle: "Do the work.",
     bodyId: "public.home.loop.workBody",
@@ -32,7 +23,7 @@ const STEPS: readonly LoopStep[] = [
     to: "/actions",
   },
   {
-    numeral: "3.",
+    numeral: "2.",
     titleId: "public.home.loop.verify",
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
@@ -41,7 +32,7 @@ const STEPS: readonly LoopStep[] = [
     to: "/impact",
   },
   {
-    numeral: "4.",
+    numeral: "3.",
     titleId: "public.home.loop.fund",
     defaultTitle: "Fund what grows.",
     bodyId: "public.home.loop.fundBody",
@@ -56,9 +47,8 @@ const STEPS: readonly LoopStep[] = [
  * step is a hairline-bordered row with an italic numeral, a Fraunces title,
  * and a restrained body paragraph linking contextually to the relevant view.
  *
- * Narrative copy only — this is the visitor-facing story of the regenerative
- * cycle, not a formal claim about the data model's order. The Impact page's
- * pipeline figure carries the canonical Assessment → Work → Certificate cycle.
+ * The public introduction follows the reader’s questions: what was done,
+ * who reviewed it, and how to support the next steps.
  */
 export function PublicRecordLoop() {
   const { formatMessage } = useIntl();
@@ -76,14 +66,14 @@ export function PublicRecordLoop() {
           <EditorialKicker className="mb-5 whitespace-nowrap text-[10px] tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
             {formatMessage({
               id: "public.home.loop.kicker",
-              defaultMessage: "§ 03: Regenerative Work Loop",
+              defaultMessage: "§ 03: How it works",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-loop-title">
             {formatMessage(
               {
                 id: "public.home.loop.title",
-                defaultMessage: "Four steps. Repeated, <line2>season after season</line2>",
+                defaultMessage: "Document. Review. <line2>Support what comes next.</line2>",
               },
               {
                 line2: (chunks) => <span className="block">{chunks}</span>,
@@ -136,7 +126,7 @@ export function PublicRecordLoop() {
             <EditorialLinkArrow to="/actions">
               {formatMessage({
                 id: "public.home.loop.fieldGuide",
-                defaultMessage: "Browse the field guide of regenerative Actions",
+                defaultMessage: "Explore the types of work Gardens document",
               })}
             </EditorialLinkArrow>
           </div>

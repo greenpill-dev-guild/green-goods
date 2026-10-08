@@ -260,7 +260,7 @@ describe("Public Home — hero CTAs", () => {
     expect(loop.compareDocumentPosition(funding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("mobile: renders Install App first, then Explore Gardens second", () => {
+  it("mobile: leads with exploring Gardens, followed by support", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: true,
@@ -281,15 +281,12 @@ describe("Public Home — hero CTAs", () => {
     );
     const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
 
-    // Order matters: install first, explore second.
-    const installIndex = ctaLabels.indexOf("Install App");
-    const exploreIndex = ctaLabels.indexOf("Explore Gardens");
-    expect(installIndex, "Install App should be present in the hero").toBeGreaterThanOrEqual(0);
-    expect(exploreIndex, "Explore Gardens should be present in the hero").toBeGreaterThanOrEqual(0);
-    expect(installIndex).toBeLessThan(exploreIndex);
+    expect(ctaLabels).toEqual(["Explore Gardens", "Support a Garden"]);
+    expect(heroCtas[0]).toHaveAttribute("href", "/gardens");
+    expect(heroCtas[1]).toHaveAttribute("href", "/fund");
   });
 
-  it("mobile + already installed: shows Open App as the lead CTA", () => {
+  it("keeps public discovery first when the app is already installed", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: true,
@@ -320,7 +317,8 @@ describe("Public Home — hero CTAs", () => {
     );
     const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
 
-    expect(ctaLabels[0]).toBe("Open App");
+    expect(ctaLabels[0]).toBe("Explore Gardens");
+    expect(ctaLabels).toContain("Support a Garden");
     expect(ctaLabels).toContain("Explore Gardens");
   });
 });

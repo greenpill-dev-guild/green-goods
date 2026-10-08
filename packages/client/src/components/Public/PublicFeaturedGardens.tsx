@@ -38,11 +38,11 @@ function pickFeatured(
   if (all.length === 0) return [];
 
   const imageBacked = all.filter((garden) => isImageBacked(garden, failedImageKeys));
-  if (imageBacked.length === 0) return [];
 
   if (curatedKeys.length > 0) {
     const indexById = new Map<string, PublicGardenSummary>();
-    for (const garden of imageBacked) {
+    // Explicit editorial choices keep their place even when a banner needs its fallback.
+    for (const garden of all) {
       indexById.set(garden.id.toLowerCase(), garden);
       indexById.set(garden.address.toLowerCase(), garden);
     }
@@ -108,7 +108,7 @@ export function PublicFeaturedGardens() {
             <EditorialHeading id="public-featured-title">
               {formatMessage({
                 id: "public.home.featured.title",
-                defaultMessage: "Tended places, openly recorded.",
+                defaultMessage: "Meet the communities doing the work.",
               })}
             </EditorialHeading>
           </div>
@@ -119,6 +119,10 @@ export function PublicFeaturedGardens() {
             })}
           </EditorialLinkArrow>
         </header>
+
+        <p className="mt-6 max-w-3xl text-base leading-relaxed text-text-sub-600 md:text-lg">
+          {formatMessage({ id: "public.home.featured.definition" })}
+        </p>
 
         {isLoading ? (
           <div
