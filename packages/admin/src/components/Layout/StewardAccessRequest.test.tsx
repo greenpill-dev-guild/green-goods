@@ -129,7 +129,7 @@ describe("StewardAccessRequest", () => {
     const c = controller({ selectedGarden: garden, step: "review", outcomeUnknown: true });
     renderRequest(c);
     expect(screen.getByRole("button", { name: "Send Request" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Check Request Status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check Status" }));
     expect(c.check).toHaveBeenCalledOnce();
   });
   it("shows availability loading before claiming that requests are unavailable", () => {

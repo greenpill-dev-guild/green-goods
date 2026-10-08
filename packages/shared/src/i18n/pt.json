@@ -6856,7 +6856,7 @@
   "cockpit.stewardAccess.description": "Peça a um proprietário ou responsável do jardim para dar acesso como responsável a esta conta.",
   "cockpit.stewardAccess.viewRequest": "Ver solicitação de acesso",
   "cockpit.stewardAccess.withdraw": "Retirar solicitação",
-  "cockpit.stewardAccess.checkStatus": "Consultar status da solicitação",
+  "cockpit.stewardAccess.checkStatus": "Consultar status",
   "cockpit.stewardAccess.changeGarden": "Trocar jardim",
   "cockpit.stewardAccess.send": "Enviar solicitação",
   "cockpit.stewardAccess.unavailable": "As solicitações de acesso estão indisponíveis agora. Copie o endereço da sua conta e compartilhe com um proprietário ou responsável do jardim para ser adicionado.",
