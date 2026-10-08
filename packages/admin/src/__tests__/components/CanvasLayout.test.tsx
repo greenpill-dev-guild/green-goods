@@ -313,6 +313,9 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
   useAdminLoginController: () => ({
+    mode: "signin",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
     username: "",
     setUsername: vi.fn(),
     error: null,

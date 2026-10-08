@@ -5,6 +5,8 @@ import { withAdminIdentity } from "../../../shared/.storybook/decorators";
 import { AdminSignIn } from "./AdminSignIn";
 
 const controller: AdminLoginController = {
+  mode: "create",
+  changeMode: fn(),
   username: "storybook-steward",
   setUsername: fn(),
   error: null,
@@ -12,6 +14,7 @@ const controller: AdminLoginController = {
   canSignInByName: true,
   hasStoredCredential: false,
   storedUsername: null,
+  createAccountByName: fn(async () => {}),
   signInByName: fn(async () => {}),
   signInWithStoredPasskey: fn(async () => {}),
 };
@@ -32,7 +35,7 @@ const meta: Meta<typeof AdminSignIn> = {
     docs: {
       description: {
         component:
-          "Existing-account sign-in. The real admin controls render against deterministic controller state; no passkey or wallet ceremony is started.",
+          "Account creation and existing-account sign-in. The real admin controls render against deterministic controller state; no passkey or wallet ceremony is started.",
       },
     },
   },
@@ -40,12 +43,21 @@ const meta: Meta<typeof AdminSignIn> = {
 export default meta;
 type Story = StoryObj<typeof AdminSignIn>;
 export const Default: Story = {};
+export const ExistingAccount: Story = { args: { controller: { ...controller, mode: "signin" } } };
 export const Remembered: Story = {
   args: {
-    controller: { ...controller, hasStoredCredential: true, storedUsername: "storybook-steward" },
+    controller: {
+      ...controller,
+      mode: "signin",
+      hasStoredCredential: true,
+      storedUsername: "storybook-steward",
+    },
   },
 };
-export const SigningIn: Story = { args: { controller: { ...controller, isSigningIn: true } } };
+export const Registering: Story = { args: { controller: { ...controller, isSigningIn: true } } };
+export const SigningIn: Story = {
+  args: { controller: { ...controller, mode: "signin", isSigningIn: true } },
+};
 export const Unavailable: Story = {
   args: { controller: { ...controller, error: "Passkey recovery is temporarily unavailable." } },
 };

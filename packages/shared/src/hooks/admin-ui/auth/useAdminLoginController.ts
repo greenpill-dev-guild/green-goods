@@ -11,16 +11,17 @@ import { useAuthActions, useAuthState } from "../../../providers/Auth";
 import { withoutQuotedRequest } from "../../../utils/errors/extract-message";
 import { getFriendlyLoginErrorMessage } from "../../auth/login-error-message";
 
-/** Admin signs in to existing accounts; Shared auth owns the credential and session checks. */
+/** Shared auth owns registration, existing-account sign-in, and session checks. */
 export function useAdminLoginController() {
   const intl = useIntl();
-  const { loginWithPasskey } = useAuthActions();
+  const { createAccount, loginWithPasskey } = useAuthActions();
   const {
     hasStoredCredential,
     isAuthenticating,
     isAuthenticated,
     error: authError,
   } = useAuthState();
+  const [mode, setMode] = useState<"create" | "signin">(hasStoredCredential ? "signin" : "create");
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -51,8 +52,8 @@ export function useAdminLoginController() {
     }
   }, [authError, intl, isAuthenticating, isAuthenticated]);
 
-  const signIn = useCallback(
-    async (requestedName?: string) => {
+  const submitPasskey = useCallback(
+    async (operation: "create" | "signin", requestedName?: string) => {
       if (pendingRef.current || isAuthenticating) return;
       if (!classifyPasskeyCeremonyContext().supported) {
         setError(
@@ -80,7 +81,11 @@ export function useAdminLoginController() {
       setError(null);
       try {
         awaitingActorRef.current = { initialError: authError, sawAuthenticating: false };
-        await loginWithPasskey(name);
+        if (operation === "create") {
+          await createAccount(name ?? "");
+        } else {
+          await loginWithPasskey(name);
+        }
       } catch (cause) {
         awaitingActorRef.current = null;
         if (mounted.current) setError(getFriendlyLoginErrorMessage(cause, intl));
@@ -88,8 +93,8 @@ export function useAdminLoginController() {
           cause instanceof Error ? withoutQuotedRequest(cause.message).toLowerCase() : "";
         if (!/cancel|abort|user deny|not allowed/.test(message)) {
           trackAuthError(cause, {
-            source: "Admin passkey sign-in",
-            userAction: name === undefined ? "login with passkey" : "recover with passkey",
+            source: "Admin passkey authentication",
+            userAction: operation === "create" ? "create with passkey" : "login with passkey",
             authMode: "passkey",
             recoverable: true,
             metadata: { has_stored_credential: hasStoredCredential },
@@ -100,10 +105,17 @@ export function useAdminLoginController() {
         if (mounted.current) setPending(false);
       }
     },
-    [authError, hasStoredCredential, intl, isAuthenticating, loginWithPasskey]
+    [authError, createAccount, hasStoredCredential, intl, isAuthenticating, loginWithPasskey]
   );
 
   return {
+    mode,
+    changeMode: (next: "create" | "signin") => {
+      if (pendingRef.current || isAuthenticating) return;
+      awaitingActorRef.current = null;
+      setError(null);
+      setMode(next);
+    },
     username,
     setUsername,
     error,
@@ -111,8 +123,9 @@ export function useAdminLoginController() {
     canSignInByName: isPasskeyServerEnabled(),
     hasStoredCredential,
     storedUsername: hasStoredCredential ? getStoredUsername() : null,
-    signInByName: () => signIn(username),
-    signInWithStoredPasskey: () => signIn(),
+    createAccountByName: () => submitPasskey("create", username),
+    signInByName: () => submitPasskey("signin", username),
+    signInWithStoredPasskey: () => submitPasskey("signin"),
   };
 }
 

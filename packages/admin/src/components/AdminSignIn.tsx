@@ -9,14 +9,15 @@ import { AdminButton } from "./AdminButton";
 import { AdminTextField } from "./AdminTextField";
 import { ConnectButton } from "./ConnectButton";
 
-/** Command surface: existing-account passkey sign-in beside the wallet entry point. */
+/** Command surface: explicit account creation or sign-in beside the wallet entry point. */
 export function AdminSignIn({ controller }: { controller: AdminLoginController }) {
   const { formatMessage } = useIntl();
   const errorId = useId();
   const hasPasskeyEntry = controller.hasStoredCredential || controller.canSignInByName;
+  const isCreating = controller.mode === "create";
   return (
     <div className="flex w-full max-w-sm flex-col gap-4" data-component="AdminSignIn">
-      {controller.hasStoredCredential ? (
+      {controller.hasStoredCredential && !isCreating ? (
         <AdminButton
           type="button"
           size="lg"
@@ -41,18 +42,30 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           className="flex flex-col gap-3 text-left"
           onSubmit={(event) => {
             event.preventDefault();
-            void controller.signInByName();
+            void (isCreating ? controller.createAccountByName() : controller.signInByName());
           }}
         >
           <AdminTextField
-            label={formatMessage({
-              id: "app.admin.auth.passkeyName",
-              defaultMessage: "Passkey account name",
-            })}
-            helperText={formatMessage({
-              id: "app.admin.auth.passkeyNameHint",
-              defaultMessage: "Use the name you chose when you created your passkey account.",
-            })}
+            label={formatMessage(
+              isCreating
+                ? {
+                    id: "app.login.username.newAccountLabel",
+                    defaultMessage: "Display name for new account",
+                  }
+                : { id: "app.admin.auth.passkeyName", defaultMessage: "Passkey account name" }
+            )}
+            helperText={formatMessage(
+              isCreating
+                ? {
+                    id: "app.login.username.hint",
+                    defaultMessage:
+                      "Keep this name somewhere safe. You'll use it to sign in on another device.",
+                  }
+                : {
+                    id: "app.admin.auth.passkeyNameHint",
+                    defaultMessage: "Use the name you chose when you created your passkey account.",
+                  }
+            )}
             value={controller.username}
             onChange={(event) => controller.setUsername(event.target.value)}
             disabled={controller.isSigningIn}
@@ -64,15 +77,29 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           <AdminButton
             type="submit"
             size="lg"
-            variant={controller.hasStoredCredential ? "outlined" : "filled"}
+            variant={controller.hasStoredCredential && !isCreating ? "outlined" : "filled"}
             leadingIcon={<RiKey2Line />}
             loading={controller.isSigningIn}
             disabled={controller.isSigningIn || !controller.username.trim()}
           >
-            {formatMessage({
-              id: "app.login.button.loginPasskey",
-              defaultMessage: "Sign in with Passkey",
-            })}
+            {formatMessage(
+              isCreating
+                ? { id: "app.login.button.createAccount", defaultMessage: "Create Account" }
+                : { id: "app.login.button.loginPasskey", defaultMessage: "Sign in with Passkey" }
+            )}
+          </AdminButton>
+          <AdminButton
+            type="button"
+            variant="text"
+            size="lg"
+            disabled={controller.isSigningIn}
+            onClick={() => controller.changeMode(isCreating ? "signin" : "create")}
+          >
+            {formatMessage(
+              isCreating
+                ? { id: "app.login.button.haveAccount", defaultMessage: "Already have an account?" }
+                : { id: "app.login.button.createAccount", defaultMessage: "Create Account" }
+            )}
           </AdminButton>
         </form>
       ) : null}
@@ -83,10 +110,14 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           </p>
           {controller.isSigningIn ? (
             <p role="status" className="body-sm text-text-sub">
-              {formatMessage({
-                id: "app.login.loading.authenticating",
-                defaultMessage: "Signing you in...",
-              })}
+              {formatMessage(
+                isCreating
+                  ? {
+                      id: "app.login.loading.creatingWallet",
+                      defaultMessage: "Setting up your account...",
+                    }
+                  : { id: "app.login.loading.authenticating", defaultMessage: "Signing you in..." }
+              )}
             </p>
           ) : null}
         </div>

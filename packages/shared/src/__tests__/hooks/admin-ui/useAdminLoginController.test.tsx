@@ -6,13 +6,14 @@ import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   login: vi.fn(),
+  create: vi.fn(),
   auth: vi.fn(),
   serverEnabled: vi.fn(),
   context: vi.fn(),
   trackError: vi.fn(),
 }));
 vi.mock("../../../providers/Auth", () => ({
-  useAuthActions: () => ({ loginWithPasskey: mocks.login }),
+  useAuthActions: () => ({ loginWithPasskey: mocks.login, createAccount: mocks.create }),
   useAuthState: () => mocks.auth(),
 }));
 vi.mock("../../../config/passkeyServer", async (original) => ({
@@ -27,9 +28,52 @@ describe("useAdminLoginController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.login.mockResolvedValue(undefined);
+    mocks.create.mockResolvedValue(undefined);
     mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: false });
     mocks.serverEnabled.mockReturnValue(true);
     mocks.context.mockReturnValue({ supported: true });
+  });
+
+  it("starts new users in creation and dispatches registration, not existing-account lookup", async () => {
+    const { result } = renderHookWithProviders(() => useAdminLoginController());
+    expect(result.current.mode).toBe("create");
+    act(() => result.current.setUsername(" @NEW-STEWARD "));
+    await act(() => result.current.createAccountByName());
+    expect(mocks.create).toHaveBeenCalledWith("new-steward");
+    expect(mocks.login).not.toHaveBeenCalled();
+  });
+
+  it("keeps remembered users in sign-in and lets them explicitly choose creation", () => {
+    mocks.auth.mockReturnValue({ hasStoredCredential: true, isAuthenticating: false });
+    const { result } = renderHookWithProviders(() => useAdminLoginController());
+    expect(result.current.mode).toBe("signin");
+    act(() => result.current.changeMode("create"));
+    expect(result.current.mode).toBe("create");
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.login).not.toHaveBeenCalled();
+  });
+
+  it("surfaces asynchronous registration failures and clears them when switching to sign-in", async () => {
+    const { result, rerender } = renderHookWithProviders(() => useAdminLoginController());
+    act(() => result.current.setUsername("existing-steward"));
+    await act(() => result.current.createAccountByName());
+    mocks.auth.mockReturnValue({ hasStoredCredential: false, isAuthenticating: true });
+    rerender();
+    mocks.auth.mockReturnValue({
+      hasStoredCredential: false,
+      isAuthenticating: false,
+      error: new Error(
+        "That recovery name is already registered. Try recovery or choose another name."
+      ),
+    });
+    rerender();
+    expect(result.current.error).toBe("That name is already registered.");
+    act(() => result.current.changeMode("signin"));
+    expect(result.current.error).toBeNull();
+    expect(result.current.username).toBe("existing-steward");
+    await act(() => result.current.signInByName());
+    expect(mocks.login).toHaveBeenCalledWith("existing-steward");
+    expect(mocks.create).toHaveBeenCalledOnce();
   });
 
   it("signs in by the normalized name through Shared auth", async () => {
@@ -41,11 +85,15 @@ describe("useAdminLoginController", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("rejects a name too short after normalization without starting a ceremony", async () => {
+  it.each([
+    "createAccountByName",
+    "signInByName",
+  ] as const)("rejects a short normalized name in %s", async (action) => {
     const { result } = renderHookWithProviders(() => useAdminLoginController());
     act(() => result.current.setUsername(" @AB "));
-    await act(() => result.current.signInByName());
+    await act(() => result.current[action]());
     expect(mocks.login).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
     expect(result.current.error).toBe("Display name must be at least 3 characters.");
   });
 
