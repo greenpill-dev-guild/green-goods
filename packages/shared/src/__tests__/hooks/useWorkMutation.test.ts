@@ -282,9 +282,9 @@ describe("hooks/work/useWorkMutation", () => {
     expect(result.current.isError).toBe(true);
     expect(onError).toHaveBeenCalledWith(failure);
     const firstId = vi.mocked(submitWorkDirectly).mock.calls[0][6]?.clientWorkId;
-    const failed = (
-      await jobQueueDB.getJobs({ userAddress: defaultOptions.userAddress })
-    ).find((job) => (job.payload as { clientWorkId?: string }).clientWorkId === firstId);
+    const failed = (await jobQueueDB.getJobs({ userAddress: defaultOptions.userAddress })).find(
+      (job) => (job.payload as { clientWorkId?: string }).clientWorkId === firstId
+    );
     expect(failed).toMatchObject({ attempts: MAX_RETRIES, lastError: "Cannot encode work" });
 
     const corrected = createMockWorkDraft({ feedback: "Corrected work details" });
