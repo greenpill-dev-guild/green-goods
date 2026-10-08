@@ -14,8 +14,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
   const { formatMessage } = useIntl();
   const feedbackId = useId();
   const hintId = feedbackId + "-hint";
-  const isForm =
-    controller.mode === "create" || (controller.mode === "signin" && controller.canSignInByName);
+  const isForm = controller.mode !== "entry";
   const isCreating = controller.mode === "create";
   const showError = Boolean(controller.error) && !controller.isSigningIn;
   const showHint = isForm && !showError && !controller.isSigningIn;
@@ -23,17 +22,15 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
     id: "app.login.button.createAccount",
     defaultMessage: "Create Account",
   });
-  const entryLabel = controller.hasStoredCredential
-    ? controller.storedUsername
-      ? formatMessage(
-          { id: "app.login.button.continueAs", defaultMessage: "Continue as {name}" },
-          { name: controller.storedUsername }
-        )
-      : formatMessage({
-          id: "app.admin.auth.storedPasskey",
-          defaultMessage: "Use This Device’s Passkey",
-        })
-    : createLabel;
+  const storedLabel = controller.storedUsername
+    ? formatMessage(
+        { id: "app.login.button.continueAs", defaultMessage: "Continue as {name}" },
+        { name: controller.storedUsername }
+      )
+    : formatMessage({
+        id: "app.admin.auth.storedPasskey",
+        defaultMessage: "Use This Device’s Passkey",
+      });
 
   return (
     <form
@@ -79,15 +76,11 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
             type="button"
             size="lg"
             leadingIcon={<RiKey2Line />}
-            loading={controller.hasStoredCredential && controller.isSigningIn}
             disabled={controller.isSigningIn}
-            title={entryLabel}
-            onClick={() => {
-              if (controller.hasStoredCredential) void controller.signInWithStoredPasskey();
-              else controller.changeMode("create");
-            }}
+            title={createLabel}
+            onClick={() => controller.changeMode("create")}
           >
-            <span className="min-w-0 truncate">{entryLabel}</span>
+            <span className="min-w-0 truncate">{createLabel}</span>
           </AdminButton>
         )}
       </div>
@@ -118,68 +111,78 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
         )}
       </div>
       <div className="h-20 overflow-y-auto" data-testid="admin-sign-in-feedback">
-        <p id={feedbackId} role="alert" className="body-sm text-error-dark">
-          {showError ? controller.error : null}
-        </p>
-        {controller.isSigningIn ? (
-          <p role="status" className="body-sm text-text-sub">
-            {formatMessage(
-              isCreating
-                ? {
-                    id: "app.login.loading.creatingWallet",
-                    defaultMessage: "Setting up your account...",
-                  }
-                : { id: "app.login.loading.authenticating", defaultMessage: "Signing you in..." }
-            )}
-          </p>
-        ) : showHint ? (
-          <p id={hintId} className="body-sm text-text-sub">
-            {formatMessage(
-              isCreating && !controller.canSignInByName
-                ? {
-                    id: "app.login.passkey.localExplainer",
-                    defaultMessage:
-                      "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
-                  }
-                : isCreating
-                  ? {
-                      id: "app.login.username.hint",
-                      defaultMessage:
-                        "Keep this name somewhere safe. You'll use it to sign in on another device.",
-                    }
-                  : {
-                      id: "app.admin.auth.passkeyNameHint",
-                      defaultMessage:
-                        "Use the name you chose when you created your passkey account.",
-                    }
-            )}
-          </p>
+        {controller.mode === "signin" && controller.hasStoredCredential ? (
+          <div className="flex h-11 shrink-0 items-center">
+            <AdminButton
+              className="w-full"
+              type="button"
+              variant="text"
+              size="lg"
+              disabled={controller.isSigningIn}
+              title={storedLabel}
+              onClick={() => void controller.signInWithStoredPasskey()}
+            >
+              <span className="min-w-0 truncate">{storedLabel}</span>
+            </AdminButton>
+          </div>
         ) : null}
+        <div>
+          <p id={feedbackId} role="alert" className="body-sm text-error-dark">
+            {showError ? controller.error : null}
+          </p>
+          {controller.isSigningIn ? (
+            <p role="status" className="body-sm text-text-sub">
+              {formatMessage(
+                isCreating
+                  ? {
+                      id: "app.login.loading.creatingWallet",
+                      defaultMessage: "Setting up your account...",
+                    }
+                  : { id: "app.login.loading.authenticating", defaultMessage: "Signing you in..." }
+              )}
+            </p>
+          ) : showHint ? (
+            <p id={hintId} className="body-sm text-text-sub">
+              {formatMessage(
+                isCreating && !controller.canSignInByName
+                  ? {
+                      id: "app.login.passkey.localExplainer",
+                      defaultMessage:
+                        "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
+                    }
+                  : isCreating
+                    ? {
+                        id: "app.login.username.hint",
+                        defaultMessage:
+                          "Keep this name somewhere safe. You'll use it to sign in on another device.",
+                      }
+                    : {
+                        id: "app.admin.auth.passkeyNameHint",
+                        defaultMessage:
+                          "Use the name you chose when you created your passkey account.",
+                      }
+              )}
+            </p>
+          ) : null}
+        </div>
       </div>
       <div className="flex h-11 items-center justify-center" data-testid="admin-auth-navigation">
-        {isForm || controller.canSignInByName ? (
-          <AdminButton
-            type="button"
-            variant="text"
-            size="lg"
-            disabled={controller.isSigningIn}
-            onClick={() => controller.changeMode(isForm ? "entry" : "signin")}
-          >
-            {formatMessage(
-              isForm
-                ? { id: "app.login.button.back", defaultMessage: "Back" }
-                : controller.hasStoredCredential
-                  ? {
-                      id: "app.login.button.recoverWithUsername",
-                      defaultMessage: "Recover with Username",
-                    }
-                  : {
-                      id: "app.login.button.haveAccount",
-                      defaultMessage: "Already have an account?",
-                    }
-            )}
-          </AdminButton>
-        ) : null}
+        <AdminButton
+          type="button"
+          variant="text"
+          size="lg"
+          disabled={controller.isSigningIn}
+          onClick={() => controller.changeMode(isForm ? "entry" : "signin")}
+        >
+          {formatMessage(
+            isForm
+              ? { id: "app.login.button.back", defaultMessage: "Back" }
+              : {
+                  id: "app.login.button.haveAccount",
+                  defaultMessage: "Already have an account?",
+                }
+          )}
+        </AdminButton>
       </div>
     </form>
   );
