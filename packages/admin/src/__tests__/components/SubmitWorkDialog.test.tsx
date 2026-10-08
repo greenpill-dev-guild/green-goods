@@ -528,6 +528,37 @@ describe("SubmitWork dialog", () => {
     expect(screen.getByRole("button", { name: "Check confirmation" })).toBeInTheDocument();
     expect(errorToast).not.toHaveBeenCalled();
   });
+  it.each(["escape", "close button", "route"] as const)(
+    "closes a dirty awaiting-confirmation Review through %s without offering to discard",
+    async (closeVia) => {
+      workMutationOverride.current = useHandSettledSend;
+      const user = userEvent.setup();
+      const router = renderSubmitWork([WORK_ACTION]);
+      await user.click(await walkToReview(user));
+      await act(async () => {
+        workSend.awaitConfirmation("0xoffline_confirmation-job");
+      });
+      expect(await screen.findByText("Awaiting confirmation")).toBeInTheDocument();
+      for (const edit of screen.getAllByRole("button", { name: /^Edit / })) {
+        expect(edit).toBeDisabled();
+      }
+      if (closeVia === "escape") {
+        fireEvent.keyDown(screen.getByRole("dialog", { name: "app.admin.work.submit.title" }), {
+          key: "Escape",
+        });
+      } else if (closeVia === "close button") {
+        await user.click(screen.getByRole("button", { name: "app.common.close" }));
+      } else {
+        await act(async () => {
+          await router.navigate("/hub/work");
+        });
+      }
+      await waitFor(() => expect(router.state.location.pathname).toBe("/hub/work"));
+      expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+      expect(workSend.snapshot().lastSubmissionOutcome?.kind).toBe("awaiting-confirmation");
+    }
+  );
+
   it("stays on the Review after a failed send, still guards the answers, and tries again", async () => {
     workMutationOverride.current = useHandSettledSend;
     const user = userEvent.setup();

@@ -171,10 +171,19 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         if (retainedSubmission.current?.scope !== scope)
           retainedSubmission.current = { scope, id: crypto.randomUUID() };
       }
+      const submission = retainSubmission ? retainedSubmission.current : null;
       const outcome = await submitWork(
         {
           ...persistence,
-          ...(retainSubmission ? { clientWorkId: retainedSubmission.current!.id } : {}),
+          ...(submission
+            ? {
+                clientWorkId: submission.id,
+                onTerminalUnsentFailure: () => {
+                  // A late failure must not retire a newer submission's identity.
+                  if (retainedSubmission.current === submission) retainedSubmission.current = null;
+                },
+              }
+            : {}),
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
           },
