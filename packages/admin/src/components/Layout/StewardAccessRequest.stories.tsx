@@ -250,6 +250,7 @@ async function verifyStableRequestGeometry() {
   const initial = geometry();
   if (window.innerWidth >= 640)
     expect(initial.height).toBeLessThanOrEqual(window.innerHeight * 0.75 + 1);
+  else expect(initial.height).toBeCloseTo(window.innerHeight * 0.7, 0);
   const assertStable = async () => {
     await waitFor(() => {
       const current = geometry();

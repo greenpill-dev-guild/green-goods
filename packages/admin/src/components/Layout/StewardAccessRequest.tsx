@@ -124,6 +124,7 @@ export function StewardAccessRequest({
         }
         size="md"
         height="stable"
+        sheetSize="tall"
         tone="home"
         preventClose={c.busy}
         actions={actions}

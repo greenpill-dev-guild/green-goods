@@ -11,6 +11,8 @@ import {
 } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
 
@@ -36,6 +38,8 @@ export interface AdminDialogProps {
   size?: "sm" | "md" | "lg";
   /** Keep a single-purpose flow stable across steps; the body scrolls inside. */
   height?: "content" | "stable";
+  /** Shared mobile sheet tier (DL-014); desktop uses the dialog's own sizing. */
+  sheetSize?: SheetSize;
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
@@ -172,6 +176,7 @@ export function AdminDialog({
   actions,
   size = "md",
   height = "content",
+  sheetSize,
   variant = "standard",
   bodyClassName,
   actionsClassName,
@@ -188,6 +193,8 @@ export function AdminDialog({
   tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  const mobileSheetSize = rendersAsSheet ? sheetSize : undefined;
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence keeps the
   // exit node (and its body pointer-events lock) forever. Closing with
@@ -246,6 +253,7 @@ export function AdminDialog({
           data-variant={variant}
           data-tone={tone}
           data-mobile="sheet"
+          data-sheet-size={mobileSheetSize}
           data-size={size}
           data-instant-exit={instantExit || undefined}
           role={role}
@@ -269,7 +277,7 @@ export function AdminDialog({
             // overflow-hidden clips the footer's raised background to the
             // rounded corners. Body scrolling happens inside the body slot.
             "overflow-hidden p-0",
-            height === "stable" && "h-[90dvh] sm:h-[min(75dvh,42rem)]",
+            height === "stable" && cn(!mobileSheetSize && "h-[90dvh]", "sm:h-[min(75dvh,42rem)]"),
             sizeClasses[size],
             variantClasses[variant],
             className
