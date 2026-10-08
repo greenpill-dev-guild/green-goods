@@ -1,6 +1,6 @@
 # UI Lane
 
-Owner: Codex. Branch: `release/october-2-0-0`. The user-directed action-bar refinement has provisional focused and rendered proof; current-commit validation is pending. Release publication remains blocked.
+Owner: Codex. Branch: `release/october-2-0-0`. The user-directed action-bar refinement is committed with fresh focused and rendered proof. The broad browser gate and release publication remain blocked.
 
 Requester entry is in the no-access state and Profile. It opens the existing AdminDialog, chooses a known operational garden, reviews the primary account and optional note, then explicitly signs a request. Status checks, withdrawal, changing garden and confirmed/declined/error outcomes are available. Account, chain and authentication changes clear private drafts and close the dialog. The request target stays in account-scoped memory; it does not activate an inaccessible workspace.
 
@@ -20,16 +20,31 @@ The user requested less whitespace with one action, a shorter desktop dialog and
 
 Storybook in Brave, synthetic fixtures: selection, review and pending measured 672px at 1280×900, down from 765px. All three mobile states retained 730.797px at 375×812. The footer measured 69px in every state, down from the previous 80px desktop / 128px mobile reserve. Its body, header and footer share one solid background. All actions fit within their content gutter, including the wrapped status label. Local geometry and screenshots are in `/private/tmp/green-goods-steward-polish-*`; no real requests or signatures were produced.
 
-Provisional proof: focused QA passed five checks, including four files / 27 tests. The two browser story files passed eight tests. Source structure and test quality passed; the design guard passed after expressing the computed transparency check without a hardcoded color literal. The initial automatic QA scope included another session's untracked plan artifacts and failed their formatting; no unrelated artifacts were changed. Final QA uses the six owned paths. Static Storybook built 2,218 stories before the final mobile-width/label-wrap refinements; a fresh committed build and full browser run remain pending.
+Provisional proof: focused QA passed five checks, including four files / 27 tests. The two browser story files passed eight tests. Source structure and test quality passed; the design guard passed after expressing the computed transparency check without a hardcoded color literal. The initial automatic QA scope included another session's untracked plan artifacts and failed their formatting; no unrelated artifacts were changed. Final QA uses the six owned paths.
 
-Task record: Steward Access Requests — action-bar refinement | Type: fix | Outcome: local verification in progress
+Fresh committed proof at `3b4cae767044698d9594019b395fbcd2865cad61`: five focused QA checks / 27 tests and the static Storybook build / 2,218 stories passed. Two full curated browser runs each passed 528 of 529 tests. The first failed Actions Route Backed Create Mobile at dialog lookup; the second, without a concurrent build, failed Submit Work Details Step at required-field visibility. Both subjects passed alongside the changed request/dialog stories in a four-file, 18-test serial diagnostic. The changed flow's cases passed in both full runs. This supports the bounded refinement but does not establish a passing broad gate or the exact cause of the intermittent failures. No failing subject, assertion, tag or harness setting was changed. Failure and diagnostic logs stay local.
+
+## Validation Receipt (action-bar refinement)
+
+- Tested implementation commit SHA: `3b4cae767044698d9594019b395fbcd2865cad61`
+- Run at (UTC): 2026-10-08T16:42:10Z → 16:46:42Z
+- Exact command(s): `node scripts/dev/ci-local.js --intent qa --base cfa0bacd3 --changed packages/admin/src/components/AdminDialog.tsx,packages/admin/src/components/Layout/StewardAccessRequest.tsx,packages/admin/src/components/Layout/StewardAccessRequest.stories.tsx,.plans/active/steward-access-requests/spec.md,.plans/active/steward-access-requests/status.json,.plans/active/steward-access-requests/handoffs/codex-ui.md --test-path admin:src/components/Layout/StewardAccessRequest.test.tsx --test-path admin:src/__tests__/components/AdminDialog.test.tsx --test-path admin:src/__tests__/components/AdminDialogStandard.guard.test.ts --test-path admin:src/__tests__/components/AdminDialogInstantExit.test.tsx`; `bun run --filter @green-goods/shared build-storybook`; `bun run --filter @green-goods/shared test:stories:ci` (two runs); `bun run --cwd packages/shared node ../../scripts/dev/node-cli.js vitest run --config vitest.storybook.config.ts --project=storybook --maxWorkers=1 --no-file-parallelism ../admin/src/components/Layout/StewardAccessRequest.stories.tsx ../admin/src/components/AdminDialog.stories.tsx ../admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx ../admin/src/views/Garden/SubmitWork.stories.tsx`.
+- Result: focused QA, static build and 18-test browser diagnostic passed. Each full browser run failed one different existing subject, with 528 tests passed. Broad gate and release readiness are not claimed.
+- Validated paths: `packages/admin/`, `package.json`, `bun.lock`, `scripts/`, `.github/`, `.husky/`, `AGENTS.md`, `.claude/`; the six owned refinement paths are the focused QA scope. Shared/Agent proof is retained separately through scoped equality.
+- Worktree identity command and result: `git rev-parse --show-toplevel` identifies `/Users/afo/Code/greenpill/green-goods`, on `release/october-2-0-0`. `git status --porcelain=v1 --untracked-files=all -- packages/admin package.json bun.lock scripts .github .husky AGENTS.md .claude` returned no output.
+- Evidence-only diff command and result: `git diff --exit-code 3b4cae767044698d9594019b395fbcd2865cad61..HEAD -- packages/admin package.json bun.lock scripts .github .husky AGENTS.md .claude` returned exit 0, no output before this evidence-only follow-up and repeats after its commit.
+- Evidence-only worktree-status command and result: the scoped status command above returned no output and repeats after this evidence-only commit. The unrelated historical report's blob remains `7053dbc855862ca535a2c50d30b80a468529659b`; another session's untracked Green Goods OS hub was left untouched.
+- Local logs: `/private/tmp/green-goods-steward-polish-committed-qa.log`, `/private/tmp/green-goods-steward-polish-committed-build.log`, `/private/tmp/green-goods-steward-polish-committed-ci.log`, `/private/tmp/green-goods-steward-polish-committed-ci-isolated.log`, `/private/tmp/green-goods-steward-polish-recovery-browser.log`.
+
+Task record: Steward Access Requests — action-bar refinement | Type: fix | Outcome: local implementation complete, broad verification and release blocked
 Agent/model: Codex / model unknown | Coverage: this user-directed visual refinement
 
 | Phase | Start → end (UTC) | Result / evidence |
 |---|---|---|
 | Investigate | 2026-10-08T16:32:11Z → 16:34:12Z | Inspected rendered footer and the PWA SheetActions grammar |
 | Implement | 16:34:12Z → 16:39:49Z | Shorter desktop surface, compact row, continuous color and rendered regression assertions |
-| Verify / review | 16:36Z → ongoing | Focused QA/browser checks and six desktop/mobile captures; committed proof pending |
+| Verify / review | 16:36Z → 16:46:42Z | Fresh focused QA, static build and 18-test browser diagnostic passed; two broad runs failed different existing subjects |
+| Publish | 16:41Z → ongoing | Local commit 3b4cae767; original historical-report approval still holds the release push |
 
 Human corrections: 1, action-bar whitespace, desktop height and background consistency; attention: unknown.
 

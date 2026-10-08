@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-08T06:50:21.435Z",
-    "updated_at": "2026-10-08T16:34:35.151Z"
+    "updated_at": "2026-10-08T16:47:48.955Z"
   },
   "links": {
     "brief": "brief.md",
@@ -219,6 +219,14 @@
       "status": "in_progress",
       "branch": "release/october-2-0-0",
       "note": "User-directed refinement: compact one-row action bar, shorter desktop surface and a continuous solid background; fresh rendered and focused proof pending"
+    },
+    {
+      "timestamp": "2026-10-08T16:47:48.956Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "note": "Refinement committed at 3b4cae767; five focused QA checks, 18 browser tests and static build passed. Two full browser runs each passed 528/529 but failed different existing subjects; broad gate and original release publication remain blocked."
     }
   ]
 }
