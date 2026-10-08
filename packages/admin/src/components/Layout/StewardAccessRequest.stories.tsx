@@ -257,6 +257,8 @@ async function verifyStableRequestGeometry() {
   await userEvent.click(within(surface).getByRole("button", { name: "Change Garden" }));
   await expect(within(surface).getByLabelText("Garden name or link")).toBeVisible();
   await assertStable();
+  await userEvent.click(surface.querySelector<HTMLButtonElement>('[data-slot="close"]')!);
+  await waitFor(() => expect(surface).not.toBeInTheDocument());
 }
 
 export const StableFlowGeometry: Story = {
