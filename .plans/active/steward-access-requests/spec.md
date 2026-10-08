@@ -4,7 +4,7 @@
 
 Request Steward Access is a labeled action below No garden access yet and in Profile. Desktop uses AdminDialog; mobile uses its full-width bottom-sheet presentation. Choose a known garden by name or valid Green Goods link/address, review the garden and primary account address, optionally add a note, then send a signed request. Pending state survives dialog dismissal in the account/chain session and supports viewing and withdrawal. Status checks that require a fresh signature are explicit actions.
 
-User correction, 2026-10-08: selection, review and status keep the same surface height within each viewport. Reuse the canonical 85dvh desktop / 90dvh mobile geometry through AdminDialog, with a stable target row and footer region. The garden search stays above a list that fills the remaining scroll area; remove its 256px cap. Evidence must show garden selection on mobile as well as the other flow states.
+User corrections, 2026-10-08: selection, review and status keep the same surface height within each viewport, with a stable target row and footer region. Desktop uses a shorter 75dvh surface capped at 42rem; mobile retains 90dvh. The garden search stays above a list that fills the remaining scroll area, without a 256px cap. Use the client PWA's continuous solid background and compact step-action row: a single action fills the mobile row, paired actions share it, and desktop actions align right. Evidence must show garden selection on mobile as well as the other flow states.
 
 ## Domain and authority
 

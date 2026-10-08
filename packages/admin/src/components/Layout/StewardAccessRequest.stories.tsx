@@ -216,6 +216,12 @@ async function verifyStableRequestGeometry() {
   });
   const body = surface.querySelector<HTMLElement>('[data-slot="body"]')!;
   const footer = surface.querySelector<HTMLElement>('[data-slot="actions"]')!;
+  const surfaceColor = (element: Element): string => {
+    const color = getComputedStyle(element).backgroundColor;
+    const transparent =
+      color.startsWith("rgba") && Number.parseFloat(color.split(",").at(-1)!) === 0;
+    return transparent && element.parentElement ? surfaceColor(element.parentElement) : color;
+  };
   const geometry = () => ({
     height: surface.getBoundingClientRect().height,
     top: surface.getBoundingClientRect().top,
@@ -223,21 +229,41 @@ async function verifyStableRequestGeometry() {
     footerTop: footer.getBoundingClientRect().top,
   });
   await waitFor(() => {
-    expect(geometry().height).toBeGreaterThan(window.innerHeight * 0.75);
+    expect(geometry().height).toBeGreaterThan(window.innerHeight * 0.5);
     // Compare layout after the entrance scale/slide has settled.
     expect(geometry().height).toBeCloseTo(Number.parseFloat(getComputedStyle(surface).height), 0);
   });
   const initial = geometry();
+  if (window.innerWidth >= 640)
+    expect(initial.height).toBeLessThanOrEqual(window.innerHeight * 0.75 + 1);
   const assertStable = async () => {
     await waitFor(() => {
       const current = geometry();
       for (const key of Object.keys(initial) as Array<keyof typeof initial>)
         expect(Math.abs(current[key] - initial[key])).toBeLessThan(1);
       expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight + 1);
+      expect(footer.getBoundingClientRect().height).toBeLessThan(80);
+      expect(surfaceColor(footer)).toBe(surfaceColor(body));
+      const buttons = [...footer.querySelectorAll("button")];
+      for (const button of buttons) {
+        expect(button.getBoundingClientRect().top).toBeCloseTo(
+          buttons[0].getBoundingClientRect().top,
+          0
+        );
+        expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
+          footer.getBoundingClientRect().right -
+            Number.parseFloat(getComputedStyle(footer).paddingRight) +
+            1
+        );
+      }
     });
   };
+  await assertStable();
   const picker = within(surface).getByRole("list");
-  expect(picker.clientHeight).toBeGreaterThan(256);
+  expect(picker.getBoundingClientRect().bottom).toBeCloseTo(
+    body.getBoundingClientRect().bottom - Number.parseFloat(getComputedStyle(body).paddingBottom),
+    0
+  );
   expect(picker.scrollHeight).toBeGreaterThan(picker.clientHeight);
   const search = within(surface).getByLabelText("Garden name or link");
   await userEvent.type(search, "No matching garden");
@@ -272,8 +298,8 @@ export const MobileStableFlowGeometry: Story = {
     viewport: {
       options: {
         stewardPhone: {
-          name: "Steward phone 390 × 844",
-          styles: { width: "390px", height: "844px" },
+          name: "Steward phone 375 × 812",
+          styles: { width: "375px", height: "812px" },
           type: "mobile",
         },
       },

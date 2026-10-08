@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-08T06:50:21.435Z",
-    "updated_at": "2026-10-08T15:48:17.562Z"
+    "updated_at": "2026-10-08T16:34:35.151Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,7 +46,7 @@
   "lanes": {
     "ui": {
       "owner": "codex",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "release/october-2-0-0",
       "depends_on": [],
       "handoff": "handoffs/codex-ui.md",
@@ -112,7 +112,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -211,6 +211,14 @@
       "status": "passed",
       "branch": "release/october-2-0-0",
       "note": "Stable desktop/mobile geometry verified at 0fc3fd83e; 529 browser tests, five focused QA checks and static Storybook build passed; original release guard remains blocked"
+    },
+    {
+      "timestamp": "2026-10-08T16:34:35.151Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "note": "User-directed refinement: compact one-row action bar, shorter desktop surface and a continuous solid background; fresh rendered and focused proof pending"
     }
   ]
 }

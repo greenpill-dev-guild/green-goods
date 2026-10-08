@@ -1,6 +1,6 @@
 # UI Lane
 
-Owner: Codex. Branch: `release/october-2-0-0`. Implementation and the user-directed stable-height correction have focused automated and rendered proof. Release publication remains blocked.
+Owner: Codex. Branch: `release/october-2-0-0`. The user-directed action-bar refinement has provisional focused and rendered proof; current-commit validation is pending. Release publication remains blocked.
 
 Requester entry is in the no-access state and Profile. It opens the existing AdminDialog, chooses a known operational garden, reviews the primary account and optional note, then explicitly signs a request. Status checks, withdrawal, changing garden and confirmed/declined/error outcomes are available. Account, chain and authentication changes clear private drafts and close the dialog. The request target stays in account-scoped memory; it does not activate an inaccessible workspace.
 
@@ -14,7 +14,26 @@ Original implementation receipt before the sizing correction: tested implementat
 
 Original browser proof before the sizing correction: Storybook in Brave on that implementation. Desktop Profile, garden selection and review, and mobile review/pending sheets were inspected. A path-scoped `git diff --exit-code 30fff13e7..HEAD -- packages/admin/src/components packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts packages/shared/src/i18n` returned 0, confirming subsequent classification/test repairs did not change those rendered sources. Copy, request and Disconnect actions are visible in Profile; phone status and withdrawal actions fit within 375×812.
 
-## Validation Receipt
+## Action-bar refinement
+
+The user requested less whitespace with one action, a shorter desktop dialog and the client PWA's continuous solid background. The requester now uses a compact step-action row with 40px controls and existing 44px finger targets. Mobile actions share the row, and a lone action fills it; desktop actions align right. Long labels wrap inside the mobile row. The footer inherits the surface color instead of painting a separate white panel. Stable single-purpose dialogs use 75dvh capped at 42rem on desktop and retain 90dvh on mobile.
+
+Storybook in Brave, synthetic fixtures: selection, review and pending measured 672px at 1280×900, down from 765px. All three mobile states retained 730.797px at 375×812. The footer measured 69px in every state, down from the previous 80px desktop / 128px mobile reserve. Its body, header and footer share one solid background. All actions fit within their content gutter, including the wrapped status label. Local geometry and screenshots are in `/private/tmp/green-goods-steward-polish-*`; no real requests or signatures were produced.
+
+Provisional proof: focused QA passed five checks, including four files / 27 tests. The two browser story files passed eight tests. Source structure and test quality passed; the design guard passed after expressing the computed transparency check without a hardcoded color literal. The initial automatic QA scope included another session's untracked plan artifacts and failed their formatting; no unrelated artifacts were changed. Final QA uses the six owned paths. Static Storybook built 2,218 stories before the final mobile-width/label-wrap refinements; a fresh committed build and full browser run remain pending.
+
+Task record: Steward Access Requests — action-bar refinement | Type: fix | Outcome: local verification in progress
+Agent/model: Codex / model unknown | Coverage: this user-directed visual refinement
+
+| Phase | Start → end (UTC) | Result / evidence |
+|---|---|---|
+| Investigate | 2026-10-08T16:32:11Z → 16:34:12Z | Inspected rendered footer and the PWA SheetActions grammar |
+| Implement | 16:34:12Z → 16:39:49Z | Shorter desktop surface, compact row, continuous color and rendered regression assertions |
+| Verify / review | 16:36Z → ongoing | Focused QA/browser checks and six desktop/mobile captures; committed proof pending |
+
+Human corrections: 1, action-bar whitespace, desktop height and background consistency; attention: unknown.
+
+## Validation Receipt (prior stable-height correction)
 
 - Tested implementation commit SHA: `0fc3fd83e9a1c4258e4bcfdf64396a3dbe601778`
 - Run at (UTC): 2026-10-08T15:43:51Z

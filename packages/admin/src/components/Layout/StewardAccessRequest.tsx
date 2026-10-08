@@ -36,7 +36,7 @@ export function StewardAccessRequest({
     ? formatMessage({ id: `cockpit.stewardAccess.status.${request.state}` })
     : "";
   const actions = !c.available ? (
-    <AdminButton variant="outlined" onClick={() => c.setOpen(false)}>
+    <AdminButton variant="outlined" size="lg" onClick={() => c.setOpen(false)}>
       {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
     </AdminButton>
   ) : statusView ? (
@@ -44,6 +44,7 @@ export function StewardAccessRequest({
       {request?.state === "pending" ? (
         <AdminButton
           variant="outlined"
+          size="lg"
           disabled={c.busy}
           loading={c.activity === "withdrawing"}
           onClick={() => action(c.withdraw)}
@@ -52,6 +53,7 @@ export function StewardAccessRequest({
         </AdminButton>
       ) : null}
       <AdminButton
+        size="lg"
         disabled={c.busy}
         loading={c.activity === "checking"}
         onClick={() => action(c.check)}
@@ -61,10 +63,16 @@ export function StewardAccessRequest({
     </>
   ) : c.step === "review" && c.selectedGarden ? (
     <>
-      <AdminButton variant="outlined" disabled={c.busy} onClick={() => c.setStep("choose")}>
+      <AdminButton
+        variant="outlined"
+        size="lg"
+        disabled={c.busy}
+        onClick={() => c.setStep("choose")}
+      >
         {formatMessage({ id: "cockpit.stewardAccess.changeGarden" })}
       </AdminButton>
       <AdminButton
+        size="lg"
         disabled={c.busy || c.outcomeUnknown || !c.accountAddress}
         loading={c.activity === "sending"}
         onClick={() => action(c.send)}
@@ -73,7 +81,7 @@ export function StewardAccessRequest({
       </AdminButton>
     </>
   ) : (
-    <AdminButton variant="outlined" disabled={c.busy} onClick={() => c.setOpen(false)}>
+    <AdminButton variant="outlined" size="lg" disabled={c.busy} onClick={() => c.setOpen(false)}>
       {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
     </AdminButton>
   );
@@ -119,7 +127,7 @@ export function StewardAccessRequest({
         tone="home"
         preventClose={c.busy}
         actions={actions}
-        actionsClassName="min-h-[calc(8rem+env(safe-area-inset-bottom))] sm:min-h-20"
+        actionsClassName="min-h-[calc(4rem+env(safe-area-inset-bottom))] flex-row items-center justify-end bg-transparent [&>button]:min-w-0 [&>button]:flex-1 [&>button]:whitespace-normal [&>button]:px-3 [&>button]:leading-tight sm:[&>button]:flex-none sm:[&>button]:whitespace-nowrap sm:[&>button]:px-5"
         finalFocusRef={opener}
       >
         <div

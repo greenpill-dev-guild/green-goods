@@ -34,7 +34,7 @@ export interface AdminDialogProps {
   children: ReactNode;
   actions?: ReactNode;
   size?: "sm" | "md" | "lg";
-  /** Reserve the canonical flow height across changing content; the body scrolls inside. */
+  /** Keep a single-purpose flow stable across steps; the body scrolls inside. */
   height?: "content" | "stable";
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
@@ -269,8 +269,7 @@ export function AdminDialog({
             // overflow-hidden clips the footer's raised background to the
             // rounded corners. Body scrolling happens inside the body slot.
             "overflow-hidden p-0",
-            height === "stable" && flowHeightClasses,
-            height === "stable" && "h-[var(--admin-flow-height)]",
+            height === "stable" && "h-[90dvh] sm:h-[min(75dvh,42rem)]",
             sizeClasses[size],
             variantClasses[variant],
             className
