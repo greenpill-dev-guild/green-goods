@@ -60,7 +60,6 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
       formatMessage(
         {
           id: "public.gardens.lastActive",
-          defaultMessage: "Active {when}",
         },
         { when: formatAge(garden.lastActivityAt) }
       )
