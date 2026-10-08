@@ -40,7 +40,8 @@ const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/components/Shell", () => ({
+vi.mock("@/components/Shell", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/Shell")>()),
   AppBar: (props: { gardenChip: React.ReactNode }) => (
     <div data-testid="top-context-bar">{props.gardenChip}</div>
   ),
