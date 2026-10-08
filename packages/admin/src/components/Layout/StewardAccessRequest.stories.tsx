@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import esMessages from "@green-goods/shared/i18n/es.json";
 import type { StewardAccessRequestController } from "@green-goods/shared/hooks/admin-ui/layout/useStewardAccessRequestController";
 import type { GardenJoinRequestSelfRecord } from "@green-goods/shared/public-contracts/join-requests";
 import type { Garden } from "@green-goods/shared/types/domain";
 import { useState } from "react";
+import { IntlProvider } from "react-intl";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -208,6 +210,18 @@ export const Granted: Story = { render: () => <RequestFixture stage="granted" />
 export const Declined: Story = { render: () => <RequestFixture stage="declined" /> };
 export const ServiceError: Story = { render: () => <RequestFixture stage="error" /> };
 export const ApiUnavailable: Story = { render: () => <RequestFixture stage="unavailable" /> };
+
+const spanishDecorators: Story["decorators"] = [
+  (Story) => (
+    <IntlProvider locale="es" messages={esMessages}>
+      <Story />
+    </IntlProvider>
+  ),
+];
+export const SpanishNoAccess: Story = { ...NoAccess, decorators: spanishDecorators };
+export const SpanishChooseGarden: Story = { ...ChooseGarden, decorators: spanishDecorators };
+export const SpanishReviewRequest: Story = { ...ReviewRequest, decorators: spanishDecorators };
+export const SpanishPendingReview: Story = { ...PendingReview, decorators: spanishDecorators };
 
 /** Guard the rendered geometry, including states with different body/action content. */
 async function verifyStableRequestGeometry() {

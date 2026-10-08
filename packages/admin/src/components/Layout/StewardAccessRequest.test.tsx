@@ -115,7 +115,7 @@ describe("StewardAccessRequest", () => {
     expect(screen.getAllByText("Pending review")).toHaveLength(2);
     expect(screen.queryByText("Steward access confirmed")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Withdraw Request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
     expect(c.withdraw).toHaveBeenCalledOnce();
   });
   it("offers address sharing when the deployed API does not advertise stewardship", () => {
@@ -149,7 +149,7 @@ describe("StewardAccessRequest", () => {
     renderRequest(c);
     expect(screen.getAllByText("Steward access confirmed")).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Withdraw Request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Withdraw" })).not.toBeInTheDocument();
   });
 
   it.each([

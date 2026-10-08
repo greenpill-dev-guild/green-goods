@@ -6855,7 +6855,7 @@
   "cockpit.stewardAccess.request": "Request Steward Access",
   "cockpit.stewardAccess.description": "Ask a garden owner or steward to give this account steward access.",
   "cockpit.stewardAccess.viewRequest": "View Steward Request",
-  "cockpit.stewardAccess.withdraw": "Withdraw Request",
+  "cockpit.stewardAccess.withdraw": "Withdraw",
   "cockpit.stewardAccess.checkStatus": "Check Status",
   "cockpit.stewardAccess.changeGarden": "Change Garden",
   "cockpit.stewardAccess.send": "Send Request",
