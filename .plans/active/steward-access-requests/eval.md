@@ -14,4 +14,6 @@ The Shared manifest adds one controller export; no dependencies or lockfile chan
 
 The first committed release run caught a missing critical classification for the new signing controller. Its exact path was added to the existing critical override, preserving the complete check set. Validation-system tests then passed on the provisional repair. Dependent release checks were unrun at that first stop; the full gate will restart after committing the repair. Documentation digests were regenerated for the policy input.
 
+The next full run passed Shared (7,267 tests), Client (1,686 tests), their typechecks/builds and the first validation guards, then stopped on four Admin cases in two existing shell suites. Those isolated suites omit wallet providers; their new request child needed the same component boundary stub used by the other shell suites. Existing assertions were preserved. The focused two-file repair command and fresh full-run outcome will be recorded in the committed receipt.
+
 Tests exceed runtime changes because signature compatibility, privilege binding, asynchronous identity scope, migration integrity, and separate adapter/UI behavior need independent proof.
