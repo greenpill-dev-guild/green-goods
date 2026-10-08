@@ -185,7 +185,7 @@ export const Loading: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      await canvas.findByRole("status", { name: "Checking authentication..." })
+      await canvas.findByRole("status", { name: "Opening your workspace…" })
     ).toBeVisible();
   },
 };

@@ -551,6 +551,7 @@
   "app.admin.assessment.strategyKernel.unit.trees": "trees",
   "app.admin.assessments.viewOnEas": "View Assessment on EAS Explorer",
   "app.admin.auth.checking": "Checking authentication...",
+  "app.admin.loading.opening": "Opening your workspace…",
   "app.admin.auth.connectPrompt": "Connect your wallet or sign in with a passkey to access this feature.",
   "app.admin.auth.connectRequired": "Connect to continue",
   "app.admin.auth.noPermission": "You don't have permission to access this area.",

@@ -6,6 +6,7 @@ import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/
 import { memo, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AppBar, MainSheet } from "@/components/Shell";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider } from "./leftSheetChannel";
@@ -88,16 +89,13 @@ export function CanvasLayout() {
   // load, so they must not block the shell from painting.
   if (controller.isLoading) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-bg-weak px-6"
-        role="status"
-        aria-label={intl.formatMessage({
-          id: "app.admin.auth.checking",
-          defaultMessage: "Checking authentication...",
+      <AdminLoadingScreen
+        label={intl.formatMessage({
+          id: "app.admin.loading.opening",
+          defaultMessage: "Opening your workspace…",
         })}
-      >
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-stroke-sub border-t-primary-base" />
-      </div>
+        locale={intl.locale}
+      />
     );
   }
 

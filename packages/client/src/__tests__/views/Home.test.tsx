@@ -290,6 +290,14 @@ describe("Home View", () => {
     expect(screen.getByRole("article")).toBeInTheDocument();
   });
 
+  it("keeps the dashboard host mounted beneath a child record", () => {
+    renderWithProviders();
+    const host = screen.getByTestId("work-dashboard-icon");
+    fireEvent.click(screen.getByTestId("garden-card"));
+    expect(screen.getByTestId("work-dashboard-icon")).toBe(host);
+    expect(host).not.toBeVisible();
+  });
+
   it.each(["/home", "/home/"])("displays Home at the compatible entry %s", (entry) => {
     renderWithProviders(entry);
 

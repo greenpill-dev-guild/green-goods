@@ -103,6 +103,12 @@ interface PwaSheetBaseProps {
   open: boolean;
   /** Called when the sheet should close (drag dismiss, Escape, backdrop, X). */
   onClose: () => void;
+  /** Keep an open workspace mounted but inactive beneath an inspected record. */
+  covered?: boolean;
+  /** A restored sheet is already in place; a normal opening slides up. */
+  entryMotion?: "slide" | "instant";
+  /** Names the whole overlay, so a route snapshot keeps it above the page. */
+  viewTransitionName?: string;
   /**
    * Sheet contents. Rendered inside the shared scrollable body when `title`
    * is set; otherwise the consumer owns the header and body chrome.
@@ -184,6 +190,9 @@ function readCssDurationMs(varName: string): number {
 export function PwaSheet({
   open,
   onClose,
+  covered = false,
+  entryMotion = "slide",
+  viewTransitionName,
   children,
   actions,
   ariaLabel,
@@ -220,11 +229,11 @@ export function PwaSheet({
   const sheetState = open ? "open" : "closed";
 
   useFocusTrap(dialogRef, {
-    enabled: mounted && open,
+    enabled: mounted && open && !covered,
     autoFocusSelector: autoFocusSelector ?? `[data-testid="${closeTestId}"]`,
   });
-  useDocumentScrollLock(open || mounted);
-  useSheetPresence(open);
+  useDocumentScrollLock((open || mounted) && !covered);
+  useSheetPresence(open && !covered);
 
   // Remember who opened the sheet and hand focus back when it closes, the way
   // the centered Radix surfaces do.
@@ -234,11 +243,11 @@ export function PwaSheet({
   // overlapping sheets compose because the manager reference-counts what it
   // hides and restores each branch only when the last sheet releases it.
   useEffect(() => {
-    if (!open || !mounted) return;
+    if (!open || !mounted || covered) return;
     const overlay = overlayRef.current;
     if (!overlay) return;
     return hideOthers(overlay);
-  }, [open, mounted]);
+  }, [open, mounted, covered]);
 
   // Every dismissal comes through here, so this is where the exit takes its
   // character: a flicked sheet already has speed and leaves on the decelerating
@@ -293,7 +302,7 @@ export function PwaSheet({
   }, [requestClose]);
 
   useEffect(() => {
-    if (!mounted || !open) return;
+    if (!mounted || !open || covered) return;
     const layer = openSheetLayer();
     const handleKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || !layer.isTopmost()) return;
@@ -311,7 +320,7 @@ export function PwaSheet({
       document.removeEventListener("keydown", handleKey, true);
       layer.close();
     };
-  }, [mounted, open]);
+  }, [mounted, open, covered]);
 
   // A tap on the dimmed area closes the sheet, and a tap is a press that began
   // there. A click alone is not enough: the browser dispatches the click that
@@ -332,7 +341,7 @@ export function PwaSheet({
     overlayRef,
     surfaceRef: dialogRef,
     dragDimRef,
-    enabled: canDrag && open,
+    enabled: canDrag && open && !covered,
     onDismiss: requestClose,
   });
 
@@ -346,8 +355,11 @@ export function PwaSheet({
       data-slot="overlay"
       data-state={sheetState}
       data-testid={`${testId}-overlay`}
+      hidden={covered}
+      inert={covered}
+      data-view-transition-name={viewTransitionName}
       className={overlayClassName}
-      style={{ pointerEvents: "auto" }}
+      style={{ pointerEvents: "auto", viewTransitionName }}
       onPointerDown={handleOverlayPointerDown}
       onClick={handleOverlayClick}
       tabIndex={-1}
@@ -357,6 +369,7 @@ export function PwaSheet({
           data-component="PwaSheet"
           data-slot="scrim"
           data-state={sheetState}
+          data-entry-motion={entryMotion}
           style={{ backgroundColor: "var(--color-scrim)" }}
         />
       </div>
@@ -372,6 +385,7 @@ export function PwaSheet({
         data-slot="surface"
         data-sheet-size={size}
         data-state={sheetState}
+        data-entry-motion={entryMotion}
         data-testid={testId}
         className={panelClassName}
         style={{

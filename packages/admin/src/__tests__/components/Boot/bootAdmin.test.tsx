@@ -186,8 +186,8 @@ describe("bootAdmin", () => {
   it("never leaves the root empty between the first frame and the application", async () => {
     const finish = await bootToFirstFrame();
 
-    expect(container.querySelector('[data-component="AdminBootShell"]')).not.toBeNull();
-    expect(container.textContent).toContain("Loading Green Goods Admin");
+    expect(container.querySelector('[data-component="AdminLoadingScreen"]')).not.toBeNull();
+    expect(container.textContent).toContain("Opening your workspace");
 
     await finish();
     expect(container.querySelector('[data-testid="admin-ready"]')).not.toBeNull();
@@ -197,8 +197,8 @@ describe("bootAdmin", () => {
     window.localStorage.setItem("gg-language", "es");
     const finish = await bootToFirstFrame();
 
-    const shell = container.querySelector('[data-component="AdminBootShell"]');
-    expect(shell?.textContent).toContain("Cargando Green Goods Admin");
+    const shell = container.querySelector('[data-component="AdminLoadingScreen"]');
+    expect(shell?.textContent).toContain("Abriendo tu espacio de trabajo");
     expect(shell?.getAttribute("lang")).toBe("es");
 
     await finish();

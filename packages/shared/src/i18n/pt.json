@@ -551,6 +551,7 @@
   "app.admin.assessment.strategyKernel.unit.trees": "árvores",
   "app.admin.assessments.viewOnEas": "Ver avaliação no EAS Explorer",
   "app.admin.auth.checking": "Verificando autenticação...",
+  "app.admin.loading.opening": "Abrindo seu espaço de trabalho…",
   "app.admin.auth.connectPrompt": "Conecte sua carteira ou entre com uma chave de acesso para acessar este recurso.",
   "app.admin.auth.connectRequired": "Conectar para continuar",
   "app.admin.auth.noPermission": "Você não tem permissão para acessar esta área.",

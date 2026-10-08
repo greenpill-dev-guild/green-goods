@@ -16,7 +16,9 @@ import { fireEvent, renderWithProviders, screen } from "../test-utils";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 /** Rows navigate into a commitment, so the sheet needs a router around it. */
-const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const render = (ui: React.ReactElement) =>
+  renderWithProviders(<MemoryRouter initialEntries={["/home"]}>{ui}</MemoryRouter>);
+
 const mockNavigate = vi.fn();
 
 vi.mock("react-router-dom", async () => {
@@ -186,11 +188,15 @@ describe("CommitmentsSheet", () => {
       expect(screen.getByText("Garden claim")).toBeInTheDocument();
       expect(screen.getByText(/Nobody can confirm their own work/)).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /3 hours/ }));
+      expect(onClose).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
-        viewTransition: true,
-        state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+        viewTransition: false,
+        state: {
+          dashboardOrigin: expect.any(Object),
+          dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+        },
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
     });
 
     it("marks a commitment a steward recorded for someone as recorded", async () => {
@@ -236,7 +242,7 @@ describe("CommitmentsSheet", () => {
     });
   });
 
-  it("opens a row's commitment in its garden and closes the sheet behind it", async () => {
+  it("opens a row's commitment in its garden without dismissing the dashboard", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     mockUseCommitmentsInbox.mockReturnValue(
@@ -245,12 +251,16 @@ describe("CommitmentsSheet", () => {
 
     render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
+    expect(onClose).not.toHaveBeenCalled();
 
     expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
-      viewTransition: true,
-      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+      viewTransition: false,
+      state: {
+        dashboardOrigin: expect.any(Object),
+        dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+      },
     });
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("records the displayed Live tab after the reader loses the steward role", async () => {
@@ -273,8 +283,9 @@ describe("CommitmentsSheet", () => {
       );
       expect(screen.getByRole("tab", { name: /live/i })).toHaveAttribute("aria-selected", "true");
       await user.click(screen.getByRole("button", { name: /3 hours/ }));
+      expect(onClose).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/",
+        "/home",
         expect.objectContaining({
           state: expect.objectContaining({
             dashboardEntry: expect.objectContaining({
@@ -307,12 +318,16 @@ describe("CommitmentsSheet", () => {
     render(<CommitmentsSheet isOpen onClose={onClose} />);
     await user.click(screen.getByRole("tab", { name: /history/i }));
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
+    expect(onClose).not.toHaveBeenCalled();
 
     expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`, {
-      viewTransition: true,
-      state: { dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }) },
+      viewTransition: false,
+      state: {
+        dashboardOrigin: expect.any(Object),
+        dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+      },
     });
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("leaves a row whose garden it cannot place as a record rather than a dead button", () => {
@@ -556,11 +571,11 @@ describe("CommitmentsSheet", () => {
     if (!scroller) throw new Error("Commitments scroll owner is missing");
     scroller.scrollTop = 172;
     await user.click(screen.getByRole("button", { name: /3 hours/ }));
-    expect(mockNavigate).toHaveBeenNthCalledWith(1, "/", {
+    expect(mockNavigate).toHaveBeenNthCalledWith(1, "/home", {
       replace: true,
       state: {
         dashboardEntry: expect.objectContaining({
-          path: "/",
+          path: "/home",
           snapshot: { kind: "commitments", tab: "live", direction: "OFFER", scrollTop: 172 },
         }),
       },
@@ -588,6 +603,10 @@ describe("CommitmentsSheet", () => {
     });
     try {
       const view = render(<CommitmentsSheet isOpen onClose={vi.fn()} />);
+      expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-entry-motion", "instant");
+      expect(screen.getByTestId("app-sheet-overlay").style.viewTransitionName).toBe(
+        "promises-dashboard"
+      );
       const scroller = document.querySelector<HTMLElement>(".overflow-y-auto");
       if (!scroller) throw new Error("Commitments scroll owner is missing");
       expect(scroller.scrollTop).toBe(150);

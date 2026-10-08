@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
@@ -31,16 +32,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "checking") {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-bg-weak px-6"
-        role="status"
-        aria-label={intl.formatMessage({
-          id: "app.admin.auth.checking",
-          defaultMessage: "Checking authentication...",
+      <AdminLoadingScreen
+        label={intl.formatMessage({
+          id: "app.admin.loading.opening",
+          defaultMessage: "Opening your workspace…",
         })}
-      >
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-stroke-sub border-t-primary-base" />
-      </div>
+        locale={intl.locale}
+      />
     );
   }
 

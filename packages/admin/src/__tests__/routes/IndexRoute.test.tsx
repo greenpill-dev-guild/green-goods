@@ -83,7 +83,7 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
   useAdminLoginController: () => ({
-    mode: "signin",
+    mode: "entry",
     changeMode: vi.fn(),
     createAccountByName: vi.fn(),
     username: "",
@@ -151,7 +151,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
   });
 
@@ -167,7 +167,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
   });
 
   it("renders the wallet-required shell for embedded auth", () => {

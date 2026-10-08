@@ -113,9 +113,8 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
         },
         `/home/${canonical}/commitments/${commitmentId.toString()}`
       );
-      onClose();
     },
-    [onClose, dashboardNavigation, gardens, selectedTab, direction]
+    [dashboardNavigation, gardens, selectedTab, direction]
   );
 
   useLayoutEffect(() => {
@@ -140,6 +139,9 @@ export const CommitmentsSheet: React.FC<CommitmentsSheetProps> = ({ isOpen, onCl
   return (
     <AppSheet
       isOpen={isOpen}
+      covered={dashboardNavigation.isDashboardCovered}
+      entryMotion={returnState ? "instant" : "slide"}
+      viewTransitionName="promises-dashboard"
       onClose={() => {
         dashboardNavigation.clear();
         onClose();
