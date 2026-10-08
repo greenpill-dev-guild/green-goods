@@ -225,7 +225,7 @@ export function PublicGetInTouch() {
 
           <div className="mt-10">
             <EditorialDivider tone="dark" />
-            <h3 className="mt-5 font-serif text-2xl text-editorial-deep-fg">
+            <h3 className="mt-5 font-serif text-2xl font-normal text-editorial-deep-fg">
               {formatMessage({ id: "public.home.getInTouch.callTitle" })}
             </h3>
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
