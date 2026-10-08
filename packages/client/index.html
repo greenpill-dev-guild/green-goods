@@ -655,13 +655,13 @@
       /* Shared anchor: free space splits 11:9 above and below the block. */
       .boot-pwa-shell::before {
         flex-grow: 11;
+        /* The upper spacer's 45% remainder lowers the block by 4px. */
+        flex-basis: calc(4px * 20 / 9);
         content: "";
       }
 
       .boot-pwa-shell::after {
         flex-grow: 9;
-        /* 20px / the upper spacer's 55% share raises the block by 20px. */
-        flex-basis: calc(20px * 20 / 11);
         content: "";
       }
 

@@ -58,6 +58,12 @@ export function installGreenGoodsWorker(scope: ServiceWorkerGlobalScope): GreenG
 
   scope.addEventListener("fetch", (event) => {
     const { request } = event;
+    // Vite's modules are live, so its entry document must be live too. A
+    // precached document can otherwise hand an old boot layout to current React.
+    // Production keeps its versioned, offline-capable navigation precache.
+    if (isDevWorker && request.method === "GET" && request.mode === "navigate") {
+      return answer(event, "asset", fetch(request, { cache: "no-store" }));
+    }
     if (isShareTargetRequest(request)) {
       return answer(event, "share", receiveShareTarget(scope, request));
     }

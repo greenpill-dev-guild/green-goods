@@ -345,12 +345,12 @@ describe("installed app loading scene parity", () => {
   });
 
   it("splits the free space 11:9 above and below the block, as the scaffold does", () => {
-    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 11 }}");
-    expect(SCAFFOLD_SOURCE).toContain('style={{ flexGrow: 9, flexBasis: "calc(20px * 20 / 11)" }}');
+    expect(SCAFFOLD_SOURCE).toContain('style={{ flexGrow: 11, flexBasis: "calc(4px * 20 / 9)" }}');
+    expect(SCAFFOLD_SOURCE).toContain("style={{ flexGrow: 9 }}");
     expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::before")).toContain("flex-grow: 11;");
     expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain("flex-grow: 9;");
-    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::after")).toContain(
-      "flex-basis: calc(20px * 20 / 11);"
+    expect(ruleBody(BOOT_CSS, ".boot-pwa-shell::before")).toContain(
+      "flex-basis: calc(4px * 20 / 9);"
     );
   });
 
