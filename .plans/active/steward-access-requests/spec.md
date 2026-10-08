@@ -4,6 +4,8 @@
 
 Request Steward Access is a labeled action below No garden access yet and in Profile. Desktop uses AdminDialog; mobile uses its full-width bottom-sheet presentation. Choose a known garden by name or valid Green Goods link/address, review the garden and primary account address, optionally add a note, then send a signed request. Pending state survives dialog dismissal in the account/chain session and supports viewing and withdrawal. Status checks that require a fresh signature are explicit actions.
 
+User correction, 2026-10-08: selection, review and status keep the same surface height within each viewport. Reuse the canonical 85dvh desktop / 90dvh mobile geometry through AdminDialog, with a stable target row and footer region. The garden search stays above a list that fills the remaining scroll area; remove its 256px cap. Evidence must show garden selection on mobile as well as the other flow states.
+
 ## Domain and authority
 
 Steward maps to deployed Operator; Owner is a stronger existing access role. Existing gardeners may request stewardship, including in open-joining gardens. Existing stewards/owners receive already_steward. Request creation never grants a role. An authorized owner/steward reviews the queue and uses the existing addSteward operation. The API resolves a steward request only after operator/owner membership is confirmed on chain; gardener membership alone leaves it pending. Decline and withdraw retain nonce, revision, expiry and identity checks.

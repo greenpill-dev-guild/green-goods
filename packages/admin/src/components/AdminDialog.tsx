@@ -34,6 +34,8 @@ export interface AdminDialogProps {
   children: ReactNode;
   actions?: ReactNode;
   size?: "sm" | "md" | "lg";
+  /** Reserve the canonical flow height across changing content; the body scrolls inside. */
+  height?: "content" | "stable";
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
@@ -118,8 +120,8 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
 // (e.g. the hypercert attestation list resolving on step 1) can't resize the
 // dialog mid-open — the body scrolls inside and the footer stays pinned, the way
 // ActionFlowShell is designed. Centralized so the three flows can't drift.
-export const ADMIN_FLOW_DIALOG_CLASS =
-  "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
+const flowHeightClasses = "[--admin-flow-height:90dvh] sm:[--admin-flow-height:85dvh]";
+export const ADMIN_FLOW_DIALOG_CLASS = `${flowHeightClasses} min-h-[var(--admin-flow-height)] sm:min-h-0 sm:h-[var(--admin-flow-height)] sm:!max-w-3xl lg:!max-w-5xl`;
 
 const mobileSheetClasses = cn(
   "fixed inset-x-0 bottom-0 z-modal flex max-h-[calc(100dvh-1rem)] w-[100dvw] max-w-none flex-col",
@@ -169,6 +171,7 @@ export function AdminDialog({
   children,
   actions,
   size = "md",
+  height = "content",
   variant = "standard",
   bodyClassName,
   actionsClassName,
@@ -266,6 +269,8 @@ export function AdminDialog({
             // overflow-hidden clips the footer's raised background to the
             // rounded corners. Body scrolling happens inside the body slot.
             "overflow-hidden p-0",
+            height === "stable" && flowHeightClasses,
+            height === "stable" && "h-[var(--admin-flow-height)]",
             sizeClasses[size],
             variantClasses[variant],
             className

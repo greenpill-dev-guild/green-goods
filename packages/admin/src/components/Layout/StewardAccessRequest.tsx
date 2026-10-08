@@ -72,7 +72,11 @@ export function StewardAccessRequest({
         {formatMessage({ id: "cockpit.stewardAccess.send" })}
       </AdminButton>
     </>
-  ) : undefined;
+  ) : (
+    <AdminButton variant="outlined" disabled={c.busy} onClick={() => c.setOpen(false)}>
+      {formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+    </AdminButton>
+  );
   return (
     <div className="space-y-3" data-component="StewardAccessRequest">
       {showStatus && request && c.selectedGarden ? (
@@ -105,14 +109,24 @@ export function StewardAccessRequest({
         onOpenChange={c.setOpen}
         title={formatMessage({ id: "cockpit.stewardAccess.request" })}
         description={formatMessage({ id: "cockpit.stewardAccess.description" })}
-        target={c.selectedGarden?.name}
+        target={
+          <span className="block truncate" title={c.selectedGarden?.name}>
+            {c.selectedGarden?.name ?? formatMessage({ id: "cockpit.gardenChip.selectGarden" })}
+          </span>
+        }
         size="md"
+        height="stable"
         tone="home"
         preventClose={c.busy}
         actions={actions}
+        actionsClassName="min-h-[calc(8rem+env(safe-area-inset-bottom))] sm:min-h-20"
         finalFocusRef={opener}
       >
-        <div className="space-y-4">
+        <div
+          className={
+            c.available && c.step === "choose" ? "flex h-full min-h-0 flex-col gap-4" : "space-y-4"
+          }
+        >
           {!c.available ? (
             <>
               {c.serviceLoading ? (
@@ -169,12 +183,14 @@ export function StewardAccessRequest({
             </div>
           ) : c.step === "choose" ? (
             <>
-              <AdminTextField
-                label={formatMessage({ id: "cockpit.stewardAccess.gardenSearch" })}
-                value={c.search}
-                onChange={(event) => c.setSearch(event.currentTarget.value)}
-                helperText={formatMessage({ id: "cockpit.stewardAccess.gardenSearchHelp" })}
-              />
+              <div className="shrink-0">
+                <AdminTextField
+                  label={formatMessage({ id: "cockpit.stewardAccess.gardenSearch" })}
+                  value={c.search}
+                  onChange={(event) => c.setSearch(event.currentTarget.value)}
+                  helperText={formatMessage({ id: "cockpit.stewardAccess.gardenSearchHelp" })}
+                />
+              </div>
               {c.catalogLoading ? (
                 <p role="status" className="body-sm text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.loadingGardens" })}
@@ -203,7 +219,7 @@ export function StewardAccessRequest({
                   })}
                 </p>
               ) : (
-                <ul className="max-h-64 divide-y divide-stroke-soft overflow-y-auto">
+                <ul className="min-h-0 flex-1 divide-y divide-stroke-soft overflow-y-auto">
                   {c.candidates.map((garden) => (
                     <li key={garden.id}>
                       <AdminButton

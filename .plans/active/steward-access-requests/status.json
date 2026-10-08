@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-08T06:50:21.435Z",
-    "updated_at": "2026-10-08T08:06:50.069Z"
+    "updated_at": "2026-10-08T14:54:07.081Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,7 +46,7 @@
   "lanes": {
     "ui": {
       "owner": "codex",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "release/october-2-0-0",
       "depends_on": [],
       "handoff": "handoffs/codex-ui.md",
@@ -112,7 +112,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -195,6 +195,14 @@
       "status": "passed",
       "branch": "release/october-2-0-0",
       "note": "Fresh committed Shared and Agent suites/builds recorded for 6cf9020c7; live authenticated proof pending; release guard blocked on unrelated report"
+    },
+    {
+      "timestamp": "2026-10-08T14:54:07.081Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "note": "User-directed correction: stable dialog/sheet geometry across selection, review and status; replace earlier UI receipt with fresh bounded proof"
     }
   ]
 }
