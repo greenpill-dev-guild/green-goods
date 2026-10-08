@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "steward-access-requests",
+    "title": "Steward Access Requests",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-10-08T06:50:21.435Z",
+    "updated_at": "2026-10-08T07:36:15.855Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["admin", "shared", "agent"],
+    "work_types": ["implementation"],
+    "surfaces": ["packages/admin/src", "packages/shared/src", "packages/agent/src"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "Bounded user-authorized release implementation, tracked locally; no external Linear mirror elected. The read-only sync manifest was inspected before code work.",
+    "Use the already user-authorized release/october-2-0-0 branch. Preserve the unrelated historical report edit."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "depends_on": [],
+      "handoff": "handoffs/codex-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/admin test src/views/Community/components/CommunityJoinRequests.test.tsx",
+          "evidence": "2026-10-08T07:06:43Z: 4 failed / 10 passed; failed or cancelled role assignment incorrectly continued to resolve. Log: /private/tmp/green-goods-steward-queue-red.log"
+        },
+        "green": {
+          "command": "bun run --cwd packages/admin test src/components/Layout/StewardAccessRequest.test.tsx src/views/Community/components/CommunityJoinRequests.test.tsx src/__tests__/components/AccountProfilePanel.test.tsx src/__tests__/components/Layout/ShellStates.test.tsx src/__tests__/routes/IndexRoute.test.tsx src/__tests__/components/AdminSideSheetStandard.guard.test.ts src/__tests__/components/AdminDialogStandard.guard.test.ts",
+          "evidence": "2026-10-08T07:25Z: 7 files / 53 tests passed on the provisional working tree. Log: /private/tmp/green-goods-steward-requests-final-admin-proof.log. Current committed receipt remains pending."
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/agent test --scope unit -- src/__tests__/garden-join-requests.test.ts src/__tests__/garden-join-requests.api.test.ts src/__tests__/garden-join-requests-chain.test.ts",
+          "evidence": "2026-10-08T06:55:11Z: 3 failed files, 11 failed / 48 passed, 59 total; missing steward admission, signed kind binding and Operator/Owner confirmation. Observed command output; no persisted RED log."
+        },
+        "green": {
+          "command": "bun run --cwd packages/agent test --scope unit --coverage; bun run --cwd packages/agent test --scope sqlite",
+          "evidence": "Provisional working-tree proof: 519 unit tests passed + 1 skipped; 174 SQLite tests passed. Logs: /private/tmp/green-goods-steward-agent-unit-coverage.log and /private/tmp/green-goods-steward-agent-sqlite.log. Committed receipt remains pending."
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-08T06:50:21.441Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-10-08T06:53:00.677Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": null,
+      "note": "Existing role assignment is reused; no Solidity implementation changes"
+    },
+    {
+      "timestamp": "2026-10-08T06:53:03.251Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "note": null
+    },
+    {
+      "timestamp": "2026-10-08T06:53:05.962Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "release/october-2-0-0",
+      "note": null
+    },
+    {
+      "timestamp": "2026-10-08T07:36:14.983Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "release/october-2-0-0",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-08T07:36:15.856Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "release/october-2-0-0",
+      "note": "Recorded RED/GREEN TDD proof"
+    }
+  ]
+}

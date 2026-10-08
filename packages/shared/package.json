@@ -145,6 +145,7 @@
     "./hooks/admin-ui/layout/accountSheet.events": "./src/hooks/admin-ui/layout/accountSheet.events.ts",
     "./hooks/admin-ui/layout/commandPalette.results": "./src/hooks/admin-ui/layout/commandPalette.results.ts",
     "./hooks/admin-ui/layout/useAccountProfileController": "./src/hooks/admin-ui/layout/useAccountProfileController.ts",
+    "./hooks/admin-ui/layout/useStewardAccessRequestController": "./src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
     "./hooks/admin-ui/layout/useAdminRightSheetDescriptor": "./src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx",
     "./hooks/admin-ui/layout/useCanvasShellController": "./src/hooks/admin-ui/layout/useCanvasShellController.ts",
     "./hooks/admin-ui/layout/useCommandPaletteController": "./src/hooks/admin-ui/layout/useCommandPaletteController.ts",

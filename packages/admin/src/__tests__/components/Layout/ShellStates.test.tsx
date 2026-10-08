@@ -17,6 +17,9 @@ import { ConnectShell } from "@/components/Layout/ConnectShell";
 vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <button type="button">Connect Wallet</button>,
 }));
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 const account = vi.hoisted(() => ({
   address: "0x9999999999999999999999999999999999999999" as const,

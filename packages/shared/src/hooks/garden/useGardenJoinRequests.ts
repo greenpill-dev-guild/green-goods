@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSignMessage } from "wagmi";
 import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-requests";
@@ -11,6 +11,10 @@ import {
   resolveAccountFactoryArgs,
 } from "../../modules/auth/account-message-signer";
 import {
+  assertSmartAccountClient,
+  assertSmartAccountClientResolverActive,
+} from "../../modules/auth/smartAccountClientResolver";
+import {
   buildGardenJoinProofMessage,
   type CreateGardenJoinRequestInput,
   GARDEN_JOIN_REQUEST_DEFAULT_PAGE_SIZE,
@@ -18,7 +22,9 @@ import {
   type GardenJoinProofContent,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestQueueItem,
+  type GardenJoinRequestKind,
   type ResolveGardenJoinRequestInput,
+  validateCreateGardenJoinRequest,
 } from "../../public-contracts/join-requests";
 import {
   type GardenJoinRequestFailure,
@@ -35,26 +41,45 @@ import { useGardenJoinRequestMutationBarrier } from "./useGardenJoinRequestMutat
 type AsyncState = { isLoading: boolean; error: Error | null };
 const IDLE_ASYNC_STATE: AsyncState = { isLoading: false, error: null };
 
-export function useGardenJoinRequestAvailability(): boolean {
+export function useGardenJoinRequestAvailability(
+  kind: GardenJoinRequestKind = "garden_membership"
+): boolean {
+  return useGardenJoinRequestAvailabilityState(kind).available;
+}
+
+export function useGardenJoinRequestAvailabilityState(
+  kind: GardenJoinRequestKind = "garden_membership"
+) {
   const query = useQuery({
     queryKey: gardenJoinRequestKeys.availability(),
     queryFn: () => gardenJoinRequestTransport.availability(),
     staleTime: 60_000,
     retry: false,
   });
-  return query.data?.enabled === true;
+  return {
+    available:
+      query.data?.enabled === true &&
+      (query.data.supportedKinds ?? ["garden_membership"]).includes(kind),
+    isLoading: query.isPending,
+    error: query.error,
+  };
 }
 
-export function useGardenJoinRequests(gardenAddress?: Address | null) {
+export function useGardenJoinRequests(
+  gardenAddress?: Address | null,
+  options: { kind?: GardenJoinRequestKind } = {}
+) {
+  const kind = options.kind ?? "garden_membership";
   const chainId = useCurrentChain();
   const accountAddress = usePrimaryAddress() as Address | null;
-  const auth = useAuth();
+  const { authMode, smartAccountClient, resolveSmartAccountClient } = useAuth();
   const { signMessageAsync } = useSignMessage();
   const session = useGardenJoinRequestSession(
     chainId,
     gardenAddress ?? "none",
     accountAddress ?? "none",
-    auth.authMode ?? "none"
+    authMode ?? "none",
+    kind
   );
   const { scopeKey, isCurrentScope, request, hasCheckedStatus, setRequest, setHasCheckedStatus } =
     session;
@@ -77,15 +102,8 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     setMutationState(IDLE_ASYNC_STATE);
   }, [scopeKey]);
 
-  const signer = useMemo(
-    () =>
-      createAccountMessageSigner({
-        authMode: auth.authMode,
-        signMessage: signMessageAsync,
-        account: auth.smartAccountClient?.account,
-      }),
-    [auth.authMode, auth.smartAccountClient?.account, signMessageAsync]
-  );
+  const latestResolver = useRef(resolveSmartAccountClient);
+  latestResolver.current = resolveSmartAccountClient;
 
   const signProof = useCallback(
     async (
@@ -99,6 +117,21 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       if (!gardenAddress || !accountAddress) {
         throw new Error("Connect your account before continuing.");
       }
+      let account = smartAccountClient?.account;
+      if (authMode === "passkey") {
+        assertSmartAccountClientResolverActive(resolveSmartAccountClient);
+        const client =
+          smartAccountClient?.chain?.id === chainId
+            ? smartAccountClient
+            : await resolveSmartAccountClient?.(chainId);
+        if (!isCurrentScope(scopeKey) || latestResolver.current !== resolveSmartAccountClient) {
+          throw new Error("The account or request changed while authorizing.");
+        }
+        assertSmartAccountClientResolverActive(resolveSmartAccountClient);
+        if (!client) throw new Error("Reconnect your passkey account before continuing.");
+        assertSmartAccountClient(client, chainId, accountAddress);
+        account = client.account;
+      }
       const issuedAt = Math.floor(Date.now() / 1000);
       const unsigned = {
         version: 1 as const,
@@ -106,6 +139,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         gardenAddress: gardenAddress.toLowerCase() as GardenJoinProofEnvelope["gardenAddress"],
         accountAddress: accountAddress.toLowerCase() as GardenJoinProofEnvelope["accountAddress"],
         action,
+        ...(kind === "steward_access" ? { kind } : {}),
         nonce: randomNonce(),
         issuedAt,
         expiresAt: issuedAt + 300,
@@ -116,11 +150,14 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
           ? { expectedRevision: extra.expectedRevision }
           : {}),
       };
+      const signer = createAccountMessageSigner({
+        authMode,
+        signMessage: signMessageAsync,
+        account,
+      });
       const signature = await signer(buildGardenJoinProofMessage(unsigned, content));
       const factoryArgs =
-        auth.authMode === "passkey"
-          ? await resolveAccountFactoryArgs(auth.smartAccountClient?.account)
-          : undefined;
+        authMode === "passkey" ? await resolveAccountFactoryArgs(account) : undefined;
       if (unsigned.expiresAt <= Math.floor(Date.now() / 1000)) {
         throw new GardenJoinRequestTransportError(
           "Authorization expired while signing. Please sign again.",
@@ -141,11 +178,15 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     },
     [
       accountAddress,
-      auth.authMode,
-      auth.smartAccountClient?.account,
+      authMode,
+      smartAccountClient,
+      resolveSmartAccountClient,
       chainId,
       gardenAddress,
-      signer,
+      kind,
+      isCurrentScope,
+      scopeKey,
+      signMessageAsync,
     ]
   );
 
@@ -213,11 +254,24 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
       setHasCheckedStatus(false);
       setStatusState(IDLE_ASYNC_STATE);
       try {
-        const content = {
-          displayName: input.displayName.trim().replace(/\s+/g, " "),
-          ...(input.note?.trim() ? { note: input.note.trim().replace(/\r\n/g, "\n") } : {}),
-          requestedVia: input.requestedVia,
-        };
+        if (input.kind !== undefined && input.kind !== kind) {
+          throw new GardenJoinRequestTransportError(
+            "Request kind does not match this flow.",
+            400,
+            "invalid_request"
+          );
+        }
+        const validated = validateCreateGardenJoinRequest({
+          ...input,
+          ...(kind === "steward_access" ? { kind } : {}),
+        });
+        if (!validated.ok)
+          throw new GardenJoinRequestTransportError(
+            validated.error.message,
+            400,
+            validated.error.errorCode
+          );
+        const content = validated.value;
         const proof = await signProof(
           "create",
           { ...content, note: content.note ?? null },
@@ -228,7 +282,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
         if (!isCurrentScope(operationScope) || !session.isCurrentOperation(operationId))
           return null;
         session.retainAuthorization(proof);
-        const response = await gardenJoinRequestTransport.create(gardenAddress!, input, proof);
+        const response = await gardenJoinRequestTransport.create(gardenAddress!, content, proof);
         if (isCurrentScope(operationScope) && session.isCurrentOperation(operationId)) {
           setRequest(response.request);
           setHasCheckedStatus(true);
@@ -255,6 +309,7 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
     [
       beginRequestMutation,
       gardenAddress,
+      kind,
       isCurrentScope,
       scopeKey,
       signProof,
@@ -372,7 +427,11 @@ export function useGardenJoinRequests(gardenAddress?: Address | null) {
           input,
           proof
         );
-        if (!response.pendingOnchainMembership && isCurrentScope(operationScope)) {
+        if (
+          !response.pendingOnchainMembership &&
+          !response.pendingOnchainRole &&
+          isCurrentScope(operationScope)
+        ) {
           setQueue((current) => current.filter((item) => item.id !== requestId));
         }
         return response;
@@ -420,30 +479,21 @@ function randomNonce(): `0x${string}` {
   return `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/**
- * The error to show for a failed call, or null when there is nothing to show.
- *
- * Declining the signature is a choice, not a failure, so it shows and records
- * nothing; callers rethrow it as it arrived so it stays recognizable. Every other failure is recorded without the account, name, or note,
- * because until now a failed join request left no trace anywhere.
- */
+// Keep signature cancellations recognizable and silent. Record other failures
+// without account addresses, names, or notes.
 function failureToShow(
   caught: unknown,
   fallback: string,
   operation: GardenJoinRequestFailure["operation"]
 ): Error | null {
   if (isCancelledTxError(caught)) return null;
-  const error = toError(caught, fallback);
+  const error = caught instanceof Error ? caught : new Error(fallback);
   trackGardenJoinRequestFailed(
     error instanceof GardenJoinRequestTransportError
       ? { operation, status: error.status, errorCode: error.errorCode }
       : { operation, errorName: error.name }
   );
   return error;
-}
-
-function toError(caught: unknown, fallback: string): Error {
-  return caught instanceof Error ? caught : new Error(fallback);
 }
 
 // The declared join-request entrypoint also exposes its presentation lifecycle.

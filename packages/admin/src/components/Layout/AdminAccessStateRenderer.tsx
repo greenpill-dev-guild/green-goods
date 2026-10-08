@@ -14,6 +14,7 @@ import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
 import { AdminAccessHomeShell } from "./CanvasLayout";
 import { WalletRequiredConnectShell } from "./ConnectShell";
 import { SeedlingIllustration } from "./SeedlingIllustration";
+import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 interface AdminAccessStateRendererProps {
   state: AdminAccessState;
@@ -115,6 +116,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
         <CanvasGardenAccessState
           onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
           canCreateGarden={state.canCreateGarden}
+          stewardAccess={<StewardAccessRequestContainer showStatus />}
         />
       </main>
     </AdminAccessHomeShell>

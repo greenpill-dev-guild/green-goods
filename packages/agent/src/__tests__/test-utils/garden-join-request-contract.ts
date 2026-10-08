@@ -67,6 +67,80 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
       expect(JSON.stringify(inspectEncryptedRecords())).not.toContain("Maya");
     });
 
+    it("keeps membership and steward requests separate for the same account and garden", async () => {
+      const { store, inspectEncryptedRecords } = createStore();
+      const input = {
+        gardenAddress: garden,
+        accountAddress: account,
+        displayName: "Maya",
+        requestedAt,
+        expiresAt,
+      };
+      const membership = await store.create({ ...input, requestedVia: "garden_detail" });
+      const steward = await store.create({
+        ...input,
+        kind: "steward_access",
+        requestedVia: "admin_access",
+      });
+      const duplicate = await store.create({
+        ...input,
+        kind: "steward_access",
+        requestedVia: "account_profile",
+      });
+      expect(membership).toMatchObject({ created: true, request: { kind: "garden_membership" } });
+      expect(steward).toMatchObject({ created: true, request: { kind: "steward_access" } });
+      if (steward.created !== true || membership.created !== true || "full" in duplicate) {
+        throw new Error("Expected separate pending requests");
+      }
+      expect(duplicate).toMatchObject({ created: false, request: { id: steward.request.id } });
+      expect(await store.getMine(garden, account, readAt)).toMatchObject({
+        id: membership.request.id,
+      });
+      expect(await store.getMine(garden, account, readAt, "steward_access")).toMatchObject({
+        id: steward.request.id,
+      });
+      expect(
+        (await store.listPending(garden, { nowIso: readAt })).items.map(({ id }) => id)
+      ).toEqual([membership.request.id]);
+      expect(
+        (await store.listPending(garden, { nowIso: readAt, kind: "steward_access" })).items.map(
+          ({ id }) => id
+        )
+      ).toEqual([steward.request.id]);
+      expect(inspectEncryptedRecords()).toHaveLength(2);
+    });
+
+    it("rejects a different request kind before withdrawal or resolution", async () => {
+      const { store } = createStore();
+      const steward = await store.create({
+        gardenAddress: garden,
+        accountAddress: account,
+        kind: "steward_access",
+        displayName: "Maya",
+        requestedVia: "admin_access",
+        requestedAt,
+        expiresAt,
+      });
+      if (!steward.created) throw new Error("Expected steward request");
+      const identity = {
+        gardenAddress: garden,
+        requestId: steward.request.id,
+        expectedRevision: 0,
+      };
+      expect(await store.withdraw({ ...identity, accountAddress: account })).toBe(false);
+      expect(await store.resolve({ ...identity, state: "declined", resolvedAt: readAt })).toEqual({
+        ok: false,
+        reason: "not_found",
+      });
+      expect(await store.reconcileWelcomed(garden, steward.request.id, readAt)).toBeUndefined();
+      expect(await store.getMine(garden, account, readAt, "steward_access")).toMatchObject({
+        state: "pending",
+      });
+      expect(
+        await store.withdraw({ ...identity, accountAddress: account, kind: "steward_access" })
+      ).toBe(true);
+    });
+
     it("requires revision consistency and preserves the decline reason for the requester", async () => {
       const { store } = createStore();
       const created = await store.create({
@@ -302,6 +376,9 @@ export function gardenJoinRequestStoreContract(label: string, createStore: () =>
         accountAddress: "0x3333333333333333333333333333333333333333" as const,
       };
       await expect(store.create(nextInput)).resolves.toEqual({ created: false, full: true });
+      await expect(
+        store.create({ ...nextInput, kind: "steward_access", requestedVia: "admin_access" })
+      ).resolves.toEqual({ created: false, full: true });
       expect(inspectEncryptedRecords()).toHaveLength(100);
       await expect(
         store.withdraw({
