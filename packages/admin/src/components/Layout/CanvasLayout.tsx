@@ -3,7 +3,7 @@ import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
 import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
-import { memo, useCallback, useMemo } from "react";
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
@@ -17,9 +17,53 @@ import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProb
 import { CommandPalette } from "./CommandPalette";
 import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { PageTransition } from "./PageTransition";
+import { SeedlingIllustration } from "./SeedlingIllustration";
 
 const StableAppBar = memo(AppBar);
 StableAppBar.displayName = "StableAppBar";
+
+/** Access-state chrome keeps identity actions independent of garden permissions. */
+export function AdminAccessHomeShell({
+  children,
+  showProfile = false,
+}: {
+  children: ReactNode;
+  showProfile?: boolean;
+}) {
+  const intl = useIntl();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  return (
+    <div
+      data-tone="home"
+      className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
+    >
+      <div className="canvas-area-top">
+        <AppBar
+          gardenChip={
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
+              <SeedlingIllustration className="h-5 w-5" />
+              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+            </span>
+          }
+          onOpenProfile={showProfile ? () => setProfileOpen(true) : undefined}
+        />
+      </div>
+      <MainSheet>{children}</MainSheet>
+      <div className="canvas-area-bottom" />
+      {showProfile && (
+        <AdminSideSheet
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
+          tone="hub"
+        >
+          <AccountProfilePanelContainer />
+        </AdminSideSheet>
+      )}
+    </div>
+  );
+}
 
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.

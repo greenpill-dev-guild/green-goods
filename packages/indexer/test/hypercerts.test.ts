@@ -18,6 +18,59 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 // ============================================================================
 
 describe("HypercertMinter.TransferSingle — mints", () => {
+  it("compiles the mint restriction into the retrieval topics on both chains", async () => {
+    const mockDb = createTestIndexer();
+    await processEvents(mockDb, [
+      HypercertMinter.TransferSingle.createMockEvent({
+        operator: addr(1),
+        from: ZERO_ADDRESS,
+        to: addr(2),
+        id: 42n,
+        value: 1000n,
+        mockEventData: mockEvent(CHAIN_ID, 5000),
+      }),
+    ]);
+    // Envio 3.6's simulated source ignores static topic values. Inspect the
+    // actual resolved registrations so removing `where` fails this proof.
+    const { activeRegistration } = (
+      globalThis as unknown as {
+        __envioGlobal: {
+          activeRegistration: {
+            registrationsByChainId: Record<
+              string,
+              {
+                onEventRegistrations: {
+                  eventConfig: { contractName: string; name: string };
+                  resolvedWhere: {
+                    topicSelections: {
+                      topic1: { TAG: string; _0: string[] };
+                      topic2: { TAG: string; _0: string[] };
+                      topic3: { TAG: string; _0: string[] };
+                    }[];
+                  };
+                }[];
+              }
+            >;
+          };
+        };
+      }
+    ).__envioGlobal;
+    for (const chainId of [CHAINS.arbitrum, CHAINS.sepolia]) {
+      const registrations = activeRegistration.registrationsByChainId[String(chainId)];
+      const transfer = registrations?.onEventRegistrations.find(
+        ({ eventConfig }) =>
+          eventConfig.contractName === "HypercertMinter" && eventConfig.name === "TransferSingle"
+      );
+      assert.ok(transfer);
+      assert.equal(transfer.resolvedWhere.topicSelections.length, 1);
+      const topics = transfer.resolvedWhere.topicSelections[0];
+      assert.ok(topics);
+      assert.deepEqual(topics.topic2, { TAG: "Values", _0: [`0x${"0".repeat(64)}`] });
+      assert.deepEqual(topics.topic1, { TAG: "Values", _0: [] });
+      assert.deepEqual(topics.topic3, { TAG: "Values", _0: [] });
+    }
+  });
+
   it("creates new hypercert on first mint (from zero address)", async () => {
     const mockDb = createTestIndexer();
     const tx = txHash(100);
@@ -604,6 +657,104 @@ describe("HypercertMinter.ClaimStored", () => {
       assert.deepEqual(hypercert.commitmentIds, []);
     } finally {
       await metadataServer.close();
+    }
+  });
+});
+
+describe("HypercertMinter.ClaimStored — metadata cache", () => {
+  const originalFetch = globalThis.fetch;
+  const uri = "ipfs://bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku";
+  const metadata = { name: "Garden work", hidden_properties: { gardenId: addr(1) } };
+  const claim = (claimID: bigint, location = uri, chainId: number = CHAIN_ID) =>
+    HypercertMinter.ClaimStored.createMockEvent({
+      claimID,
+      uri: location,
+      totalUnits: 100n,
+      mockEventData: mockEvent(chainId, Number(claimID)),
+    });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("deduplicates immutable metadata across preload and events", async () => {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return new Response(JSON.stringify(metadata));
+    };
+    const mockDb = createTestIndexer();
+    // TestIndexer does not persist Effect cache tables between process runs.
+    await processEvents(mockDb, [claim(1n), claim(2n)]);
+    assert.equal(calls, 1);
+    for (const id of [1, 2]) {
+      const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-${id}`);
+      assert.ok(hypercert);
+      assert.equal(hypercert.metadataUri, uri);
+      assert.equal(hypercert.garden, addr(1));
+      assert.equal(hypercert.totalUnits, 100n);
+      assert.equal(hypercert.metadataReconciliationRequired, false);
+    }
+  });
+
+  it("recovers during processing when preload exhausted its retry attempts", async () => {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return calls <= 3
+        ? new Response("unavailable", { status: 503 })
+        : new Response(JSON.stringify(metadata));
+    };
+    const mockDb = createTestIndexer();
+    await processEvents(mockDb, [claim(4n)]);
+    const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-4`);
+    assert.ok(hypercert);
+    assert.equal(calls, 4);
+    assert.equal(hypercert.garden, addr(1));
+    assert.equal(hypercert.metadataReconciliationRequired, false);
+  });
+
+  it("clears reconciliation when a failed fetch recovers on later redelivery", async () => {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return new Response("missing", { status: 404 });
+    };
+    const mockDb = createTestIndexer();
+    await processEvents(mockDb, [claim(5n)]);
+    assert.equal(calls, 2);
+    assert.equal(
+      (await mockDb.Hypercert.get(`${CHAIN_ID}-5`))?.metadataReconciliationRequired,
+      true
+    );
+    globalThis.fetch = async () => {
+      calls++;
+      return new Response(JSON.stringify(metadata));
+    };
+    await processEvents(mockDb, [claim(5n)]);
+    const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-5`);
+    assert.ok(hypercert);
+    assert.equal(calls, 3);
+    assert.equal(hypercert.garden, addr(1));
+    assert.equal(hypercert.metadataReconciliationRequired, false);
+  });
+
+  it("uses the processing response for mutable HTTP and IPNS locations", async () => {
+    for (const location of [
+      "https://example.invalid/metadata.json",
+      "ipfs://ipns/example.invalid/metadata.json",
+    ]) {
+      let calls = 0;
+      globalThis.fetch = async () => {
+        calls++;
+        return new Response(JSON.stringify({ hidden_properties: { gardenId: addr(calls) } }));
+      };
+      const mockDb = createTestIndexer();
+      await processEvents(mockDb, [claim(6n, location)]);
+      const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-6`);
+      assert.ok(hypercert);
+      assert.equal(calls, 2, location);
+      assert.equal(hypercert.garden, addr(2), location);
+      assert.equal(hypercert.metadataReconciliationRequired, false);
     }
   });
 });

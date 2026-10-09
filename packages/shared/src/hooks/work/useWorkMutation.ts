@@ -2,6 +2,7 @@ import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
 import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
+import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { draftDB } from "../../modules/job-queue/draft-db";
 /** Submits work through the current auth mode and preserves durable retry progress. */
 
@@ -83,6 +84,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     generation: number;
     activeDraftId: string | null | undefined;
     journeyId: string;
+    clientWorkId?: string;
     outcome?: SubmitWorkOutcome;
   };
   const origins = useRef(new WeakMap<Variables, Origin>());
@@ -171,10 +173,20 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         if (retainedSubmission.current?.scope !== scope)
           retainedSubmission.current = { scope, id: crypto.randomUUID() };
       }
+      const submission = retainSubmission ? retainedSubmission.current : null;
+      origin.clientWorkId = submission?.id;
       const outcome = await submitWork(
         {
           ...persistence,
-          ...(retainSubmission ? { clientWorkId: retainedSubmission.current!.id } : {}),
+          ...(submission
+            ? {
+                clientWorkId: submission.id,
+                onTerminalUnsentFailure: () => {
+                  // A late failure must not retire a newer submission's identity.
+                  if (retainedSubmission.current === submission) retainedSubmission.current = null;
+                },
+              }
+            : {}),
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
           },
@@ -408,6 +420,16 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
       if (!origin || !ownsFlow(origin)) return;
+      const previous = lastSubmissionOutcomeRef.current;
+      if (
+        error instanceof WorkTransactionReverted &&
+        origin.clientWorkId !== undefined &&
+        previous?.kind === "awaiting-confirmation" &&
+        previous.clientWorkId === origin.clientWorkId
+      ) {
+        lastSubmissionOutcomeRef.current = null;
+        setLastSubmissionOutcome(null);
+      }
       const workSubmissionJourneyId = origin.journeyId;
 
       // Provide haptic feedback for error

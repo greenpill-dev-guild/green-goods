@@ -20,6 +20,106 @@ const proof: GardenJoinProofEnvelope = {
 };
 
 describe("garden join request transport", () => {
+  it("keeps steward mine, withdrawal and queue routes bound to the signed kind", async () => {
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) =>
+      Response.json(
+        init.method === "DELETE"
+          ? { ok: true }
+          : _url.includes("/me")
+            ? { ok: true, request: null }
+            : { ok: true, items: [], rateLimitedRecently: false }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const stewardProof = { ...proof, kind: "steward_access" as const };
+    await gardenJoinRequestTransport.mine(
+      GARDEN,
+      { ...stewardProof, action: "read_self" },
+      "https://agent.example"
+    );
+    await gardenJoinRequestTransport.withdraw(
+      GARDEN,
+      { ...stewardProof, action: "withdraw" },
+      "https://agent.example"
+    );
+    await gardenJoinRequestTransport.list(
+      GARDEN,
+      { limit: 25 },
+      { ...stewardProof, action: "list" },
+      "https://agent.example"
+    );
+    for (const [url] of fetchMock.mock.calls)
+      expect(new URL(url).searchParams.get("kind")).toBe("steward_access");
+  });
+
+  it.each([
+    "mine",
+    "list",
+    "resolve",
+  ] as const)("rejects a membership record returned for a steward %s operation", async (operation) => {
+    const record = { id: "request-1", kind: "garden_membership", state: "pending" };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ ok: true, request: record, items: [record] }))
+    );
+    const stewardProof = { ...proof, kind: "steward_access" as const };
+    const pending =
+      operation === "mine"
+        ? gardenJoinRequestTransport.mine(
+            GARDEN,
+            { ...stewardProof, action: "read_self" },
+            "https://agent.example"
+          )
+        : operation === "list"
+          ? gardenJoinRequestTransport.list(
+              GARDEN,
+              { limit: 25 },
+              { ...stewardProof, action: "list" },
+              "https://agent.example"
+            )
+          : gardenJoinRequestTransport.resolve(
+              GARDEN,
+              "request-1",
+              { action: "welcome", expectedRevision: 0 },
+              { ...stewardProof, action: "welcome" },
+              "https://agent.example"
+            );
+    await expect(pending).rejects.toBeInstanceOf(GardenJoinRequestTransportError);
+  });
+
+  it("rejects malformed advertised request kinds and maps an existing steward rejection", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ ok: true, enabled: true, supportedKinds: ["owner_access"] })
+      )
+    );
+    await expect(
+      gardenJoinRequestTransport.availability("https://agent.example")
+    ).rejects.toBeInstanceOf(GardenJoinRequestTransportError);
+    expect(
+      gardenJoinRequestErrorMessage(
+        new GardenJoinRequestTransportError("Already steward", 409, "already_steward")
+      )
+    ).toMatchObject({
+      id: "app.garden.joinRequest.error.alreadySteward",
+    });
+  });
+
+  it("rejects an unsigned steward create body before dispatching it", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      gardenJoinRequestTransport.create(
+        GARDEN,
+        { kind: "steward_access", displayName: "Maya", requestedVia: "admin_access" },
+        proof,
+        "https://agent.example"
+      )
+    ).rejects.toMatchObject({ outcomeUnknown: false, errorCode: "invalid_request" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("does not turn a malformed status response into an absent request", async () => {
     vi.stubGlobal(
       "fetch",
