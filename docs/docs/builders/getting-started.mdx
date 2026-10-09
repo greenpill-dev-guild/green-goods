@@ -16,7 +16,7 @@ persona_context: "Developers running Green Goods for the first time, as a public
 source_of_truth:
   - ONBOARDING.md
   - package.json
-  - .env.schema
+  - env.schema
   - scripts/dev/setup.js
   - scripts/dev/stack.js
   - scripts/lib/dev-modes.mjs
@@ -196,9 +196,9 @@ picture.
 
 Green Goods uses one `.env` at the repository root. Packages never carry their own.
 
-- **`.env.schema` owns the rules.** It names every variable and whether it's required.
+- **`env.schema` owns the rules.** It names every variable and whether it's required.
   `bun run env:check` validates your `.env` against it.
-- **`.env.template` holds references, not secrets.** Team members resolve those references from
+- **`env.template` holds references, not secrets.** Team members resolve those references from
   1Password with `bun run env:sync`, which needs the 1Password CLI and access to the shared
   vault. If the template is missing, `node scripts/dev/env-template-init.js` recreates its shape.
 - **Setup never overwrites your `.env`.** A rerun keeps the file as it is; it doesn't merge in new
