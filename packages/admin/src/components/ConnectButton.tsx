@@ -10,6 +10,7 @@ interface ConnectButtonProps {
   children?: ReactNode;
   variant?: "primary" | "secondary";
   size?: "sm" | "md" | "lg";
+  disabled?: boolean;
 }
 
 export function ConnectButton({
@@ -17,6 +18,7 @@ export function ConnectButton({
   children,
   variant = "primary",
   size = "md",
+  disabled = false,
 }: ConnectButtonProps) {
   const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
@@ -29,6 +31,7 @@ export function ConnectButton({
       type="button"
       onClick={() => loginWithWallet()}
       loading={isConnecting}
+      disabled={disabled}
       leadingIcon={children || isConnecting ? undefined : <RiWallet3Line />}
       variant={adminVariant}
       size={size}

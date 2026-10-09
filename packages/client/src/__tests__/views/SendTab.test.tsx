@@ -1,6 +1,6 @@
 /**
  * SendTab Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";

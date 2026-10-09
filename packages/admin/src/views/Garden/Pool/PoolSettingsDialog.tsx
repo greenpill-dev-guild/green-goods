@@ -6,6 +6,7 @@ import {
   useCommitmentPoolSetupSequence,
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { POOL_PURPOSE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
 import {
   isRetriablePoolSetupFailure,
   type PoolSetupStep,
@@ -16,9 +17,9 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
-import { changedSettings, planSettingsSteps, settingsActions } from "./poolSettingsPlan";
 import { PoolSettingsProgress } from "./PoolSettingsProgress";
 import { PoolTarget, type PoolWriteTarget } from "./PoolTarget";
+import { changedSettings, planSettingsSteps, settingsActions } from "./poolSettingsPlan";
 import { promptCount, promptNumbers } from "./SetupFlow/setupWrites";
 
 export interface PoolSettingsDialogProps {
@@ -53,7 +54,10 @@ export function PoolSettingsDialog({
   const [lastAct, setLastAct] = useState<"save" | "retry">("save");
   const sequence = useCommitmentPoolSetupSequence({
     chainId: pool.chainId,
-    toastContext: "pool settings",
+    toastContext: formatMessage({
+      id: "cockpit.garden.pool.settings.title",
+      defaultMessage: "Pool Settings",
+    }),
   });
   const status = sequence.state.status;
   const editing = status === "idle";
@@ -96,6 +100,9 @@ export function PoolSettingsDialog({
     editing &&
     dirty &&
     purpose.trim().length > 0 &&
+    // An agreement written before the limit can load longer than it; a
+    // changed one is written only once it fits. Its counter shows the excess.
+    (!changes.agreement || purpose.length <= POOL_PURPOSE_MAX_LENGTH) &&
     capValue !== null &&
     capValue > 0n &&
     !busy &&
@@ -235,7 +242,8 @@ export function PoolSettingsDialog({
               rows={4}
               required
               disabled={busy}
-              textareaProps={{ maxLength: 2000 }}
+              showCount
+              textareaProps={{ maxLength: POOL_PURPOSE_MAX_LENGTH }}
             />
             <AdminTextField
               label={formatMessage({
@@ -253,7 +261,7 @@ export function PoolSettingsDialog({
               disabled={busy}
               required
             />
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.settings.note",
                 defaultMessage:

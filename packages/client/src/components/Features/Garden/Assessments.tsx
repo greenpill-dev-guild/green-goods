@@ -1,11 +1,6 @@
-import type {
-  AssessmentAttachment,
-  CynefinPhase,
-  GardenAssessment,
-} from "@green-goods/shared/types/domain";
-import { DOMAIN_LABEL_IDS } from "@green-goods/shared/utils/garden-detail";
-import { formatDateRange } from "@green-goods/shared/utils/time";
-import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
+import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
+import { formatReportingPeriod } from "@green-goods/shared/utils/time";
 import {
   RiCalendarLine,
   RiErrorWarningLine,
@@ -20,57 +15,49 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/Cards";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
+import { CYNEFIN_LABEL_IDS, outcomeMeasure } from "./assessmentDisplay";
 
 interface GardenAssessmentsProps {
-  assessments: GardenAssessment[];
+  records: GardenAssessmentRecord[];
   assessmentFetchStatus: "pending" | "success" | "error";
   description?: string | null;
 }
 
 interface AssessmentListProps {
-  assessments: GardenAssessment[];
+  records: GardenAssessmentRecord[];
   assessmentFetchStatus: "pending" | "success" | "error";
 }
 
-const CYNEFIN_LABEL_IDS: Record<CynefinPhase, string> = {
-  0: "app.garden.assessments.cynefin.clear",
-  1: "app.garden.assessments.cynefin.complicated",
-  2: "app.garden.assessments.cynefin.complex",
-  3: "app.garden.assessments.cynefin.chaotic",
-};
-
 const AssessmentCard = memo(function AssessmentCard({
-  assessment,
+  record,
 }: {
-  assessment: GardenAssessment;
+  record: GardenAssessmentRecord;
 }) {
   const intl = useIntl();
-  const reportingPeriod = formatDateRange(
-    assessment.reportingPeriod.start,
-    assessment.reportingPeriod.end,
-    intl.formatMessage({ id: "app.garden.assessments.dateNotSet" })
-  );
-  const domainLabel = intl.formatMessage({ id: DOMAIN_LABEL_IDS[assessment.domain] });
-  const cynefinLabel = intl.formatMessage({ id: CYNEFIN_LABEL_IDS[assessment.cynefinPhase] });
-  const outcomesPreview = assessment.smartOutcomes.slice(0, 3);
+  const { summary, detail } = record;
+  const reportingPeriod =
+    formatReportingPeriod(intl, summary.startDate, summary.endDate) ??
+    intl.formatMessage({ id: "app.garden.assessments.dateNotSet" });
+  const kernel = detail.status === "loaded" ? detail.value : null;
+  const outcomesPreview = kernel?.smartOutcomes.slice(0, 3) ?? [];
 
   return (
     <Card className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3
-            className="truncate text-base font-semibold text-text-strong-950"
-            title={assessment.title}
+            className="line-clamp-2 break-words text-base font-semibold text-text-strong-950"
+            title={summary.title}
           >
-            {assessment.title}
+            {summary.title}
           </h3>
-          <p className="text-xs uppercase tracking-wide text-text-sub-600">{domainLabel}</p>
-          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600" title={assessment.description}>
-            {assessment.description}
+          <DomainBadge domain={summary.domain} variant="inline" className="mt-1" />
+          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600" title={summary.description}>
+            {summary.description}
           </p>
         </div>
         <Link
-          to={`assessments/${assessment.id}`}
+          to={`assessments/${summary.id}`}
           viewTransition
           className="inline-flex shrink-0 items-center gap-1 rounded-md border border-stroke-soft-200 px-2 py-1 text-xs font-medium text-text-sub-600 transition hover:bg-bg-weak-50"
         >
@@ -81,43 +68,74 @@ const AssessmentCard = memo(function AssessmentCard({
 
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary" />} variant="pill">
+          <Badge
+            leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary-on-surface" />}
+            variant="pill"
+          >
             {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
           </Badge>
           <span className="px-2 text-xs text-text-sub-600">{reportingPeriod}</span>
         </div>
-        <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiStackLine className="h-4 w-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.cynefinPhase" })}
-          </Badge>
-          <span className="px-2 text-xs text-text-sub-600">{cynefinLabel}</span>
-        </div>
-        <div className="flex flex-col gap-1 sm:col-span-2">
-          <Badge leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary" />} variant="pill">
-            {intl.formatMessage({ id: "app.garden.assessments.sdgAlignment" })}
-          </Badge>
-          <ul className="flex flex-wrap gap-1 px-2">
-            {assessment.sdgTargets.map((sdg) => (
-              <li key={`${assessment.id}-sdg-${sdg}`}>
-                <Badge variant="pill" tint="primary">
-                  {intl.formatMessage(
-                    { id: "app.garden.assessments.sdgItem" },
-                    {
-                      number: sdg,
-                      label: intl.formatMessage({ id: `app.hypercerts.sdg.${sdg}` }),
-                    }
-                  )}
-                </Badge>
-              </li>
-            ))}
-            {assessment.sdgTargets.length === 0 ? (
-              <li className="text-xs text-text-sub-600">
-                {intl.formatMessage({ id: "app.garden.assessments.noSdgTargets" })}
-              </li>
-            ) : null}
-          </ul>
-        </div>
+        {kernel && kernel.cynefinPhase !== null ? (
+          <div className="flex flex-col gap-1">
+            <Badge
+              leadingIcon={<RiStackLine className="h-4 w-4 text-primary-on-surface" />}
+              variant="pill"
+            >
+              {intl.formatMessage({ id: "app.garden.assessments.cynefinPhase" })}
+            </Badge>
+            <span className="px-2 text-xs text-text-sub-600">
+              {intl.formatMessage({ id: CYNEFIN_LABEL_IDS[kernel.cynefinPhase] })}
+            </span>
+          </div>
+        ) : null}
+        {kernel ? (
+          <div className="flex flex-col gap-1 sm:col-span-2">
+            <Badge
+              leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary-on-surface" />}
+              variant="pill"
+            >
+              {intl.formatMessage({ id: "app.garden.assessments.sdgAlignment" })}
+            </Badge>
+            <ul className="flex flex-wrap gap-1 px-2">
+              {kernel.sdgTargets.map((sdg) => (
+                <li key={`${summary.id}-sdg-${sdg}`}>
+                  <Badge variant="pill" tint="primary">
+                    {intl.formatMessage(
+                      { id: "app.garden.assessments.sdgItem" },
+                      {
+                        number: sdg,
+                        label: intl.formatMessage({ id: `app.hypercerts.sdg.${sdg}` }),
+                      }
+                    )}
+                  </Badge>
+                </li>
+              ))}
+              {kernel.sdgTargets.length === 0 ? (
+                <li className="text-xs text-text-sub-600">
+                  {intl.formatMessage({ id: "app.garden.assessments.noSdgTargets" })}
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        ) : null}
       </div>
+
+      {detail.status === "pending" ? (
+        <div className="space-y-2 rounded-md bg-bg-weak-50 p-3" aria-hidden="true">
+          <div className="h-3 w-24 animate-pulse rounded bg-bg-soft-200" />
+          <div className="h-3 w-full animate-pulse rounded bg-bg-soft-200" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-bg-soft-200" />
+        </div>
+      ) : null}
+
+      {/* The stored files could not be read. That is not an assessment with nothing recorded. */}
+      {detail.status === "unavailable" ? (
+        <p className="flex items-center gap-1.5 text-xs text-text-sub-600">
+          <RiErrorWarningLine className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {intl.formatMessage({ id: "app.garden.assessments.detailUnavailableShort" })}
+        </p>
+      ) : null}
 
       {outcomesPreview.length ? (
         <div className="rounded-md bg-bg-weak-50 p-3 text-xs text-text-sub-600">
@@ -126,14 +144,14 @@ const AssessmentCard = memo(function AssessmentCard({
           </p>
           <ul className="space-y-2">
             {outcomesPreview.map((outcome, index) => (
-              <li key={`${assessment.id}-outcome-${index}`}>
-                <p className="font-medium text-text-strong-950">{outcome.description}</p>
-                <p>
-                  {intl.formatMessage(
-                    { id: "app.garden.assessments.outcomeTarget" },
-                    { target: outcome.target, metric: outcome.metric }
-                  )}
+              <li key={`${summary.id}-outcome-${index}`}>
+                <p
+                  className="line-clamp-2 font-medium text-text-strong-950"
+                  title={outcome.description}
+                >
+                  {outcome.description}
                 </p>
+                <p>{outcomeMeasure(intl, summary.domain, outcome)}</p>
               </li>
             ))}
           </ul>
@@ -143,7 +161,7 @@ const AssessmentCard = memo(function AssessmentCard({
   );
 });
 
-const AssessmentList = ({ assessments, assessmentFetchStatus }: AssessmentListProps) => {
+const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps) => {
   const intl = useIntl();
   switch (assessmentFetchStatus) {
     case "pending":
@@ -174,12 +192,12 @@ const AssessmentList = ({ assessments, assessmentFetchStatus }: AssessmentListPr
         </Carousel>
       );
     case "success":
-      return assessments.length ? (
+      return records.length ? (
         <Carousel opts={{ align: "start", loop: false }}>
           <CarouselContent>
-            {assessments.map((assessment) => (
-              <CarouselItem key={assessment.id}>
-                <AssessmentCard assessment={assessment} />
+            {records.map((record) => (
+              <CarouselItem key={record.summary.id}>
+                <AssessmentCard record={record} />
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -195,46 +213,16 @@ const AssessmentList = ({ assessments, assessmentFetchStatus }: AssessmentListPr
         <EmptyState
           tone="error"
           icon={<RiErrorWarningLine />}
-          title={intl.formatMessage({ id: "app.garden.assessments.errorLoadingWorks" })}
+          title={intl.formatMessage({ id: "app.garden.assessments.loadError" })}
         />
       );
   }
 };
 
-const AttachmentCard = memo(function AttachmentCard({
-  attachment,
-}: {
-  attachment: AssessmentAttachment;
-}) {
-  const intl = useIntl();
-
-  return (
-    <Card className="flex min-h-[160px] flex-col gap-3">
-      <div className="flex items-center gap-2 text-primary">
-        <RiFileTextLine className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
-        <h3 className="truncate text-base font-semibold text-text-strong-950">{attachment.name}</h3>
-      </div>
-      <p className="text-sm text-text-sub-600">{attachment.mimeType}</p>
-      <a
-        href={resolveIPFSUrl(attachment.cid)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-      >
-        <RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />
-        {intl.formatMessage({ id: "app.actions.viewDocument" })}
-      </a>
-    </Card>
-  );
-});
-
 export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsProps>(
-  ({ assessments, assessmentFetchStatus, description }, ref) => {
+  ({ records, assessmentFetchStatus, description }, ref) => {
     const intl = useIntl();
     const hasDescription = Boolean(description && description.trim().length > 0);
-    const allAttachments = assessments.flatMap((assessment) =>
-      assessment.attachments.map((attachment) => ({ assessmentId: assessment.id, attachment }))
-    );
 
     return (
       <div className="flex flex-col gap-6" ref={ref}>
@@ -253,25 +241,8 @@ export const GardenAssessments = forwardRef<HTMLDivElement, GardenAssessmentsPro
           <h2 className="text-base font-semibold text-text-strong-950">
             {intl.formatMessage({ id: "app.garden.assessments.listTitle" })}
           </h2>
-          <AssessmentList assessments={assessments} assessmentFetchStatus={assessmentFetchStatus} />
+          <AssessmentList records={records} assessmentFetchStatus={assessmentFetchStatus} />
         </section>
-
-        {allAttachments.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold text-text-strong-950">
-              {intl.formatMessage({ id: "app.garden.assessments.attachments" })}
-            </h2>
-            <Carousel opts={{ align: "start", loop: false }}>
-              <CarouselContent>
-                {allAttachments.map(({ assessmentId, attachment }) => (
-                  <CarouselItem key={`${assessmentId}-${attachment.cid}`}>
-                    <AttachmentCard attachment={attachment} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-          </section>
-        )}
       </div>
     );
   }

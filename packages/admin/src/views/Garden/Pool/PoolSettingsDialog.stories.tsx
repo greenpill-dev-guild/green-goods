@@ -18,7 +18,7 @@ const meta: Meta<typeof PoolSettingsDialog> = {
     docs: {
       description: {
         component:
-          "Edit pool settings: the agreement and the per-person commitment limit. Only what changed is written, the agreement first, through the setup sequence: the dialog says how many times the wallet will ask, shows each write landing, names what was saved if a write stops, and ends on a done state. The running, stopped and done states are in PoolSettingsProgress.",
+          "Edit pool settings: the agreement and the per-person commitment limit. The agreement stops at 420 characters, counted as the steward types; one written before that limit loads in full and is saved again only once it fits. Only what changed is written, the agreement first, through the setup sequence: the dialog says how many times the wallet will ask, shows each write landing, names what was saved if a write stops, and ends on a done state. The running, stopped and done states are in PoolSettingsProgress.",
       },
     },
   },

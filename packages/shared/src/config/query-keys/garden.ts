@@ -9,11 +9,20 @@ export const gardensKeys = {
     ["greengoods", "gardens", "karma", "version", gardenId, chainId] as const,
   karmaSlug: (gardenId: string, chainId: number) =>
     ["greengoods", "gardens", "karma", "slug", gardenId, chainId] as const,
+  /** The account's gardener cap, a chain read; under `all`, so a saved cap refetches it. */
+  maxGardeners: (gardenId: string, chainId: number) =>
+    ["greengoods", "gardens", "maxGardeners", gardenId, chainId] as const,
 } as const;
 
 export const actionsKeys = {
   all: ["greengoods", "actions"] as const,
   byChain: (chainId: number) => ["greengoods", "actions", chainId] as const,
+  detail: (chainId: number, actionUID: number) =>
+    ["greengoods", "actions", chainId, "detail", actionUID] as const,
+  byUIDs: (chainId: number, actionUIDs: readonly number[]) =>
+    ["greengoods", "actions", chainId, "uids", actionUIDs] as const,
+  atWork: (chainId: number, actionUID: number, workUID: string) =>
+    ["greengoods", "actions", chainId, "atWork", actionUID, workUID] as const,
 } as const;
 
 export const assessmentsKeys = {
@@ -26,6 +35,11 @@ export const assessmentsKeys = {
   /** Full key with limit - use for specific queries */
   byGarden: (gardenAddress: string, chainId: number, limit?: number) =>
     ["greengoods", "assessments", "byGarden", gardenAddress, chainId, limit] as const,
+  /**
+   * The detail an assessment stores on IPFS, by its config CID. Kept outside
+   * `all`: the content can never change, so a new assessment must not refetch it.
+   */
+  detail: (configCid: string) => ["greengoods", "assessmentDetail", configCid] as const,
 } as const;
 
 export const platformKeys = {

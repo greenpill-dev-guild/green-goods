@@ -14,6 +14,7 @@
  *  - Rule 5   field/variable named like an Ethereum address typed as `string`
  *  - Rule 6   Zustand selector returning whole state `(state) => state`
  *  - Rule 11  undeclared `@green-goods/shared/...` imports
+ *  - Rule 14  whole reads of `import.meta.env` (typescript Rule 14)
  *  - Rule 13  raw Tailwind palette colors (frontend-design Rule 13)
  *  - Rule 16  inline alert-style divs that should use shared <Alert /> (frontend Rule 16)
  *  - Rule 19  client buttons and controls outside the shared family (frontend Rule 19)
@@ -64,6 +65,7 @@ const LOCAL_EXPORTED_HOOK_EXCEPTIONS = new Set([
 const BLOCKING_RULES = new Set([
   "rule-6-zustand-whole-state",
   "rule-11-undeclared-shared-import",
+  "rule-14-whole-env-read",
   "rule-19-client-shared-controls",
 ]);
 
@@ -92,6 +94,13 @@ const SCOPES = {
     "packages/client/src",
     "packages/agent/src",
     "packages/indexer/src",
+  ],
+  // The walk skips directories named `lib`, and the shared `ENV` module lives in one.
+  "rule-14-whole-env-read": [
+    "packages/shared/src",
+    "packages/shared/src/lib",
+    "packages/client/src",
+    "packages/admin/src",
   ],
   "rule-13-raw-tailwind-color": ["packages/admin/src", "packages/client/src"],
   "rule-16-inline-alert-div": ["packages/admin/src", "packages/client/src"],
@@ -882,12 +891,36 @@ function scanRule19(files) {
   return files.flatMap((file) => scanRule19Source(file, readFile(file)));
 }
 
+// Rule 14: env keys are read by name. Vite inlines the whole env object into the bundle
+// wherever `import.meta.env` is read whole (a default parameter, a cast, a computed key), and
+// one value where a key is named. `.KEY`, `?.KEY`, and `!.KEY` are reads by name.
+const RULE_14_WHOLE_ENV_READ = /\bimport\.meta\.env\b(?!\s*[!?]?\.\s*[A-Za-z_$])/g;
+
+export function scanRule14Source(file, source) {
+  const code = stripJsComments(source);
+  const sourceLines = source.split("\n");
+  return Array.from(code.matchAll(RULE_14_WHOLE_ENV_READ), (match) => {
+    const line = code.slice(0, match.index).split("\n").length;
+    return {
+      rule: "rule-14-whole-env-read",
+      file,
+      line,
+      snippet: (sourceLines[line - 1] ?? "").trim().slice(0, 200),
+    };
+  });
+}
+
+function scanRule14(files) {
+  return files.flatMap((file) => scanRule14Source(file, readFile(file)));
+}
+
 const RULE_SCANNERS = {
   "rule-1-raw-timer": scanRule1,
   "rule-2-raw-addeventlistener": scanRule2,
   "rule-5-address-as-string": scanRule5,
   "rule-6-zustand-whole-state": scanRule6,
   "rule-11-undeclared-shared-import": scanRule11,
+  "rule-14-whole-env-read": scanRule14,
   "rule-13-raw-tailwind-color": scanRule13,
   "rule-16-inline-alert-div": scanRule16,
   "rule-19-client-shared-controls": scanRule19,
@@ -1001,6 +1034,12 @@ export function main(argv = process.argv.slice(2)) {
           `(${[...RULE_19_RAW_BUTTON_ROLES].join(", ")}).`,
       );
     }
+    if (allHits.some((hit) => hit.rule === "rule-14-whole-env-read")) {
+      console.error(
+        "Rule 14: read env keys by name (import.meta.env.VITE_X). Vite inlines the whole env " +
+          "object wherever import.meta.env is read whole; pass an object of named reads instead.",
+      );
+    }
   } else {
     console.log(
       `✅ check-react-patterns: 0 blocking violations across ${BLOCKING_RULES.size} source-pattern rules plus package/export/hook boundary checks.`,
@@ -1013,7 +1052,7 @@ export function main(argv = process.argv.slice(2)) {
 
   console.log("\nRule sources:");
   console.log("  .claude/rules/react-patterns.md  (Rules 1, 2, 6)");
-  console.log("  .claude/rules/typescript.md      (Rules 5, 11)");
+  console.log("  .claude/rules/typescript.md      (Rules 5, 11, 14)");
   console.log("  .claude/rules/frontend-design.md (Rules 13, 16, 19)");
   console.log("  scripts/quality/check-react-patterns.js (package/export/hook boundaries)");
 

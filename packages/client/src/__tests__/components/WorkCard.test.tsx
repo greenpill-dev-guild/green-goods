@@ -1,4 +1,6 @@
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import esMessages from "@green-goods/shared/i18n/es";
+import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
@@ -84,5 +86,48 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(screen.queryByText("Approved")).not.toBeInTheDocument();
     expect(screen.getByText("Ready to sign and upload")).toBeInTheDocument();
     expect(card.querySelectorAll("h4")).toHaveLength(1);
+  });
+
+  describe("title", () => {
+    const title = () => screen.getByRole("heading", { level: 4 });
+
+    it("drops the timestamps older submissions appended to a hosted title", () => {
+      render(
+        <MinimalWorkCard
+          work={
+            {
+              ...work,
+              title: "Maintenance Activity - 2026-03-19T23:56:54.981Z - 2026-03-19T23:56:55.093Z",
+            } as any
+          }
+          onClick={vi.fn()}
+        />
+      );
+
+      expect(title()).toHaveTextContent(/^Maintenance Activity$/);
+      expect(title()).toHaveAttribute("title", "Maintenance Activity");
+    });
+
+    it("reads the work's own title when its action has only a generated name", () => {
+      render(
+        <MinimalWorkCard
+          work={{ ...work, title: "Plant Flowers - 2026-03-19T23:56:54.981Z" } as any}
+          onClick={vi.fn()}
+          actionTitle="Action 1"
+        />
+      );
+
+      expect(title()).toHaveTextContent(/^Plant Flowers$/);
+    });
+
+    it("calls a work with no real title untitled, in the reader's language", () => {
+      render(
+        <IntlProvider locale="es" messages={esMessages}>
+          <MinimalWorkCard work={{ ...work, title: "Action 1" } as any} onClick={vi.fn()} />
+        </IntlProvider>
+      );
+
+      expect(title()).toHaveTextContent(/^Trabajo sin título$/);
+    });
   });
 });

@@ -52,19 +52,19 @@ export function VaultEventHistory({
   return (
     <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-text-strong sm:text-lg">
+        <h2 className="text-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.treasury.events" })}
         </h2>
       </div>
 
       {isLoading && (
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({ id: "app.treasury.eventsLoading" })}
         </p>
       )}
 
       {!isLoading && events.length === 0 && (
-        <p className="text-sm text-text-soft">
+        <p className="body-sm text-text-soft">
           {formatMessage({ id: "app.treasury.eventsEmpty" })}
         </p>
       )}
@@ -73,7 +73,7 @@ export function VaultEventHistory({
         <>
           {/* Desktop table */}
           <div className="hidden overflow-x-auto sm:block">
-            <table className="min-w-full divide-y divide-stroke-soft text-sm">
+            <table className="min-w-full divide-y divide-stroke-soft body-sm">
               <thead>
                 <tr className="text-left label-xs text-text-soft">
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.type" })}</th>
@@ -89,7 +89,7 @@ export function VaultEventHistory({
                   <tr key={event.id}>
                     <td className="py-2 pr-4">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        className={`rounded-full px-2 py-1 label-xs ${
                           EVENT_BADGE_CLASS[event.eventType] ?? "bg-bg-weak text-text-sub"
                         }`}
                       >
@@ -137,7 +137,7 @@ export function VaultEventHistory({
               <div key={event.id} className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                    className={`rounded-full px-2 py-1 label-xs ${
                       EVENT_BADGE_CLASS[event.eventType] ?? "bg-bg-weak text-text-sub"
                     }`}
                   >
@@ -145,9 +145,9 @@ export function VaultEventHistory({
                       ? formatMessage({ id: EVENT_TYPE_I18N[event.eventType] })
                       : event.eventType}
                   </span>
-                  <span className="text-xs text-text-soft">{formatDateTime(event.timestamp)}</span>
+                  <span className="body-xs text-text-soft">{formatDateTime(event.timestamp)}</span>
                 </div>
-                <div className="space-y-1 text-sm">
+                <div className="space-y-1 body-sm">
                   <div className="flex justify-between">
                     <span className="text-text-soft">
                       {formatMessage({ id: "app.treasury.asset" })}
@@ -183,7 +183,7 @@ export function VaultEventHistory({
                         href={`${blockExplorer}/tx/${event.txHash}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-primary-base hover:text-primary-darker"
+                        className="body-xs text-primary-base hover:text-primary-darker"
                       >
                         {formatMessage({ id: "app.treasury.viewTx" })}
                       </a>

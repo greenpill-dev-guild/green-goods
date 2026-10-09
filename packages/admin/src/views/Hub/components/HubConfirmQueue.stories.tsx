@@ -1,6 +1,8 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, screen, userEvent, within } from "storybook/test";
+import { expect, mocked, screen, userEvent, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -9,8 +11,11 @@ import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import {
   STORY_GARDEN,
+  STORY_GROUP_COPIES,
+  STORY_GROUP_METADATA,
   STORY_ROOT_GARDEN,
   STORY_TO_CONFIRM,
 } from "../../Garden/Pool/poolStoryFixtures";
@@ -127,6 +132,87 @@ export const ConfirmKeptReview: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
     const review = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
     await expect(review).toHaveTextContent("This closes the commitment as kept, for everyone.");
+  },
+};
+
+/**
+ * Two copies of one group waiting on this garden: each is its own row, named
+ * by its group, and each is confirmed on its own. Nothing confirms them all.
+ */
+// The indexer gives every copy its pool; the shared story copies leave it out.
+const groupPoolId = 7n;
+const readyCopies = STORY_GROUP_COPIES.map((copy) => ({
+  ...copy,
+  poolId: groupPoolId,
+  ...(copy.commitmentId === 26n
+    ? {
+        onchainState: "READY_FOR_CONFIRMATION" as const,
+        derivedState: "READY_FOR_CONFIRMATION" as const,
+      }
+    : {}),
+}));
+export const CopiesFromAGroup: Story = {
+  tags: ["storybook-ci"],
+  args: {
+    toConfirm: {
+      ...STORY_TO_CONFIRM,
+      groups: [
+        {
+          ...ownGroup!,
+          rows: readyCopies
+            .filter((copy) => copy.onchainState === "READY_FOR_CONFIRMATION")
+            .map((commitment) => ({ commitment, seat: "confirmer" as const, needsYou: true })),
+        },
+      ],
+      fallback: [],
+      count: 2,
+    },
+  },
+  decorators: [
+    withSeededQueryClient([
+      ...STORYBOOK_ADMIN_SHELL_SEEDS,
+      [
+        queryKeys.commitmentPooling.commitments(DEFAULT_CHAIN_ID, {
+          chainId: DEFAULT_CHAIN_ID,
+          poolId: groupPoolId,
+        }),
+        readyCopies,
+      ],
+      [queryKeys.commitmentPooling.metadata(readyCopies[0]!.metadataCID!), STORY_GROUP_METADATA],
+    ]),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findAllByText(/from a group of 10/, {}, ROWS)).toHaveLength(2);
+    await expect(canvas.getAllByRole("button", { name: "Confirm Kept…" })).toHaveLength(2);
+    await expect(canvas.queryByRole("button", { name: /Confirm All/i })).toBeNull();
+  },
+};
+
+/**
+ * A confirmation that lands turns its row into the outcome, in place, with
+ * its time: it stays there for the visit, the way Review Promises does.
+ */
+export const ConfirmedInPlace: Story = {
+  tags: ["storybook-ci"],
+  args: { toConfirm: { ...STORY_TO_CONFIRM, fallback: [], count: 1 } },
+  beforeEach: () => {
+    mocked(useCommitmentJobs).mockReturnValue({
+      isPending: false,
+      enqueue: async (input: { report?: (event: { stage: "landed"; txHash: null }) => void }) => {
+        input.report?.({ stage: "landed", txHash: null });
+        return "job-story";
+      },
+    } as unknown as ReturnType<typeof useCommitmentJobs>);
+    return resetHookMocks(useCommitmentJobs);
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
+    const review = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
+    await userEvent.click(within(review).getByRole("button", { name: "Confirm Kept" }));
+    await expect(await canvas.findByText("Confirmed", {}, ROWS)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Confirm Kept…" })).toBeNull();
   },
 };
 

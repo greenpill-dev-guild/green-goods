@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,32 @@ describe("PwaSheet", () => {
   afterEach(() => {
     vi.useRealTimers();
     document.documentElement.classList.remove("modal-open");
+  });
+
+  it("retains its controls beneath a record and restores the modal without remounting", () => {
+    const close = vi.fn();
+    const page = (covered: boolean) => (
+      <PwaSheet open covered={covered} onClose={close} ariaLabel="Dashboard">
+        <input aria-label="Reader state" defaultValue="Saved" />
+      </PwaSheet>
+    );
+    const view = render(page(false));
+    const input = screen.getByRole("textbox", { name: "Reader state" });
+    fireEvent.change(input, { target: { value: "Reader changed this" } });
+    view.rerender(page(true));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pwa-sheet-overlay")).toHaveAttribute("hidden");
+    expect(screen.getByTestId("pwa-sheet-overlay")).toHaveAttribute("inert");
+    expect(screen.getByTestId("pwa-sheet")).toHaveAttribute("data-state", "open");
+    expect(document.documentElement).not.toHaveClass("modal-open");
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(close).not.toHaveBeenCalled();
+    view.rerender(page(false));
+    expect(screen.getByRole("textbox", { name: "Reader state" })).toBe(input);
+    expect(input).toHaveValue("Reader changed this");
+    expect(document.documentElement).toHaveClass("modal-open");
+    expect(useUIStore.getState().openSheetCount).toBe(1);
   });
 
   it("keeps its lock while closing and finishes closing on page hide", () => {
@@ -184,9 +210,9 @@ describe("PwaSheet", () => {
         <p>Body</p>
       </PwaSheet>
     );
-    // Tailwind does not scan packages/shared, so the geometry must come from
-    // the [data-component="PwaSheet"] rules in utilities.css, never from
-    // classes authored here.
+    // The geometry comes from the component-layer [data-component="PwaSheet"]
+    // rules in utilities.css, never from classes authored here, so the
+    // consumer's panelClassName is the panel's only class and overrides them.
     expect(screen.getByRole("dialog").getAttribute("class")).toBe("consumer-panel");
     expect(screen.getByTestId("pwa-sheet-overlay")).not.toHaveAttribute("class");
     expect(screen.getByTestId("pwa-sheet-drag-handle")).not.toHaveAttribute("class");
@@ -512,6 +538,32 @@ describe("PwaSheet", () => {
 
       expect(close).toHaveBeenCalledOnce();
       expect(screen.getByTestId("pwa-sheet").style.translate).toBe("");
+    });
+
+    it("still follows and dismisses a retained sheet after a record reveals it", () => {
+      const close = vi.fn();
+      const sheet = (covered: boolean) => (
+        <PwaSheet
+          open
+          covered={covered}
+          entryMotion="instant"
+          onClose={close}
+          title="Dashboard"
+          closeLabel="Close"
+        />
+      );
+      const view = render(sheet(false));
+      const original = screen.getByTestId("pwa-sheet");
+      view.rerender(sheet(true));
+      view.rerender(sheet(false));
+      expect(screen.getByTestId("pwa-sheet")).toBe(original);
+      const pointer = pointerOnHandle();
+      pointer.down();
+      pointer.moveTo(DRAG_START);
+      pointer.moveTo(DRAG_START + 110);
+      expect(dragOffset()).toBe(110);
+      pointer.up(DRAG_START + 110);
+      expect(close).toHaveBeenCalledOnce();
     });
 
     it("closes on a quick downward flick, however short", () => {

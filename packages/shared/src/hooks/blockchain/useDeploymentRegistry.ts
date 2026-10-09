@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
-import { useAccount } from "wagmi";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { getNetworkConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
@@ -77,14 +77,9 @@ export interface DeploymentRegistryPermissions {
 
 export function useDeploymentRegistry(): DeploymentRegistryPermissions {
   const auth = useAuthContext();
-  const { address: wagmiAddress, isConnected } = useAccount();
-
-  // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
-  const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress ?? null;
+  const address = usePrimaryAddress();
   const normalizedAddress = address?.toLowerCase();
-
-  // Ready when either wagmi is connected OR auth context is authenticated
-  const ready = isConnected || (auth.isReady && auth.isAuthenticated);
+  const ready = auth.isReady && auth.isAuthenticated;
 
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;

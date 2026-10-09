@@ -6,7 +6,11 @@ import babel from "@rolldown/plugin-babel";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "../../scripts/lib/env-parity.mjs";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
@@ -156,11 +160,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveAdminSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
+  // The Sentry environment above is the last reader of Vercel's VITE_-prefixed copies.
+  // Vite collects what it exposes after this function returns.
+  dropVercelFrameworkVariables(process.env);
   if (command === "build") {
     assertEnvParity({
       app: "admin",
       env: process.env,
-      schemaPath: resolve(rootDir, ".env.schema"),
+      schemaPath: resolve(rootDir, "env.schema"),
     });
     assertSentryDsnResolvable({ app: "admin", sentryDsn, env: process.env });
   }

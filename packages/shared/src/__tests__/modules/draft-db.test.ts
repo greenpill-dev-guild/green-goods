@@ -114,6 +114,33 @@ describe("complete draft snapshots", () => {
     await draftDB.deleteDraft("snapshot");
     expect(await draftDB.getActiveDraft(account, 11155111)).toBeNull();
   });
+  it("keeps the promise a draft is for until the person unlinks it", async () => {
+    const link = {
+      commitmentId: "12",
+      requirementIndex: 0,
+      actionUID: 5,
+      garden: "0x5eed000000000000000000000000000000000001" as const,
+      commitmentTitle: "Transplant 36 seedlings into the east beds",
+      requirementLabel: "Seedling Transplant · 36 plants",
+      returnTo: "/home/0x5eed000000000000000000000000000000000001/commitments/12",
+    };
+    await draftDB.saveSnapshot(account, 11155111, "linked", { linkIntent: link }, [], []);
+    // A resumed draft saves before its promise is back in the page: that save says nothing of it.
+    await draftDB.saveSnapshot(
+      account,
+      11155111,
+      "linked",
+      { feedback: "moved them", linkIntent: undefined },
+      [],
+      []
+    );
+    expect((await draftDB.getDraft("linked"))?.linkIntent).toEqual(link);
+
+    await draftDB.saveSnapshot(account, 11155111, "linked", { linkIntent: null }, [], []);
+    await draftDB.saveSnapshot(account, 11155111, "linked", { feedback: "later" }, [], []);
+    expect((await draftDB.getDraft("linked"))?.linkIntent).toBeNull();
+    await draftDB.deleteDraft("linked");
+  });
   it("does not modify fields or files when a new attachment cannot be read", async () => {
     await draftDB.saveSnapshot(
       account,
@@ -148,8 +175,23 @@ describe("complete draft snapshots", () => {
       "draft-limit"
     );
     expect(await draftDB.getDraftCount(account, 11155111)).toBe(20);
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(true);
     await draftDB.saveSnapshot(account, 11155111, "limit-0", { feedback: "updated" }, [], []);
-    for (let index = 0; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
+    await draftDB.deleteDraft("limit-0");
+    expect(await draftDB.isAtDraftLimit(account, 11155111)).toBe(false);
+    for (let index = 1; index < 20; index++) await draftDB.deleteDraft(`limit-${index}`);
+  });
+  it("releases the active pointer only while it still names the draft", async () => {
+    await draftDB.saveSnapshot(account, 11155111, "first", { feedback: "first" }, [], []);
+    // Another tab has since opened a different draft.
+    await draftDB.saveSnapshot(account, 11155111, "second", { feedback: "second" }, [], []);
+    await draftDB.releaseActiveDraft(account, 11155111, "first");
+    expect(await draftDB.getActiveDraft(account, 11155111)).toBe("second");
+    await draftDB.releaseActiveDraft(account, 11155111, "second");
+    expect(await draftDB.getActiveDraft(account, 11155111)).toBeNull();
+    expect(await draftDB.getDraftCount(account, 11155111)).toBe(2);
+    await draftDB.deleteDraft("first");
+    await draftDB.deleteDraft("second");
   });
   it("cancels stale saves before committing and refuses another account's ID", async () => {
     await expect(

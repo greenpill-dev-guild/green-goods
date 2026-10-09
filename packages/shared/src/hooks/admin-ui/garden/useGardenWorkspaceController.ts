@@ -1,13 +1,15 @@
 import { useViewActions } from "../../../components/Canvas/useViewActions";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
-import { formatTokenAmount } from "../../../utils/blockchain/vaults";
+import { formatAssetAmounts } from "../../../utils/blockchain/vaults";
 import { parseGardenRange } from "../../../utils/garden-detail";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useGardenMaxGardeners } from "../../garden/useGardenMaxGardeners";
 import { useKarmaIntegration } from "../../garden/useKarmaIntegration";
+import { useEffectiveToolbarPermissions } from "../../roles/useEffectiveToolbarPermissions";
 import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
 import { useMediaQuery } from "../../ui/useMediaQuery";
 import { useSheetWidth } from "../../useSheetWidth";
@@ -27,7 +29,7 @@ function parseActivityFilter(value: string): ActivityFilter {
 }
 
 export function useGardenWorkspaceController() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
   const { hypercertId, commitmentId: poolCommitmentId } = useParams<{
@@ -36,6 +38,8 @@ export function useGardenWorkspaceController() {
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
+  const { showCommunity, isLoading: permissionsLoading } = useEffectiveToolbarPermissions();
+  const canAccessCommunity = showCommunity && !permissionsLoading;
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
   const selectedGardenAddress = selectedGarden?.id;
@@ -95,14 +99,28 @@ export function useGardenWorkspaceController() {
     community,
     gardenVaults,
     cookieJars,
-    vaultNetDeposited,
+    endowmentByAsset,
+    hasEndowment,
     allocations,
     works,
+    worksComplete,
+    gardenReviewQueue,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
   const karmaIntegration = useKarmaIntegration(garden);
+  const maxGardeners = useGardenMaxGardeners(
+    garden?.id as Address | undefined,
+    garden?.chainId
+  ).data;
+  // The gardener cap is a chain read the indexer does not carry, so it joins the workspace's
+  // garden here: undefined until read, which the settings form never takes for unlimited.
+  const workspaceGarden = useMemo(
+    () => (garden ? { ...garden, maxGardeners } : undefined),
+    [garden, maxGardeners]
+  );
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
@@ -136,17 +154,20 @@ export function useGardenWorkspaceController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     cookieJars,
     roleMembers,
     selectedRange: range,
     activityFilter,
     memberSearch: "",
     section: undefined,
+    canAccessCommunity,
     formatMessage,
     openSection,
   });
@@ -176,10 +197,12 @@ export function useGardenWorkspaceController() {
 
       return {
         ...event,
-        href: adminRoutes.communityEndowment({ gardenId: selectedGardenAddress }),
+        href: canAccessCommunity
+          ? adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+          : undefined,
       };
     });
-  }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
+  }, [canAccessCommunity, derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
 
   const clearSection = useCallback(
     () => updateSearch({ section: undefined, item: undefined }, false),
@@ -274,7 +297,7 @@ export function useGardenWorkspaceController() {
     error,
     fetching,
     fetchingAssessments,
-    garden,
+    garden: workspaceGarden,
     gardenOptions,
     hypercertSheetCloseTo,
     poolCommitmentId,
@@ -286,6 +309,7 @@ export function useGardenWorkspaceController() {
     hypercertId,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     isOwner,
     karmaIntegration,
     openSection,
@@ -296,7 +320,7 @@ export function useGardenWorkspaceController() {
     selectedItem,
     setActivityFilter,
     settingsOpen,
-    treasuryBalance: formatTokenAmount(vaultNetDeposited),
+    treasuryBalance: formatAssetAmounts(endowmentByAsset, locale),
     updateOverviewQueryState,
     view,
     gardenAddress: garden?.id as Address | undefined,

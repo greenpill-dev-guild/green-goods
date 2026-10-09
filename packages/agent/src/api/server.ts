@@ -34,6 +34,10 @@ import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/pu
 import { trackGardenJoinRequestEvent } from "../services/analytics";
 import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
 import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact";
+import { registerMessagingRoutes } from "./routes/messaging";
+import { registerReportingOpsRoutes } from "./routes/reporting-ops";
+import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
+import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
 
 const log = loggers.api;
 
@@ -172,6 +176,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
   registerPublicGardenImpactRoutes(app, routeContext);
+  registerPublicCommitmentImpactRoutes(app, routeContext);
   registerProfileAvatarRoutes(app, {
     ...routeContext,
     profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),
@@ -184,13 +189,24 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   const joinRequestAvailabilityRoute = "/public/features/garden-join-requests";
   app.options(joinRequestAvailabilityRoute, (c) => publicBrowserCorsPreflight(c, deps));
   app.get(joinRequestAvailabilityRoute, (c) =>
-    publicBrowserCorsResponse(c, deps, { ok: true, enabled: joinRequestsAvailable })
+    publicBrowserCorsResponse(c, deps, {
+      ok: true,
+      enabled: joinRequestsAvailable,
+      supportedKinds: joinRequestsAvailable ? ["garden_membership", "steward_access"] : [],
+    })
   );
   if (joinRequestsAvailable) {
     registerGardenJoinRequestRoutes(app, {
       ...routeContext,
       deps: { ...routeContext.deps, gardenJoinRequestRateLimitPressure },
       store: deps.gardenJoinRequestStore,
+    });
+  }
+
+  if (deps.passkeyDirectory) {
+    registerPasskeyDirectoryRoutes(app, {
+      ...routeContext,
+      passkeyDirectory: deps.passkeyDirectory,
     });
   }
 
@@ -207,6 +223,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     },
   };
   registerFundingRoutes(app, fundingRouteContext);
+  // Agent reporting ceremonies exist only when the reporting runtime is configured.
+  if (deps.messaging) {
+    registerMessagingRoutes(app, deps.messaging);
+    registerReportingOpsRoutes(app, deps, deps.messaging.core);
+  }
   return app;
 }
 

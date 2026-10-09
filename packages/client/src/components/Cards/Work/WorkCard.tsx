@@ -3,6 +3,7 @@ import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import React from "react";
 import { useIntl } from "react-intl";
 import { queuedWorkStatusMessage, readQueuedWorkState } from "./queuedWorkCopy";
@@ -30,6 +31,10 @@ export interface WorkCardPresentation {
 
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
+    untitledWork: formatMessage({
+      id: "app.workCard.untitledWork",
+      defaultMessage: "Untitled Work",
+    }),
     error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
     feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
@@ -78,7 +83,9 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
-  const action = actionTitle || work.title;
+  // The action names the work when it is known. A generated name gives way to the work's own
+  // title, and the shared card drops timestamps and says untitled when nothing real is left.
+  const title = toWorkDisplayTitle(actionTitle, "") || work.title;
   const gardenerName = formatAddress(work.gardenerAddress, {
     ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
   });
@@ -92,7 +99,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       variant="compact"
       work={{
         id: work.id,
-        title: action,
+        title,
         status: effectiveStatus,
         createdAt: work.createdAt,
         mediaPreview,

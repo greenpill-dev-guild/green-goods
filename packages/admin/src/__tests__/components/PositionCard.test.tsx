@@ -169,12 +169,12 @@ describe("PositionCard", () => {
       expect(screen.getByText("Deposits disabled")).toBeInTheDocument();
     });
 
-    it("shows the impact-yield helper copy", () => {
+    it("leaves the impact-yield explanation to the vault list, which says it once", () => {
       render(createElement(PositionCard, defaultProps));
 
       expect(
-        screen.getByText(/Depositor share value is expected to stay near flat by design/i)
-      ).toBeInTheDocument();
+        screen.queryByText(/Depositor share value is expected to stay near flat by design/i)
+      ).not.toBeInTheDocument();
     });
   });
 

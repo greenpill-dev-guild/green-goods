@@ -53,3 +53,11 @@ jobs:
         run: bun run test --suite solidity --profile deep
         env:
           CI: true
+
+      # Pull requests may reuse an exact-input production tree; the nightly always
+      # proves the release gas boundary against a tree rebuilt from scratch.
+      - name: Prove the release gas boundary from a fresh production build
+        working-directory: packages/contracts
+        run: bun run test --suite release-gas
+        env:
+          CI: true

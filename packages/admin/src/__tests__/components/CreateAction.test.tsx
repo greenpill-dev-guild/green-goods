@@ -16,6 +16,16 @@ import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 
 const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
+const mockOnSubmit = vi.fn();
+const mockCreateAnother = vi.fn();
+
+// Where the flow stands: a test moves it to the Review and through its send.
+const controllerState = vi.hoisted(() => ({
+  currentStep: 0,
+  isSending: false,
+  isSent: false,
+  hasError: false,
+}));
 
 vi.mock("@green-goods/shared/components/Button", () => ({
   Button: ({
@@ -89,19 +99,25 @@ vi.mock("@green-goods/shared/hooks/admin-ui/actions/actions.utils", () => ({
 
 vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", () => ({
   useCreateActionController: () => ({
-    currentStep: 0,
+    currentStep: controllerState.currentStep,
     domainOptions: [],
+    errorMessage: "User rejected the request.",
+    errorTitle: "Transaction cancelled",
     form: {
       handleSubmit: (handler: (data: Record<string, unknown>) => void) => () => handler({}),
     },
     goToStep: vi.fn(),
     handleBack: vi.fn(),
     handleCancel: () => mockNavigate("/actions"),
+    handleCreateAnother: mockCreateAnother,
     handleDiscard: vi.fn(),
     handleNext: vi.fn(),
+    hasError: controllerState.hasError,
     isDirty: false,
-    isLoading: false,
-    onSubmit: vi.fn(),
+    isSending: controllerState.isSending,
+    isSent: controllerState.isSent,
+    onSubmit: mockOnSubmit,
+    txErrorView: { severity: "warning" },
     stepConfigs: [
       { id: "basics", title: "Basics", description: "Title and timeline" },
       { id: "capitals", title: "Capitals & Media", description: "Forms of capital and images" },
@@ -250,7 +266,13 @@ vi.mock("@/components/Action/CreateActionSteps", () => ({
     React.createElement("div", { "data-testid": "capitals-step" }, "Capitals Step"),
   InstructionsStep: () =>
     React.createElement("div", { "data-testid": "instructions-step" }, "Instructions Step"),
-  ReviewStep: () => React.createElement("div", { "data-testid": "review-step" }, "Review Step"),
+  ReviewStep: ({ status }: { status: { title: string; description: string } }) =>
+    React.createElement(
+      "div",
+      { "data-testid": "review-step" },
+      React.createElement("p", null, status.title),
+      React.createElement("p", null, status.description)
+    ),
 }));
 
 // Mock the flow chrome — the wizard grammar is exercised by ActionFlowShell's
@@ -295,7 +317,6 @@ vi.mock("@/components/AdminButton", () => ({
     React.createElement("button", { type, onClick, disabled }, loading ? "Loading..." : children),
 }));
 
-vi.mock("@/components/AdminLinearProgress", () => ({ AdminLinearProgress: () => null }));
 vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));
 
 vi.mock("@remixicon/react", () => {
@@ -333,6 +354,12 @@ function renderWithIntl(ui: React.ReactElement) {
 describe("views/Actions/CreateAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(controllerState, {
+      currentStep: 0,
+      isSending: false,
+      isSent: false,
+      hasError: false,
+    });
   });
 
   describe("rendering", () => {
@@ -368,6 +395,58 @@ describe("views/Actions/CreateAction", () => {
 
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(mockNavigate).toHaveBeenCalledWith("/actions");
+    });
+  });
+
+  // DL-080: the flow ends on its Review, whose primary sends; the status row
+  // says how the send went and the footer follows it.
+  describe("the Review's send", () => {
+    it("sends from the Review with Create Action and says the wallet asks once", async () => {
+      controllerState.currentStep = 3;
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Registers this action on-chain")).toBeInTheDocument();
+      expect(screen.getByText("Your wallet will ask you once.")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Create Action" }));
+      expect(mockOnSubmit).toHaveBeenCalledOnce();
+    });
+
+    it("ends a successful send on the Review with Done and Create Another", async () => {
+      Object.assign(controllerState, { currentStep: 3, isSent: true });
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByTestId("review-step")).toBeInTheDocument();
+      expect(screen.getByText("Action registered")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Create Action" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Create Another" }));
+      expect(mockCreateAnother).toHaveBeenCalledOnce();
+      await user.click(screen.getByRole("button", { name: "Done" }));
+      expect(mockNavigate).toHaveBeenCalledWith("/actions");
+    });
+
+    it("keeps a failed send on the Review with its error, Try Again and Back", async () => {
+      Object.assign(controllerState, { currentStep: 3, hasError: true });
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Transaction cancelled")).toBeInTheDocument();
+      expect(screen.getByText("User rejected the request.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
+      expect(mockOnSubmit).toHaveBeenCalledOnce();
+    });
+
+    it("holds every button while the send works", () => {
+      Object.assign(controllerState, { currentStep: 3, isSending: true });
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Registering the action")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
     });
   });
 });

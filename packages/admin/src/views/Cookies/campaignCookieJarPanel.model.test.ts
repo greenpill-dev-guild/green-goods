@@ -128,6 +128,20 @@ describe("campaign cookie jar admin model", () => {
         metadataUrlsValid: false,
       })
     ).toBe(false);
+
+    // The metadata builder refuses a description past its limit.
+    expect(
+      canSyncCampaignCookieJarAllowlist({
+        jarAddress: JAR,
+        isJarOwner: true,
+        invalidAddressCount: 0,
+        grantCount: 0,
+        revokeCount: 0,
+        metadataChanged: true,
+        canUpdateMetadata: true,
+        metadataDescriptionFits: false,
+      })
+    ).toBe(false);
   });
 
   it("requires confirmed ERC20 decimals before enabling campaign creation", () => {

@@ -7,6 +7,7 @@ import { RiCheckLine, RiErrorWarningLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 
 /** The six allocation classes in percent: the unit stewards read (uiux-spec §6.10). */
@@ -291,7 +292,7 @@ export function AllocationEditor({
         ))}
       </div>
 
-      <div id={sumId} className="space-y-1 text-xs" aria-live="polite">
+      <div id={sumId} className="space-y-1 body-xs" aria-live="polite">
         {valid.allocation ? (
           <p className="flex items-center gap-1.5 text-[rgb(var(--tone-on-surface-accent))]">
             <RiCheckLine className="h-3.5 w-3.5" aria-hidden />
@@ -301,7 +302,7 @@ export function AllocationEditor({
             })}
           </p>
         ) : (
-          <p className="flex items-center gap-1.5 text-[rgb(var(--m3-error))]" role="alert">
+          <p className="flex items-center gap-1.5 text-error-dark" role="alert">
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />
             {formatMessage(
               {
@@ -323,14 +324,14 @@ export function AllocationEditor({
         ) : null}
       </div>
 
-      <div className="space-y-2 border-t border-[rgb(var(--m3-outline-variant))] pt-3">
-        <p className="label-md text-text-strong">
+      <div className="space-y-2 border-t border-stroke-soft pt-3">
+        <AdminCardTitle as="h4">
           {formatMessage({
             id: "cockpit.garden.pool.split.recognition",
             defaultMessage: "Gardeners' part",
           })}
-        </p>
-        <p className="text-xs text-text-soft">
+        </AdminCardTitle>
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.split.recognitionHint",
             defaultMessage:
@@ -374,7 +375,7 @@ export function AllocationEditor({
         {valid.recognitionPolicy ? null : (
           <p
             id={recognitionErrorId}
-            className="flex items-center gap-1.5 text-xs text-[rgb(var(--m3-error))]"
+            className="flex items-center gap-1.5 body-xs text-error-dark"
             role="alert"
           >
             <RiErrorWarningLine className="h-3.5 w-3.5" aria-hidden />

@@ -2,6 +2,7 @@ import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useEnsName } from "../hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "../hooks/ens/useGreenGoodsEnsName";
 import { useTimeout } from "../hooks/utils/useTimeout";
 import { logger } from "../modules/app/logger";
 import type { Address } from "../types/domain";
@@ -20,6 +21,8 @@ export interface AddressDisplayProps {
    * a button), where nested buttons would be invalid HTML.
    */
   interactive?: boolean;
+  /** A role label for public readers when a name has not been published. */
+  fallbackLabel?: string;
 }
 
 export function AddressDisplay({
@@ -27,15 +30,21 @@ export function AddressDisplay({
   className,
   showCopyButton = true,
   interactive = true,
+  fallbackLabel,
 }: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
   const { data: ensName } = useEnsName(address);
-  const display = formatAddress(address, {
-    ensName,
-    variant: ensName ? "default" : "card",
-  });
+  const { data: protocolName } = useGreenGoodsEnsName(address);
+  const preferredName = protocolName || ensName;
+  const display =
+    !preferredName && fallbackLabel
+      ? fallbackLabel
+      : formatAddress(address, {
+          ensName: preferredName,
+          variant: preferredName ? "default" : "card",
+        });
 
   // Auto-cleanup timer via useTimeout (Rule 1)
   const { set: scheduleCopyReset } = useTimeout();
@@ -55,7 +64,7 @@ export function AddressDisplay({
     return (
       <span
         className={cn("font-mono text-sm text-text-strong", className)}
-        title={ensName ? `${ensName} · ${address}` : address}
+        title={preferredName ? `${preferredName} · ${address}` : address}
       >
         {display}
       </span>
@@ -82,9 +91,9 @@ export function AddressDisplay({
           margin: "unset",
         }}
       >
-        {ensName ? (
+        {preferredName ? (
           <div className="flex flex-col text-left">
-            <span>{ensName}</span>
+            <span>{preferredName}</span>
             <span className="text-[10px] text-text-disabled">{address}</span>
           </div>
         ) : (

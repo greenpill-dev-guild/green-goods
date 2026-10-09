@@ -1,6 +1,6 @@
 /**
  * CanvasLayout Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type React from "react";
@@ -12,6 +12,10 @@ import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdm
 import type { EligibleAdminGardensResult } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
 import { useSheetOrchestratorStore } from "@green-goods/shared/stores/useSheetOrchestratorStore";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
+
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 const {
   mockUseGardenUrlSync,
@@ -302,6 +306,32 @@ vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
 }));
 
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockAuthState.current.eoaAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
+  useAdminLoginController: () => ({
+    mode: "entry",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
+    username: "",
+    setUsername: vi.fn(),
+    error: null,
+    isSigningIn: false,
+    canSignInByName: false,
+    hasStoredCredential: false,
+    storedUsername: null,
+    signInByName: vi.fn(),
+    signInWithStoredPasskey: vi.fn(),
+  }),
+}));
+
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => mockAuthState.current,
 }));
@@ -376,7 +406,8 @@ vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
     },
     gardenVaults: [],
     vaultsLoading: false,
-    vaultNetDeposited: 0n,
+    endowmentByAsset: [],
+    hasEndowment: false,
     allocations: [],
     allocationsLoading: false,
     works: [],
@@ -842,6 +873,19 @@ describe("CanvasLayout", () => {
 
     const main = document.getElementById("main-content");
     expect(main?.getAttribute("style")).toContain("padding-bottom");
+  });
+
+  it("takes its side gutter and width cap from the shell tokens, never a fixed value", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // The phone gutter reaches the page through these two tokens (index.css).
+    const main = document.getElementById("main-content");
+    expect(main?.style.paddingInline).toMatch(/^var\(--admin-main-inline-gutter,/);
+    expect(main?.style.maxWidth).toMatch(/^var\(--admin-main-max-width,/);
   });
 
   it("renders a left-inspector config as a centered dialog", async () => {

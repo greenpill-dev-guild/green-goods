@@ -1,13 +1,3 @@
-/**
- * ENS Registration Progress Timeline
- *
- * Tracks CCIP delivery status for ENS subdomain registrations.
- * Shows three states: pending (pulsing), active (green check), timed_out (warning).
- * Includes copyable CCIP message ID and explorer link.
- *
- * @module components/Progress/ENSProgressTimeline
- */
-
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -15,209 +5,228 @@ import {
   RiLoader4Line,
   RiTimeLine,
 } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-
-import { useTimeout } from "../../hooks/utils/useTimeout";
 import type { ENSRegistrationData } from "../../types/domain";
+import { useTimeout } from "../../hooks/utils/useTimeout";
 import { copyToClipboard } from "../../utils/app/clipboard";
-import { formatAddress } from "../../utils/app/text";
-
-const CCIP_EXPLORER_BASE = "https://ccip.chain.link/msg";
-
-/** Derive timed_out from elapsed time (>25 min since submission) */
-function deriveStatus(data: ENSRegistrationData): ENSRegistrationData["status"] {
-  if (data.status === "active" || data.status === "timed_out") return data.status;
-  if (data.status === "pending" && data.submittedAt) {
-    const elapsed = Date.now() - data.submittedAt;
-    if (elapsed > 25 * 60_000) return "timed_out";
-  }
-  return data.status;
-}
-
-/** Format elapsed time as human-readable string */
-function formatElapsed(submittedAt: number): string {
-  const elapsed = Math.max(0, Date.now() - submittedAt);
-  const minutes = Math.floor(elapsed / 60_000);
-  const seconds = Math.floor((elapsed % 60_000) / 1_000);
-  if (minutes === 0) return `${seconds}s`;
-  return `${minutes}m ${seconds}s`;
-}
+import { IconButton } from "../IconButton";
+import { toastService } from "../toast";
 
 interface ENSProgressTimelineProps {
-  /** Registration data from useENSRegistrationStatus */
   data: ENSRegistrationData;
-  /** The slug being registered */
   slug: string;
-  /** Additional CSS classes */
   className?: string;
-  /** Compact mode for inline display */
   compact?: boolean;
+  /** The profile card already supplies its own border and padding. */
+  embedded?: boolean;
+  /** Local submission and initial verification precede a confirmed status. */
+  phase?: "submitting" | "checking";
 }
 
+/** Status is owned by the query; elapsed time alone cannot override confirmation. */
 export function ENSProgressTimeline({
   data,
   slug,
   className,
   compact = false,
+  embedded = false,
+  phase,
 }: ENSProgressTimelineProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
-  const [elapsed, setElapsed] = useState("");
-  const status = deriveStatus(data);
   const copyResetTimer = useTimeout();
-
-  // Update elapsed time every second while pending
-  // Note: setInterval with cleanup is correct here — no useInterval util exists
-  useEffect(() => {
-    if (status !== "pending" || !data.submittedAt) return;
-    setElapsed(formatElapsed(data.submittedAt));
-    const interval = window.setInterval(() => {
-      setElapsed(formatElapsed(data.submittedAt!));
-    }, 1_000);
-    return () => window.clearInterval(interval);
-  }, [status, data.submittedAt]);
-
-  const handleCopyMessageId = async () => {
+  const copyMessageId = async () => {
     if (!data.ccipMessageId) return;
-    await copyToClipboard(data.ccipMessageId);
+    const copiedOk = await copyToClipboard(data.ccipMessageId);
+    if (!copiedOk) {
+      setCopied(false);
+      toastService.error({
+        title: intl.formatMessage({ id: "app.toast.copyFailed", defaultMessage: "Copy failed" }),
+      });
+      return;
+    }
     setCopied(true);
-    copyResetTimer.set(() => setCopied(false), 2_000);
+    copyResetTimer.set(() => setCopied(false), 2000);
   };
-
+  const status = phase ?? data.status;
   if (status === "available") return null;
 
-  if (compact) {
-    return (
-      <div className={`flex items-center gap-2 text-sm ${className ?? ""}`}>
-        {status === "pending" && (
-          <>
-            <RiLoader4Line className="h-4 w-4 animate-spin text-amber-500" />
-            <span className="text-text-sub">
-              {intl.formatMessage(
-                { id: "ens.status.registering", defaultMessage: "Registering {name}..." },
-                { name: `${slug}.greengoods.eth` }
-              )}
-            </span>
-            {elapsed && <span className="text-xs text-text-soft">{elapsed}</span>}
-          </>
-        )}
-        {status === "active" && (
-          <>
-            <RiCheckLine className="h-4 w-4 text-green-500" />
-            <span className="text-text-strong">
-              {intl.formatMessage(
-                { id: "ens.status.active", defaultMessage: "{name} is live" },
-                { name: `${slug}.greengoods.eth` }
-              )}
-            </span>
-          </>
-        )}
-        {status === "timed_out" && (
-          <>
-            <RiTimeLine className="h-4 w-4 text-amber-500" />
-            <span className="text-text-sub">
-              {intl.formatMessage({
-                id: "ens.status.timedOut",
-                defaultMessage: "Registration is taking longer than usual",
-              })}
-            </span>
-          </>
-        )}
-      </div>
-    );
-  }
+  const isReady = status === "active";
+  const isDelayed = status === "timed_out";
+  const isReleasing = !phase && Boolean(data.release);
+  const Icon = isReady ? RiCheckLine : isDelayed ? RiTimeLine : RiLoader4Line;
+  const title =
+    status === "submitting"
+      ? intl.formatMessage({
+          id: "ens.timeline.submitting",
+          defaultMessage: "Submitting your request",
+        })
+      : status === "checking"
+        ? intl.formatMessage({ id: "ens.timeline.checking", defaultMessage: "Checking your name" })
+        : isReleasing
+          ? isDelayed
+            ? intl.formatMessage({
+                id: "ens.timeline.releaseDelayed",
+                defaultMessage: "Release is taking longer than usual",
+              })
+            : intl.formatMessage({
+                id: "ens.timeline.releasing",
+                defaultMessage: "Releasing your name",
+              })
+          : isReady
+            ? intl.formatMessage({ id: "ens.timeline.ready", defaultMessage: "Ready to use" })
+            : isDelayed
+              ? intl.formatMessage({
+                  id: "ens.status.timedOut",
+                  defaultMessage: "Registration is taking longer than usual",
+                })
+              : intl.formatMessage({
+                  id: "ens.timeline.settingUp",
+                  defaultMessage: "Setting up your name",
+                });
+  const description =
+    status === "submitting"
+      ? intl.formatMessage({
+          id: "ens.timeline.submittingDescription",
+          defaultMessage:
+            "Complete any confirmation from your account. Your request will appear here once received.",
+        })
+      : status === "checking"
+        ? intl.formatMessage({
+            id: "ens.timeline.checkingDescription",
+            defaultMessage: "We’re checking whether your name is ready to use.",
+          })
+        : isReleasing
+          ? intl.formatMessage({
+              id: "ens.timeline.releasingDescription",
+              defaultMessage:
+                "Release received. We’re waiting for your name to clear before you choose another one.",
+            })
+          : isReady
+            ? intl.formatMessage({
+                id: "ens.timeline.active",
+                defaultMessage: "Your name is ready. People can use it to find your work.",
+              })
+            : isDelayed
+              ? intl.formatMessage({
+                  id: "ens.timeline.timedOut",
+                  defaultMessage:
+                    "Your request is still being checked. You can check again without claiming another name.",
+                })
+              : intl.formatMessage({
+                  id: "ens.timeline.pending",
+                  defaultMessage:
+                    "Request received. Setup usually takes 15–20 minutes. You can leave and check back here.",
+                });
 
   return (
     <div
-      className={`rounded-xl border border-stroke-soft bg-bg-white-0 p-4 ${className ?? ""}`}
-      role="status"
-      aria-live="polite"
+      className={className}
+      style={{
+        border: embedded || compact ? undefined : "1px solid rgb(var(--stroke-soft-200))",
+        borderRadius: "var(--radius-xl)",
+        padding: embedded || compact ? undefined : 16,
+        background: "rgb(var(--bg-white-0))",
+      }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-3">
-        {status === "pending" && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-600 animate-pulse">
-            <RiLoader4Line className="h-4 w-4 animate-spin" />
-          </div>
-        )}
-        {status === "active" && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <RiCheckLine className="h-4 w-4" />
-          </div>
-        )}
-        {status === "timed_out" && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-            <RiTimeLine className="h-4 w-4" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-text-strong truncate">{slug}.greengoods.eth</p>
-          <p className="text-xs text-text-sub">
-            {status === "pending" &&
-              intl.formatMessage({
-                id: "ens.timeline.pending",
-                defaultMessage: "Cross-chain registration in progress (~15-20 min)",
-              })}
-            {status === "active" &&
-              intl.formatMessage({
-                id: "ens.timeline.active",
-                defaultMessage: "Successfully registered on Ethereum mainnet",
-              })}
-            {status === "timed_out" &&
-              intl.formatMessage({
-                id: "ens.timeline.timedOut",
-                defaultMessage: "Taking longer than expected. Check the explorer for updates.",
-              })}
+      <div
+        role="status"
+        aria-live="polite"
+        style={{ display: "flex", gap: 12, alignItems: "center" }}
+      >
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            color: "rgb(var(--primary-on-surface))",
+            background: "rgb(var(--bg-weak-50))",
+          }}
+        >
+          <Icon
+            size={16}
+            aria-hidden="true"
+            className={!isReady && !isDelayed ? "animate-spin" : undefined}
+          />
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "rgb(var(--text-strong-950))" }}>
+            {title}
           </p>
+          {slug && (
+            <p
+              style={{ fontSize: 12, overflowWrap: "anywhere", color: "rgb(var(--text-sub-600))" }}
+            >
+              {slug}.greengoods.eth
+            </p>
+          )}
+          {!compact && (
+            <p
+              style={{
+                fontSize: 12,
+                lineHeight: "18px",
+                marginTop: 4,
+                color: "rgb(var(--text-sub-600))",
+              }}
+            >
+              {description}
+            </p>
+          )}
         </div>
-        {elapsed && status === "pending" && (
-          <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-            {elapsed}
-          </span>
-        )}
       </div>
-
-      {/* CCIP Message ID */}
-      {data.ccipMessageId && (
-        <div className="flex items-center gap-2 rounded-lg bg-bg-weak px-3 py-2">
-          <span className="text-xs text-text-soft shrink-0">
-            {intl.formatMessage({
-              id: "ens.timeline.messageId",
-              defaultMessage: "CCIP Message",
-            })}
-          </span>
-          <span className="flex-1 text-xs font-mono text-text-sub truncate">
-            {formatAddress(data.ccipMessageId)}
-          </span>
-          <button
-            type="button"
-            onClick={handleCopyMessageId}
-            className="shrink-0 rounded p-1 text-text-soft transition-colors hover:bg-bg-weak hover:text-text-sub"
-            aria-label={intl.formatMessage({
-              id: "ens.timeline.copyMessageId",
-              defaultMessage: "Copy CCIP message ID",
-            })}
-          >
-            {copied ? (
-              <RiCheckLine className="h-3.5 w-3.5 text-green-500" />
-            ) : (
-              <RiFileCopyLine className="h-3.5 w-3.5" />
-            )}
-          </button>
+      {!compact && data.ccipMessageId && (
+        <details style={{ marginTop: 12, fontSize: 12, color: "rgb(var(--text-sub-600))" }}>
+          <summary style={{ cursor: "pointer" }}>
+            {isReleasing
+              ? intl.formatMessage({
+                  id: "ens.timeline.releaseDetails",
+                  defaultMessage: "Release details",
+                })
+              : intl.formatMessage({
+                  id: "ens.timeline.details",
+                  defaultMessage: "Registration details",
+                })}
+          </summary>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <code style={{ overflowWrap: "anywhere", minWidth: 0, flex: 1 }}>
+              {data.ccipMessageId}
+            </code>
+            <IconButton
+              size="sm"
+              aria-label={intl.formatMessage({
+                id: "ens.timeline.copyMessageId",
+                defaultMessage: "Copy CCIP message ID",
+              })}
+              onClick={copyMessageId}
+              icon={
+                copied ? <RiCheckLine aria-hidden="true" /> : <RiFileCopyLine aria-hidden="true" />
+              }
+            />
+          </div>
           <a
-            href={`${CCIP_EXPLORER_BASE}/${data.ccipMessageId}`}
+            href={`https://ccip.chain.link/msg/${data.ccipMessageId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 rounded p-1 text-text-soft transition-colors hover:bg-bg-weak hover:text-text-sub"
-            aria-label={intl.formatMessage({
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              minHeight: 40,
+              color: "rgb(var(--primary-on-surface))",
+            }}
+          >
+            {intl.formatMessage({
               id: "ens.timeline.trackExplorer",
               defaultMessage: "Track on CCIP Explorer",
             })}
-          >
-            <RiExternalLinkLine className="h-3.5 w-3.5" />
+            <RiExternalLinkLine size={16} aria-hidden="true" />
           </a>
-        </div>
+        </details>
       )}
     </div>
   );

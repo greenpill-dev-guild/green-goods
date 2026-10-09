@@ -187,6 +187,14 @@ export interface JobQueueConfig {
   storageQuotaCacheTTL: number;
 }
 
+/**
+ * Takes a job's execution claim for the length of a recovery act, so no send
+ * can start or be running while it runs. Null when a send holds the claim.
+ */
+export interface JobQueueExecutionClaims {
+  acquire(jobId: string): Promise<{ release(): Promise<void> } | null>;
+}
+
 export interface JobQueueDependencies {
   store: JobQueueStore;
   events: JobQueueEvents;
@@ -201,6 +209,8 @@ export interface JobQueueDependencies {
   config: JobQueueConfig;
   lifecycle: JobQueueLifecycle;
   logger: JobQueueLogger;
+  /** Optional, so a queue built without the claim table (tests, fakes) discards unclaimed. */
+  executionClaims?: JobQueueExecutionClaims;
 }
 
 export interface JobQueueHandle {
@@ -213,7 +223,12 @@ export interface JobQueueHandle {
   processJob(jobId: string, context: ProcessJobContext): Promise<ProcessJobResult>;
   flush(context: FlushContext): Promise<FlushResult>;
   retryJob(jobId: string): Promise<void>;
-  discardJob(jobId: string): Promise<boolean>;
+  /**
+   * Resolves whether the job was removed. `beforeDelete` runs once the job is
+   * known to be discardable and before its record goes, inside the same claim:
+   * if it rejects, the discard stops and the job stays.
+   */
+  discardJob(jobId: string, beforeDelete?: (job: Job) => Promise<void>): Promise<boolean>;
   getStats(userAddress: string): Promise<QueueStats>;
   getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]>;
   getJobsWithImages(

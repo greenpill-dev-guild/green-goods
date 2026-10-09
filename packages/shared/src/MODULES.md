@@ -39,7 +39,7 @@ i18n catalogs, and Storybook-backed UI primitives.
 | `@green-goods/shared/styles/theme.css` | Supported | Direct theme stylesheet |
 | `@green-goods/shared/styles/utilities.css` | Supported | Direct utilities stylesheet |
 | `@green-goods/shared/testing` | Supported | Shared test utilities |
-| `@green-goods/shared/mocks` | Supported | MSW/browser/server mocks |
+| `@green-goods/shared/mocks` | Supported | Browser, Node and server mocks |
 | `@green-goods/shared/mocks/browser` | Supported | Browser mock entrypoint |
 | `@green-goods/shared/mocks/server` | Supported | Server mock entrypoint |
 | `@green-goods/shared/__tests__/setupTests.base` | Operational | Test bootstrap helper |
@@ -75,6 +75,7 @@ The folder inventory is checked against the source tree; avoid hand-maintained f
 | --- | --- |
 | `action/` | Action CRUD, filtering, and form schema |
 | `admin-ui/` | Admin shell and workspace state helpers |
+| `agent-reporting/` | Chat reporting ceremonies: account proof, pairing, exact publication and recovery |
 | `analytics/` | PostHog identity and page-view tracking |
 | `app/` | Browser navigation, install guidance, theme, offline, toasts, and service worker |
 | `assessment/` | Assessment drafts, forms, and workflow orchestration |

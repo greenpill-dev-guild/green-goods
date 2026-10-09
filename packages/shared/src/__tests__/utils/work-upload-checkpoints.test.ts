@@ -34,6 +34,29 @@ const draft = (media: File[], audioNotes: File[] = []): WorkDraft => ({
 const image = (name: string) => new File([name], `${name}.jpg`, { type: "image/jpeg" });
 
 describe("durable upload checkpoints", () => {
+  it("exposes the exact published metadata and ordered media for a confirmed preview", async () => {
+    const onEncoded = vi.fn();
+    const data = draft([image("one"), image("two")]);
+    mocks.file.mockImplementation(async (file: File) => ({ cid: `cid-${file.name}` }));
+    await encodeWorkData(data, 11155111, { clientWorkId: "sent", onEncoded });
+    expect(onEncoded).toHaveBeenCalledWith({
+      metadata: mocks.json.mock.calls[0][0],
+      media: ["cid-one.jpg", "cid-two.jpg"],
+    });
+    expect(onEncoded.mock.calls[0][0].metadata).toMatchObject({
+      clientWorkId: "sent",
+      timeSpentMinutes: 30,
+      attachments: [
+        { cid: "cid-one.jpg", type: "image/jpeg" },
+        { cid: "cid-two.jpg", type: "image/jpeg" },
+      ],
+    });
+    onEncoded.mockClear();
+    mocks.json.mockRejectedValue(new Error("metadata failed"));
+    await expect(encodeWorkData(data, 11155111, { onEncoded })).rejects.toThrow("metadata failed");
+    expect(onEncoded).not.toHaveBeenCalled();
+  });
+
   it("reuses successes after partial failure and reload, then reuses metadata", async () => {
     const files = [image("one"), image("two"), image("three"), image("four"), image("five")];
     let saved: WorkUploadCheckpoint | undefined;

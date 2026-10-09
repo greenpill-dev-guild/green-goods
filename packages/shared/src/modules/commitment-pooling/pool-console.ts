@@ -104,7 +104,12 @@ export function selectPoolConsoleModel(input: {
     cap: (pool?.providerOpenCommitmentCap ?? 0n) > 0n,
   };
   const live = cycles.filter((row) => !TERMINAL_CYCLE_STATES.has(row.state ?? ""));
-  const season = live.find((row) => row.cycleType === "SEASON") ?? null;
+  const seasons = live.filter((row) => row.cycleType === "SEASON");
+  const season =
+    seasons.find((row) => row.cycleId === pool?.openSeasonCycleId) ??
+    seasons.find((row) => row.state === "OPEN") ??
+    seasons[0] ??
+    null;
   const campaigns = live
     .filter((row) => row.cycleType === "CAMPAIGN")
     .sort((left, right) => Number(left.cycleId - right.cycleId));

@@ -28,6 +28,8 @@ interface CookieJarPayoutCardProps {
   gardenAddress: Address;
   gardenName: string;
   allocationCount: number;
+  /** The payout history filled its list, so the count is a lower bound. */
+  allocationCountAtLeast?: boolean;
   signer: JarSigner;
   /** Which of this jar's settings is open for editing, if any. */
   editingField: JarSettingField | null;
@@ -41,6 +43,7 @@ export function CookieJarPayoutCard({
   gardenAddress,
   gardenName,
   allocationCount,
+  allocationCountAtLeast = false,
   signer,
   editingField,
   onEdit,
@@ -185,7 +188,11 @@ export function CookieJarPayoutCard({
 
       <p className="text-body-sm text-text-sub">
         {formatMessage(
-          { id: "cockpit.community.payouts.jarFundingContext" },
+          {
+            id: allocationCountAtLeast
+              ? "cockpit.community.payouts.jarFundingContextAtLeast"
+              : "cockpit.community.payouts.jarFundingContext",
+          },
           { count: allocationCount }
         )}
       </p>

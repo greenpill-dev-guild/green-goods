@@ -27,8 +27,8 @@ type Story = StoryObj<typeof PageTransition>;
 function MockPage({ title, color }: { title: string; color: string }) {
   return (
     <div className={`rounded-xl border border-stroke-soft p-8 ${color}`}>
-      <h2 className="text-lg font-bold text-text-strong">{title}</h2>
-      <p className="mt-2 text-sm text-text-sub">
+      <h2 className="text-title-md font-semibold text-text-strong">{title}</h2>
+      <p className="mt-2 body-sm text-text-sub">
         This page uses the View Transitions API for cross-fade animations.
       </p>
     </div>
@@ -43,21 +43,21 @@ function NavControls() {
       <button
         type="button"
         onClick={() => navigate("/page-a")}
-        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong hover:bg-bg-soft transition-colors"
+        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
       >
         Page A
       </button>
       <button
         type="button"
         onClick={() => navigate("/page-b")}
-        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong hover:bg-bg-soft transition-colors"
+        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
       >
         Page B
       </button>
       <button
         type="button"
         onClick={() => navigate("/page-c")}
-        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong hover:bg-bg-soft transition-colors"
+        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 body-sm text-text-strong hover:bg-bg-soft transition-colors"
       >
         Page C
       </button>

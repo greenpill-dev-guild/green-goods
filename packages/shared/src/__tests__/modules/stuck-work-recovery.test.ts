@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { jobQueueDB } from "../../modules/job-queue/db";

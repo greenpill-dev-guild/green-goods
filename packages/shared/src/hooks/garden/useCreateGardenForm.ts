@@ -13,13 +13,24 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Domain } from "../../types/domain";
+import { utf8ByteLength } from "../../utils/app/text";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Maximum character length for garden names (enforced on-chain and in UI) */
+/**
+ * The longest garden name, in UTF-8 bytes: GardenAccount reverts `NameTooLong`
+ * past it, on create and on rename. An accented letter takes two bytes, so a
+ * name can reach the limit in fewer characters. As a field's `maxLength` it
+ * still caps the characters, which never cuts a name that fits the bytes.
+ */
 export const GARDEN_NAME_MAX_LENGTH = 72;
+
+/** Whether a name fits what the contract stores: trimmed, as create and rename send it. */
+export function gardenNameFits(name: string): boolean {
+  return utf8ByteLength(name.trim()) <= GARDEN_NAME_MAX_LENGTH;
+}
 
 // ---------------------------------------------------------------------------
 // Address schema (Ethereum 0x-prefixed, 40 hex chars)
@@ -48,10 +59,7 @@ export const createGardenSchema = z.object({
   name: z
     .string()
     .min(1, "Garden name is required")
-    .max(
-      GARDEN_NAME_MAX_LENGTH,
-      `Garden name must be ${GARDEN_NAME_MAX_LENGTH} characters or less`
-    ),
+    .refine(gardenNameFits, `Garden name must fit in ${GARDEN_NAME_MAX_LENGTH} bytes`),
   slug: gardenSlugSchema,
   description: z.string().min(1, "Description is required"),
   location: z.string().min(1, "Location is required"),

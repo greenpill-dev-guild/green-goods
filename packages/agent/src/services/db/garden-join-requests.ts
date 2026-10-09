@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { Address } from "@green-goods/shared/public-contracts";
+import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import {
   decryptGardenJoinRequestRecord,
   GARDEN_JOIN_REQUEST_MAX_PENDING_PER_GARDEN,
@@ -23,12 +24,13 @@ export function createGardenJoinRequest(
   input: CreateGardenJoinRequestRecord
 ) {
   const accountAddressKey = cipher.accountKey(input.accountAddress);
+  const kind = input.kind ?? "garden_membership";
   db.run("BEGIN IMMEDIATE");
   try {
     db.query(
       "DELETE FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt <= ?"
     ).run(input.gardenAddress, input.requestedAt);
-    const existing = findPending(db, input.gardenAddress, accountAddressKey);
+    const existing = findPending(db, input.gardenAddress, accountAddressKey, kind);
     if (existing) {
       db.run("COMMIT");
       return { created: false as const, request: decrypt(cipher, existing) };
@@ -53,13 +55,14 @@ export function createGardenJoinRequest(
       `INSERT INTO garden_join_requests
        (id, gardenAddress, accountAddressKey, ciphertext, nonce, kind, state, requestedVia,
         requestedAt, expiresAt, resolvedAt, updatedAt, revision)
-       VALUES (?, ?, ?, ?, ?, 'garden_membership', 'pending', ?, ?, ?, NULL, ?, 0)`
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NULL, ?, 0)`
     ).run(
       id,
       input.gardenAddress,
       accountAddressKey,
       encrypted.ciphertext,
       encrypted.nonce,
+      kind,
       input.requestedVia,
       input.requestedAt,
       input.expiresAt,
@@ -79,7 +82,8 @@ export function getGardenJoinRequestMine(
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
   accountAddress: Address,
-  nowIso = new Date().toISOString()
+  nowIso = new Date().toISOString(),
+  kind: GardenJoinRequestKind = "garden_membership"
 ) {
   const accountAddressKey = cipher.accountKey(accountAddress);
   db.query(
@@ -89,10 +93,10 @@ export function getGardenJoinRequestMine(
   const row = db
     .query(
       `SELECT * FROM garden_join_requests
-       WHERE gardenAddress = ? AND accountAddressKey = ?
+       WHERE gardenAddress = ? AND accountAddressKey = ? AND kind = ?
        ORDER BY requestedAt DESC, id DESC LIMIT 1`
     )
-    .get(gardenAddress, accountAddressKey) as StoredGardenJoinRequest | null;
+    .get(gardenAddress, accountAddressKey, kind) as StoredGardenJoinRequest | null;
   return row ? decrypt(cipher, row) : undefined;
 }
 
@@ -110,30 +114,31 @@ export function listPendingGardenJoinRequests(
   db: Database,
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
-  options: { cursor?: string; limit?: number; nowIso?: string } = {}
+  options: { cursor?: string; limit?: number; nowIso?: string; kind?: GardenJoinRequestKind } = {}
 ) {
   db.query(
     "DELETE FROM garden_join_requests WHERE gardenAddress = ? AND state = 'pending' AND expiresAt <= ?"
   ).run(gardenAddress, options.nowIso ?? new Date().toISOString());
   const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
+  const kind = options.kind ?? "garden_membership";
   const [cursorDate, cursorId] = options.cursor?.split("|") ?? [];
   const rows = (
     cursorDate && cursorId
       ? db
           .query(
             `SELECT * FROM garden_join_requests
-           WHERE gardenAddress = ? AND state = 'pending'
+           WHERE gardenAddress = ? AND kind = ? AND state = 'pending'
              AND (requestedAt < ? OR (requestedAt = ? AND id < ?))
            ORDER BY requestedAt DESC, id DESC LIMIT ?`
           )
-          .all(gardenAddress, cursorDate, cursorDate, cursorId, limit + 1)
+          .all(gardenAddress, kind, cursorDate, cursorDate, cursorId, limit + 1)
       : db
           .query(
             `SELECT * FROM garden_join_requests
-           WHERE gardenAddress = ? AND state = 'pending'
+           WHERE gardenAddress = ? AND kind = ? AND state = 'pending'
            ORDER BY requestedAt DESC, id DESC LIMIT ?`
           )
-          .all(gardenAddress, limit + 1)
+          .all(gardenAddress, kind, limit + 1)
   ) as StoredGardenJoinRequest[];
   const page = rows.slice(0, limit);
   return {
@@ -152,7 +157,7 @@ export function resolveGardenJoinRequest(
   db.run("BEGIN IMMEDIATE");
   try {
     const existing = getById(db, input.gardenAddress, input.requestId);
-    if (!existing) {
+    if (!existing || existing.kind !== (input.kind ?? "garden_membership")) {
       db.run("ROLLBACK");
       return { ok: false as const, reason: "not_found" as const };
     }
@@ -177,7 +182,7 @@ export function resolveGardenJoinRequest(
     db.query(
       `UPDATE garden_join_requests
        SET ciphertext = ?, nonce = ?, state = ?, resolvedAt = ?, updatedAt = ?, revision = revision + 1
-       WHERE id = ? AND gardenAddress = ? AND revision = ? AND state = 'pending'`
+       WHERE id = ? AND gardenAddress = ? AND kind = ? AND revision = ? AND state = 'pending'`
     ).run(
       encrypted.ciphertext,
       encrypted.nonce,
@@ -186,6 +191,7 @@ export function resolveGardenJoinRequest(
       input.resolvedAt,
       input.requestId,
       input.gardenAddress,
+      input.kind ?? "garden_membership",
       input.expectedRevision
     );
     const updated = getById(db, input.gardenAddress, input.requestId)!;
@@ -202,10 +208,11 @@ export function reconcileWelcomedGardenJoinRequest(
   cipher: GardenJoinRequestCipher,
   gardenAddress: Address,
   requestId: string,
-  resolvedAt: string
+  resolvedAt: string,
+  kind: GardenJoinRequestKind = "garden_membership"
 ) {
   const existing = getById(db, gardenAddress, requestId);
-  if (!existing) return undefined;
+  if (!existing || existing.kind !== kind) return undefined;
   if (existing.state === "welcomed") return decrypt(cipher, existing);
   const personal = JSON.parse(
     cipher.decrypt({ ciphertext: existing.ciphertext, nonce: existing.nonce })
@@ -215,8 +222,16 @@ export function reconcileWelcomedGardenJoinRequest(
   db.query(
     `UPDATE garden_join_requests
      SET ciphertext = ?, nonce = ?, state = 'welcomed', resolvedAt = ?, updatedAt = ?, revision = revision + 1
-     WHERE id = ? AND gardenAddress = ?`
-  ).run(encrypted.ciphertext, encrypted.nonce, resolvedAt, resolvedAt, requestId, gardenAddress);
+     WHERE id = ? AND gardenAddress = ? AND kind = ?`
+  ).run(
+    encrypted.ciphertext,
+    encrypted.nonce,
+    resolvedAt,
+    resolvedAt,
+    requestId,
+    gardenAddress,
+    kind
+  );
   const updated = getById(db, gardenAddress, requestId);
   return updated ? decrypt(cipher, updated) : undefined;
 }
@@ -236,13 +251,14 @@ export function withdrawGardenJoinRequest(
   const result = db
     .query(
       `DELETE FROM garden_join_requests
-       WHERE id = ? AND gardenAddress = ? AND accountAddressKey = ?
+       WHERE id = ? AND gardenAddress = ? AND accountAddressKey = ? AND kind = ?
          AND state = 'pending' AND revision = ?`
     )
     .run(
       input.requestId,
       input.gardenAddress,
       cipher.accountKey(input.accountAddress),
+      input.kind ?? "garden_membership",
       input.expectedRevision
     );
   return result.changes > 0;
@@ -273,13 +289,18 @@ function getById(db: Database, gardenAddress: Address, requestId: string) {
   );
 }
 
-function findPending(db: Database, gardenAddress: Address, accountAddressKey: string) {
+function findPending(
+  db: Database,
+  gardenAddress: Address,
+  accountAddressKey: string,
+  kind: GardenJoinRequestKind
+) {
   return (
     (db
       .query(
-        "SELECT * FROM garden_join_requests WHERE gardenAddress = ? AND accountAddressKey = ? AND state = 'pending'"
+        "SELECT * FROM garden_join_requests WHERE gardenAddress = ? AND accountAddressKey = ? AND kind = ? AND state = 'pending'"
       )
-      .get(gardenAddress, accountAddressKey) as StoredGardenJoinRequest | null) ?? undefined
+      .get(gardenAddress, accountAddressKey, kind) as StoredGardenJoinRequest | null) ?? undefined
   );
 }
 

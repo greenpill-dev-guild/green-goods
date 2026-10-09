@@ -8,10 +8,23 @@ interface FixtureOptions {
   html?: string;
   precache?: string[];
   publicModules?: string[];
+  /** Modules in a chunk the website's frame imports, as a barrel under it would pull them in. */
+  publicShellImports?: string[];
+  /** Leave the website's frame out of the build, as a moved or renamed file would. */
+  withoutPublicShell?: boolean;
   route?: { source: string; contents: string };
   shellAssets?: string[];
   files?: Record<string, string>;
+  /** Shared chunks nothing imports, added only for the file-name rule. */
+  lazyChunks?: { file: string; name?: string }[];
 }
+
+// Real builds name every lazy chunk `assets/chunk-<hash>.js`.
+const PUBLIC_CHUNK = "assets/chunk-X4mQ9aTe.js";
+const PWA_CHUNK = "assets/chunk-Hn2Rw7Kd.js";
+const ROUTE_CHUNK = "assets/chunk-bV6sE1yZ.js";
+const PUBLIC_SHELL_CHUNK = "assets/chunk-pS7hLw2N.js";
+const PUBLIC_SHELL_IMPORT = "assets/chunk-c4Rd8BqM.js";
 
 const fixtureDirectories: string[] = [];
 const checkerPath = resolve(process.cwd(), "scripts/check-pwa-precache-budget.mjs");
@@ -37,12 +50,12 @@ function createFixture(options: FixtureOptions = {}) {
   const manifest: Record<string, Record<string, unknown>> = {
     "src/main.tsx": { file: "assets/main.js", isEntry: true, src: "src/main.tsx" },
     "src/bootstrapPublic.tsx": {
-      file: "assets/public.js",
+      file: PUBLIC_CHUNK,
       isDynamicEntry: true,
       src: "src/bootstrapPublic.tsx",
     },
     "src/bootstrapPwa.tsx": {
-      file: "assets/pwa.js",
+      file: PWA_CHUNK,
       isDynamicEntry: true,
       src: "src/bootstrapPwa.tsx",
     },
@@ -54,36 +67,62 @@ function createFixture(options: FixtureOptions = {}) {
         dynamicImports: [],
         modules: ["packages/client/src/main.tsx"],
       },
-      "assets/public.js": {
+      [PUBLIC_CHUNK]: {
         imports: [],
         dynamicImports: [],
         modules: options.publicModules ?? ["packages/client/src/bootstrapPublic.tsx"],
       },
-      "assets/pwa.js": {
+      [PWA_CHUNK]: {
         imports: [],
         dynamicImports: [],
         modules: ["packages/client/src/bootstrapPwa.tsx"],
       },
     };
 
+  if (!options.withoutPublicShell) {
+    manifest["src/routes/PublicShell.tsx"] = {
+      file: PUBLIC_SHELL_CHUNK,
+      isDynamicEntry: true,
+      src: "src/routes/PublicShell.tsx",
+    };
+    chunks[PUBLIC_SHELL_CHUNK] = {
+      imports: options.publicShellImports ? [PUBLIC_SHELL_IMPORT] : [],
+      dynamicImports: [],
+      modules: ["packages/client/src/routes/PublicShell.tsx"],
+    };
+    writeFileSync(resolve(directory, PUBLIC_SHELL_CHUNK), "export const frame = true");
+    if (options.publicShellImports) {
+      chunks[PUBLIC_SHELL_IMPORT] = {
+        imports: [],
+        dynamicImports: [],
+        modules: options.publicShellImports,
+      };
+      writeFileSync(resolve(directory, PUBLIC_SHELL_IMPORT), "export const cards = true");
+    }
+  }
+
   if (options.route) {
     manifest[options.route.source] = {
-      file: "assets/route.js",
+      file: ROUTE_CHUNK,
       isDynamicEntry: true,
       src: options.route.source,
     };
-    chunks["assets/route.js"] = {
+    chunks[ROUTE_CHUNK] = {
       imports: [],
       dynamicImports: [],
       modules: [`packages/client/${options.route.source}`],
     };
-    writeFileSync(resolve(directory, "assets/route.js"), options.route.contents);
+    writeFileSync(resolve(directory, ROUTE_CHUNK), options.route.contents);
+  }
+
+  for (const chunk of options.lazyChunks ?? []) {
+    manifest[`_${chunk.file.slice("assets/".length)}`] = { ...chunk };
   }
 
   const files = {
     "assets/main.js": "export const main = true",
-    "assets/public.js": "export const publicApp = true",
-    "assets/pwa.js": "export const pwa = true",
+    [PUBLIC_CHUNK]: "export const publicApp = true",
+    [PWA_CHUNK]: "export const pwa = true",
     ...options.files,
   };
   for (const [file, contents] of Object.entries(files)) {
@@ -147,6 +186,7 @@ describe("PWA build budgets", () => {
     ],
     ["precache raw", { precache: ["index.html"] }, { PWA_PRECACHE_MAX_BYTES: "1" }],
     ["public startup gzip", {}, { PWA_PUBLIC_STARTUP_GZIP_MAX: "1" }],
+    ["installed entry gzip", {}, { PWA_INSTALLED_ENTRY_GZIP_MAX: "1" }],
     ["installed startup gzip", {}, { PWA_INSTALLED_STARTUP_GZIP_MAX: "1" }],
     [
       "HTML module preloads",
@@ -175,5 +215,45 @@ describe("PWA build budgets", () => {
   ])("fails the %s ceiling", (message, fixtureOptions, limits) => {
     const output = runFailure(createFixture(fixtureOptions as FixtureOptions), limits);
     expect(output).toContain(message);
+  });
+
+  // The frame is a lazy route, outside the entry's closure, and every public page waits for it.
+  it("fails a build whose website frame imports sign-in code", () => {
+    const output = runFailure(
+      createFixture({ publicShellImports: ["packages/shared/src/hooks/auth/useAuth.ts"] }),
+      {}
+    );
+    expect(output).toContain("forbidden public dependencies under the website frame");
+    expect(output).toContain("packages/shared/src/hooks/auth/useAuth.ts");
+  });
+
+  it("fails a build that has no website frame left to check", () => {
+    const output = runFailure(createFixture({ withoutPublicShell: true }), {});
+    expect(output).toContain("The website frame (src/routes/PublicShell.tsx) is missing");
+  });
+
+  it("passes a build whose lazy chunks carry opaque names", () => {
+    const fixture = createFixture({
+      lazyChunks: [
+        { file: "assets/chunk-Q7fZ2kLp.js", name: "analytics-events" },
+        // Rolldown appends a numeric suffix to some hash-only names.
+        { file: "assets/chunk-0Z0fNygk2.js", name: "CampaignJarSurface" },
+        // A random hash can spell a short name; those are not checked.
+        { file: "assets/chunk-CfAB5leN2.js", name: "en" },
+      ],
+    });
+    expect(runFailure(fixture, {})).toBe("");
+  });
+
+  // EasyPrivacy's `/analytics-events-` rule blocks the first two names under Brave's
+  // Aggressive blocking and uBlock Origin, failing every lazy route that imports auth.
+  it.each([
+    { file: "assets/analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-analytics-events-OnL9QVlN.js", name: "analytics-events" },
+    { file: "assets/chunk-public01.js", name: "public" },
+  ])("fails a lazy chunk whose file name carries its name: $file", (chunk) => {
+    const output = runFailure(createFixture({ lazyChunks: [chunk] }), {});
+    expect(output).toContain("lazy chunk file names must be opaque");
+    expect(output).toContain(chunk.file);
   });
 });

@@ -1,6 +1,6 @@
 # Contracts Package Context
 
-Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
+Loaded when working in `packages/contracts/`. Extends `packages/contracts/AGENTS.md`.
 
 ## Quick Reference
 

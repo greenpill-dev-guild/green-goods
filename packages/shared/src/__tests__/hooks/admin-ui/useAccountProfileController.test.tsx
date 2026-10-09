@@ -1,10 +1,10 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address, Garden } from "../../../types/domain";
 import { useAccountProfileController } from "../../../hooks/admin-ui/layout/useAccountProfileController";
-import { renderHookWithProviders } from "../../test-utils";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
 const gardenOne = {
   id: "0x1111111111111111111111111111111111111111",
@@ -19,17 +19,20 @@ const mocks = vi.hoisted(() => ({
   closeSheet: vi.fn(),
   setGarden: vi.fn(),
   signOut: vi.fn(),
+  primaryAddress: vi.fn(),
+  authState: vi.fn(),
+  ensName: vi.fn(),
 }));
 
 vi.mock("../../../providers/Auth", () => ({
   useAuthActions: () => ({ signOut: mocks.signOut }),
-  useAuthState: () => ({
-    authMode: "wallet",
-    eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
-  }),
+  useAuthState: () => mocks.authState(),
+}));
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mocks.primaryAddress(),
 }));
 vi.mock("../../../hooks/blockchain/useEnsName", () => ({
-  useEnsName: () => ({ data: "garden.greengoods.eth" }),
+  useEnsName: (address: Address) => mocks.ensName(address),
 }));
 vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
   useEligibleAdminGardens: () => ({ eligibleGardens: [gardenOne, gardenTwo] }),
@@ -51,6 +54,24 @@ vi.mock("../../../stores/useSheetOrchestratorStore", () => ({
 describe("useAccountProfileController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authState.mockReturnValue({
+      authMode: "wallet",
+      eoaAddress: "0x9999999999999999999999999999999999999999",
+    });
+    mocks.primaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
+    mocks.ensName.mockReturnValue({ data: "garden.greengoods.eth" });
+  });
+
+  it("uses the passkey account for profile identity instead of an unrelated wallet", () => {
+    const primaryAddress = "0x3333333333333333333333333333333333333333";
+    mocks.authState.mockReturnValue({
+      authMode: "passkey",
+      eoaAddress: "0x9999999999999999999999999999999999999999",
+    });
+    mocks.primaryAddress.mockReturnValue(primaryAddress);
+    const { result } = renderHookWithProviders(() => useAccountProfileController());
+    expect(result.current).toMatchObject({ authMethodLabel: "Passkey", primaryAddress });
+    expect(mocks.ensName).toHaveBeenCalledWith(primaryAddress);
   });
 
   it("projects identity and selected-garden state", () => {

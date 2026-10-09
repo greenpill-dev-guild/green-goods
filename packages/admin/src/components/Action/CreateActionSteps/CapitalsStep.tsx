@@ -106,7 +106,7 @@ export function CapitalsStep({ form }: CapitalsStepProps) {
                 "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 transition",
                 "[&>span:first-child]:h-5 [&>span:first-child]:w-5",
                 "[&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:pt-0",
-                "[&>span:nth-child(2)>span]:truncate [&>span:nth-child(2)>span]:label-md [&>span:nth-child(2)>span]:font-medium",
+                "[&>span:nth-child(2)>span]:truncate [&>span:nth-child(2)>span]:font-medium",
                 isChecked
                   ? "border-success-base bg-success-lighter text-success-dark"
                   : "border-stroke-soft bg-bg-white text-text-sub hover:border-success-light hover:bg-success-lighter/30"

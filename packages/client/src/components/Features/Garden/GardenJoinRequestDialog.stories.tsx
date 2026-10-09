@@ -23,6 +23,9 @@ type JoinRequests = ReturnType<typeof useGardenJoinRequests>;
 function joinRequests(overrides: Partial<JoinRequests> = {}): JoinRequests {
   return {
     accountAddress: ACCOUNT,
+    scopeKey: "storybook-join",
+    outcomeUnknown: false,
+    canRefreshStatus: false,
     request: null,
     hasCheckedStatus: false,
     queue: [],
@@ -148,6 +151,7 @@ export const Sending: Story = {
 
 export const CouldNotConfirm: Story = {
   beforeEach: withJoinRequests({
+    hasCheckedStatus: true,
     submitRequest: fn(async () => {
       throw new GardenJoinRequestTransportError("timeout", undefined, undefined, true);
     }) as unknown as JoinRequests["submitRequest"],
@@ -162,6 +166,27 @@ export const CouldNotConfirm: Story = {
       )
     ).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Send Request" })).toBeDisabled();
+    await expect(
+      sheet.queryByText("You do not have a request for this garden yet.")
+    ).not.toBeInTheDocument();
+  },
+};
+
+export const NotSaved: Story = {
+  beforeEach: withJoinRequests({
+    mutationState: {
+      isLoading: false,
+      error: new GardenJoinRequestTransportError("Not saved", 503, "request_not_saved"),
+    },
+  }),
+  play: async () => {
+    const sheet = await openSheet();
+    await userEvent.type(sheet.getByRole("textbox", { name: "Display name" }), "Ana");
+    await expect(sheet.getByRole("alert")).toHaveTextContent(
+      "This attempt did not save a request. Please try again."
+    );
+    await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
+    await expect(sheet.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
   },
 };
 
@@ -210,6 +235,39 @@ export const Pending: Story = {
     await expect(sheet.getByText("Request awaiting review")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
+    await expect(await sheet.findByText("Checked just now.")).toBeVisible();
+  },
+};
+
+export const WithdrawalFailedAfterRefresh: Story = {
+  beforeEach: () => {
+    const state = joinRequests({
+      hasCheckedStatus: true,
+      canRefreshStatus: true,
+      request: selfRequest(),
+      mutationState: { ...IDLE },
+    });
+    state.withdrawRequest = fn(async () => {
+      const error = new GardenJoinRequestTransportError("Unavailable", 503, "provider_unavailable");
+      state.mutationState.error = error;
+      throw error;
+    });
+    return withJoinRequests(state)();
+  },
+  play: async () => {
+    const sheet = await openSheet();
+    await expect(
+      mocked(useGardenJoinRequests).mock.results[0].value.checkStatus
+    ).toHaveBeenCalledWith({
+      allowSignature: false,
+    });
+    await userEvent.click(sheet.getByRole("button", { name: "Withdraw Request" }));
+    await expect(await sheet.findByRole("alert")).toHaveTextContent(
+      "Garden join requests are unavailable right now. Please try again later."
+    );
+    await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
+    await expect(sheet.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
   },
 };
 

@@ -1,7 +1,8 @@
 # Capital Off-Ramp Corridors
 
+**Status**: `IDEA — independent review complete; corridor/provider selection open`
 **Slug**: `capital-offramp-corridors`  
-**Stage**: `ideas`  
+**Stage**: `ideas`
 **Created**: 2026-08-03  
 **Last reviewed**: 2026-08-04 UTC  
 **Linear issue**: [RESR-71](https://linear.app/greenpill-dev-guild/issue/RESR-71/independent-review-pass-over-the-off-ramp-corridor-research)  

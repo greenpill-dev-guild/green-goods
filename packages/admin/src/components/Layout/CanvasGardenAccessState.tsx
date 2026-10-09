@@ -1,15 +1,18 @@
 import { useIntl } from "react-intl";
+import type { ReactNode } from "react";
 import { AdminButton } from "@/components/AdminButton";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasGardenAccessStateProps {
   onCreateGarden: () => void;
   canCreateGarden?: boolean;
+  stewardAccess?: ReactNode;
 }
 
 export function CanvasGardenAccessState({
   onCreateGarden,
   canCreateGarden = true,
+  stewardAccess,
 }: CanvasGardenAccessStateProps) {
   const { formatMessage } = useIntl();
 
@@ -19,13 +22,13 @@ export function CanvasGardenAccessState({
       data-testid="canvas-no-garden-access"
     >
       <SeedlingIllustration className="h-28 w-28" />
-      <h1 className="mt-5 text-xl font-semibold text-text-strong">
+      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
         {formatMessage({
           id: "cockpit.access.noGardenTitle",
           defaultMessage: "No garden access yet",
         })}
       </h1>
-      <p className="mt-2 max-w-md text-sm text-text-sub">
+      <p className="mt-2 max-w-md body-sm text-text-sub">
         {canCreateGarden
           ? formatMessage({
               id: "cockpit.access.noGardenDescriptionCanCreate",
@@ -38,6 +41,7 @@ export function CanvasGardenAccessState({
                 "This wallet is not assigned to a steward or evaluator garden yet. Ask a garden owner or steward to add you before using the canvas.",
             })}
       </p>
+      {stewardAccess ? <div className="mt-6 w-full max-w-md">{stewardAccess}</div> : null}
       {canCreateGarden && (
         <AdminButton className="mt-6" onClick={onCreateGarden}>
           {formatMessage({

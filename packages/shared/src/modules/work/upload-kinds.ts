@@ -86,6 +86,7 @@ export function mergeUploadProgress(
     ...(stored ?? { submittedAt: progress.submittedAt }),
     files: { ...stored?.files, ...progress.files },
     ...(progress.metadata ? { metadata: progress.metadata } : {}),
+    ...(progress.published ? { published: progress.published } : {}),
   };
 }
 

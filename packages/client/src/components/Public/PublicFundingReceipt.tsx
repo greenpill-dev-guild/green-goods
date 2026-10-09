@@ -202,33 +202,42 @@ function ReceiptBody({
             {formatStatus(receipt.status)}
           </dd>
         </div>
-        {receipt.fundingTxHash ? (
-          <div className="flex items-start justify-between gap-3 border-b border-stroke-soft-200 pb-3">
-            <dt className="text-text-sub-600">
-              {formatMessage({
-                id: "public.fund.receipt.txHash",
-                defaultMessage: "Transaction",
-              })}
-            </dt>
-            <dd className="break-all text-right font-mono text-xs text-text-strong-950">
-              {receipt.fundingTxHash}
-            </dd>
-          </div>
-        ) : null}
-        {receipt.receiverAddress && receipt.fundingIntent === "endow" ? (
-          <div className="flex items-start justify-between gap-3 border-b border-stroke-soft-200 pb-3">
-            <dt className="text-text-sub-600">
-              {formatMessage({
-                id: "public.fund.receipt.receiver",
-                defaultMessage: "Receiver wallet",
-              })}
-            </dt>
-            <dd className="break-all text-right font-mono text-xs text-text-strong-950">
-              {receipt.receiverAddress}
-            </dd>
-          </div>
-        ) : null}
       </dl>
+      {receipt.fundingTxHash || (receipt.receiverAddress && receipt.fundingIntent === "endow") ? (
+        <details className="mt-6 border-t border-stroke-soft-200 pt-4">
+          <summary className="min-h-11 cursor-pointer text-sm font-medium text-primary-action focus-visible:outline-2 focus-visible:outline-offset-2">
+            {formatMessage({ id: "public.identity.recordDetails" })}
+          </summary>
+          <dl className="grid gap-4 text-sm">
+            {receipt.fundingTxHash ? (
+              <div className="flex items-start justify-between gap-3 border-b border-stroke-soft-200 pb-3">
+                <dt className="text-text-sub-600">
+                  {formatMessage({
+                    id: "public.fund.receipt.txHash",
+                    defaultMessage: "Transaction",
+                  })}
+                </dt>
+                <dd className="break-all text-right font-mono text-xs text-text-strong-950">
+                  {receipt.fundingTxHash}
+                </dd>
+              </div>
+            ) : null}
+            {receipt.receiverAddress && receipt.fundingIntent === "endow" ? (
+              <div className="flex items-start justify-between gap-3 border-b border-stroke-soft-200 pb-3">
+                <dt className="text-text-sub-600">
+                  {formatMessage({
+                    id: "public.fund.receipt.receiver",
+                    defaultMessage: "Receiver wallet",
+                  })}
+                </dt>
+                <dd className="break-all text-right font-mono text-xs text-text-strong-950">
+                  {receipt.receiverAddress}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </details>
+      ) : null}
 
       {receipt.fundingIntent === "endow" ? (
         <p className="mt-6 rounded-2xl bg-bg-weak-50 p-4 text-xs text-text-sub-600">

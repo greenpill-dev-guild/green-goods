@@ -8,16 +8,17 @@ import {
   EditorialStatSkeleton,
 } from "./atoms";
 
+/** A `null` count could not be read: it renders as an em dash, never as zero. */
 export interface PublicProofBandProps {
-  gardens: number;
-  contributors: number;
-  works: number;
-  assessments: number;
+  gardens: number | null;
+  contributors: number | null;
+  works: number | null;
+  assessments: number | null;
   isLoading?: boolean;
 }
 
 interface ProofMarkerProps {
-  value: number;
+  value: number | null;
   isLoading: boolean;
   labelId: string;
   defaultLabel: string;
@@ -34,11 +35,24 @@ function ProofMarker({
   defaultNote,
 }: ProofMarkerProps) {
   const { formatMessage } = useIntl();
-  const formatted = new Intl.NumberFormat().format(value);
   return (
     <div>
       <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
-        {isLoading ? <EditorialStatSkeleton className="h-12 w-24 md:h-14 md:w-28" /> : formatted}
+        {isLoading ? (
+          <EditorialStatSkeleton className="h-12 w-24 md:h-14 md:w-28" />
+        ) : value === null ? (
+          <>
+            <span aria-hidden="true">—</span>
+            <span className="sr-only">
+              {formatMessage({
+                id: "public.impact.proof.unavailable",
+                defaultMessage: "Not available right now",
+              })}
+            </span>
+          </>
+        ) : (
+          new Intl.NumberFormat().format(value)
+        )}
       </p>
       <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
         {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
@@ -72,10 +86,10 @@ export function PublicProofBand({
     <section
       ref={sectionRef}
       data-revealed={revealed}
-      className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+      className="editorial-section-reveal @container bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-proof-title"
     >
-      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
+      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 sm:gap-8 @min-[70rem]:grid-cols-[1fr_1.6fr] @min-[70rem]:gap-24">
         <div>
           <EditorialKicker className="mb-5">
             {formatMessage({
@@ -86,7 +100,7 @@ export function PublicProofBand({
           <EditorialHeading id="public-proof-title">
             {formatMessage({
               id: "public.home.proof.title",
-              defaultMessage: "Quantifiable restoration.",
+              defaultMessage: "The public record so far.",
             })}
           </EditorialHeading>
           <div className="mt-5 max-w-md">
@@ -94,7 +108,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
+                  "These counts show documented activity across the Gardens listed here. Steward approval confirms a work submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
@@ -109,7 +123,7 @@ export function PublicProofBand({
         </div>
 
         {allEmpty ? (
-          <div className="flex flex-col justify-center border-l border-stroke-soft-200 pl-12 lg:pl-16">
+          <div className="flex flex-col justify-center border-l border-stroke-soft-200 pl-12 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
               {formatMessage({
                 id: "public.home.proof.emptyKicker",
@@ -125,7 +139,7 @@ export function PublicProofBand({
             </p>
           </div>
         ) : (
-          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-x-16 lg:pl-16">
+          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-8 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:gap-x-16 @min-[70rem]:gap-y-12 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
             <ProofMarker
               value={gardens}
               isLoading={isLoading}
@@ -140,7 +154,7 @@ export function PublicProofBand({
               labelId="public.home.proof.contributors"
               defaultLabel="Hands at work"
               noteId="public.home.proof.contributorsNote"
-              defaultNote="Gardeners with a role in at least one Garden. Each address counted once."
+              defaultNote="Gardeners and stewards in any Garden. Each address counted once."
             />
             <ProofMarker
               value={works}

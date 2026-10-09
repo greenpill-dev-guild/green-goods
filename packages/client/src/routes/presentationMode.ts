@@ -17,7 +17,8 @@ const PUBLIC_WEBSITE_PATHS = new Set([
   "/landing",
   "/vaults",
 ]);
-const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
+// Chat ceremony links open as website pages even when an installed app captures the link.
+const PUBLIC_WEBSITE_PREFIXES = ["/gardens/", "/agent/reporting/"];
 
 function isLocalHostname(hostname: string): boolean {
   const normalized = hostname.toLowerCase();

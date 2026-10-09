@@ -5,8 +5,6 @@ export interface MetaStripItem {
   id?: string;
   label: ReactNode;
   value?: ReactNode;
-  /** "critical" renders the value in the error text pair (e.g. overdue counts). */
-  valueTone?: "critical";
 }
 
 export interface MetaStripProps {
@@ -27,8 +25,8 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
 
   if (density === "inline") {
     // Cockpit M3 1a status line: 12px with 0.3px tracking, plain 400 labels;
-    // only the counts carry weight (600), in ink or a semantic status color
-    // supplied by the caller.
+    // only the counts carry weight (600), in strong ink. Counts are metadata,
+    // never alarms (DL-044), so they take no status colour.
     return (
       <div
         data-component="MetaStrip"
@@ -47,14 +45,7 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
             ) : null}
             <span className="inline-flex items-center gap-1">
               {item.value ? (
-                <span
-                  className={cn(
-                    "font-semibold tabular-nums",
-                    item.valueTone === "critical" ? "text-error-dark" : "text-text-strong"
-                  )}
-                >
-                  {item.value}
-                </span>
+                <span className="font-semibold tabular-nums text-text-strong">{item.value}</span>
               ) : null}
               <span>{item.label}</span>
             </span>

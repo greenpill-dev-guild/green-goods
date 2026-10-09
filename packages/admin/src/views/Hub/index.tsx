@@ -5,8 +5,10 @@ import {
 } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import { useHubWorkbenchController } from "@green-goods/shared/hooks/admin-ui/hub/useHubWorkbenchController";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -29,21 +31,11 @@ export default function HubView() {
     return buildHubHeaderStats({
       hasSelectedGarden: Boolean(hub.selectedGarden),
       // Queue aging, not stage depth: the stage tab rail already shows the
-      // per-stage counts, so the header surfaces what to triage first. Both
-      // counts are unfiltered, so an active search never shifts them. The
-      // derived warning count includes critical items, so keep waiting as the
-      // exclusive 24-72h bucket.
-      overdueCount: hub.pendingCriticalCount,
-      waitingCount: Math.max(0, hub.pendingWarningCount - hub.pendingCriticalCount),
+      // per-stage counts. The count is unfiltered, so a search never shifts it.
+      waitingOverWeekCount: hub.waitingOverWeekCount,
       formatMessage,
     });
-  }, [
-    hub.selectedGarden,
-    hub.worksLoading,
-    hub.pendingCriticalCount,
-    hub.pendingWarningCount,
-    formatMessage,
-  ]);
+  }, [hub.selectedGarden, hub.worksLoading, hub.waitingOverWeekCount, formatMessage]);
 
   return (
     <CanvasRouteFrame
@@ -65,6 +57,7 @@ export default function HubView() {
           hub.allocationsLoading
         }
         canManage={hub.canManage}
+        chainId={hub.chainId}
         hubContext={hub.hubContext}
         closeTo={hub.routeSheetCloseTo}
         onNavigateToBase={hub.navigateToHubBase}
@@ -111,11 +104,40 @@ export default function HubView() {
                 placeholder={hub.searchPlaceholder}
               >
                 {hub.stage === "work" && (
-                  <AdminSortSelect
-                    value={hub.sortDirection}
-                    onChange={(value) => hub.updateSearch({ sort: value }, false)}
-                    options={hub.sortOptions}
-                  />
+                  <>
+                    {/* Pending and Approved are scopes of one list, not tabs of
+                        their own (DL-082). */}
+                    <div
+                      className="flex flex-wrap items-center gap-1.5"
+                      role="group"
+                      aria-label={formatMessage({
+                        id: "cockpit.hub.work.scope",
+                        defaultMessage: "Work status",
+                      })}
+                    >
+                      <AdminFilterChip
+                        label={formatMessage({
+                          id: "app.admin.work.filter.pending",
+                          defaultMessage: "Pending",
+                        })}
+                        selected={hub.workScope === "pending"}
+                        onToggle={() => hub.handleWorkScopeChange("pending")}
+                      />
+                      <AdminFilterChip
+                        label={formatMessage({
+                          id: "app.admin.work.filter.approved",
+                          defaultMessage: "Approved",
+                        })}
+                        selected={hub.workScope === "approved"}
+                        onToggle={() => hub.handleWorkScopeChange("approved")}
+                      />
+                    </div>
+                    <AdminSortSelect
+                      value={hub.sortDirection}
+                      onChange={(value) => hub.updateSearch({ sort: value }, false)}
+                      options={hub.sortOptions}
+                    />
+                  </>
                 )}
               </AdminSearchToolbar>
             }
@@ -148,7 +170,7 @@ export default function HubView() {
                     {
                       id: "cockpit.hub.resultsCount",
                       defaultMessage:
-                        "{count, plural, one {# submission found} other {# submissions found}}",
+                        "{count, plural, one {# result found} other {# results found}}",
                     },
                     { count: hub.resultCount }
                   )}
@@ -161,9 +183,10 @@ export default function HubView() {
               <div className="hub-results-pane">
                 <HubStageContent
                   stage={hub.stage}
-                  pendingWorks={hub.pendingWorks}
-                  assessmentQueue={hub.assessmentQueue}
-                  certificationQueue={hub.certificationQueue}
+                  works={hub.scopedWorks}
+                  workScope={hub.workScope}
+                  assessments={hub.assessmentList}
+                  hypercerts={hub.hypercertList}
                   worksLoading={hub.worksLoading}
                   fetchingAssessments={hub.fetchingAssessments}
                   hypercertsLoading={hub.hypercertsLoading}
@@ -174,7 +197,12 @@ export default function HubView() {
                   selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
-                  canManage={hub.canManage}
+                  createAssessmentHref={
+                    hub.canReview ? adminRoutes.hubAssessCreate(hub.hubContext) : undefined
+                  }
+                  createHypercertHref={
+                    hub.canManage ? adminRoutes.hubCertifyCreate(hub.hubContext) : undefined
+                  }
                   toConfirm={hub.toConfirm}
                   chainId={hub.chainId}
                   viewer={hub.viewer}
@@ -184,6 +212,7 @@ export default function HubView() {
                   onOpenWorkDetail={hub.handleOpenWorkDetail}
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
+                  onOpenHypercert={hub.handleOpenHypercert}
                 />
               </div>
             </section>

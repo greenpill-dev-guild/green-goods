@@ -142,6 +142,17 @@ export function AdminCardHeader({ className, ...props }: React.HTMLAttributes<HT
   );
 }
 
+/** The shared 16px/600 heading tier for admin cards and their sections. */
+export function AdminCardTitle({
+  as: Tag = "h3",
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { as?: "h2" | "h3" | "h4" | "p" }) {
+  return (
+    <Tag className={cn("text-title-md font-semibold text-text-strong", className)} {...props} />
+  );
+}
+
 export function AdminCardBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div data-component="AdminCardBody" className={cn("p-4", className)} {...props} />;
 }

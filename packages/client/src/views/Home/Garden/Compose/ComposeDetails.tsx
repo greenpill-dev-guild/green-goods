@@ -2,6 +2,7 @@ import type { CommitmentComposerValues } from "@green-goods/shared/commitment-po
 import { Button } from "@green-goods/shared/components/Button";
 import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { IconButton } from "@green-goods/shared/components/IconButton";
+import { COMMITMENT_NOTE_MAX_LENGTH } from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { RiAddLine, RiCloseLine, RiShieldCheckLine } from "@remixicon/react";
 import { useState } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
@@ -109,7 +110,7 @@ export function ComposeDetails({ form }: ComposeDetailsProps) {
             id="compose-note"
             value={note}
             rows={3}
-            maxLength={2000}
+            maxLength={COMMITMENT_NOTE_MAX_LENGTH}
             placeholder={formatMessage({ id: "app.compose.what.descriptionPlaceholder" })}
             onChange={(event) =>
               form.setValue("note", event.target.value, { shouldValidate: true, shouldDirty: true })
@@ -212,7 +213,7 @@ function Toggle({
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-5 w-5 shrink-0 accent-[var(--color-primary)]"
+        className="mt-1 h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
       />
     </div>
   );

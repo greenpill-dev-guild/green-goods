@@ -1,16 +1,16 @@
 /**
  * useWorks Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work fetching hook in online-only mode plus the jobToWork pure function.
  * Offline mode tests are lighter since the merge logic (useMerged) is tested separately.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import type { Job, WorkJobPayload } from "../../../types/job-queue";
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -20,6 +20,9 @@ const TEST_PRIMARY_ADDRESS = "0x1111111111111111111111111111111111111111";
 
 // ── Mock data ───────────────────────────────────────────────────────────────
 const mockGetWorkListPage = vi.fn();
+vi.mock("../../../modules/job-queue/work-completions", () => ({
+  retireWorkCompletionSnapshots: vi.fn(async () => {}),
+}));
 const mockGetWorkApprovalsForWorks = vi.fn();
 const mockGetJobs = vi.fn();
 const mockGetImagesForJob = vi.fn();
@@ -56,6 +59,12 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
+    observeWorkCompletions: () => ({
+      subscribe: (observer: { next: (rows: never[]) => void }) => {
+        queueMicrotask(() => observer.next([]));
+        return { unsubscribe() {} };
+      },
+    }),
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
 }));
@@ -114,27 +123,12 @@ vi.mock("../../../config/query-keys/misc", () => ({
 
 const { useWorks, jobToWork } = await import("../../../hooks/work/useWorks");
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages: {} }, children)
-    );
-  };
-}
-
 describe("hooks/work/useWorks", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false, gcTime: 0, staleTime: 0 },
-        mutations: { retry: false },
-      },
-    });
+    queryClient = createTestQueryClient();
     mockGetWorkListPage.mockResolvedValue([]);
     mockGetWorkApprovalsForWorks.mockResolvedValue([]);
     mockGetJobs.mockResolvedValue([]);
@@ -146,9 +140,7 @@ describe("hooks/work/useWorks", () => {
   });
 
   it("returns empty works when gardenId is empty", () => {
-    const { result } = renderHook(() => useWorks(""), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(""), { queryClient });
 
     expect(result.current.works).toEqual([]);
     expect(result.current.offlineCount).toBe(0);
@@ -172,9 +164,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue(onlineWorks);
     mockGetWorkApprovalsForWorks.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => {
       expect(result.current.works).toHaveLength(1);
@@ -183,6 +173,75 @@ describe("hooks/work/useWorks", () => {
       chainId: TEST_CHAIN_ID,
       take: 51,
     });
+  });
+
+  // A screen that keeps a row in state from an effect, as the work detail does,
+  // re-renders forever if each render hands it a new copy of the same row.
+  it("hands back the same list and rows on a re-render when nothing changed", async () => {
+    mockGetWorkListPage.mockResolvedValue([
+      {
+        id: "work-1",
+        title: "Test Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ]);
+    const { result, rerender } = renderHookWithProviders(() => useWorks(TEST_GARDEN), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+
+    // Once the read and its saved copy settle, a render with no new data
+    // returns what the last one did.
+    await waitFor(() => {
+      const settled = result.current.works;
+      rerender();
+      expect(result.current.works).toHaveLength(1);
+      expect(result.current.works[0]).toBe(settled[0]);
+      expect(result.current.works).toBe(settled);
+    });
+  });
+
+  it("tells rows restored from an earlier session from rows read in this one", async () => {
+    const restored = [
+      {
+        id: "work-1",
+        title: "Restored Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        approval: null,
+      },
+    ];
+    let finishRead!: (rows: unknown[]) => void;
+    mockGetWorkListPage.mockReturnValue(
+      new Promise((resolve) => {
+        finishRead = resolve;
+      })
+    );
+    // A restored snapshot keeps the time it was read in an earlier session.
+    queryClient.setQueryData(["works", "online", TEST_GARDEN, TEST_CHAIN_ID], restored, {
+      updatedAt: 1,
+    });
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    expect(result.current.works).toHaveLength(1);
+    expect(result.current.readThisSession).toBe(false);
+    await act(async () => {
+      finishRead(restored);
+    });
+    await waitFor(() => expect(result.current.readThisSession).toBe(true));
   });
 
   it("reads one lookahead row, offers older work, and widens the shared window", async () => {
@@ -202,9 +261,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue(page(51));
     mockGetWorkApprovalsForWorks.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => expect(result.current.works).toHaveLength(50));
     expect(result.current.hasOlderWork).toBe(true);
@@ -239,9 +296,7 @@ describe("hooks/work/useWorks", () => {
       }))
     );
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => expect(result.current.works).toHaveLength(50));
     expect(result.current.hasOlderWork).toBe(false);
@@ -266,9 +321,9 @@ describe("hooks/work/useWorks", () => {
         status: "pending" as const,
       }));
     mockGetWorkListPage.mockResolvedValue(page(51));
-    const { result } = renderHook(
+    const { result } = renderHookWithProviders(
       () => ({ first: useWorks(TEST_GARDEN), second: useWorks(TEST_GARDEN) }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
     await waitFor(() => expect(result.current.first.works).toHaveLength(50));
 
@@ -335,9 +390,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue(works);
     mockGetWorkApprovalsForWorks.mockResolvedValue(approvals);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => {
       expect(result.current.works).toHaveLength(3);
@@ -347,6 +400,7 @@ describe("hooks/work/useWorks", () => {
     expect(statusMap.get("w1")).toBe("approved");
     expect(statusMap.get("w2")).toBe("rejected");
     expect(statusMap.get("w3")).toBe("pending");
+    expect(result.current.hasUnknownStatuses).toBe(false);
   });
 
   it("handles approval fetch failure gracefully", async () => {
@@ -367,15 +421,15 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue(works);
     mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => {
       expect(result.current.works).toHaveLength(1);
     });
     // Should still return works even if approvals fail
     expect(result.current.works[0].status).toBe("pending");
+    // That pending is a fallback, and the hook says so: queue health must not read it as settled.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("marks work as rejected when approval.approved is false", async () => {
@@ -396,9 +450,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue(works);
     mockGetWorkApprovalsForWorks.mockResolvedValue([{ workUID: "w1", approved: false }]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => {
       expect(result.current.works[0]?.status).toBe("rejected");
@@ -440,9 +492,7 @@ describe("hooks/work/useWorks", () => {
     mockGetWorkListPage.mockResolvedValue([]);
     mockGetWorkApprovalsForWorks.mockResolvedValue([{ workUID: reviewed.id, approved: false }]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalled());
     await waitFor(() => expect(result.current.isFetching).toBe(false));
@@ -450,6 +500,9 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkApprovalsForWorks).not.toHaveBeenCalled();
 
     expect(result.current.works).toEqual([reviewed, unrelated]);
+    // Rows the read left out keep an earlier read's status, so queue health
+    // must not treat them as current.
+    expect(result.current.hasUnknownStatuses).toBe(true);
   });
 
   it("retains the last authoritative work collection after the decision overlay expires", async () => {
@@ -472,9 +525,7 @@ describe("hooks/work/useWorks", () => {
     });
     mockGetWorkListPage.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalled());
     await waitFor(() => expect(result.current.isFetching).toBe(false));
@@ -482,12 +533,37 @@ describe("hooks/work/useWorks", () => {
     expect(result.current.works).toEqual([{ ...staleReviewed, status: "pending" }]);
   });
 
+  it("lists a steward's sent work once, and stops saving the placeholder an earlier build left", async () => {
+    const indexed = {
+      id: "0xwork",
+      title: "Planting",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "bafy-metadata",
+      media: ["cid"],
+      createdAt: 1001,
+    };
+    const merged = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    const saved = () =>
+      queryClient.getQueryData<Array<{ id: string }>>(merged)?.map((work) => work.id);
+    queryClient.setQueryData(merged, [
+      { ...indexed, id: `optimistic-0x${"ab".repeat(32)}`, metadata: "{}", media: [] },
+    ]);
+    mockGetWorkListPage.mockResolvedValue([indexed]);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(result.current.works.map((work) => work.id)).toEqual(["0xwork"]));
+    // The admin restores this saved list on reload, so the placeholder leaves it too.
+    await waitFor(() => expect(saved()).toEqual(["0xwork"]));
+  });
+
   it("returns offlineCount 0 in online-only mode", async () => {
     mockGetWorkListPage.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -525,9 +601,7 @@ describe("hooks/work/useWorks", () => {
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
       mockGetWorkApprovalsForWorks.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
       await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(result.current.isFetching).toBe(false));
@@ -551,9 +625,7 @@ describe("hooks/work/useWorks", () => {
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
       mockGetWorkApprovalsForWorks.mockResolvedValue([{ workUID: indexedRow.id, approved: false }]);
 
-      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
       await waitFor(() => expect(mockGetWorkListPage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(result.current.isFetching).toBe(false));
@@ -567,23 +639,21 @@ describe("hooks/work/useWorks", () => {
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
       mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
       await waitFor(() => expect(mockGetWorkApprovalsForWorks).toHaveBeenCalled());
       await waitFor(() => expect(result.current.isFetching).toBe(false));
       // The works still arrive; their approval is unknown rather than missing.
       expect(result.current.works[0]?.status).toBe("approved");
+      // The cached status shows, but queue health must not read it as current.
+      expect(result.current.hasUnknownStatuses).toBe(true);
     });
 
     it("shows a work whose approvals could not be read but never saves it as a known status", async () => {
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
       mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useWorks(TEST_GARDEN), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
 
       await waitFor(() =>
         expect(result.current.works.map((work) => work.id)).toEqual(["reviewed-work"])
@@ -597,8 +667,8 @@ describe("hooks/work/useWorks", () => {
     it("keeps a confirmed decision across offline refreshes while the indexer still reports pending", async () => {
       queryClient.setQueryData(MERGED_KEY, [confirmedDecision]);
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
-      const { result } = renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN, { offline: true }), {
+        queryClient,
       });
       await waitFor(() =>
         expect(result.current.works[0]).toMatchObject({ status: "rejected", _txHash: "0xdecision" })
@@ -612,8 +682,8 @@ describe("hooks/work/useWorks", () => {
       queryClient.setQueryData(MERGED_KEY, [{ ...indexedRow, status: "approved" as const }]);
       mockGetWorkListPage.mockResolvedValue([indexedRow]);
       mockGetWorkApprovalsForWorks.mockRejectedValue(new Error("Network error"));
-      const { result } = renderHook(() => useWorks(TEST_GARDEN, { offline: true }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN, { offline: true }), {
+        queryClient,
       });
       await waitFor(() => expect(result.current.works[0]?.status).toBe("approved"));
     });

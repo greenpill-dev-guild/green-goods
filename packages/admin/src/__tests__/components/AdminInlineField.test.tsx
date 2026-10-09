@@ -5,7 +5,7 @@
  * `--error-dark`, a `shake-error` class with no definition in admin CSS, and
  * un-inset supporting text. These pin the M3-family contract instead.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { AdminInlineField } from "@/components/AdminInlineField";
@@ -53,7 +53,8 @@ describe("AdminInlineField error anatomy", () => {
 
     const slot = () => document.querySelector("p[id$='-helper-text']");
     expect(slot()).not.toBeNull();
-    expect(slot()).toHaveClass("min-h-4");
+    // The reserve and the text's line are the same 16px; the story lane checks the real height.
+    expect(slot()).toHaveClass("min-h-4", "text-body-sm/4");
 
     rerender(
       <AdminInlineField

@@ -6,6 +6,7 @@ import type {
 import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import type { TransferAct } from "@/views/Garden/Pool/TransferReviewDialog";
 
@@ -71,28 +72,28 @@ export function ProtocolFundingRows({
 
   return (
     <section className="space-y-2" aria-labelledby="protocol-funding-rows-title">
-      <h4 id="protocol-funding-rows-title" className="label-md text-text-strong">
+      <AdminCardTitle as="h4" id="protocol-funding-rows-title">
         {formatMessage({
           id: "cockpit.community.protocolFunding.rows",
           defaultMessage: "Protocol-to-Garden Transfers",
         })}
-      </h4>
+      </AdminCardTitle>
       {operations.rows.length === 0 ? (
-        <p className="text-xs text-text-soft">
+        <p className="body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.protocolFunding.rows.empty",
             defaultMessage: "No indexed protocol funding transfers yet.",
           })}
         </p>
       ) : (
-        <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] px-3">
+        <ul className="divide-y divide-stroke-soft rounded-[var(--m3-shape-sm)] bg-bg-soft px-3">
           {operations.rows.map((row) => {
             const to = gardenName(row.garden) ?? shortAddress(row.recipient);
             return (
               <li key={row.id} className="space-y-2 py-3" data-funding-id={row.disbursementId}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-text-strong" title={to}>
+                    <p className="truncate body-sm font-medium text-text-strong" title={to}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.transfer",
@@ -101,7 +102,7 @@ export function ProtocolFundingRows({
                         { amount: formatGdollar(row.amount, locale), garden: to }
                       )}
                     </p>
-                    <p className="text-xs text-text-soft" title={row.recipient}>
+                    <p className="body-xs text-text-soft" title={row.recipient}>
                       {formatMessage(
                         {
                           id: "cockpit.community.protocolFunding.row.identity",

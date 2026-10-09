@@ -7,7 +7,7 @@
  * @module utils/errors/mutation-error-handler
  */
 
-import { toastService, walletProgressToasts } from "../../components/toast";
+import { type FormatMessageFn, toastService, walletProgressToasts } from "../../components/toast";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { DEBUG_ENABLED, debugError } from "../../utils/debug";
 import { type ParsedContractError, parseAndFormatError } from "./contract-errors";
@@ -32,6 +32,12 @@ export interface MutationErrorHandlerConfig {
   getFallbackTitle?: (authMode: "wallet" | "passkey" | "embedded" | null) => string;
   /** Use wallet progress toast style for wallet mode */
   useWalletProgressToast?: boolean;
+  /**
+   * react-intl's `formatMessage`. With it, a known error whose parser names its
+   * copy (`titleKey`, `messageKey`, `actionKey`) reads in the person's language;
+   * without it, and for every other known error, the parser's own words show.
+   */
+  formatMessage?: FormatMessageFn;
 }
 
 /**
@@ -96,6 +102,7 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
     getFallbackDescription,
     getFallbackTitle,
     useWalletProgressToast = false,
+    formatMessage,
   } = config;
 
   return (error: unknown, context: MutationErrorContext = {}): MutationErrorResult => {
@@ -126,16 +133,21 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
       },
     });
 
+    const localized = (key: string | undefined, fallback: string) =>
+      key && formatMessage
+        ? formatMessage({ id: key, defaultMessage: fallback }, parsed.messageValues)
+        : fallback;
+
     // Determine display message
     const displayMessage = parsed.isKnown
-      ? message
+      ? localized(parsed.messageKey, message)
       : getFallbackMessage
         ? getFallbackMessage(authMode ?? null)
         : "Transaction failed. Please try again.";
 
     // Determine display title
     const displayTitle = parsed.isKnown
-      ? title
+      ? localized(parsed.titleKey, title)
       : getFallbackTitle
         ? getFallbackTitle(authMode ?? null)
         : `${toastContext.charAt(0).toUpperCase() + toastContext.slice(1)} failed`;
@@ -146,7 +158,9 @@ export function createMutationErrorHandler(config: MutationErrorHandlerConfig) {
         walletProgressToasts.error(displayMessage, parsed.recoverable ?? false);
       } else {
         const description = parsed.isKnown
-          ? parsed.action || undefined
+          ? parsed.action
+            ? localized(parsed.actionKey, parsed.action)
+            : undefined
           : getFallbackDescription
             ? getFallbackDescription(authMode ?? null)
             : undefined;

@@ -73,8 +73,8 @@ Phase 3b dedupe catches the other's records if both ran.
   `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
   observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
   and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
-  into the plan hub that owns the next catalog change (today `.plans/active/qa-runs/`) before the
-  workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
+  into the plan hub that owns the next catalog change (the hub of the feature whose behaviour those
+  cases test) before the workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
   same suspected seam, split past 3 Test IDs or a package boundary, ordered by priority. The
@@ -136,7 +136,7 @@ slice = one branch = one PR, posture per [`.claude/context/qa.md § Fix posture`
   - App `163591` for client PWA + editorial website
   - Admin `262122` for admin cockpit
   - Agent `262124` — not used by this skill
-  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../../CLAUDE.md))
+  - Always call `switch-project` before any PostHog tool call (see [PostHog surface routing](../../../docs/routines/posthog-questions.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
 - **Codex CLI** resolved by `.claude/scripts/resolve-codex-binary.sh` from a valid `CODEX` override, the installed ChatGPT.app/Codex.app bundle, or `PATH` — automatic background dispatch on real runs unless `--no-codex` or `--fixture` is set.

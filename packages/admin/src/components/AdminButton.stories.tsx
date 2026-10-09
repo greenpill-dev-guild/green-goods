@@ -1,6 +1,8 @@
 import { RiAddLine, RiArrowRightLine, RiDeleteBinLine, RiSave3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
+import { drawnRings } from "../../../shared/.storybook/design-system/measure";
 import { AdminButton, AdminIconButton } from "./AdminButton";
 
 const meta: Meta<typeof AdminButton> = {
@@ -12,14 +14,14 @@ const meta: Meta<typeof AdminButton> = {
     docs: {
       description: {
         component:
-          "M3 common button with filled, tonal, elevated, outlined, text, and danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
+          "M3 common button with filled, tonal, elevated, outlined, text, danger, and outlined danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
       },
     },
   },
   argTypes: {
     variant: {
       control: "select",
-      options: ["filled", "tonal", "elevated", "outlined", "text", "danger"],
+      options: ["filled", "tonal", "elevated", "outlined", "text", "danger", "outlinedDanger"],
     },
     size: { control: "select", options: ["sm", "md", "lg"] },
     loading: { control: "boolean" },
@@ -40,6 +42,11 @@ export const Tonal: Story = {
 
 export const Outlined: Story = {
   args: { variant: "outlined", size: "md", children: "Cancel" },
+};
+
+/** A destructive action at outlined emphasis, beside a filled primary (Reject next to Approve). */
+export const OutlinedDanger: Story = {
+  args: { variant: "outlinedDanger", size: "md", children: "Reject" },
 };
 
 export const WithIcon: Story = {
@@ -95,6 +102,34 @@ export const IconButtons: Story = {
       </div>
     </div>
   ),
+};
+
+/**
+ * Keyboard focus draws the ring on every low-emphasis variant. These rest at
+ * elevation 0, which shares one box-shadow list with the ring; while that token
+ * was `none` it voided the list and no ring drew. The play test tabs through them.
+ */
+export const FocusRings: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <AdminButton variant="tonal">Tonal</AdminButton>
+      <AdminButton variant="outlined">Outlined</AdminButton>
+      <AdminButton variant="text">Text</AdminButton>
+      <AdminButton variant="danger">Danger</AdminButton>
+      <AdminButton variant="outlinedDanger">Outlined danger</AdminButton>
+      <AdminIconButton variant="tonal" label="Add item">
+        <RiAddLine />
+      </AdminIconButton>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const control of within(canvasElement).getAllByRole("button")) {
+      await userEvent.tab();
+      await expect(control).toHaveFocus();
+      await waitFor(() => expect(drawnRings(control)).not.toHaveLength(0));
+    }
+  },
 };
 
 export const StateCatalog: Story = {

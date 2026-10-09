@@ -59,7 +59,7 @@ const CONTRACT_ARTIFACTS = [
   "packages/contracts/abis/",
   "packages/contracts/deployments/",
 ];
-const APP_BUILD = [".env.schema", "scripts/dev/remove-public-sourcemaps.js"];
+const APP_BUILD = ["env.schema", "scripts/dev/remove-public-sourcemaps.js"];
 
 function app(name) {
   return {
@@ -98,6 +98,8 @@ export const SITES = {
       "packages/client/DESIGN.pwa.md",
       "docs/DESIGN.md",
       "docs/static/img/green-goods-logo.png",
+      "packages/client/public/icon.png",
+      "packages/client/public/images/",
       "scripts/design/build-story-gallery.mjs",
     ],
     never: [TESTS],

@@ -2,9 +2,13 @@
 
 **Feature Slug**: `ens-operations-optimizations`
 **Stage**: `backlog`
-**Status**: `BACKLOG`
+**Status**: `BACKLOG — revalidate remaining ENS operational gaps`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-04-25`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+Re-audit existing release-fee/funding checks and recovery UI before implementing the older cooldown/retry checklist. The source now includes sponsored-release funding checks and a support-assisted username-change surface. That does not establish the historical observability, event-correlation, smoke or alerting outcomes. Keep this separate from sender recovery and select a bounded operational gap after a fresh inventory.
 
 ## Decision Log
 

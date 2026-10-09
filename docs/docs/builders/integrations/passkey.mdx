@@ -4,9 +4,10 @@ sidebar_label: Passkeys
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-09
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/config/passkeyServer.ts
   - packages/shared/src/hooks/auth
   - packages/client/src/routes/WalletRuntimeProviders.tsx
 keywords:
@@ -40,6 +41,7 @@ flowchart LR
 
 | Layer | Source |
 |---|---|
+| Passkey server selection | `packages/shared/src/config/passkeyServer.ts` |
 | Auth hooks and providers | `packages/shared/src/hooks/auth` |
 | Runtime wiring and the dev bypass | `packages/client/src/routes/WalletRuntimeProviders.tsx` |
 
@@ -47,12 +49,41 @@ Authentication branches through the shared auth APIs everywhere; no surface impl
 sign-in. One behavior worth knowing: signing in is not the same as joining a garden, and the two
 recover independently.
 
+## Which sites a passkey works on
+
+A browser offers a passkey only for the domain it was created under. Whoever issues the sign-up
+options chooses that domain, so the passkey server decides where an account can sign in.
+
+- **The Green Goods passkey directory** (the agent route `/public/passkeys/rpc`) issues every
+  passkey under `greengoods.app`, so one account signs in on every Green Goods site. Deployed
+  builds use it by default at the existing `VITE_API_BASE_URL`, and the agent always serves it. The
+  agent reuses its Pimlico API key to check names registered on the hosted server.
+- **The hosted passkey server** issues each site its own hostname, so an account made there signs
+  in only on the site that created it. Accounts made before the directory stay on it and sign in
+  the same way as before.
+
+Sign-in asks the directory first and falls back to the hosted server for a name the directory does
+not hold. The directory refuses a name the hosted server already holds, which keeps one owner per
+name across both.
+
+The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
+production list that `bun run dev:smoke -- prod` expects lives in `scripts/dev/smoke-prod.js`).
+Every directory RPC and its preflight require an explicitly listed origin, and the public API's
+automatic Vercel-preview exception does not apply here, so adding a subdomain does not approve it.
+Of the listed origins, only `https` pages under `greengoods.app` are issued a passkey. The app's
+own check that a page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first
+filter, not the list.
+
 ## Working with it locally
 
 You rarely need a real passkey ceremony in development. The dev-only bypass from
 [Getting Started](../getting-started#path-a-run-against-hosted-services)
 (`?mockAuth=steward&presentation=pwa`) signs you in as a test identity; real passkey flows are
 exercised in the Playwright authentication projects.
+
+Local development keeps passkeys local-only unless `VITE_PASSKEY_SERVER_ENABLED=true` enables the
+local agent directory. `VITE_PASSKEY_RP_ID` is a local-development override; deployed sites,
+including `beta.greengoods.app` and `beta.admin.greengoods.app`, use `greengoods.app`.
 
 ## Canonical upstream docs
 

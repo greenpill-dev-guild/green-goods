@@ -29,7 +29,7 @@
 |-------------|--------------|--------|
 | User can X  | Step 3       | ⏳     |
 
-## CLAUDE.md Compliance
+## Repository guidance compliance
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses
@@ -86,6 +86,9 @@
 ```
 
 ## Batch Report Template
+
+Include the shared [task/phase record](../../context/task-handoffs.md) in batch and lane handoffs.
+Keep validation receipts with their existing proof; the record links them for measurement.
 
 ```markdown
 ## Batch [N] Complete

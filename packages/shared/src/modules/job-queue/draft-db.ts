@@ -1,5 +1,5 @@
 import { type DraftDatabase, draftConnection } from "./draft-connection";
-import { saveDraftSnapshot } from "./draft-snapshot";
+import { MAX_DRAFTS_PER_USER, saveDraftSnapshot } from "./draft-snapshot";
 import { computeFirstIncompleteStep, hasMeaningfulDraftDetails, isWorkDraft } from "./draft-state";
 
 export { computeFirstIncompleteStep, hasMeaningfulDraftDetails } from "./draft-state";
@@ -35,8 +35,6 @@ import { retryOnceAfterQuotaCleanup } from "../../utils/storage/quota";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
-const MAX_DRAFTS_PER_USER = 20;
-
 class DraftStore {
   async init(): Promise<DraftDatabase> {
     return draftConnection.init();
@@ -54,6 +52,16 @@ class DraftStore {
   ): Promise<void> {
     const db = await this.init();
     await db.active_drafts.put({ scope: `${userAddress.toLowerCase()}:${chainId}`, draftId });
+  }
+
+  /** Stop the wizard reopening on this draft, unless another tab has moved to a different one. */
+  async releaseActiveDraft(userAddress: string, chainId: number, draftId: string): Promise<void> {
+    const db = await this.init();
+    const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    await db.transaction("rw", db.active_drafts, async () => {
+      if ((await db.active_drafts.get(scope))?.draftId === draftId)
+        await db.active_drafts.delete(scope);
+    });
   }
 
   async saveSnapshot(
@@ -303,6 +311,21 @@ class DraftStore {
    * Set all images for a draft (replaces existing)
    */
   async setImagesForDraft(draftId: string, files: File[]): Promise<void> {
+    return this.replaceImages(draftId, files, "work");
+  }
+
+  /** Proof words have their own store; their scoped files do not require a Work record. */
+  async setImagesForProof(proofKey: string, files: File[]): Promise<void> {
+    if (!/^proof:[1-9]\d*:0x[a-f0-9]{40}:\d+$/.test(proofKey))
+      throw new Error("Invalid proof draft key");
+    return this.replaceImages(proofKey, files, "proof");
+  }
+
+  private async replaceImages(
+    draftId: string,
+    files: File[],
+    owner: "work" | "proof"
+  ): Promise<void> {
     const db = await this.init();
     const serializedFiles: SerializedFileData[] = [];
     for (const file of files) {
@@ -316,10 +339,11 @@ class DraftStore {
       }
     }
     const timestamp = Date.now();
-    const replacements: DraftImage[] = serializedFiles.map((fileData) => ({
+    const replacements: DraftImage[] = serializedFiles.map((fileData, order) => ({
       id: crypto.randomUUID(),
       draftId,
       fileData,
+      order,
       createdAt: timestamp,
     }));
     let replaced: DraftImage[] = [];
@@ -327,15 +351,18 @@ class DraftStore {
       replaced = await retryOnceAfterQuotaCleanup(() =>
         db.transaction("rw", db.drafts, db.draft_images, async () => {
           const draft = await db.drafts.get(draftId);
-          if (!draft || !isWorkDraft(draft)) throw new Error(`Draft ${draftId} not found`);
+          if (owner === "work" && (!draft || !isWorkDraft(draft)))
+            throw new Error(`Draft ${draftId} not found`);
           const previous = await db.draft_images.where("draftId").equals(draftId).toArray();
           await db.draft_images.bulkDelete(previous.map((image) => image.id));
           await db.draft_images.bulkAdd(replacements);
-          await db.drafts.put({
-            ...draft,
-            firstIncompleteStep: computeFirstIncompleteStep(draft, replacements.length > 0),
-            updatedAt: timestamp,
-          });
+          if (owner === "work" && draft && isWorkDraft(draft)) {
+            await db.drafts.put({
+              ...draft,
+              firstIncompleteStep: computeFirstIncompleteStep(draft, replacements.length > 0),
+              updatedAt: timestamp,
+            });
+          }
           return previous;
         })
       );
@@ -354,6 +381,11 @@ class DraftStore {
    */
   async getDraftCount(userAddress: string, chainId: number): Promise<number> {
     return (await this.getDraftsForUser(userAddress, chainId)).length;
+  }
+
+  /** Whether a new draft would be refused: the account has used every slot on this chain. */
+  async isAtDraftLimit(userAddress: string, chainId: number): Promise<boolean> {
+    return (await this.getDraftCount(userAddress, chainId)) >= MAX_DRAFTS_PER_USER;
   }
 
   /**

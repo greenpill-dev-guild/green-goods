@@ -113,6 +113,7 @@ vi.mock("../../views/Home/Garden/WorkViewSection", () => ({
   },
 }));
 
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { GardenWork } from "../../views/Home/Garden/Work";
 
 describe("Home garden work detail", () => {
@@ -268,6 +269,107 @@ describe("Home garden work detail", () => {
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("decision-upload-now"));
     expect(uploadOne).toHaveBeenCalledWith("decision-1");
+  });
+
+  // Renders a steward's pending work whose decision waits on this device, and returns its button.
+  function renderQueuedDecision(state: string, uploads: Record<string, unknown>) {
+    mockUseWorkUploads.mockReturnValue({
+      isUploading: false,
+      pausedForDataSaver: false,
+      ...uploads,
+      decisionFor: () => ({ jobId: "decision-1", status: { state } }),
+    });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "steward",
+      effectiveStatus: "pending",
+      work: {
+        id: `0x${"a".repeat(64)}`,
+        actionUID: "1",
+        gardenerAddress: "0x2222222222222222222222222222222222222222",
+        status: "pending",
+        metadata: "",
+        createdAt: Date.now(),
+        media: [],
+      },
+    });
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/queued-review"] },
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+    return screen.getByTestId("decision-upload-now");
+  }
+
+  it.each([
+    ["sent", false, "app.uploads.sendUnconfirmedTitle", "app.uploads.checkAgain", "checkOne"],
+    ["ready", false, "app.uploads.state.waiting", "app.home.work.uploadNow", "uploadOne"],
+    ["preparing", false, "app.uploads.state.preparing", "app.uploads.state.preparing", null],
+    ["preparing", true, "app.uploads.state.preparing", "app.uploads.prepareNow", "prepareNow"],
+    ["failed", false, "app.uploads.notUploadedTitle", "app.common.tryAgain", "retryOne"],
+  ] as const)("offers a queued %s decision (Data Saver paused: %s) its own upload action", (state, pausedForDataSaver, statusId, labelId, method) => {
+    const uploads = {
+      pausedForDataSaver,
+      checkOne: vi.fn(async () => undefined),
+      uploadOne: vi.fn(async () => undefined),
+      retryOne: vi.fn(async () => undefined),
+      prepareNow: vi.fn(),
+    };
+    const button = renderQueuedDecision(state, uploads);
+
+    expect(screen.getAllByRole("status").some((node) => node.textContent === statusId)).toBe(true);
+    expect(button).toHaveTextContent(labelId);
+    if (method === null) {
+      expect(button).toBeDisabled();
+      return;
+    }
+    fireEvent.click(button);
+    if (method === "prepareNow") expect(uploads.prepareNow).toHaveBeenCalledOnce();
+    else expect(uploads[method]).toHaveBeenCalledWith("decision-1");
+  });
+
+  it.each([
+    ["failed", "retryOne", true],
+    ["ready", "uploadOne", false],
+  ] as const)("reports a rejected %s decision upload (%s) with its own toast: %s", async (state, method, toasted) => {
+    const error = new Error("upload refused");
+    const toastError = vi.spyOn(toastService, "error").mockReturnValue("toast-1");
+    try {
+      const uploads = {
+        retryOne: vi.fn(async () => Promise.reject(error)),
+        uploadOne: vi.fn(async () => Promise.reject(error)),
+      };
+      fireEvent.click(renderQueuedDecision(state, uploads));
+      await waitFor(() => expect(uploads[method]).toHaveBeenCalledWith("decision-1"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      if (toasted) {
+        expect(toastError).toHaveBeenCalledWith({
+          title: "app.uploads.failedTitle",
+          message: "app.uploads.failedMessage",
+          context: "work decision upload",
+          error,
+        });
+      } else {
+        // uploadOne reports its own mutation error.
+        expect(toastError).not.toHaveBeenCalled();
+      }
+    } finally {
+      toastError.mockRestore();
+    }
   });
 
   it("stays on a queued work whose discard the queue refused", async () => {

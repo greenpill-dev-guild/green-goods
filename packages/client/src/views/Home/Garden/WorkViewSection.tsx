@@ -11,6 +11,7 @@ import {
   RiCheckDoubleFill,
   RiDownloadLine,
   RiExternalLinkLine,
+  RiFeedbackFill,
   RiFileFill,
   RiLeafFill,
   RiPencilFill,
@@ -39,6 +40,8 @@ type WorkViewSectionProps = {
   onDownloadMedia?: () => void;
   onShare: () => void;
   onViewAttestation?: () => void;
+  /** Why the gardener's own queued work is still on this phone; its heading stays plain. */
+  notice?: React.ReactNode;
   /** The commitment this work fulfils, read-only, with a way to it. */
   fulfills?: React.ReactNode;
   footer?: React.ReactNode;
@@ -183,6 +186,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   onDownloadMedia,
   onShare,
   onViewAttestation,
+  notice = null,
   fulfills = null,
   footer,
   reserveFooterSpace,
@@ -193,7 +197,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   const queuedState = readQueuedWorkState(work.metadata);
   const { submissionState } = queuedState;
 
-  const { feedback: workFeedback, media } = work;
+  const { feedback: workFeedback, media, reviewFeedback } = work;
 
   const isOfflineStatus =
     effectiveStatus === "syncing" ||
@@ -203,6 +207,12 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
+    // The notice under the heading says where queued work stands.
+    if (notice)
+      return intl.formatMessage({
+        id: "app.home.work.yourSubmission",
+        defaultMessage: "Your work submission",
+      });
     if (isOfflineStatus) {
       if (submissionState === "awaiting-confirmation")
         return intl.formatMessage({
@@ -266,6 +276,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
+    if (notice) return actionTitle;
     if (isOfflineStatus)
       return intl.formatMessage(
         queuedWorkExplanation(queuedState, {
@@ -374,9 +385,21 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     [workMetadata, metadataUnavailable, intl]
   );
 
-  // Add feedback to details if present
+  // The review's feedback leads, so a gardener reads why before the rest;
+  // then the work's own description.
   const allDetails = useMemo(() => {
     const items = [...metadataDetails];
+    const decided = effectiveStatus === "approved" || effectiveStatus === "rejected";
+    if (reviewFeedback && decided) {
+      items.unshift({
+        label: intl.formatMessage({
+          id: "app.home.work.reviewFeedback",
+          defaultMessage: "Review feedback",
+        }),
+        value: reviewFeedback,
+        icon: RiFeedbackFill,
+      });
+    }
     if (workFeedback) {
       items.push({
         label: intl.formatMessage({
@@ -388,7 +411,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
     return items;
-  }, [metadataDetails, workFeedback, intl]);
+  }, [metadataDetails, reviewFeedback, effectiveStatus, workFeedback, intl]);
 
   const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
 
@@ -417,7 +440,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       audioNoteCids={audioNoteCids}
       mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
-      fulfills={fulfills}
+      afterHeading={notice}
+      afterDetails={fulfills}
       isDetailsLoading={isDetailsLoading}
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}

@@ -50,6 +50,7 @@ vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
     return {
       filteredGardens: gardens,
       myGardensCount: 1,
+      openGardensCount: 0,
       isFilterActive: false,
       activeFilterCount: 0,
     };
@@ -287,6 +288,14 @@ describe("Home View", () => {
     renderWithProviders();
 
     expect(screen.getByRole("article")).toBeInTheDocument();
+  });
+
+  it("keeps the dashboard host mounted beneath a child record", () => {
+    renderWithProviders();
+    const host = screen.getByTestId("work-dashboard-icon");
+    fireEvent.click(screen.getByTestId("garden-card"));
+    expect(screen.getByTestId("work-dashboard-icon")).toBe(host);
+    expect(host).not.toBeVisible();
   });
 
   it.each(["/home", "/home/"])("displays Home at the compatible entry %s", (entry) => {

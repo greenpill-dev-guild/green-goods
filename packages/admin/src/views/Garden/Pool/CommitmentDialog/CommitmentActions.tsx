@@ -18,6 +18,7 @@ export function CommitmentActions({
   fallbackPath,
   onOpenDialog,
   onSeedAnother,
+  onEditReward,
   sendPhase,
   chainId,
 }: {
@@ -35,6 +36,8 @@ export function CommitmentActions({
    * reader may not seed this pool, so the button is simply not drawn.
    */
   onSeedAnother?: () => void;
+  /** Change the reward while nobody has taken the promise (PRD-1022 D14); only a steward gets it. */
+  onEditReward?: () => void;
   /** Where Send for Confirmation stands, followed from the wallet to the chain. */
   sendPhase: CommitmentDialogController["sendPhase"];
   chainId: number;
@@ -46,7 +49,7 @@ export function CommitmentActions({
   return (
     <>
       {!isOnline ? (
-        <p className="text-xs text-warning-dark" role="status">
+        <p className="body-xs text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
@@ -55,6 +58,20 @@ export function CommitmentActions({
         className="flex flex-wrap justify-end gap-2 border-t border-stroke-soft pt-3"
         data-testid="commitment-acts"
       >
+        {onEditReward ? (
+          <AdminButton
+            type="button"
+            variant="text"
+            size="sm"
+            disabled={actDisabled}
+            onClick={onEditReward}
+          >
+            {formatMessage({
+              id: "cockpit.garden.pool.reward.title",
+              defaultMessage: "Edit Reward",
+            })}
+          </AdminButton>
+        ) : null}
         {onSeedAnother ? (
           <AdminButton
             type="button"

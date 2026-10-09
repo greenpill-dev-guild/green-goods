@@ -6,7 +6,7 @@
  * - Endow maps to Garden Vault support over time.
  * - The only action routes to /fund.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -27,19 +27,19 @@ import { PublicFundingBridge } from "../../components/Public/PublicFundingBridge
 
 const messages: Record<string, string> = {
   "public.home.funding.body":
-    "Two paths for a Garden's community and funders alike: direct support for the Work today, or a deposit whose yield keeps supporting the Garden over time.",
+    "Explore a Garden’s work before choosing how to support it. Give to its shared fund today, or explore an endowment for support over time.",
   "public.home.funding.cta": "Support Gardens",
   "public.home.funding.donateBody":
-    "Send direct support to a Garden's shared fund for verified Work.",
+    "Contribute to the Garden’s shared fund to help its community carry out the work.",
   "public.home.funding.donateTitle": "Donate",
   "public.home.funding.endowBody":
-    "Make a long-term deposit. The principal stays; the yield supports the Garden's Work.",
-  "public.home.funding.endowTitle": "Endow",
+    "An endowment is a withdrawable deposit whose investment earnings support the Garden. Read its terms and risks before contributing.",
+  "public.home.funding.endowTitle": "Support over time",
   "public.home.funding.kicker": "§ 04: Support Gardens",
   "public.home.funding.note":
     "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
   "public.home.funding.notePrefix": "note",
-  "public.home.funding.title": "Direct support today. Endowment support over time.",
+  "public.home.funding.title": "Help communities keep going.",
 };
 
 function renderBridge() {
@@ -57,14 +57,14 @@ describe("PublicFundingBridge", () => {
     renderBridge();
 
     const heading = screen.getByRole("heading", {
-      name: "Direct support today. Endowment support over time.",
+      name: "Help communities keep going.",
     });
     expect(heading).toBeInTheDocument();
     expect(heading.closest("section")).toHaveClass("bg-editorial-warm");
     expect(screen.getByRole("heading", { name: "Donate" })).toBeInTheDocument();
-    expect(screen.getByText(/shared fund/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Endow" })).toBeInTheDocument();
-    expect(screen.getByText(/the principal stays/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/shared fund/i)[0]).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Support over time" })).toBeInTheDocument();
+    expect(screen.getByText(/withdrawable deposit/i)).toBeInTheDocument();
 
     // Trust note: tax-status is honest; risk language is the same plain-English
     // sentence used across the funding decision moments. The test fixture

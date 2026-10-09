@@ -13,7 +13,7 @@ Systematic repo-health analysis: dead code detection, dependency health, invaria
 
 Prefer `/review` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+**References**: See `AGENTS.md` and the nearest package guide for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
 when measurable drift exposes architecture friction; use it to classify the signal, not to design a
 replacement.
 
@@ -64,7 +64,7 @@ These are mandatory:
 
 `/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run the numbered full-audit parts.
 
-1. Run `bun run check --only drift -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
+1. Render the root validation plan, then run `node scripts/quality/drift-check.mjs --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
 3. Stop for human scope lock before fixing anything.
 
@@ -173,7 +173,7 @@ For each file in CHANGED packages, check:
 
 1. **Deprecations** -- outdated patterns, old APIs
 2. **Unfinished work** -- TODO comments with staleness
-3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
+3. **Architectural violations** (per the nearest AGENTS.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
 4. **Type problems** -- `any`, `unknown`, type assertions
 5. **Code smells** -- long functions, deep nesting
 6. **Bare catch blocks** -- classify each:
@@ -210,7 +210,9 @@ When auditing `packages/contracts/`, apply the contract-security guidance in `.c
 
 ## Part 3: Dead Code Detection
 
-> **IMPORTANT**: Always use `knip` for dead code detection. Never rely on grep-based scanning for unused exports (~80% false-positive rate in this monorepo).
+Use the repository's `knip` configuration for TypeScript dead-code candidates. Verify findings
+against callers and runtime entrypoints before calling code unused; a text search alone does not
+establish that an export is dead.
 
 ```bash
 bunx knip                          # Full analysis
@@ -301,7 +303,7 @@ Run the consolidated drift check:
 bash .claude/scripts/check-drift.sh
 ```
 
-Checks: hook/utility/type references in skills vs actual shared exports, dev port assignments, core commands in package.json, `.env.schema` key variables.
+Checks: hook/utility/type references in skills vs actual shared exports, dev port assignments, core commands in package.json, `env.schema` key variables.
 
 **Manual check**: Provider order -- compare actual provider nesting in client/admin against documented order (MEDIUM if drifted).
 
@@ -314,27 +316,27 @@ After the report, group findings by actionability:
 | Category | Criteria | Output |
 |----------|----------|--------|
 | **Fix Now** | Critical/High | Individual Linear issue per accepted finding |
-| **Fix Soon** | Medium | Batch into 1 Linear issue per package when accepted |
+| **Fix Soon** | Medium | One Linear issue per accepted coherent problem or delivery outcome |
 | **Track** | Low or MONITORED | Keep in response; offer Linear tracking after approval |
 | **Accept** | ACCEPTED/DEFERRED | No action |
 
-Prompt user before creating any Linear issues: "Found N findings that are ready to track in
-Linear. Create Product/Research issues for these accepted findings? [y/n]"
-
-Only after explicit approval should accepted findings be persisted to current Linear
-issues. Do not create or update a parallel repository registry.
+Keep unrelated findings in separate issues, even when they affect the same package. Follow the
+shared Linear contract for authorization: an explicit request to create or update records already
+authorizes that write. If authorization is absent, present the concrete records and ask before
+writing. An audit request alone authorizes no Linear writes. Do not create a parallel repository
+registry.
 
 ### Linear Issue Routing
 
 Team routing (Product vs Research vs Customer Need), `.plans`/`source:plans` linkage, project
-routing, label namespaces, prompt-before-create, and the privacy boundary follow the shared
+routing, label namespaces, write authorization, issue structure, and the privacy boundary follow the shared
 core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 
 Audit-specific deltas:
 
-- Issue bodies include the relevant Greenpill template sections: Outcome or Research question,
-  Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
-  Validation or Routing recommendation, Privacy note when applicable, and Links.
+- Use the shared three-block issue structure: problem or outcome, checkable completion
+  criteria, and evidence. Include audit-specific severity and confidence only where they
+  change the reader's next action; do not add a parallel template.
 - Findings originate in the current audit response; accepted tracking lives in Linear.
 
 ---
@@ -359,8 +361,7 @@ negative coverage when behavior changed, and run one final recurrence sweep befo
 | Flag indexer handlers as unused | Envio runtime imports -- `knip.ts` entry points |
 | Report god objects in multiple sections | Use Anti-Patterns table only; reference from findings |
 | Count generated files in unused totals | Build artifacts, not source |
-| Use grep to detect unused exports | High false-positive rate; use knip (Part 3) |
-| Use haiku-class models for audit | 95% false-positive rate -- use opus |
+| Treat a text search as proof an export is unused | Use knip and verify callers and runtime entrypoints (Part 3) |
 | Skip current tracked-findings check when trend was requested | A stale local report is not a substitute for live tracking |
 | Report 24+ god object rows | Keep the response to the top 10; offer accepted overflow findings for Linear |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |

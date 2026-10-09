@@ -6,8 +6,7 @@
 //     ActionFlowShell left rail on desktop, using the width to show every step.
 // Accent follows the workspace tone (Hub blue / Garden green / …) when inside a
 // `data-tone` dialog, falling back to green elsewhere — same token pattern as
-// AdminButton. Lives in packages/admin so the admin Tailwind scan reaches its
-// utility classes (shared/src is not scanned here).
+// AdminButton. Lives in packages/admin because only admin flows render it.
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -31,6 +30,8 @@ export interface ActionFlowStepperProps {
   onStepClick?: (step: number) => void;
   /** "horizontal" (compact, mobile header) | "vertical" (labelled desktop rail). */
   orientation?: "horizontal" | "vertical";
+  /** The run finished: every step shows its check, none is current, and none reopens. */
+  complete?: boolean;
 }
 
 const DOT_BASE =
@@ -61,9 +62,21 @@ export function ActionFlowStepper({
   currentStep,
   onStepClick,
   orientation = "horizontal",
+  complete = false,
 }: ActionFlowStepperProps) {
   const { formatMessage } = useIntl();
   const total = steps.length;
+  const doneLabel = formatMessage(
+    { id: "app.common.stepsDone", defaultMessage: "All {total} steps done" },
+    { total }
+  );
+  // Mounted before the run completes, so a finish that happens in place is
+  // announced; the visible done text beside it is hidden from assistive tech.
+  const doneStatus = (
+    <p role="status" className="sr-only">
+      {complete ? doneLabel : ""}
+    </p>
+  );
   // Clamp only the label lookup; controllers keep currentStep in range.
   const currentTitle = steps[Math.min(Math.max(currentStep, 1), total) - 1]?.title ?? "";
 
@@ -78,7 +91,7 @@ export function ActionFlowStepper({
         {completed ? <RiCheckLine className="h-3 w-3" aria-hidden /> : stepNumber}
       </span>
     );
-    if (completed && onStepClick) {
+    if (completed && onStepClick && !complete) {
       return (
         <button
           type="button"
@@ -96,56 +109,69 @@ export function ActionFlowStepper({
 
   if (orientation === "vertical") {
     return (
-      <ol data-component="ActionFlowStepper" data-orientation="vertical" className="flex flex-col">
-        {steps.map((step, index) => {
-          const stepNumber = index + 1;
-          const completed = currentStep > stepNumber;
-          const isCurrent = currentStep === stepNumber;
-          const isLast = index === total - 1;
-          return (
-            <li
-              key={step.id}
-              aria-current={isCurrent ? "step" : undefined}
-              className="flex min-w-0 gap-3"
-            >
-              <div className="flex flex-col items-center">
-                {renderDot(step, stepNumber, completed, isCurrent)}
-                {!isLast ? (
-                  // Vertical connector — fills the gap to the next dot, tinted once
-                  // the step completes (matches the horizontal fill direction).
-                  <span
-                    aria-hidden
+      <div data-component="ActionFlowStepper" data-orientation="vertical">
+        <ol className="flex flex-col">
+          {steps.map((step, index) => {
+            const stepNumber = index + 1;
+            const completed = complete || currentStep > stepNumber;
+            const isCurrent = !complete && currentStep === stepNumber;
+            const isLast = index === total - 1;
+            return (
+              <li
+                key={step.id}
+                aria-current={isCurrent ? "step" : undefined}
+                className="flex min-w-0 gap-3"
+              >
+                <div className="flex flex-col items-center">
+                  {renderDot(step, stepNumber, completed, isCurrent)}
+                  {!isLast ? (
+                    // Vertical connector — fills the gap to the next dot, tinted once
+                    // the step completes (matches the horizontal fill direction).
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "my-1 w-0.5 flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
+                        completed
+                          ? "bg-[rgb(var(--tone-action,var(--primary-action)))]"
+                          : "bg-stroke-soft"
+                      )}
+                    />
+                  ) : null}
+                </div>
+                <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
+                  <p
                     className={cn(
-                      "my-1 w-0.5 flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
-                      completed
-                        ? "bg-[rgb(var(--tone-action,var(--primary-action)))]"
-                        : "bg-stroke-soft"
+                      "truncate body-sm font-medium",
+                      isCurrent
+                        ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+                        : completed
+                          ? "text-text-strong"
+                          : "text-text-sub"
                     )}
-                  />
-                ) : null}
-              </div>
-              <div className={cn("min-w-0 pt-0.5", !isLast && "pb-5")}>
-                <p
-                  className={cn(
-                    "truncate text-sm font-medium",
-                    isCurrent
-                      ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                      : completed
-                        ? "text-text-strong"
-                        : "text-text-sub"
-                  )}
-                  title={step.title}
-                >
-                  {step.title}
-                </p>
-                {step.description ? (
-                  <p className="mt-0.5 line-clamp-2 text-xs text-text-soft">{step.description}</p>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+                    title={step.title}
+                  >
+                    {step.title}
+                  </p>
+                  {step.description ? (
+                    <p className="mt-0.5 line-clamp-2 body-xs text-text-soft">{step.description}</p>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        {/* With no step current, the rail says the run is done. */}
+        {complete ? (
+          <p
+            data-region="action-flow-step-label"
+            aria-hidden="true"
+            className="mt-3 label-xs text-text-sub"
+          >
+            {doneLabel}
+          </p>
+        ) : null}
+        {doneStatus}
+      </div>
     );
   }
 
@@ -154,8 +180,8 @@ export function ActionFlowStepper({
       <ol data-region="action-flow-stepper" className="flex items-center gap-1.5">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
-          const completed = currentStep > stepNumber;
-          const isCurrent = currentStep === stepNumber;
+          const completed = complete || currentStep > stepNumber;
+          const isCurrent = !complete && currentStep === stepNumber;
           const isLast = index === total - 1;
           return (
             <li
@@ -182,12 +208,22 @@ export function ActionFlowStepper({
           );
         })}
       </ol>
-      <p data-region="action-flow-step-label" className="mt-1.5 text-xs font-medium text-text-sub">
-        {formatMessage(
-          { id: "app.common.stepProgress", defaultMessage: "Step {current} of {total} · {label}" },
-          { current: currentStep, total, label: currentTitle }
-        )}
+      <p
+        data-region="action-flow-step-label"
+        aria-hidden={complete ? true : undefined}
+        className="mt-1.5 label-xs text-text-sub"
+      >
+        {complete
+          ? doneLabel
+          : formatMessage(
+              {
+                id: "app.common.stepProgress",
+                defaultMessage: "Step {current} of {total} · {label}",
+              },
+              { current: currentStep, total, label: currentTitle }
+            )}
       </p>
+      {doneStatus}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { extractErrorMessage } from "./extract-message";
+import { offlineFailure, parseUnsentFailure } from "./unsent-failures";
 
 interface ErrorInfo {
   name: string;
@@ -364,8 +365,12 @@ export interface ParsedContractError {
   name: string;
   /** Human-readable error message */
   message: string;
+  /** Optional i18n key for a title to show in place of the one built from `name` */
+  titleKey?: string;
   /** Optional i18n key for the error message */
   messageKey?: string;
+  /** Values the translated message takes, such as the network a wallet write needed */
+  messageValues?: Record<string, string>;
   /** Optional i18n key for the suggested action */
   actionKey?: string;
   /** Optional suggested action for user */
@@ -465,6 +470,10 @@ export function parseContractError(error: unknown): ParsedContractError {
   // USER_FRIENDLY_ERRORS. Order matters: the first matching pattern wins, so
   // specific patterns precede generic ones.)
   // ============================================================================
+
+  // 0. The app's own refusals: an earlier version queued, a wallet on another network.
+  const unsent = parseUnsentFailure(error, errorStr);
+  if (unsent) return unsent;
 
   const lowerStr = errorStr.toLowerCase();
   const hasWalletRequestExpiryCode = /\baa(?:22|32)\b[^\n\r]*(?:expired|not due)/i.test(errorStr);
@@ -643,16 +652,7 @@ export function parseContractError(error: unknown): ParsedContractError {
   }
 
   // 8. Offline (specific) before generic network
-  if (lowerStr.includes("offline") || lowerStr.includes("you are offline")) {
-    return {
-      raw: signature ?? errorStr,
-      name: "Offline",
-      message: "You're offline. Your work is saved and will sync when you reconnect.",
-      isKnown: true,
-      recoverable: true,
-      suggestedAction: "retry",
-    };
-  }
+  if (lowerStr.includes("offline")) return offlineFailure(signature ?? errorStr);
 
   // 9. Network / timeout (recoverable)
   if (lowerStr.includes("timeout") || lowerStr.includes("timed out")) {

@@ -1,7 +1,7 @@
 /**
  * Public vault crowdfunding route tests.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { VaultDepositStageError } from "@green-goods/shared/hooks/vault/vault-helpers";
@@ -410,8 +410,9 @@ describe("VaultsPage", () => {
   it("renders the dedicated /vaults browse surface without wallet connection", () => {
     renderView();
 
+    // Anchored: a string argument matches part of the text and would let a closing period back in.
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Public goods campaigns, powered by Octant vaults."
+      /^Public goods campaigns, powered by Octant vaults$/
     );
     expect(screen.getByRole("heading", { name: "Greenpill NYC" })).toBeInTheDocument();
     expect(
@@ -473,7 +474,7 @@ describe("VaultsPage", () => {
 
     await waitFor(() => expect(locations.at(-1)).toBe("/vaults?ref=newsletter"));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Public goods campaigns, powered by Octant vaults."
+      /^Public goods campaigns, powered by Octant vaults$/
     );
     expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
   });

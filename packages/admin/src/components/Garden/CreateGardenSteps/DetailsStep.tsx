@@ -85,21 +85,14 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
 
   const detailsErrors = useMemo(
     () => ({
+      // Past the byte limit, the field says so itself, counted as the contract counts.
       name:
         form.name.trim().length === 0
           ? formatMessage({
               id: "app.garden.create.nameRequired",
               defaultMessage: "Garden name is required",
             })
-          : form.name.length > GARDEN_NAME_MAX_LENGTH
-            ? formatMessage(
-                {
-                  id: "app.garden.create.nameTooLong",
-                  defaultMessage: "Garden name must be {max} characters or less",
-                },
-                { max: GARDEN_NAME_MAX_LENGTH }
-              )
-            : null,
+          : null,
       slug:
         trimmedSlug.length === 0
           ? formatMessage({
@@ -214,38 +207,27 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
-        <div>
-          <AdminTextField
-            id="create-garden-name"
-            label={formatMessage({
-              id: "app.garden.create.gardenNameLabel",
-              defaultMessage: "Garden name",
-            })}
-            required
-            value={form.name}
-            onChange={(event) => setField("name", event.target.value)}
-            onBlur={() => handleFieldBlur("name")}
-            placeholder={formatMessage({
-              id: "admin.details.namePlaceholder",
-              defaultMessage: "e.g., Rio rainforest lab",
-            })}
-            error={showFieldError("name") && detailsErrors.name ? detailsErrors.name : undefined}
-            helperText={" "}
-            inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
-          />
-          <p
-            className={cn(
-              "mt-1 text-right label-xs tabular-nums",
-              form.name.length > GARDEN_NAME_MAX_LENGTH
-                ? "text-error-dark"
-                : form.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
-                  ? "text-warning-dark"
-                  : "text-text-soft"
-            )}
-          >
-            {form.name.length}/{GARDEN_NAME_MAX_LENGTH}
-          </p>
-        </div>
+        {/* The contract counts the name in UTF-8 bytes, so the field does too:
+            past 72 it says why, and the step's schema holds the flow there. */}
+        <AdminTextField
+          id="create-garden-name"
+          label={formatMessage({
+            id: "app.garden.create.gardenNameLabel",
+            defaultMessage: "Garden name",
+          })}
+          required
+          value={form.name}
+          onChange={(event) => setField("name", event.target.value)}
+          onBlur={() => handleFieldBlur("name")}
+          placeholder={formatMessage({
+            id: "admin.details.namePlaceholder",
+            defaultMessage: "e.g., Rio rainforest lab",
+          })}
+          error={showFieldError("name") && detailsErrors.name ? detailsErrors.name : undefined}
+          showCount
+          countBytes
+          inputProps={{ maxLength: GARDEN_NAME_MAX_LENGTH }}
+        />
         <AdminTextField
           id="create-garden-location"
           label={formatMessage({
@@ -344,7 +326,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         }
         helperText={" "}
       />
-      <div className="space-y-1.5 text-sm">
+      <div className="space-y-1.5 body-sm">
         <FileUploadField
           surface="admin"
           label={formatMessage({
@@ -365,7 +347,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           onRemoveFile={handleRemoveBanner}
         />
         {isUploadingBanner && (
-          <div className="flex items-center gap-2 text-xs text-text-sub">
+          <div className="flex items-center gap-2 body-xs text-text-sub">
             <RiLoader4Line className="h-4 w-4 animate-spin" />
             <span>
               {formatMessage(
@@ -439,5 +421,5 @@ function SlugAvailableIcon({ className }: { className?: string }) {
   return <RiCheckLine className={cn(className, "text-success-dark")} />;
 }
 function SlugTakenIcon({ className }: { className?: string }) {
-  return <RiCloseLine className={cn(className, "[color:rgb(var(--m3-error))]")} />;
+  return <RiCloseLine className={cn(className, "text-error-dark")} />;
 }

@@ -65,6 +65,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
         abi: OCTANT_VAULT_ABI,
         functionName: "maxWithdraw",
         args: [owner, maxLossBps, []],
+        chainId,
       });
       const maxWithdrawable = typeof maxWithdrawResult === "bigint" ? maxWithdrawResult : 0n;
 

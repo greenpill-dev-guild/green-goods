@@ -1,6 +1,6 @@
 /**
  * IndexRoute Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * IndexRoute replaces the old CanvasLayout home-state ladder. It must
  * render exactly one of:
@@ -15,6 +15,9 @@ import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   mockAuthState: {
@@ -40,7 +43,8 @@ const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/components/Shell", () => ({
+vi.mock("@/components/Shell", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/Shell")>()),
   AppBar: (props: { gardenChip: React.ReactNode }) => (
     <div data-testid="top-context-bar">{props.gardenChip}</div>
   ),
@@ -75,6 +79,27 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
     }
     return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
   },
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockAuthState.current.eoaAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
+  useAdminLoginController: () => ({
+    mode: "entry",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
+    username: "",
+    setUsername: vi.fn(),
+    error: null,
+    isSigningIn: false,
+    canSignInByName: false,
+    hasStoredCredential: false,
+    storedUsername: null,
+    signInByName: vi.fn(),
+    signInWithStoredPasskey: vi.fn(),
+  }),
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
@@ -130,7 +155,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
   });
 
@@ -146,7 +171,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
   });
 
   it("renders the wallet-required shell for embedded auth", () => {

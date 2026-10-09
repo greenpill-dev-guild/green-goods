@@ -1,12 +1,9 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { useIntl } from "react-intl";
-import {
-  commitmentStateChip,
-  directionLabel,
-  formatUnixDate,
-  shortAddress,
-} from "../poolPresentation";
+import { CommitmentPeople } from "../CommitmentPeople";
+import { commitmentStateChip, directionLabel } from "../poolPresentation";
+import { dueDateText } from "../poolTime";
 import { type FallbackPath, STAGES, stageLabels } from "./commitmentDialogPresentation";
 
 /**
@@ -30,7 +27,8 @@ export function CommitmentSummary({
   /** Where the record stands on STAGES, or -1 once it has left the lifecycle. */
   stage: number;
 }) {
-  const { formatMessage, locale } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const chip = commitmentStateChip(commitment, formatMessage);
   const labels = stageLabels(commitment.direction, formatMessage);
 
@@ -38,7 +36,7 @@ export function CommitmentSummary({
     <>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="whitespace-nowrap text-xs text-text-soft">
+          <span className="whitespace-nowrap body-xs text-text-soft">
             {directionLabel(commitment.direction, formatMessage)}
           </span>
           <StatusBadge variant={chip.variant} size="sm">
@@ -58,31 +56,31 @@ export function CommitmentSummary({
             </StatusBadge>
           ) : null}
         </div>
-        <h3 className="text-base font-semibold text-text-strong" title={title}>
+        <h3 className="text-title-md font-semibold text-text-strong" title={title}>
           {title}
         </h3>
-        <p className="text-sm text-text-soft">
-          {[
-            commitment.counterparty
-              ? `${shortAddress(commitment.creator)} → ${shortAddress(commitment.counterparty)}`
-              : shortAddress(commitment.creator),
-            `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim(),
-            commitment.dueDate
-              ? formatMessage(
-                  { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
-                  { date: formatUnixDate(commitment.dueDate, locale, "—") }
-                )
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
+        {/* Who it is between, in the pool row's words, then what it asks and when. */}
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-sm text-text-soft">
+          <CommitmentPeople commitment={commitment} className="body-sm" />
+          <span>
+            · {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
+          </span>
+          {commitment.dueDate ? (
+            <span>
+              ·{" "}
+              {formatMessage(
+                { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
+                { date: dueDateText(intl, Number(commitment.dueDate) * 1000, Date.now()) }
+              )}
+            </span>
+          ) : null}
         </p>
-        {note ? <p className="text-sm text-text-sub">{note}</p> : null}
+        {note ? <p className="body-sm text-text-sub">{note}</p> : null}
       </header>
 
       {stage >= 0 ? (
         <ol
-          className="flex flex-wrap gap-1 text-xs"
+          className="flex flex-wrap gap-1 body-xs"
           aria-label={formatMessage({
             id: "cockpit.garden.pool.commitment.stages",
             defaultMessage: "Lifecycle",
@@ -94,8 +92,8 @@ export function CommitmentSummary({
               aria-current={index === stage ? "step" : undefined}
               className={
                 index <= stage
-                  ? "rounded-full bg-[rgb(var(--m3-secondary-container))] px-2 py-0.5 text-[rgb(var(--m3-on-secondary-container))]"
-                  : "rounded-full bg-[rgb(var(--m3-surface-container-highest))] px-2 py-0.5 text-text-soft"
+                  ? "rounded-full bg-primary-lighter px-2 py-0.5 text-primary-dark"
+                  : "rounded-full bg-bg-soft px-2 py-0.5 text-text-soft"
               }
             >
               {labels[key]}

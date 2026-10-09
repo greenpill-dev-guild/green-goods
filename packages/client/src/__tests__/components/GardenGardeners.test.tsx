@@ -1,8 +1,12 @@
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
@@ -12,7 +16,8 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/utils/app/text", () => ({
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
   formatAddress: (address: string) => address,
 }));
 
@@ -20,8 +25,8 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
 }));
 
-vi.mock("@green-goods/shared/hooks/blockchain/useEnsAvatar", () => ({
-  useEnsAvatar: () => ({ data: null, isLoading: false }),
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: vi.fn(() => ({ avatarUri: "/images/avatar.png", isLoading: false })),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
@@ -29,7 +34,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
-  useGreenGoodsEnsName: () => ({ data: null }),
+  useGreenGoodsEnsName: vi.fn(() => ({ data: null })),
 }));
 
 vi.mock("@/components/Communication", () => ({
@@ -40,8 +45,8 @@ vi.mock("@/components/Communication", () => ({
 vi.mock("@/components/Display", () => ({
   Avatar: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   AvatarFallback: () => null,
-  AvatarImage: ({ alt }: { alt: string }) => <img alt={alt} />,
-  AvatarSkeleton: () => null,
+  AvatarImage: ({ alt, src }: { alt: string; src?: string }) => <img alt={alt} src={src} />,
+  AvatarSkeleton: () => <span data-testid="avatar-loading" />,
 }));
 
 vi.mock("@/components/Inputs", () => ({
@@ -53,6 +58,7 @@ import { GardenGardeners, type GardenMember } from "../../components/Features/Ga
 const messages = {
   "app.garden.gardeners.stewardBadge": "Steward",
   "app.garden.gardeners.registered": "Registered",
+  "app.garden.gardeners.dateUnknown": "Unknown",
   "app.garden.gardeners.unknownUser": "Unknown user",
 };
 
@@ -75,6 +81,20 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(useGreenGoodsEnsName).mockImplementation(
+    () => ({ data: null }) as ReturnType<typeof useGreenGoodsEnsName>
+  );
+  vi.mocked(useResolvedProfileAvatar).mockImplementation(
+    () =>
+      ({
+        avatarUri: "/images/avatar.png",
+        isLoading: false,
+      }) as ReturnType<typeof useResolvedProfileAvatar>
+  );
 });
 
 describe("GardenGardeners", () => {
@@ -113,5 +133,112 @@ describe("GardenGardeners", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("data-component", "DialogShell");
     expect(within(dialog).getByText("Member 0")).toBeInTheDocument();
+  });
+
+  it("reports a failed member-detail copy without claiming success", async () => {
+    vi.mocked(copyToClipboard).mockResolvedValue(false);
+    const user = userEvent.setup();
+    render(
+      <TestIntl>
+        <GardenGardeners members={[{ ...members[0], email: "member@example.com" }]} />
+      </TestIntl>
+    );
+
+    await user.click(screen.getByRole("button", { name: /Member 0/i }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Copy" }));
+
+    await waitFor(() => expect(toastService.error).toHaveBeenCalled());
+    expect(copyToClipboard).toHaveBeenCalledWith("member@example.com");
+    expect(toastService.success).not.toHaveBeenCalled();
+  });
+
+  it("shows first gardener role date and leaves a missing date unknown", () => {
+    render(
+      <TestIntl>
+        <GardenGardeners
+          members={[
+            members[0],
+            { ...members[1], registeredAt: null },
+            { ...members[2], isGardener: false, registeredAt: null },
+          ]}
+        />
+      </TestIntl>
+    );
+
+    expect(screen.getByText(/Registered: Nov 14, 2023/)).toBeInTheDocument();
+    expect(screen.getByText(/Registered: Unknown/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Registered");
+  });
+
+  it("uses the viewed member's published avatar and protocol name across changes", () => {
+    vi.mocked(useGreenGoodsEnsName).mockImplementation(
+      (account) =>
+        ({
+          data: account === members[0].account ? "river.greengoods.eth" : null,
+        }) as ReturnType<typeof useGreenGoodsEnsName>
+    );
+    vi.mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: "https://images.example/first.webp",
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    const member = { ...members[0], username: undefined, avatar: "blob:unpublished-preview" };
+
+    const { container, rerender } = render(
+      <TestIntl>
+        <GardenGardeners members={[member]} />
+      </TestIntl>
+    );
+    // A Green Goods name shows as the username alone.
+    expect(screen.getByText("river")).toBeInTheDocument();
+    expect(screen.queryByText("river.greengoods.eth")).not.toBeInTheDocument();
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "https://images.example/first.webp"
+    );
+    expect(useResolvedProfileAvatar).toHaveBeenCalledWith(
+      member.account,
+      "/images/avatar.png",
+      expect.any(Number)
+    );
+
+    vi.mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: "https://images.example/replaced.webp",
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    rerender(
+      <TestIntl>
+        <GardenGardeners members={[member]} />
+      </TestIntl>
+    );
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(
+      "https://images.example/replaced.webp"
+    );
+
+    vi.mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: "/images/avatar.png",
+      isLoading: false,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+    rerender(
+      <TestIntl>
+        <GardenGardeners members={[member]} />
+      </TestIntl>
+    );
+    expect(container.querySelector("img")?.getAttribute("src")).toBe("/images/avatar.png");
+  });
+
+  it("keeps a pending public avatar read in a loading state", () => {
+    vi.mocked(useResolvedProfileAvatar).mockReturnValue({
+      avatarUri: null,
+      isLoading: true,
+    } as ReturnType<typeof useResolvedProfileAvatar>);
+
+    const { container } = render(
+      <TestIntl>
+        <GardenGardeners members={[members[0]]} />
+      </TestIntl>
+    );
+
+    expect(screen.getByTestId("avatar-loading")).toBeInTheDocument();
+    expect(container.querySelector("img")).toBeNull();
   });
 });

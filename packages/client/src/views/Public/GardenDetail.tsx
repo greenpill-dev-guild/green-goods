@@ -1,4 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
 import type { Address } from "@green-goods/shared/types/domain";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
@@ -8,17 +7,21 @@ import {
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import {
   EditorialGhostButton,
   EditorialGhostLink,
+  EditorialHeading,
   EditorialPrimaryLink,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 import { getPublicHeroImage } from "@/content/publicCuration";
+import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 import { StatCell } from "./GardenDetailAtoms";
 import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
@@ -34,10 +37,9 @@ import { rememberGardenReturn } from "./gardenReturnFocus";
  * an unrelated homepage-polish commit; `DESIGN.browser.md` § `/gardens/:id` had
  * described a page the whole time.
  *
- * Every section always renders. A Garden with no certificates says so rather
- * than dropping the section, which keeps the ordinals stable between Gardens
- * and gives the commitments section (§ 02) a defined pre-launch home for a
- * Garden whose pool is not open yet.
+ * Approved work and local coordinators lead the page. Confirmed empty
+ * certificate and pre-launch pool sections are omitted; failed reads retain
+ * their recovery state.
  *
  * Identity paints from the `usePublicGardens` list — normally warm in cache
  * from the archive the reader just clicked — so the name is on screen before
@@ -72,7 +74,12 @@ export default function GardenDetail() {
   }, [gardens, id]);
 
   const garden = detail?.garden ?? null;
-  const { hypercerts = [], isLoading: hypercertsLoading } = useHypercerts({
+  const {
+    hypercerts = [],
+    isLoading: hypercertsLoading,
+    hasError: hypercertsUnavailable,
+    refetch: refetchHypercerts,
+  } = useHypercerts({
     gardenId: garden?.id,
   });
 
@@ -81,7 +88,7 @@ export default function GardenDetail() {
       return {
         name: garden.name,
         location: garden.location,
-        description: garden.description,
+        description: getPublicGardenDescription(garden, formatMessage),
         bannerImage: garden.bannerImage,
         slug: publicGardenHelpers.deriveSlug(garden.name ?? "", garden.id),
         stewards: (garden.stewards ?? []) as Address[],
@@ -91,15 +98,14 @@ export default function GardenDetail() {
       return {
         name: summary.name,
         location: summary.location,
-        description: summary.description,
+        description: getPublicGardenDescription(summary, formatMessage),
         bannerImage: summary.bannerImage,
         slug: summary.slug,
         stewards: summary.stewards,
       };
     }
     return null;
-  }, [garden, summary]);
-
+  }, [garden, summary, formatMessage]);
   // Hand the archive a focus target for the reader's way back.
   useEffect(() => {
     rememberGardenReturn(identity?.slug);
@@ -116,41 +122,75 @@ export default function GardenDetail() {
   const assessmentsUnavailable = detail?.unavailableSources.assessments ?? false;
   const fundHref = identity ? `/fund?garden=${encodeURIComponent(identity.slug)}` : "/fund";
 
+  const unlisted = detail?.unlisted ?? false;
+  // The detail decides; until it arrives, only the archive's own card proves a Garden listed.
+  const listed = detail ? !detail.unlisted : Boolean(summary);
+
   return (
     <>
+      {/* Unlisted means unlisted to crawlers too. */}
+      {unlisted ? (
+        <Helmet>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+      ) : null}
       <PublicEditorialHero
         variant="banner"
         imageSrc={identity?.bannerImage || getPublicHeroImage("gardens")}
         imageFallbackSrc={getPublicHeroImage("gardens")}
         imageAlt=""
         titleId="public-garden-detail-title"
-        kicker={identity?.location || undefined}
         title={identity?.name || " "}
         lede={
-          identity?.description ||
-          formatMessage({
-            id: "public.gardenDetail.place.empty",
-            defaultMessage: "Garden narrative will appear here as it is published.",
-          })
+          identity?.location ? (
+            <span className="block min-h-[2lh] break-words">{identity.location}</span>
+          ) : undefined
         }
-        actions={
-          <EditorialGhostLink to="/gardens" size="lg">
-            <span aria-hidden="true">←</span>
-            {formatMessage({
-              id: "public.gardenDetail.backToArchive",
-              defaultMessage: "All Gardens",
-            })}
-          </EditorialGhostLink>
+        publicationMark={
+          unlisted
+            ? formatMessage({
+                id: "public.gardenDetail.unlisted",
+                defaultMessage: "This Garden is not in the public lists.",
+              })
+            : undefined
         }
       />
 
-      <div className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-24">
+      <div className="bg-bg-weak-50 px-6 pt-16 pb-16 sm:px-10 sm:pt-20 md:pb-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-20">
+          <div className="space-y-8">
+            <Link
+              to="/gardens"
+              viewTransition
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary-action underline underline-offset-4 transition-colors hover:text-primary-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+            >
+              <span aria-hidden="true">←</span>
+              {formatMessage({
+                id: "public.gardenDetail.backToArchive",
+                defaultMessage: "All Gardens",
+              })}
+            </Link>
+            <section aria-labelledby="public-garden-description-title" className="max-w-3xl">
+              <EditorialHeading id="public-garden-description-title" size="sub">
+                {formatMessage({
+                  id: "public.gardenDetail.description.heading",
+                  defaultMessage: "About this garden",
+                })}
+              </EditorialHeading>
+              <p className="mt-4 whitespace-pre-line break-words text-base leading-relaxed text-text-sub-600 sm:text-lg">
+                {identity?.description ||
+                  formatMessage({
+                    id: "public.gardenDetail.place.empty",
+                    defaultMessage: "Garden narrative will appear here as it is published.",
+                  })}
+              </p>
+            </section>
+          </div>
           <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-y border-stroke-soft-200 py-8 sm:grid-cols-4">
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.entries",
-                defaultMessage: "Entries",
+                defaultMessage: "Approved work",
               })}
               value={detail?.totalFieldNotes}
               loading={detailLoading}
@@ -159,11 +199,12 @@ export default function GardenDetail() {
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.handsAtWork",
-                defaultMessage: "Hands at work",
+                defaultMessage: "Garden members",
               })}
-              value={detail?.contributors.length}
+              value={detail?.gardenerCount}
               loading={detailLoading}
-              unavailable={worksUnavailable}
+              // Read from the Garden's role lists, so a failed work read cannot hide it.
+              unavailable={false}
             />
             <StatCell
               label={formatMessage({
@@ -205,23 +246,39 @@ export default function GardenDetail() {
             gardenLoading={detailLoading}
           />
 
-          <CertificatesSection certificates={hypercerts} loading={hypercertsLoading} />
+          <CertificatesSection
+            certificates={hypercerts}
+            loading={detailLoading || hypercertsLoading}
+            unavailable={hypercertsUnavailable}
+            onRetry={() => void refetchHypercerts()}
+          />
 
           <StewardsSection stewards={identity?.stewards ?? []} loading={detailLoading} />
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-10">
-            <EditorialPrimaryLink to={fundHref}>
-              {formatMessage({
-                id: "public.gardenDetail.support",
-                defaultMessage: "Support This Garden",
-              })}
-            </EditorialPrimaryLink>
-            <EditorialGhostLink to="/impact">
-              {formatMessage({
-                id: "public.gardenDetail.evidence.cta",
-                defaultMessage: "View Public Evidence",
-              })}
-            </EditorialGhostLink>
+          <div className="border-t border-stroke-soft-200 pt-10">
+            <p className="mb-6 max-w-2xl text-base leading-relaxed text-text-sub-600">
+              {formatMessage({ id: "public.gardenDetail.supportHelp" })}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* The funding list leaves an unlisted Garden out, so its link would find nothing. */}
+              {listed ? (
+                <EditorialPrimaryLink to={fundHref}>
+                  {formatMessage({
+                    id: "public.gardenDetail.support",
+                    defaultMessage: "Support This Garden",
+                  })}
+                </EditorialPrimaryLink>
+              ) : null}
+              <EditorialGhostLink to="/impact">
+                {formatMessage({
+                  id: "public.gardenDetail.evidence.cta",
+                  defaultMessage: "View Public Evidence",
+                })}
+              </EditorialGhostLink>
+              <EditorialGhostLink to="/#contact">
+                {formatMessage({ id: "public.gardenDetail.discussFunding" })}
+              </EditorialGhostLink>
+            </div>
           </div>
         </div>
       </div>
@@ -234,38 +291,29 @@ export default function GardenDetail() {
 
 function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
-  const { id } = useParams<{ id: string }>();
   return (
     <>
-      <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
-          {formatMessage({
-            id: "public.gardenDetail.unavailable",
-            defaultMessage: "This Garden could not be loaded",
-          })}
-        </h1>
-        <p className="mt-3 text-sm text-text-sub-600">
-          {formatMessage({
-            id: "public.gardenDetail.unavailableHelp",
-            defaultMessage:
-              "We could not read this Garden's public record right now. Try again in a moment.",
-          })}
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={getPublicHeroImage("gardens")}
+        imageAlt=""
+        titleId="public-garden-unavailable-title"
+        title={formatMessage({
+          id: "public.gardenDetail.unavailable",
+          defaultMessage: "This Garden could not be loaded",
+        })}
+        lede={formatMessage({
+          id: "public.gardenDetail.unavailableHelp",
+          defaultMessage:
+            "We could not read this Garden's public record right now. Try again in a moment.",
+        })}
+        actions={
           <EditorialGhostButton onClick={onRetry}>
             {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try Again" })}
           </EditorialGhostButton>
-          <Button asChild emphasis="tertiary">
-            <Link to="/gardens" viewTransition>
-              {formatMessage({
-                id: "public.gardenDetail.backToGardens",
-                defaultMessage: "Browse Gardens",
-              })}
-            </Link>
-          </Button>
-        </div>
-      </div>
-      <PublicInstallCta destination={`/home/${id}`} />
+        }
+      />
+      <GardenRecoverySection />
       <PublicFooter variant="soil" />
     </>
   );
@@ -273,32 +321,77 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
 
 function GardenNotFound() {
   const { formatMessage } = useIntl();
-  const { id } = useParams<{ id: string }>();
   return (
     <>
-      <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
-        <h1 className="font-serif text-3xl font-bold text-text-strong-950">
-          {formatMessage({
-            id: "public.gardenDetail.notFound",
-            defaultMessage: "Garden not found",
-          })}
-        </h1>
-        <p className="mt-3 text-sm text-text-sub-600">
-          {formatMessage({
-            id: "public.sharedLink.unavailableHelp",
-            defaultMessage:
-              "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
-          })}
-        </p>
-        <EditorialGhostLink to="/gardens" className="mt-6">
-          {formatMessage({
-            id: "public.gardenDetail.backToGardens",
-            defaultMessage: "Browse Gardens",
-          })}
-        </EditorialGhostLink>
-      </div>
-      <PublicInstallCta destination={`/home/${id}`} />
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={getPublicHeroImage("gardens")}
+        imageAlt=""
+        titleId="public-garden-not-found-title"
+        title={formatMessage({
+          id: "public.gardenDetail.notFound",
+          defaultMessage: "Garden not found",
+        })}
+        lede={formatMessage({
+          id: "public.sharedLink.unavailableHelp",
+          defaultMessage:
+            "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
+        })}
+      />
+      <GardenRecoverySection />
       <PublicFooter variant="soil" />
     </>
+  );
+}
+
+function GardenRecoverySection() {
+  const { formatMessage } = useIntl();
+  const { data: gardens = [] } = usePublicGardens();
+  const suggestions = [...gardens]
+    .sort((left, right) => right.lastActivityAt - left.lastActivityAt)
+    .slice(0, 3);
+
+  return (
+    <section
+      className="flex-1 bg-bg-soft-200 px-6 pt-36 pb-12 dark:bg-bg-surface-800 sm:px-10 sm:pt-40 sm:pb-16"
+      aria-labelledby="public-garden-explore-title"
+    >
+      <div className="mx-auto max-w-7xl">
+        <EditorialHeading id="public-garden-explore-title" className="text-center">
+          {formatMessage({
+            id: "public.gardenDetail.explore.title",
+            defaultMessage: "Find a garden to explore",
+          })}
+        </EditorialHeading>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-base leading-relaxed text-text-sub-600">
+          {formatMessage({
+            id: "public.gardenDetail.explore.help",
+            defaultMessage:
+              "Explore Gardens, follow their documented work, and see the evidence communities share.",
+          })}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <EditorialPrimaryLink to="/gardens">
+            {formatMessage({
+              id: "public.gardenDetail.backToGardens",
+              defaultMessage: "Browse Gardens",
+            })}
+          </EditorialPrimaryLink>
+          <EditorialGhostLink to="/impact">
+            {formatMessage({
+              id: "public.gardenDetail.evidence.cta",
+              defaultMessage: "View Public Evidence",
+            })}
+          </EditorialGhostLink>
+        </div>
+        {suggestions.length > 0 ? (
+          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {suggestions.map((garden) => (
+              <PublicGardenCard key={garden.id} garden={garden} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }

@@ -29,14 +29,19 @@ import { isPoolSteward } from "../../modules/commitment-pooling/steward-selector
 import type { Address } from "../../types/domain";
 import { useGardenRoles } from "../roles/useGardenRoles";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+import { reviewRefreshOptions } from "./review-refresh";
 
-export function useCommitmentPools(input: { chainId: number; garden?: Address }) {
+export function useCommitmentPools(
+  input: { chainId: number; garden?: Address },
+  options: { refreshWhileOpen?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: commitmentPoolingKeys.pools(input.chainId, input.garden),
     queryFn: () => getCommitmentPools(input.chainId, input.garden),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return {
     ...query,
@@ -51,7 +56,7 @@ export function useCommitmentPools(input: { chainId: number; garden?: Address })
 export function useCommitmentPool(
   input: { chainId: number; poolId: bigint },
   /** A caller that may not know the id yet gates here; the key stays the same. */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
@@ -59,6 +64,7 @@ export function useCommitmentPool(
     queryFn: () => getCommitmentPoolDetail(input.chainId, input.poolId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, pool: query.data?.pool ?? null, detail: query.data ?? null, availability };
 }
@@ -71,7 +77,7 @@ export function useCommitmentCycles(
     state?: string;
   },
   /** A caller that may not know the pool yet gates here; the key stays the same. */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const filters = { cycleType: input.cycleType, state: input.state };
@@ -80,6 +86,7 @@ export function useCommitmentCycles(
     queryFn: () => getCommitmentCycles(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, cycles: query.data ?? [], availability };
 }
@@ -87,7 +94,7 @@ export function useCommitmentCycles(
 export function useCommitmentCycle(
   input: { chainId: number; cycleId: bigint },
   /** A caller that may not know the cycle yet gates here; the key stays the same. */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
@@ -95,6 +102,7 @@ export function useCommitmentCycle(
     queryFn: () => getCommitmentCycleDetail(input.chainId, input.cycleId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, cycle: query.data?.cycle ?? null, detail: query.data ?? null, availability };
 }
@@ -114,7 +122,7 @@ export function useCommitments(
    * filter is simply dropped and every commitment on the chain comes back.
    * `options` stays out of the query key so gating never fragments the cache.
    */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
@@ -122,6 +130,7 @@ export function useCommitments(
     queryFn: () => getCommitments(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, commitments: query.data ?? [], availability };
 }
@@ -129,7 +138,7 @@ export function useCommitments(
 export function useCommitment(
   input: { chainId: number; commitmentId: bigint },
   /** A caller that may not know the id yet gates here; the key stays the same. */
-  options: { enabled?: boolean } = {}
+  options: { enabled?: boolean; refreshWhileOpen?: boolean } = {}
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
@@ -137,6 +146,7 @@ export function useCommitment(
     queryFn: () => getCommitmentDetail(input.chainId, input.commitmentId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return {
     ...query,
@@ -285,20 +295,24 @@ export function useCommitmentFunding(input: {
   return { ...query, funding: query.data ?? [], availability };
 }
 
-export function useCommitmentActivity(input: {
-  chainId: number;
-  poolId?: bigint;
-  cycleId?: bigint;
-  commitmentId?: bigint;
-  limit?: number;
-  offset?: number;
-}) {
+export function useCommitmentActivity(
+  input: {
+    chainId: number;
+    poolId?: bigint;
+    cycleId?: bigint;
+    commitmentId?: bigint;
+    limit?: number;
+    offset?: number;
+  },
+  options: { refreshWhileOpen?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: commitmentPoolingKeys.activity(input.chainId, input),
     queryFn: () => getCommitmentActivity(input),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
+    ...reviewRefreshOptions(options.refreshWhileOpen === true),
   });
   return { ...query, events: query.data ?? [], availability };
 }

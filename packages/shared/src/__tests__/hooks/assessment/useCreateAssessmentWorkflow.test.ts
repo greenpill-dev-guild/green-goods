@@ -1,12 +1,17 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient } from "@tanstack/react-query";
-import { act, createTestWrapper, renderHook, waitFor } from "@green-goods/shared/testing";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssessmentWorkflowParams } from "../../../types/domain";
+import type { TransactionSender } from "../../../modules/transactions/types";
+import { encodeAbiParameters, encodeEventTopics } from "viem";
+import { EASABI } from "../../../utils/blockchain/contracts";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111" as const;
 const OPERATOR_ADDRESS = "0x2222222222222222222222222222222222222222" as const;
@@ -17,6 +22,10 @@ const ASSESSMENT_SCHEMA =
   "string title,string description,string assessmentConfigCID,uint8 domain,uint256 startDate,uint256 endDate,string location";
 
 const mocks = vi.hoisted(() => ({
+  authMode: "wallet" as "wallet" | "passkey",
+  primaryAddress: "0x7777777777777777777777777777777777777777",
+  sender: null as TransactionSender | null,
+  getReceipt: vi.fn(),
   walletAddress: "0x2222222222222222222222222222222222222222" as string | undefined,
   walletClient: {
     account: { address: "0x2222222222222222222222222222222222222222" },
@@ -35,7 +44,10 @@ const mocks = vi.hoisted(() => ({
   loadDraft: vi.fn(),
   uploadFile: vi.fn(),
   uploadJson: vi.fn(),
+  send: vi.fn(),
+  assertOwnership: vi.fn(),
   ensureChain: vi.fn(),
+  readyWalletClient: vi.fn(),
   trackStarted: vi.fn(),
   trackSuccess: vi.fn(),
   trackFailed: vi.fn(),
@@ -56,9 +68,19 @@ const mocks = vi.hoisted(() => ({
   progressiveCallback: undefined as undefined | (() => void),
 }));
 
+vi.mock("../../../providers/Auth", () => ({
+  useAuthState: () => ({ authMode: mocks.authMode }),
+}));
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () =>
+    mocks.authMode === "passkey" ? mocks.primaryAddress : mocks.walletAddress,
+}));
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => mocks.sender,
+}));
+
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: mocks.walletAddress }),
-  useWalletClient: () => ({ data: mocks.walletClient }),
 }));
 
 vi.mock("../../../stores/useAdminStore", () => ({
@@ -87,8 +109,13 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
   uploadJSONToIPFS: mocks.uploadJson,
 }));
 
+// The wallet client comes from the guard when the workflow signs, not from wagmi at render.
+// The network check and its retry run for real in the command test, so here they pass through.
 vi.mock("../../../modules/transactions/chain-guard", () => ({
   ensureAppKitWalletChain: mocks.ensureChain,
+  readyWalletClient: mocks.readyWalletClient,
+  retryOnWalletChainMismatch: (request: () => Promise<unknown>) => request(),
+  WalletChainMismatchError: Error,
 }));
 
 vi.mock("../../../modules/app/analytics-events", () => ({
@@ -111,8 +138,10 @@ vi.mock("../../../components/toast", () => ({
   },
 }));
 
-vi.mock("../../../utils/blockchain/contracts", () => ({
+vi.mock("../../../utils/blockchain/contracts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/blockchain/contracts")>()),
   getNetworkContracts: () => ({ eas: EAS_ADDRESS }),
+  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -196,18 +225,9 @@ function createParams(overrides: Partial<AssessmentWorkflowParams> = {}): Assess
   };
 }
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 function renderWorkflow(queryClient: QueryClient) {
-  return renderHook(() => useCreateAssessmentWorkflow({ gardenId: GARDEN_ID }), {
-    wrapper: createTestWrapper(queryClient),
+  return renderHookWithProviders(() => useCreateAssessmentWorkflow({ gardenId: GARDEN_ID }), {
+    queryClient,
   });
 }
 
@@ -238,6 +258,31 @@ async function submitAndWaitFor(
 describe("useCreateAssessmentWorkflow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authMode = "wallet";
+    mocks.send.mockReset().mockResolvedValue({ hash: `0x${"66".repeat(32)}`, sponsored: false });
+    mocks.assertOwnership.mockReset();
+    mocks.sender = {
+      authMode: "wallet",
+      supportsSponsorship: false,
+      supportsBatching: false,
+      sendContractCall: mocks.send,
+      assertOwnership: mocks.assertOwnership,
+    };
+    mocks.getReceipt.mockReset().mockResolvedValue({
+      status: "success",
+      logs: [
+        {
+          address: EAS_ADDRESS,
+          topics: encodeEventTopics({
+            abi: EASABI,
+            eventName: "Attested",
+            args: { recipient: GARDEN_ID, attester: OPERATOR_ADDRESS, schemaUID: ASSESSMENT_UID },
+          }),
+          data: encodeAbiParameters([{ type: "bytes32" }], [ATTESTATION_UID as `0x${string}`]),
+        },
+      ],
+    });
+    mocks.primaryAddress = "0x7777777777777777777777777777777777777777";
     mocks.walletAddress = OPERATOR_ADDRESS;
     mocks.walletClient = {
       account: { address: OPERATOR_ADDRESS },
@@ -256,15 +301,114 @@ describe("useCreateAssessmentWorkflow", () => {
       .mockResolvedValueOnce({ cid: "bafy-metrics" })
       .mockResolvedValueOnce({ cid: "bafy-config" });
     mocks.ensureChain.mockResolvedValue(undefined);
+    mocks.readyWalletClient.mockImplementation(async () => mocks.walletClient);
     mocks.getSigner.mockResolvedValue({ address: OPERATOR_ADDRESS });
     mocks.schemaEncode.mockReturnValue("0xencoded-assessment");
     mocks.waitForAttestation.mockResolvedValue(ATTESTATION_UID);
     mocks.easAttest.mockResolvedValue({ wait: mocks.waitForAttestation });
   });
 
+  it.each([
+    undefined,
+    OPERATOR_ADDRESS,
+  ])("creates with the passkey smart account even when Wagmi address is %s", async (walletAddress) => {
+    mocks.authMode = "passkey";
+    mocks.walletAddress = walletAddress;
+    const send = vi.fn().mockResolvedValue({ hash: `0x${"66".repeat(32)}`, sponsored: true });
+    const assertOwnership = vi.fn();
+    mocks.sender = {
+      authMode: "passkey",
+      supportsBatching: false,
+      supportsSponsorship: true,
+      sendContractCall: send,
+      assertOwnership,
+    };
+    mocks.getReceipt.mockResolvedValue({
+      status: "success",
+      logs: [
+        {
+          address: EAS_ADDRESS,
+          topics: encodeEventTopics({
+            abi: EASABI,
+            eventName: "Attested",
+            args: {
+              recipient: GARDEN_ID,
+              attester: mocks.primaryAddress,
+              schemaUID: ASSESSMENT_UID,
+            },
+          }),
+          data: encodeAbiParameters([{ type: "bytes32" }], [ATTESTATION_UID as `0x${string}`]),
+        },
+      ],
+    });
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+    await startReady(result);
+    await submitAndWaitFor(result, "success");
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: mocks.primaryAddress,
+        chainId: 11155111,
+        functionName: "attest",
+        address: EAS_ADDRESS,
+      }),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
+    expect(assertOwnership).toHaveBeenCalledWith(mocks.primaryAddress, 11155111);
+    expect(result.current.state.context.txHash).toBe(ATTESTATION_UID);
+    expect(mocks.readyWalletClient).not.toHaveBeenCalled();
+    expect(mocks.ensureChain).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
+  it("retains the draft and refuses uploads while the passkey sender is still connecting", async () => {
+    mocks.authMode = "passkey";
+    mocks.walletAddress = undefined;
+    mocks.sender = null;
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+    await startReady(result);
+    await submitAndWaitFor(result, "error");
+    expect(result.current.state.context.error).toContain("still connecting");
+    expect(mocks.uploadJson).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    expect(mocks.readyWalletClient).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
+  it("reports confirmed execution separately from an unavailable attestation read", async () => {
+    mocks.authMode = "passkey";
+    mocks.sender = {
+      authMode: "passkey",
+      supportsBatching: false,
+      supportsSponsorship: true,
+      assertOwnership: vi.fn(),
+      sendContractCall: vi
+        .fn()
+        .mockResolvedValue({ hash: `0x${"66".repeat(32)}`, sponsored: true }),
+    };
+    mocks.getReceipt.mockRejectedValueOnce(new Error("RPC request details"));
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+    await startReady(result);
+    await submitAndWaitFor(result, "error");
+    expect(result.current.state.context.error).toContain("transaction was confirmed");
+    expect(result.current.canRetry).toBe(false);
+    act(() => result.current.retry());
+    expect(mocks.sender?.sendContractCall).toHaveBeenCalledOnce();
+    expect(result.current.state.context.error).toContain(
+      "Check your assessments before submitting again"
+    );
+    expect(result.current.state.context.error).not.toContain("RPC request details");
+    expect(mocks.trackSuccess).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
   it("refuses to start when upload storage is unavailable", () => {
     mocks.ipfsStatus = "skipped_no_config";
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     let accepted = true;
@@ -278,43 +422,70 @@ describe("useCreateAssessmentWorkflow", () => {
       expect.objectContaining({ context: "assessment submission" })
     );
     expect(mocks.saveDraft).not.toHaveBeenCalled();
-    expect(mocks.easAttest).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
     queryClient.clear();
   });
 
-  it.each([
-    {
-      name: "steward address",
-      prepare: () => {
-        mocks.walletAddress = undefined;
-      },
-      error: "Wallet not connected",
-    },
-    {
-      name: "wallet client",
-      prepare: () => {
-        mocks.walletClient = undefined;
-      },
-      error: "No wallet client available",
-    },
-  ])("surfaces a missing $name prerequisite", async ({ prepare, error }) => {
-    prepare();
-    const queryClient = createQueryClient();
+  // The machine validates as it starts, and in its invalid state it ignores the
+  // Submit that follows. Answers it refuses must not come back as started.
+  it("does not report answers the send refuses as started", () => {
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+
+    let accepted = true;
+    act(() => {
+      accepted = result.current.startCreation(
+        createParams({ startDate: 1_700_086_400, endDate: 1_700_000_000 })
+      );
+    });
+
+    expect(accepted).toBe(false);
+    expect(result.current.state.matches("invalid")).toBe(true);
+    expect(mocks.loggerError).toHaveBeenCalled();
+    expect(mocks.saveDraft).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
+  it("surfaces a missing steward address before the wallet is asked anything", async () => {
+    mocks.walletAddress = undefined;
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
     await submitAndWaitFor(result, "error");
 
-    expect(result.current.state.context.error).toBe(error);
+    expect(result.current.state.context.error).toBe(
+      "Sign in to your account before submitting an assessment."
+    );
     expect(result.current.canRetry).toBe(true);
     expect(mocks.ensureChain).not.toHaveBeenCalled();
-    expect(mocks.easAttest).not.toHaveBeenCalled();
+    expect(mocks.readyWalletClient).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+    queryClient.clear();
+  });
+
+  // The uploads can run for minutes. A wallet that changed hands meanwhile must
+  // not sign what the steward prepared.
+  it("does not attest when the signed-in account changes after uploads", async () => {
+    mocks.assertOwnership
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("Account changed before submission"));
+    const queryClient = createTestQueryClient();
+    const { result } = renderWorkflow(queryClient);
+
+    await startReady(result);
+    await submitAndWaitFor(result, "error");
+
+    expect(result.current.state.context.error).toBe("Account changed before submission");
+    expect(mocks.uploadJson).toHaveBeenCalledTimes(2);
+    expect(mocks.send).not.toHaveBeenCalled();
     queryClient.clear();
   });
 
   it("rejects submission when the assessment schema identifier is not deployed", async () => {
     mocks.assessmentUid = `0x${"00".repeat(32)}`;
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
@@ -328,7 +499,7 @@ describe("useCreateAssessmentWorkflow", () => {
       })
     );
     expect(mocks.schemaEncode).not.toHaveBeenCalled();
-    expect(mocks.easAttest).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
     queryClient.clear();
   });
 
@@ -340,7 +511,7 @@ describe("useCreateAssessmentWorkflow", () => {
       return { cid: "bafy-good-evidence" };
     });
     const params = createParams({ evidenceMedia: [goodFile, failedFile] });
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
@@ -351,7 +522,7 @@ describe("useCreateAssessmentWorkflow", () => {
     await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalledOnce());
     await waitFor(() => expect(invalidateQueries).toHaveBeenCalledTimes(3));
 
-    expect(mocks.ensureChain).toHaveBeenCalledWith(11155111);
+    expect(mocks.assertOwnership).toHaveBeenCalledWith(OPERATOR_ADDRESS, 11155111);
     expect(mocks.trackStarted).toHaveBeenCalledWith({
       gardenId: GARDEN_ID,
       assessmentType: "domain-2",
@@ -384,31 +555,46 @@ describe("useCreateAssessmentWorkflow", () => {
       { name: "endDate", value: 1_700_086_400, type: "uint256" },
       { name: "location", value: "Portland, OR", type: "string" },
     ]);
-    expect(mocks.easConstructor).toHaveBeenCalledWith(EAS_ADDRESS);
-    expect(mocks.easConnect).toHaveBeenCalledWith({ address: OPERATOR_ADDRESS });
-    expect(mocks.easAttest).toHaveBeenCalledWith({
-      schema: ASSESSMENT_UID,
-      data: {
-        recipient: GARDEN_ID,
-        expirationTime: 0n,
-        revocable: false,
-        data: "0xencoded-assessment",
-      },
-    });
+    const [beforeUploads, , afterUploads] = mocks.assertOwnership.mock.invocationCallOrder;
+    expect(beforeUploads).toBeLessThan(mocks.uploadFile.mock.invocationCallOrder[0]);
+    expect(afterUploads).toBeGreaterThan(mocks.uploadJson.mock.invocationCallOrder[1]);
+    expect(afterUploads).toBeLessThan(mocks.send.mock.invocationCallOrder[0]);
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: OPERATOR_ADDRESS,
+        chainId: 11155111,
+        address: EAS_ADDRESS,
+        functionName: "attest",
+        args: [
+          {
+            schema: ASSESSMENT_UID,
+            data: {
+              recipient: GARDEN_ID,
+              expirationTime: 0n,
+              revocable: false,
+              refUID: `0x${"00".repeat(32)}`,
+              value: 0n,
+              data: "0xencoded-assessment",
+            },
+          },
+        ],
+      }),
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
     expect(mocks.trackSuccess).toHaveBeenCalledWith({
       gardenId: GARDEN_ID,
       assessmentType: "domain-2",
       chainId: 11155111,
       attestationUid: ATTESTATION_UID,
     });
-    expect(mocks.ensureChain.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mocks.assertOwnership.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.trackStarted.mock.invocationCallOrder[0]
     );
     expect(mocks.trackStarted.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.uploadFile.mock.invocationCallOrder[0]
     );
     expect(mocks.schemaEncode.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.easAttest.mock.invocationCallOrder[0]
+      mocks.send.mock.invocationCallOrder[0]
     );
     expect(mocks.clearDraft).toHaveBeenCalledBefore(mocks.peekDraft);
     expect(invalidateQueries.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([
@@ -424,7 +610,7 @@ describe("useCreateAssessmentWorkflow", () => {
     const uploadError = new Error("metrics upload unavailable");
     mocks.uploadJson.mockReset();
     mocks.uploadJson.mockRejectedValueOnce(uploadError);
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
@@ -442,20 +628,18 @@ describe("useCreateAssessmentWorkflow", () => {
     expect(mocks.trackFailed).toHaveBeenCalledWith(
       expect.objectContaining({ error: "metrics upload unavailable" })
     );
-    expect(mocks.easAttest).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
     expect(mocks.clearDraft).not.toHaveBeenCalled();
     expect(invalidateQueries).not.toHaveBeenCalled();
     queryClient.clear();
   });
 
   it("exposes attestation errors and retries the same workflow to success", async () => {
-    mocks.waitForAttestation
-      .mockRejectedValueOnce(new Error("User rejected signature"))
-      .mockResolvedValueOnce(ATTESTATION_UID);
+    mocks.send.mockRejectedValueOnce(new Error("User rejected signature"));
     mocks.uploadJson
       .mockResolvedValueOnce({ cid: "bafy-retry-metrics" })
       .mockResolvedValueOnce({ cid: "bafy-retry-config" });
-    const queryClient = createQueryClient();
+    const queryClient = createTestQueryClient();
     const { result } = renderWorkflow(queryClient);
 
     await startReady(result);
@@ -474,7 +658,7 @@ describe("useCreateAssessmentWorkflow", () => {
     await waitFor(() => expect(result.current.state.matches("success")).toBe(true));
     await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalledOnce());
 
-    expect(mocks.easAttest).toHaveBeenCalledTimes(2);
+    expect(mocks.send).toHaveBeenCalledTimes(2);
     expect(mocks.trackStarted).toHaveBeenCalledTimes(2);
     expect(mocks.trackSuccess).toHaveBeenCalledWith(
       expect.objectContaining({ attestationUid: ATTESTATION_UID })

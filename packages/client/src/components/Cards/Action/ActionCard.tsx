@@ -66,7 +66,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           <h5
             className={cn(
               "min-w-0 truncate text-label-md font-semibold",
-              selected && "text-primary"
+              selected && "text-primary-on-surface"
             )}
             title={action.title}
           >
@@ -82,7 +82,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         <div
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 rounded-lg border-[3px] border-primary opacity-0 status-transition z-10 pointer-events-none",
+            "absolute inset-0 rounded-lg border-[3px] border-primary-on-surface opacity-0 status-transition z-10 pointer-events-none",
             selected && "opacity-100"
           )}
         />

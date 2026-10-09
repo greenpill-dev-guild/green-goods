@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * The steward's reads that no surface had yet: the protocol pool's identity
@@ -13,7 +13,7 @@ import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const mocks = vi.hoisted(() => ({
   capability: {

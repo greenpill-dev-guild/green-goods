@@ -23,7 +23,7 @@ const CSS_PATH = join(REPO_ROOT, "docs/src/css/custom.css");
 
 const LIGHT_BINDINGS = [
   { cssVar: "--docs-role-gardener", source: "roleAccents.gardener" },
-  { cssVar: "--docs-role-operator", source: "roleAccents.operator" },
+  { cssVar: "--docs-role-steward", source: "roleAccents.steward" },
   { cssVar: "--docs-role-assessment", source: "roleAccents.assessment" },
   { cssVar: "--docs-role-funder", source: "roleAccents.funder" },
   { cssVar: "--docs-role-builder", source: "roleAccents.builder" },

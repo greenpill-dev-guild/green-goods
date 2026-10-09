@@ -23,7 +23,7 @@ import {
   EditorialMediaCardSkeleton,
   EditorialSelect,
   type EditorialSelectOption,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicCommitmentsBand } from "@/components/Public/PublicCommitmentsBand";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -169,7 +169,8 @@ export default function ImpactPage() {
   }, [slice?.records, kindFilter, domainFilter, gardenFilter, page]);
   const evidenceState = selectPublicSurfaceState({
     isLoading: evidence.isLoading,
-    isError: slice?.status === "error",
+    // A read that rejected has no slice to carry a status, and is still a failed read.
+    isError: evidence.isError || slice?.status === "error",
     itemCount: filteredRecords.length,
   });
 
@@ -233,23 +234,23 @@ export default function ImpactPage() {
     key: string,
     label: string,
     note: string,
-    value: number,
+    value: number | null,
     fromStats = true
   ): PublicProofMarker => ({
     key,
     label,
     note,
     loading: fromStats && stats.isLoading,
-    unavailable: fromStats && statsUnavailable,
-    ...(value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
+    unavailable: fromStats && (statsUnavailable || value === null),
+    ...(value !== null && value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
   });
   const proofMarkers: PublicProofMarker[] = [
     proofMarker(
       "work",
-      formatMessage({ id: "public.impact.totalWork", defaultMessage: "Work" }),
+      formatMessage({ id: "public.home.proof.works", defaultMessage: "Approved submissions" }),
       formatMessage({
-        id: "public.impact.proof.workNote",
-        defaultMessage: "Field entries logged across Gardens.",
+        id: "public.home.proof.worksNote",
+        defaultMessage: "Work documented by participants and reviewed by Garden stewards.",
       }),
       counts.fieldNoteCount
     ),
@@ -257,17 +258,20 @@ export default function ImpactPage() {
       "assessments",
       formatMessage({ id: "public.impact.totalAssessments", defaultMessage: "Assessments" }),
       formatMessage({
-        id: "public.impact.proof.assessmentsNote",
-        defaultMessage: "Baselines recorded before Work begins.",
+        id: "public.home.proof.assessmentsNote",
+        defaultMessage: "Records describing starting conditions, evidence standards, or progress.",
       }),
       counts.attestationCount
     ),
     proofMarker(
       "gardens",
-      formatMessage({ id: "public.impact.totalGardens", defaultMessage: "Gardens" }),
       formatMessage({
-        id: "public.impact.proof.gardensNote",
-        defaultMessage: "Active places under continuous documentation.",
+        id: "public.home.proof.gardens",
+        defaultMessage: "Gardens with approved work",
+      }),
+      formatMessage({
+        id: "public.home.proof.gardensNote",
+        defaultMessage: "At least one submission approved by a local steward.",
       }),
       counts.gardenCount
     ),
@@ -297,16 +301,15 @@ export default function ImpactPage() {
         title={formatMessage(
           {
             id: "public.impact.heroTitle",
-            defaultMessage: "See how Garden work becomes <accent>evidence</accent>.",
+            defaultMessage:
+              "<line>See how Garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
+            "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
         })}
       />
 
@@ -350,7 +353,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through four stages and starts again. The cycle is what turns a place's needs into something the public can verify.",
+            "A Garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
         })}
       />
 
@@ -371,7 +374,7 @@ export default function ImpactPage() {
             <EditorialHeading id="public-impact-ledger-title">
               {formatMessage({
                 id: "public.impact.ledger.title",
-                defaultMessage: "Recent evidence across Gardens.",
+                defaultMessage: "Recent work and assessments.",
               })}
             </EditorialHeading>
             <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
@@ -469,15 +472,12 @@ export default function ImpactPage() {
                 ))}
               </div>
             }
-            error={
-              <p className="mt-12 flex min-h-40 max-w-2xl items-center border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
-                {formatMessage({
-                  id: "public.impact.evidence.error",
-                  defaultMessage:
-                    "Evidence is temporarily unavailable. Please try again in a few minutes.",
-                })}
-              </p>
-            }
+            onRetry={() => void evidence.refetch()}
+            errorMessage={formatMessage({
+              id: "public.impact.evidence.error",
+              defaultMessage:
+                "Evidence is temporarily unavailable. Please try again in a few minutes.",
+            })}
             empty={
               <div className="mt-12 min-h-40 max-w-2xl border-t border-stroke-soft-200 pt-6">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">

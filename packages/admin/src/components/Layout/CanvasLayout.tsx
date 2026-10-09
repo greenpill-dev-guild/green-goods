@@ -2,9 +2,11 @@ import { FabProvider } from "@green-goods/shared/components/Canvas/FabContext";
 import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
 import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
-import { memo, useCallback, useMemo } from "react";
+import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AppBar, MainSheet } from "@/components/Shell";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider } from "./leftSheetChannel";
@@ -15,9 +17,53 @@ import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProb
 import { CommandPalette } from "./CommandPalette";
 import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { PageTransition } from "./PageTransition";
+import { SeedlingIllustration } from "./SeedlingIllustration";
 
 const StableAppBar = memo(AppBar);
 StableAppBar.displayName = "StableAppBar";
+
+/** Access-state chrome keeps identity actions independent of garden permissions. */
+export function AdminAccessHomeShell({
+  children,
+  showProfile = false,
+}: {
+  children: ReactNode;
+  showProfile?: boolean;
+}) {
+  const intl = useIntl();
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  return (
+    <div
+      data-tone="home"
+      className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
+    >
+      <div className="canvas-area-top">
+        <AppBar
+          gardenChip={
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
+              <SeedlingIllustration className="h-5 w-5" />
+              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+            </span>
+          }
+          onOpenProfile={showProfile ? () => setProfileOpen(true) : undefined}
+        />
+      </div>
+      <MainSheet>{children}</MainSheet>
+      <div className="canvas-area-bottom" />
+      {showProfile && (
+        <AdminSideSheet
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          title={intl.formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
+          tone="hub"
+        >
+          <AccountProfilePanelContainer />
+        </AdminSideSheet>
+      )}
+    </div>
+  );
+}
 
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.
@@ -42,6 +88,7 @@ export function CanvasLayout() {
     renderAccountSettings,
     renderNotifications,
   });
+  useWalletNetworkAlignment();
   const {
     activePath,
     activeSheet,
@@ -86,16 +133,13 @@ export function CanvasLayout() {
   // load, so they must not block the shell from painting.
   if (controller.isLoading) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-bg-weak px-6"
-        role="status"
-        aria-label={intl.formatMessage({
-          id: "app.admin.auth.checking",
-          defaultMessage: "Checking authentication...",
+      <AdminLoadingScreen
+        label={intl.formatMessage({
+          id: "app.admin.loading.opening",
+          defaultMessage: "Opening your workspace…",
         })}
-      >
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-stroke-sub border-t-primary-base" />
-      </div>
+        locale={intl.locale}
+      />
     );
   }
 
@@ -111,7 +155,7 @@ export function CanvasLayout() {
             {/* Skip to content */}
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:body-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
             >
               {intl.formatMessage({
                 id: "app.admin.layout.skipToContent",
@@ -181,7 +225,7 @@ export function CanvasLayout() {
             {/* Account / notification inspector — the three global AppBar
                 surfaces (Profile, Settings, Notifications) render as an
                 AdminSideSheet: right-docked within the canvas chrome bounds on
-                desktop, compact inset bottom sheet on mobile (where only the
+                desktop, full-width bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
                 open/close. Tone is the neutral steward "hub" accent: this is

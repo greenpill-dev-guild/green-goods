@@ -1,12 +1,19 @@
 # Testing Context
 
-Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playwright E2E). Extends CLAUDE.md § Validation Intent Ladder and `.claude/context/validation-pipeline.md`. (`bun run test` vs `bun test`, `test:fast`: see CLAUDE.md § Commands.)
+Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playwright E2E). Use [the validation pipeline](validation-pipeline.md) to select commands and the nearest package `AGENTS.md` for its test entrypoints.
 
 ## Test-utils barrel — `@green-goods/shared/testing`
 
-Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from here, not deep paths.
+Alias → `packages/shared/src/__tests__/test-utils/`. Admin and Client import test helpers from
+`@green-goods/shared/testing`, not deep paths. Shared tests import the leaf module instead
+(`test-utils/render-helpers`, `query-client`, `query-client-render`, `mock-factories`,
+`offline-helpers`, `transaction-fakes`, …). The barrel loads every fixture into each file that
+imports it, so `test-quality` rejects it in Shared tests. Because Admin and Client tests import
+these helpers and `setupTests.base.ts`, a change to them selects the Admin and Client suites in
+checkpoint plans and starts their CI workflows (`sharedConsumerTestSupport` in the validation
+policy).
 
-- `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
+- `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) in `render-helpers.tsx` — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
 - `createTestQueryClient` (retry off, `gcTime`/`staleTime` 0); call `resetTestQueryClient()` in `afterEach`.
 - Mock factories (`mock-factories.ts`): `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, `createMockFile`, … (18 factories).
 - Offline helpers (`offline-helpers.ts`): `createMockOfflineWork`/`Conflict`, `mockFetch`/`mockFetchSequence`/`mockFetchError`, `simulateNetworkConditions.{offline,online,slow}`.
@@ -17,28 +24,40 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 ## Repo-tuned Vitest config (per-package `vitest.config.ts`)
 
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
-  suites run in Node, while `.test.tsx` and documented DOM exceptions run in jsdom. Keep
-  coverage at the root config, never inside a project.
-- `globals: true`, `pool: "threads"`, `isolate: true`, `testTimeout: 10000`.
+  suites run in Node, while `.test.tsx` and documented DOM exceptions run in a DOM: happy-dom
+  in all three. Keep coverage at the root config, never inside a project.
+- A DOM test that depends on jsdom behaviour pins it with `@vitest-environment jsdom` and a
+  comment saying which behaviour, such as authored inline style values, `Storage.prototype` spies,
+  `MessagePort` identity, or an accessible name joined from adjacent inline elements (happy-dom
+  gives a span no computed display, so Testing Library adds a space between them).
+- Shared's Node tests that mock and stub nothing share one module graph in
+  `node-shared-graph` (`isolate: false`; mocks, globals and env restored after each test).
+  A file that mocks, stubs, assigns globals directly, resets modules, uses IndexedDB, or
+  carries a `// @shared-graph isolate: <reason>` marker stays isolated in `node`, and so does
+  a file whose test helpers under `__tests__/` or `__mocks__/` do any of that
+  (`scripts/lib/vitest-shared-graph.mjs` decides; `test-quality` checks the result). In the
+  shared graph each file loads fresh copies of the Shared and test modules it imports, and
+  leaked fake timers, a changed built-in, or a global or `navigator` property a test left
+  changed fail the file that caused them. Mark a file whose dependency patches a built-in when
+  it loads.
+- `globals: true`, `pool: "threads"`, `isolate: true` (except Shared's shared graph), `testTimeout: 10000`.
 - React deduped + aliased to the workspace-root runtime so hooks share one dispatcher — never add a second React instance.
-- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`; `zod`/`viem`/`wagmi`/`multiformats` force-inlined via `server.deps.inline`.
-- Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`.
+- Heavy SDKs alias-mocked to skip dep chains: EAS SDK → `src/__mocks__/eas-sdk.ts`, WalletConnect utils → `src/__mocks__/walletconnect-utils.ts`, and Reown AppKit's React entry and wagmi adapter → `src/__mocks__/reown-appkit-*.ts` in Shared, Client and Admin, because Shared's `config/appkit` imports both at load. Stand in a dependency that Shared imports with an alias, not a setup-file `vi.mock`: only Shared resolves the AppKit adapter, so a Client or Admin setup's mock of it never matched.
+- `server.deps.inline`: Shared and Admin inline `zod`, `wagmi` and `multiformats`; Client inlines `zod` and leaves the web3 libraries to Node. Keep `viem` external everywhere: inlining it measured slower in all three packages (the numbers are in each config).
+- Setup files: shared/client `setupTests.ts`, admin/agent `setup.ts` — all extend `packages/shared/src/__tests__/setupTests.base.ts`. Shared's Node projects load only its Node-safe core (`setupTests.node.ts`), without Testing Library or jest-dom.
 - `agent` package differs: `node` env, `fileParallelism: false`, much lower thresholds (10/20/20/20).
 
-## GG mock / jsdom conventions (`setupTests.base.ts` + per-package setup)
+## GG mock / DOM conventions (`setupTests.base.ts` + per-package setup)
 
-- Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via MSW or `mockFetch`.
-- MSW GraphQL server from `@green-goods/shared/mocks` (`src/__mocks__/server/`); admin runs `server.listen({ onUnhandledRequest: "error" })` and resets per test.
-- Reown AppKit module-mocked (no network/403); `react-hot-toast` mocked in admin.
-- jsdom polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (jsdom has no real pointer events). These live in setup — don't re-stub per test.
+- Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via `mockFetch` or the test's own module mock.
+- Reown AppKit is aliased to stubs in every package (see above), so no test loads or contacts it; a test that needs its behaviour mocks `config/appkit` or `AppKitProvider`. `react-hot-toast` mocked in admin.
+- DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
 ## Coverage
 
 Enforced global thresholds live in each `vitest.config.ts` (branches/functions/lines/statements): **shared** 52/59/62/61 · **client** 56/62/64/63 · **admin** 47/44/53/51. Pull request Test jobs run plain `bun run test`; `.github/workflows/coverage-nightly.yml` enforces these floors nightly and after every push to `main`. Local coverage commands still generate `coverage/index.html`; CI omits HTML.
 
-The first ratchet review is 2026-09-22. Once coverage supports it, raise every configured metric by two percentage points and update the matching arrays in `scripts/quality/workflow-performance-parity.test.mjs` in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/index.mdx`.
-
-The active [architecture hub](../../.plans/active/codebase-architecture-skills/plan.todo.md) owns that September 22 checkpoint. The test-budget guidance below does not change its obligation or any numerical floor. Reconsidering the ratchet requires measured coverage and a separate decision at that checkpoint, with parity expectations updated alongside any approved threshold change.
+The September 22 two-point ratchet is closed (Afo, 2026-09-28): the global floors above stay as they are, and eleven measured critical-path floors replace the ratchet. Seven are in Shared (`modules/work`, `modules/job-queue`, `hooks/auth`, `hooks/vault`, and three exact files), two in Client, two in Admin; `scripts/quality/workflow-performance-parity.test.mjs` pins them with the global floors. Raise a floor only from measured coverage, with the matching parity array in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/index.mdx`.
 
 ## Test budget
 
@@ -48,9 +67,25 @@ For each new or retained test, name the failure it would catch and assert an obs
 
 When maintenance cost grows, review duplicate layers, repeated setup, class-only assertions, uncalled exports, and unexplained test/source growth. Counts and ratios identify candidates for inspection, not deletion targets. Before removing a test, identify surviving proof for the same failure or establish that its subject has no callers. Move tests with the code they protect, and remove exclusive tests only after verified-unused code is removed.
 
+Three habits keep the suite from spreading into small files:
+
+- Add cases to the file that already covers the subject. Open a new test file only for a new
+  subject or a different environment, and give it at least four cases or a
+  `// TEST-QUALITY: allow-small-test-file - <reason>` comment saying why, in words on the same
+  line. `test-quality` fails a new file below four cases without one, and treats an empty reason, a
+  template or a TODO as none.
+- When a change adds more test lines than source lines, say so in one line of the pull request body
+  or commit message, with the reason.
+- Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
+  the machine-wide test lease, so a second one waits for the first. A local `CI=true` run, such as a
+  hand-run Coverage Nightly, takes it too; only a GitHub runner skips it. A checkout whose branch
+  predates the lease (`d1bc5d86e`) runs suites without it, so merge develop into an old worktree
+  branch before running package-wide suites there. A leased run waits up to five minutes for such
+  runs, naming each, then starts on half the machine.
+
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 
-Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **CLAUDE.md § Criticality Matrix** — follow it, don't restate. Coverage-specific additions:
+Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in **AGENTS.md § Change Criticality** — follow it, don't restate. Coverage-specific additions:
 
 - Contract errors — `utils/errors/{contract-errors,mutation-error-handler}.ts`
 - Garden ops — `hooks/garden/**`; Role mgmt — `hooks/roles/**`
@@ -107,7 +142,7 @@ Do not use `injectWalletAuth` for CI authentication — it is a legacy wallet-st
 
 ## QA-speed proof substitutes
 
-Under QA Speed Mode (CLAUDE.md § Validation Intent Ladder), a fix may record instead of a new test:
+Under QA Speed Mode (.claude/context/validation-pipeline.md), a fix may record instead of a new test:
 
 - `not_applicable` — behavior unchanged (copy, docs, static config, visual token/class with no logic path).
 - `proof_limit` — a targeted test would be brittler/slower than direct proof (one-off visual layout, staging-only, authenticated-browser-only state).

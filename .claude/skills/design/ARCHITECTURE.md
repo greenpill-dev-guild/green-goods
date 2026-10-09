@@ -90,7 +90,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
-- Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`
+- Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `AddressDisplay`, `DomainBadge`
 
 Full palettes with file paths live in `prompt-contract.md` and `client-prompt-contract.md`.
 
@@ -98,7 +98,9 @@ Full palettes with file paths live in `prompt-contract.md` and `client-prompt-co
 
 ## Always-loaded context
 
-The highest-frequency rules are mirrored in root `CLAUDE.md` and `AGENTS.md` under "Design System" / "Design Language" so trivial edits (padding, copy, a single component touch) don't require a full skill load. The full spec is this file + `language.md` + the prompt contracts.
+Root `AGENTS.md` routes frontend work to the owning package guide and `implementation.md`.
+This file, `language.md`, and the prompt contracts own the design sources; do not mirror the
+spec into root instruction files.
 
 If you're editing more than one component, changing layout composition, creating a new view, or reviewing a PR → **explicitly load `design` (SKILL.md + implementation.md)**.
 

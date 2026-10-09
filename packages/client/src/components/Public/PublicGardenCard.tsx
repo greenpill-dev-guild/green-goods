@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
+import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 
 export interface PublicGardenCardProps {
   garden: PublicGardenSummary;
@@ -25,8 +26,9 @@ export function PublicGardenCard({
   variant = "default",
   onImageError,
 }: PublicGardenCardProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
   const isLead = variant === "lead";
+  const description = getPublicGardenDescription(garden, formatMessage);
 
   const metaItems: { label: string }[] = [];
   if (garden.location) metaItems.push({ label: garden.location });
@@ -34,16 +36,32 @@ export function PublicGardenCard({
     label: formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count} gardeners",
+        defaultMessage: "{count, plural, one {# member} other {# members}}",
       },
-      { count: garden.contributorCount }
+      { count: garden.gardenerCount }
     ),
   });
+
+  if (garden.lastActivityAt > 0) {
+    metaItems.push({
+      label: formatMessage(
+        { id: "public.gardens.latestWork" },
+        {
+          date: formatDate(garden.lastActivityAt * 1000, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+        }
+      ),
+    });
+  }
   metaItems.push({
     label: formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count} entries",
+        defaultMessage:
+          "{count, plural, one {# approved submission} other {# approved submissions}}",
       },
       { count: garden.actionCount }
     ),
@@ -88,15 +106,15 @@ export function PublicGardenCard({
         <span className="line-clamp-2">{garden.name || garden.slug}</span>
       </h3>
 
-      {garden.description ? (
+      {description ? (
         <p
           className={cn(
             "text-sm font-medium leading-[1.55] text-text-sub-600",
             isLead ? "line-clamp-3" : "line-clamp-2"
           )}
-          title={garden.description}
+          title={description}
         >
-          {garden.description}
+          {description}
         </p>
       ) : null}
 

@@ -5,6 +5,7 @@ import path from "path";
 import { defineConfig } from "vitest/config";
 
 import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+import { partitionNodeTests } from "../../scripts/lib/vitest-shared-graph.mjs";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
@@ -16,6 +17,12 @@ const nodeTestFiles = [
   "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
   "src/{modules,utils}/**/*.test.ts",
 ];
+// Node files that mock or stub nothing, directly or through a test helper, share one module graph;
+// the rest stay isolated, and files that declare a DOM environment run with the DOM project.
+// Membership follows each file's code and its helpers (scripts/lib/vitest-shared-graph.mjs).
+// setupTests.shared-graph.ts gives each file fresh copies of its modules and fails a file that
+// leaves fake timers, a changed built-in, or a changed global or navigator property behind.
+const nodeTests = partitionNodeTests({ root: __dirname, include: nodeTestFiles });
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -37,8 +44,7 @@ export default defineConfig({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [react()],
   test: {
-    environment: "jsdom",
-    setupFiles: ["./src/__tests__/setupTests.ts"],
+    environment: "happy-dom",
     globals: true,
     testTimeout: 10000,
     pool: "threads",
@@ -62,7 +68,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does, and in the
+          // shared graph it now stays loaded across files. On 2026-09-28 four alternating full
+          // runs retired 2.089T and 2.090T instructions external against 2.255T and 2.264T
+          // inlined (-7.5%), import -50%, identical results; shuffled shared-graph runs passed.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
@@ -150,16 +159,37 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: nodeTestFiles,
+          include: nodeTests.isolated,
+          setupFiles: ["./src/__tests__/setupTests.node.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node-shared-graph",
+          environment: "node",
+          include: nodeTests.sharedGraph,
+          setupFiles: ["./src/__tests__/setupTests.shared-graph.ts"],
+          isolate: false,
+          restoreMocks: true,
+          unstubGlobals: true,
+          unstubEnvs: true,
         },
       },
       {
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          environment: "happy-dom",
           include: [allTestFiles],
-          exclude: ["node_modules/", "dist/", "**/*.d.ts", ...nodeTestFiles],
+          exclude: [
+            "node_modules/",
+            "dist/",
+            "**/*.d.ts",
+            ...nodeTests.isolated,
+            ...nodeTests.sharedGraph,
+          ],
+          setupFiles: ["./src/__tests__/setupTests.ts"],
         },
       },
     ],
@@ -189,6 +219,19 @@ export default defineConfig({
       {
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "./src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which config/appkit loads at import in every test that
+      // reaches the Auth provider, the chain guard or a commitment-pooling chain reader: 140 s
+      // of import across 172 files on 2026-09-28. Four alternating full runs retired 2.257T and
+      // 2.256T instructions with these against 2.593T and 2.580T without (-12.8%), identical
+      // results.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-adapter-wagmi.ts"),
       },
     ],
   },

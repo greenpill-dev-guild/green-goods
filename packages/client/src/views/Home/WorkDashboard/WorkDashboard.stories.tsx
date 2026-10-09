@@ -1,27 +1,40 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { usePendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import { useLinkedWorkUIDs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
+import { useCommitmentQueueState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
+import { useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
 import en from "@green-goods/shared/i18n/en";
 import es from "@green-goods/shared/i18n/es";
 import pt from "@green-goods/shared/i18n/pt";
-import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { WorkDashboardPendingFilter } from "@green-goods/shared/stores/useUIStore";
+import type { Work } from "@green-goods/shared/types/domain";
 import type { TimeFilter } from "@green-goods/shared/utils/time";
-import { RiCheckLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
+import { RiCheckLine, RiTaskLine } from "@remixicon/react";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider, useIntl } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
-import { fn } from "storybook/test";
+import { expect, fn, mocked, userEvent, waitFor, within } from "storybook/test";
 import {
-  FIXTURE_IMAGE_AGROFORESTRY,
-  FIXTURE_IMAGE_SOLAR,
-  hoursAgo,
-  STORYBOOK_NOW_SECONDS,
-} from "../../../../../shared/.storybook/fixtures";
+  JOURNEY_GARDEN,
+  JOURNEY_NEIGHBOUR,
+  JOURNEY_VIEWER,
+  todayAt,
+} from "../../../../../shared/.storybook/clientJourneyFixtures";
+import { withHeldToast } from "../../../../../shared/.storybook/decorators";
+import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import {
+  PENDING_ACTIONS,
+  type PendingWorkFixture,
+  pendingWorkFixture,
+} from "../../../../../shared/.storybook/pendingWorkFixtures";
 import { CompletedTab } from "./CompletedTab";
 import { PendingTab } from "./PendingTab";
-import { buildUploadActions, type UploadBarState } from "./uploadActions";
+import { buildUploadAction, type UploadBarState } from "./uploadActions";
 import { WorkDashboardShell } from "./WorkDashboardShell";
-
-const GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
-const STEWARD = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e" as Address;
-const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
 
 const PHONE_VIEWPORT = {
   workDashboardPhone360x780: {
@@ -34,95 +47,58 @@ const PHONE_VIEWPORT = {
 const MESSAGES = { en, es, pt } as const;
 type Locale = keyof typeof MESSAGES;
 
-function work(id: string, overrides: Partial<Work>): Work {
+type Moment = "all" | "afterCancel" | "afterDiscard" | "empty";
+
+const EMPTY: PendingWorkFixture = {
+  submissions: [],
+  drafts: [],
+  proofs: [],
+  linkedWorkIds: new Set(),
+  linkedWorkUIDs: new Set(),
+  onPhone: 0,
+};
+
+const fixtureAt = (moment: Moment) => (moment === "empty" ? EMPTY : pendingWorkFixture(moment));
+
+/** Work in a garden the steward reviews, and a review of theirs still on this phone. */
+function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
   return {
     id,
-    title: "Planting Event",
-    actionUID: 44,
-    gardenerAddress: GARDENER,
-    gardenAddress: GARDEN,
+    title,
+    actionUID: 2,
+    gardenerAddress: JOURNEY_NEIGHBOUR,
+    gardenAddress: JOURNEY_GARDEN,
     feedback: "",
-    metadata: "{}",
-    media: [],
-    createdAt: hoursAgo(3),
+    metadata: "",
+    media: [FIXTURE_WORK_MEDIA[0]],
+    createdAt: hoursAgo(5),
     status: "pending",
     ...overrides,
   };
 }
 
-const PENDING_WORKS: Work[] = [
-  work("0x01", { title: "Planting Event", media: [FIXTURE_IMAGE_AGROFORESTRY] }),
-  work("0x02", { title: "Survival Check", media: [FIXTURE_IMAGE_SOLAR], createdAt: hoursAgo(20) }),
-  work("0x03", { title: "Compost Turn", gardenerAddress: STEWARD, createdAt: hoursAgo(30) }),
-];
-
-/** Work saved on this device, in the state background preparation left it. */
-function queued(
-  id: string,
-  title: string,
-  submissionState: string,
-  overrides: Partial<Work> = {},
-  blockedReason?: string
-): Work {
-  return work(id, {
-    title,
-    gardenerAddress: STEWARD,
-    status: "offline",
-    metadata: JSON.stringify({ submissionState, blockedReason }),
-    ...overrides,
-  });
-}
-
-const READY_WORKS: Work[] = [
-  queued("job-planting", "Planting Event", "ready", { media: [FIXTURE_IMAGE_AGROFORESTRY] }),
-  queued("job-survival", "Survival Check", "ready", {
-    media: [FIXTURE_IMAGE_SOLAR],
-    createdAt: hoursAgo(4),
-  }),
-];
-
-/** One work in every state Upload all reads, the longest blocked reason included. */
-const UPLOAD_STATE_WORKS: Work[] = [
-  queued("job-ready", "Planting Event", "ready", { media: [FIXTURE_IMAGE_AGROFORESTRY] }),
-  queued("job-preparing", "Survival Check", "preparing", { createdAt: hoursAgo(4) }),
-  queued("job-photo", "Compost Turn", "photo-pending", { createdAt: hoursAgo(5) }),
-  queued("job-photo-failed", "Seed Library Count", "photo-needs-attention", {
-    createdAt: hoursAgo(6),
-  }),
-  queued("job-blocked", "Swale Repair", "blocked", { createdAt: hoursAgo(7) }, "NotActiveAction"),
-  queued(
-    "job-domain",
-    "Mulch Delivery",
-    "blocked",
-    { createdAt: hoursAgo(8) },
-    "ActionDomainMismatch"
-  ),
-  queued("job-sent", "Water Point Check", "awaiting-confirmation", { createdAt: hoursAgo(9) }),
-];
-
-const PREPARING_WORKS: Work[] = [
-  queued("job-preparing", "Survival Check", "preparing"),
-  queued("job-photo", "Compost Turn", "photo-pending", { createdAt: hoursAgo(4) }),
-];
-
 const COMPLETED_WORKS: Work[] = [
-  work("0x04", { title: "Seed Library Count", status: "approved", createdAt: hoursAgo(26) }),
-  work("0x05", { title: "Swale Repair", status: "rejected", createdAt: hoursAgo(50) }),
+  gardenWork("0x04", "Seed Library Count", { status: "approved", createdAt: hoursAgo(26) }),
+  gardenWork("0x05", "Swale Repair", { status: "rejected", createdAt: hoursAgo(50) }),
 ];
 
 interface DashboardFrameProps {
   tab: "pending" | "completed";
-  items: Work[];
-  pendingFilter?: "all" | "needsReview" | "mySubmissions";
-  completedFilter?: "reviewedByYou" | "myWorkReviewed";
+  /** Where the Pending list stands, as the frames draw it. */
+  moment?: Moment;
+  /** A steward's view: work waiting for their review, and their reviews still on this phone. */
+  toReview?: Work[];
+  decisions?: Work[];
+  /** Completed rows. */
+  items?: Work[];
+  pendingFilter?: WorkDashboardPendingFilter;
+  completedFilter?: "all" | "reviewedByYou" | "myWorkReviewed";
   timeFilter?: TimeFilter;
   isFetching?: boolean;
   isOffline?: boolean;
   savedAt?: number;
-  /** Queued work and decisions: renders the Pending toolbar action when set. */
+  /** Queued work and decisions: renders the Pending header action when set. */
   uploads?: Partial<UploadBarState>;
-  /** Works whose decision from this device still waits to upload. */
-  waitingUploadIds?: string[];
 }
 
 const NO_UPLOADS: UploadBarState = {
@@ -133,22 +109,25 @@ const NO_UPLOADS: UploadBarState = {
   isUploading: false,
 };
 
-/** The real sheet chrome and tab content, fed fixture rows instead of the data hooks. */
+/** The real sheet chrome and tabs, fed the frames' rows instead of the data hooks. */
 function DashboardFrame({
   tab,
-  items,
+  moment = "all",
+  toReview = [],
+  decisions = [],
+  items = [],
   pendingFilter = "all",
-  completedFilter = "reviewedByYou",
+  completedFilter = "all",
   timeFilter = "month",
   isFetching = false,
   isOffline = false,
   savedAt,
   uploads,
-  waitingUploadIds = [],
 }: DashboardFrameProps) {
   const intl = useIntl();
-  const actions = uploads
-    ? buildUploadActions(
+  const fixture = fixtureAt(moment);
+  const uploadAction = uploads
+    ? buildUploadAction(
         { ...NO_UPLOADS, ...uploads },
         { onUpload: fn(), onPrepareNow: fn() },
         intl.formatMessage
@@ -156,25 +135,15 @@ function DashboardFrame({
     : undefined;
   const tabs = [
     {
-      id: "drafts",
-      icon: <RiDraftLine className="w-4 h-4" />,
-      label: intl.formatMessage({ id: "app.workDashboard.tabs.drafts", defaultMessage: "Draft" }),
-    },
-    {
       id: "pending",
       icon: <RiTaskLine className="w-4 h-4" />,
-      label: intl.formatMessage({
-        id: "app.workDashboard.tabs.pending",
-        defaultMessage: "Pending",
-      }),
+      label: intl.formatMessage({ id: "app.workDashboard.tabs.pending" }),
+      count: fixture.onPhone > 0 ? fixture.onPhone : undefined,
     },
     {
       id: "completed",
       icon: <RiCheckLine className="w-4 h-4" />,
-      label: intl.formatMessage({
-        id: "app.workDashboard.tabs.completed",
-        defaultMessage: "Completed",
-      }),
+      label: intl.formatMessage({ id: "app.workDashboard.tabs.completed" }),
     },
   ];
 
@@ -188,22 +157,37 @@ function DashboardFrame({
     >
       {tab === "pending" ? (
         <PendingTab
-          items={items}
-          isLoading={false}
+          submissions={fixture.submissions}
+          isOnThisDevice={(work) => work.status === "offline"}
+          toReview={toReview}
+          decisions={decisions}
+          uploads={{
+            pausedForDataSaver: uploads?.pausedForDataSaver ?? false,
+            decisionFor: (workId) => {
+              const decided = decisions.find((work) => work.id === workId);
+              return decided
+                ? {
+                    jobId: `approval-${workId}`,
+                    status: { state: "ready" },
+                    savedAt: decided.createdAt * 1000,
+                  }
+                : undefined;
+            },
+          }}
+          viewer={JOURNEY_VIEWER}
+          reads={{
+            needsReview: { isLoading: false, isError: false },
+            myWork: { isLoading: false, isError: false },
+          }}
           isFetching={isFetching}
-          hasError={false}
-          onWorkClick={fn()}
-          onRefresh={fn()}
           isOffline={isOffline}
           savedAt={savedAt}
           pendingFilter={pendingFilter}
-          uploadActions={actions}
           onPendingFilterChange={fn()}
-          activeAddress={STEWARD}
-          reviewerGardenIds={[GARDEN]}
-          reviewedByYou={new Set(waitingUploadIds)}
-          waitingUploadIds={new Set(waitingUploadIds)}
-          isUserAddress={(address) => address?.toLowerCase() === STEWARD.toLowerCase()}
+          uploadAction={uploadAction}
+          onRefresh={fn()}
+          onOpenWork={fn()}
+          onOpenPath={fn()}
         />
       ) : (
         <CompletedTab
@@ -239,9 +223,11 @@ const withLocale: Decorator = (Story, context) => {
 };
 
 /**
- * Your Work at phone width: the shared bottom sheet at the full tier with the Pending and
- * Completed tabs rendered from fixture rows. The header row under the tabs carries the item
- * count and the filters.
+ * Your Work at phone width: the shared bottom sheet at the full tier with its two
+ * tabs, Pending and Completed (D3). Pending is one list sorted by what needs you
+ * (D12): blocked work, work to upload, drafts, anything being checked, then work
+ * in review (O2). Its header is the count, Refresh and Upload all, then the
+ * filter, which offers only the states the list holds (D17, D27).
  */
 const meta: Meta<typeof DashboardFrame> = {
   title: "Client/Work/WorkDashboard",
@@ -256,56 +242,193 @@ const meta: Meta<typeof DashboardFrame> = {
       </MemoryRouter>
     ),
   ],
+  args: { tab: "pending" },
+  // The list reads drafts, proof and promise links itself; each story hands it the frame's.
+  beforeEach: ({ args }) => {
+    const fixture = fixtureAt(args.moment ?? "all");
+    mocked(useDrafts).mockReturnValue({
+      drafts: fixture.drafts,
+      draftCount: fixture.drafts.length,
+      deleteDraft: fn(),
+      isDeleting: false,
+    } as unknown as ReturnType<typeof useDrafts>);
+    mocked(usePendingProof).mockReturnValue({ items: fixture.proofs, isUnavailable: false });
+    // A passkey reader unless a story says otherwise: the background flush sends their proof.
+    mocked(useCommitmentJobs).mockReturnValue({
+      sendsFromTap: false,
+    } as unknown as ReturnType<typeof useCommitmentJobs>);
+    mocked(useCommitmentQueueState).mockReturnValue({
+      linkedWorkIds: fixture.linkedWorkIds,
+    } as unknown as ReturnType<typeof useCommitmentQueueState>);
+    mocked(useLinkedWorkUIDs).mockReturnValue({
+      linked: fixture.linkedWorkUIDs,
+    } as unknown as ReturnType<typeof useLinkedWorkUIDs>);
+    mocked(useActions).mockReturnValue({
+      data: PENDING_ACTIONS,
+    } as unknown as ReturnType<typeof useActions>);
+    return resetHookMocks(
+      useDrafts,
+      usePendingProof,
+      useCommitmentJobs,
+      useCommitmentQueueState,
+      useLinkedWorkUIDs,
+      useActions
+    );
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof DashboardFrame>;
 
+const READY: Partial<UploadBarState> = { readyCount: 1, preparingCount: 1, isPreparing: true };
+
+/** Frame `work`: ten rows, eight on this phone, sorted by need. */
 export const Pending: Story = {
-  args: { tab: "pending", items: PENDING_WORKS },
+  args: { uploads: READY },
 };
 
-export const PendingMySubmissions: Story = {
-  args: { tab: "pending", items: PENDING_WORKS.slice(2), pendingFilter: "mySubmissions" },
+/** Frame `work-upload`: To upload, with Upload all beside it (O3). */
+export const PendingToUpload: Story = {
+  args: { uploads: READY, pendingFilter: "upload" },
 };
 
+/** Frame `work-review`: sent work waiting for someone else; nothing here uploads. */
+export const PendingInReview: Story = {
+  args: { uploads: READY, pendingFilter: "review" },
+};
+
+/** Frame `work-offline`: when the list was saved, no Refresh or Upload all, rows say what waits. */
+export const PendingOffline: Story = {
+  args: { uploads: READY, isOffline: true, savedAt: todayAt(10, 2) },
+};
+
+/**
+ * The same list for a wallet reader. Nothing sends their queued proof for them, so its row says to
+ * send it once connected, where a passkey reader's says it sends itself.
+ */
+export const PendingOfflineWallet: Story = {
+  args: { uploads: READY, isOffline: true, savedAt: todayAt(10, 2) },
+  beforeEach: () => {
+    mocked(useCommitmentJobs).mockReturnValue({
+      sendsFromTap: true,
+    } as unknown as ReturnType<typeof useCommitmentJobs>);
+  },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByText("Send it when you're connected")).toBeVisible();
+    await expect(body.queryByText("Sends when you're connected")).toBeNull();
+  },
+};
+
+/** Frame `work-empty`: the sheet tab's empty state at its fixed anchor, no filter. */
+export const PendingEmpty: Story = {
+  args: { moment: "empty" },
+};
+
+/** Frame `work-cancelled`: Seedling Transplant, cancelled at the signature, now waits to upload. */
+export const PendingAfterCancel: Story = {
+  args: { moment: "afterCancel", uploads: READY },
+};
+
+/** Frame `work-discard`: Discard asks first, and says what leaves the device. */
+export const PendingDiscard: Story = {
+  args: { moment: "afterCancel", uploads: READY },
+  play: async ({ canvasElement }) => {
+    // The sheet draws in a portal, so its rows are found from the page body.
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await body.findByRole("button", { name: "Discard Compost Turn" }));
+    await waitFor(() => expect(body.getByText("Discard this work?")).toBeVisible());
+    (canvasElement.ownerDocument.activeElement as HTMLElement | null)?.blur();
+  },
+};
+
+/** Frame `work-discarded`: 8 becomes 7, and the existing toast says so. */
+export const PendingDiscarded: Story = {
+  args: { moment: "afterDiscard", uploads: READY },
+  decorators: [
+    withHeldToast((formatMessage) =>
+      toastService.success({
+        id: "queued-work-action",
+        context: "queued work",
+        title: formatMessage({ id: "app.uploads.discardedTitle" }),
+        message: formatMessage({ id: "app.uploads.discardedMessage" }),
+      })
+    ),
+  ],
+};
+
+/** Frame `work-cancelled-home`: cancelled before anything went out, and where the work waits. */
+export const UploadCancelledToast: Story = {
+  args: { moment: "afterCancel", uploads: READY },
+  decorators: [
+    withHeldToast((formatMessage) =>
+      toastService.info({
+        id: "work-upload",
+        context: "work upload",
+        title: formatMessage({ id: "app.work.sendCancelled.title" }),
+        message: formatMessage({ id: "app.work.sendCancelled.message" }),
+      })
+    ),
+  ],
+};
+
+/** A steward's list: work waiting for their review, and a review of theirs still on this phone. */
+export const PendingSteward: Story = {
+  args: {
+    uploads: READY,
+    toReview: [gardenWork("0xreview", "Compost Turn", { createdAt: hoursAgo(20) })],
+    decisions: [gardenWork("0xdecided", "Path Edging", { status: "approved" })],
+  },
+};
+
+/** The same list where its words run longest. */
 export const PendingSpanish: Story = {
-  args: { tab: "pending", items: PENDING_WORKS },
+  args: { uploads: READY },
   parameters: { locale: "es" },
 };
 
 export const PendingPortuguese: Story = {
-  args: { tab: "pending", items: PENDING_WORKS },
+  args: { uploads: READY },
   parameters: { locale: "pt" },
+};
+
+export const PendingRefreshing: Story = {
+  args: { uploads: READY, isFetching: true },
+};
+
+/** Nothing is prepared yet: Upload all waits with a spinner, at the width it keeps once ready. */
+export const PendingPreparingUploads: Story = {
+  args: { uploads: { preparingCount: 2, isPreparing: true } },
+};
+
+/** Data Saver holds preparation back: the header offers Prepare now once nothing is ready. */
+export const PendingDataSaver: Story = {
+  args: { uploads: { preparingCount: 2, pausedForDataSaver: true } },
+  parameters: { locale: "es" },
+};
+
+export const PendingUploadingPortuguese: Story = {
+  args: { uploads: { readyCount: 2, isUploading: true } },
+  parameters: { locale: "pt" },
+};
+
+/** Text enlargement keeps the action and filter usable on a narrow phone. */
+export const PendingEnlargedText: Story = {
+  args: { uploads: READY },
+  parameters: { locale: "es" },
+  decorators: [
+    (Story) => (
+      <>
+        <style>{"html { font-size: 200%; }"}</style>
+        <Story />
+      </>
+    ),
+  ],
 };
 
 export const Completed: Story = {
   args: { tab: "completed", items: COMPLETED_WORKS },
-};
-
-/** Two hours before the frozen Storybook clock, so the offline line shows a time from today. */
-const SAVED_AT = (STORYBOOK_NOW_SECONDS - 2 * 3_600) * 1_000;
-
-export const PendingRefreshing: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, isFetching: true },
-};
-
-export const PendingOffline: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, isOffline: true, savedAt: SAVED_AT },
-};
-
-export const PendingOfflineSpanish: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, isOffline: true, savedAt: SAVED_AT },
-  parameters: { locale: "es" },
-};
-
-export const PendingOfflinePortuguese: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, isOffline: true, savedAt: SAVED_AT },
-  parameters: { locale: "pt" },
-};
-
-export const PendingEmpty: Story = {
-  args: { tab: "pending", items: [] },
 };
 
 export const CompletedEmpty: Story = {
@@ -314,17 +437,6 @@ export const CompletedEmpty: Story = {
 
 export const CompletedMyWorkReviewedPortuguese: Story = {
   args: { tab: "completed", items: COMPLETED_WORKS, completedFilter: "myWorkReviewed" },
-  parameters: { locale: "pt" },
-};
-
-/** The widest Pending filter label in each language. */
-export const PendingSpanishNeedsReview: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, pendingFilter: "needsReview" },
-  parameters: { locale: "es" },
-};
-
-export const PendingPortugueseMySubmissions: Story = {
-  args: { tab: "pending", items: PENDING_WORKS, pendingFilter: "mySubmissions" },
   parameters: { locale: "pt" },
 };
 
@@ -346,102 +458,38 @@ export const CompletedSpanishWeekOffline: Story = {
     completedFilter: "myWorkReviewed",
     timeFilter: "week",
     isOffline: true,
-    savedAt: SAVED_AT,
+    savedAt: todayAt(10, 2),
   },
   parameters: { locale: "es" },
 };
 
-/** Everything queued is prepared: one tap sends it all with one signature. */
-export const PendingUploadAll: Story = {
-  args: { tab: "pending", items: [...READY_WORKS, PENDING_WORKS[0]], uploads: { readyCount: 2 } },
-};
-
-export const PendingUploadAllOffline: Story = {
-  args: {
-    tab: "pending",
-    items: [...READY_WORKS, PENDING_WORKS[0]],
-    uploads: { readyCount: 2 },
-    isOffline: true,
-    savedAt: SAVED_AT,
+/** Native browser clamping must not let later row updates undo the reader's scroll. */
+export const ClampedScrollReturn: Story = {
+  tags: ["autodocs", "storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const scroller = canvasElement.ownerDocument.getElementById("work-dashboard-scroll");
+    if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+    await waitFor(() => expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight));
+    const completed = fn();
+    const dispose = restoreDashboardScroll(
+      scroller,
+      () => scroller,
+      scroller.scrollHeight + 100,
+      completed
+    );
+    const update = canvasElement.ownerDocument.createElement("p");
+    update.textContent = "An indexed row changed";
+    try {
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+      scroller.dispatchEvent(new WheelEvent("wheel", { bubbles: true, deltaY: -100 }));
+      scroller.scrollTop = 0;
+      scroller.append(update);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      expect(scroller.scrollTop).toBe(0);
+      expect(completed).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+      update.remove();
+    }
   },
-};
-
-/** Every queued state in the one-badge, one-supporting-line card layout. */
-export const PendingUploadStates: Story = {
-  args: {
-    tab: "pending",
-    items: UPLOAD_STATE_WORKS,
-    pendingFilter: "all",
-    uploads: { readyCount: 1, preparingCount: 2, isPreparing: true },
-  },
-};
-
-export const PendingUploadStatesSpanish: Story = {
-  args: PendingUploadStates.args,
-  parameters: { locale: "es" },
-};
-
-export const PendingUploadStatesPortuguese: Story = {
-  args: PendingUploadStates.args,
-  parameters: { locale: "pt" },
-};
-
-/** Nothing is prepared yet and preparation is running. */
-export const PendingPreparingUploads: Story = {
-  args: {
-    tab: "pending",
-    items: PREPARING_WORKS,
-    pendingFilter: "all",
-    uploads: { preparingCount: 2, isPreparing: true },
-  },
-};
-
-/** Data Saver holds preparation back; both available actions stay in the Pending toolbar. */
-export const PendingDataSaver: Story = {
-  args: {
-    tab: "pending",
-    items: UPLOAD_STATE_WORKS.slice(0, 3),
-    pendingFilter: "all",
-    uploads: { readyCount: 1, preparingCount: 2, pausedForDataSaver: true },
-  },
-};
-
-/** Narrow filters hide Upload all because it would send work outside the visible rows. */
-export const PendingUploadAllFiltered: Story = {
-  args: {
-    tab: "pending",
-    items: READY_WORKS,
-    pendingFilter: "mySubmissions",
-    uploads: { readyCount: 2 },
-  },
-};
-
-export const PendingDataSaverSpanish: Story = {
-  args: PendingDataSaver.args,
-  parameters: { locale: "es" },
-};
-
-export const PendingUploadingPortuguese: Story = {
-  args: { tab: "pending", items: READY_WORKS, uploads: { readyCount: 2, isUploading: true } },
-  parameters: { locale: "pt" },
-};
-
-/** A decision made offline stays in Pending until queue confirmation. */
-export const PendingWaitingToUpload: Story = {
-  args: {
-    tab: "pending",
-    items: COMPLETED_WORKS.slice(0, 1),
-    waitingUploadIds: ["0x04"],
-    uploads: { readyCount: 1 },
-  },
-};
-
-export const PendingWaitingToUploadSpanish: Story = {
-  args: PendingWaitingToUpload.args,
-  parameters: { locale: "es" },
-};
-
-export const PendingWaitingToUploadPortuguese: Story = {
-  args: PendingWaitingToUpload.args,
-  parameters: { locale: "pt" },
 };

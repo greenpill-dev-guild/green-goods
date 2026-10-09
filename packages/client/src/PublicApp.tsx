@@ -10,7 +10,7 @@ const publicRouter = createPublicRouter();
 export function PublicApp() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppErrorBoundary>
+      <AppErrorBoundary view="frame">
         <RouterProvider router={publicRouter} />
       </AppErrorBoundary>
     </QueryClientProvider>

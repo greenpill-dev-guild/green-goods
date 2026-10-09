@@ -91,6 +91,11 @@ const STORYBOOK_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ],
 ];
 
+// The shell reads its garden from the URL, so a story that shows the seeded
+// garden names that garden in its path. Without it the shell opens the first
+// garden by name, Botanic Commons, which the shell seeds leave empty.
+const SEEDED_GARDEN = `gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
+
 function gardenDecorators({
   garden = STORYBOOK_PRIMARY_ADMIN_GARDEN,
   seeds = STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -111,10 +116,9 @@ function gardenDecorators({
 }
 
 export const Overview: Story = {
-  // Not in storybook-ci: the garden overview needs live indexer/vault + analytics data the
-  // clean-room CI browser can't reach, so the "Garden" heading / garden name never render
-  // offline. Kept for local/authenticated Storybook review.
-  args: { initialPath: "/garden/overview" },
+  // Not in storybook-ci: the play's last check looks for primary action links by a class the
+  // overview no longer uses, so it finds none. Kept for local Storybook review.
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
     await withTemporaryDocumentTheme("dark", async () => {
@@ -143,32 +147,30 @@ export const Overview: Story = {
 
 export const Activity: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/activity" },
+  args: { initialPath: `/garden/activity?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
 };
 
 // Members tab retired — "Manage Members" now opens ManageMembersDialog from
 // the community workspace rather than a browsable Garden workspace tab.
 
-// The steward's pool console on the Garden workspace's Pool tab (W7), seeded
-// through the registry keys the pool controller reads.
+// The steward's pool console on the Garden workspace's Promises tab (W7),
+// seeded through the registry keys the pool controller reads.
 export const Pool: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/pool" },
+  args: { initialPath: `/garden/pool?${SEEDED_GARDEN}` },
   decorators: gardenDecorators({ seeds: [...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS] }),
 };
 
 export const Settings: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/settings" },
+  args: { initialPath: `/garden/settings?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
 };
 
 export const GardenSwitchRemainsInteractive: Story = {
-  // Not in storybook-ci: the garden-switch play needs live indexer/vault data the clean-room
-  // CI browser can't reach, so the garden name never renders offline. Kept for
-  // local/authenticated Storybook review.
-  args: { initialPath: "/garden/overview" },
+  // Not in storybook-ci. Kept for local Storybook review.
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators({ seeds: STORYBOOK_SECONDARY_GARDEN_SEEDS }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -272,7 +274,7 @@ export const CreateGardenRouteUnauthorized: Story = {
 
 export const EmptyDomains: Story = {
   tags: ["visual-harness", "storybook-ci"],
-  args: { initialPath: "/garden/overview" },
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators({
     garden: STORYBOOK_EMPTY_DOMAIN_GARDEN,
     seeds: STORYBOOK_EMPTY_DOMAIN_SEEDS,

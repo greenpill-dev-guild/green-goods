@@ -1,10 +1,14 @@
 # Capital Off-Ramp Corridors Research Plan
 
 **Feature Slug**: `capital-offramp-corridors`  
-**Stage**: `ideas`  
-**Status**: `RESEARCH ONLY`  
+**Stage**: `ideas`
+**Status**: `IDEA — independent review complete; corridor/provider selection open`
 **Created**: 2026-08-03  
-**Last Updated**: 2026-08-04
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+RESR-71 is Done for the independent review and accepted corrections. That does not approve a corridor, provider, account or commercial commitment. Keep the corrected brief authoritative, preserve dated evidence and separate its research from the onramp work referenced by RESR-82.
 
 ## Decision log
 

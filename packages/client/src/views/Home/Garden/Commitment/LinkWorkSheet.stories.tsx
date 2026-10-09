@@ -68,7 +68,7 @@ const WORKS = [
 
 /**
  * Linking the reader's own work in this garden to a commitment row. Link This Work stays disabled
- * until a work and its row are chosen; with no eligible work, each row offers to start a submission.
+ * until a work and its row are chosen; each requirement also offers a new submission.
  * Actions sit in the shared bar at the Tall tier (DL-016).
  */
 const meta: Meta<typeof LinkWorkSheet> = {
@@ -98,6 +98,9 @@ export const ChooseWork: Story = {
   play: async ({ args }) => {
     const link = await screen.findByRole("button", { name: "Link This Work" });
     await expect(link).toBeDisabled();
+    await expect(
+      screen.getByRole("button", { name: "Submit work for requirement 1" })
+    ).toBeVisible();
     await userEvent.click(screen.getByRole("radio", { name: /Planting Event/ }));
     await expect(screen.getByText("It counts toward Planting Event.")).toBeVisible();
     await userEvent.click(link);
@@ -109,9 +112,9 @@ export const ChooseRow: Story = {
   args: { requirements: [row(0, 44, 1), row(1, 44, 2)] },
   play: async () => {
     await userEvent.click(await screen.findByRole("radio", { name: /Planting Event/ }));
-    const rowSelect = screen.getByRole("combobox", { name: "Which row it fulfils" });
+    const rowSelect = screen.getByRole("group", { name: "Which row it fulfils" });
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeDisabled();
-    await userEvent.selectOptions(rowSelect, "1");
+    await userEvent.click(within(rowSelect).getByRole("radio", { name: /Requirement 2/ }));
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeEnabled();
   },
 };
@@ -121,10 +124,10 @@ export const NoWorkYet: Story = {
   play: async ({ args }) => {
     await expect(
       await screen.findByText(
-        "You have no work in this garden to link yet. Submit work from the Garden tab first."
+        "No matching work yet. Choose a requirement below to submit new work."
       )
     ).toBeVisible();
-    const rows = within(screen.getByRole("list", { name: "Commitment requirements" }));
+    const rows = within(screen.getByRole("list", { name: "Promise requirements" }));
     await userEvent.click(rows.getByRole("button", { name: "Submit work for requirement 2" }));
     await expect(args.onSubmitRequirement).toHaveBeenCalledOnce();
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeDisabled();

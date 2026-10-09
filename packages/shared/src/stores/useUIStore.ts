@@ -11,11 +11,23 @@ import type { TimeFilter } from "../utils/time";
 // renaming it would drop that flag on every device.
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 
-/** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab. */
-export type WorkDashboardTab = "drafts" | "pending" | "completed";
+/** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab (D3). */
+export type WorkDashboardTab = "pending" | "completed";
 
-/** Filters of the Work Dashboard's Pending tab — lets callers deep-link a preset. */
-export type WorkDashboardPendingFilter = "all" | "needsReview" | "mySubmissions";
+/**
+ * Filters of the Work Dashboard's Pending tab, one per state of its one list
+ * (D17): what needs you, what waits to upload, what you're still editing, what
+ * is being checked, and what waits for a review. Stewards also get the work
+ * waiting for their decision. Lets callers deep-link a preset.
+ */
+export type WorkDashboardPendingFilter =
+  | "all"
+  | "needs"
+  | "needsReview"
+  | "upload"
+  | "editing"
+  | "checking"
+  | "review";
 
 /** Filters of the Work Dashboard's Completed tab: everything, work you reviewed, or your own work. */
 export type WorkDashboardCompletedFilter = "all" | "reviewedByYou" | "myWorkReviewed";
@@ -28,11 +40,21 @@ export interface WorkDashboardReturnState {
   scrollTop: number;
 }
 
-export type UIState = {
-  // Global offline/queue indicators
-  isOfflineBannerVisible: boolean;
-  setOfflineBannerVisible: (visible: boolean) => void;
+export type CommitmentsDirectionFilter = "all" | "OFFER" | "REQUEST";
+export interface CommitmentsDashboardReturnState {
+  tab: "live" | "over-time" | "to-confirm";
+  direction: CommitmentsDirectionFilter;
+  scrollTop: number;
+}
 
+export type DashboardSnapshot =
+  | ({ kind: "work" } & WorkDashboardReturnState)
+  | ({ kind: "commitments" } & CommitmentsDashboardReturnState);
+
+export type UIState = {
+  /** Invalidates history snapshots when the signed-in identity changes; never persisted. */
+  dashboardNavigationId: string;
+  commitmentsSheetReturnState?: CommitmentsDashboardReturnState;
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
   /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
@@ -57,6 +79,13 @@ export type UIState = {
   gardenFilters: GardenFiltersState;
   setGardenFilters: (update: (current: GardenFiltersState) => GardenFiltersState) => void;
   resetGardenFilters: () => void;
+
+  /**
+   * Forget what one account left when another signs in on this device: Home's
+   * filters, every sheet flag, and the Work Dashboard's return point. Device
+   * state (debug mode, the admin sidebar, the offline banner) stays.
+   */
+  resetForAccountChange: () => void;
 
   // Endowment/treasury sheet controls (client)
   isEndowmentSheetOpen: boolean;
@@ -99,9 +128,8 @@ export type UIState = {
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
-      isOfflineBannerVisible: false,
-      setOfflineBannerVisible: (visible) => set({ isOfflineBannerVisible: visible }),
-
+      dashboardNavigationId: crypto.randomUUID(),
+      commitmentsSheetReturnState: undefined,
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
       workDashboardInitialPendingFilter: undefined,
@@ -132,6 +160,20 @@ export const useUIStore = create<UIState>()(
       setGardenFilters: (update) =>
         set((state) => ({ gardenFilters: update(state.gardenFilters) })),
       resetGardenFilters: () => set({ gardenFilters: DEFAULT_GARDEN_FILTERS }),
+      resetForAccountChange: () =>
+        set({
+          dashboardNavigationId: crypto.randomUUID(),
+          commitmentsSheetReturnState: undefined,
+          gardenFilters: DEFAULT_GARDEN_FILTERS,
+          isGardenFilterOpen: false,
+          isEndowmentSheetOpen: false,
+          isWalletSheetOpen: false,
+          isCommitmentsSheetOpen: false,
+          isWorkDashboardOpen: false,
+          workDashboardInitialTab: undefined,
+          workDashboardInitialPendingFilter: undefined,
+          workDashboardReturnState: undefined,
+        }),
 
       isEndowmentSheetOpen: false,
       openEndowmentSheet: () => set({ isEndowmentSheetOpen: true }),
@@ -142,7 +184,8 @@ export const useUIStore = create<UIState>()(
       closeWalletSheet: () => set({ isWalletSheetOpen: false }),
 
       isCommitmentsSheetOpen: false,
-      openCommitmentsSheet: () => set({ isCommitmentsSheetOpen: true }),
+      openCommitmentsSheet: () =>
+        set({ isCommitmentsSheetOpen: true, commitmentsSheetReturnState: undefined }),
       closeCommitmentsSheet: () => set({ isCommitmentsSheetOpen: false }),
 
       openSheetCount: 0,

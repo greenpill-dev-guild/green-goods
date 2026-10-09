@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { fixtureGitEnvironment } from "../lib/dev-shared.js";
 import {
   collectStructureViolations,
   findStructureBaselineGrowth,
@@ -190,6 +192,44 @@ test("rejects growth after the initial structure baseline is established", () =>
   assert.deepEqual(findStructureBaselineGrowth(grown, null), []);
 });
 
+test("a run with no base judges committed work against origin/develop", (t) => {
+  // The checker finds its repository from its own location, so the fixture carries copies.
+  const checker = Object.fromEntries(
+    [
+      "scripts/quality/check-source-structure.js",
+      "scripts/quality/check-staged-modules.mjs",
+      "scripts/lib/git-guardrails.mjs",
+    ].map((path) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")]),
+  );
+  const path = "packages/shared/src/utils/sample.ts";
+  const lines = (count) =>
+    Array.from({ length: count }, (_, index) => `const line${index} = ${index};\n`).join("");
+  const root = fixture({
+    ...checker,
+    "package.json": '{ "type": "module" }\n',
+    "packages/shared/package.json": '{ "exports": { ".": "./src/index.ts" } }\n',
+    [path]: lines(480),
+  });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const { SOURCE_STRUCTURE_BASE_REF: _unset, ...environment } = fixtureGitEnvironment();
+  const git = (...args) => execFileSync("git", args, { cwd: root, env: environment, stdio: "ignore" });
+  git("init");
+  git("add", ".");
+  git("commit", "-m", "seed the base");
+  git("update-ref", "refs/remotes/origin/develop", "HEAD");
+  writeFileSync(join(root, path), lines(513));
+  git("commit", "-am", "grow past the modified-file cap");
+
+  const result = spawnSync(process.execPath, ["scripts/quality/check-source-structure.js"], {
+    cwd: root,
+    env: environment,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1, `${result.stdout}${result.stderr}`);
+  assert.match(result.stderr, /sample\.ts: modified file at 513 lines/);
+});
+
 test("enforces capability direction across relative paths, aliases and import syntax", () => {
   const cases = [
     ["stores/transitions/assessment.ts", 'import { step } from "../../hooks/admin-ui/hypercerts/wizardTransitions";'],
@@ -251,6 +291,60 @@ test("allows capability consumers, pure state dependencies and comments describi
   const root = fixture(files);
   try {
     assert.deepEqual(audit(root, Object.keys(files)).filter((finding) => finding.rule === "capability-boundary"), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects imports that bypass the import seams, in tests and mocks too", () => {
+  const files = {
+    "packages/admin/src/__tests__/root.test.tsx": 'vi.mock("@green-goods/shared", () => ({}));',
+    "packages/client/src/views/Garden.tsx": 'import { useGarden } from "@green-goods/shared/hooks";',
+    "packages/admin/src/__tests__/undeclared.test.tsx": 'vi.mock("@green-goods/shared/hooks/garden/useMissing");',
+    "packages/client/src/views/Deep.stories.tsx": 'import { cn } from "../../../shared/src/utils/styles/cn";',
+    "packages/shared/src/components/Form/Wizard.tsx": 'import { useTimeout } from "../../hooks";',
+    "packages/shared/src/modules/data/pools.ts": 'import { queryKeys } from "../../config/query-keys/registry";',
+    "packages/shared/src/utils/app/chain.ts": 'import { DEFAULT_CHAIN_ID } from "../../config/blockchain";',
+    "packages/shared/src/stores/useSelf.ts": 'import { logger } from "@green-goods/shared";',
+  };
+  const root = fixture(files);
+  try {
+    const seams = audit(root, Object.keys(files), { sharedExportKeys: new Set([".", "./hooks/auth/*"]) })
+      .filter((finding) => finding.rule === "import-seam")
+      .map((finding) => finding.id);
+    assert.deepEqual(seams, [
+      "import-seam:packages/admin/src/__tests__/root.test.tsx:shared-root",
+      "import-seam:packages/admin/src/__tests__/undeclared.test.tsx:undeclared:@green-goods/shared/hooks/garden/useMissing",
+      "import-seam:packages/client/src/views/Deep.stories.tsx:deep-relative",
+      "import-seam:packages/client/src/views/Garden.tsx:broad-barrel",
+      "import-seam:packages/shared/src/components/Form/Wizard.tsx:internal-barrel",
+      "import-seam:packages/shared/src/modules/data/pools.ts:query-key-registry",
+      "import-seam:packages/shared/src/stores/useSelf.ts:shared-root",
+      "import-seam:packages/shared/src/utils/app/chain.ts:default-chain",
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("accepts leaf imports, and leaves Shared's own barrels, tests and commented examples alone", () => {
+  const files = {
+    "packages/admin/src/__tests__/leaf.test.tsx": [
+      'import { renderHook } from "@testing-library/react";',
+      'vi.mock("@green-goods/shared/hooks/auth/useAuth");',
+      '// vi.mock("@green-goods/shared");',
+    ].join("\n"),
+    "packages/client/src/views/Leaf.tsx": 'import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";',
+    "packages/shared/src/components/Form/Wizard.tsx": 'import { useTimeout } from "../../hooks/utils/useTimeout";',
+    "packages/shared/src/hooks/index.ts": 'export * from "../utils";',
+    "packages/shared/src/__tests__/hooks.test.ts": 'import { useTimeout } from "../hooks";',
+    "packages/shared/src/utils/app/chain.ts": 'import { DEFAULT_CHAIN_ID } from "../../config/default-chain";',
+  };
+  const root = fixture(files);
+  try {
+    const seams = audit(root, Object.keys(files), { sharedExportKeys: new Set([".", "./hooks/auth/*"]) })
+      .filter((finding) => finding.rule === "import-seam");
+    assert.deepEqual(seams, []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

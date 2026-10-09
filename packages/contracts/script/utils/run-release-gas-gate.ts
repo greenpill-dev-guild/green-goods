@@ -20,10 +20,16 @@
  *     alongside a different set of files. Via-IR output for an unchanged contract can depend
  *     on that set (KarmaGAPModule did, 2026-09-19), so a reused artifact can fail the frozen
  *     creation-code hashes with no source change.
+ *   - The one exception is `GG_RELEASE_GAS_GATE_BUILD=cached` (release-gas-build-mode.ts). CI sets
+ *     it only for a pull request into develop whose production tree it restored under an exact key
+ *     over every build input. That tree was itself built from scratch by this gate, so it is the
+ *     same artifact set. The fixture proofs still run.
  */
 
 import * as fs from "node:fs";
 import { resolve } from "path";
+
+import { releaseGasBuildMode } from "./release-gas-build-mode";
 
 const contractsDir = resolve(import.meta.dir, "../..");
 const RELEASE_CONFIG_PATH = resolve(contractsDir, "config/commitment-pooling-release.json");
@@ -112,9 +118,19 @@ async function main() {
   const matchTest = `^(${fixtures.map((fixture) => fixture.test).join("|")})\\(\\)$`;
 
   log(`boundary fixtures: ${fixtures.map((fixture) => fixture.test).join(", ")}`);
-  log("rebuilding the production artifacts from scratch (unlinked; shared with the release lock derivation)");
-  const build = await runForge(["build", "-q", "--force", "--skip", "test", "--skip", "script"], false);
-  if (build.code !== 0) fail(`production build failed with exit code ${build.code}`);
+  let buildMode: ReturnType<typeof releaseGasBuildMode>;
+  try {
+    buildMode = releaseGasBuildMode();
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  if (buildMode === "cached") {
+    log("reusing the production tree CI restored for these exact inputs (built from scratch by this gate)");
+  } else {
+    log("rebuilding the production artifacts from scratch (unlinked; shared with the release lock derivation)");
+    const build = await runForge(["build", "-q", "--force", "--skip", "test", "--skip", "script"], false);
+    if (build.code !== 0) fail(`production build failed with exit code ${build.code}`);
+  }
 
   log("verifying every configured fixture still resolves before running");
   const list = await runForge(

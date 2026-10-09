@@ -9,7 +9,7 @@ import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 
@@ -150,12 +150,12 @@ export function GreenWillPanel() {
           <RiAwardLine className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-title-sm font-semibold text-text-strong-950">
+          <AdminCardTitle as="h2">
             {intl.formatMessage({
               id: "admin.greenWill.title",
               defaultMessage: "GreenWill",
             })}
-          </h2>
+          </AdminCardTitle>
           <p className="text-body-md text-text-sub-600">
             {intl.formatMessage({
               id: "admin.greenWill.description",

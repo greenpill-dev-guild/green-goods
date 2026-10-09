@@ -1,6 +1,6 @@
 # Work Linking Closure Handoff
 
-**Status:** Source complete; targeted re-review passed
+**Status:** Complete. The hub closed this lane on 2026-09-27 to match PRD-837 (Done on 2026-08-28); the receipt below is its proof.
 **Owner:** Codex
 **Branch:** `develop`
 **Parent:** PRD-650

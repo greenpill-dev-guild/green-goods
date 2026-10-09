@@ -186,6 +186,8 @@ AGENT_TRUSTED_PROXY_CIDRS=172.16.0.0/16
 JOIN_REQUESTS_ENABLED=false  # Keep false until every activation gate is complete
 JOIN_REQUESTS_ENCRYPTION_KEY= # Keep installed for retention after deactivation
 JOIN_REQUESTS_PRODUCTION_READY=false # Set true only after the activation record is complete
+# The passkey directory is always served. Its legacy-name check reuses the existing
+# PIMLICO_API_KEY (or the root VITE_PIMLICO_API_KEY); no dedicated rollout secret is needed.
 BOT_MODE=polling              # or "webhook" (default: polling in dev)
 PORT=3000                     # HTTP server port
 WEBHOOK_URL=https://...       # Required for webhook mode
@@ -313,6 +315,7 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 - [ ] After each deploy or allowlist change, run `bun run dev:smoke -- prod` and confirm
       `production-agent-browser-origins` passes (the expected origins live in `scripts/dev/smoke-prod.js`)
 - [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/backlog/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
+- [ ] Confirm the existing Pimlico API key is available to the agent (startup requires it in production), every Green Goods site is in `AGENT_ALLOWED_ORIGINS`, and the `/data` volume has snapshots: the passkey directory's records are the only place a name maps to its passkey.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint

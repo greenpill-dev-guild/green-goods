@@ -1,11 +1,11 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
@@ -89,16 +89,6 @@ const POOL_SUMMARY = {
   openUnits: "2",
   updatedAt: 100,
 };
-
-function createQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
 
 function objectKeys(value: unknown): string[] {
   if (!value || typeof value !== "object") return [];
@@ -263,9 +253,9 @@ describe("usePublicGardenPool", () => {
 
   it("distinguishes an empty garden from an unavailable indexer read", async () => {
     mocks.query.mockResolvedValueOnce({ data: { CommitmentPool: [] } });
-    const emptyClient = createQueryClient();
-    const empty = renderHook(() => usePublicGardenPool(GARDEN), {
-      wrapper: createWrapper(emptyClient),
+    const emptyClient = createTestQueryClient();
+    const empty = renderHookWithQueryClient(() => usePublicGardenPool(GARDEN), {
+      queryClient: emptyClient,
     });
     await waitFor(() => expect(empty.result.current.isSuccess).toBe(true));
     expect(empty.result.current.data).toMatchObject({
@@ -275,9 +265,9 @@ describe("usePublicGardenPool", () => {
     });
 
     mocks.query.mockResolvedValueOnce({ error: new Error("hosted indexer unavailable") });
-    const unavailableClient = createQueryClient();
-    const unavailable = renderHook(() => usePublicGardenPool(GARDEN), {
-      wrapper: createWrapper(unavailableClient),
+    const unavailableClient = createTestQueryClient();
+    const unavailable = renderHookWithQueryClient(() => usePublicGardenPool(GARDEN), {
+      queryClient: unavailableClient,
     });
     await waitFor(() => expect(unavailable.result.current.isSuccess).toBe(true));
     expect(unavailable.result.current.data).toMatchObject({
@@ -289,9 +279,9 @@ describe("usePublicGardenPool", () => {
   });
 
   it("keeps the last successful record when a background refresh fails", async () => {
-    const queryClient = createQueryClient();
-    const hook = renderHook(() => usePublicGardenPool(GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const queryClient = createTestQueryClient();
+    const hook = renderHookWithQueryClient(() => usePublicGardenPool(GARDEN), {
+      queryClient,
     });
     await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
     expect(hook.result.current.data?.pool?.commitmentsFulfilled).toBe(6n);
@@ -351,9 +341,9 @@ describe("usePublicGardenPool", () => {
     });
     mocks.getJsonByHash.mockRejectedValue(new Error("IPFS unavailable"));
 
-    const queryClient = createQueryClient();
-    const result = renderHook(() => usePublicGardenPool(GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const queryClient = createTestQueryClient();
+    const result = renderHookWithQueryClient(() => usePublicGardenPool(GARDEN), {
+      queryClient,
     });
     await waitFor(() => expect(result.result.current.isSuccess).toBe(true));
 
@@ -372,10 +362,10 @@ describe("usePublicGardenPool", () => {
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: finished, CommitmentUnitSummary: [] } };
     });
-    const queryClient = createQueryClient();
-    const { result, rerender } = renderHook(
+    const queryClient = createTestQueryClient();
+    const { result, rerender } = renderHookWithQueryClient(
       ({ historyLimit }) => usePublicGardenPool(GARDEN, { historyLimit }),
-      { initialProps: { historyLimit: 12 }, wrapper: createWrapper(queryClient) }
+      { initialProps: { historyLimit: 12 }, queryClient }
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.finishedCycles).toHaveLength(12);
@@ -407,12 +397,12 @@ describe("usePublicGardenPool", () => {
       return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
     });
 
-    const queryClient = createQueryClient();
-    const { result, rerender } = renderHook(
+    const queryClient = createTestQueryClient();
+    const { result, rerender } = renderHookWithQueryClient(
       ({ gardenAddress }) => usePublicGardenPool(gardenAddress),
       {
         initialProps: { gardenAddress: GARDEN },
-        wrapper: createWrapper(queryClient),
+        queryClient,
       }
     );
 

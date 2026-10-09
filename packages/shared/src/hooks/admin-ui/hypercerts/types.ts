@@ -18,12 +18,15 @@ export interface HypercertCompletionData {
 export interface HypercertWizardProps {
   gardenId: string;
   gardenName: string;
+  /** The mint confirmed; the flow stays on its Review with Done (DL-080). */
   onComplete: (data: HypercertCompletionData) => void;
   onCancel: () => void;
+  /** Done, after the mint confirmed. */
+  onDone: () => void;
 }
 
 /** Maps error categories to i18n message keys for user-facing error display */
-export const ERROR_CATEGORY_KEYS: Record<ErrorCategory, string> = {
+const ERROR_CATEGORY_KEYS: Record<ErrorCategory, string> = {
   network: "app.errors.network",
   blockchain: "app.errors.blockchain",
   auth: "app.errors.auth",

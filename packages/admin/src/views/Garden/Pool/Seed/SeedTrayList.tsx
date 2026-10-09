@@ -1,23 +1,25 @@
-import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { SeedTrayRow } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { directionEdgeClass } from "../poolPresentation";
 
 export interface SeedTrayListProps {
-  /** The commitments already added in this sitting, beside the one under review. */
+  /** The other answers in this sitting, beside the one under review. */
   rows: readonly SeedTrayRow[];
   /** A send is under way: nothing in the tray may change. */
   busy: boolean;
+  /** Some of the row exists, or may: it keeps its answers. */
+  isLocked: (clientCommitmentId: string) => boolean;
   onEdit: (clientCommitmentId: string) => void;
   onRemove: (clientCommitmentId: string) => void;
 }
 
 /**
- * The seeding tray on the review step: one line per commitment added so far,
- * with the facts a steward checks a row by and the two things they can still do
- * to it. A row the last send created nothing for says so.
+ * The other answers on the review step: one line each, with the facts a
+ * steward checks one by and the two things they can still do to it, while
+ * nothing of it exists yet.
  */
-export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps) {
+export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTrayListProps) {
   const { formatMessage } = useIntl();
   if (rows.length === 0) return null;
 
@@ -29,20 +31,22 @@ export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps
           defaultMessage: "Added so far",
         })}
       </p>
-      <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
+      <ul className="divide-y divide-stroke-soft">
         {rows.map((row) => {
           const { values } = row;
+          const locked = isLocked(row.clientCommitmentId);
           const facts = [
-            values.direction === "REQUEST"
-              ? formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.request",
-                  defaultMessage: "The pool requests",
-                })
-              : formatMessage({
-                  id: "cockpit.garden.pool.seed.direction.offer",
-                  defaultMessage: "The pool offers",
-                }),
-            `${values.targetUnits} ${values.unitLabel}`,
+            formatMessage(
+              {
+                id: "cockpit.garden.pool.seed.tray.count",
+                defaultMessage: "{count, plural, one {1 promise} other {# promises}}",
+              },
+              { count: values.count ?? 1 }
+            ),
+            formatMessage(
+              { id: "cockpit.garden.pool.seed.tray.each", defaultMessage: "{amount} {unit} each" },
+              { amount: values.targetUnits, unit: values.unitLabel }
+            ),
             formatMessage(
               {
                 id: "cockpit.garden.pool.seed.tray.due",
@@ -62,57 +66,55 @@ export function SeedTrayList({ rows, busy, onEdit, onRemove }: SeedTrayListProps
           ].join(" · ");
 
           return (
-            <li key={row.clientCommitmentId} className="flex flex-wrap items-center gap-2 py-2">
+            <li
+              key={row.clientCommitmentId}
+              className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(values.direction)}`}
+            >
               {/* The basis lets the actions drop below the words where a phone has no room for both. */}
               <div className="min-w-0 flex-1 basis-56">
-                <p className="flex items-center gap-2">
-                  <span className="truncate text-body-md text-text-strong" title={values.title}>
-                    {values.title}
-                  </span>
-                  {row.notSent ? (
-                    <StatusBadge variant="error" size="sm" className="shrink-0 whitespace-nowrap">
-                      {formatMessage({
-                        id: "cockpit.garden.pool.seed.tray.notSent",
-                        defaultMessage: "Not sent",
-                      })}
-                    </StatusBadge>
-                  ) : null}
+                <p className="truncate body-sm text-text-strong" title={values.title}>
+                  {values.title}
                 </p>
-                <p className="truncate text-xs text-text-soft" title={facts}>
+                <p className="truncate body-xs text-text-soft" title={facts}>
                   {facts}
                 </p>
               </div>
-              <span className="ml-auto flex items-center gap-1.5">
-                <AdminButton
-                  type="button"
-                  variant="text"
-                  size="sm"
-                  disabled={busy}
-                  aria-label={formatMessage(
-                    {
-                      id: "cockpit.garden.pool.seed.tray.removeRow",
-                      defaultMessage: "Remove {title}",
-                    },
-                    { title: values.title }
-                  )}
-                  onClick={() => onRemove(row.clientCommitmentId)}
-                >
-                  {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-                </AdminButton>
-                <AdminButton
-                  type="button"
-                  variant="outlined"
-                  size="sm"
-                  disabled={busy}
-                  aria-label={formatMessage(
-                    { id: "cockpit.garden.pool.seed.tray.editRow", defaultMessage: "Edit {title}" },
-                    { title: values.title }
-                  )}
-                  onClick={() => onEdit(row.clientCommitmentId)}
-                >
-                  {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
-                </AdminButton>
-              </span>
+              {locked ? null : (
+                <span className="ml-auto flex items-center gap-1.5">
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    disabled={busy}
+                    aria-label={formatMessage(
+                      {
+                        id: "cockpit.garden.pool.seed.tray.removeRow",
+                        defaultMessage: "Remove {title}",
+                      },
+                      { title: values.title }
+                    )}
+                    onClick={() => onRemove(row.clientCommitmentId)}
+                  >
+                    {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    disabled={busy}
+                    aria-label={formatMessage(
+                      {
+                        id: "cockpit.garden.pool.seed.tray.editRow",
+                        defaultMessage: "Edit {title}",
+                      },
+                      { title: values.title }
+                    )}
+                    onClick={() => onEdit(row.clientCommitmentId)}
+                  >
+                    {formatMessage({ id: "app.common.edit", defaultMessage: "Edit" })}
+                  </AdminButton>
+                </span>
+              )}
             </li>
           );
         })}

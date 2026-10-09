@@ -61,6 +61,26 @@ describe("commitment composer validation", () => {
     expect(commitmentComposerSchema.safeParse(values).success).toBe(true);
   });
 
+  // The words stop where the metadata builder and the unit's own limit do, and
+  // the refusals are ids the seeding console reads in the steward's language.
+  const text = (length: number) => "x".repeat(length);
+  it.each([
+    ["title", text(60), undefined],
+    ["title", text(61), COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong],
+    ["title", "  ", COMMITMENT_COMPOSER_ERROR_IDS.titleRequired],
+    ["unitLabel", text(24), undefined],
+    ["unitLabel", text(25), COMMITMENT_COMPOSER_ERROR_IDS.unitTooLong],
+    ["unitLabel", "  ", COMMITMENT_COMPOSER_ERROR_IDS.unitRequired],
+    ["note", text(280), undefined],
+    ["note", text(281), COMMITMENT_COMPOSER_ERROR_IDS.noteTooLong],
+  ])("holds %s to its limit (%#)", (field, value, message) => {
+    const result = commitmentComposerSchema.safeParse({ ...values, [field]: value });
+    const issue = result.success
+      ? undefined
+      : result.error.issues.find((candidate) => candidate.path[0] === field);
+    expect(issue?.message).toBe(message);
+  });
+
   it("requires garden work to name at least one action, each with a count of one or more", () => {
     expect(commitmentComposerSchema.safeParse({ ...gardenWork, requirements: [] }).success).toBe(
       false
@@ -381,5 +401,44 @@ describe("the steward's extras on the same composer", () => {
         considerationAmount: "20",
       }).success
     ).toBe(true);
+  });
+
+  // The steward types dollars; the G$ amount is only fixed at Create, so until
+  // then the dollars are what must hold up.
+  it.each([
+    { usd: "5.00", valid: true },
+    { usd: "$12", valid: true },
+    { usd: "0", valid: false },
+    { usd: "", valid: false },
+    { usd: "5.001", valid: false },
+  ])("takes a G$ reward in dollars: $usd is valid $valid", ({ usd, valid }) => {
+    const parsed = commitmentComposerSchema.safeParse({
+      ...values,
+      considerationRail: "CELO_SETTLEMENT",
+      considerationUsd: usd,
+      considerationAmount: "",
+    });
+    expect(parsed.success).toBe(valid);
+    if (!parsed.success) {
+      expect(parsed.error.issues).toEqual([
+        expect.objectContaining({
+          path: ["considerationUsd"],
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationUsd,
+        }),
+      ]);
+    }
+  });
+
+  it("asks how many separate commitments, from one to the sending's limit", () => {
+    for (const [count, valid] of [
+      [1, true],
+      [50, true],
+      [0, false],
+      [51, false],
+      [2.5, false],
+      [undefined, true],
+    ] as const) {
+      expect(commitmentComposerSchema.safeParse({ ...values, count }).success).toBe(valid);
+    }
   });
 });

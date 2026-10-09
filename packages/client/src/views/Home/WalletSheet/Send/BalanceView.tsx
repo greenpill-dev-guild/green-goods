@@ -154,13 +154,13 @@ export function BalanceView({
                     token.balance === null && !balancePending ? unavailableLabel : balanceText,
                 }
               )}
-              className="flex w-full items-center justify-between gap-3 rounded-lg p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-between gap-3 rounded-lg p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-text-strong-950">{token.symbol}</span>
                   {token.confersGovernance ? (
-                    <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-base">
+                    <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-on-surface">
                       {formatMessage({ id: "app.send.token.governanceTag" })}
                     </span>
                   ) : null}

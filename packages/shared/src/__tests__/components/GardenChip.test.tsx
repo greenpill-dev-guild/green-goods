@@ -5,7 +5,7 @@
  * opens a popover dropdown for multi-garden selection, and handles
  * garden and "Create Garden" interactions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -235,7 +235,9 @@ describe("GardenChip", () => {
 
     const trigger = screen.getByRole("button");
     expect(trigger.style.width).toBe("");
-    expect(trigger.style.maxWidth).toBe("calc(100vw - 2rem)");
+    // Bounded by the slot it sits in; the app bar's phone story checks that the
+    // slot ends before the bar's actions.
+    expect(trigger.style.maxWidth).toBe("100%");
 
     await user.click(trigger);
 

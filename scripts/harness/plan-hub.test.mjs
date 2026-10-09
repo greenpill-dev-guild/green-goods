@@ -796,6 +796,139 @@ test("terminal implementation lanes and their active parent move to In Review", 
     );
   }));
 
+// Existing mirrors can be Done/Canceled or research In Progress while local lanes
+// remain uncertified. Preserved mirrors must emit no mutable issue fields.
+for (const stage of ["ideas", "backlog", "active"]) {
+  test(`linear-sync preserves existing parent records for reconciled ${stage} hubs`, () =>
+    withFixture((root) => {
+      assert.equal(runPlanHub(root, ["scaffold", "preserved-parent", "--stage", stage]).status, 0);
+      const status = readStatus(root, stage, "preserved-parent");
+      status.linear = {
+        parentIssue: "RESR-9",
+        laneSyncMode: "parent_only",
+        stateSyncMode: "preserve_existing",
+      };
+      if (stage === "ideas") status.workflow.resolution = "cancelled";
+      writeStatus(root, stage, "preserved-parent", status);
+      const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-parent", "--json"]);
+      assert.equal(result.status, 0, result.stderr);
+      const manifest = JSON.parse(result.stdout);
+      assert.deepEqual(manifest.parent, { action: "preserve", issue: "RESR-9" });
+      assert.equal(manifest.stateSyncMode, "preserve_existing");
+      assert.match(manifest.warnings.join("\n"), /existing Linear records/);
+    }));
+}
+
+test("linear-sync preserves existing canonical and execution records but initializes new issues", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "preserved-lanes", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "preserved-lanes");
+    status.linear = {
+      parentIssue: "PRD-650",
+      laneSyncMode: "lane_issues",
+      stateSyncMode: "preserve_existing",
+      lanes: { qa_pass_1: { issue: "PRD-729" } },
+    };
+    status.lanes.qa_pass_1.manual_blocked = true;
+    status.lanes.qa_pass_1.blocked_reason = "Historical proof reconciliation remains.";
+    status.execution_sub_lanes = {
+      retained_source: {
+        machine_lane: "state_api",
+        owner: "codex",
+        status: "blocked",
+        blocked_reason: "Source delivered; receipt reconciliation remains.",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: "PRD-700", parentIssue: "PRD-650" },
+      },
+      fresh_work: {
+        machine_lane: "ui",
+        owner: "claude",
+        status: "todo",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/claude-ui.md",
+        linear: { sync: true, issue: null, parentIssue: "PRD-650" },
+      },
+    };
+    writeStatus(root, "active", "preserved-lanes", status);
+    const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-lanes", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    const preserved = [manifest.parent, ...manifest.lanes].filter((record) => record.action === "preserve");
+    assert.deepEqual(preserved, [
+      { action: "preserve", issue: "PRD-650" },
+      { action: "preserve", issue: "PRD-700", lane: "retained_source" },
+      { action: "preserve", issue: "PRD-729", lane: "qa_pass_1" },
+    ]);
+    assert.equal([manifest.parent, ...manifest.lanes].some((record) => record.action === "update"), false);
+    const created = manifest.lanes.find((record) => record.lane === "fresh_work");
+    assert.equal(created.action, "create");
+    assert.equal(created.state, "Todo");
+    assert.equal(created.title, "Fresh Work for Preserved Lanes");
+    assert.match(created.description, /handoffs\/claude-ui\.md/);
+    assert.equal(created.parentId, "PRD-650");
+  }));
+
+// Preservation verifies all recorded mirrors even when dispatch selection excludes
+// inactive, terminal, aggregate or sync-disabled lanes. It creates no missing mirror.
+for (const stage of ["ideas", "backlog", "active"]) {
+  for (const laneSyncMode of ["parent_only", "lane_issues"]) {
+    test(`linear-sync includes all recorded mirrors for ${stage} ${laneSyncMode} preservation`, () =>
+      withFixture((root) => {
+        assert.equal(runPlanHub(root, ["scaffold", "all-mirrors", "--stage", stage]).status, 0);
+        const status = readStatus(root, stage, "all-mirrors");
+        const canonical = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
+        status.linear = {
+          parentIssue: "PRD-780",
+          laneSyncMode,
+          stateSyncMode: "preserve_existing",
+          lanes: Object.fromEntries(canonical.map((lane, i) => [lane, { issue: `PRD-${785 + i}` }])),
+        };
+        for (const [i, lane] of canonical.entries()) {
+          status.lanes[lane].status = ["n/a", "skipped", "todo", "passed", "completed"][i];
+        }
+        status.execution_sub_lanes = Object.fromEntries([false, true].map((sync, i) => [
+          `historical_${i}`,
+          {
+            machine_lane: "state_api", owner: "codex", status: "n/a", branch: null,
+            depends_on: [], handoff: "handoffs/codex-state-api.md",
+            linear: { sync, issue: `PRD-${790 + i}`, parentIssue: "PRD-780" },
+          },
+        ]));
+        writeStatus(root, stage, "all-mirrors", status);
+        mkdirSync(join(root, ".plans", stage, "all-mirrors", "handoffs"), { recursive: true });
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_1");
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_2");
+        const result = runPlanHub(root, ["linear-sync", "--feature", "all-mirrors", "--json"]);
+        assert.equal(result.status, 0, result.stderr);
+        const manifest = JSON.parse(result.stdout);
+        assert.deepEqual(manifest.parent, { action: "preserve", issue: "PRD-780" });
+        assert.deepEqual(
+          manifest.lanes.map((r) => [r.lane, r.issue]).sort(),
+          [...canonical.map((lane, i) => [lane, `PRD-${785 + i}`]),
+            ["historical_0", "PRD-790"], ["historical_1", "PRD-791"]].sort(),
+        );
+        for (const record of manifest.lanes) {
+          assert.equal(record.action, "preserve");
+          assert.deepEqual(Object.keys(record).sort(), ["action", "issue", "lane"]);
+        }
+      }));
+  }
+}
+
+test("linear-sync rejects an unknown state sync mode", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "invalid-state-mode", "--stage", "ideas"]).status, 0);
+    const status = readStatus(root, "ideas", "invalid-state-mode");
+    status.linear = { parentIssue: "RESR-71", stateSyncMode: "force_done" };
+    writeStatus(root, "ideas", "invalid-state-mode", status);
+    const result = runPlanHub(root, ["linear-sync", "--feature", "invalid-state-mode", "--json"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear.stateSyncMode/);
+  }));
+
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "active"]).status, 0);
@@ -1106,7 +1239,7 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[0].parentId, "PRD-1000");
     assert.equal(Object.hasOwn(manifest.lanes[0], "branch"), false);
     assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
-    assert.equal(manifest.lanes[0].dueDate, null);
+    assert.equal(Object.hasOwn(manifest.lanes[0], "dueDate"), false);
     assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
     assert.equal(manifest.lanes[1].action, "create");
     assert.equal(manifest.lanes[1].title, "Settlement Evidence for Execution Linear");
@@ -1131,6 +1264,44 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
         settlement_evidence: "2026-09-30",
       },
     });
+  }));
+
+test("linear-sync update records leave out fields the hub does not record", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "unrecorded-fields", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "unrecorded-fields");
+    status.linear = {
+      parentIssue: "PRD-1500",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      release_ops: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Waits for the release window.",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1501", parentIssue: null },
+      },
+    };
+    writeStatus(root, "active", "unrecorded-fields", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "unrecorded-fields", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    const lane = manifest.lanes.find((record) => record.lane === "release_ops");
+    assert.equal(lane.action, "update");
+    // A null would tell the applier to clear a parent, milestone, due date, or
+    // project someone set in Linear; an absent field leaves that value alone.
+    for (const field of ["parentId", "parentRef", "milestone", "dueDate", "project"]) {
+      assert.equal(Object.hasOwn(lane, field), false, `${field} is sent on an update`);
+    }
+    assert.equal(manifest.parent.action, "update");
+    assert.equal(Object.hasOwn(manifest.parent, "project"), false);
   }));
 
 test("execution and canonical lane scheduling metadata must reference valid project dates", () =>
@@ -1259,6 +1430,86 @@ test("execution sub-lane validation rejects parent drift and duplicate issue rel
     assert.match(result.stderr, /linear\.lanes\.qa_pass_2\.issue duplicates PRD-1203/);
     assert.match(result.stderr, /duplicates PRD-1203 already used by linear\.lanes\.qa_pass_1/);
     assert.match(result.stderr, /cannot reuse the canonical parent issue/);
+  }));
+
+// One sub-lane sits under the hub parent (PRD-1400) and one names PRD-1410, an
+// umbrella tracker that is only valid when the hub records it in linear.trackers.
+function writeTrackedSubLaneHub(root, slug, trackers) {
+  assert.equal(runPlanHub(root, ["scaffold", slug, "--stage", "active"]).status, 0);
+  const status = readStatus(root, "active", slug);
+  status.linear = {
+    parentIssue: "PRD-1400",
+    ...(trackers ? { trackers } : {}),
+    syncDirection: "plans_to_linear_visibility",
+    laneSyncMode: "lane_issues",
+    lastSyncedAt: "2026-07-20T00:00:00.000Z",
+  };
+  status.execution_sub_lanes = {
+    contracts: {
+      machine_lane: "contracts",
+      owner: "codex",
+      status: "ready",
+      branch: "feature/tracker-direct-lane",
+      depends_on: [],
+      handoff: "handoffs/codex-contracts.md",
+      linear: { sync: true, issue: "PRD-1401", parentIssue: "PRD-1400" },
+    },
+    follow_up: {
+      machine_lane: "ui",
+      owner: "claude",
+      status: "ready",
+      branch: "fix/tracker-follow-up",
+      depends_on: [],
+      handoff: "handoffs/codex-state-api.md",
+      linear: { sync: true, issue: "PRD-1411", parentIssue: "PRD-1410" },
+    },
+  };
+  writeStatus(root, "active", slug, status);
+  return status;
+}
+
+test("execution sub-lanes can nest under a tracker recorded on the hub", () =>
+  withFixture((root) => {
+    const status = writeTrackedSubLaneHub(root, "tracked-linear", { follow_ups: "PRD-1410" });
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "tracked-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const parentIds = Object.fromEntries(
+      JSON.parse(result.stdout).lanes.map((lane) => [lane.lane, lane.parentId]),
+    );
+    assert.equal(parentIds.follow_up, "PRD-1410");
+    assert.equal(parentIds.contracts, "PRD-1400");
+
+    // The registry is the only way in: a tracker cannot be the hub parent or a
+    // lane's own issue, and a parent the hub has not recorded is still drift.
+    status.linear.trackers.hub = "PRD-1400";
+    status.execution_sub_lanes.contracts.linear.issue = "PRD-1410";
+    status.execution_sub_lanes.follow_up.linear.parentIssue = "PRD-9999";
+    writeStatus(root, "active", "tracked-linear", status);
+
+    const invalid = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /linear\.trackers\.hub cannot reuse the canonical parent issue/);
+    assert.match(
+      invalid.stderr,
+      /contracts\.linear\.issue duplicates PRD-1410 already used by linear\.trackers\.follow_ups/,
+    );
+    assert.match(
+      invalid.stderr,
+      /follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or an issue in linear\.trackers, or be null/,
+    );
+  }));
+
+test("hubs without linear.trackers keep the canonical parent check", () =>
+  withFixture((root) => {
+    writeTrackedSubLaneHub(root, "untracked-linear", null);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(
+      result.stderr,
+      /: execution_sub_lanes\.follow_up\.linear\.parentIssue must match canonical parent PRD-1400 or be null$/m,
+    );
   }));
 
 test("execution sub-lane validation rejects compatibility issue-list drift", () =>

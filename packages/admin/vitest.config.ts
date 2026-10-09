@@ -48,6 +48,19 @@ export default defineConfig({
         find: "@walletconnect/utils",
         replacement: resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
       },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import. An alias reaches
+      // Shared's own import of the adapter, which only Shared can resolve; a setup-file vi.mock
+      // of it never matched. On 2026-09-28 four alternating full runs retired 1.603T and 1.599T
+      // instructions with these against 1.655T and 1.651T with the setup-file mocks (-3.2%),
+      // identical results.
+      {
+        find: "@reown/appkit/react",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"),
+      },
       // Shared package aliases
       // Mirrors vite.config.ts: the boot sequence loads Sentry through the
       // declared `./sentry` subpath, which the generic prefix alias below
@@ -120,7 +133,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: ["**/node_modules/**"],
     coverage: {
@@ -176,7 +189,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does. On 2026-09-28
+          // four alternating full runs took 53.2 and 53.6 s external against 60.4 and 56.9 s
+          // inlined, with import time down 28% and identical results. Its chains barrel alone cost
+          // up to 4 s a file inlined.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
@@ -200,7 +216,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.126T and 1.135T instructions against 1.597T and 1.598T
+          // with jsdom (-29%) and took 20.8 and 23.4 s against 28.9 and 33.3 s, with identical
+          // results. Files that assert authored inline styles pin jsdom with a docblock.
+          environment: "happy-dom",
           include: [domTestFiles],
         },
       },

@@ -36,18 +36,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
+import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
 type Denomination = "usd" | "weth";
-/**
- * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
- * tolerant input handling used across the public vault panels: normalize a bare
- * leading dot, tolerate an in-progress trailing dot ("1." while typing "1.5")
- * so the CTA/estimate don't flicker back to the empty state between keystrokes,
- * and fall back to 0n on anything viem cannot parse so the CTA stays in its
- * "enter an amount" state instead of throwing.
- */
+/** Accept in-progress decimal input without making amount entry flicker. */
 function parseTokenInputToWei(input: string, decimals: number): bigint {
   const normalized = normalizeDecimalInput(input);
   if (!/^\d+(?:\.\d*)?$/.test(normalized)) return 0n;
@@ -81,38 +75,36 @@ interface FundingOption {
 type Status = "loading" | "idle" | "submitting" | "success" | "error";
 
 /**
- * PublicFundingCard — single editorial-styled card that handles the entire
- * donate or endow flow for one garden. Replaces the old multi-step modal +
- * admin-styled deposit dialogs.
- *
- * Design intent:
- *   - Amount-first: the prefixed amount input is the first focus.
- *   - Token choice as visual radio cards (not a dropdown), only when 2+ exist.
- *   - Wallet connect folds into the submit button — no separate screen.
- *   - WETH supporters may enter the amount in USD (converted live via Chainlink
- *     ETH/USD) or directly in WETH via the denomination toggle (PRD-519),
- *     defaulting to USD for accessibility; stable assets (DAI) map 1:1 to USD
- *     with no oracle dependency and never show the toggle.
- *   - Single card, three real states (loading | idle | success), error renders
- *     inline within idle.
+ * Amount-first Garden funding: dollar entry by default, available currencies,
+ * and wallet login at payment. WETH also supports direct token entry when a
+ * dollar conversion is unavailable. Errors stay with the form for recovery.
  */
 export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundingCardProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  // Public funding connect must establish wallet auth (sets "wallet" intent so
-  // the auth machine logs in), not just open the AppKit modal. Opening the modal
-  // alone only tracks EXTERNAL_WALLET_CONNECTED, leaving primaryAddress null and
-  // the CTA stuck on "Connect Wallet" (PRD-497).
+  // Wallet login establishes the auth session needed to submit a payment.
   const { loginWithWallet, isAuthenticating } = useAuth();
 
   const isDonate = intent === "donate";
 
-  const { jars, isLoading: isLoadingJars } = useGardenCookieJars(garden.id, {
+  const jarQuery = useGardenCookieJars(garden.id, {
     enabled: open && isDonate,
   });
-  const { vaults, isLoading: isLoadingVaults } = useGardenVaults(garden.id as Address, {
+  const vaultQuery = useGardenVaults(garden.id as Address, {
     enabled: open && !isDonate,
   });
+  const { jars, isLoading: isLoadingJars } = jarQuery;
+  const { vaults, isLoading: isLoadingVaults } = vaultQuery;
+  const paymentUnavailable = isDonate
+    ? Boolean(
+        jarQuery.error ||
+          jarQuery.isPaused ||
+          jarQuery.hasDetailReadFailure ||
+          jarQuery.hasDecimalsReadFailure ||
+          jarQuery.hasUnreadDecimals ||
+          (jars.length === 0 && jarQuery.hasNoJar === false)
+      )
+    : Boolean(vaultQuery.error || vaultQuery.isPaused);
 
   const cookieJarMutation = useCookieJarDeposit(garden.id as Address, { errorMode: "inline" });
   const vaultMutation = useVaultDeposit({ errorMode: "inline" });
@@ -346,11 +338,11 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const pathText = isDonate
     ? formatMessage({
         id: "public.fund.card.donatePath",
-        defaultMessage: "Shared fund support",
+        defaultMessage: "Contribution to this Garden’s shared fund",
       })
     : formatMessage({
         id: "public.fund.card.endowPath",
-        defaultMessage: "Garden Vault endowment",
+        defaultMessage: "Longer-term support through an endowment",
       });
 
   // Success summary mirrors the unit the supporter funded in: a dollar figure in
@@ -377,7 +369,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
         onClick={status === "submitting" ? undefined : onClose}
       />
       <div
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
+        className="relative max-h-[calc(100vh-2rem)] w-full max-w-none overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
         data-component="PublicFundingCard"
         data-status={status}
       >
@@ -414,6 +406,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
               isDonate={isDonate}
             />
           </TransactionSuccessAffordance>
+        ) : paymentUnavailable ? (
+          <PublicReadUnavailable
+            className="py-6"
+            message={formatMessage({ id: "public.fund.card.readFailure" })}
+            onRetry={() => void (isDonate ? jarQuery.refetch() : vaultQuery.refetch())}
+          />
         ) : options.length === 0 ? (
           <UnavailableBody isDonate={isDonate} />
         ) : (
@@ -463,10 +461,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Body sub-components
-// ─────────────────────────────────────────────────────────────────────────────
-
 export function LoadingBody() {
   return (
     <div className="flex flex-col gap-4 py-6" aria-hidden="true">
@@ -485,11 +479,11 @@ export function UnavailableBody({ isDonate }: { isDonate: boolean }) {
       {isDonate
         ? formatMessage({
             id: "public.fund.card.unavailable.donate",
-            defaultMessage: "This Garden hasn't enabled donations yet.",
+            defaultMessage: "This Garden has no donation fund configured yet.",
           })
         : formatMessage({
             id: "public.fund.card.unavailable.endow",
-            defaultMessage: "This Garden hasn't enabled endowments yet.",
+            defaultMessage: "This Garden has no endowment fund configured yet.",
           })}
     </p>
   );
@@ -730,7 +724,11 @@ function IdleBody(props: IdleBodyProps) {
         wethUnavailable={!isWethDenomination && isWeth && conversionUnavailable}
       />
 
-      {options.length > 1 ? (
+      <p className="text-sm leading-relaxed text-text-sub-600">
+        {formatMessage({ id: "public.fund.card.paymentHelp" })}
+      </p>
+
+      {options.length > 0 ? (
         <TokenPicker
           options={options}
           selectedAddress={selectedAddress}
@@ -956,7 +954,7 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-        {formatMessage({ id: "public.fund.card.payWithLabel", defaultMessage: "Pay with" })}
+        {formatMessage({ id: "public.fund.card.payWithLabel", defaultMessage: "Payment currency" })}
       </legend>
       <div className="grid grid-cols-2 gap-2">
         {options.map((option) => {

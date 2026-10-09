@@ -332,10 +332,10 @@ export const FlowVariant: Story = {
               className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak text-xs font-semibold text-text-sub">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak body-xs font-semibold text-text-sub">
                   {`0${index + 1}`}
                 </span>
-                <h2 className="text-base font-semibold text-text-strong">{sectionTitle}</h2>
+                <h2 className="body-md font-semibold text-text-strong">{sectionTitle}</h2>
               </div>
               <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
               <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />
@@ -648,6 +648,40 @@ export const MobileSheetGeometry: Story = {
   },
 };
 
+// Compact content still uses the same edge-to-edge mobile sheet geometry.
+export const MobileConfirmWidth: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Confirm" variant="confirm">
+      <p>Confirm this change?</p>
+    </AdminDialog>
+  ),
+  play: async () => {
+    const surface = await within(document.body).findByRole("dialog");
+    await waitForDialogSettled(surface);
+    const rect = surface.getBoundingClientRect();
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    await expect(Math.abs(rect.left)).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+    await expect(Math.abs(rect.right - document.documentElement.clientWidth)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(Math.abs(rect.bottom - document.documentElement.clientHeight)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+  },
+};
+
+export const MobilePaletteWidth: Story = {
+  ...MobileConfirmWidth,
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Command palette" variant="palette">
+      <input aria-label="Search commands" />
+    </AdminDialog>
+  ),
+};
+
 /**
  * Long-content geometry. Verifies prose wraps (no horizontal overflow inside
  * the body), the body scrolls within the surface, the surface stays within the
@@ -754,7 +788,7 @@ export const ToneMatrix: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}
           </div>
           <DialogPreview

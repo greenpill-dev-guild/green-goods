@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-09-23T08:29:37.938Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -53,6 +53,9 @@
   },
   "linear": {
     "parentIssue": "PRD-650",
+    "trackers": {
+      "rehearsal_follow_ups": "PRD-989"
+    },
     "architectureRecord": "PRD-649",
     "project": "Commitment Pooling",
     "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
@@ -93,7 +96,8 @@
       "standing_commitments_architecture": "PRD-788",
       "standing_commitments_artifacts": "PRD-789",
       "full_pool_compatibility": "PRD-796"
-    }
+    },
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -193,7 +197,9 @@
     "2026-08-14 mainnet activation policy (register #109, corrected by register #111): release gates now follow three activation-risk tiers rather than one all-or-nothing checklist. The current pooling activation is accepted only as non-custodial, non-transferable tier 2 under explicit temporary-owner risk acceptance, exact current/rollback-owner verification, emergency pause, committed-range review, receipt/post-state, and tested-rollback evidence. Passive retention of the deployment-sender owner key is the bounded accepted risk; using upgrade or administrative authority for anything other than emergency pause is tier 3. SettlementModule and CeloSettlementExecutor remain paused, but the executor's already-initialized nonzero source peer is a completed tier-3 configuration boundary, not pending peer wiring. Safe/Zodiac value authority and value movement remain disabled and require separate tier-3 gates. Historical register #78 remains verbatim.",
     "2026-08-14 same-address GardenAccount ownership (register #112, Afo authorized): the active ../celo-garden-account-safe-ownership/ plan supersedes the temporary 1-of-2 deployment-EOA Garden Safe bootstrap before any Garden Safe deployment. The accepted target reproduces the exact Arbitrum GardenAccount implementation and immutable dependencies on Celo, atomically creates accounts from the (42161, Arbitrum GardenToken, tokenId) tuple, uses a dedicated authenticated Garden-bound relay that cannot satisfy threshold two alone, and deploys each Safe directly with GardenAccount plus the protocol and Dev Guild recovery Safes at threshold two. This plan authorizes no deployment, guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary, or other broadcast.",
     "Zodiac Roles v2 is pinned for Celo. The 2.1.0 Roles mastercopy 0x9646fDAD06d3e24444381f44362a3B0eB343D337 and its Integrity, Packer, and MultiSendUnwrapper dependencies are live on Celo, byte-identical to the same addresses on Ethereum mainnet, and every function in src/interfaces/IZodiacRoles.sol is dispatchable in the deployed runtime. The ERC-2470 singleton factory and the Zodiac module proxy factory are both present, so the per-Safe modifier clones have a deterministic deployment path. No modifier instance exists yet and this record grants no authority.",
-    "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred."
+    "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred.",
+    "Rehearsal review follow-ups (2026-09-26): the six W3 sub-lanes are Linear children of PRD-989, which sits under the canonical parent PRD-650; W4 items after 2.0.0 have no lanes yet (qa-readiness-plan § 4c).",
+    "2026-10-06 reconciliation: PRD-650/989/729/730 and COM-7 are externally Done; retained hub certification is not upgraded. COM-7 delivery and PRD-731 active release work reconciled. New deployed walks belong to PRD-1009/1030, with docs/videos/settlement evidence still open."
   ],
   "lanes": {
     "contracts": {
@@ -222,11 +228,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "blocked",
       "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts"],
-      "manual_blocked": false,
-      "blocked_reason": null,
+      "manual_blocked": true,
+      "blocked_reason": "Core implementation delivered. Reconcile historical aggregate receipts and the separate PRD-1009/PRD-1030 deployed acceptance plus PRD-731 release obligations; do not redispatch delivered source.",
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Gardener Celo wallet source implementation and TDD complete at ea193295f9ce1f6ebac415481c320c5d7a61baae. All 35 automated release checks pass; authenticated Brave, hosted policy and production canary evidence remain blocked. See handoffs/codex-gardener-celo-wallets.md and the linked validation receipt.",
       "linear_issues": ["PRD-650"],
@@ -243,14 +249,15 @@
         },
         "note": ""
       },
-      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
+      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"],
+      "ready_when_dependencies_met": false
     },
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment. Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Core implementation delivered. Reconcile historical aggregate receipts and the separate PRD-1009/PRD-1030 deployed acceptance plus PRD-731 release obligations; do not redispatch delivered source.",
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -260,12 +267,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "packages/shared: bun run test -- useTxActPhase (a silent send reads as landed); packages/admin: bun run test -- GardenPool (Resume reopens before the pool reads open); packages/admin: bun run test -- CommitmentDialog (Send for Confirmation reopens once sent)",
-          "evidence": "1 failed | 3 passed; 1 failed | 22 passed; 1 failed | 27 passed: a job-queue send never claims to have landed, and a single-signature act stays closed until its record moves on (A11)"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts (membership guard removed from acts.ts)",
+          "evidence": "W3-A: 'offers taking up only to a member of the garden, once membership is known' fails with expected 'takeUp' to be null (1 failed, 10 passed)"
         },
         "green": {
-          "command": "packages/shared: bun run test -- act-phase, useTxActPhase, commitment-pool-mutations, commitment-jobs-hook, usePoolConsoleController; packages/admin: bun run test -- GardenPool, CommitmentDialog, PoolSetupFlow, SettlementOperationsCard",
-          "evidence": "shared 5 files, 58 passed; admin 4 files, 75 passed at f349f3ea7: Resume, Send for Confirmation and queued sends say where they stand; the split says it is fixed at open; the first run counts its prompts; delivery names its reach and reads its state back"
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/commitment-acts.test.ts src/__tests__/commitment-queue-state.test.tsx src/__tests__/hooks/client-ui/useGardenCommitmentController.test.tsx src/__tests__/hooks/commitment-pooling/useCommitmentViewerRoles.test.tsx src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx; bun run --filter @green-goods/client test -- src/__tests__/views/GardenCommitment.test.tsx src/__tests__/views/commitmentActions.test.ts",
+          "evidence": "W3-A: shared 37 passed (5 files), client 52 passed (2 files); shared and client typecheck exit 0"
         },
         "note": ""
       },
@@ -277,11 +284,12 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Manual gate: unlock only after required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note.",
+      "blocked_reason": "Historical delivery is Done in Linear; current hub certification evidence remains unmapped. Preserve the Done issue and use PRD-1009/PRD-1030 for deployed follow-through.",
       "branch": "test/commitment-pooling-qa-pass-1",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "Historical Linear issue is Done. This retained hub lane stays blocked until its certification receipt/evidence is reconciled. New deployed walks belong to PRD-1009 and PRD-1030; do not reopen PRD-729 or PRD-730."
     },
     "qa_pass_2": {
       "linear_issues": ["PRD-730"],
@@ -289,12 +297,13 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Release-certification QA starts only after QA Pass 1 defects are dispositioned and the post-QA documentation-polish lane PRD-727 is complete and re-read.",
+      "blocked_reason": "Historical delivery is Done in Linear; current hub certification evidence remains unmapped. Preserve the Done issue and use PRD-1009/PRD-1030 for deployed follow-through.",
       "branch": "test/commitment-pooling-qa-pass-2",
       "branch_trigger": "claude/qa-pass-1/commitment-pooling",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "handoff_note": "Historical Linear issue is Done. This retained hub lane stays blocked until its certification receipt/evidence is reconciled. New deployed walks belong to PRD-1009 and PRD-1030; do not reopen PRD-729 or PRD-730."
     }
   },
   "execution_sub_lanes": {
@@ -389,7 +398,7 @@
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "blocked_reason": null,
@@ -413,10 +422,10 @@
     "ui_client": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
@@ -434,10 +443,10 @@
     "ui_admin": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-admin-console",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
@@ -454,10 +463,10 @@
     "editorial": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "The public copy freeze and /gardens/:id page conversion are complete. The address-free garden reader, lifetime distinct-provider counter, public rate gate, confirmed-only selector, cycle-name metadata resolver, and protocol-wide /impact aggregate reader are locally GREEN on feature/commitment-pooling-editorial. UI implementation still waits for that branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, the shared UI foundation cleanup, and the PublicEvidencePipeline i18n/five-node prerequisite.",
+      "manual_blocked": false,
+      "blocked_reason": null,
       "branch": "feature/commitment-pooling-editorial",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
@@ -512,7 +521,7 @@
     "july_dry_run": {
       "machine_lane": null,
       "owner": "human",
-      "status": "todo",
+      "status": "completed",
       "branch": null,
       "depends_on": [],
       "handoff": null,
@@ -524,7 +533,8 @@
         "dueDate": "2026-07-31"
       },
       "linear_issues": ["COM-7", "COM-3"],
-      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
+      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62).",
+      "handoff_note": "COM-7 survey is Done in Linear; this records historical delivery, not a newly verified readiness matrix or release attestation."
     },
     "release_engineering": {
       "machine_lane": null,
@@ -556,7 +566,7 @@
       "rollback_owner_before_transfer": "green-goods-deployer",
       "rollback_owner_after_transfer": "protocol Safe; green-goods-deployer remains proposer/coordinator",
       "garden_safe_recovery_owner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
-      "status": "blocked",
+      "status": "in_progress",
       "manual_blocked": true,
       "blocked_reason": "The accepted Garden Safe/CCIP canary is not repeated. Dedicated Kernel passkey/G$ canary, hosted sponsorship policy restrictions, authenticated Brave proof, and fresh human authorization for production actions remain required.",
       "branch": null,
@@ -570,7 +580,7 @@
       },
       "linear_issues": ["PRD-731"],
       "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. The Celo Safe/Zodiac ceremony ended at block 75390218 with settlement:garden-roles:verify and settlement:garden-routes:verify green, and release:verify recomputes all 18 frozen permission hashes. SettlementModule and CeloSettlementExecutor remain paused. Accepted when protocol ownership on Arbitrum is verified on the 2-of-6 Safe, the Celo executor is owned by a Celo protocol Safe at or above the repository floor, setCcipRoute is verified from a mined receipt carrying the module's CcipRouteUpdated event with both peers still paused, and the ping/ack and minimum-value canary have each been separately authorized and witnessed.",
-      "handoff_note": "Reopened 2026-09-05 for Enable Gardener Celo Wallets. See handoffs/codex-gardener-celo-wallets.md; previous lane evidence is historical."
+      "handoff_note": "PRD-731 is In Progress; preserve its current live release obligations and the existing human authorization boundary."
     },
     "community": {
       "machine_lane": "ui",
@@ -616,7 +626,7 @@
     "work_linking_closure": {
       "machine_lane": null,
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "manual_blocked": false,
       "ready_when_dependencies_met": true,
       "branch": "feat/editorial-record-and-cycle",
@@ -630,6 +640,127 @@
       },
       "linear_issues": ["PRD-837", "PRD-650", "PRD-723", "PRD-724", "PRD-725", "PRD-729"],
       "acceptance": "Gardeners can link historical Work or select an eligible commitment while submitting new Work; deferred links preserve one clientWorkId across direct and queued submission; approved historical Work is classified honestly and can be reconciled only by a steward through syncWorkDecisions; sequence-zero decisions require fresh review; client and admin surfaces expose awaiting-approval, awaiting-reconciliation, counted, fresh-review, and unavailable states; focused contracts/shared/client/admin tests, design and Storybook checks, and authenticated Brave proof pass. No ABI, storage, indexer-schema, hosted deployment, broadcast, or environment change is included."
+    },
+    "w3a_members_act": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "depends_on": [],
+      "handoff": "handoffs/w3a-members-act-everyone-reads.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-990",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-990", "PRD-989"]
+    },
+    "w3b_commitment_screen_chrome": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "depends_on": ["w3h_host_claim_context"],
+      "handoff": "handoffs/w3b-commitment-screen-chrome.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-991",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-991", "PRD-989"]
+    },
+    "w3c_seed_wizard_questions": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
+      "depends_on": ["w3b_commitment_screen_chrome"],
+      "handoff": "handoffs/w3c-seed-wizard-questions.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-992",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-992", "PRD-989"]
+    },
+    "w3d_unlisted_gardens_reachable": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/unlisted-gardens-reachable",
+      "depends_on": ["w3c_seed_wizard_questions"],
+      "handoff": "handoffs/w3d-unlisted-gardens-reachable.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-993",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-993", "PRD-989"]
+    },
+    "w3e_account_sessions": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "depends_on": ["w3d_unlisted_gardens_reachable"],
+      "handoff": "handoffs/w3e-account-sessions.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-994",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-994", "PRD-989"]
+    },
+    "w3f_inspector_story_and_names": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "completed",
+      "branch": "fix/inspector-story-and-names",
+      "depends_on": ["w3e_account_sessions"],
+      "handoff": "handoffs/w3f-inspector-story-and-names.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-995",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-995", "PRD-989"]
+    },
+    "w3g_commitment_send_record": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "passed",
+      "branch": "fix/commitment-send-record",
+      "depends_on": ["w3a_members_act"],
+      "handoff": "handoffs/w3g-commitment-acts-record-their-sends.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-996",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-996", "PRD-989"]
+    },
+    "w3h_host_claim_context": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "passed",
+      "branch": "fix/host-garden-personal-claims",
+      "depends_on": ["w3g_commitment_send_record"],
+      "handoff": "handoffs/w3h-host-garden-personal-claims.md",
+      "linear": {
+        "sync": true,
+        "issue": "PRD-997",
+        "parentIssue": "PRD-989"
+      },
+      "linear_issues": ["PRD-997", "PRD-989"]
+    },
+    "ui_deferred_scope": {
+      "machine_lane": "ui",
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/ui-deferred-scope.md",
+      "acceptance": "Every item that ui_client, ui_admin and editorial left unbuilt is marked built since, moved to a named issue or lane, or dropped before the hub closes."
     }
   },
   "follow_on": {
@@ -1406,6 +1537,262 @@
       "status": "tdd_recorded",
       "branch": "feature/commitment-pooling-client-loop",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-24T09:52:26.642Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "develop",
+      "note": "Recorded post-stack RED/GREEN TDD proof on local develop"
+    },
+    {
+      "timestamp": "2026-09-24T16:18:36.754Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-26T22:40:39.898Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Rehearsal review follow-ups accepted (qa-readiness-plan § 1 rows 36–47, § 4c accepted queue): six W3 sub-lanes added with handoffs and Linear children PRD-990 to PRD-995 under PRD-989; W3-A in progress"
+    },
+    {
+      "timestamp": "2026-09-26T22:57:07.090Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-27T01:22:06.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "W3-A merged in #921 as 4615608d9 (tree identical to the tested head dfc08fa85; critical push gate and CI Gate green); authenticated wallet walk pending. W3-B ready. W3-G added for N41 with Linear child PRD-996 (§ 1 row 48); N42 and N43 recorded in § 4c"
+    },
+    {
+      "timestamp": "2026-09-27T01:30:52.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Afo set the order after W3-A (§ 1 row 49): W3-G now, then W3-H for N42 (Linear child PRD-997), then W3-B to W3-F; N43 not scheduled before the cut"
+    },
+    {
+      "timestamp": "2026-09-27T03:37:24.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Codex's first review of #923: six findings fixed in 6781a51b2 (indexer coverage before an absence, paging, full claim identity, chain-clock floor, Safe ids settled by landing, per-job send lock); receipt at 6781a51b2; authenticated walk PWA-126 pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Merged in #926 as 48aa97fd5 after Afo approved the Storybook pairs; Linear PRD-991 Done; mock-auth capture of the notice and fixed bars pending"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3c_seed_wizard_questions",
+      "status": "completed",
+      "branch": "fix/seed-wizard-questions",
+      "note": "Merged in #927 as 127ae1376 after Afo approved the Storybook pairs; focused field measured at 1280 (41 to 42px before, 40 to 40px after); Linear PRD-992 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3d_unlisted_gardens_reachable",
+      "status": "completed",
+      "branch": "fix/unlisted-gardens-reachable",
+      "note": "Merged in #928 as 303d114fd; both rehearsal gardens open by their own links on staging (clean-room headless Chromium), unlisted line and noindex present, archive lists neither; Linear PRD-993 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "Merged in #929 as 544ba639d; step 4 not taken (solo reproduction not run); mock-auth capture pending; reading-cache copies tracked in PRD-1000; Linear PRD-994 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3f_inspector_story_and_names",
+      "status": "completed",
+      "branch": "fix/inspector-story-and-names",
+      "note": "Merged in #930 as df63a1580; Detail story seeds its cycle and runs in the story gate; composite stories moved to W4-3; Linear PRD-995 Done"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "passed",
+      "branch": "fix/commitment-send-record",
+      "note": "Merged in #923 as 7fdc87f78; late review comments fixed in #931 (merged as 2aca5c59a); PWA-126 walk on the recorded call pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T10:50:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "passed",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Merged in #925 as c17a03b46; the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "in_progress",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Back to in_progress: the harness counts passed as done, and the authenticated wallet walk (PWA-123 to PWA-125) is still pending; Linear PRD-990 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3b_commitment_screen_chrome",
+      "status": "completed",
+      "branch": "fix/commitment-screen-chrome",
+      "note": "Afo's approval covered the row and cycle-rail pairs; the commitment screen, the readiness notice as member and steward, and the fixed bars on a real scroll were never captured and moved to QA Pass 2 (PRD-730); PRD-991 Done, since its Done when asks for pairs only for the row edge"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3e_account_sessions",
+      "status": "completed",
+      "branch": "fix/account-switch-state-reset",
+      "note": "The sign-out reproduction, and any restore-path change, moved to PRD-1001; the mock-auth Home capture moved to QA Pass 2 (PRD-730); PRD-994 Done, since its Done when holds"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "in_progress",
+      "branch": "fix/commitment-send-record",
+      "note": "Back to in_progress: the harness counts passed as done, and the PWA-126 walk on the recorded call is still pending; Linear PRD-996 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T18:45:00.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "in_progress",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Back to in_progress: the harness counts passed as done, and the claim landing on chain rides the protocol-pool walk; Linear PRD-997 In Progress"
+    },
+    {
+      "timestamp": "2026-09-27T22:51:01.463Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded PRD-989 in linear.trackers and set it as the W3 lanes' parentIssue, which matches their parent in Linear"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "Closed in the hub reconcile to match PRD-723 (Done 2026-09-06): the handoff records the source lane complete; its receipt's tested SHA, 8fd331198, is on no branch, so its evidence-only diff cannot be rerun. The lane's source is on develop from 260de8d9b, the seat amendment landed in d1b8ea042, and the hosted indexer has read back live since 2026-08-27. Live Gardener Celo wallet evidence stays with its own handoff and release ops"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_client",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Closed in the hub reconcile to match PRD-724 (Done 2026-09-06): D1 merged in #749 (921654805) with its Ship Gate in reports/client-loop-2026-08-21.md; the handoff's receipt records a fresh client-suite run at 72da88ca7. Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "ui_admin",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-admin-console",
+      "note": "Closed in the hub reconcile to match PRD-725 (Done 2026-08-25): D1 merged in #752 (2cd115a1d) with the handoff's validation receipt at 42116ecd1 and f36e222de (2026-08-22). Scope it left unbuilt moves to ui_deferred_scope, and D2 close-the-season stays with the readiness plan's fix window and re-QA run"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "editorial",
+      "status": "completed",
+      "branch": "feature/commitment-pooling-editorial",
+      "note": "Closed in the hub reconcile to match PRD-726 (Done 2026-08-25): the public record shipped in #748 (4fca120e9) and its follow-up PRD-838, and the hosted indexer has read back live since 2026-08-27; the handoff's receipt records a fresh client-suite run at 72da88ca7. Its open NOT MET rows move to ui_deferred_scope, and the public pages are walked on the recorded call"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "work_linking_closure",
+      "status": "completed",
+      "branch": "feat/editorial-record-and-cycle",
+      "note": "Closed in the hub reconcile to match PRD-837 (Done 2026-08-28): the handoff's receipt at 29c935fb6 (2026-08-25) records the test suites, typechecks, builds and an authenticated Brave render passing, with format, design-generated and agentic checks blocked by pre-existing drift; the full gate was not repeated after the targeted re-review"
+    },
+    {
+      "timestamp": "2026-09-28T00:17:07.742Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": "test/commitment-pooling-qa-pass-1",
+      "note": "Hub reconcile: Linear closed PRD-729 on 2026-08-31, but QA Pass 1 stays blocked for Wave 2, the recorded call, and clearing its manual gate stays with Afo. QA Pass 2 stays blocked behind it"
+    },
+    {
+      "timestamp": "2026-09-28T00:40:57.004Z",
+      "actor": "claude",
+      "lane": "ui_deferred_scope",
+      "status": "todo",
+      "branch": null,
+      "note": "Opened in the hub reconcile to hold the scope that ui_client, ui_admin and editorial left unbuilt, for triage before closeout"
+    },
+    {
+      "timestamp": "2026-09-28T18:26:56.000Z",
+      "actor": "claude",
+      "lane": "w3a_members_act",
+      "status": "passed",
+      "branch": "fix/commitment-take-up-membership",
+      "note": "Merged in #921. Reads passed so the Linear sync keeps PRD-990 In Review; the authenticated wallet walk (PWA-123 to PWA-125) stays pending for the recorded call, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-990 to Done"
+    },
+    {
+      "timestamp": "2026-09-28T18:26:56.000Z",
+      "actor": "claude",
+      "lane": "w3g_commitment_send_record",
+      "status": "passed",
+      "branch": "fix/commitment-send-record",
+      "note": "Merged in #923 and #931, with a fresh validation receipt at 6a1f0d78a covering both. Reads passed so the Linear sync keeps PRD-996 In Review; the PWA-126 walk stays pending for the recorded call, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-996 to Done"
+    },
+    {
+      "timestamp": "2026-09-28T18:26:56.000Z",
+      "actor": "claude",
+      "lane": "w3h_host_claim_context",
+      "status": "passed",
+      "branch": "fix/host-garden-personal-claims",
+      "note": "Merged in #925. Reads passed so the Linear sync keeps PRD-997 In Review; the on-chain claim stays pending for the protocol-pool walk, in the handoff and the readiness plan's W3 table, and only that walk moves the lane to completed and PRD-997 to Done"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "PRD-650/989/729/730 and COM-7 are externally Done; retained hub certification is not upgraded. COM-7 delivery and PRD-731 active release work reconciled. New deployed walks belong to PRD-1009/1030, with docs/videos/settlement evidence still open."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ]
 }

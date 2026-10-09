@@ -1,0 +1,55 @@
+name: CodeQL Cache Prune
+
+# CodeQL's default setup saves an overlay-base database of about 450 MB to the Actions cache after
+# each analysis of develop, keyed by commit. Pull requests restore one by key prefix, which returns
+# the newest match, so the older databases are never read again. Left alone they filled the
+# repository's 10 GB cache and pushed out the Foundry caches the contracts jobs rely on. This deletes
+# all overlay-base databases except the newest per branch, restore key and cache version. The rule
+# and its tests live in scripts/ops/prune-codeql-caches.mjs; the tests run first, so a broken rule
+# fails the job before anything is deleted.
+#
+# It runs on every push to develop, because each push's analysis saves one database: pruning then
+# leaves the newest and the one being built. The hourly schedule is a backstop. GitHub starts this
+# repository's schedules late: the first three hourly slots after this workflow merged passed
+# without a run, and Coverage Nightly has started up to 14 hours after its cron.
+
+on:
+  push:
+    branches: [develop]
+  schedule:
+    - cron: "37 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: codeql-cache-prune
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune unreachable CodeQL databases
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ops
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Test the pruning rule
+        run: node --test scripts/ops/prune-codeql-caches.test.mjs
+
+      - name: Delete unreachable overlay-base databases
+        run: node scripts/ops/prune-codeql-caches.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

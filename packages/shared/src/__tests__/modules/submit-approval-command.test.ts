@@ -6,13 +6,13 @@ import {
   type SubmitApprovalCommand,
   type SubmitApprovalPorts,
 } from "../../modules/work/submit-approval-command";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 import {
-  createMockTransactionSender,
   createMockWork,
   createMockWorkApprovalDraft,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
 
 const OFFLINE_HASH = "0xoffline_job-1" as `0x${string}`;
 

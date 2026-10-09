@@ -1,5 +1,5 @@
 import { useWorkDraftRetirement } from "../../work/useWorkDraftRetirement";
-import { useUIStore } from "../../../stores/useUIStore";
+import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isHeicFile, roundWorkLocation } from "../../../modules/work/work-attachments";
 import { getWorkMediaId } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
@@ -10,8 +10,11 @@ import { toastService } from "../../../components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { logger } from "../../../modules/app/logger";
 import {
+  dependentWorkLinkPayload,
   hasWorkLinkIntentParams,
   parseWorkLinkIntent,
+  sameWorkLinkIdentity,
+  toDraftWorkLink,
   type WorkLinkIntent,
   workLinkReturnGarden,
   writeWorkLinkIntent,
@@ -28,12 +31,12 @@ import { scrollAppToTop } from "../../app/useScrollToTop";
 import { useUser } from "../../auth/useUser";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useWorkLinkChoices } from "../../commitment-pooling/useWorkLinkChoices";
-import { useJoinGarden } from "../../garden/useJoinGarden";
 import { useWorkAudioRecording } from "../../work/useWorkAudioRecording";
 import { useDeferredHeicConversion } from "../../work/useDeferredHeicConversion";
 import { useTimeout } from "../../utils/useTimeout";
 import { useDraftAutoSave, useDraftSaveStatus } from "../../work/useDraftAutoSave";
 import { useDraftResume } from "../../work/useDraftResume";
+import { useCommunityGardenOnramp } from "./useCommunityGardenOnramp";
 import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
 import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
 
@@ -51,18 +54,11 @@ interface PendingLinkRecovery {
     clientWorkId: string;
     sourceWorkJobId?: string;
     requirementIndex: number;
-    gardenAddress: `0x${string}`;
+    gardenAddress: Address;
   };
   error: unknown;
-}
-
-function sameLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
-  return (
-    left.commitmentId === right.commitmentId &&
-    left.requirementIndex === right.requirementIndex &&
-    left.actionUID === right.actionUID &&
-    left.garden.toLowerCase() === right.garden.toLowerCase()
-  );
+  /** False when the Work was only saved on this device (a queued outcome) and nothing was sent. */
+  workSent: boolean;
 }
 
 interface UseWorkSubmissionFlowControllerOptions {
@@ -78,12 +74,21 @@ export function useWorkSubmissionFlowController({
 }: UseWorkSubmissionFlowControllerOptions) {
   const intl = useIntl();
   const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, writeSearchParams] = useSearchParams();
+  const setSearchParams = useCallback<ReturnType<typeof useSearchParams>[1]>(
+    (params, options) => writeSearchParams(params, { ...options, state: location.state }),
+    [writeSearchParams, location.state]
+  );
   const selection = useWorkSelection();
   const form = useWorkFormContext();
   const { authMode, primaryAddress } = useUser();
-  const join = useJoinGarden();
+  const { joinCommunityGarden, isJoiningCommunityGarden } = useCommunityGardenOnramp({
+    garden: selection.joinableCommunityGarden,
+    selectGarden: selection.setGardenAddress,
+    profileRoute,
+  });
   const submissionCompleted = useWorkFlowStore((state) => state.submissionCompleted);
   const workSubmissionJourneyId = useWorkFlowStore((state) => state.workSubmissionJourneyId);
   const ensureWorkSubmissionJourneyId = useWorkFlowStore(
@@ -92,6 +97,7 @@ export function useWorkSubmissionFlowController({
   const setGardenAddressStable = useWorkFlowStore((state) => state.setGardenAddress);
   const tags = useWorkFlowStore((state) => state.tags);
   const setAudioNotes = useWorkFlowStore((state) => state.setAudioNotes);
+  const linkCleared = useWorkFlowStore((state) => state.draftLinkCleared);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
   const {
@@ -103,7 +109,6 @@ export function useWorkSubmissionFlowController({
     selectedDomain,
     actionUID,
     gardenAddress,
-    setGardenAddress,
   } = selection;
   const { workMutation, images, setImages, setValue, feedback, timeSpentMinutes } = form;
   const {
@@ -116,8 +121,12 @@ export function useWorkSubmissionFlowController({
   const parsedLinkIntent = useMemo(() => parseWorkLinkIntent(searchParams), [searchParams]);
   const hasLinkIntentParams = useMemo(() => hasWorkLinkIntentParams(searchParams), [searchParams]);
   const [pendingLinkRecovery, setPendingLinkRecovery] = useState<PendingLinkRecovery | null>(null);
+  // Hold submission and draft retirement until the dependent link settles. Queueing starts
+  // only after Work was sent; scheduling also covers Work saved on this device.
   const [isSchedulingDependentLink, setIsSchedulingDependentLink] = useState(false);
+  const [isQueueingDependentLink, setIsQueueingDependentLink] = useState(false);
   const [linkSchedulingSucceeded, setLinkSchedulingSucceeded] = useState(false);
+  const [linkSchedulingWorkSent, setLinkSchedulingWorkSent] = useState<boolean | null>(null);
   const linkChoices = useWorkLinkChoices({
     chainId: DEFAULT_CHAIN_ID,
     account: primaryAddress as `0x${string}` | null,
@@ -130,7 +139,8 @@ export function useWorkSubmissionFlowController({
   const linkIntent = useMemo(
     () =>
       parsedLinkIntent
-        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, parsedLinkIntent)) ?? null)
+        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, parsedLinkIntent)) ??
+          null)
         : null,
     [linkChoices.choices, parsedLinkIntent]
   );
@@ -145,15 +155,17 @@ export function useWorkSubmissionFlowController({
           : linkIntent
             ? "valid"
             : "invalid";
-  const clearLinkIntent = useCallback(
-    () => setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true }),
-    [searchParams, setSearchParams]
-  );
+  // Taking the promise off is saved with the draft; see draftLinkCleared.
+  const clearLinkIntent = useCallback(() => {
+    useWorkFlowStore.setState({ draftLinkCleared: true });
+    setSearchParams(writeWorkLinkIntent(searchParams, null), { replace: true });
+  }, [searchParams, setSearchParams]);
   const selectLinkIntent = useCallback(
     (intent: WorkLinkIntent | null) => {
       const canonical = intent
-        ? (linkChoices.choices.find((choice) => sameLinkIdentity(choice, intent)) ?? null)
+        ? (linkChoices.choices.find((choice) => sameWorkLinkIdentity(choice, intent)) ?? null)
         : null;
+      useWorkFlowStore.setState({ draftLinkCleared: !canonical });
       setSearchParams(writeWorkLinkIntent(searchParams, canonical), { replace: true });
       if (canonical) {
         setGardenAddressStable(canonical.garden);
@@ -170,23 +182,12 @@ export function useWorkSubmissionFlowController({
     setShowDraftSheet,
     handleContinueDraft,
     handleStartFresh,
+    askAgainNextVisit,
     isResumingFromUrl,
     clearActiveDraft,
     legacyRecovery,
     retryHydration,
-  } = useDraftResume({
-    formState: {
-      images,
-      gardenAddress,
-      actionUID,
-      feedback,
-      timeSpentMinutes: timeSpentMinutes ?? 0,
-    },
-    isOnIntroTab: activeTab === WorkTab.Intro,
-    searchParams,
-    setSearchParams,
-    restoreForm: form.reset,
-  });
+  } = useDraftResume({ searchParams, setSearchParams, restoreForm: form.reset });
   const [retirementAttempt, setRetirementAttempt] = useState(0);
   const { saveOnExit } = useDraftAutoSave(
     {
@@ -199,9 +200,14 @@ export function useWorkSubmissionFlowController({
       tags,
       location: roundWorkLocation(formLocation),
       currentStep: activeTab.toLowerCase() as "intro" | "media" | "details" | "review",
+      linkIntent: parsedLinkIntent
+        ? toDraftWorkLink(parsedLinkIntent)
+        : linkCleared
+          ? null
+          : undefined,
     },
     images,
-    { enabled: !legacyRecovery }
+    { enabled: !legacyRecovery && !isResumingFromUrl }
   );
 
   useShareTargetIntake({
@@ -214,26 +220,37 @@ export function useWorkSubmissionFlowController({
     actionUID,
   });
 
+  useEffect(() => void ensureWorkSubmissionJourneyId(), [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
-    ensureWorkSubmissionJourneyId();
-  }, [ensureWorkSubmissionJourneyId]);
-  useEffect(() => {
-    if (!linkIntent) return;
-    setGardenAddressStable(linkIntent.garden);
-    useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
-  }, [linkIntent, setGardenAddressStable]);
-  useEffect(() => {
-    const state = location.state as { gardenId?: string } | null;
-    if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId as Address);
-  }, [gardens.length, location.state, setGardenAddressStable]);
+    if (isResumingFromUrl) return;
+    if (linkIntent) {
+      setGardenAddressStable(linkIntent.garden);
+      useWorkFlowStore.getState().setActionUID(linkIntent.actionUID);
+    } else {
+      const state = location.state as { gardenId?: string } | null;
+      if (!hasLinkIntentParams && state?.gardenId && gardens.length > 0)
+        setGardenAddressStable(state.gardenId as Address);
+    }
+  }, [
+    isResumingFromUrl,
+    linkIntent,
+    hasLinkIntentParams,
+    gardens.length,
+    location.state,
+    setGardenAddressStable,
+  ]);
   useWorkDraftRetirement({
     completed: submissionCompleted,
     paused: isSchedulingDependentLink || !!pendingLinkRecovery,
     attempt: retirementAttempt,
     clearActiveDraft,
     schedule: scheduleNavigation,
-    navigate: () =>
-      navigate(linkIntent?.returnTo ?? homeRoute, { replace: true, viewTransition: true }),
+    navigate: () => {
+      const destination = linkIntent?.returnTo ?? homeRoute;
+      if (destination === homeRoute)
+        dashboardNavigation.openWork("pending", "all", { replace: true });
+      else dashboardNavigation.returnTo(destination, { viewTransition: true });
+    },
   });
 
   const { detailInputs, detailsConfig, mediaConfig, minRequired, reviewConfig, reviewData } =
@@ -259,48 +276,6 @@ export function useWorkSubmissionFlowController({
         files.map((file) => (getWorkMediaId(file) === mediaId ? converted : file))
       ),
   });
-  const joinCommunityGarden = useCallback(async () => {
-    if (!joinableCommunityGarden?.id) return;
-    try {
-      const result = await join.joinGarden(joinableCommunityGarden.id);
-      if (result === "already-joining") return;
-      setGardenAddress(joinableCommunityGarden.id as Address);
-      toastService.success({
-        title:
-          result === "already-member"
-            ? intl.formatMessage({
-                id: "app.garden.alreadyMember",
-                defaultMessage: "You are already a member of this garden",
-              })
-            : intl.formatMessage({
-                id: "app.garden.joinSuccess",
-                defaultMessage: "Successfully joined garden",
-              }),
-      });
-    } catch (error) {
-      logger.error("Community Garden join failed", {
-        error,
-        source: "GardenFlow",
-        gardenAddress: joinableCommunityGarden.id,
-      });
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.garden.joinError",
-          defaultMessage: "Failed to join garden",
-        }),
-        message: intl.formatMessage({
-          id: "app.garden.communityOnramp.errorMessage",
-          defaultMessage: "Try again here, or open Profile to join from your garden list.",
-        }),
-        action: {
-          label: intl.formatMessage({ id: "app.profile", defaultMessage: "Profile" }),
-          onClick: () => navigate(profileRoute),
-          dismissOnClick: true,
-        },
-      });
-    }
-  }, [intl, join, joinableCommunityGarden, navigate, profileRoute, setGardenAddress]);
-
   const changeTab = async (tab: WorkTab) => {
     try {
       await saveOnExit();
@@ -314,34 +289,40 @@ export function useWorkSubmissionFlowController({
     if (!gardenAddress || actionUID === null || !findActionByUID(actions, actionUID)) return false;
     if (hasLinkIntentParams && linkIntentStatus !== "valid") return false;
     setLinkSchedulingSucceeded(false);
+    setLinkSchedulingWorkSent(null);
     if (linkIntent) setIsSchedulingDependentLink(true);
     try {
       await saveOnExit();
       workMutation.clearLastSubmissionOutcome();
       await form.uploadWork();
       const outcome = workMutation.getLastSubmissionOutcome();
-      if (!outcome) return false;
+      if (!outcome) {
+        // uploadWork resolves without an outcome when validation stops it: no link to schedule.
+        setIsSchedulingDependentLink(false);
+        return false;
+      }
       if (linkIntent && outcome) {
-        const payload: PendingLinkRecovery["payload"] = {
-          clientOperationId: `work-link:${outcome.clientWorkId}:${linkIntent.commitmentId}:${linkIntent.requirementIndex}`,
-          commitmentId: linkIntent.commitmentId,
-          clientWorkId: outcome.clientWorkId,
-          ...(outcome.kind === "direct" ? {} : { sourceWorkJobId: outcome.jobId }),
-          requirementIndex: linkIntent.requirementIndex,
-          gardenAddress: linkIntent.garden as `0x${string}`,
-        };
+        const workSent = outcome.kind === "direct" || outcome.kind === "processed";
+        setLinkSchedulingWorkSent(workSent);
+        setIsQueueingDependentLink(workSent);
+        const payload: PendingLinkRecovery["payload"] = dependentWorkLinkPayload(
+          outcome.clientWorkId,
+          linkIntent,
+          outcome.jobId
+        );
         try {
           await commitmentJobs.enqueue({ act: "workLink", payload });
           setPendingLinkRecovery(null);
           setLinkSchedulingSucceeded(true);
         } catch (error) {
-          setPendingLinkRecovery({ intent: linkIntent, payload, error });
+          setPendingLinkRecovery({ intent: linkIntent, payload, error, workSent });
           logger.error("Work submitted but dependent commitment link could not be queued", {
             error,
             source: "GardenFlow",
             clientWorkId: outcome.clientWorkId,
           });
         } finally {
+          setIsQueueingDependentLink(false);
           setIsSchedulingDependentLink(false);
         }
       }
@@ -356,6 +337,7 @@ export function useWorkSubmissionFlowController({
     if (!pendingLinkRecovery) return false;
     setLinkSchedulingSucceeded(false);
     setIsSchedulingDependentLink(true);
+    setIsQueueingDependentLink(pendingLinkRecovery.workSent);
     try {
       await commitmentJobs.enqueue({ act: "workLink", payload: pendingLinkRecovery.payload });
       setPendingLinkRecovery(null);
@@ -365,6 +347,7 @@ export function useWorkSubmissionFlowController({
       setPendingLinkRecovery((current) => (current ? { ...current, error } : current));
       return false;
     } finally {
+      setIsQueueingDependentLink(false);
       setIsSchedulingDependentLink(false);
     }
   }, [commitmentJobs, pendingLinkRecovery]);
@@ -454,8 +437,9 @@ export function useWorkSubmissionFlowController({
       close: () => setShowDraftSheet(false),
       recover: () => setShowDraftSheet(true),
       manage: () => {
-        useUIStore.getState().openWorkDashboard("drafts");
-        navigate(homeRoute);
+        // Back returns to this address unless the promise in it is the saved draft's.
+        const replace = askAgainNextVisit();
+        dashboardNavigation.openWork("pending", "editing", { replace });
       },
       handleContinueDraft,
       startFresh: async () => {
@@ -465,12 +449,10 @@ export function useWorkSubmissionFlowController({
       },
     },
     exit: () => {
-      navigate(homeRoute, { viewTransition: true });
+      if (!dashboardNavigation.back()) navigate(homeRoute, { viewTransition: true });
       saveDraftInBackground();
     },
-    isJoiningCommunityGarden:
-      join.isJoining &&
-      (!join.joiningGardenId || join.joiningGardenId === joinableCommunityGarden?.id),
+    isJoiningCommunityGarden,
     isRecording: audio.isRecording,
     isWalletRequestExpired,
     joinCommunityGarden,
@@ -484,8 +466,10 @@ export function useWorkSubmissionFlowController({
     clearLinkIntent,
     selectLinkIntent,
     isSchedulingDependentLink,
+    isQueueingDependentLink,
     linkSchedulingError: pendingLinkRecovery?.error ?? null,
     linkSchedulingSucceeded,
+    linkSchedulingWorkSent,
     hasPendingLinkRecovery: pendingLinkRecovery !== null,
     retryLinkOnly,
     submissionOutcome: workMutation.lastSubmissionOutcome,

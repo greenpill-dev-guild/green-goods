@@ -1,6 +1,6 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, screen, userEvent, within } from "storybook/test";
-import type { Address } from "@green-goods/shared/types/domain";
 import { storyProtocolFundingOperations } from "@/views/Garden/Pool/poolStorySettlement";
 import { ProtocolFundingOperationsCard } from "./ProtocolFundingOperationsCard";
 

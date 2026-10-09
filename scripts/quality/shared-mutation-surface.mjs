@@ -1,0 +1,507 @@
+// Finds the Shared source files that sign, send a transaction, move funds, or change auth,
+// session or queue state, so the validation selector can keep all of them critical.
+//
+// Dependency-free on purpose: CI Gate runs the selector tests with Node alone. Biome formats
+// Shared source, so every top-level statement starts at column 0. The analyzer splits a file into
+// those statements, blanks comments and strings, and reads imports, exports and calls lexically.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+export const SHARED_SOURCE_ROOT = "packages/shared/src";
+const SHARED_PACKAGE = "@green-goods/shared";
+const SHARED_MANIFEST = "packages/shared/package.json";
+// Data and asset imports hold no code, so an unresolved one cannot hide a primitive.
+const DATA_SPECIFIER =
+  /\.(?:json|css|scss|sass|less|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|txt|md|mdx|html)(?:\?.*)?$|\?(?:raw|url|inline|worker)$/;
+
+const SOURCE_EXTENSIONS = [".ts", ".tsx"];
+const RESOLVE_SUFFIXES = ["", ".ts", ".tsx", "/index.ts", "/index.tsx"];
+const NOT_CALLS = new Set([
+  "if", "for", "while", "switch", "catch", "function", "return", "typeof", "await", "yield",
+  "new", "super", "import", "void", "delete", "in", "of", "else", "do", "case", "throw",
+]);
+
+export function isSharedSourcePath(relativePath) {
+  return (
+    relativePath.startsWith(`${SHARED_SOURCE_ROOT}/`) &&
+    SOURCE_EXTENSIONS.some((extension) => relativePath.endsWith(extension)) &&
+    !relativePath.endsWith(".d.ts") &&
+    !/(^|\/)(__tests__|__mocks__)\//.test(relativePath) &&
+    !/\.(test|spec|stories)\.tsx?$/.test(relativePath)
+  );
+}
+
+function readSharedExports(root) {
+  const manifest = path.join(root, SHARED_MANIFEST);
+  if (!existsSync(manifest)) return {};
+  const { exports } = JSON.parse(readFileSync(manifest, "utf8"));
+  return exports && typeof exports === "object" ? exports : {};
+}
+
+function listSharedSource(root) {
+  const files = [];
+  const walk = (directory) => {
+    for (const entry of readdirSync(path.join(root, directory), { withFileTypes: true })) {
+      const relativePath = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules") walk(relativePath);
+      } else if (isSharedSourcePath(relativePath)) {
+        files.push(relativePath);
+      }
+    }
+  };
+  walk(SHARED_SOURCE_ROOT);
+  return files.sort();
+}
+
+// Replaces comments and string/template contents with spaces, keeping line structure and the
+// specifier strings of import/export statements, which the analyzer reads back.
+export function blankNonCode(source) {
+  let output = "";
+  let index = 0;
+  let lastSignificant = "";
+  const keepSpecifier = () => /(?:\bfrom|\bimport)\s*\(?\s*$/.test(output.slice(-40));
+  while (index < source.length) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (char === "/" && next === "/") {
+      while (index < source.length && source[index] !== "\n") {
+        output += " ";
+        index += 1;
+      }
+      continue;
+    }
+    if (char === "/" && next === "*") {
+      const end = source.indexOf("*/", index + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      output += source.slice(index, stop).replace(/[^\n]/g, " ");
+      index = stop;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      const keep = keepSpecifier();
+      let end = index + 1;
+      while (end < source.length && source[end] !== char && source[end] !== "\n") {
+        end += source[end] === "\\" ? 2 : 1;
+      }
+      const body = source.slice(index + 1, end);
+      output += char + (keep ? body : body.replace(/[^\n]/g, " ")) + char;
+      index = end + 1;
+      lastSignificant = char;
+      continue;
+    }
+    if (char === "`") {
+      // Template bodies are blanked, but ${...} expressions stay code.
+      output += "`";
+      index += 1;
+      let depth = 0;
+      while (index < source.length) {
+        const current = source[index];
+        if (depth === 0 && current === "`") break;
+        if (depth === 0 && current === "\\") {
+          output += "  ";
+          index += 2;
+          continue;
+        }
+        if (depth === 0 && current === "$" && source[index + 1] === "{") {
+          output += "${";
+          index += 2;
+          depth = 1;
+          continue;
+        }
+        if (depth > 0) {
+          if (current === "{") depth += 1;
+          if (current === "}") depth -= 1;
+          output += current;
+        } else {
+          output += current === "\n" ? "\n" : " ";
+        }
+        index += 1;
+      }
+      output += "`";
+      index += 1;
+      lastSignificant = "`";
+      continue;
+    }
+    if (char === "/" && (lastSignificant === "" || "(,=:[!&|?{};+-*%<>~^".includes(lastSignificant))) {
+      // A regular expression literal: blank it so quotes or slashes inside cannot mislead.
+      let end = index + 1;
+      let inClass = false;
+      while (end < source.length && source[end] !== "\n") {
+        if (source[end] === "\\") {
+          end += 2;
+          continue;
+        }
+        if (source[end] === "[") inClass = true;
+        else if (source[end] === "]") inClass = false;
+        else if (source[end] === "/" && !inClass) break;
+        end += 1;
+      }
+      output += `/${" ".repeat(Math.max(0, end - index - 1))}/`;
+      index = end + 1;
+      lastSignificant = "/";
+      continue;
+    }
+    output += char;
+    if (!/\s/.test(char)) lastSignificant = char;
+    index += 1;
+  }
+  return output;
+}
+
+function splitStatements(code) {
+  const statements = [];
+  let current = null;
+  for (const line of code.split("\n")) {
+    const opensStatement = /^[A-Za-z_$@]/.test(line);
+    if (opensStatement || current === null) {
+      if (current) statements.push(current);
+      current = [line];
+    } else {
+      current.push(line);
+    }
+  }
+  if (current) statements.push(current);
+  return statements.map((lines) => lines.join("\n")).filter((text) => text.trim());
+}
+
+function parseImportClause(clause, source, imports) {
+  let rest = clause.trim();
+  if (rest.startsWith("type ")) return;
+  const namespace = rest.match(/(?:^|,)\s*\*\s+as\s+([A-Za-z_$][\w$]*)/);
+  if (namespace) imports.set(namespace[1], { source, imported: "*" });
+  const named = rest.match(/\{([\s\S]*)\}/);
+  if (named) {
+    for (const entry of named[1].split(",")) {
+      const text = entry.trim();
+      if (!text || text.startsWith("type ")) continue;
+      const [imported, local] = text.split(/\s+as\s+/).map((part) => part.trim());
+      imports.set(local ?? imported, { source, imported });
+    }
+    rest = rest.replace(named[0], "");
+  }
+  const defaultName = rest.replace(/\*\s+as\s+[A-Za-z_$][\w$]*/, "").match(/^\s*([A-Za-z_$][\w$]*)/);
+  if (defaultName) imports.set(defaultName[1], { source, imported: "default" });
+}
+
+function declaredNames(statement) {
+  const head = statement.replace(/^export\s+(default\s+)?/, "").replace(/^(declare\s+|abstract\s+|async\s+)+/, "");
+  if (/^(type|interface)\s/.test(head)) return { typeOnly: true, names: [] };
+  const fn = head.match(/^function\s*\*?\s*([A-Za-z_$][\w$]*)/);
+  if (fn) return { names: [fn[1]] };
+  const cls = head.match(/^class\s+([A-Za-z_$][\w$]*)/);
+  if (cls) return { names: [cls[1]] };
+  const enumDecl = head.match(/^(?:const\s+)?enum\s+([A-Za-z_$][\w$]*)/);
+  if (enumDecl) return { names: [enumDecl[1]] };
+  const variable = head.match(/^(?:const|let|var)\s+([A-Za-z_$][\w$]*)/);
+  if (variable) return { names: [variable[1]] };
+  return { names: [] };
+}
+
+const CALL_OPEN = String.raw`\s*(?:<[^<>()]*(?:<[^<>()]*>[^<>()]*)*>)?\s*(?:\?\.)?\s*\(`;
+const CALL = new RegExp(String.raw`(^|[^.\w$])(?:new\s+)?([A-Za-z_$][\w$]*)${CALL_OPEN}`, "g");
+const NAMESPACE_ACCESS = new RegExp(String.raw`(?<![.\w$])([A-Za-z_$][\w$]*)\s*\??\.\s*([A-Za-z_$][\w$]*)`, "g");
+const MEMBER_CALL = new RegExp(String.raw`\.\s*([A-Za-z_$][\w$]*)${CALL_OPEN}`, "g");
+// A member read without a call: `onClick={auth.signOut}`, `{ onLeave: auth.signOut }`.
+const MEMBER_REFERENCE = new RegExp(String.raw`\.\s*([A-Za-z_$][\w$]*)(?![\w$])(?!${CALL_OPEN})`, "g");
+// A member forwarded under its own name, `signOut: auth.signOut`, as a hub such as useAuth() does.
+const NAMED_FORWARD = new RegExp(
+  String.raw`(?<![.\w$])([A-Za-z_$][\w$]*)\s*:\s*[A-Za-z_$][\w$]*(?:\s*\??\.\s*[A-Za-z_$][\w$]*)*\s*\??\.\s*([A-Za-z_$][\w$]*)(?![\w$])(?!${CALL_OPEN})(?!\s*\??\.)`,
+  "g",
+);
+
+function analyzeStatement(statement) {
+  // Spread and rest dots are not member access: `...createReads(` is a call of createReads.
+  const text = statement.replaceAll("...", "   ");
+  const calls = new Set();
+  const memberCalls = new Set();
+  const memberReferences = new Set();
+  const forwardedMembers = new Set();
+  const namespaceAccess = [];
+  const destructured = new Set();
+  const namespaceDestructures = [];
+  const references = new Set();
+  for (const match of text.matchAll(CALL)) if (!NOT_CALLS.has(match[2])) calls.add(match[2]);
+  for (const match of text.matchAll(NAMESPACE_ACCESS)) namespaceAccess.push([match[1], match[2]]);
+  for (const match of text.matchAll(MEMBER_CALL)) memberCalls.add(match[1]);
+  const namedForwards = new Set();
+  for (const match of text.matchAll(NAMED_FORWARD)) {
+    if (match[1] !== match[2]) continue;
+    namedForwards.add(match.index + match[0].length - match[2].length);
+    forwardedMembers.add(match[2]);
+  }
+  for (const match of text.matchAll(MEMBER_REFERENCE)) {
+    if (!namedForwards.has(match.index + match[0].length - match[1].length)) memberReferences.add(match[1]);
+  }
+  for (const match of text.matchAll(/\{([^{}]*)\}\s*=(?![=>])\s*([A-Za-z_$][\w$]*)?/g)) {
+    for (const entry of match[1].split(",")) {
+      const key = entry.trim().split(/\s*[:=]\s*/)[0].replace(/^\.\.\./, "");
+      if (!/^[A-Za-z_$][\w$]*$/.test(key)) continue;
+      destructured.add(key);
+      if (match[2]) namespaceDestructures.push([match[2], key]);
+    }
+  }
+  for (const match of text.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g)) references.add(match[2]);
+  // A value used whole rather than through a member: `mutationFn: writeContract`, `<AuthProvider>`.
+  const bareReferences = new Set();
+  for (const match of text.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)(?![\w$])(?!\s*\??\.\s*[A-Za-z_$])/g)) {
+    bareReferences.add(match[2]);
+  }
+  return {
+    bareReferences,
+    calls,
+    memberCalls,
+    memberReferences,
+    forwardedMembers,
+    namespaceAccess,
+    destructured,
+    namespaceDestructures,
+    references,
+  };
+}
+
+export function parseModule(source) {
+  const code = blankNonCode(source);
+  const module = {
+    imports: new Map(),
+    exports: new Map(),
+    stars: [],
+    declarations: new Map(),
+    dynamic: [],
+    computedDynamic: false,
+  };
+  let anonymous = 0;
+  for (const statement of splitStatements(code)) {
+    const importMatch = statement.match(/^import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']/);
+    if (importMatch) {
+      parseImportClause(importMatch[1], importMatch[2], module.imports);
+      continue;
+    }
+    if (/^import\s+["']/.test(statement)) continue;
+    const reexport = statement.match(/^export\s+(type\s+)?(\*(?:\s+as\s+([A-Za-z_$][\w$]*))?|\{([\s\S]*?)\})\s*from\s+["']([^"']+)["']/);
+    if (reexport) {
+      const [, typeOnly, , namespace, list, source] = reexport;
+      if (typeOnly) continue;
+      if (list === undefined && namespace) module.exports.set(namespace, { kind: "reexport", source, imported: "*" });
+      else if (list === undefined) module.stars.push(source);
+      else {
+        for (const entry of list.split(",")) {
+          const text = entry.trim();
+          if (!text || text.startsWith("type ")) continue;
+          const [imported, exported] = text.split(/\s+as\s+/).map((part) => part.trim());
+          module.exports.set(exported ?? imported, { kind: "reexport", source, imported });
+        }
+      }
+      continue;
+    }
+    const localList = statement.match(/^export\s+(type\s+)?\{([\s\S]*?)\}\s*;?\s*$/);
+    if (localList) {
+      if (localList[1]) continue;
+      for (const entry of localList[2].split(",")) {
+        const text = entry.trim();
+        if (!text || text.startsWith("type ")) continue;
+        const [local, exported] = text.split(/\s+as\s+/).map((part) => part.trim());
+        module.exports.set(exported ?? local, { kind: "local", local });
+      }
+      continue;
+    }
+    const { typeOnly, names } = declaredNames(statement);
+    if (typeOnly) continue;
+    const info = analyzeStatement(statement);
+    const keys = names.length > 0 ? names : [`<statement ${anonymous++}>`];
+    for (const key of keys) module.declarations.set(key, info);
+    if (/^export\s+default\b/.test(statement)) module.exports.set("default", { kind: "local", local: keys[0] });
+    else if (/^export\s/.test(statement)) for (const name of names) module.exports.set(name, { kind: "local", local: name });
+  }
+  for (const match of code.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) module.dynamic.push(match[1]);
+  // `import(name)` or a template specifier cannot be resolved, so the file counts as invoking.
+  module.computedDynamic = /\bimport\s*\(\s*(?!["'])/.test(code);
+  return module;
+}
+
+/**
+ * Analyzes every Shared source file under `root`. A declaration invokes a primitive when it calls,
+ * constructs or passes one on as a value (imported directly, through re-exports, under an alias,
+ * or from a namespace import), calls or reads a primitive member such as `.sendContractCall(` or
+ * `onClick={auth.signOut}`, destructures a primitive member name, or uses a declaration that
+ * invokes. A member forwarded under its own name (`signOut: auth.signOut`) keeps its own file
+ * critical but does not propagate to callers, so a hub like `useAuth()` does not make every reader
+ * critical: a caller that uses the member names it and is caught itself.
+ *
+ * Imports resolve through relative paths, the `@/` and `@shared/` aliases, and Shared's own package
+ * exports. What the analyzer cannot read counts as invoking: an internal import that resolves to no
+ * source file (data files excepted), an unexported Shared subpath, or a computed dynamic import. An
+ * unlisted entry point of a package that has primitives, such as `wagmi/actions`, is judged by the
+ * imported name.
+ */
+export function analyzeSharedMutationSurface({ root, primitives, files }) {
+  const external = new Map(Object.entries(primitives.external).map(([name, list]) => [name, new Set(list)]));
+  const internal = new Map(
+    Object.entries(primitives.internal).map(([file, list]) => [`${SHARED_SOURCE_ROOT}/${file}`, new Set(list)]),
+  );
+  const members = new Set(primitives.members);
+  // Another entry point of a package that has primitives, such as wagmi/actions, is judged by name.
+  const packageRoot = (specifier) => specifier.split("/").slice(0, specifier.startsWith("@") ? 2 : 1).join("/");
+  const primitiveRoots = new Set([...external.keys()].map(packageRoot));
+  const primitiveNames = new Set([...external.values()].flatMap((names) => [...names]));
+  const sharedExports = readSharedExports(root);
+  // Modules are parsed on first use, so a caller that asks about a few files reads only their
+  // import closure.
+  const parsed = new Map();
+  const moduleAt = (file) => {
+    if (!parsed.has(file)) {
+      const absolute = path.join(root, file);
+      parsed.set(file, isSharedSourcePath(file) && existsSync(absolute) ? parseModule(readFileSync(absolute, "utf8")) : null);
+    }
+    return parsed.get(file);
+  };
+  const modules = { get: (file) => moduleAt(file) ?? undefined };
+
+  const resolve = (specifier, fromFile) => {
+    let base;
+    if (specifier.startsWith(".")) base = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), specifier));
+    else if (specifier.startsWith("@/")) base = `${SHARED_SOURCE_ROOT}/${specifier.slice(2)}`;
+    else if (specifier.startsWith("@shared/")) base = `${SHARED_SOURCE_ROOT}/${specifier.slice("@shared/".length)}`;
+    else if (specifier === SHARED_PACKAGE || specifier.startsWith(`${SHARED_PACKAGE}/`)) {
+      // Shared importing itself by package name goes through its declared exports.
+      const target = sharedExports[specifier === SHARED_PACKAGE ? "." : `./${specifier.slice(SHARED_PACKAGE.length + 1)}`];
+      if (typeof target !== "string") return { unresolved: specifier };
+      base = path.posix.normalize(path.posix.join(path.posix.dirname(SHARED_MANIFEST), target));
+    } else return { external: specifier };
+    for (const suffix of RESOLVE_SUFFIXES) {
+      const candidate = `${base}${suffix}`;
+      if (moduleAt(candidate)) return { file: candidate };
+    }
+    return { unresolved: base };
+  };
+
+  const exportMemo = new Map();
+  const declarationMemo = new Map();
+  const sourceInvokes = (specifier, fromFile, imported, stack) => {
+    const target = resolve(specifier, fromFile);
+    if (target.external) {
+      const names = external.get(target.external);
+      // A namespace or default import of a primitive package may carry any of its primitives.
+      if (names) return imported === "*" || imported === "default" ? names.size > 0 : names.has(imported);
+      return primitiveRoots.has(packageRoot(target.external)) && primitiveNames.has(imported);
+    }
+    if (target.file) return exportInvokes(target.file, imported, stack);
+    // An import that resolves to no Shared source file cannot be read, so it counts unless it is data.
+    return !DATA_SPECIFIER.test(specifier);
+  };
+  function exportInvokes(file, name, stack = new Set()) {
+    const key = `${file}#${name}`;
+    if (exportMemo.has(key)) return exportMemo.get(key);
+    if (stack.has(key)) return false;
+    stack.add(key);
+    const module = modules.get(file);
+    let result = internal.get(file)?.has(name) ?? false;
+    if (!result && module) {
+      if (name === "*") {
+        result =
+          [...module.exports.keys()].some((exported) => exportInvokes(file, exported, stack)) ||
+          module.stars.some((star) => sourceInvokes(star, file, "*", stack));
+      } else {
+        const entry = module.exports.get(name);
+        if (entry?.kind === "local") result = declarationInvokes(file, entry.local, stack);
+        else if (entry?.kind === "reexport") result = sourceInvokes(entry.source, file, entry.imported, stack);
+        else result = module.stars.some((star) => sourceInvokes(star, file, name, stack));
+      }
+    }
+    stack.delete(key);
+    exportMemo.set(key, result);
+    return result;
+  }
+  // A namespace import, or a default import of an external package, is read member by member.
+  const namespaceLike = (entry) =>
+    entry?.imported === "*" || (entry?.imported === "default" && resolve(entry.source, "").external !== undefined);
+  const importInvokes = (file, local, stack) => {
+    const entry = modules.get(file).imports.get(local);
+    return entry ? sourceInvokes(entry.source, file, entry.imported, stack) : false;
+  };
+  function declarationInvokes(file, name, stack = new Set()) {
+    const key = `${file}::${name}`;
+    if (declarationMemo.has(key)) return declarationMemo.get(key);
+    if (stack.has(key)) return false;
+    stack.add(key);
+    const module = modules.get(file);
+    const info = module?.declarations.get(name);
+    let result = internal.get(file)?.has(name) ?? false;
+    if (!result && info) {
+      result = [...info.memberCalls, ...info.memberReferences, ...info.destructured].some((member) =>
+        members.has(member),
+      );
+      for (const callee of info.calls) {
+        if (result) break;
+        if (callee === name) continue;
+        if (module.imports.has(callee)) result = importInvokes(file, callee, stack);
+        else if (module.declarations.has(callee)) result = declarationInvokes(file, callee, stack);
+      }
+      for (const [namespace, property] of [...info.namespaceAccess, ...info.namespaceDestructures]) {
+        if (result) break;
+        const entry = module.imports.get(namespace);
+        if (namespaceLike(entry)) result = sourceInvokes(entry.source, file, property, stack);
+      }
+      for (const reference of info.references) {
+        if (result) break;
+        if (reference !== name && module.declarations.has(reference)) result = declarationInvokes(file, reference, stack);
+      }
+      // An imported capability passed on whole, `const submit = writeContract` or
+      // `{ mutationFn: writeContract }`, invokes wherever it is called. Used through a member,
+      // as in `jobQueue.getJobs()`, the member's own name decides instead.
+      for (const reference of info.bareReferences) {
+        if (result) break;
+        if (reference !== name && module.imports.has(reference)) result = importInvokes(file, reference, stack);
+      }
+    } else if (!result && module?.imports.has(name)) {
+      result = importInvokes(file, name, stack);
+    }
+    stack.delete(key);
+    declarationMemo.set(key, result);
+    return result;
+  }
+
+  const invoking = new Map();
+  const subjects = files ?? listSharedSource(root);
+  for (const file of subjects) {
+    const module = moduleAt(file);
+    if (!module) continue;
+    const reasons = [];
+    for (const [name, info] of module.declarations) {
+      // Forwarding a member under its own name keeps the file critical without making every
+      // caller critical: each caller that uses the member names it, and is caught there.
+      const forwards = [...info.forwardedMembers].filter((member) => members.has(member));
+      if (!declarationInvokes(file, name) && forwards.length === 0) continue;
+      const evidence = [
+        ...[...info.memberCalls].filter((member) => members.has(member)).map((member) => `.${member}()`),
+        ...[...info.memberReferences].filter((member) => members.has(member)).map((member) => `.${member}`),
+        ...forwards.map((member) => `forwards .${member}`),
+        ...[...info.destructured].filter((member) => members.has(member)).map((member) => `{ ${member} }`),
+        ...[...new Set([...info.calls, ...info.bareReferences])]
+          .filter((reference) => module.imports.has(reference) && importInvokes(file, reference, new Set()))
+          .map((reference) => `${reference}${info.calls.has(reference) ? "()" : ""} from ${module.imports.get(reference).source}`),
+        ...[...info.namespaceAccess, ...info.namespaceDestructures]
+          .filter(([namespace, property]) => {
+            const entry = module.imports.get(namespace);
+            return namespaceLike(entry) && sourceInvokes(entry.source, file, property, new Set());
+          })
+          .map(([namespace, property]) => `${namespace}.${property}`),
+      ];
+      reasons.push(`${name}: ${[...new Set(evidence)].join(", ") || "uses a local declaration that invokes"}`);
+    }
+    if (module.computedDynamic) reasons.push("dynamic import of a computed specifier");
+    for (const specifier of module.dynamic) {
+      if (sourceInvokes(specifier, file, "*", new Set())) reasons.push(`dynamic import of ${specifier}`);
+    }
+    if (reasons.length > 0) invoking.set(file, reasons);
+  }
+  return { files: subjects, invoking };
+}
+
+// The changed paths whose current content invokes a primitive, for the selector's escalation.
+export function mutationPathsAmong(changedPaths, { root, primitives }) {
+  const candidates = [...new Set(changedPaths.filter(isSharedSourcePath))].sort();
+  if (candidates.length === 0) return [];
+  const { invoking } = analyzeSharedMutationSurface({ root, primitives, files: candidates });
+  return candidates.filter((file) => invoking.has(file));
+}

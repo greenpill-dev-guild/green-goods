@@ -1,3 +1,4 @@
+// jsdom pin (happy-dom A/B): spies on Storage.prototype.setItem; happy-dom's localStorage does not call the spied prototype method.
 /**
  * @vitest-environment jsdom
  *
@@ -104,10 +105,10 @@ import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
-  createMockTransactionSender,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
+import { createMockTransactionSender } from "../test-utils/transaction-fakes";
 
 const MOCK_CONFIRMED_APPROVAL_RESULT = {
   hash: MOCK_TX_HASH,
@@ -643,6 +644,7 @@ describe("hooks/work/useWorkApproval", () => {
         actionUID: work.actionUID,
         workUID: work.id,
         approved: true,
+        feedback: "Great canopy photos",
       });
       const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
       queryClient.setQueryData(mergedKey, [work]);
@@ -655,6 +657,7 @@ describe("hooks/work/useWorkApproval", () => {
 
       const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
       expect(cached?.status).toBe("approved");
+      expect(cached?.reviewFeedback).toBe("Great canopy photos");
       expect(cached?._isPending).toBe(true);
       expect(cached?._txHash).toBeUndefined();
       expect(cached?._pendingUntilMs).toBeUndefined();
@@ -705,14 +708,25 @@ describe("hooks/work/useWorkApproval", () => {
         wrapper: createWrapper(),
       });
 
-      const work = createMockWork();
+      // A cached reason from an earlier decision must not outlive this one.
+      const work = { ...createMockWork({ status: "pending" }), reviewFeedback: "An older reason" };
       const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
         approved: true,
         feedback: "", // Empty feedback
       });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
 
       await act(async () => {
         await result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+        expect(cached?.status).toBe("approved");
+        expect(cached?.reviewFeedback).toBeUndefined();
       });
 
       expect(submitApprovalDirectly).toHaveBeenCalledWith(
@@ -751,6 +765,31 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         expect.objectContaining({ onLifecycle: expect.any(Function) })
       );
+    });
+
+    it("shows a rejection's feedback on the work before the indexer reports it", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+        feedback: "  Photos show a different site  ",
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        const cached = queryClient.getQueryData<OverlayWork[]>(mergedKey)?.[0];
+        expect(cached?.status).toBe("rejected");
+        expect(cached?.reviewFeedback).toBe("Photos show a different site");
+      });
     });
   });
 

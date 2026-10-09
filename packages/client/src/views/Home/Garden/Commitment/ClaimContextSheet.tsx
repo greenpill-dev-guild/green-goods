@@ -7,9 +7,9 @@ import { useIntl } from "react-intl";
 /**
  * What a claim is scoped to: the person, through a garden they belong to, or
  * a garden they steward. The garden travels with the choice because on the
- * protocol pool it is never the route's garden — that is the host, which the
- * contract refuses as a garden-claim context (GardenClaimMustBeExternal) and
- * which most claimants hold no hat in.
+ * protocol pool it need not be the route's garden. The host may carry a
+ * personal claim from someone who holds a role there, but the contract refuses
+ * it as a garden claim's context (GardenClaimMustBeExternal).
  */
 export type ClaimContext =
   | { kind: "personal"; garden: Address }
@@ -30,6 +30,8 @@ export interface ClaimContextSheetProps {
   /** Steward-reviewed claims ask; open ones take up. The sheet names which. */
   approvalGated: boolean;
   isPending: boolean;
+  /** The primary act's words when another step follows the choice; the take-up act by default. */
+  continueLabel?: string;
   onContinue: (context: ClaimContext) => void;
 }
 
@@ -42,6 +44,8 @@ export interface ClaimContextSheetProps {
  * afterwards: a garden claim stores the garden as claimant and the steward as
  * the one who asked.
  */
+const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+
 export function ClaimContextSheet({
   open,
   onOpenChange,
@@ -49,26 +53,36 @@ export function ClaimContextSheet({
   stewardedGardens,
   approvalGated,
   isPending,
+  continueLabel,
   onContinue,
 }: ClaimContextSheetProps) {
   const { formatMessage } = useIntl();
   const first = memberGardens[0] ?? stewardedGardens[0];
   const [context, setContext] = useState<ClaimContext | null>(null);
 
-  // Each opening starts from the first personal option; back and retry keep
-  // whatever was chosen until the sheet closes, and nothing is submitted between.
+  // Each opening starts from the first personal option. While the sheet is
+  // open a choice stands, even as the lists refresh behind it (the host's own
+  // read landing adds an option), unless its garden has left them. Nothing is
+  // submitted between.
   useEffect(() => {
-    if (!open) return;
-    setContext(
-      memberGardens[0]
+    if (!open) {
+      setContext(null);
+      return;
+    }
+    setContext((current) => {
+      const offered =
+        current &&
+        (current.kind === "personal" ? memberGardens : stewardedGardens).some((garden) =>
+          same(garden.address, current.garden)
+        );
+      if (current && offered) return current;
+      return memberGardens[0]
         ? { kind: "personal", garden: memberGardens[0].address }
         : first
           ? { kind: "garden", garden: first.address }
-          : null
-    );
-  }, [open, memberGardens, first]);
-
-  const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
+          : null;
+    });
+  }, [open, memberGardens, stewardedGardens, first]);
 
   return (
     <DialogShell
@@ -81,9 +95,11 @@ export function ClaimContextSheet({
       sheetSize="half"
       actions={{
         primary: {
-          label: formatMessage({
-            id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
-          }),
+          label:
+            continueLabel ??
+            formatMessage({
+              id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
+            }),
           disabled: !context,
           loading: isPending,
           onClick: () => context && onContinue(context),
@@ -171,7 +187,7 @@ function Option({
         name="claim-context"
         checked={checked}
         onChange={onChange}
-        className="mt-1 accent-[var(--color-primary)]"
+        className="mt-1 accent-[var(--color-primary-on-surface)]"
       />
       <label htmlFor={id} className="min-w-0 cursor-pointer">
         <span className="block text-sm font-medium text-text-strong-950">{title}</span>

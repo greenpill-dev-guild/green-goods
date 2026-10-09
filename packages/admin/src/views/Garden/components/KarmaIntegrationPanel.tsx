@@ -7,7 +7,7 @@ import { RiExternalLinkLine } from "@remixicon/react";
 import { useId } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 interface KarmaStatusPresentation {
   badgeId: string;
@@ -30,7 +30,7 @@ const STATUS_PRESENTATION = {
     badgeDefault: "Migration needed",
     bodyId: "cockpit.garden.karma.body.upgradeNeeded",
     bodyDefault:
-      "This legacy Garden account needs a reviewed compatibility migration before Karma can be repaired.",
+      "This garden was created before Karma support and needs a one-time migration. Ask the Green Goods team to migrate this garden.",
     variant: "warning",
   },
   "no-project": {
@@ -132,13 +132,13 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 id={titleId} className="label-md text-text-strong">
+          <AdminCardTitle id={titleId}>
             {formatMessage({
               id: "cockpit.garden.karma.title",
-              defaultMessage: "Karma integration",
+              defaultMessage: "Karma Integration",
             })}
-          </h3>
-          <p className="mt-1 text-xs text-text-soft">
+          </AdminCardTitle>
+          <p className="mt-1 body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
               defaultMessage:
@@ -158,7 +158,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </StatusBadge>
       </div>
 
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,
@@ -196,7 +196,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             href={integration.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
+            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
               id: "cockpit.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",

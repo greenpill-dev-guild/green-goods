@@ -79,10 +79,6 @@ export function appBar(active: "home" | "garden" | "profile", opts: { badge?: nu
     .join("")}</nav>`;
 }
 
-// SyncStatusBar — queued/offline job strip above the AppBar.
-export function syncBar(text: string): string {
-  return `<div class="syncbar">${icon("refresh-line", "s")}<span>${esc(text)}</span></div>`;
-}
 
 // ---- surfaces ---------------------------------------------------------------
 

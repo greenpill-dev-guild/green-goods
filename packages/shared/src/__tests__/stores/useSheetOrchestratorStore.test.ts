@@ -1,6 +1,6 @@
 /**
  * useSheetOrchestratorStore Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the Zustand store for sheet orchestration with sessionStorage persistence.
  * Sheets persist their state across view navigation — when a user navigates away

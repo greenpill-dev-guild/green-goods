@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -200,6 +200,22 @@ describe("public WebMCP tools", () => {
       reason: "Green Goods WebMCP tools are limited to public browser routes.",
       path: "/home/profile",
     });
+  });
+
+  it("never describes a chat reporting ceremony page", () => {
+    for (const pathname of [
+      "/agent/reporting/abcdefghijklmnop",
+      "/agent/reporting/recover/abcdefghijklmnop",
+      "/agent/reporting/permissions",
+    ]) {
+      const describeTool = getTool("green_goods_describe_public_page", [
+        ...createPublicWebMcpTools({ pageLocation: { pathname, assign: vi.fn() } }),
+      ]);
+      expect(describeTool.execute({})).toMatchObject({ status: "not_available" });
+    }
+    expect(readRouteEnum(getTool("green_goods_navigate_public_route"))).not.toContainEqual(
+      expect.stringContaining("/agent/")
+    );
   });
 
   it("navigates only to approved public routes", () => {

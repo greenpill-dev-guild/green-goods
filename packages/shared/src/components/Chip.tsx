@@ -4,8 +4,8 @@
  * 32px tall with a 44px hit area (`size="sm"` is 40px). The selected state is
  * announced with the attribute that matches the role: `aria-pressed` for a
  * plain toggle, `aria-checked` inside a radio or checkbox group, and
- * `aria-selected` for a tab or option. A selected chip uses the action fill with
- * white text (DL-017). Styles live in shared `theme.css` as `.gg-chip` rules.
+ * `aria-selected` for a tab or option. A selected chip uses the theme's contrast-safe action
+ * fill/content pair (DL-017, DL-088). Styles live in shared `theme.css` as `.gg-chip` rules.
  *
  * @module components/Chip
  */

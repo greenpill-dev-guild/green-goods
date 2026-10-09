@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-08-03",
-    "updated_at": "2026-08-04T04:07:25Z"
+    "updated_at": "2026-10-06T20:54:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "lastSyncedAt": "2026-08-04T04:07:25Z",
     "parentIssue": "RESR-71",
     "project": "Capital Off-Ramp Corridors",
-    "lanes": {}
+    "lanes": {},
+    "stateSyncMode": "preserve_existing"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -46,7 +47,8 @@
     "Brazil, Nigeria, and South Africa remain mid-change. Refresh regulator records and successful quotes within seven days of any decision.",
     "Cash-out is an online multi-system transaction. Never silently queue or retry a value transfer after connectivity returns; model quote expiry, provider status, settlement, failure, and refund explicitly.",
     "G$ on Celo is a circulation instrument, not a payout currency — thin Uniswap liquidity at sub-cent prices. The G$/Celo settlement rail and the fiat off-ramp rail are separate and must not be conflated.",
-    "Repo is public: this hub contains public provider/regulator evidence only and no private partner, gardener, or individual details."
+    "Repo is public: this hub contains public provider/regulator evidence only and no private partner, gardener, or individual details.",
+    "2026-10-06 reconciliation: RESR-71 is Done for the independent review and accepted corrections. That does not approve a corridor, provider, account or commercial commitment. Keep the corrected brief authoritative, preserve dated evidence and separate its research from the onramp work referenced by RESR-82."
   ],
   "lanes": {
     "ui": {
@@ -160,6 +162,22 @@
       "status": "research_hub_formalized",
       "branch": null,
       "note": "Added the research spec, checklist, evaluation gates, taxonomy, parent-only Linear mirror, and explicitly inactive implementation lanes."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "RESR-71 is Done for the independent review and accepted corrections. That does not approve a corridor, provider, account or commercial commitment. Keep the corrected brief authoritative, preserve dated evidence and separate its research from the onramp work referenced by RESR-82."
+    },
+    {
+      "timestamp": "2026-10-06T20:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
     }
   ]
 }

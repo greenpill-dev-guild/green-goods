@@ -68,12 +68,13 @@ type GardensFilterSheetProps = {
   onReset: () => void;
   canFilterMine: boolean;
   myGardensCount: number;
+  openGardensCount: number;
   isFilterActive: boolean;
 };
 
 /**
- * The Home garden filters at the full tier: membership scope, the four action
- * domains as chips, and the sort order,
+ * The Home garden filters at the full tier: which gardens to show (all, mine,
+ * or open to anyone), the four action domains as chips, and the sort order,
  * with Reset Filters pinned in the shared bar.
  */
 export const GardensFilterSheet = ({
@@ -86,6 +87,7 @@ export const GardensFilterSheet = ({
   onReset,
   canFilterMine,
   myGardensCount,
+  openGardensCount,
   isFilterActive,
 }: GardensFilterSheetProps) => {
   const intl = useIntl();
@@ -125,6 +127,20 @@ export const GardensFilterSheet = ({
             })
           : undefined,
       disabled: !canFilterMine,
+    },
+    {
+      id: "open",
+      label: intl.formatMessage(
+        {
+          id: "app.home.filters.scope.open",
+          defaultMessage: "Open gardens ({count})",
+        },
+        { count: openGardensCount }
+      ),
+      description: intl.formatMessage({
+        id: "app.home.filters.scope.openDescription",
+        defaultMessage: "Anyone can join without an invitation.",
+      }),
     },
   ];
 

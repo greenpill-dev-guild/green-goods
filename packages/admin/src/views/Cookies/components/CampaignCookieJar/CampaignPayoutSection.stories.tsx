@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignPayoutSection } from "./CampaignPayoutSection";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignPayoutSection } from "./CampaignPayoutSection";
 
 const meta: Meta<typeof CampaignPayoutSection> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/PayoutSection",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/PayoutSection",
   component: CampaignPayoutSection,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

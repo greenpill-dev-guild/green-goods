@@ -93,6 +93,15 @@ export interface CommitmentActInput {
    * waiting on the reader may leave it out, because composing again never is.
    */
   isCreator?: boolean;
+  /**
+   * The reader holds a role in the garden a personal claim would be made
+   * through. Only a bystander on an untaken record needs it: the chain gates a
+   * personal claim on that role, so offering Take This Up to anyone else is an
+   * act that parks in the queue or reverts. Undefined means not read yet, and
+   * offers nothing, the same as false: a read that has not arrived must not
+   * offer an act it cannot back.
+   */
+  isMember?: boolean;
 }
 
 /**
@@ -127,7 +136,10 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
   if (PRE_ACCEPTANCE.has(phase)) {
     // Direction already names the creator, so they read as provider on an Offer
     // and confirmer on a Request. Either way the act is to take it back.
-    if (seat === "provider" || seat === "confirmer") return "withdraw";
+    if (input.isCreator && (seat === "provider" || seat === "confirmer")) return "withdraw";
+    // Taking up is for the garden's own people. A visitor reads the record and
+    // is offered nothing, rather than an act the chain will refuse.
+    if (input.isMember !== true) return null;
     return commitment.claimMode === "APPROVAL_GATED" ? "askToTakeUp" : "takeUp";
   }
 

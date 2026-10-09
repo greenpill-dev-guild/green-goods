@@ -1,120 +1,71 @@
-import { AdminButton } from "@/components/AdminButton";
+import type { ReactNode } from "react";
 import { AdminCard } from "@/components/AdminCard";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
+import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import { ReviewLine } from "./ReviewLine";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
 
-export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
-  const {
-    formatMessage,
-    payoutLabel,
-    aggregation,
-    publicCampaignUrl,
-    canCreate,
-    createPending,
-    gardensLoading,
-    factoryLoading,
-    onCreate,
-    onCancel,
-    createError,
-  } = props;
+export interface CampaignCreateReviewProps extends CampaignCookieJarCreateFormProps {
+  /** Where the send stands, in the one row that changes while it works. */
+  status: FlowSendStatus;
+  /** What the send made, once it landed: the jar, or the transaction awaiting its address. */
+  outcome?: ReactNode;
+}
+
+/**
+ * The Review step: what the jar pays, who can claim, and where its page lives,
+ * under one status row that keeps its height through ready, sending, sent and
+ * failed (DL-072, DL-080). The flow's footer carries Create Cookie Jar, then
+ * Done once the jar exists.
+ */
+export function CampaignCreateReview({ status, outcome, ...props }: CampaignCreateReviewProps) {
+  const { formatMessage, payoutLabel, aggregation, publicCampaignUrl } = props;
   return (
-    <>
-      <aside className="sticky top-20 hidden space-y-4 lg:block">
-        <AdminCard variant="outlined" className="space-y-2">
-          <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
-            {formatMessage({
-              id: "cockpit.community.cookies.review",
-              defaultMessage: "Review",
-            })}
-          </h2>
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.reviewPayout",
-              defaultMessage: "Payout",
-            })}
-            value={payoutLabel}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.selectedGardens",
-              defaultMessage: "Selected gardens",
-            })}
-            value={aggregation.sources.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.generatedStewards",
-              defaultMessage: "Generated stewards",
-            })}
-            value={aggregation.allowlist.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.missingStewards",
-              defaultMessage: "Missing stewards",
-            })}
-            value={aggregation.missingStewardGardens.length}
-          />
-          <ReviewLine
-            label={formatMessage({
-              id: "cockpit.community.cookies.generatedCampaignLink",
-              defaultMessage: "Campaign page",
-            })}
-            value={publicCampaignUrl}
-          />
-          <div className="pt-3">
-            <AdminButton
-              type="button"
-              className="w-full"
-              onClick={onCreate}
-              disabled={!canCreate || createPending || gardensLoading || factoryLoading}
-              loading={createPending}
-            >
-              {formatMessage({
-                id: "cockpit.community.cookies.create",
-                defaultMessage: "Create Cookie Jar",
-              })}
-            </AdminButton>
-            <AdminButton type="button" variant="text" className="mt-2 w-full" onClick={onCancel}>
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-          </div>
-          {createError ? (
-            <p className="text-body-sm text-[rgb(var(--m3-error))]">{createError.message}</p>
-          ) : null}
-        </AdminCard>
-      </aside>
-
-      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
-              {payoutLabel}
-            </p>
-            <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage(
-                {
-                  id: "cockpit.community.cookies.mobileReviewSummary",
-                  defaultMessage:
-                    "{gardens, plural, one {# garden} other {# gardens}} - {stewards, plural, one {# steward} other {# stewards}}",
-                },
-                { gardens: aggregation.sources.length, stewards: aggregation.allowlist.length }
-              )}
-            </p>
-          </div>
-          <AdminButton
-            type="button"
-            onClick={onCreate}
-            disabled={!canCreate || createPending || gardensLoading || factoryLoading}
-            loading={createPending}
-          >
-            {formatMessage({
-              id: "cockpit.community.cookies.create",
-              defaultMessage: "Create Cookie Jar",
-            })}
-          </AdminButton>
-        </div>
-      </div>
-    </>
+    <div className="space-y-4">
+      <FlowStatusRow
+        tone={status.tone}
+        busy={status.busy}
+        title={status.title}
+        description={status.description}
+      />
+      {outcome}
+      <AdminCard variant="outlined" className="space-y-2">
+        <ReviewLine
+          label={formatMessage({
+            id: "cockpit.community.cookies.reviewPayout",
+            defaultMessage: "Payout",
+          })}
+          value={payoutLabel}
+        />
+        <ReviewLine
+          label={formatMessage({
+            id: "cockpit.community.cookies.selectedGardens",
+            defaultMessage: "Selected gardens",
+          })}
+          value={aggregation.sources.length}
+        />
+        <ReviewLine
+          label={formatMessage({
+            id: "cockpit.community.cookies.generatedStewards",
+            defaultMessage: "Stewards who can claim",
+          })}
+          value={aggregation.allowlist.length}
+        />
+        <ReviewLine
+          label={formatMessage({
+            id: "cockpit.community.cookies.missingStewards",
+            defaultMessage: "Gardens without a steward",
+          })}
+          value={aggregation.missingStewardGardens.length}
+        />
+        <ReviewLine
+          label={formatMessage({
+            id: "cockpit.community.cookies.generatedCampaignLink",
+            defaultMessage: "Campaign page",
+          })}
+          value={publicCampaignUrl}
+        />
+      </AdminCard>
+    </div>
   );
 }

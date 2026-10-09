@@ -14,7 +14,7 @@ const meta: Meta<typeof ClaimantName> = {
     docs: {
       description: {
         component:
-          "Who a claim is for, as the steward knows them: a garden by its name, a person by their resolved name, never a bare address.",
+          "Who a claim is for, as the steward knows them: a garden by its name, a person by their Green Goods name, then ENS, then a short address, never a raw hex string. Every name takes one style, 14px semibold (PRD-1025 D11), with the full address on hover.",
       },
     },
   },

@@ -28,7 +28,7 @@ const meta = {
     layout: "page",
     auth: { authMode: null, isAuthenticated: false, primaryAddress: null },
     onCancel: fn(),
-    onSuccess: fn(),
+    onDone: fn(),
   },
 } satisfies Meta<typeof SubmitWorkFlow>;
 

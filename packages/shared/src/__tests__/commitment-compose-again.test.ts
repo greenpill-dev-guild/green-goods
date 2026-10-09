@@ -85,7 +85,9 @@ describe("composerValuesFromCommitment", () => {
       title: "Water the north beds",
       note: "Mornings, before the heat",
       links: ["https://example.org/beds"],
-      unitLabel: "sessions",
+      // Garden work is counted in hours, whatever unit the earlier record carried:
+      // neither composer shows a unit for it.
+      unitLabel: "hours",
       targetUnits: 4,
       claimMode: "APPROVAL_GATED",
       openTeam: false,
@@ -130,6 +132,7 @@ describe("composerValuesFromCommitment", () => {
     });
     expect(external).toMatchObject({
       kind: "SEASON_CAMPAIGN",
+      unitLabel: "sessions",
       claimMode: "APPROVAL_GATED",
       confirmers: [CONFIRMER_A, CONFIRMER_B],
       confirmationThreshold: 2,
@@ -155,6 +158,17 @@ describe("composerValuesFromCommitment", () => {
     });
     expect(celo).not.toHaveProperty("considerationSource");
     expect(celo).not.toHaveProperty("considerationToken");
+    // Set in dollars, and not edited since: it starts from the dollars typed.
+    expect(celo).not.toHaveProperty("considerationUsd");
+    const reward = { version: 1 as const, usdCents: "500", goodDollarWei: "25000000" };
+    expect(
+      composerValuesFromCommitment({
+        composer: "steward",
+        commitment: { ...seeded, considerationRail: "CELO_SETTLEMENT" },
+        metadata: { ...words, reward },
+        requirements: [],
+      }).considerationUsd
+    ).toBe("5.00");
   });
 
   it("never copies the new maker into the confirmer group they would have to reach", () => {
@@ -207,6 +221,6 @@ describe("composerValuesFromCommitment", () => {
     });
 
     expect(values).not.toHaveProperty("title");
-    expect(values).toMatchObject({ kind: "GARDEN_WORK", unitLabel: "sessions", targetUnits: 4 });
+    expect(values).toMatchObject({ kind: "GARDEN_WORK", unitLabel: "hours", targetUnits: 4 });
   });
 });

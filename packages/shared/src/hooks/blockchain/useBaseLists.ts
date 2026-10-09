@@ -1,7 +1,9 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
+import { withKnownCapitals } from "../../modules/data/indexer-capitals";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { gardenersKeys } from "../../config/query-keys/identity";
@@ -28,6 +30,8 @@ function createBaseListHook<T>(
     staleTime?: number;
     gcTime?: number;
     networkMode?: "online" | "always" | "offlineFirst";
+    /** Applied to fetched and restored data alike; keep it stable (module scope). */
+    select?: (data: T[]) => T[];
   }
 ): (chainId?: number) => UseQueryResult<T[], Error> {
   return function useBaseList(chainId: number = DEFAULT_CHAIN_ID) {
@@ -40,6 +44,7 @@ function createBaseListHook<T>(
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
       placeholderData: (previousData) => previousData,
       ...(options?.networkMode && { networkMode: options.networkMode }),
+      ...(options?.select && { select: options.select }),
     });
   };
 }
@@ -48,14 +53,16 @@ function createBaseListHook<T>(
 export const useActions = createBaseListHook<Action>(
   (chainId) => actionsKeys.byChain(chainId),
   getActions,
-  { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists }
+  // A cache an older build wrote can hold the indexer's capital names.
+  { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists, select: withKnownCapitals }
 );
 
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */
 export const useGardens = createBaseListHook<Garden>(
   (chainId) => gardensKeys.byChain(chainId),
   getGardens,
-  { networkMode: "offlineFirst" }
+  // A cache an older build wrote can hold a garden since curated out of every surface.
+  { networkMode: "offlineFirst", select: withoutHiddenGardens }
 );
 
 /** Loads gardener profiles for steward dashboards. */

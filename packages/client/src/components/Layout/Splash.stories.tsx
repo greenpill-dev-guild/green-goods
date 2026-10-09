@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, userEvent, within } from "storybook/test";
+import { AppLaunchError } from "@/components/Errors/AppLaunchError";
 import { Splash } from "./Splash";
 // Canonical flow source (renders as a Mermaid diagram on GitHub). `?raw` is
 // typed via vite/client (packages/client/src/vite-env.d.ts) and inlined by Vite.
@@ -525,7 +526,10 @@ export const FlowDiagram: Story = {
  *      longest real error without overflowing (es/pt-proof), the error always
  *      wins the zone over info, and over-long copy scrolls INSIDE while the
  *      Back tertiary stays pinned;
- *   5. the full error text stays in the accessibility tree.
+ *   5. the full error text stays in the accessibility tree;
+ *   6. the COULD-NOT-OPEN screen shares the scaffold: its logo and slots sit
+ *      where sign-in's do, its Reload where sign-in's first button sits, and
+ *      its line (a sentence) on the centre line of the app's name.
  *
  * Offsets are measured relative to each panel's own top, so the panels' page
  * origins (and any wrapping) don't matter.
@@ -564,6 +568,9 @@ export const LayoutStability: Story = {
           message={COPY.loadingAuth}
         />
       </div>
+      <div data-testid="panel-launch-error" style={{ width: 375 }}>
+        <AppLaunchError onReload={() => {}} />
+      </div>
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -589,6 +596,7 @@ export const LayoutStability: Story = {
       "panel-error",
       "panel-overflow",
       "panel-loading",
+      "panel-launch-error",
     ];
     const entryPanels = ["panel-entry-new", "panel-entry-returning"];
     const formPanels = [
@@ -665,5 +673,22 @@ export const LayoutStability: Story = {
     }
     await expect(scope("panel-error").getByRole("alert")).toHaveTextContent(LONGEST_ERROR);
     await expect(scope("panel-overflow").getByRole("alert")).toHaveTextContent(OVERFLOW_ERROR);
+
+    // 9) The could-not-open screen is the same scaffold (its logo and slots are
+    //    pinned with the others above): Reload sits where sign-in's first button
+    //    sits, and its sentence shares the centre line of the app's name and of
+    //    the loading sentence, though the two voices differ in size.
+    const reloadOffset =
+      scope("panel-launch-error").getByRole("button", { name: "Reload" }).getBoundingClientRect()
+        .top - panelTop("panel-launch-error");
+    await expect(Math.abs(reloadOffset - entryPrimaryBase)).toBeLessThanOrEqual(1);
+    const lineCentre = (id: string) => {
+      const line = scope(id).getByRole("heading", { level: 3 }).getBoundingClientRect();
+      return line.top + line.height / 2 - panelTop(id);
+    };
+    const nameCentre = lineCentre("panel-entry-new");
+    for (const id of ["panel-loading", "panel-launch-error"] as const) {
+      await expect(Math.abs(lineCentre(id) - nameCentre)).toBeLessThanOrEqual(1);
+    }
   },
 };

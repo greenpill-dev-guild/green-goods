@@ -1,22 +1,28 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { Address, Work } from "@green-goods/shared/types/domain";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 
-const { mockApprovalMutation, mockPrimaryAddress, mockParseAndFormatError, mockToastError } =
-  vi.hoisted(() => ({
-    mockApprovalMutation: {
-      mutateAsync: vi.fn(),
-    },
-    mockPrimaryAddress: vi.fn(),
-    mockParseAndFormatError: vi.fn(),
-    mockToastError: vi.fn(),
-  }));
+const {
+  mockApprovalMutation,
+  mockPrimaryAddress,
+  mockProtocolName,
+  mockParseAndFormatError,
+  mockToastError,
+} = vi.hoisted(() => ({
+  mockApprovalMutation: {
+    mutateAsync: vi.fn(),
+  },
+  mockPrimaryAddress: vi.fn(),
+  mockProtocolName: vi.fn(),
+  mockParseAndFormatError: vi.fn(),
+  mockToastError: vi.fn(),
+}));
 
 vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
@@ -54,6 +60,9 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: undefined }),
 }));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: (address: Address) => mockProtocolName(address),
+}));
 
 vi.mock("@green-goods/shared/hooks/work/useWorkApproval", () => ({
   useWorkApproval: () => mockApprovalMutation,
@@ -70,6 +79,8 @@ vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
 });
 
 vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
+  // The reject reason dialog imports the pooling reason module, whose document store reads it.
+  ipfsPinner: {},
   uploadFileToIPFS: vi.fn(),
   uploadJSONToIPFS: vi.fn(),
 }));
@@ -90,7 +101,9 @@ vi.mock("@green-goods/shared/types/domain", () => ({
 }));
 
 vi.mock("@green-goods/shared/utils/app/text", () => ({
-  formatAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+  formatAddress: (address: string, options?: { ensName?: string | null }) =>
+    options?.ensName?.replace(/\.greengoods\.eth$/, "") ??
+    `${address.slice(0, 6)}...${address.slice(-4)}`,
 }));
 
 vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
@@ -124,7 +137,7 @@ const messages = {
   "app.work.detail.confidenceLevel": "Confidence level",
   "app.work.detail.feedback": "Feedback",
   "app.work.detail.feedbackPlaceholder": "Add feedback for the gardener...",
-  "app.work.detail.hint.lowConfidence": "Select a confidence level to approve this work.",
+  "app.work.detail.hint.lowConfidence": "Choose a confidence level to approve.",
   "app.work.detail.stewardReview": "Steward Review",
   "app.work.detail.reject": "Reject",
   "app.work.detail.rejecting": "Rejecting...",
@@ -141,6 +154,16 @@ const messages = {
   "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",
   "app.work.detail.reviewSummary": "Review Summary",
   "app.work.detail.verificationMethods": "Verification methods",
+  "app.work.detail.rejectDialog.title": "Reject Work",
+  "app.work.detail.rejectDialog.description":
+    "The gardener sees your reason. Rejected work does not count toward {garden}'s record.",
+  "app.work.detail.rejectDialog.reasonLabel": "Why are you rejecting this?",
+  "app.work.detail.rejectDialog.reasonPlaceholder": "What was missing or wrong, in your own words.",
+  "app.work.detail.rejectDialog.suggestion.photos": "Photos don't show the work",
+  "app.work.detail.rejectDialog.suggestion.details": "Details are missing",
+  "app.work.detail.rejectDialog.suggestion.action": "Wrong action chosen",
+  "app.work.detail.rejectDialog.confirm": "Reject Work",
+  "app.common.cancel": "Cancel",
 };
 
 const TEST_WORK: Work = {
@@ -180,6 +203,7 @@ describe("ReviewForm", () => {
     mockToastError.mockReset();
 
     mockPrimaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
+    mockProtocolName.mockReset().mockReturnValue({ data: null });
   });
 
   it("keeps verification method implicit for huma steward reviews", async () => {
@@ -277,6 +301,48 @@ describe("ReviewForm", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
+  it("explains a disabled Approve quietly, without a warning before any choice", () => {
+    renderReviewForm();
+
+    expect(screen.getByText("Choose a confidence level to approve.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Set medium confidence" }));
+
+    expect(screen.queryByText("Choose a confidence level to approve.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+  });
+
+  it("asks why before rejecting, starting from the feedback, and sends the reason as feedback", async () => {
+    renderReviewForm();
+    fireEvent.change(screen.getByRole("textbox", { name: /Feedback/ }), {
+      target: { value: "Blurry photos" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Reject Work" });
+    expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+    const reason = within(dialog).getByRole("textbox", { name: /Why are you rejecting this/ });
+    expect(reason).toHaveValue("Blurry photos");
+
+    const confirm = within(dialog).getByRole("button", { name: "Reject Work" });
+    fireEvent.change(reason, { target: { value: "  " } });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Details are missing" }));
+    fireEvent.click(confirm);
+
+    await waitFor(() => {
+      expect(mockApprovalMutation.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          draft: expect.objectContaining({ approved: false, feedback: "Details are missing" }),
+        })
+      );
+    });
+  });
+
   it("blocks a steward from reviewing their own submission", () => {
     mockPrimaryAddress.mockReturnValue(TEST_WORK.gardenerAddress);
 
@@ -286,5 +352,13 @@ describe("ReviewForm", () => {
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
     expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("names the actual submitter with their registered protocol name", () => {
+    mockProtocolName.mockReturnValue({ data: "river.greengoods.eth" });
+    renderReviewForm();
+
+    expect(screen.getByText(/river will see this decision/)).toBeInTheDocument();
+    expect(mockProtocolName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * isGardenMember Utility Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the exported isGardenMember function from useJoinGarden.
  * This is a pure function (no hooks) that checks membership via:

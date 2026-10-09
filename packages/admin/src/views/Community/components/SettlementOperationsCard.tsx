@@ -6,7 +6,7 @@ import { useSettlementOperationsController } from "@green-goods/shared/hooks/adm
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
 
@@ -71,13 +71,13 @@ export function SettlementOperationsCard({
       data-delivery={enabled === null ? "unread" : enabled ? "on" : "off"}
     >
       <div>
-        <h3 className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.community.settlementOps.title",
             defaultMessage: "Settlement Operations",
           })}
-        </h3>
-        <p className="mt-1 text-xs text-text-soft">
+        </AdminCardTitle>
+        <p className="mt-1 body-xs text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
@@ -158,7 +158,7 @@ export function SettlementOperationsCard({
       </AdminSettingRow>
 
       {!operations.canConfigureDelivery ? (
-        <p className="text-xs text-text-soft" data-testid="gardener-delivery-owner-only">
+        <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
           {formatMessage(
             {
               id: "cockpit.community.settlementOps.delivery.ownerOnly",
@@ -173,8 +173,8 @@ export function SettlementOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "text-xs text-error-dark"
-              : "text-xs text-text-soft"
+              ? "body-xs text-error-dark"
+              : "body-xs text-text-soft"
           }
           role="status"
           data-testid="gardener-delivery-status"

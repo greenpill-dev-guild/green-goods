@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSendTransaction = vi.fn();
@@ -17,7 +18,7 @@ const mockGetBalance = vi.fn();
 const mockEstimateGas = vi.fn();
 const mockEstimateFeesPerGas = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
+const mockReadyWalletClient = vi.fn();
 
 /** `claimNameSponsored(string)` selector on the deployed ENS sender. */
 const CLAIM_NAME_SPONSORED_SELECTOR = "0x12199b7d";
@@ -41,13 +42,10 @@ const mockSmartAccountClient = {
 let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmartAccountClient;
 const queryClients = new Set<QueryClient>();
 
+// The hook reads only the address at render. Its wallet client comes from the
+// guard when the claim runs, so wagmi's render-time client is not mocked at all.
 vi.mock("wagmi", () => ({
-  useAccount: vi.fn(() => ({
-    address: mockWalletAddress,
-  })),
-  useWalletClient: vi.fn(() => ({
-    data: mockWalletClientData,
-  })),
+  useAccount: vi.fn(() => ({ address: mockWalletAddress })),
 }));
 
 vi.mock("../../../hooks/auth/useAuth", () => ({
@@ -92,7 +90,7 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -138,7 +136,11 @@ function createTestWrapper() {
   return {
     queryClient,
     wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      ),
   };
 }
 
@@ -164,6 +166,7 @@ describe("useENSClaim", () => {
       account: { address: mockWalletAddress, type: "json-rpc" },
       sendTransaction: mockWalletSendTransaction,
     };
+    mockReadyWalletClient.mockImplementation(async () => mockWalletClientData);
     mockPoolBalance = 200000n;
     mockWalletBalance = 10n ** 18n;
     mockGetBalance.mockImplementation(({ address }: { address: string }) =>
@@ -171,7 +174,7 @@ describe("useENSClaim", () => {
     );
     mockEstimateGas.mockResolvedValue(400000n);
     mockEstimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 25000000n });
-    mockWaitForTransactionReceipt.mockResolvedValue({ logs: [] });
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success", logs: [] });
     mockDefaultReadContract();
   });
 
@@ -179,6 +182,24 @@ describe("useENSClaim", () => {
     queryClients.forEach((queryClient) => queryClient.clear());
     queryClients.clear();
     vi.restoreAllMocks();
+  });
+
+  it.each([
+    "wallet",
+    "passkey",
+  ] as const)("rejects a reverted %s receipt without seeding progress", async (mode) => {
+    mockAuthMode = mode;
+    mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    mockWalletSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted", logs: [] });
+    const { wrapper, queryClient } = createTestWrapper();
+    const { result } = renderHook(() => useENSClaim(), { wrapper });
+    result.current.mutate({ slug: "alice" });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryClient.getQueryData(queryKeys.ens.registrationStatus("alice"))).toBeUndefined();
+    expect(toastService.success).not.toHaveBeenCalled();
+    expect(toastService.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   describe("passkey user flow (sponsored)", () => {
@@ -269,11 +290,29 @@ describe("useENSClaim", () => {
         })
       );
       expect(mockGetBalance).toHaveBeenCalledWith({ address: ENS_ADDRESS });
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      // The wallet is readied on the app's network, for the address the checks ran for.
+      expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, mockWalletAddress);
       const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
       expect(sent).toMatchObject({ to: ENS_ADDRESS, account: mockWalletClientData?.account });
       expect(sent.data.startsWith(CLAIM_NAME_SPONSORED_SELECTOR)).toBe(true);
       expect(sent.value).toBeUndefined();
+    });
+
+    it("sends nothing when the wallet cannot be put on the app's network", async () => {
+      const refusal = Object.assign(new Error("Network switch rejected."), {
+        name: "WalletChainMismatchError",
+      });
+      mockReadyWalletClient.mockRejectedValue(refusal);
+
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useENSClaim(), { wrapper });
+
+      result.current.mutate({ slug: "bob" });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toBe(refusal);
+      expect(mockWalletSendTransaction).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalled();
     });
 
     // Regression: a wallet handed a claim it could not pay for opened with nothing to sign.
@@ -289,7 +328,7 @@ describe("useENSClaim", () => {
 
       expect(result.current.error?.name).toBe("WalletCannotFundTransactionError");
       expect(mockGetBalance).toHaveBeenCalledWith({ address: mockWalletAddress });
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
 
@@ -304,7 +343,7 @@ describe("useENSClaim", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       expect(result.current.error?.message).toBe("InsufficientSponsoredBalance");
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });
@@ -313,7 +352,6 @@ describe("useENSClaim", () => {
     it("throws when no auth mode or connected account exists", async () => {
       mockAuthMode = null;
       mockWalletAddress = undefined;
-      mockWalletClientData = undefined;
 
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useENSClaim(), { wrapper });

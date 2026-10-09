@@ -368,7 +368,7 @@ const isMonitoredDoc = (filePath) =>
 
 const isGuideLikeDoc = (relativePath) =>
   relativePath.startsWith("docs/docs/community/gardener-guide/") ||
-  relativePath.startsWith("docs/docs/community/operator-guide/") ||
+  relativePath.startsWith("docs/docs/community/steward-guide/") ||
   relativePath.startsWith("docs/docs/community/funder-guide/") ||
   relativePath.startsWith("docs/docs/community/evaluator-guide/") ||
   relativePath.startsWith("docs/docs/community/community-member-guide/") ||

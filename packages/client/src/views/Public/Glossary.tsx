@@ -150,7 +150,7 @@ export default function Glossary() {
         title={formatMessage(
           {
             id: "public.glossary.heroTitle",
-            defaultMessage: "A field <accent>vocabulary</accent>.",
+            defaultMessage: "A field <accent>vocabulary</accent>",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,

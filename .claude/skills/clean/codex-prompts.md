@@ -23,7 +23,7 @@ SAFE             — Pure refactor / dedup / type tightening with equivalent sem
 For each non-SAFE finding, output: file:line, the agent's likely intent, why it might
 break, and the smallest revert (specific lines).
 
-Honor these invariants from CLAUDE.md — flag if any agent broke them:
+Honor these invariants from AGENTS.md — flag if any agent broke them:
 - Hook boundary (all hooks live in @green-goods/shared)
 - Shared imports use only declared package export paths; no `shared/src` internals
 - Address type for Ethereum addresses

@@ -1,10 +1,14 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { claimFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import {
+  claimFixture,
+  commitmentFixture,
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import type { TxActPhase } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { claimRowKey } from "@green-goods/shared/hooks/admin-ui/pool/useWaitingForApproval";
 import { describe, expect, it, vi } from "vitest";
 import { CommitmentClaims } from "@/views/Garden/Pool/CommitmentDialog/CommitmentClaims";
 import { renderWithProviders, screen, userEvent, within } from "../test-utils";
@@ -22,6 +26,9 @@ vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null, isLoading: false }),
 }));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
 
 function renderClaims(
   overrides: Partial<Parameters<typeof CommitmentClaims>[0]> = {},
@@ -33,10 +40,13 @@ function renderClaims(
   renderWithProviders(
     <CommitmentClaims
       claims={claims}
+      direction="OFFER"
       chainId={42161}
       can={{ ...controller.can, acceptClaim: true }}
       acts={{ ...controller.acts, acceptClaim }}
       phaseFor={() => ({ status: "idle" })}
+      decisions={{}}
+      standingOf={() => null}
       actDisabled={false}
       onOpenDialog={onOpenDialog}
       {...overrides}
@@ -50,7 +60,7 @@ describe("CommitmentClaims", () => {
     const { acceptClaim, onOpenDialog } = renderClaims();
 
     const user = userEvent.setup();
-    const accept = screen.getByRole("button", { name: "Accept" });
+    const accept = screen.getByRole("button", { name: "Approve" });
     const decline = screen.getByRole("button", { name: /Decline/ });
     expect(accept).toHaveClass("h-7");
     expect(decline).toHaveClass("h-7");
@@ -70,7 +80,7 @@ describe("CommitmentClaims", () => {
     expect(within(row).queryByText(/0xaaaa/i)).not.toBeInTheDocument();
   });
 
-  it("shows where Accept stands on its own row and holds that row closed until the index moves on", () => {
+  it("puts an approval's progress in its own row's action slot, leaving the other rows' acts", () => {
     const phases: Record<string, TxActPhase> = {
       [PERSON]: { status: "confirming", key: "accept", hash: `0x${"a".repeat(64)}` },
     };
@@ -79,39 +89,50 @@ describe("CommitmentClaims", () => {
       claimFixture({ id: "claim-2", claimant: GARDEN, claimType: "GARDEN" }),
     ]);
 
-    const accepting = screen.getByTestId(`commitment-claim-${PERSON}`);
-    expect(within(accepting).getByRole("status")).toHaveTextContent(/^Confirming on .+…$/);
-    expect(within(accepting).getByRole("button", { name: "Accept" })).toBeDisabled();
-    expect(within(accepting).getByRole("button", { name: /Decline/ })).toBeDisabled();
+    const approving = screen.getByTestId(`commitment-claim-${PERSON}`);
+    expect(within(approving).getByText(/^Confirming on .+…$/)).toBeInTheDocument();
+    expect(within(approving).queryByRole("button")).not.toBeInTheDocument();
 
     const other = screen.getByTestId(`commitment-claim-${GARDEN}`);
-    expect(within(other).queryByRole("status")).not.toBeInTheDocument();
-    expect(within(other).getByRole("button", { name: "Accept" })).toBeEnabled();
+    expect(within(other).queryByText(/^Confirming on/)).not.toBeInTheDocument();
+    expect(within(other).getByRole("button", { name: "Approve" })).toBeEnabled();
   });
 
-  it("says the request was accepted and keeps it closed until it leaves the list, and reopens after a failure", () => {
+  it("keeps an approved ask as its outcome, and brings the pair back as Try Again after a failure", () => {
     const { rerender } = renderWithProviders(<div />);
     const controller = commitmentDialogControllerFixture();
-    const view = (phase: TxActPhase) => (
+    const claim = claimFixture({ claimant: PERSON, claimType: "INDIVIDUAL" });
+    const view = (phase: TxActPhase, approved: boolean) => (
       <CommitmentClaims
-        claims={[claimFixture({ claimant: PERSON, claimType: "INDIVIDUAL" })]}
+        claims={[claim]}
+        direction="OFFER"
         chainId={42161}
         can={{ ...controller.can, acceptClaim: true }}
         acts={controller.acts}
         phaseFor={() => phase}
+        decisions={
+          approved
+            ? {
+                [claimRowKey({ claim, commitment: commitmentFixture() })]: {
+                  kind: "approved",
+                  commitmentId: claim.commitmentId.toString(),
+                  at: Date.UTC(2026, 8, 28, 22, 42),
+                },
+              }
+            : {}
+        }
+        standingOf={() => null}
         actDisabled={false}
         onOpenDialog={vi.fn()}
       />
     );
 
-    rerender(view({ status: "confirmed", key: "accept", hash: null }));
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Accepted. The request leaves this list once the index shows it."
-    );
-    expect(screen.getByRole("button", { name: "Accept" })).toBeDisabled();
+    rerender(view({ status: "confirmed", key: "accept", hash: null }, true));
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
 
-    rerender(view({ status: "failed", key: "accept" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/nothing changed/i);
-    expect(screen.getByRole("button", { name: "Accept" })).toBeEnabled();
+    rerender(view({ status: "failed", key: "accept" }, false));
+    expect(screen.getByText(/nothing changed/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
   });
 });

@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -17,7 +17,7 @@ const mockGetBalance = vi.fn();
 const mockEstimateGas = vi.fn();
 const mockEstimateFeesPerGas = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
+const mockReadyWalletClient = vi.fn();
 
 /** Function selectors on the ENS sender. */
 const RELEASE_NAME_SPONSORED_SELECTOR = "0x0bcd9fed";
@@ -44,9 +44,6 @@ let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmar
 vi.mock("wagmi", () => ({
   useAccount: vi.fn(() => ({
     address: mockWalletAddress,
-  })),
-  useWalletClient: vi.fn(() => ({
-    data: mockWalletClientData,
   })),
 }));
 
@@ -116,7 +113,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 import { toastService } from "../../../components/toast";
@@ -155,6 +152,7 @@ describe("useENSReleaseName", () => {
       account: { address: mockWalletAddress, type: "json-rpc" },
       sendTransaction: mockWalletSendTransaction,
     };
+    mockReadyWalletClient.mockImplementation(async () => mockWalletClientData);
     mockEnsAddress = ENS_ADDRESS;
     mockPoolBalance = 200000n;
     mockWalletBalance = 10n ** 18n;
@@ -163,7 +161,7 @@ describe("useENSReleaseName", () => {
     );
     mockEstimateGas.mockResolvedValue(300000n);
     mockEstimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 25000000n });
-    mockWaitForTransactionReceipt.mockResolvedValue({ logs: [] });
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success", logs: [] });
     mockDefaultReadContract();
   });
 
@@ -308,7 +306,8 @@ describe("useENSReleaseName", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockEstimateGas).toHaveBeenCalledWith(expect.objectContaining({ value: releaseFee }));
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      // The wallet is readied for the owner whose name was looked up.
+      expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, mockWalletAddress);
       const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
       expect(sent).toMatchObject({ to: LEGACY_ENS_ADDRESS, value: releaseFee });
       expect(sent.data.startsWith(RELEASE_NAME_SELECTOR)).toBe(true);
@@ -329,35 +328,74 @@ describe("useENSReleaseName", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({ description: "Not enough ETH to cover the release fee." })
       );
-      expect(mockEnsureAppKitWalletChain).not.toHaveBeenCalled();
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
       expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });
 
   describe("onSuccess", () => {
-    it("clears cached protocol name and shows a success toast", async () => {
+    it("replaces a stale active read with durable release progress and retains the name for polling", async () => {
       mockAuthMode = "passkey";
       mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
 
       const { queryClient, wrapper } = createTestWrapper();
-      queryClient.setQueryData(
-        queryKeys.ens.protocolName(mockSmartAccountClient.account.address),
-        "alice"
+      const nameKey = queryKeys.ens.protocolName(
+        mockSmartAccountClient.account.address.toLowerCase()
       );
+      const statusKey = queryKeys.ens.registrationStatus("alice");
+      queryClient.setQueryData(nameKey, "alice.greengoods.eth");
+      queryClient.setQueryData(statusKey, { status: "active" });
+      let finishOldRead!: (value: { status: string }) => void;
+      const oldRead = queryClient
+        .fetchQuery({
+          queryKey: statusKey,
+          queryFn: () =>
+            new Promise((resolve) => {
+              finishOldRead = resolve;
+            }),
+        })
+        .catch(() => undefined);
       const { result } = renderHook(() => useENSReleaseName(), { wrapper });
 
       result.current.mutate();
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(
-        queryClient.getQueryData(queryKeys.ens.protocolName(mockSmartAccountClient.account.address))
-      ).toBeNull();
+      await act(async () => {
+        finishOldRead({ status: "active" });
+        await oldRead;
+      });
+      expect(queryClient.getQueryData(nameKey)).toBe("alice.greengoods.eth");
+      expect(queryClient.getQueryData(statusKey)).toMatchObject({
+        status: "pending",
+        release: { owner: mockSmartAccountClient.account.address },
+        submittedAt: expect.any(Number),
+      });
       expect(toastService.success).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Name release started",
         })
       );
+    });
+
+    it("does not mark a reverted receipt as a release or report success", async () => {
+      mockAuthMode = "passkey";
+      mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+      mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted", logs: [] });
+      const { queryClient, wrapper } = createTestWrapper();
+      queryClient.setQueryData(queryKeys.ens.registrationStatus("alice"), { status: "active" });
+      const { result } = renderHook(() => useENSReleaseName(), { wrapper });
+      result.current.mutate();
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(queryClient.getQueryData(queryKeys.ens.registrationStatus("alice"))).toEqual({
+        status: "active",
+      });
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Release failed" })
+      );
+      const { logger } = await import("../../../modules/app/logger");
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

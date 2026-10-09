@@ -36,7 +36,7 @@ const meta: Meta<typeof HubCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Hub workspace coverage through the real CanvasLayout shell, including the confirm, work, assess, and certify stages and route-backed detail entry points.",
+          "Seeded Hub workspace coverage through the real CanvasLayout shell, including the Work, Confirm, Assessments and Hypercerts tabs and route-backed detail entry points.",
       },
     },
   },
@@ -103,9 +103,20 @@ export const WorkDetail: Story = {
 // (/hub/work/submit → submitWorkView). Its states are covered by
 // SubmitWork.stories.tsx (full-screen dialog / page / inline panel).
 
-export const AssessQueue: Story = {
+// The shell reads its garden from the URL, so a story that shows the seeded
+// garden's records names that garden in its path.
+const SEEDED_GARDEN = `gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
+
+// Approved work is a scope of the Work tab, carried in the URL.
+export const ApprovedWork: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/hub/assess?sort=newest" },
+  args: { initialPath: `/hub/work?${SEEDED_GARDEN}&sort=newest&scope=approved` },
+  decorators: hubDecorators(),
+};
+
+export const AssessmentsTab: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: `/hub/assess?${SEEDED_GARDEN}` },
   decorators: hubDecorators(),
 };
 
@@ -117,16 +128,23 @@ export const CreateAssessmentRoute: Story = {
     await expect(
       await canvas.findByRole(
         "heading",
-        { name: "Submit Assessment" },
+        { name: "Create Assessment" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
   },
 };
 
-export const CertificationInspector: Story = {
+// An assessment's record opens under the Assessments tab.
+export const AssessmentRecord: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/hub/certify/assessment-rio-canopy?sort=newest" },
+  args: { initialPath: `/hub/assess/assessment-rio-canopy?${SEEDED_GARDEN}` },
+  decorators: hubDecorators(),
+};
+
+export const HypercertsTab: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: `/hub/certify?${SEEDED_GARDEN}` },
   decorators: hubDecorators(),
 };
 

@@ -5,7 +5,7 @@ slug: /community/steward-guide/
 description: "Create and operate a Garden, assess its needs, review Work, certify impact, and manage funding."
 audience: steward
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-09
 feature_status: Live
 goal: "Route stewards and evaluators to the current authorized workflow."
 difficulty: "standard"
@@ -17,6 +17,8 @@ source_of_truth:
   - packages/admin/src/router.tsx
   - packages/admin/src/views
   - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/admin/src/components/Layout/StewardAccessRequest.tsx
+  - packages/admin/src/components/Layout/AccountProfilePanel.tsx
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/resolvers/Assessment.sol
 ---
@@ -29,7 +31,14 @@ Stewards operate the Garden and record approval or rejection of submitted Work. 
 - [Manage Actions](/community/steward-guide/managing-actions) to define the work Gardeners can document.
 - [Create an Assessment](/community/steward-guide/making-an-assessment) to record baseline, outcome, and reporting context.
 - [Review Work](/community/steward-guide/reviewing-work) as a steward and leave actionable feedback.
+- [Run a Commitment Pool](/community/steward-guide/commitment-pooling) to set up, seed, confirm, and close commitments.
 - [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates) only after the evidence chain is ready.
 - [Manage Funding and Governance](/community/steward-guide/funding-and-governance) through the mechanism that fits the decision.
 
 Check the selected Garden, account, role, and network before any write action. A visible route does not by itself grant permission.
+
+## Get steward access
+
+On the 2.0 candidate, signing in without Garden access still leaves **Profile** available. Copy your account address there to share with a Garden owner or steward, or choose **Request steward access**, select a Garden, and review the request before signing its message. The request does not grant a role by itself.
+
+Use **Check status** to read the request again or **Withdraw** to cancel it. A Garden owner or authorized steward reviews steward requests separately from membership requests and assigns the role. Access appears after that assignment is confirmed. If signing is unavailable, use the address-sharing path. You can also sign out from Profile.

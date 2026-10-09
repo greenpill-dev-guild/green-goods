@@ -24,10 +24,22 @@ sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useEnsName.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendToken.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useSendableTokens.ts"), { spy: true });
+sb.mock(import("../src/hooks/client-ui/commitment/useGardenCommitmentController.ts"), {
+  spy: true,
+});
+sb.mock(import("../src/hooks/client-ui/commitment/usePendingProof.ts"), { spy: true });
+sb.mock(import("../src/hooks/client-ui/commitment/useProofComposerController.ts"), {
+  spy: true,
+});
+sb.mock(import("../src/hooks/client-ui/pool/useGardenPoolController.ts"), { spy: true });
+sb.mock(import("../src/hooks/client-ui/work/useWorkSubmissionFlowController.ts"), {
+  spy: true,
+});
 sb.mock(import("../src/hooks/client-ui/wallet/useSendFlowController.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentCycleNames.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentJobs.ts"), { spy: true });
 sb.mock(import("../src/hooks/commitment-pooling/useCommitmentPooling.ts"), { spy: true });
+sb.mock(import("../src/hooks/commitment-pooling/useCommitmentQueueState.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useAllocateHypercertSupport.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useConvictionStrategies.ts"), { spy: true });
 sb.mock(import("../src/hooks/conviction/useGardenCommunity.ts"), { spy: true });
@@ -46,6 +58,7 @@ sb.mock(import("../src/hooks/garden/useGardenJoinRequests.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useClaimGreenWillBadge.ts"), { spy: true });
 sb.mock(import("../src/hooks/greenwill/useGreenWillBadges.ts"), { spy: true });
 sb.mock(import("../src/hooks/profile/useProfileAvatar.ts"), { spy: true });
+sb.mock(import("../src/hooks/public/usePublicGardens.ts"), { spy: true });
 sb.mock(import("../src/hooks/roles/useHasRole.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useGardenVaults.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useMyVaultDeposits.ts"), { spy: true });
@@ -57,6 +70,7 @@ sb.mock(import("../src/hooks/vault/useVaultPreview.ts"), { spy: true });
 sb.mock(import("../src/hooks/vault/useVaultWithdraw.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useDrafts.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
+sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
 sb.mock(import("../../client/src/routes/WalletRuntimeProviders.tsx"), { spy: true });
@@ -94,6 +108,11 @@ const preview: Preview = {
     // which is how we verify the admin flows' bottom-sheet + two-column breakpoints.
     viewport: {
       options: {
+        mobileSmall: {
+          name: "Mobile (360)",
+          styles: { width: "360px", height: "780px" },
+          type: "mobile",
+        },
         mobile: { name: "Mobile (375)", styles: { width: "375px", height: "812px" }, type: "mobile" },
         tablet: { name: "Tablet (768)", styles: { width: "768px", height: "1024px" }, type: "tablet" },
         desktop: { name: "Desktop (1280)", styles: { width: "1280px", height: "800px" }, type: "desktop" },

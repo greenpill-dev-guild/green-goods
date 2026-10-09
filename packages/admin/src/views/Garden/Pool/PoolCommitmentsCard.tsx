@@ -1,27 +1,28 @@
-import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { ActPhaseLine } from "@/components/ActPhaseLine";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
+import { PoolGroupRow } from "./PoolGroupRow";
 import { GardenPoolTarget } from "./PoolTarget";
-import { commitmentStateChip, directionLabel, formatUnixDate } from "./poolPresentation";
+import {
+  type PoolCommitmentFocus,
+  type PoolCommitmentGroup,
+  type PoolCommitmentScope,
+  selectPoolCommitmentRows,
+} from "./poolCommitmentRows";
+import { commitmentStateChip, directionEdgeClass, directionLabel } from "./poolPresentation";
+import { dueDateText } from "./poolTime";
 
-export type PoolCommitmentScope = "open" | "confirmed" | "past";
-
-/**
- * A count's own list, reached from the stats card: the live rows past their
- * due, or every row that needs recovery (disputed or past due). Null is the
- * scope chips' ordinary list.
- */
-export type PoolCommitmentFocus = "pastDue" | "recovery" | null;
+export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
 export interface PoolCommitmentsCardProps {
   console: PoolConsoleController;
@@ -30,6 +31,8 @@ export interface PoolCommitmentsCardProps {
   focus: PoolCommitmentFocus;
   onFocusChange: (focus: PoolCommitmentFocus) => void;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
+  /** Open a group of copies made together in its inspector. */
+  onOpenGroup: (group: PoolCommitmentGroup) => void;
   onSeed: () => void;
   canSeed: boolean;
   /** Workspace tone for the expire confirmation this card can open. */
@@ -37,14 +40,22 @@ export interface PoolCommitmentsCardProps {
 }
 
 /**
+ * Offers and Requests, the card's title since DL-077.
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
  * the live rows the chain would let anyone expire, a Needs recovery chip for
  * those and the disputed ones, and rows that open in the left inspector. The row information contract: kind · lifecycle · at most one
  * attention chip; meta = who · how much · when. Creations still queued on this
  * device render above the indexed rows so a seeded commitment shows up before
- * the indexer has it.
+ * the indexer has it. Copies made together are one group row (PRD-1022 D3),
+ * and a group's copies still queued fold into it as "didn't send" with Finish
+ * Creating, rather than as queued rows of their own.
  */
+/** A group past its deadline can't be finished; one with none never lapses. */
+function isPastDeadline(dueDate: bigint | null | undefined, now: number): boolean {
+  return Boolean(dueDate) && Number(dueDate) * 1000 <= now;
+}
+
 export function PoolCommitmentsCard({
   console: pool,
   scope,
@@ -52,12 +63,15 @@ export function PoolCommitmentsCard({
   focus,
   onFocusChange,
   onOpenCommitment,
+  onOpenGroup,
   onSeed,
   canSeed,
   tone,
 }: PoolCommitmentsCardProps) {
-  const { formatMessage, locale } = useIntl();
-  const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const now = Date.now();
+  const { model, titles, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -81,19 +95,31 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const rows = useMemo(() => {
-    const base =
-      focus === "pastDue"
-        ? model.dueLive
-        : focus === "recovery"
-          ? model.needsRecovery
-          : model.groups[scope];
-    const needle = search.trim().toLowerCase();
-    if (!needle) return base;
-    return base.filter((row) => titleOf(row).toLowerCase().includes(needle));
-    // titleOf reads from `titles`, listed below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focus, model.dueLive, model.needsRecovery, model.groups, scope, search, titles]);
+  const rows = selectPoolCommitmentRows({
+    model,
+    commitments: pool.commitments,
+    metadataByCID: titles,
+    scope,
+    focus,
+    search,
+    titleOf,
+  });
+  // A group's queued copies are counted on its row, so they leave the queued
+  // list, while it can still finish them. Past its deadline they stay listed on
+  // their own, where Discard clears them.
+  const shownGroups = new Set(
+    rows.flatMap((entry) =>
+      entry.kind === "group" && !isPastDeadline(entry.children[0]?.dueDate, now)
+        ? [entry.displayGroupId]
+        : []
+    )
+  );
+  const foldedJobs = new Set(
+    [...pool.queuedGroupCopies]
+      .filter(([groupId]) => shownGroups.has(groupId))
+      .flatMap(([, jobIds]) => jobIds)
+  );
+  const pendingCreates = pool.pendingCreates.filter((row) => !foldedJobs.has(row.jobId));
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -108,12 +134,12 @@ export function PoolCommitmentsCard({
         className="space-y-3"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.commitments.title",
-              defaultMessage: "Commitments",
+              id: "cockpit.garden.pool.promises.title",
+              defaultMessage: "Offers and Requests",
             })}
-          </h3>
+          </AdminCardTitle>
           <AdminButton
             type="button"
             variant="outlined"
@@ -123,8 +149,8 @@ export function PoolCommitmentsCard({
             disabled={!canSeed}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.act.seed",
-              defaultMessage: "Seed Commitment",
+              id: "cockpit.garden.pool.act.seedPromises",
+              defaultMessage: "Seed Promises",
             })}
           </AdminButton>
         </div>
@@ -133,8 +159,8 @@ export function PoolCommitmentsCard({
           search={search}
           onSearchChange={setSearch}
           placeholder={formatMessage({
-            id: "cockpit.garden.pool.commitments.search",
-            defaultMessage: "Search commitments",
+            id: "cockpit.garden.pool.promises.search",
+            defaultMessage: "Search promises",
           })}
         >
           <div
@@ -208,12 +234,12 @@ export function PoolCommitmentsCard({
         </AdminSearchToolbar>
 
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
-          <ul
-            className="divide-y divide-[rgb(var(--m3-outline-variant))]"
-            data-testid="pool-queued"
-          >
+          <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
             {pendingCreates.map((row) => (
-              <li key={row.jobId} className="flex flex-wrap items-center gap-2 py-2">
+              <li
+                key={row.jobId}
+                className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
+              >
                 <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
                   {row.title ??
                     formatMessage({
@@ -237,7 +263,7 @@ export function PoolCommitmentsCard({
                           defaultMessage: "Queued",
                         })}
                 </StatusBadge>
-                <span className="text-xs text-text-soft">
+                <span className="body-xs text-text-soft">
                   {`${row.targetUnits} ${row.unitLabel}`}
                 </span>
                 <span className="ml-auto flex items-center gap-1.5">
@@ -259,7 +285,12 @@ export function PoolCommitmentsCard({
                     type="button"
                     variant="outlined"
                     size="sm"
-                    disabled={!isOnline || busyJobId !== null}
+                    disabled={
+                      !isOnline ||
+                      busyJobId !== null ||
+                      (!row.hasRecordedSend &&
+                        isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now))
+                    }
                     loading={busyJobId === row.jobId}
                     onClick={() => void runQueued(row.jobId, acts.retryQueued)}
                   >
@@ -276,6 +307,16 @@ export function PoolCommitmentsCard({
                   </AdminButton>
                 </span>
                 <div className="basis-full">
+                  {!row.hasRecordedSend &&
+                  isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
+                    <p className="body-xs text-text-soft">
+                      {formatMessage({
+                        id: "cockpit.garden.pool.add.expired",
+                        defaultMessage:
+                          "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+                      })}
+                    </p>
+                  ) : null}
                   <ActPhaseLine
                     phase={pool.queuedPhase(row.jobId)}
                     chainId={pool.chainId}
@@ -293,13 +334,13 @@ export function PoolCommitmentsCard({
         {total === 0 && pendingCreates.length === 0 ? (
           <div className="flex min-h-40 flex-col items-center justify-center gap-2 text-center">
             <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-            <p className="label-md text-text-strong">
+            <AdminCardTitle>
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyTitle",
                 defaultMessage: "No commitments yet",
               })}
-            </p>
-            <p className="max-w-sm text-sm text-text-soft">
+            </AdminCardTitle>
+            <p className="max-w-sm body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
@@ -308,7 +349,7 @@ export function PoolCommitmentsCard({
             </p>
           </div>
         ) : rows.length === 0 ? (
-          <p className="flex min-h-24 items-center justify-center text-center text-sm text-text-soft">
+          <p className="flex min-h-24 items-center justify-center text-center body-sm text-text-soft">
             {search.trim()
               ? formatMessage({
                   id: "cockpit.garden.pool.commitments.noMatch",
@@ -320,42 +361,54 @@ export function PoolCommitmentsCard({
                 })}
           </p>
         ) : (
-          <ul className="divide-y divide-[rgb(var(--m3-outline-variant))]">
-            {rows.map((commitment) => {
+          <ul className="divide-y divide-stroke-soft">
+            {rows.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <PoolGroupRow
+                    key={entry.key}
+                    group={entry}
+                    title={titleOf(entry.children[0] as CommitmentReadModel)}
+                    unsent={
+                      shownGroups.has(entry.displayGroupId)
+                        ? (pool.queuedGroupCopies.get(entry.displayGroupId)?.length ?? 0)
+                        : 0
+                    }
+                    finishing={pool.finishingGroupId === entry.displayGroupId}
+                    finishDisabled={!isOnline || pool.finishingGroupId !== null}
+                    onOpen={() => onOpenGroup(entry)}
+                    onFinish={() => void acts.finishCreating(entry.displayGroupId)}
+                  />
+                );
+              }
+              const commitment = entry.record;
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
               const isDue = dueIds.has(commitment.id);
-              // The "who" leg reads as people, not infrastructure: resolved
-              // names via AddressDisplay and a worded relationship. The
-              // provider does the thing for the receiver, whichever side
-              // created the record; the direction chip tells the rest.
-              const provider =
-                commitment.direction === "REQUEST" ? commitment.counterparty : commitment.creator;
-              const receiver =
-                commitment.direction === "REQUEST" ? commitment.creator : commitment.counterparty;
-              const whoAlone = provider ?? receiver;
               const amount =
                 `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim();
               const due = commitment.dueDate
                 ? formatMessage(
                     { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
-                    { date: formatUnixDate(commitment.dueDate, locale, "—") }
+                    { date: dueDateText(intl, Number(commitment.dueDate) * 1000, now) }
                   )
                 : "";
               return (
                 <li
                   key={commitment.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-2"
+                  className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
+                  {/* As in the group row: a 240px basis, so Expire Now… wraps
+                      under the text on a narrow card. */}
                   <button
                     type="button"
-                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--m3-on-surface)]"
+                    className="m3-state-layer flex min-w-0 grow basis-60 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
                     onClick={() => onOpenCommitment(commitment)}
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="whitespace-nowrap text-xs text-text-soft">
+                        <span className="whitespace-nowrap body-xs text-text-soft">
                           {directionLabel(commitment.direction, formatMessage)}
                         </span>
                         <span className="truncate text-body-md text-text-strong" title={title}>
@@ -373,35 +426,9 @@ export function PoolCommitmentsCard({
                           </StatusBadge>
                         ) : null}
                       </span>
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-soft">
-                        {provider && receiver && provider !== receiver ? (
-                          <FormattedMessage
-                            id="cockpit.garden.pool.row.people"
-                            defaultMessage="{provider} for {receiver}"
-                            values={{
-                              provider: (
-                                <AddressDisplay
-                                  address={provider}
-                                  interactive={false}
-                                  className="text-xs"
-                                />
-                              ),
-                              receiver: (
-                                <AddressDisplay
-                                  address={receiver}
-                                  interactive={false}
-                                  className="text-xs"
-                                />
-                              ),
-                            }}
-                          />
-                        ) : whoAlone ? (
-                          <AddressDisplay
-                            address={whoAlone}
-                            interactive={false}
-                            className="text-xs"
-                          />
-                        ) : null}
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
+                        {/* The "who" leg reads as people, not infrastructure. */}
+                        <CommitmentPeople commitment={commitment} />
                         <span>· {amount}</span>
                         {due ? <span>· {due}</span> : null}
                       </span>
@@ -415,6 +442,7 @@ export function PoolCommitmentsCard({
                       type="button"
                       variant="outlined"
                       size="sm"
+                      className="ms-auto"
                       onClick={() => setExpireTarget(commitment)}
                       disabled={actDisabled}
                     >
@@ -431,7 +459,7 @@ export function PoolCommitmentsCard({
         )}
 
         {focus === "pastDue" && rows.length > 0 ? (
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",
               defaultMessage:

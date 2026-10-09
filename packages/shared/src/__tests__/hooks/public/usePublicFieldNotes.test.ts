@@ -1,14 +1,19 @@
 /**
  * usePublicFieldNotes Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createMockGarden, createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import {
+  approveEveryWork,
+  createMockGarden,
+  createMockWork,
+  MOCK_ADDRESSES,
+} from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -20,11 +25,14 @@ vi.mock("../../../modules/data/greengoods", () => ({
 }));
 
 const mockGetWorks = vi.fn();
+const mockReadWorkApprovalsForWorks = vi.fn();
 vi.mock("../../../modules/data/eas", () => ({
   getWorks: (...args: unknown[]) => mockGetWorks(...args),
+  readWorkApprovalsForWorks: (...args: unknown[]) => mockReadWorkApprovalsForWorks(...args),
 }));
 
-vi.mock("../../../config/blockchain", () => ({
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -38,21 +46,6 @@ import { usePublicFieldNotes } from "../../../hooks/public/usePublicFieldNotes";
 // Helpers
 // ============================================
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -62,9 +55,41 @@ describe("usePublicFieldNotes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockGetGardens.mockResolvedValue([]);
     mockGetWorks.mockResolvedValue([]);
+    mockReadWorkApprovalsForWorks.mockImplementation(async (workUIDs: string[]) =>
+      approveEveryWork(workUIDs)
+    );
+  });
+
+  it("leaves unapproved work out of the feed and its total", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([
+      createMockWork({ id: "approved", gardenAddress: garden.id }),
+      createMockWork({ id: "pending", gardenAddress: garden.id }),
+    ]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue(approveEveryWork(["approved"]));
+
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.fieldNotes.map((note) => note.id)).toEqual(["approved"]);
+    expect(result.current.data?.total).toBe(1);
+    expect(result.current.data?.partialData).toBe(false);
+  });
+
+  it("says the feed may be missing work when a decision cannot be read", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([createMockWork({ id: "unread", gardenAddress: garden.id })]);
+    mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["unread"] });
+
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toMatchObject({ fieldNotes: [], total: 0, partialData: true });
   });
 
   it("returns empty page when no works exist", async () => {
@@ -73,8 +98,8 @@ describe("usePublicFieldNotes", () => {
     ]);
     mockGetWorks.mockResolvedValue([]);
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -106,12 +131,13 @@ describe("usePublicFieldNotes", () => {
           id: "w-b",
           gardenAddress: otherGarden.id as `0x${string}`,
           createdAt: 1_700_000_500,
+          metadata: '{"details":{"participants":4}}',
         }),
       ];
     });
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -120,6 +146,7 @@ describe("usePublicFieldNotes", () => {
 
     expect(mockGetWorks).toHaveBeenCalled();
     expect(result.current.data?.fieldNotes).toHaveLength(2);
+    expect(result.current.data?.fieldNotes[0]?.metadata).toBe('{"details":{"participants":4}}');
   });
 
   it("filters by garden address when provided", async () => {
@@ -133,9 +160,12 @@ describe("usePublicFieldNotes", () => {
       }),
     ]);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ gardenAddress: garden.id }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicFieldNotes({ gardenAddress: garden.id }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -160,8 +190,8 @@ describe("usePublicFieldNotes", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ limit: 10 }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes({ limit: 10 }), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -189,9 +219,12 @@ describe("usePublicFieldNotes", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicFieldNotes({ limit: 10, cursor: 10 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => usePublicFieldNotes({ limit: 10, cursor: 10 }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
@@ -208,8 +241,8 @@ describe("usePublicFieldNotes", () => {
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockRejectedValue(new Error("EAS down"));
 
-    const { result } = renderHook(() => usePublicFieldNotes(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => usePublicFieldNotes(), {
+      queryClient,
     });
 
     await waitFor(() => {

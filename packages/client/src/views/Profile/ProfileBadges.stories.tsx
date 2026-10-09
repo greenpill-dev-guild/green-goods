@@ -49,7 +49,9 @@ function badge(
 }
 
 function claim(isPending = false) {
-  return { mutate: fn(), isPending } as unknown as ReturnType<typeof useClaimGenesisBadge>;
+  return { mutate: fn(), reset: fn(), isPending } as unknown as ReturnType<
+    typeof useClaimGenesisBadge
+  >;
 }
 
 function withBadges({ claiming = false } = {}) {

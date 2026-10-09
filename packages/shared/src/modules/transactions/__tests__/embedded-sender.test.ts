@@ -1,6 +1,6 @@
 /**
  * EmbeddedSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the embedded wallet transaction sender that targets EIP-5792
  * sendCalls with paymaster capability. Since wagmi experimental APIs
@@ -15,8 +15,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createFakeWagmiDeps,
   createMockContractCall,
-  MOCK_TX_HASH,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/transaction-fakes";
+import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { ContractCall } from "../types";
 import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
 
@@ -71,6 +71,8 @@ describe("EmbeddedSender", () => {
       await sender.sendContractCall(TEST_CALL);
 
       expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        // The write names who signs: the wallet connected when the send started.
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -133,7 +135,7 @@ describe("EmbeddedSender", () => {
 
     it("switches to Celo and confirms a user-paid send", async () => {
       const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write", expect.any(Function));
       expect(mockDeps.writeContract).toHaveBeenCalled();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
         onReplaced: expect.any(Function),
@@ -154,7 +156,11 @@ describe("EmbeddedSender", () => {
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(
+        TEST_CALL.chainId,
+        "write",
+        expect.any(Function)
+      );
       expect(mockDeps.writeContract).toHaveBeenCalledOnce();
     });
 
@@ -162,6 +168,7 @@ describe("EmbeddedSender", () => {
       await sender.sendContractCall({ ...TEST_CALL, value: 123n });
 
       expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,

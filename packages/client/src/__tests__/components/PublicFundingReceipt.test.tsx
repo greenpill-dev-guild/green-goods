@@ -7,7 +7,7 @@
  * Without these links the receipt is a dead-end, which the website UX flow
  * plan explicitly cited as a blocker.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";

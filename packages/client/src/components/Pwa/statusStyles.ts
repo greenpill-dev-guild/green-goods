@@ -15,17 +15,19 @@ export interface PwaStatusStyle {
 
 export const pwaStatusStyles = {
   primary: {
-    text: "text-primary",
-    icon: "text-primary",
+    // Interactive text and marks share one theme-aware foreground: deep green
+    // on light surfaces and the readable brighter green on dark surfaces.
+    text: "text-primary-on-surface",
+    icon: "text-primary-on-surface",
     surface: "bg-primary-alpha-10",
     border: "border-primary-alpha-24",
-    dot: "bg-primary",
+    dot: "bg-primary-on-surface",
     // Green fills that carry a number, glyph, or word use the action pair (DL-017).
     badge: "bg-primary-action text-primary-action-foreground",
-    progress: "bg-primary",
-    spinnerBorder: "border-t-primary",
+    progress: "bg-primary-on-surface",
+    spinnerBorder: "border-t-primary-on-surface",
     focus:
-      "focus-visible:ring-2 focus-visible:ring-primary-alpha-24 focus-visible:border-primary active:border-primary",
+      "focus-visible:ring-2 focus-visible:ring-primary-on-surface focus-visible:border-primary-on-surface active:border-primary-on-surface",
     foreground: "text-primary-action-foreground",
   },
   information: {
@@ -73,7 +75,8 @@ export const pwaStatusStyles = {
     surface: "bg-error-lighter",
     border: "border-error-light",
     dot: "bg-error-base",
-    badge: "bg-error-base text-static-white",
+    // A red fill that carries a word or number takes the action red (DL-053).
+    badge: "bg-error-action text-static-white",
     progress: "bg-error-base",
     spinnerBorder: "border-t-error-base",
     focus:

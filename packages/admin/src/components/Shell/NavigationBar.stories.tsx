@@ -1,7 +1,8 @@
-import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import type { ToolbarSlot } from "@green-goods/shared/components/Canvas/NavigationBar";
+import esMessages from "@green-goods/shared/i18n/es.json";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 import { IntlProvider } from "react-intl";
@@ -99,7 +100,58 @@ export const TwoSlots: Story = {
   },
 };
 
-export const PortugueseLabels: Story = {
+/** The phone bar carries a fifth, mobile-only tab. */
+const phoneSlots: ToolbarSlot[] = [
+  ...slots,
+  {
+    id: "profile",
+    label: "Profile",
+    labelId: "cockpit.nav.profile",
+    icon: RiUserLine,
+    path: "/profile",
+    visible: true,
+    mobileOnly: true,
+  },
+];
+
+/** Every phone tab label shows whole, inside its own tab (D16). */
+async function expectPhoneLabelsFit(canvasElement: HTMLElement) {
+  const items = canvasElement.querySelectorAll<HTMLElement>(
+    "[data-slot='mobile'] [data-slot='item']"
+  );
+  await expect(items).toHaveLength(phoneSlots.length);
+  for (const item of items) {
+    const label = item.querySelector<HTMLElement>("[data-slot='label']");
+    if (!label) throw new Error("A phone tab has no label");
+    await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+    const itemBox = item.getBoundingClientRect();
+    const labelBox = label.getBoundingClientRect();
+    await expect(labelBox.left).toBeGreaterThanOrEqual(itemBox.left);
+    await expect(labelBox.right).toBeLessThanOrEqual(itemBox.right);
+  }
+}
+
+/** At 360px, the narrowest phone the cockpit supports. */
+const phone = {
+  globals: { viewport: { value: "mobileSmall" } },
+  args: { slots: phoneSlots },
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) =>
+    expectPhoneLabelsFit(canvasElement),
+} satisfies Story;
+
+export const PhoneLabelsEnglish: Story = { ...phone };
+
+export const PhoneLabelsSpanish: Story = {
+  ...phone,
+  render: (args) => (
+    <IntlProvider locale="es" messages={esMessages}>
+      <NavigationBar {...args} />
+    </IntlProvider>
+  ),
+};
+
+export const PhoneLabelsPortuguese: Story = {
+  ...phone,
   render: (args) => (
     <IntlProvider locale="pt" messages={ptMessages}>
       <NavigationBar {...args} />

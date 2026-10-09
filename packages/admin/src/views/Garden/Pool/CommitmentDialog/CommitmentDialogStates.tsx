@@ -4,6 +4,7 @@ import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 
 /** The panel while the commitment, its detail and its timeline are still in flight. */
 export function CommitmentDialogLoading() {
@@ -46,13 +47,13 @@ export function CommitmentDialogNotFound({
       data-component="CommitmentDialogPanel"
       data-state="not-found"
     >
-      <p className="label-md text-text-strong">
+      <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.title",
           defaultMessage: "This commitment couldn’t be loaded",
         })}
-      </p>
-      <p className="max-w-sm text-sm text-text-soft">
+      </AdminCardTitle>
+      <p className="max-w-sm body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.body",
           defaultMessage:
@@ -102,13 +103,13 @@ export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
       data-component="CommitmentDialogPanel"
       data-state="unavailable"
     >
-      <p className="label-md text-text-strong">
+      <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.unavailable.title",
           defaultMessage: "Commitment pooling isn't switched on in this app yet",
         })}
-      </p>
-      <p className="max-w-sm text-sm text-text-soft">
+      </AdminCardTitle>
+      <p className="max-w-sm body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.unavailable.body",
           defaultMessage: "The pool console switches on with the release that serves pooling here.",

@@ -1,11 +1,11 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePoolCharter } from "../hooks/commitment-pooling/usePoolCharter";
 import type { CommitmentDocumentStore } from "../modules/commitment-pooling/document-store";
-import { renderHookWithProviders } from "./test-utils";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const readJson = vi.fn();
 const documents: CommitmentDocumentStore = { pinJson: vi.fn(), readJson };

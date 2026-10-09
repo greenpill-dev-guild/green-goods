@@ -7,7 +7,7 @@
  * rather than reading the form back, that a draft survives leaving, and that
  * the whole thing works with no signal.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import userEvent from "@testing-library/user-event";
@@ -24,11 +24,15 @@ const mockUseCycles = vi.fn();
 const mockUseActions = vi.fn();
 const mockEnqueue = vi.fn();
 const mockUseCommitment = vi.fn();
+/** Whether placing asks the reader's own wallet to send, as a wallet sign-in does. */
+const mockSendsFromTap = vi.fn(() => false);
 
 // Live now: the rail hides actions outside their window, because Work is
 // refused there and a commitment kept by such an action could never be kept.
-const NOW = Math.floor(Date.now() / 1000);
-const LIVE = { startTime: NOW - 86_400, endTime: NOW + 86_400 };
+// Action times are milliseconds, as getActions stores them.
+const NOW = Date.now();
+const DAY_MS = 24 * 60 * 60 * 1000;
+const LIVE = { startTime: NOW - DAY_MS, endTime: NOW + DAY_MS };
 const ACTIONS = [
   { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "", ...LIVE },
   { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "", ...LIVE },
@@ -40,8 +44,8 @@ const ACTIONS = [
     domain: "AGRO",
     media: [],
     description: "",
-    startTime: NOW - 172_800,
-    endTime: NOW - 86_400,
+    startTime: NOW - 2 * DAY_MS,
+    endTime: NOW - DAY_MS,
   },
 ];
 
@@ -87,6 +91,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
     enqueue: mockEnqueue,
     isPending: false,
     error: null,
+    sendsFromTap: mockSendsFromTap(),
     viewer: VIEWER,
   }),
 }));
@@ -101,7 +106,7 @@ vi.mock("@green-goods/shared/hooks/roles/useHasRole", () => ({
 }));
 
 const { ComposeCommitment } = await import("../../views/Home/Garden/Compose");
-const { useCommitmentComposerDraftStore } = await import(
+const { commitmentComposerDraftKey, useCommitmentComposerDraftStore } = await import(
   "@green-goods/shared/stores/useCommitmentComposerDraftStore"
 );
 
@@ -151,6 +156,7 @@ describe("ComposeCommitment", () => {
     window.localStorage.clear();
     useCommitmentComposerDraftStore.setState({ drafts: {} });
     mockUseOffline.mockReturnValue({ isOnline: true });
+    mockSendsFromTap.mockReturnValue(false);
     mockUsePools.mockReturnValue({
       pools: [{ poolId: 7n, openSeasonCycleId: null, state: "OPEN", poolType: "GARDEN" }],
     });
@@ -191,6 +197,34 @@ describe("ComposeCommitment", () => {
       "aria-pressed",
       "true"
     );
+  });
+
+  it("says to shorten a unit copied from an older commitment, written before the limit", async () => {
+    mockUseCommitment.mockReturnValue({
+      detail: {
+        commitment: {
+          poolId: 7n,
+          creator: VIEWER,
+          direction: "OFFER",
+          commitmentType: "SUPPORT_SERVICE",
+          // 32 characters: the composer allowed 40 before the 24-character limit.
+          unitLabel: "full-day workshops in the garden",
+          targetUnits: 3n,
+          claimMode: "OPEN",
+          contributorPolicy: "OPEN",
+          confirmers: [],
+          metadataCID: null,
+        },
+        requirements: [],
+      },
+    });
+    const user = userEvent.setup();
+    render("offer", "9");
+
+    await user.type(screen.getByLabelText("Name it"), "Compost workshop");
+    await user.click(next());
+    expect(next()).toBeDisabled();
+    expect(screen.getByText("Shorten the label to 24 characters or fewer.")).toBeInTheDocument();
   });
 
   it("leaves the flow when no door opened it, rather than guessing a direction", () => {
@@ -469,6 +503,25 @@ describe("ComposeCommitment", () => {
     expect(screen.getByText(/will wait on your phone/i)).toBeInTheDocument();
   });
 
+  it("tells a wallet reader that placing asks their wallet, and never that it sends itself", async () => {
+    const user = userEvent.setup();
+    mockSendsFromTap.mockReturnValue(true);
+    mockUseOffline.mockReturnValue({ isOnline: false });
+    render("offer");
+    await walkServiceToReview(user);
+
+    expect(screen.getByText(/asks your wallet to send the promise/i)).toBeInTheDocument();
+    expect(screen.getByText(/until you are back to send it/i)).toBeInTheDocument();
+    expect(screen.queryByText(/It sends when connected/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/send itself/i)).not.toBeInTheDocument();
+
+    await place(user, "Make This Offer");
+    expect(
+      await screen.findByText(/Send it from Promises when you are back online/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/sends itself/i)).not.toBeInTheDocument();
+  });
+
   it("refuses to place into a garden with no pool", async () => {
     const user = userEvent.setup();
     mockUsePools.mockReturnValue({ pools: [] });
@@ -574,6 +627,42 @@ describe("ComposeCommitment", () => {
     await user.click(screen.getByRole("button", { name: "Start Fresh" }));
     expect(screen.getByLabelText("Name it")).toHaveValue("");
     expect(Object.keys(useCommitmentComposerDraftStore.getState().drafts)).toHaveLength(0);
+  });
+
+  it("keeps a resumed action that has closed on the list, and holds the step until it goes", async () => {
+    // Saved while Harvest could still take work; its window has since ended.
+    useCommitmentComposerDraftStore.getState().saveDraft(
+      commitmentComposerDraftKey({
+        chainId: 42161,
+        viewer: VIEWER,
+        garden: GARDEN,
+        direction: "OFFER",
+      }),
+      {
+        values: {
+          title: "Harvest the north beds",
+          kind: "GARDEN_WORK",
+          requirements: [{ actionUID: "99", requiredCount: 1 }],
+        },
+        clientCommitmentId: "draft-harvest",
+      },
+      NOW - 2 * DAY_MS
+    );
+    const user = userEvent.setup();
+    render("offer");
+    await user.click(screen.getByRole("button", { name: "Resume Draft" }));
+    await user.click(next());
+
+    const rows = screen.getByRole("list", { name: "Chosen actions" });
+    expect(within(rows).getByText("Closed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Harvest has closed and can't take work any more. Remove it to continue.")
+    ).toBeInTheDocument();
+    expect(next()).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Remove Harvest" }));
+    await user.click(screen.getByRole("button", { name: /Prune/ }));
+    expect(next()).toBeEnabled();
   });
 
   it("forgets the draft once the commitment is placed", async () => {

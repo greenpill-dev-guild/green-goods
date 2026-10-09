@@ -148,7 +148,7 @@ describe("client public service worker migration", () => {
     vi.clearAllMocks();
   });
 
-  it("leaves every navigation to the precache router", async () => {
+  it("leaves production navigation to the precache router", async () => {
     const { fetchMock, listeners } = await loadServiceWorker();
     const respondWith = vi.fn();
 
@@ -160,6 +160,48 @@ describe("client public service worker migration", () => {
 
     expect(respondWith).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fetches current dev HTML on every reload despite an older precached entry", async () => {
+    const { cacheFor, fetchMock, listeners } = await loadServiceWorker(
+      "https://localhost:3001/dev-sw.js?dev-sw"
+    );
+    await cacheFor("workbox-precache").put("/index.html", new Response("old boot layout"));
+    const request = htmlNavigationRequest("https://localhost:3001/home/login");
+
+    for (const html of ["current boot layout", "next boot layout"]) {
+      fetchMock.mockResolvedValueOnce(new Response(html));
+      let response: Promise<Response> | undefined;
+      const stopImmediatePropagation = vi.fn();
+      listeners.fetch[0]({
+        request,
+        respondWith: (pending: Promise<Response>) => {
+          response = pending;
+        },
+        stopImmediatePropagation,
+      });
+
+      expect(await (await response)?.text()).toBe(html);
+      expect(fetchMock).toHaveBeenLastCalledWith(request, { cache: "no-store" });
+      expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("surfaces an unavailable dev server rather than mixing cached HTML with live modules", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker(
+      "https://localhost:3001/dev-sw.js?dev-sw"
+    );
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    let response: Promise<Response> | undefined;
+    listeners.fetch[0]({
+      request: htmlNavigationRequest("https://localhost:3001/home"),
+      respondWith: (pending: Promise<Response>) => {
+        response = pending;
+      },
+      stopImmediatePropagation: vi.fn(),
+    });
+    expect(response).toBeDefined();
+    await expect(response).rejects.toThrow("Failed to fetch");
   });
 
   it("waits for an explicit update prompt before activating a fresh worker", async () => {

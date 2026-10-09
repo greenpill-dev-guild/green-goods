@@ -1,13 +1,13 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
-import { SeedConfirmerList } from "./SeedConfirmerList";
+import { SeedConfirmerList, type SeedMember } from "./SeedConfirmerList";
 import { SeedRewardSection } from "./SeedRewardSection";
-import type { RewardUnits } from "./seedRewardAmount";
 import type { SeedFieldError } from "./seedStepModel";
 
 export interface SeedStepProofProps {
@@ -17,21 +17,19 @@ export interface SeedStepProofProps {
   noteId: string;
   busy: boolean;
   errorOf: SeedFieldError;
-  /** The address being typed, held by the dialog so it survives a step change. */
-  confirmerDraft: string;
-  onConfirmerDraftChange: (value: string) => void;
-  onAddConfirmer: () => void;
+  /** The garden's people, offered as confirmers in one tap. */
+  members: readonly SeedMember[];
   /** Without a registered protocol pool the Green Goods team fallback cannot stand. */
   protocolRegistered: boolean;
-  /** Celo settlement stays disabled until the garden's account is active. */
+  /** G$ rewards wait until the garden's settlement account is active. */
   settlementActive: boolean;
-  /** The units the declared reward is typed in. */
-  rewardUnits: RewardUnits;
+  price: GoodDollarPriceState;
 }
 
 /**
- * Step three of the seeding console: who confirms, whether the Green Goods team
- * may step in, how the commitment is claimed, and the advanced declared reward.
+ * Step three of Seed Promises: who confirms, whether the Green Goods team may
+ * step in, how each promise is taken up, and the reward. The same settings
+ * apply to every promise the answer creates, and each is confirmed on its own.
  */
 export function SeedStepProof({
   form,
@@ -39,25 +37,35 @@ export function SeedStepProof({
   noteId,
   busy,
   errorOf,
-  confirmerDraft,
-  onConfirmerDraftChange,
-  onAddConfirmer,
+  members,
   protocolRegistered,
   settlementActive,
-  rewardUnits,
+  price,
 }: SeedStepProofProps) {
   const { formatMessage } = useIntl();
+  const count = values.count ?? 1;
 
   return (
     <div className="space-y-4">
+      {count > 1 ? (
+        <Alert variant="info">
+          {formatMessage(
+            {
+              id: "cockpit.garden.pool.seed.appliesToEach",
+              defaultMessage:
+                "These apply to each of the {count} promises. Each one is confirmed on its own.",
+            },
+            { count }
+          )}
+        </Alert>
+      ) : null}
+
       <SeedConfirmerList
         form={form}
         values={values}
         busy={busy}
         errorOf={errorOf}
-        confirmerDraft={confirmerDraft}
-        onConfirmerDraftChange={onConfirmerDraftChange}
-        onAddConfirmer={onAddConfirmer}
+        members={members}
       />
 
       <AdminSettingRow
@@ -116,6 +124,7 @@ export function SeedStepProof({
             options={[
               {
                 value: "OPEN",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.claimMode.open",
                   defaultMessage: "Open",
@@ -127,13 +136,14 @@ export function SeedStepProof({
               },
               {
                 value: "APPROVAL_GATED",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.claimMode.gated",
                   defaultMessage: "Steward-reviewed",
                 }),
                 description: formatMessage({
-                  id: "cockpit.garden.pool.seed.claimMode.gatedHint",
-                  defaultMessage: "Requests wait for review",
+                  id: "cockpit.garden.pool.seed.claimMode.gatedAskHint",
+                  defaultMessage: "Each ask waits for your approval",
                 }),
               },
             ]}
@@ -147,7 +157,8 @@ export function SeedStepProof({
         busy={busy}
         errorOf={errorOf}
         settlementActive={settlementActive}
-        units={rewardUnits}
+        price={price}
+        count={count}
       />
     </div>
   );

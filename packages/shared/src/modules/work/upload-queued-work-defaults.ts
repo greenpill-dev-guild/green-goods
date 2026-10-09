@@ -10,6 +10,7 @@ import { getEASConfig } from "../../config/blockchain";
 import { connectivityStore } from "../../stores/connectivity";
 import { jobQueueDB } from "../job-queue/db";
 import { jobQueue } from "../job-queue/default-instance";
+import { createSendChainReads } from "../job-queue/send-chain-reads";
 import { acquireAvailableWorkJobs, holdWorkClaims, saveUnderClaim } from "../job-queue/work-claims";
 import { uploadKindOf } from "./upload-kinds";
 import { suspendUploadPreparation } from "./upload-preparation";
@@ -40,5 +41,8 @@ export async function createDefaultUploadQueuedWorkPorts(): Promise<UploadQueued
       simulation.simulateQueuedAttestations(call, chainId, account),
     processJob: (jobId, context) => jobQueue.processJob(jobId, context),
     now: () => Date.now(),
+    readTransactionNonce: (hash, chainId) =>
+      createSendChainReads({ chainId }).readTransactionNonce(hash),
+    readChainHead: (chainId) => createSendChainReads({ chainId }).readChainHead(),
   };
 }

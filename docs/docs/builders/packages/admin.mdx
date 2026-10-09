@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-09
 feature_status: Live
 source_of_truth:
   - packages/admin/AGENTS.md
@@ -56,6 +56,13 @@ The admin reads through the same [indexer](./indexer) read models and shared
 [EAS data layer](../integrations/eas) as the client, and writes approvals through the
 [contracts](./contracts). Its building blocks come from [shared](./shared); the admin package owns
 the forked cockpit shell and the `Admin*` wrapper components.
+
+Commitment pooling spans three scopes, and the
+[steward commitment-pool guide](/community/steward-guide/commitment-pooling) walks the rendered
+setup, seed, Confirm, settings, cycle, and transfer reviews. The pool console owns the selected
+garden's pool and cycle context, the Hub's Confirm tab uses the selected confirming garden, and
+Community's Coordination tab holds protocol confirmations. Keep those scopes distinct when you
+change the data projections they share.
 
 ## Conventions that will bite you
 

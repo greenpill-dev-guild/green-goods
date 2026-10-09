@@ -1,9 +1,9 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, StrictMode, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -18,12 +18,30 @@ const mocks = vi.hoisted(() => ({
   loadShareTarget: vi.fn(),
   normalizeWorkMediaFiles: vi.fn(),
   saveOnExit: vi.fn(),
+  autoSaveFields: null as null | Record<string, unknown>,
+  autoSaveEnabled: true,
+  isResumingFromUrl: false,
+  setDraftGarden: vi.fn(),
+  setDraftAction: vi.fn(),
+  setFlowState: vi.fn(),
+  linkCleared: false,
   toastError: vi.fn(),
+  toastSuccess: vi.fn(),
   setImages: vi.fn(),
   setValue: vi.fn(),
+  loggerError: vi.fn(),
   loggerWarn: vi.fn(),
   outcome: null as null | Record<string, unknown>,
   choices: [] as Array<Record<string, unknown>>,
+  communityGarden: null as null | { id: string },
+  selectGarden: vi.fn(),
+  joinGarden: vi.fn(),
+  joinState: { isJoining: false, joiningGardenId: null as string | null },
+  askAgain: vi.fn(),
+}));
+
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x9999999999999999999999999999999999999999",
 }));
 
 vi.mock("../../../stores/workFlowTypes", () => ({
@@ -35,7 +53,7 @@ vi.mock("../../../utils/action/parsers", () => ({
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
-  logger: { error: vi.fn(), warn: mocks.loggerWarn },
+  logger: { error: mocks.loggerError, warn: mocks.loggerWarn },
   createLogger: () => ({ error: vi.fn(), warn: vi.fn(), debug: vi.fn(), info: vi.fn() }),
 }));
 
@@ -63,7 +81,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../components/Toast/toast.service", () => ({
-  toastService: { error: mocks.toastError, success: vi.fn() },
+  toastService: { error: mocks.toastError, success: mocks.toastSuccess },
 }));
 
 vi.mock("../../../modules/app/posthog", () => ({
@@ -81,7 +99,15 @@ vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
     missingAttachments: [],
     removeMissingAttachment: vi.fn(),
   }),
-  useDraftAutoSave: () => ({ saveOnExit: mocks.saveOnExit }),
+  useDraftAutoSave: (
+    fields: Record<string, unknown>,
+    _images: unknown,
+    options: { enabled: boolean }
+  ) => {
+    mocks.autoSaveFields = fields;
+    mocks.autoSaveEnabled = options.enabled;
+    return { saveOnExit: mocks.saveOnExit };
+  },
 }));
 
 vi.mock("../../../modules/app/share-target", () => ({
@@ -97,15 +123,17 @@ vi.mock("../../../modules/work/media-processing", async (importOriginal) => ({
 vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
     showDraftSheet: false,
+    isResumingFromUrl: mocks.isResumingFromUrl,
     setShowDraftSheet: vi.fn(),
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
+    askAgainNextVisit: mocks.askAgain,
     clearActiveDraft: vi.fn(),
   }),
 }));
 
 vi.mock("../../../hooks/garden/useJoinGarden", () => ({
-  useJoinGarden: () => ({ joinGarden: vi.fn(), isJoining: false, joiningGardenId: null }),
+  useJoinGarden: () => ({ joinGarden: mocks.joinGarden, ...mocks.joinState }),
 }));
 
 vi.mock("../../../hooks/app/useOffline", () => ({
@@ -130,11 +158,15 @@ vi.mock("../../../stores/useWorkFlowStore", () => ({
         submissionCompleted: false,
         workSubmissionJourneyId: "journey-1",
         ensureWorkSubmissionJourneyId: mocks.ensureJourney,
-        setGardenAddress: vi.fn(),
+        setGardenAddress: mocks.setDraftGarden,
         audioNotes: [],
         setAudioNotes: vi.fn(),
+        draftLinkCleared: mocks.linkCleared,
       }),
-    { getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: vi.fn() }) }
+    {
+      getState: () => ({ audioNotes: [], reset: mocks.reset, setActionUID: mocks.setDraftAction }),
+      setState: mocks.setFlowState,
+    }
   ),
 }));
 
@@ -163,7 +195,7 @@ vi.mock("../../../providers/Work", () => ({
     actions: [],
     gardens: [],
     hasJoinedGardens: false,
-    joinableCommunityGarden: null,
+    joinableCommunityGarden: mocks.communityGarden,
     isLoading: false,
     activeTab: "Intro",
     setActiveTab: mocks.setActiveTab,
@@ -172,7 +204,7 @@ vi.mock("../../../providers/Work", () => ({
     actionUID: mocks.actionUID,
     setActionUID: vi.fn(),
     gardenAddress: mocks.gardenAddress,
-    setGardenAddress: vi.fn(),
+    setGardenAddress: mocks.selectGarden,
   }),
 }));
 
@@ -200,6 +232,8 @@ vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () =
 }));
 
 import { useWorkSubmissionFlowController } from "../../../hooks/client-ui/work/useWorkSubmissionFlowController";
+import { useUIStore } from "../../../stores/useUIStore";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(
@@ -221,11 +255,25 @@ function StrictShareWrapper({ children }: { children: ReactNode }) {
   );
 }
 
+const commitmentLinkIntent = {
+  commitmentId: 9n,
+  requirementIndex: 0,
+  actionUID: 1,
+  garden: "0x1111111111111111111111111111111111111111" as const,
+  commitmentTitle: "Trees",
+  requirementLabel: "1",
+  returnTo: "/home/0x1111111111111111111111111111111111111111/commitments/9",
+};
+
 let navigateShareRoute: ((path: string) => void) | null = null;
 let exitPath = "";
+let exitNavigation = "";
+let exitState: Record<string, unknown> | null = null;
 
 function ExitPathCapture({ children }: { children: ReactNode }) {
   exitPath = useLocation().pathname;
+  exitState = useLocation().state;
+  exitNavigation = useNavigationType();
   return children;
 }
 
@@ -266,15 +314,60 @@ describe("useWorkSubmissionFlowController", () => {
     mocks.gardenAddress = null;
     mocks.outcome = null;
     mocks.choices = [];
+    mocks.communityGarden = null;
+    mocks.joinState = { isJoining: false, joiningGardenId: null };
     mocks.enqueue.mockResolvedValue("link-job");
     mocks.consumeShareTarget.mockResolvedValue(undefined);
     mocks.loadShareTarget.mockReset();
     mocks.normalizeWorkMediaFiles.mockReset();
     mocks.saveOnExit.mockReset();
     mocks.saveOnExit.mockResolvedValue("draft-1");
+    mocks.autoSaveFields = null;
+    mocks.autoSaveEnabled = true;
+    mocks.isResumingFromUrl = false;
+    mocks.linkCleared = false;
     mocks.toastError.mockReset();
     navigateShareRoute = null;
     exitPath = "";
+  });
+
+  it("waits for draft reconciliation before applying or saving an incoming promise", () => {
+    mocks.isResumingFromUrl = true;
+    mocks.choices = [commitmentLinkIntent];
+    const params = new URLSearchParams({
+      linkCommitmentId: "9",
+      linkRequirementIndex: "0",
+      linkActionUID: "1",
+      linkGarden: commitmentLinkIntent.garden,
+      linkCommitmentTitle: "Trees",
+      linkRequirementLabel: "1",
+      returnTo: commitmentLinkIntent.returnTo,
+    });
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(
+        MemoryRouter,
+        { initialEntries: [`/home/garden?${params}`] },
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+      );
+    const view = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper }
+    );
+    expect(mocks.setDraftGarden).not.toHaveBeenCalled();
+    expect(mocks.setDraftAction).not.toHaveBeenCalled();
+    expect(mocks.autoSaveEnabled).toBe(false);
+    expect(view.result.current.canProceed).toBe(false);
+
+    mocks.isResumingFromUrl = false;
+    view.rerender();
+    expect(mocks.setDraftGarden).toHaveBeenCalledWith(commitmentLinkIntent.garden);
+    expect(mocks.setDraftAction).toHaveBeenCalledWith(1);
+    expect(mocks.autoSaveEnabled).toBe(true);
   });
 
   it("projects selection and owns the intro progress gate", () => {
@@ -334,6 +427,83 @@ describe("useWorkSubmissionFlowController", () => {
 
     expect(pathBeforeSave).toBe("/home");
     expect(mocks.saveOnExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the dashboard trail when a promise query changes before leaving work", () => {
+    const parent = "/home/garden-1/commitments/9";
+    const dashboardBack = {
+      scope: `${DEFAULT_CHAIN_ID}:0x9999999999999999999999999999999999999999:${useUIStore.getState().dashboardNavigationId}`,
+      path: parent,
+    };
+    function LinkedWorkWrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        MemoryRouter,
+        {
+          initialEntries: [
+            parent,
+            {
+              pathname: "/home/garden",
+              state: { dashboardBack },
+            },
+          ],
+        },
+        createElement(
+          ExitPathCapture,
+          null,
+          createElement(IntlProvider, { locale: "en", messages: {} }, children)
+        )
+      );
+    }
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: LinkedWorkWrapper }
+    );
+    act(() => result.current.clearLinkIntent());
+    expect(exitState).toEqual({ dashboardBack });
+    act(() => result.current.exit());
+    expect(exitPath).toBe(parent);
+    expect(exitNavigation).toBe("POP");
+  });
+
+  it.each([
+    {
+      from: "a prompt whose address holds the draft's promise",
+      holdsIt: true,
+      navigation: "REPLACE",
+    },
+    {
+      from: "a prompt on the page's own address, or the wizard",
+      holdsIt: false,
+      navigation: "PUSH",
+    },
+  ])("opens Your Work on its drafts from $from", ({ holdsIt, navigation }) => {
+    mocks.askAgain.mockReturnValue(holdsIt);
+    useUIStore.getState().closeWorkDashboard();
+    const { result } = renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper: ExitWrapper }
+    );
+
+    act(() => result.current.draft.manage());
+
+    expect(exitState).toMatchObject({
+      dashboardEntry: { snapshot: { kind: "work", tab: "pending", pendingFilter: "editing" } },
+    });
+    expect(exitPath).toBe("/home");
+    // Back returns to the visit, except where its address would pass the draft's promise off
+    // as the page's own.
+    expect(exitNavigation).toBe(navigation);
+    expect(mocks.askAgain).toHaveBeenCalledOnce();
   });
 
   it("offers a retry toast when the background draft save fails", async () => {
@@ -556,15 +726,7 @@ describe("useWorkSubmissionFlowController", () => {
       },
     ],
   ] as const)("recovers a failed %s dependent link without resubmitting Work", async (_kind, outcome) => {
-    const intent = {
-      commitmentId: 9n,
-      requirementIndex: 0,
-      actionUID: 1,
-      garden: "0x1111111111111111111111111111111111111111" as const,
-      commitmentTitle: "Trees",
-      requirementLabel: "1",
-      returnTo: "/home/0x1111111111111111111111111111111111111111/commitments/9",
-    };
+    const intent = commitmentLinkIntent;
     mocks.actionUID = 1;
     mocks.gardenAddress = intent.garden;
     mocks.choices = [intent];
@@ -597,11 +759,251 @@ describe("useWorkSubmissionFlowController", () => {
     });
     expect(retried).toBe(true);
     expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+    expect(view.result.current.linkSchedulingWorkSent).toBe(_kind !== "queued");
     expect(mocks.uploadWork).toHaveBeenCalledTimes(1);
     expect(mocks.enqueue.mock.calls[1][0].payload).toEqual(firstPayload);
     expect(firstPayload.clientWorkId).toBe("client-1");
     expect(firstPayload.clientOperationId).toBe("work-link:client-1:9:0");
     if (_kind === "queued") expect(firstPayload.sourceWorkJobId).toBe("work-job-1");
     else expect(firstPayload).not.toHaveProperty("sourceWorkJobId");
+  });
+
+  const communityGarden = "0x3333333333333333333333333333333333333333";
+  const renderFlow = (wrapper = Wrapper) =>
+    renderHook(
+      () =>
+        useWorkSubmissionFlowController({
+          homeRoute: "/home",
+          profileRoute: "/home/profile",
+          trackMediaJourneyEvent: vi.fn(),
+        }),
+      { wrapper }
+    );
+
+  it.each([
+    ["0xjoin", "Successfully joined garden"],
+    ["already-member", "You are already a member of this garden"],
+    ["already-joining", null],
+  ] as const)("answers a Community Garden join that returns %s", async (joinResult, title) => {
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinGarden.mockResolvedValueOnce(joinResult);
+    const { result } = renderFlow();
+
+    await act(async () => {
+      await result.current.joinCommunityGarden();
+    });
+
+    expect(mocks.joinGarden).toHaveBeenCalledWith(communityGarden);
+    if (title) {
+      expect(mocks.selectGarden).toHaveBeenCalledWith(communityGarden);
+      expect(mocks.toastSuccess).toHaveBeenCalledWith({ title });
+    } else {
+      expect(mocks.selectGarden).not.toHaveBeenCalled();
+      expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    }
+  });
+
+  it("offers Profile when the Community Garden join fails", async () => {
+    const error = new Error("join reverted");
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinGarden.mockRejectedValueOnce(error);
+    const { result } = renderFlow(ExitWrapper);
+
+    await act(async () => {
+      await result.current.joinCommunityGarden();
+    });
+
+    expect(mocks.selectGarden).not.toHaveBeenCalled();
+    expect(mocks.loggerError).toHaveBeenCalledWith("Community Garden join failed", {
+      error,
+      source: "GardenFlow",
+      gardenAddress: communityGarden,
+    });
+    const descriptor = mocks.toastError.mock.calls[0][0];
+    expect(descriptor).toEqual(
+      expect.objectContaining({
+        title: "Failed to join garden",
+        message: "Try again here, or open Profile to join from your garden list.",
+        action: expect.objectContaining({ label: "Profile", dismissOnClick: true }),
+      })
+    );
+    act(() => descriptor.action.onClick());
+    expect(exitPath).toBe("/home/profile");
+  });
+
+  it.each([
+    [null, true],
+    [communityGarden, true],
+    ["0x2222222222222222222222222222222222222222", false],
+  ] as const)("reports a join of %s as the Community Garden join: %s", (joiningGardenId, joining) => {
+    mocks.communityGarden = { id: communityGarden };
+    mocks.joinState = { isJoining: true, joiningGardenId };
+
+    expect(renderFlow().result.current.isJoiningCommunityGarden).toBe(joining);
+  });
+
+  it("saves the promise with the draft, and taking it off as an unlink", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = intent.actionUID;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    const view = renderFlow();
+    // A page without a promise leaves the draft's own alone.
+    expect(mocks.autoSaveFields?.linkIntent).toBeUndefined();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    expect(mocks.setFlowState).toHaveBeenLastCalledWith({ draftLinkCleared: false });
+    expect(mocks.autoSaveFields?.linkIntent).toEqual({ ...intent, commitmentId: "9" });
+
+    act(() => view.result.current.clearLinkIntent());
+    expect(mocks.setFlowState).toHaveBeenLastCalledWith({ draftLinkCleared: true });
+    mocks.linkCleared = true;
+    view.rerender();
+    expect(mocks.autoSaveFields?.linkIntent).toBeNull();
+  });
+
+  it("links the original work when the current flow selection changes during upload", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = intent.actionUID;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    let finishUpload!: () => void;
+    mocks.uploadWork.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishUpload = resolve;
+      })
+    );
+    const view = renderFlow();
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submission!: Promise<boolean>;
+    act(() => {
+      submission = view.result.current.submit();
+    });
+    await waitFor(() => expect(mocks.uploadWork).toHaveBeenCalledOnce());
+    act(() => view.result.current.selectLinkIntent(null));
+    mocks.actionUID = 2;
+    view.rerender();
+    // useWorkMutation's draft-ownership regression protects this retained result.
+    mocks.outcome = {
+      kind: "direct",
+      clientWorkId: "original-work",
+      txHash: "0x1",
+      sponsored: false,
+    };
+    await act(async () => {
+      finishUpload();
+      await expect(submission).resolves.toBe(true);
+    });
+    expect(mocks.enqueue).toHaveBeenCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: "work-link:original-work:9:0",
+        commitmentId: 9n,
+        clientWorkId: "original-work",
+        requirementIndex: 0,
+        gardenAddress: intent.garden,
+      },
+    });
+    expect(mocks.uploadWork).toHaveBeenCalledOnce();
+  });
+
+  it("releases dependent-link scheduling when validation stops the Work submission", async () => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = null;
+    mocks.uploadWork.mockResolvedValue(undefined);
+    const view = renderFlow();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submitted = true;
+    await act(async () => {
+      submitted = await view.result.current.submit();
+    });
+    expect(submitted).toBe(false);
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(false);
+    expect(view.result.current.hasPendingLinkRecovery).toBe(false);
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+
+    mocks.outcome = { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false };
+    await act(async () => {
+      submitted = await view.result.current.submit();
+    });
+    expect(submitted).toBe(true);
+    expect(mocks.uploadWork).toHaveBeenCalledTimes(2);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue.mock.calls[0][0].payload.clientOperationId).toBe("work-link:client-1:9:0");
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+  });
+
+  it.each([
+    ["sent", { kind: "direct", clientWorkId: "client-1", txHash: "0x1", sponsored: false }, true],
+    [
+      "saved only on this device",
+      {
+        kind: "queued",
+        clientWorkId: "client-1",
+        jobId: "work-job-1",
+        txHash: "0x2",
+        sponsored: false,
+        reason: "connection-unconfirmed",
+      },
+      false,
+    ],
+  ] as const)("reports the link as queueing only when the Work was sent: %s", async (_kind, outcome, queueing) => {
+    const intent = commitmentLinkIntent;
+    mocks.actionUID = 1;
+    mocks.gardenAddress = intent.garden;
+    mocks.choices = [intent];
+    mocks.outcome = null;
+    let finishUpload!: () => void;
+    mocks.uploadWork.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishUpload = () => resolve();
+      })
+    );
+    let finishLink!: (jobId: string) => void;
+    mocks.enqueue.mockReturnValueOnce(
+      new Promise<string>((resolve) => {
+        finishLink = resolve;
+      })
+    );
+    const view = renderFlow();
+
+    act(() => view.result.current.selectLinkIntent(intent));
+    await waitFor(() => expect(view.result.current.linkIntentStatus).toBe("valid"));
+    let submission!: Promise<boolean>;
+    act(() => {
+      submission = view.result.current.submit();
+    });
+    await waitFor(() => expect(mocks.uploadWork).toHaveBeenCalledTimes(1));
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+
+    mocks.outcome = { ...outcome };
+    await act(async () => {
+      finishUpload();
+    });
+    await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(view.result.current.isSchedulingDependentLink).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(queueing);
+
+    let submitted = false;
+    await act(async () => {
+      finishLink("link-job");
+      submitted = await submission;
+    });
+    expect(submitted).toBe(true);
+    expect(view.result.current.isQueueingDependentLink).toBe(false);
+    expect(view.result.current.isSchedulingDependentLink).toBe(false);
+    expect(view.result.current.linkSchedulingSucceeded).toBe(true);
+    expect(view.result.current.linkSchedulingWorkSent).toBe(queueing);
   });
 });

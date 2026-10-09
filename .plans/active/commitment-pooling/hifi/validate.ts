@@ -1042,6 +1042,78 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
           err.push(`RAIL ${s.id}@${st.id}: flow "${title}" renders steps [${labels}] but @${seen.state} renders [${seen.labels}] — a flow's rail never changes mid-flow`);
       }
     }
+    // Protocol seeding must never turn route visibility or a queued send into
+    // authority or publication. These checks protect the implementation reference.
+    if (s.id === "W12") {
+      const requiredStates = ["protocol-reader", "protocol-owner", "seed-protocol", "seed-offer", "seed-unbounded", "seed-offer-unbounded", "seed-published", "seed-offer-published", "seed-discarded", "seed-offer-discarded"];
+      for (const prefix of ["seed", "seed-offer"])
+        for (const stage of ["queued", "indexing", "failed", "blocked-authority", "blocked-membership", "blocked-pool", "blocked-cycle", "blocked-conflict"])
+          requiredStates.push(`${prefix}-${stage}`, `pool-${prefix}-${stage}`);
+      for (const id of requiredStates)
+        if (!s.states.some(st => st.id === id)) err.push(`PROTOCOL SEED: required state ${id} missing`);
+      for (const [id, target] of [["w12.seed-retry", "seed-queued"], ["w12.seed-offer-retry", "seed-offer-queued"]]) {
+        const meta = ctx.hots[id];
+        if (!meta?.calls?.includes("createCommitment") || !meta.pendingSync || meta.to !== `screen:W12@${target}`)
+          err.push(`PROTOCOL SEED: retry hotspot ${id} missing or invalid`);
+        const failed = s.states.find(st => st.id === target.replace("queued", "failed"));
+        if (!failed || !domTokens(failed.html).hots.has(id)) err.push(`PROTOCOL SEED: failed state lacks retry ${id}`);
+      }
+      for (const st of s.states) {
+        const tokens = domTokens(st.html).hots;
+        const creates = [...tokens].filter((h) => ctx.hots[h]?.calls?.includes("createCommitment"));
+        if ((st.id === "protocol-reader" || st.id === "protocol-owner" || st.id.endsWith("-unbounded")) &&
+            (tokens.has("w12.seed") || creates.length > 0))
+          err.push(`PROTOCOL SEED ${st.id}: unauthorized or unbounded creation is actionable`);
+        if (st.id === "protocol-reader" && ["w12.confirm-row", "w12.accept", "w12.decline"].some(h => tokens.has(h)))
+          err.push("PROTOCOL SEED: read-only viewer has a write-detail path");
+        if (st.id === "protocol-owner") {
+          if (tokens.has("w12.confirm-row")) err.push("PROTOCOL SEED: module ownership is not confirmation authority");
+          if (!tokens.has("w12.accept") || !tokens.has("w12.decline")) err.push("PROTOCOL SEED: module owner must retain claim management");
+        }
+        if (st.id.startsWith("seed-") && st.id.endsWith("-blocked-authority") && !stripTags(st.html).includes("NotPoolSteward"))
+          err.push("PROTOCOL SEED: authority error must be NotPoolSteward");
+        if (st.id.startsWith("seed-") && st.id.endsWith("-blocked-membership") && !stripTags(st.html).includes("UnauthorizedCaller"))
+          err.push("PROTOCOL SEED: membership error must be UnauthorizedCaller");
+        if (st.id.startsWith("seed-") && st.id.endsWith("-failed") && (!stripTags(st.html).includes("outcome is unknown") || !stripTags(st.html).includes("creator and creation key")))
+          err.push("PROTOCOL SEED: timeout must reconcile the unknown outcome before resending");
+        if (st.id.startsWith("seed-offer") && !stripTags(st.html).includes("Claiming garden’s eligible stewards"))
+          err.push(`PROTOCOL SEED ${st.id}: Offer confirmation must belong to the recipient garden`);
+        if (st.id.endsWith("-unbounded")) {
+          const direction = ctx.hots["w12.seed-unbounded-offer"]?.to;
+          if (direction !== "screen:W12@seed-offer-unbounded" || ctx.hots["w12.seed-unbounded-request"]?.to !== "screen:W12@seed-unbounded")
+            err.push("PROTOCOL SEED: unbounded direction switch loses its missing bound");
+        }
+        if (/^seed-(?:offer-)?(?:queued|indexing|failed|blocked-.+)$/.test(st.id)) {
+          const close = `w12.${st.id}-close`;
+          const pool = s.states.find(state => state.id === `pool-${st.id}`);
+          const reopen = `w12.${st.id}-open`;
+          if (!tokens.has(close) || ctx.hots[close]?.to !== `screen:W12@pool-${st.id}` || !pool || !domTokens(pool.html).hots.has(reopen) || ctx.hots[reopen]?.to !== `screen:W12@${st.id}`)
+            err.push(`PROTOCOL SEED ${st.id}: saved job cannot be reopened after closing`);
+        }
+        if (st.id.startsWith("seed-") && st.id.includes("-blocked-")) {
+          const discard = st.id.startsWith("seed-offer") ? "w12.seed-offer-discard" : "w12.seed-discard";
+          if (creates.length || tokens.has("w12.seed-retry") || tokens.has("w12.seed-offer-retry") || !tokens.has(discard) || !stripTags(st.html).includes("Error"))
+            err.push(`PROTOCOL SEED ${st.id}: terminal failure must explain the cause and allow discard without retry`);
+        }
+        for (const h of creates) {
+          const meta = ctx.hots[h];
+          if (!meta.pendingSync || !meta.to?.endsWith("-queued"))
+            err.push(`PROTOCOL SEED ${st.id} ${h}: creation must land on a queued overlay`);
+          if (st.id.startsWith("seed-offer") && meta.to !== "screen:W12@seed-offer-queued")
+            err.push(`PROTOCOL SEED ${st.id} ${h}: queued creation must preserve Offer direction`);
+        }
+        if (st.id === "seed-protocol" || st.id === "seed-offer") {
+          const text = stripTags(st.html);
+          if (!text.includes("Season") || !text.includes("Due date"))
+            err.push(`PROTOCOL SEED ${st.id}: review must show season and due date`);
+        }
+        if (/^seed-(?:offer-)?(?:queued|indexing|failed)$/.test(st.id) &&
+            /class="ch ok(?: dot)?"[^>]*>Published</.test(st.html))
+          err.push(`PROTOCOL SEED ${st.id}: publication precedes indexed read-back`);
+      }
+      if (!s.states.some((st) => st.id === "seed-offer" && st.facts?.commitment === "Offered"))
+        err.push("PROTOCOL SEED: Offer direction is missing");
+    }
     // A commitment whose state chip reads Fulfilled is done; offering evidence
     // attach there contradicts both the chip and §5.3, which gates attach to
     // Active / EvidenceSubmitted / PartiallyApproved. Scoped to the CHIP

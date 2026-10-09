@@ -122,11 +122,8 @@ const Home: React.FC = () => {
     reset: resetLoadingState,
   } = useLoadingWithMinDuration(isLoadingData, gardens.length > 0);
 
-  const { filteredGardens, myGardensCount, isFilterActive, activeFilterCount } = useFilteredGardens(
-    gardens,
-    filters,
-    normalizedAddress
-  );
+  const { filteredGardens, myGardensCount, openGardensCount, isFilterActive, activeFilterCount } =
+    useFilteredGardens(gardens, filters, normalizedAddress);
 
   // UI state from store
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
@@ -183,7 +180,7 @@ const Home: React.FC = () => {
     (action: ArrivalActionKind) => {
       switch (action) {
         case "openWorkDashboardDrafts":
-          openWorkDashboard("drafts");
+          openWorkDashboard("pending", "editing");
           return;
         case "openWorkDashboardPending":
           openWorkDashboard("pending");
@@ -288,80 +285,79 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
-      {location.pathname.replace(/\/$/, "") === APP_ROUTES.home && (
-        <>
-          <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
-            <h4 className="flex-1 text-[1.125rem] font-semibold">
-              {intl.formatMessage({ id: "app.home" })}
-            </h4>
-            <div className="ml-4 flex items-center gap-2">
-              <IconButton
-                emphasis="secondary"
-                size="compact"
-                onClick={openGardenFilter}
-                // Active filters tint the outline and icon, and count on the badge.
-                className={
-                  isFilterActive
-                    ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
-                    : undefined
-                }
-                aria-label={intl.formatMessage({
-                  id: "app.home.filters.button",
-                  defaultMessage: "Filters",
-                })}
-                icon={<RiFilterLine aria-hidden="true" />}
-                badge={
-                  isFilterActive ? (
-                    <span
-                      className={cn(
-                        "inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
-                        pwaStatusStyles.primary.badge
-                      )}
-                    >
-                      {activeFilterCount}
-                    </span>
-                  ) : undefined
-                }
-              />
-              <WalletSheetIcon onClick={openWalletSheet} />
-              <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
-              <WorkDashboardIcon />
-            </div>
-          </div>
-          <div className="padded flex flex-col gap-4">
-            <GardenList
-              gardens={filteredGardens}
-              selectedGardenId={selectedGardenId}
-              onCardClick={handleCardClick}
-              showSkeleton={showSkeleton}
-              timedOut={timedOut}
-              isError={isError}
-              isOnline={isOnline}
-              onRetry={handleRetry}
-              scope={filters.scope}
-              isFilterActive={isFilterActive}
-              hasUserAddress={Boolean(normalizedAddress)}
-              onBrowseAll={() => handleScopeChange("all")}
+      <div hidden={location.pathname.replace(/\/$/, "") !== APP_ROUTES.home}>
+        <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
+          <h4 className="flex-1 text-[1.125rem] font-semibold">
+            {intl.formatMessage({ id: "app.home" })}
+          </h4>
+          <div className="ml-4 flex items-center gap-2">
+            <IconButton
+              emphasis="secondary"
+              size="compact"
+              onClick={openGardenFilter}
+              // Active filters tint the outline and icon, and count on the badge.
+              className={
+                isFilterActive
+                  ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
+                  : undefined
+              }
+              aria-label={intl.formatMessage({
+                id: "app.home.filters.button",
+                defaultMessage: "Filters",
+              })}
+              icon={<RiFilterLine aria-hidden="true" />}
+              badge={
+                isFilterActive ? (
+                  <span
+                    className={cn(
+                      "inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
+                      pwaStatusStyles.primary.badge
+                    )}
+                  >
+                    {activeFilterCount}
+                  </span>
+                ) : undefined
+              }
             />
+            <WalletSheetIcon onClick={openWalletSheet} />
+            <DeferredCommitmentsSheetLauncher onClick={openCommitmentsSheet} />
+            <WorkDashboardIcon />
           </div>
-          {isGardenFilterPresent ? (
-            <Suspense fallback={null}>
-              <GardensFilterSheet
-                isOpen={isGardenFilterOpen}
-                onClose={closeGardenFilter}
-                filters={filters}
-                onScopeChange={handleScopeChange}
-                onSortChange={handleSortChange}
-                onDomainsChange={handleDomainsChange}
-                onReset={resetFilters}
-                canFilterMine={Boolean(normalizedAddress)}
-                myGardensCount={myGardensCount}
-                isFilterActive={isFilterActive}
-              />
-            </Suspense>
-          ) : null}
-        </>
-      )}
+        </div>
+        <div className="padded flex flex-col gap-4">
+          <GardenList
+            gardens={filteredGardens}
+            selectedGardenId={selectedGardenId}
+            onCardClick={handleCardClick}
+            showSkeleton={showSkeleton}
+            timedOut={timedOut}
+            isError={isError}
+            isOnline={isOnline}
+            onRetry={handleRetry}
+            scope={filters.scope}
+            isFilterActive={isFilterActive}
+            hasUserAddress={Boolean(normalizedAddress)}
+            onBrowseAll={() => handleScopeChange("all")}
+          />
+        </div>
+        {isGardenFilterPresent ? (
+          <Suspense fallback={null}>
+            <GardensFilterSheet
+              isOpen={isGardenFilterOpen}
+              onClose={closeGardenFilter}
+              filters={filters}
+              onScopeChange={handleScopeChange}
+              onSortChange={handleSortChange}
+              onDomainsChange={handleDomainsChange}
+              onReset={resetFilters}
+              canFilterMine={Boolean(normalizedAddress)}
+              myGardensCount={myGardensCount}
+              openGardensCount={openGardensCount}
+              isFilterActive={isFilterActive}
+            />
+          </Suspense>
+        ) : null}
+      </div>
       <Outlet />
       {isWalletSheetPresent ? (
         <Suspense fallback={null}>

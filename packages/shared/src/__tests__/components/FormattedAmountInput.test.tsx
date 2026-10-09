@@ -1,7 +1,7 @@
 /**
  * FormattedAmountInput + useFormattedAmountInput tests
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, renderHook, screen } from "@testing-library/react";

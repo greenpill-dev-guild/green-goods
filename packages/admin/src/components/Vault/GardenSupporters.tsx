@@ -39,15 +39,15 @@ export function GardenSupporters({ gardenAddress }: GardenSupportersProps) {
     <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold text-text-strong">
+          <h2 className="font-heading text-title-md font-semibold text-text-strong">
             {formatMessage({ id: "app.funders.gardenSupportersTitle" })}
           </h2>
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({ id: "app.funders.gardenSupportersSubtitle" })}
           </p>
         </div>
         {totalProtocolYield > 0n && (
-          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 text-xs font-semibold text-success-dark">
+          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 body-xs font-semibold text-success-dark">
             {formatMessage(
               { id: "app.funders.yieldGenerated" },
               { amount: formatTokenAmount(totalProtocolYield) }

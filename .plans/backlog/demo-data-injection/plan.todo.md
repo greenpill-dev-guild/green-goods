@@ -2,12 +2,16 @@
 
 **Feature Slug**: `demo-data-injection`
 **Stage**: `backlog`
-**Status**: `BACKLOG`
+**Status**: `BACKLOG — reassess remaining fixture gaps before dispatch`
 **Created**: `2026-08-23T02:07:14.633Z`
-**Last Updated**: `2026-08-23T02:07:14.633Z`
+**Last Updated**: `2026-10-06`
 
 Deferred behind the module optimization and test work. Nothing here is claimed by automation while
 the hub sits in `backlog`. The seam map in `spec.md` is the reference for every rung below.
+
+## Status reconciliation (2026-10-06)
+
+The current working copy has seeded browser exploration and strict backend fixtures under `tests/fixtures/work-exploration.ts` and `tests/helpers/mock-backend.ts`, owned by the active test-budget hub. They do not prove a populated commitment season across all three live local surfaces. Reuse that work, reproduce the remaining full-app gap, then select the smallest missing rung; do not implement all four historical rungs by default.
 
 ## Decision Log
 
@@ -57,9 +61,10 @@ Wrap `getPublicGardenPool`, `getPublicCommitmentImpact` and the four unwrapped c
 
 ### Rung 3 — an MSW browser worker in dev  ·  `ui` + `state_api`
 
-msw 2.14.6 is already a root dependency, used node-side only in
-`packages/shared/src/__mocks__/server/server.ts`. `__mocks__/browser/` is jsdom shims, not a
-`setupWorker`.
+msw is no longer a dependency. Its only user, an unused node-side GraphQL server in
+`packages/shared/src/__mocks__/server/server.ts`, was removed with the root `msw` pin on
+2026-09-29, so this rung would add msw back as a new dependency. `__mocks__/browser/` is jsdom
+shims, not a `setupWorker`.
 
 - One interception point could answer any indexer GraphQL query from fixtures, covering non-pooling
   surfaces too.

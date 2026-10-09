@@ -4,9 +4,10 @@ import { useAllAssessments } from "../../assessment/useAllAssessments";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
 import { useRole, type UserRole } from "../../gardener/useRole";
+import { useEffectiveToolbarPermissions } from "../../roles/useEffectiveToolbarPermissions";
 import { useMemo } from "react";
 import type { IntlShape } from "react-intl";
-import { ADMIN_COMMAND_ROUTES } from "../navigation/workspaceViews";
+import { ADMIN_COMMAND_ROUTES, type AdminWorkspacePermission } from "../navigation/workspaceViews";
 import { buildCommandPaletteResults, type SearchResult } from "./commandPalette.results";
 
 export interface CommandPaletteGroup {
@@ -50,6 +51,7 @@ export interface CommandPaletteDataSource {
   actions: Action[];
   assessments: AssessmentCommandItem[];
   role: UserRole;
+  permissions: Record<AdminWorkspacePermission, boolean>;
 }
 
 export function groupCommandPaletteResults(
@@ -80,13 +82,22 @@ export function useCommandPaletteDataFromSource({
       buildCommandPaletteResults({
         query,
         role: data.role,
+        permissions: data.permissions,
         formatMessage,
         staticRoutes: ADMIN_COMMAND_ROUTES,
         eligibleGardens: data.eligibleGardens,
         actions: data.actions,
         assessments: data.assessments,
       }),
-    [data.actions, data.assessments, data.eligibleGardens, data.role, formatMessage, query]
+    [
+      data.actions,
+      data.assessments,
+      data.eligibleGardens,
+      data.permissions,
+      data.role,
+      formatMessage,
+      query,
+    ]
   );
 
   const groups = useMemo(
@@ -106,6 +117,7 @@ export function useCommandPaletteData(options: CommandPaletteDataOptions) {
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const permissions = useEffectiveToolbarPermissions();
 
   return useCommandPaletteDataFromSource({
     ...options,
@@ -114,6 +126,7 @@ export function useCommandPaletteData(options: CommandPaletteDataOptions) {
       actions: actions ?? [],
       assessments: assessments ?? [],
       role,
+      permissions,
     },
   });
 }

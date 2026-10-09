@@ -10,7 +10,7 @@
  * @module hooks/ens/useENSReleaseName
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type Address,
   decodeEventLog,
@@ -19,14 +19,15 @@ import {
   type PublicClient,
   zeroAddress,
 } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import type { ENSRegistrationData } from "../../types/domain";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -115,6 +116,29 @@ async function assertSponsoredReleaseFunded(params: {
   }
 }
 
+/**
+ * The ETH fee a wallet pays to release `slug`, in wei as a string, read when
+ * the Change Username sheet opens so the sheet can state it before anything is
+ * signed (PRD-1026 D4). Null where the release is sponsored and the wallet
+ * pays only gas. The release reads the fee again when it sends; this read is
+ * never reused, so a reopened sheet reads it afresh.
+ */
+export function useENSReleaseFee(slug: string | null, enabled: boolean) {
+  const ensAddress = getNetworkContracts(DEFAULT_CHAIN_ID).greenGoodsENS as Address;
+  return useQuery<string | null>({
+    queryKey: ensKeys.releaseFee(slug ?? ""),
+    queryFn: async () => {
+      if (!slug || !isSponsoredENSReleaseUnavailable(ensAddress)) return null;
+      const { publicClient } = createClients(DEFAULT_CHAIN_ID);
+      return (await readReleaseFee(publicClient, ensAddress, slug)).toString();
+    },
+    enabled: enabled && Boolean(slug) && Boolean(ensAddress) && ensAddress !== zeroAddress,
+    staleTime: 0,
+    gcTime: 0,
+    retry: 1,
+  });
+}
+
 export interface ENSReleaseResult {
   slug: string;
   owner: Address;
@@ -127,7 +151,6 @@ export function useENSReleaseName() {
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useWalletClient();
   const isPasskeyUser = authMode === "passkey";
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
   const ensAddress = contracts.greenGoodsENS as Address;
@@ -176,7 +199,7 @@ export function useENSReleaseName() {
           to: ensAddress,
           data,
         });
-      } else if (walletClient && walletAddress) {
+      } else if (walletAddress) {
         owner = walletAddress;
         slug = (await publicClient.readContract({
           address: ensAddress,
@@ -215,7 +238,7 @@ export function useENSReleaseName() {
           }
           throw error;
         }
-        await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
+        const walletClient = await readyWalletClient(DEFAULT_CHAIN_ID, owner);
         await assertLocalArbitrumForkWallet();
 
         txHash = await walletClient.sendTransaction({
@@ -233,9 +256,13 @@ export function useENSReleaseName() {
         hash: txHash,
         timeout: TX_RECEIPT_TIMEOUT_MS,
       });
+      if (receipt.status !== "success") {
+        throw new Error("Name release transaction reverted");
+      }
 
       let ccipMessageId: string | null = null;
       for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== ensAddress.toLowerCase()) continue;
         try {
           const decoded = decodeEventLog({
             abi: GreenGoodsENSABI,
@@ -253,9 +280,21 @@ export function useENSReleaseName() {
 
       return { slug, owner, ccipMessageId, submittedAt: Date.now(), txHash };
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(ensKeys.protocolName(data.owner), null);
-      queryClient.invalidateQueries({ queryKey: ensKeys.all });
+    onSuccess: async (data) => {
+      // A pre-release read must not overwrite the outgoing operation. Both
+      // queries persist so reopening the profile can resume receiver polling.
+      await queryClient.cancelQueries({ queryKey: ensKeys.all });
+      queryClient.setQueryData<ENSRegistrationData>(ensKeys.registrationStatus(data.slug), {
+        status: "pending",
+        release: { owner: data.owner },
+        submittedAt: data.submittedAt,
+        ccipMessageId: data.ccipMessageId ?? undefined,
+      });
+      queryClient.setQueryData(
+        ensKeys.protocolName(data.owner.toLowerCase()),
+        `${data.slug}.greengoods.eth`
+      );
+      void queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
         title: "Name release started",

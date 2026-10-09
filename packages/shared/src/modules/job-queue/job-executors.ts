@@ -1,24 +1,16 @@
 import {
   AwaitingWorkConfirmation,
-  WorkTransactionReverted,
   reconcileWorkTransaction,
-  retainedWorkBroadcast,
   retainedWorkBroadcastReference,
-  forgetWorkBroadcast,
 } from "../work/work-confirmation";
-import { sendWithCheckpoint } from "../work/send-with-checkpoint";
-import { settleStrandedWorkIntent } from "../work/stranded-intent";
-import { getEASConfig, type EASConfig } from "../../config/blockchain";
-import type { Job, WorkJobPayload } from "../../types/job-queue";
-import { buildWorkAttestContractCall } from "../../utils/eas/transaction-builder";
-import { buildQueuedWorkDraft, resolveQueuedWorkTitle } from "../work/queued-work-draft";
-import { PendingHeicConversionError } from "../work/work-attachments";
-import { convertQueuedHeicMedia } from "./job-media-conversion";
+import type { StrandedCommitmentLookup } from "../work/stranded-intent";
+import type { Job } from "../../types/job-queue";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
-import { sendCheckpointOf, writeSendCheckpoint } from "./queue-policy";
+import { hasRecordedSend, recordsSends } from "./queue-policy";
 import { type Hex } from "viem";
 import {
+  commitmentJobPrerequisite,
   executeCommitmentJob,
   toCommitmentJob,
   type CommitmentCreationPayload,
@@ -35,21 +27,11 @@ import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blo
 import { logger } from "../app/logger";
 import { createCommitmentChainReads, type CommitmentChainReads } from "./commitment-chain-reads";
 import { buildCommitmentContractCall } from "./commitment-call-builder";
+import { sendRecordedAct, settleActSend, waitingForRecordedSend } from "./commitment-send-record";
+import { observeTransactionNonce } from "./send-guards";
+import type { Address } from "../../types/domain";
 
-type EncodeWork = typeof import("../../utils/eas/encoders").encodeWorkData;
-type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
 type UploadJson = typeof import("../data/ipfs/upload").uploadJSONToIPFS;
-
-export interface WorkJobExecutorDeps {
-  reconcile?: typeof reconcileWorkTransaction;
-  images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
-  convertMedia?: typeof convertQueuedHeicMedia;
-  resolveTitle?: (job: Job<WorkJobPayload>, chainId: number) => Promise<string>;
-  settleStrandedIntent?: typeof settleStrandedWorkIntent;
-  simulate?: SimulateWork;
-  encodeWork?: EncodeWork;
-  easConfig?: EASConfig;
-}
 
 export type CommitmentExecutorStore = Pick<
   typeof jobQueueDB,
@@ -72,161 +54,11 @@ export interface CommitmentQueueExecutorDeps {
     garden: `0x${string}`;
     caller: `0x${string}`;
   }) => Promise<DeferredWorkIdentityResolution>;
-}
-
-/**
- * Execute a work attestation job: simulate, encode (includes IPFS upload), and send.
- */
-export async function executeWorkJob(
-  jobId: string,
-  job: Job<WorkJobPayload>,
-  chainId: number,
-  sender: TransactionSender,
-  deps: WorkJobExecutorDeps = {}
-): Promise<string> {
-  const knownWorkId = job.payload.clientWorkId;
-  if (knownWorkId) {
-    const knownHash = (await jobQueueDB.getWorkCompletion(job.userAddress, chainId, knownWorkId))
-      ?.transactionHash;
-    if (knownHash) return knownHash;
-  }
-  const payload = job.payload;
-  const settleStranded = deps.settleStrandedIntent ?? settleStrandedWorkIntent;
-  const checkpoint = payload.uploadCheckpoint;
-  const broadcast = checkpoint?.broadcast ?? retainedWorkBroadcastReference(jobId);
-  const previousHash = broadcast?.hash ?? checkpoint?.transactionHash;
-  if (previousHash) {
-    let state: "confirmed" | "reverted" | "unresolved" = "unresolved";
-    let transactionHash = checkpoint?.transactionHash;
-    if (broadcast?.kind === "user-operation") {
-      const result = await sender.reconcileBroadcast?.(broadcast);
-      state = result?.status ?? "unresolved";
-      if (result?.status === "confirmed") transactionHash = result.transactionHash;
-    } else if (!broadcast && (sender.authMode === "passkey" || job.meta?.legacyConfirmation)) {
-      const { reconcileLegacyPasskeyWork } = await import("../work/work-confirmation");
-      state = await reconcileLegacyPasskeyWork(previousHash, job, chainId);
-      transactionHash = previousHash;
-    } else {
-      state = await (deps.reconcile ?? reconcileWorkTransaction)(previousHash, chainId);
-      transactionHash = previousHash;
-    }
-    if (state === "unresolved") {
-      // A UserOperation no bundler reports may never have been sent.
-      if (broadcast?.kind !== "user-operation") throw new AwaitingWorkConfirmation(previousHash);
-      transactionHash = await settleStranded(job, chainId, previousHash);
-    }
-    if (state === "reverted") {
-      job.meta = { ...job.meta, workTransactionReverted: true };
-      if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
-      await jobQueueDB.updateJob(job);
-      throw new WorkTransactionReverted(previousHash);
-    }
-    forgetWorkBroadcast(jobId);
-    return transactionHash!;
-  }
-  if (checkpoint?.broadcastPending) {
-    // The answer to the send was lost; the gardener's attestations settle it.
-    const landed = await settleStranded(job, chainId);
-    forgetWorkBroadcast(jobId);
-    return landed;
-  }
-  await sender.assertOwnership?.(job.userAddress, chainId);
-  // A photo picked before the decoder could load is still HEIC. It becomes a
-  // JPEG in storage before the simulate and the encode read the files.
-  const conversion = await (deps.convertMedia ?? convertQueuedHeicMedia)(job);
-  if (conversion.status !== "ready")
-    throw new PendingHeicConversionError(
-      conversion.status === "pending" ? "photo-conversion-pending" : "photo-needs-attention"
-    );
-  const getImages = deps.images ?? ((id: string) => jobQueueDB.getImagesForJob(id));
-  const images = await getImages(jobId);
-  const actionTitle = await (deps.resolveTitle ?? resolveQueuedWorkTitle)(job, chainId);
-  const draft = buildQueuedWorkDraft(
-    payload,
-    images.map((image) => image.file),
-    actionTitle
-  );
-
-  // Simulate before uploading to IPFS
-  const simulate = deps.simulate ?? (await import("../work/simulate")).simulateWorkSubmission;
-  await simulate({
-    draft,
-    gardenAddress: payload.gardenAddress,
-    actionUID: payload.actionUID,
-    actionTitle,
-    chainId,
-    images: draft.media,
-    accountAddress: job.userAddress as `0x${string}`,
-  });
-
-  // Encode attestation data (includes IPFS upload)
-  const encodeWork = deps.encodeWork ?? (await import("../../utils/eas/encoders")).encodeWorkData;
-  const attestationData = await encodeWork(draft, chainId, {
-    clientWorkId: payload.clientWorkId,
-    checkpoint: payload.uploadCheckpoint,
-    onCheckpoint: async (checkpoint) => {
-      await sender.assertOwnership?.(job.userAddress, chainId);
-      payload.uploadCheckpoint = checkpoint;
-      await jobQueueDB.updateJob(job);
-    },
-    gardenAddress: payload.gardenAddress,
-    authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
-  });
-
-  // Build and send attestation via TransactionSender
-  const easConfig = deps.easConfig ?? getEASConfig(chainId);
-  const contractCall = buildWorkAttestContractCall(
-    easConfig,
-    payload.gardenAddress as `0x${string}`,
-    attestationData
-  );
-  const markReverted = async () => {
-    job.meta = { ...job.meta, workTransactionReverted: true };
-    if (payload.uploadCheckpoint) payload.uploadCheckpoint.transactionReverted = true;
-    await jobQueueDB.updateJob(job);
-  };
-  const result = await sendWithCheckpoint({
-    sender,
-    call: { ...contractCall, chainId },
-    jobIds: [jobId],
-    assertOwnership: async () => {
-      await sender.assertOwnership?.(job.userAddress, chainId);
-    },
-    record: async (next) => {
-      const send = next(sendCheckpointOf(job) ?? {});
-      writeSendCheckpoint(job, send);
-      // Once the network has the send, the stored job already reads as awaiting
-      // its confirmation, even if this tab dies before the receipt arrives.
-      if (send?.broadcast && send.broadcastPending === false)
-        job.meta = {
-          ...job.meta,
-          waitingForDependency: true,
-          waitingReason: "awaiting-confirmation",
-        };
-      await jobQueueDB.updateJob(job);
-    },
-  });
-  switch (result.status) {
-    case "sent":
-      if (result.confirmation === "pending") throw new AwaitingWorkConfirmation(result.hash);
-      forgetWorkBroadcast(jobId);
-      return result.hash;
-    case "reverted":
-      await markReverted();
-      throw new WorkTransactionReverted(result.error.hash);
-    case "not-sent":
-      // Nothing reached the chain: the work stays sendable. A person who
-      // declined is not asked again until they choose to send it.
-      if (result.cancelled) {
-        job.meta = { ...job.meta, requiresExplicitSend: true };
-        await jobQueueDB.updateJob(job);
-      }
-      throw result.error;
-    case "may-have-sent":
-      throw new AwaitingWorkConfirmation(
-        retainedWorkBroadcast(jobId) ?? payload.uploadCheckpoint?.broadcast?.hash ?? "0x"
-      );
-  }
+  reconcile?: typeof reconcileWorkTransaction;
+  /** Settles a lost send's intent from what the chain recorded; the default reads the pool's log. */
+  settleStrandedIntent?: (job: Job, chainId: number, pendingHash: Hex) => Promise<Hex>;
+  /** What the default settle asks of the chain; the default reads the pool's log. */
+  lookUpLanded?: StrandedCommitmentLookup;
 }
 
 export type CommitmentQueueExecution =
@@ -322,6 +154,18 @@ export async function executeCommitmentQueueJob(
   }
   const store = deps.store ?? jobQueueDB;
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
+  if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
+    return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
+  }
+  // Add and Send's second act goes after its proof: sent first, it would settle
+  // the team before the proof and its credit were on the record. A proof that
+  // landed has left the queue; one that was discarded took this send with it.
+  const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
+  if (proofJobId && job.kind !== "workLink") {
+    const proof = await store.getJob(proofJobId);
+    if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
+  }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
     job.kind === "evidence"
@@ -345,6 +189,7 @@ export async function executeCommitmentQueueJob(
         if (source && !source.synced && source.attempts >= 5) {
           return { status: "identity-conflict", reason: "source-work-terminal" };
         }
+        if (source && !source.synced) return { status: "waiting", reason: "work-not-indexed" };
       }
       const resolution = await (deps.resolveWorkIdentity ?? resolveDeferredWorkIdentity)({
         clientWorkId: payload.clientWorkId,
@@ -372,22 +217,58 @@ export async function executeCommitmentQueueJob(
   }
   const commitmentJob = toCommitmentJob({ ...executionJob, id: jobId }, chainId, moduleAddress);
 
-  const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
-  const result = await executeCommitmentJob(commitmentJob, {
-    ...chainReads,
-    resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
-    send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
-      const call = buildCommitmentContractCall(kind, payload);
-      const sent = await sender.sendContractCall({
-        address: target,
-        abi: CommitmentPoolingModuleABI,
-        functionName: call.functionName,
-        args: call.args,
-        chainId: targetChain,
-      });
-      return sent.hash;
-    },
-  });
+  let result: Awaited<ReturnType<typeof executeCommitmentJob>>;
+  try {
+    result = await executeCommitmentJob(commitmentJob, {
+      ...chainReads,
+      resolveSeriesId: (clientSeriesId) => store.getSeriesIdByClientId(clientSeriesId),
+      send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
+        const built = buildCommitmentContractCall(kind, payload);
+        const call = {
+          address: target,
+          // The job's owner signs it. Named here, a single send and a bundle of
+          // these are both held to that address, whoever is connected by then.
+          account: job.userAddress as Address,
+          abi: CommitmentPoolingModuleABI,
+          functionName: built.functionName,
+          args: built.args,
+          chainId: targetChain,
+        };
+        if (!recordsSends(job.kind)) return (await sender.sendContractCall(call)).hash;
+        // A wallet estimates inside its own send, after the intent is recorded;
+        // asking the chain first keeps a refusal a refusal.
+        await chainReads.simulateSend?.({
+          address: target,
+          functionName: built.functionName,
+          args: built.args,
+          account: job.userAddress as Address,
+          chainId: targetChain,
+        });
+        // Read after the simulation, and again just before the intent, after any
+        // prompt: nothing this send does can land in that block or before, so an
+        // earlier ask never passes for this one. The first read must succeed; a
+        // second that cannot keeps the first.
+        const head = await chainReads.readChainHead?.();
+        const firstHead = head && { intentBlock: head.number, intentChainTime: head.timestamp };
+        try {
+          return await sendRecordedAct(jobId, job, call, sender, store, {
+            readChainHead: chainReads.readChainHead,
+            headBeforeSend: firstHead,
+          });
+        } catch (error) {
+          // Its receipt did not come in time: keep the nonce the transaction
+          // used while the network still holds it.
+          if (error instanceof AwaitingWorkConfirmation)
+            await observeTransactionNonce(job, chainReads, store);
+          throw error;
+        }
+      },
+    });
+  } catch (error) {
+    const waiting = waitingForRecordedSend(error);
+    if (waiting) return waiting;
+    throw error;
+  }
 
   if (result.status === "recovered") {
     if (result.entityId !== undefined && job.kind === "commitmentSeries") {

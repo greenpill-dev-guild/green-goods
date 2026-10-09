@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { renderHook } from "@testing-library/react";
 import { StrictMode, type ReactNode } from "react";

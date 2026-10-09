@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 /**
  * The composer's draft: what a member typed, kept on this device until they

@@ -46,8 +46,10 @@ export function GardenChip({
     formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select Garden" });
 
   const hasMultiple = gardens.length >= 2;
+  // Bounded by the slot the app bar gives it, so a long name truncates before
+  // the bar's actions rather than running under them.
   const chipTriggerStyle: CSSProperties = {
-    maxWidth: "calc(100vw - 2rem)",
+    maxWidth: "100%",
   };
   const menuSizingStyle: CSSProperties = {
     width: "max-content",
@@ -57,8 +59,8 @@ export function GardenChip({
   const showCreateAction = Boolean(onCreateGarden && showCreateGardenAction);
 
   // Leading avatar — 22px round mint tile with the seedling glyph (Cockpit M3
-  // 1a switcher anatomy). Inline styles keep this shared JSX off Tailwind
-  // utilities that admin's content scan may not reach.
+  // 1a switcher anatomy). The inline styles predate admin's build scanning
+  // shared source; utilities would work here too.
   const leadingAvatar = (
     <span
       className="flex shrink-0 items-center justify-center rounded-full"
@@ -143,8 +145,8 @@ export function GardenChip({
           </span>
           {/* Caret signals the chip is a garden switcher (QA: the pill didn't
               read as interactive without an explicit dropdown affordance).
-              Inline metrics/color keep this shared-JSX icon off Tailwind
-              utilities that admin's content scan may not reach. */}
+              Its inline metrics and color predate admin's build scanning
+              shared source, like the leading avatar's. */}
           <RiArrowDownSLine
             aria-hidden="true"
             style={{

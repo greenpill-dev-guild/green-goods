@@ -5,6 +5,7 @@ import {
   COMMITMENT_METADATA_VERSION,
   isResolvableMetadataCID,
   parseCommitmentMetadata,
+  rewardCentsAsSet,
 } from "../modules/commitment-pooling/metadata";
 import {
   buildCommitmentCreationPayload,
@@ -21,6 +22,31 @@ describe("commitment metadata", () => {
 
   it("refuses to publish a commitment with no name", () => {
     expect(() => buildCommitmentMetadata({ title: "   " })).toThrow();
+  });
+
+  // The write limits and the read tolerance side by side: metadata written
+  // before the limits, longer than anyone can write today, still reads whole.
+  const text = (length: number) => "x".repeat(length);
+  it.each([
+    { label: "a 60-character title", field: "title", length: 60, written: 60, read: 60 },
+    { label: "a 61-character title", field: "title", length: 61, written: "refused", read: 61 },
+    { label: "a 121-character title", field: "title", length: 121, written: "refused", read: 120 },
+    { label: "a 280-character note", field: "note", length: 280, written: 280, read: 280 },
+    { label: "a 281-character note", field: "note", length: 281, written: "refused", read: 281 },
+    {
+      label: "a 2,001-character note",
+      field: "note",
+      length: 2001,
+      written: "refused",
+      read: 2000,
+    },
+  ] as const)("writes and reads $label", ({ field, length, written, read }) => {
+    const words =
+      field === "title" ? { title: text(length) } : { title: "Rides", note: text(length) };
+    const write = () => buildCommitmentMetadata(words)[field]?.length;
+    if (written === "refused") expect(write).toThrow(`${field} can be at most`);
+    else expect(write()).toBe(written);
+    expect(parseCommitmentMetadata({ version: 1, ...words })?.[field]?.length).toBe(read);
   });
 
   it("omits an absent note rather than writing an empty one", () => {
@@ -89,6 +115,31 @@ describe("composer metadata handoff", () => {
   it("stays a pure function, so the same draft always hashes the same", () => {
     expect(payload()).toEqual(payload());
   });
+
+  it("gives a copy of a set the set's deadline and group, whenever it is built", () => {
+    const copy = (nowSeconds: number) =>
+      buildCommitmentCreationPayload({
+        values: {
+          ...COMMITMENT_COMPOSER_DEFAULTS,
+          title: "Survey",
+          unitLabel: "survey",
+          count: 10,
+        },
+        clientCommitmentId: "copy-1",
+        poolId: 7n,
+        creator: "0x1111111111111111111111111111111111111111" as Address,
+        gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+        nowSeconds,
+        dueDate: 1_790_000_000n,
+        displayGroup: { version: 1, id: "group-00000001" },
+      });
+
+    expect(copy(1_700_000_000)).toEqual(copy(1_700_086_400));
+    expect(copy(1_700_000_000)).toMatchObject({
+      dueDate: 1_790_000_000n,
+      metadata: { displayGroup: { version: 1, id: "group-00000001" } },
+    });
+  });
 });
 
 describe("commitment metadata v1 note and links", () => {
@@ -124,5 +175,84 @@ describe("commitment metadata v1 note and links", () => {
         links: [{ url: "https://example.org/a" }, { url: "javascript:alert(1)" }, { url: 5 }],
       })?.links
     ).toEqual([{ url: "https://example.org/a" }]);
+  });
+});
+
+describe("commitment metadata display group", () => {
+  const group = { version: 1 as const, id: "5f0c2b1e-8a4d-4c2e-9f3a-1b2c3d4e5f60" };
+
+  it("writes a set's group into every copy and reads it back", () => {
+    const written = buildCommitmentMetadata({
+      title: "Household water survey",
+      displayGroup: group,
+    });
+    expect(written.displayGroup).toEqual(group);
+    expect(parseCommitmentMetadata(written)).toEqual(written);
+  });
+
+  it("refuses a group id no reader could use, rather than writing a copy that stands alone", () => {
+    for (const id of ["", "short", "has spaces in it", "<script>x</script>", "x".repeat(65)]) {
+      expect(() =>
+        buildCommitmentMetadata({ title: "Survey", displayGroup: { version: 1, id } })
+      ).toThrow("display group");
+    }
+  });
+
+  it("reads a group it doesn't understand as none, and keeps the title", () => {
+    for (const displayGroup of [
+      { version: 2, id: group.id },
+      { version: 1, id: 42 },
+      "group-1",
+      null,
+    ]) {
+      const parsed = parseCommitmentMetadata({ version: 1, title: "Survey", displayGroup });
+      expect(parsed).toEqual({ version: 1, title: "Survey" });
+    }
+  });
+});
+
+describe("commitment metadata reward, as the steward set it", () => {
+  /** $5.00 at the reserve's 2026-09-30 price. */
+  const wei = 38_865_763_105_965_141_239_068n;
+  const reward = { version: 1 as const, usdCents: "500", goodDollarWei: wei.toString() };
+
+  it("keeps the dollars typed beside the G$ they became, once per set", () => {
+    const built = buildCommitmentCreationPayload({
+      values: {
+        ...COMMITMENT_COMPOSER_DEFAULTS,
+        title: "Survey",
+        unitLabel: "survey",
+        considerationRail: "CELO_SETTLEMENT",
+        considerationUsd: "$5.00",
+        considerationAmount: wei.toString(),
+      },
+      clientCommitmentId: "copy-1",
+      poolId: 7n,
+      creator: "0x1111111111111111111111111111111111111111" as Address,
+      gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
+      nowSeconds: 1_700_000_000,
+    });
+    expect(built.metadata?.reward).toEqual(reward);
+    expect(parseCommitmentMetadata(built.metadata)).toEqual(built.metadata);
+  });
+
+  it("reads the dollars only while the chain still holds that G$ amount", () => {
+    const metadata = buildCommitmentMetadata({ title: "Survey", reward });
+    expect(rewardCentsAsSet(metadata, wei)).toBe(500n);
+    // After Edit Reward the amount moved and the record did not: today's rate, then.
+    expect(rewardCentsAsSet(metadata, wei + 1n)).toBeNull();
+    expect(rewardCentsAsSet({}, wei)).toBeNull();
+  });
+
+  it("refuses a record no reader could use, and reads one it doesn't understand as none", () => {
+    expect(() =>
+      buildCommitmentMetadata({ title: "Survey", reward: { ...reward, usdCents: "0" } })
+    ).toThrow("reward record");
+    for (const bad of [{ ...reward, version: 2 }, { ...reward, goodDollarWei: "-5" }, "500"]) {
+      expect(parseCommitmentMetadata({ version: 1, title: "Survey", reward: bad })).toEqual({
+        version: 1,
+        title: "Survey",
+      });
+    }
   });
 });

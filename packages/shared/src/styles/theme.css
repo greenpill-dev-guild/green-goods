@@ -359,6 +359,10 @@
   --primary-action: var(--gg-design-tertiary-action, var(--green-800));
   --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
   --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
+  /* Green labels, icons and selection marks (DL-053, PRD-1150): the deep action step here (5.72:1 on
+   * white, 5.25:1 on the primary tint); the dark theme flips it back to the
+   * mint accent in the PWA. Filled actions use their theme's foreground pair. */
+  --primary-on-surface: var(--gg-design-tertiary-action, var(--green-800));
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -412,6 +416,9 @@
   --error-base: var(--red-500);
   --error-light: var(--red-200);
   --error-lighter: var(--red-50);
+  /* A red fill that carries white text (DL-053): 5.26:1, hover 6.98:1. */
+  --error-action: var(--red-700);
+  --error-action-hover: var(--red-800);
 
   --success-dark: var(--green-950);
   --success-base: var(--green-500);
@@ -672,6 +679,8 @@
   --primary-action: var(--gg-design-tertiary-action, var(--green-800));
   --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
   --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
+  /* The deep step reads 3.1:1 on the dark surface, so green text stays bright here. */
+  --primary-on-surface: var(--gg-design-tertiary, var(--green-500));
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -692,6 +701,9 @@
   --error-base: var(--red-600);
   --error-light: var(--red-alpha-24);
   --error-lighter: var(--red-alpha-16);
+  /* The same deep fill as light: white on red-600 is only 4.15:1. */
+  --error-action: var(--red-700);
+  --error-action-hover: var(--red-800);
 
   --success-dark: var(--green-400);
   --success-base: var(--green-600);
@@ -776,6 +788,27 @@
   --social-amazon: 255 255 255;
   --social-zendesk: 255 255 255;
 }
+/* The PWA restores its pale mint dark palette (DL-088). The boot marker covers
+ * sign-in and portalled sheets as well as the app shell; Storybook declares its
+ * app surface explicitly. Public and admin retain their own green treatments. */
+:root[data-theme="dark"][data-boot-presentation="pwa"]:not(:has([data-site="website"])),
+[data-theme="dark"][data-surface="app"],
+[data-surface="app"] [data-theme="dark"] {
+  --primary-on-surface: var(--gg-design-tertiary-dark, var(--green-200));
+  --primary-action: var(--gg-design-tertiary-dark, var(--green-200));
+  --primary-action-hover: var(--gg-design-tertiary-dark-hover, var(--green-300));
+  --primary-action-foreground: var(--gg-design-on-tertiary-dark, var(--neutral-950));
+}
+
+/* Resolve Tailwind aliases within each theme scope so nested dark surfaces
+ * inherit their own foreground/fill pair rather than the root's light values. */
+:root,
+[data-theme] {
+  --color-primary-on-surface: rgb(var(--primary-on-surface));
+  --color-primary-action: rgb(var(--primary-action));
+  --color-primary-action-hover: rgb(var(--primary-action-hover));
+  --color-primary-action-foreground: rgb(var(--primary-action-foreground));
+}
 } /* End @layer theme */
 
 /* Material system — accessibility fallback.
@@ -798,8 +831,9 @@
 
 /* ============================================================================
  * Components layer: shared primitive classes.
- * These classes are consumed by admin/client builds without relying on the
- * consumer package's Tailwind content scan seeing shared JSX utilities.
+ * One anatomy per primitive on every surface: surfaces retune these classes
+ * through --gg-* tokens and data-surface, and a utility on the same element
+ * still overrides them.
  * ============================================================================ */
 @layer components {
   .gg-control {
@@ -967,6 +1001,54 @@
     text-overflow: ellipsis;
   }
 
+  /* Header-row filters at the compact size: a 32px face, the height of the
+     compact buttons beside them, with their 48px tap area (DL-023). A select
+     cannot host the ::after that widens a button's hit area, so the select's
+     own box is 48px tall: transparent 8px borders above and below take the
+     extra tap area, the fill and a 1px inset stroke stay on the 32px padding
+     box, and negative margins lay the row out around 32px. The vertical corner
+     radius adds the border so the face keeps round 16px corners, and the side
+     padding takes back the 1px a border would add, so the label and chevron
+     sit where they do on the other sizes. */
+  .gg-control-select[data-size="compact"] {
+    min-block-size: 3rem;
+    block-size: 3rem;
+    margin-block: -0.5rem;
+    padding-block: 0;
+    padding-inline: calc(0.75rem + 1px) calc(2.25rem + 1px);
+    border-width: 0.5rem 0;
+    border-color: transparent;
+    border-radius: var(--radius-lg) / calc(var(--radius-lg) + 0.5rem);
+    background-clip: padding-box;
+    background-position: right calc(0.75rem + 1px) center;
+    box-shadow: inset 0 0 0 1px rgb(var(--stroke-sub-300));
+    font-size: var(--gg-label-sm);
+    line-height: var(--text-label-sm--line-height);
+  }
+
+  .gg-control-select[data-size="compact"][data-density="condensed"] {
+    padding-inline: calc(0.625rem + 1px) calc(1.75rem + 1px);
+    background-position: right calc(0.5rem + 1px) center;
+  }
+
+  /* The ring and halo move inside the face: outside it they would sit on the
+     transparent tap area, 8px off the face above and below. */
+  .gg-control-select[data-size="compact"]:focus-visible {
+    border-color: transparent;
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--focus-ring, var(--primary-base))),
+      inset 0 0 0 4px rgb(var(--focus-ring, var(--primary-base)) / 0.12);
+  }
+
+  .gg-control-select[data-size="compact"][data-invalid="true"] {
+    border-color: transparent;
+    box-shadow: inset 0 0 0 1px rgb(var(--error-base));
+  }
+
+  .gg-control-select[data-size="compact"]:disabled {
+    background-clip: padding-box;
+  }
+
   :root[data-theme="dark"] .gg-control-select,
   [data-theme="dark"] .gg-control-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -1019,7 +1101,7 @@
   }
 
   .gg-control-dropzone:hover:not(:disabled) {
-    border-color: rgb(var(--primary-base));
+    border-color: rgb(var(--tone-action, var(--primary-on-surface)));
     background-color: rgb(var(--bg-weak-50));
   }
 
@@ -1053,7 +1135,8 @@
   }
 
   /* Select options sit concentric inside the 8px menu and its 4px padding. The
-   * utility class never generated in the apps (Tailwind skips shared JSX). */
+   * rule predates the app builds scanning shared source; a rounded utility on
+   * the item would work as well. */
   [data-component="SelectItem"] {
     border-radius: calc(var(--radius-md) - 0.25rem);
   }
@@ -1209,12 +1292,12 @@
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"] {
-    background: rgb(var(--error-base));
+    background: rgb(var(--error-action));
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background: rgb(var(--error-dark, var(--red-700)));
+    background: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"] {
@@ -1273,7 +1356,7 @@
   }
 
   .gg-button[data-emphasis="primary"][data-tone="danger"]:active {
-    background: rgb(var(--error-dark, var(--red-700)));
+    background: rgb(var(--error-action-hover));
   }
 
   .gg-button[data-emphasis="primary"][data-tone="warning"]:active {
@@ -1362,7 +1445,7 @@
   }
 
   .gg-icon-button:focus-visible {
-    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-base)));
+    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-on-surface)));
     outline-offset: 2px;
   }
 
@@ -1422,7 +1505,7 @@
 
   /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
-   * action fill with white text (DL-017). */
+   * theme's action fill/content pair (DL-017, DL-088). */
   .gg-chip {
     position: relative;
     display: inline-flex;
@@ -1562,8 +1645,16 @@
     opacity: 0.5;
   }
 
+  .gg-audio-seek {
+    background: linear-gradient(
+      to right,
+      rgb(var(--primary-on-surface)) var(--audio-progress, 0%),
+      rgb(var(--bg-soft-200)) var(--audio-progress, 0%)
+    );
+  }
+
   .gg-switch[data-state="checked"] {
-    background: rgb(var(--m3-primary, var(--primary-base)));
+    background: rgb(var(--primary-on-surface));
   }
 
   .gg-switch-thumb {
@@ -1936,6 +2027,7 @@
   --color-primary-action: rgb(var(--primary-action));
   --color-primary-action-hover: rgb(var(--primary-action-hover));
   --color-primary-action-foreground: rgb(var(--primary-action-foreground));
+  --color-primary-on-surface: rgb(var(--primary-on-surface));
   /* Alpha variants using relative color syntax */
   --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
   --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);
@@ -2011,6 +2103,8 @@
   --color-error-base: rgb(var(--error-base));
   --color-error-light: rgb(var(--error-light));
   --color-error-lighter: rgb(var(--error-lighter));
+  --color-error-action: rgb(var(--error-action));
+  --color-error-action-hover: rgb(var(--error-action-hover));
 
   /* Success */
   --color-success-dark: rgb(var(--success-dark));

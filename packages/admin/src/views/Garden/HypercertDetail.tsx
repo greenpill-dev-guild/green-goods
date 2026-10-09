@@ -14,6 +14,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { formatDate } from "@green-goods/shared/utils/time";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import {
   RiCheckLine,
   RiExchangeDollarLine,
@@ -41,10 +42,21 @@ function buildHypercertUrl(hypercertId: string) {
   return `${HYPERCERTS_APP_BASE_URL}/${hypercertId}`;
 }
 
-/**
- * Sync status indicator component.
- * Shows visual feedback about data freshness after minting.
- */
+/** How fresh the hypercert's data is after minting, as a chip; nothing once sync failed. */
+const SYNC_STATUS_CHIPS = {
+  synced: {
+    id: "app.hypercerts.detail.synced",
+    tone: "bg-success-lighter text-success-dark",
+    icon: <RiCheckLine className="h-3.5 w-3.5" />,
+  },
+  syncing: {
+    id: "app.hypercerts.detail.syncing",
+    tone: "bg-warning-lighter text-warning-dark",
+    icon: <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />,
+  },
+  optimistic: { id: "app.hypercerts.detail.optimistic", tone: "bg-info-lighter text-info-dark" },
+} as const;
+
 function SyncStatusIndicator({
   status,
   formatMessage,
@@ -52,33 +64,16 @@ function SyncStatusIndicator({
   status: "synced" | "syncing" | "optimistic" | "failed";
   formatMessage: (descriptor: { id: string }) => string;
 }) {
-  if (status === "synced") {
-    return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-success-lighter px-3 py-1 text-label-sm font-medium text-success-dark">
-        <RiCheckLine className="h-3.5 w-3.5" />
-        {formatMessage({ id: "app.hypercerts.detail.synced" })}
-      </div>
-    );
-  }
-
-  if (status === "syncing") {
-    return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-warning-lighter px-3 py-1 text-label-sm font-medium text-warning-dark">
-        <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-        {formatMessage({ id: "app.hypercerts.detail.syncing" })}
-      </div>
-    );
-  }
-
-  if (status === "optimistic") {
-    return (
-      <div className="inline-flex items-center gap-1.5 rounded-full bg-info-lighter px-3 py-1 text-label-sm font-medium text-info-dark">
-        {formatMessage({ id: "app.hypercerts.detail.optimistic" })}
-      </div>
-    );
-  }
-
-  return null;
+  if (status === "failed") return null;
+  const chip = SYNC_STATUS_CHIPS[status];
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-label-sm font-medium ${chip.tone}`}
+    >
+      {"icon" in chip ? chip.icon : null}
+      {formatMessage({ id: chip.id })}
+    </div>
+  );
 }
 
 interface HypercertDetailProps {
@@ -92,6 +87,7 @@ export default function HypercertDetail({
 }: HypercertDetailProps = {}) {
   const { hypercertId: routeHypercertId } = useParams<{ hypercertId: string }>();
   const { formatMessage } = useIntl();
+  const untitledWork = formatMessage({ id: "app.admin.work.untitledWork" });
   const location = useLocation();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { data: gardens = [] } = useGardens();
@@ -298,7 +294,9 @@ export default function HypercertDetail({
                     key={attestation.id}
                     className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-body-sm"
                   >
-                    <div className="font-medium text-text-strong">{attestation.title}</div>
+                    <div className="font-medium text-text-strong">
+                      {toWorkDisplayTitle(attestation.title, untitledWork)}
+                    </div>
                     <div className="text-text-sub">
                       <EnsAddressText
                         address={attestation.gardenerAddress}

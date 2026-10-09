@@ -132,8 +132,17 @@ const LOCAL_ONLY_STATUSES: readonly WorkDisplayStatus[] = [
   "uploading",
 ];
 
+/**
+ * Rows this device made up, which no read returns under the same id: queued
+ * work, and the placeholder earlier builds saved after a wallet send. A sent
+ * work is saved under its attestation id, so the indexed row replaces it; a
+ * placeholder left by an earlier build would stay listed beside that row for
+ * good.
+ */
+const LOCAL_ONLY_ID = /^(0xoffline_|optimistic-)/;
+
 function isIndexedWork(work: OverlayWork): boolean {
-  return !LOCAL_ONLY_STATUSES.includes(work.status) && !work.id.startsWith("0xoffline_");
+  return !LOCAL_ONLY_STATUSES.includes(work.status) && !LOCAL_ONLY_ID.test(work.id);
 }
 
 /** The status one indexed row reports: `null` when its approvals could not be read. */
@@ -170,6 +179,8 @@ export interface GardenWorkRows {
   rows: OverlayWork[];
   /** Rows whose review status is unknown: approvals unread, and nothing saved or decided here. */
   unknownIds: Set<string>;
+  /** Saved rows the latest read left out: kept on screen, with an earlier read's status. */
+  retainedIds: Set<string>;
 }
 
 /**
@@ -197,18 +208,47 @@ export function resolveGardenWorkRows({
     remote === undefined ? savedRows : reconcileIndexedWorkCollection(indexedRows, savedRows);
 
   const unknownIds = new Set<string>();
+  const retainedIds = new Set(
+    remote === undefined
+      ? []
+      : collection.filter((work) => !remoteById.has(work.id)).map((work) => work.id)
+  );
   const rows = collection.map((work): OverlayWork => {
-    const indexedStatus = indexedStatusOf(remoteById.get(work.id));
+    const remoteRow = remoteById.get(work.id);
+    const indexedStatus = indexedStatusOf(remoteRow);
     const cached = known.get(work.id);
     if (indexedStatus === null && !cached) unknownIds.add(work.id);
     const reference = cached ?? (work as OverlayWork);
+    const status = resolveWorkStatus(indexedStatus, reference, now);
     return {
       ...work,
-      status: resolveWorkStatus(indexedStatus, reference, now),
+      status,
+      ...reviewOf(remoteRow, reference, status),
       ...carryOverlayMarkers(reference, indexedStatus, now),
     };
   });
-  return { rows, unknownIds };
+  return { rows, unknownIds, retainedIds };
+}
+
+/**
+ * The indexed decision a row shows: when it was indexed and the feedback the
+ * gardener reads, else what the row already carried. A decision made on this
+ * device has no indexed time until the indexer reports it, and a row that
+ * shows no decision, such as a local one that lapsed back to pending, carries
+ * no review at all.
+ */
+function reviewOf(
+  row: EASWorkListRow | undefined,
+  reference: OverlayWork,
+  status: WorkDisplayStatus
+): Pick<OverlayWork, "reviewedAt" | "reviewFeedback"> {
+  if (status !== "approved" && status !== "rejected") return {};
+  const reviewedAt = row?.approval ? row.approval.createdAt : reference.reviewedAt;
+  const reviewFeedback = row?.approval ? row.approval.feedback?.trim() : reference.reviewFeedback;
+  return {
+    ...(typeof reviewedAt === "number" && reviewedAt > 0 ? { reviewedAt } : {}),
+    ...(reviewFeedback ? { reviewFeedback } : {}),
+  };
 }
 
 /**

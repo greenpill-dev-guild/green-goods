@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { toConfirmFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
@@ -33,7 +33,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
-  useUser: (() => ({ primaryAddress: VIEWER })) as UserModule["useUser"],
+  useUser: () =>
+    ({ primaryAddress: VIEWER }) satisfies Pick<
+      ReturnType<UserModule["useUser"]>,
+      "primaryAddress"
+    >,
 }));
 
 vi.mock(
@@ -69,9 +73,25 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", async (i
     await importOriginal<
       typeof import("@green-goods/shared/hooks/commitment-pooling/useProtocolPool")
     >();
+  // The shared hook composes the two reads in the module, so it is rebuilt
+  // here from the mocked reads and the real rule.
+  const useIsProtocolGarden = ({ gardenId }: { gardenId: string }) => {
+    const ownPool = mocks.ownPools!.pools[0] ?? null;
+    return {
+      isProtocolGarden: actual.isProtocolGarden({
+        gardenId,
+        rootGarden: mocks.protocolPool!.rootGarden,
+        ownPoolType: ownPool?.poolType,
+      }),
+      protocolPool: mocks.protocolPool!,
+      ownPool,
+      ownPoolsLoading: mocks.ownPools!.isLoading,
+    };
+  };
   return {
     ...actual,
     useProtocolPool: (() => mocks.protocolPool!) as unknown as PoolingModule["useProtocolPool"],
+    useIsProtocolGarden: useIsProtocolGarden as unknown as typeof actual.useIsProtocolGarden,
   };
 });
 
@@ -172,7 +192,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
-    // The protocol pool's console is that garden's own Pool tab, not embedded here.
+    // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
   });
 

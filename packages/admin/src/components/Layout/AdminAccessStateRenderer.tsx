@@ -2,17 +2,19 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { AppBar, MainSheet } from "@/components/Shell";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { ConnectButton } from "@/components/ConnectButton";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
+import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
+import { AdminAccessHomeShell } from "./CanvasLayout";
 import { WalletRequiredConnectShell } from "./ConnectShell";
 import { SeedlingIllustration } from "./SeedlingIllustration";
+import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 interface AdminAccessStateRendererProps {
   state: AdminAccessState;
@@ -31,16 +33,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "checking") {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center bg-bg-weak px-6"
-        role="status"
-        aria-label={intl.formatMessage({
-          id: "app.admin.auth.checking",
-          defaultMessage: "Checking authentication...",
+      <AdminLoadingScreen
+        label={intl.formatMessage({
+          id: "app.admin.loading.opening",
+          defaultMessage: "Opening your workspace…",
         })}
-      >
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-stroke-sub border-t-primary-base" />
-      </div>
+        locale={intl.locale}
+      />
     );
   }
 
@@ -66,27 +65,28 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "disconnected") {
     return (
-      <AdminAccessHomeShell>
+      <AdminAccessHomeShell key="signed-out">
         <main
           id="main-content"
           tabIndex={-1}
           className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
         >
           <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-xl font-semibold text-text-strong">
+          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
             {intl.formatMessage({
               id: "app.admin.auth.connectRequired",
               defaultMessage: "Connect to continue",
             })}
           </h1>
-          <p className="mt-2 max-w-md text-sm text-text-sub">
+          <p className="mt-2 max-w-md body-sm text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
-              defaultMessage: "Connect your wallet to access this feature.",
+              defaultMessage:
+                "Connect your wallet or sign in with a passkey to access this feature.",
             })}
           </p>
-          <div className="mt-6">
-            <ConnectButton size="lg" />
+          <div className="mt-6 w-full max-w-sm">
+            <AdminSignInContainer />
           </div>
         </main>
       </AdminAccessHomeShell>
@@ -95,7 +95,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "indexer-error") {
     return (
-      <AdminAccessHomeShell>
+      <AdminAccessHomeShell key="signed-in" showProfile>
         <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
           <CanvasIndexerErrorState
             onRetry={() => {
@@ -111,37 +111,14 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   }
 
   return (
-    <AdminAccessHomeShell>
+    <AdminAccessHomeShell key="signed-in" showProfile>
       <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
         <CanvasGardenAccessState
           onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
           canCreateGarden={state.canCreateGarden}
+          stewardAccess={<StewardAccessRequestContainer showStatus />}
         />
       </main>
     </AdminAccessHomeShell>
-  );
-}
-
-function AdminAccessHomeShell({ children }: { children: ReactNode }) {
-  const intl = useIntl();
-
-  return (
-    <div
-      data-tone="home"
-      className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
-    >
-      <div className="canvas-area-top">
-        <AppBar
-          gardenChip={
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
-              <SeedlingIllustration className="h-5 w-5" />
-              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
-            </span>
-          }
-        />
-      </div>
-      <MainSheet>{children}</MainSheet>
-      <div className="canvas-area-bottom" />
-    </div>
   );
 }

@@ -69,6 +69,20 @@ export function addRecentRecipient(address: Address, note?: string, ens?: string
 }
 
 /**
+ * Forget every recent recipient. A different account signing in on the device
+ * must not be offered the last one's recipients (`useIdentityChangeReset`).
+ */
+export function clearRecentRecipients(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(RECENT_RECIPIENTS_KEY);
+  } catch {
+    // ignore — recents are best-effort
+  }
+  notifyRecentsChanged();
+}
+
+/**
  * Same-tab freshness counter. Increments whenever recents change in this tab.
  * Use as a `useMemo`/`useEffect` dependency. Mirrors `usePendingJoinsVersion`.
  */

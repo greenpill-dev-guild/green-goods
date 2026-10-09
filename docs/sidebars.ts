@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
         {type: 'doc', id: 'community/steward-guide/making-an-assessment', label: 'Create an Assessment'},
         {type: 'doc', id: 'community/steward-guide/reviewing-work', label: 'Review Work'},
+        {type: 'doc', id: 'community/steward-guide/commitment-pooling', label: 'Commitment Pool'},
         {type: 'doc', id: 'community/steward-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
         {type: 'doc', id: 'community/steward-guide/funding-and-governance', label: 'Funding and Governance'},
       ],
@@ -50,6 +51,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
         {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
         {type: 'doc', id: 'reference/product-history', label: 'Product History'},
+        {type: 'doc', id: 'reference/brand', label: 'Brand kit'},
         {type: 'doc', id: 'reference/credits', label: 'Credits'},
       ],
     },
@@ -57,6 +59,7 @@ const sidebars: SidebarsConfig = {
 
   buildersSidebar: [
     {type: 'doc', id: 'builders/getting-started', label: 'Getting Started'},
+    {type: 'link', label: 'Brand kit', href: '/brand'},
     {type: 'doc', id: 'builders/how-to-contribute', label: 'First Contribution'},
     {
       type: 'category',

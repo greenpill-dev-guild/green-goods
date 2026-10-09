@@ -1,6 +1,8 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { usePublicGardenDetail } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
+import { Helmet } from "react-helmet-async";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -22,12 +24,20 @@ export default function WorkDetail() {
       ? data.fieldNotes.find((entry) => entry.id.toLowerCase() === workId?.toLowerCase())
       : undefined;
   const destination = `/home/${id}/work/${workId}`;
-  const title =
-    note?.title ||
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note?.title,
+    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+  );
 
   return (
     <>
+      {/* A note from an unlisted garden is as unlisted as its garden's page. */}
+      {data?.unlisted ? (
+        <Helmet>
+          <meta name="robots" content="noindex" />
+        </Helmet>
+      ) : null}
       <article className="mx-auto max-w-3xl px-6 pb-16 pt-32 sm:px-10" aria-busy={isLoading}>
         <Link
           to={`/gardens/${encodeURIComponent(id ?? "")}`}

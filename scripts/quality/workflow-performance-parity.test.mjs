@@ -1,13 +1,22 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, mkdirSync, statSync, writeFileSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import test from "node:test";
 
 import { resolvePackageCommand } from "../dev/package-commands.mjs";
+import { needsOwnGraph, ownGraphReason, partitionNodeTests } from "../lib/vitest-shared-graph.mjs";
 
 import { classifySupplyChainChanges } from "./classify-supply-chain-changes.mjs";
+import { sharedGraphProblems } from "./check-shared-graph-tests.mjs";
+import {
+  countTestCases,
+  hasSmallTestFileAllowance,
+  MINIMUM_NEW_FILE_CASES,
+  smallNewTestFiles,
+} from "./check-small-test-files.mjs";
+import { testUtilsBarrelImports } from "./check-test-utils-barrel.mjs";
 import {
   addedQuerySetupFromDiff,
   hasQuerySetupAllowance,
@@ -62,10 +71,6 @@ function coverageGlobFloors(packageName) {
     }
   }
   return Object.fromEntries(entries);
-}
-
-function withoutComments(source) {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
 
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
@@ -163,6 +168,31 @@ test("Supply Chain classifies format, guidance, audit, and parity work independe
   assert.match(source, /node scripts\/quality\/classify-supply-chain-changes\.mjs/);
 });
 
+test("the parity job runs for every file its suites read or import", () => {
+  const suite = read("scripts/quality/workflow-performance-parity.test.mjs");
+  const job = read(".github/workflows/supply-chain-guardrails.yml").match(
+    /- name: Run workflow performance parity tests\n\s+run: node --test ([^\n]+)/,
+  );
+  assert.ok(job, "missing the parity test step");
+  const testFiles = job[1].trim().split(/\s+/);
+  const inputs = new Set([
+    ...testFiles,
+    // A test file's subject sits beside it.
+    ...testFiles.map((file) => file.replace(/\.test\.mjs$/, ".mjs")).filter((file) => existsSync(join(root, file))),
+    // Modules the suite imports.
+    ...[...suite.matchAll(/^import [^;]*? from "(\.{1,2}\/[^"]+)";$/gm)].map(([, specifier]) =>
+      relative(root, resolve(root, "scripts/quality", specifier)).split(sep).join("/"),
+    ),
+    // Files it reads by a literal path; a directory it walks is source, not configuration.
+    ...[...suite.matchAll(/\bread\("([^"]+)"\)/g)].map(([, path]) => path).filter((path) => statSync(join(root, path)).isFile()),
+    // Files it reads in a loop over packages.
+    ...["admin", "agent", "client", "shared"].map((name) => `packages/${name}/vitest.config.ts`),
+    ...["admin", "client"].flatMap((name) => [`packages/${name}/package.json`, `packages/${name}/tsconfig.json`]),
+  ]);
+  const missing = [...inputs].filter((path) => !classifySupplyChainChanges([path]).parity).sort();
+  assert.deepEqual(missing, [], "add these to parityExact in classify-supply-chain-changes.mjs");
+});
+
 test("Supply Chain classifier routes each change class without broad fallthrough", () => {
   assert.deepEqual(classifySupplyChainChanges(["packages/shared/src/utils/calendar-date.ts"]), {
     format: true,
@@ -204,6 +234,44 @@ test("Supply Chain classifier routes each change class without broad fallthrough
       parity: false,
     });
   }
+  // The parity suite holds the tests for these test-quality inputs, so a change to one runs it.
+  for (const membershipPath of [
+    "packages/shared/vitest.config.ts",
+    "scripts/lib/vitest-shared-graph.mjs",
+    "scripts/quality/check-shared-graph-tests.mjs",
+    "scripts/quality/check-small-test-files.mjs",
+    "scripts/quality/check-test-utils-barrel.mjs",
+  ]) {
+    assert.deepEqual(classifySupplyChainChanges([membershipPath]), {
+      format: true,
+      guidance: false,
+      supply: false,
+      parity: true,
+    });
+  }
+});
+
+test("pre-push forwards focused proof paths without shell expansion", () => {
+  const hook = read(".husky/pre-push");
+  for (const paths of ["", "client:src/views/example.test.tsx shared:src/**/example.test.ts"]) {
+    const result = spawnSync("sh", ["-c", `
+git() { :; }
+bun() { :; }
+node() { printf '%s\\n' "$@"; }
+${hook}
+`], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.stdout.trim().split("\n"), [
+      "🔍 Running the focused ready-for-CI gate...",
+      "scripts/dev/node-cli.js", "scripts/dev/ci-local.js", "--intent", "push",
+      "--reuse-passing-receipts",
+      ...paths.split(" ").filter(Boolean).flatMap((path) => ["--test-path", path]),
+    ]);
+  }
 });
 
 test("local hooks keep commit light and reuse the focused push contract", () => {
@@ -225,7 +293,7 @@ test("local hooks keep commit light and reuse the focused push contract", () => 
   assert.doesNotMatch(preToolCommands, /bun run lint/);
   assert.doesNotMatch(postToolCommands, /@green-goods\/shared typecheck/);
   assert.doesNotMatch(completionGate, /bun run|ci-local\.js|typecheck/);
-  assert.match(completionGate, /coordinator owns validation/);
+  // agent-hooks.test.mjs exercises advisory completion through real event fixtures.
 });
 
 test("every direct Node and Bun setup uses the exact repository versions", () => {
@@ -349,10 +417,11 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
     "package.json",
     "bun.lock",
     "biome.json",
-    ".env.schema",
+    "env.schema",
     ".github/actions/setup-js/action.yml",
     ".github/workflows/shared.yml",
     "scripts/quality/check-source-structure.js",
+    "scripts/lib/vitest-shared-graph.mjs",
     "packages/shared/**",
     "packages/contracts/abis/**",
     "packages/contracts/deployments/**",
@@ -364,6 +433,8 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
       `Shared push and pull_request routing must include ${required}`,
     );
   }
+  // The Shared config reads the membership helper, so the internal detector must see it too.
+  assert.match(source, /"scripts\/lib\/vitest-shared-graph\.mjs",\n\s+\]\);/);
 
   for (const forbidden of [
     ".github/workflows/**",
@@ -482,10 +553,10 @@ test("consumer Vitest configs share the local resource-aware worker policy", () 
 });
 
 test("consumer Vitest projects separate Node and DOM without project coverage", () => {
-  for (const file of [
-    "packages/shared/vitest.config.ts",
-    "packages/client/vitest.config.ts",
-    "packages/admin/vitest.config.ts",
+  for (const [file, projectCount] of [
+    ["packages/shared/vitest.config.ts", 3],
+    ["packages/client/vitest.config.ts", 2],
+    ["packages/admin/vitest.config.ts", 2],
   ]) {
     const source = read(file);
     assert.equal(source.match(/\bprojects\s*:/g)?.length, 1, `${file} must declare projects once`);
@@ -496,7 +567,7 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
     );
     assert.equal(
       source.match(/extends:\s*true/g)?.length,
-      2,
+      projectCount,
       `${file} projects must inherit the root config`,
     );
     assert.match(source, /name:\s*["']node["']/);
@@ -504,89 +575,111 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
   }
 });
 
-test("Admin, Client, and Shared keep the production import seams that protect isolated tests", () => {
+test("Shared Node tests share one module graph unless they mock, stub, assign globals, or declare a leak", () => {
+  const source = read("packages/shared/vitest.config.ts");
+  const project = (name) => {
+    const start = source.search(new RegExp(`name:\\s*["']${name}["']`));
+    assert.ok(start >= 0, `Shared must declare the ${name} project`);
+    const end = source.indexOf("\n      },\n", start);
+    return source.slice(start, end);
+  };
+  const sharedGraph = project("node-shared-graph");
+  for (const option of [
+    /include:\s*nodeTests\.sharedGraph\b/,
+    /setupFiles:\s*\[["']\.\/src\/__tests__\/setupTests\.shared-graph\.ts["']\]/,
+    /isolate:\s*false/,
+    /restoreMocks:\s*true/,
+    /unstubGlobals:\s*true/,
+    /unstubEnvs:\s*true/,
+  ]) {
+    assert.match(sharedGraph, option, `the shared graph must keep ${option}`);
+  }
+  assert.match(project("node"), /include:\s*nodeTests\.isolated\b/);
+  assert.match(project("node"), /setupTests\.node\.ts/);
+  assert.doesNotMatch(project("node"), /isolate:\s*false/);
+  assert.match(project("dom"), /\.\.\.nodeTests\.isolated,\s*\.\.\.nodeTests\.sharedGraph/);
+  assert.match(source, /partitionNodeTests\(\{\s*root:\s*__dirname,\s*include:\s*nodeTestFiles\s*\}\)/);
+
+  const fixture = mkdtempSync(join(tmpdir(), "shared-graph-partition-"));
+  try {
+    const files = {
+      "plain.test.ts": 'import { expect, it } from "vitest";\nit("adds", () => expect(1 + 1).toBe(2));\n',
+      "mocks.test.ts": 'vi.mock("../config/appkit");\n',
+      "hoisted.test.ts": "const state = vi.hoisted(() => ({}));\n",
+      "stubs-global.test.ts": 'vi.stubGlobal("fetch", vi.fn());\n',
+      "stubs-env.test.ts": 'vi.stubEnv("VITE_CHAIN_ID", "1");\n',
+      "resets.test.ts": "vi.resetModules();\n",
+      "indexeddb.test.ts": 'const request = indexedDB.open("jobs");\n',
+      "assigns-global.test.ts": "const originalFetch = globalThis.fetch;\nglobalThis.fetch = vi.fn();\n",
+      "defines-global.test.ts": 'Object.defineProperty(global, "navigator", { value: {} });\n',
+      "reads-global.test.ts": 'it("reads", () => expect(globalThis.fetch === undefined).toBe(false));\n',
+      "marked.test.ts": "// @shared-graph isolate: a dependency patches a built-in when it loads.\n",
+      "mentions.test.ts": '// Unlike its siblings, this file needs no vi.mock call.\nit("names", () => "vi.mock");\n',
+      "dom.test.ts": "/** @vitest-environment jsdom */\nvi.mock(\"../x\");\n",
+      "casts-global.test.ts": '(globalThis as Record<string, unknown>).flag = "set";\n',
+      // A test helper runs inside its importer, directly or through another helper; a production
+      // module does not count, because the shared-graph setup gives each file fresh copies of it.
+      "helper-stubs.test.ts": 'import { stubLocks } from "./__tests__/stubs";\nit("locks", () => stubLocks());\n',
+      "helper-chain.test.ts": 'import { openStore } from "@/__tests__/chain";\nit("opens", () => openStore());\n',
+      "helper-clean.test.ts": 'import { makeGarden } from "./__tests__/factories";\nit("makes", () => makeGarden());\n',
+      "production-db.test.ts": 'import { readJobs } from "./modules/db";\nit("reads", () => readJobs());\n',
+    };
+    mkdirSync(join(fixture, "src/__tests__"), { recursive: true });
+    mkdirSync(join(fixture, "src/modules"));
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(fixture, "src", name), text);
+    writeFileSync(join(fixture, "src/__tests__/stubs.ts"), 'export const stubLocks = () => vi.stubGlobal("navigator", {});\n');
+    writeFileSync(join(fixture, "src/__tests__/chain.ts"), 'export { openStore } from "./idb";\n');
+    writeFileSync(join(fixture, "src/__tests__/idb.ts"), 'export const openStore = () => indexedDB.open("jobs");\n');
+    writeFileSync(join(fixture, "src/__tests__/factories.ts"), "export const makeGarden = () => ({ name: \"garden\" });\n");
+    writeFileSync(join(fixture, "src/modules/db.ts"), 'export const readJobs = () => indexedDB.open("jobs");\n');
+    assert.deepEqual(partitionNodeTests({ root: fixture, include: ["src/*.test.ts"] }), {
+      sharedGraph: [
+        "src/helper-clean.test.ts",
+        "src/mentions.test.ts",
+        "src/plain.test.ts",
+        "src/production-db.test.ts",
+        "src/reads-global.test.ts",
+      ],
+      isolated: [
+        "src/assigns-global.test.ts",
+        "src/casts-global.test.ts",
+        "src/defines-global.test.ts",
+        "src/helper-chain.test.ts",
+        "src/helper-stubs.test.ts",
+        "src/hoisted.test.ts",
+        "src/indexeddb.test.ts",
+        "src/marked.test.ts",
+        "src/mocks.test.ts",
+        "src/resets.test.ts",
+        "src/stubs-env.test.ts",
+        "src/stubs-global.test.ts",
+      ],
+      dom: ["src/dom.test.ts"],
+    });
+    assert.equal(
+      ownGraphReason("src/helper-chain.test.ts", { root: fixture }),
+      "it imports src/__tests__/idb.ts, which does",
+    );
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+// The production import seams moved to check-source-structure.js, which the package workflows
+// and the push gate run for source changes; this suite never ran for them.
+test("Shared's public-contracts subpaths target real leaves, not the barrel", () => {
   const sharedExports = JSON.parse(read("packages/shared/package.json")).exports;
-  const declaredSharedImports = new Set(
-    Object.keys(sharedExports).map((specifier) =>
-      specifier === "."
-        ? "@green-goods/shared"
-        : `@green-goods/shared/${specifier.replace(/^\.\//, "")}`,
-    ),
-  );
   const publicContractsBarrelTarget = sharedExports["./public-contracts"];
   for (const [specifier, target] of Object.entries(sharedExports)) {
-    if (specifier.startsWith("./public-contracts/")) {
-      assert.ok(
-        existsSync(join(root, "packages/shared", target)),
-        `${specifier} must target an existing public-contracts leaf`,
-      );
-      assert.notEqual(
-        target,
-        publicContractsBarrelTarget,
-        `${specifier} must target a real leaf instead of aliasing the public-contracts barrel`,
-      );
-    }
-  }
-  const broadConsumerBarrels =
-    /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
-  const exactSharedRoot =
-    /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
-  const sharedImportPattern =
-    /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
-  const deepRelativeSharedSource =
-    /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
-
-  for (const consumerDirectory of ["packages/admin/src", "packages/client/src"]) {
-    for (const file of sourceFiles(consumerDirectory)) {
-      const source = withoutComments(read(file));
-      assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
-      assert.doesNotMatch(
-        source,
-        broadConsumerBarrels,
-        `${file} must not restore a broad Shared barrel`,
-      );
-      for (const match of source.matchAll(sharedImportPattern)) {
-        assert.ok(
-          declaredSharedImports.has(match[1]),
-          `${file} imports undeclared Shared specifier ${match[1]}`,
-        );
-      }
-      assert.doesNotMatch(
-        source,
-        deepRelativeSharedSource,
-        `${file} must not bypass Shared package exports with a deep-relative import`,
-      );
-    }
-  }
-
-  const internalBarrels =
-    /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
-  for (const file of sourceFiles("packages/shared/src")) {
-    if (
-      file.includes("/__tests__/") ||
-      file.includes("/__mocks__/") ||
-      /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(file) ||
-      file.endsWith("/index.ts")
-    ) {
-      continue;
-    }
-
-    const source = withoutComments(read(file));
-    assert.doesNotMatch(source, exactSharedRoot, `${file} must not self-import the package root`);
-    assert.doesNotMatch(
-      source,
-      /from\s+["'][^"']*config\/query-keys\/registry["']/,
-      `${file} must import domain query-key leaves`,
+    if (!specifier.startsWith("./public-contracts/")) continue;
+    assert.ok(
+      existsSync(join(root, "packages/shared", target)),
+      `${specifier} must target an existing public-contracts leaf`,
     );
-    assert.doesNotMatch(
-      source,
-      internalBarrels,
-      `${file} must import an internal leaf instead of a high-fanout barrel`,
-    );
-    assert.doesNotMatch(
-      source,
-      /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/,
-      `${file} must import DEFAULT_CHAIN_ID from config/default-chain`,
+    assert.notEqual(
+      target,
+      publicContractsBarrelTarget,
+      `${specifier} must target a real leaf instead of aliasing the public-contracts barrel`,
     );
   }
 });
@@ -597,6 +690,107 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
   assert.match(source, /Check 6: Diff-aware query setup/);
   assert.match(source, /scripts\/quality\/check-test-query-setup\.mjs/);
+  assert.match(source, /Check 7: Shared-graph membership/);
+  assert.match(source, /scripts\/quality\/check-shared-graph-tests\.mjs/);
+  assert.match(source, /Check 8: New small test files/);
+  assert.match(source, /scripts\/quality\/check-small-test-files\.mjs/);
+  assert.match(source, /Check 9: Shared tests import test-utils leaves/);
+  assert.match(source, /scripts\/quality\/check-test-utils-barrel\.mjs/);
+});
+
+test("test quality rejects the test-utils barrel in Shared tests but keeps its own tests", () => {
+  const sources = {
+    "packages/shared/src/__tests__/hooks/leaf.test.ts": 'import { renderHookWithProviders } from "../test-utils/render-helpers";\n',
+    "packages/shared/src/__tests__/hooks/barrel.test.ts": 'import { createMockGarden } from "../test-utils";\n',
+    "packages/shared/src/__tests__/deep/alias.test.tsx": 'import {\n  render,\n} from "@green-goods/shared/testing";\n',
+    "packages/shared/src/__tests__/test-utils/controller-fixtures.test.ts": 'import { fixtures } from "./index";\n',
+    "packages/shared/src/modules/work/work.test.ts": 'import { flushPromises } from "../../__tests__/test-utils/index";\n',
+  };
+  assert.deepEqual(testUtilsBarrelImports(Object.keys(sources), (file) => sources[file]), [
+    { file: "packages/shared/src/__tests__/deep/alias.test.tsx", specifier: "@green-goods/shared/testing" },
+    { file: "packages/shared/src/__tests__/hooks/barrel.test.ts", specifier: "../test-utils" },
+    { file: "packages/shared/src/modules/work/work.test.ts", specifier: "../../__tests__/test-utils/index" },
+  ]);
+});
+
+test("test quality counts the cases a test file declares, tables by their rows", () => {
+  const cases = [
+    ['it("a", f); it("b", f); test.todo("c");', 3],
+    ['it.each([[1, 2], [3, 4]])("x %s", f);', 2],
+    // A table whose rows are not written inline counts as the minimum.
+    ['it.each(rows)("x", f);', MINIMUM_NEW_FILE_CASES],
+    ['describe.each([{ a: 1 }, { a: 2 }, { a: 3 }])("x", () => { it("y", f); });', 4],
+    ["it.each`\n  a | b\n  ${1} | ${2}\n  ${3} | ${4}\n`(\"sum\", f);", 2],
+    ['it.skipIf(ci)("name", f); it.concurrent.each([[1], [2]])("c", f);', 3],
+    // Methods, comments and strings are not cases.
+    ['expect(pattern.test(value)).toBe(true); // it("commented", f)\nconst s = "it(\'x\')";', 0],
+  ];
+  for (const [source, expected] of cases) assert.equal(countTestCases(source), expected, source);
+});
+
+test("test quality fails a new small test file unless it gives a reason", () => {
+  const sources = {
+    "packages/shared/src/__tests__/tiny.test.ts": 'it("one", f); it("two", f);',
+    "packages/shared/src/__tests__/reasoned.test.ts":
+      '// TEST-QUALITY: allow-small-test-file - the only DOM-free proof of this contract\nit("one", f);',
+    "packages/admin/src/__tests__/four.test.tsx": 'it.each([1, 2, 3, 4])("n", f);',
+    "packages/shared/src/__tests__/helper.ts": 'it("not a test file", f);',
+  };
+  assert.deepEqual(smallNewTestFiles(Object.keys(sources), (file) => sources[file]), [
+    { file: "packages/shared/src/__tests__/tiny.test.ts", cases: 2 },
+  ]);
+  assert.equal(hasSmallTestFileAllowance("// TEST-QUALITY: allow-small-test-file - "), false);
+  // The reason is the rest of the marker's own comment line, in words; code on the next line, a
+  // template, a lone word or a marker inside a string gives none.
+  for (const source of [
+    '// TEST-QUALITY: allow-small-test-file -\nit("one", f);',
+    '// TEST-QUALITY: allow-small-test-file - \nit("one", f);',
+    "// TEST-QUALITY: allow-small-test-file - <reason>",
+    "// TEST-QUALITY: allow-small-test-file - <why it cannot join its subject>",
+    "// TEST-QUALITY: allow-small-test-file - TODO",
+    "// TEST-QUALITY: allow-small-test-file - TODO explain later",
+    "// TEST-QUALITY: allow-small-test-file - reason",
+    'const note = "TEST-QUALITY: allow-small-test-file - the reason lives in a string";',
+  ]) {
+    assert.equal(hasSmallTestFileAllowance(source), false, source);
+  }
+  for (const source of [
+    "/* TEST-QUALITY: allow-small-test-file - the subject needs the jsdom File constructor */",
+    "/**\n * TEST-QUALITY: allow-small-test-file - runs in its own worker environment\n */",
+    "  // TEST-QUALITY: allow-small-test-file - one table row per supported locale",
+  ]) {
+    assert.equal(hasSmallTestFileAllowance(source), true, source);
+  }
+});
+
+test("test quality flags Shared test files that leak through the shared graph or run twice", () => {
+  const sources = {
+    "src/plain.test.ts": 'it("adds", () => expect(1 + 1).toBe(2));',
+    "src/mocks.test.ts": 'vi.mock("../config/appkit");',
+    "src/marked.test.ts": "// @shared-graph isolate: a dependency patches a built-in when it loads.",
+    "src/twice.test.ts": 'it("adds", () => expect(1 + 1).toBe(2));',
+  };
+  const entries = [
+    { file: "src/plain.test.ts", projectName: "node-shared-graph" },
+    { file: "src/mocks.test.ts", projectName: "node-shared-graph" },
+    { file: "src/marked.test.ts", projectName: "node-shared-graph" },
+    { file: "src/twice.test.ts", projectName: "node-shared-graph" },
+    { file: "src/twice.test.ts", projectName: "dom" },
+  ];
+  const reasonFor = (file) => (needsOwnGraph(sources[file]) ? "its own code does" : null);
+  assert.deepEqual(sharedGraphProblems(entries, reasonFor), [
+    "src/marked.test.ts: shares the module graph but needs its own, because its own code does (scripts/lib/vitest-shared-graph.mjs)",
+    "src/mocks.test.ts: shares the module graph but needs its own, because its own code does (scripts/lib/vitest-shared-graph.mjs)",
+    "src/twice.test.ts: runs in node-shared-graph and dom",
+  ]);
+  // The same files in the isolated project are fine.
+  assert.deepEqual(
+    sharedGraphProblems(
+      entries.slice(1, 3).map((entry) => ({ ...entry, projectName: "node" })),
+      (file) => sources[file],
+    ),
+    [],
+  );
 });
 
 test("test quality only flags added local query setup in package tests", () => {
@@ -674,6 +868,44 @@ test("PR Test jobs run plain tests; thresholds are enforced nightly and on main"
   assert.match(source, /uses:\s*\.\/\.github\/actions\/setup-js/);
   assert.match(source, /run:\s*bun run test \$\{\{ matrix\.args \}\}/);
   assert.match(source, /CI:\s*true/);
+});
+
+test("contract PRs reuse only an exact-input production tree; pushes, releases and the nightly rebuild it", () => {
+  const source = read(".github/workflows/contracts.yml");
+  const unit = source.slice(source.indexOf("  unit:"), source.indexOf("  lint-build:"));
+  const releaseCache = unit.slice(unit.indexOf("id: release-build"), unit.indexOf("- name:", unit.indexOf("id: release-build")));
+  assert.ok(releaseCache.length > 0, "the unit job caches the production tree in its own step");
+  assert.match(releaseCache, /packages\/contracts\/\.generated\/foundry\/out\/production/);
+  assert.match(releaseCache, /packages\/contracts\/\.generated\/foundry\/cache\/production/);
+  // An exact key over every build input, and no partial restore: a miss rebuilds from scratch.
+  assert.doesNotMatch(releaseCache, /restore-keys/);
+  for (const input of [
+    "packages/contracts/foundry.toml",
+    "packages/contracts/foundry.lock",
+    "packages/contracts/remappings.txt",
+    "packages/contracts/src/**",
+    "packages/contracts/test/**",
+    "packages/contracts/script/**/*.sol",
+    "packages/contracts/lib/**",
+    "packages/contracts/config/commitment-pooling-release.json",
+    "bun.lock",
+  ]) {
+    assert.ok(releaseCache.includes(`'${input}'`), `the production cache key must hash ${input}`);
+  }
+  assert.match(releaseCache, /forge-v1\.7\.1/);
+  // The general Foundry cache holds only the test profile, so it cannot restore a production tree.
+  const general = unit.slice(unit.indexOf("name: Cache Foundry build"), unit.indexOf("id: release-build"));
+  assert.match(general, /\.generated\/foundry\/out\/test/);
+  assert.doesNotMatch(general, /\.generated\/foundry\/out\n|foundry\/out\/production|foundry\/out$/m);
+  // Only a pull request into develop with an exact hit reuses the tree.
+  assert.match(
+    unit,
+    /GG_RELEASE_GAS_GATE_BUILD: \$\{\{ github\.event_name == 'pull_request' && github\.base_ref == 'develop' && steps\.release-build\.outputs\.cache-hit == 'true' && 'cached' \|\| 'fresh' \}\}/,
+  );
+
+  const nightly = read(".github/workflows/contracts-nightly.yml");
+  assert.match(nightly, /run: bun run test --suite release-gas\n/);
+  assert.doesNotMatch(nightly, /GG_RELEASE_GAS_GATE_BUILD/);
 });
 
 test("contracts realism remains equivalent without unrelated tool setup", () => {

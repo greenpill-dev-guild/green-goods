@@ -7,7 +7,7 @@
  * - The public subscribe API still receives consent=true.
  * - Schedule-a-call uses the configured appointment URL without card chrome.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

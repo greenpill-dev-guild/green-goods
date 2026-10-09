@@ -11,6 +11,7 @@ generated_from:
   - .github/workflows/agent.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
+  - .github/workflows/codeql-cache-prune.yml
   - .github/workflows/contracts-manual.yml
   - .github/workflows/contracts-nightly.yml
   - .github/workflows/contracts.yml
@@ -23,12 +24,13 @@ generated_from:
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
-source_digest: "sha256:fd0fb42a7a04fe00fdcd9ffd66125ce27758c8387d53b01d79a4245493fc889f"
+source_digest: "sha256:69ed9ba47974284b631eb2e0fcaa30b7156ab2384cd18a4b1baf9b9bb7a922c5"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
   - .github/workflows/ci-gate.yml
   - .github/workflows/client.yml
+  - .github/workflows/codeql-cache-prune.yml
   - .github/workflows/contracts-manual.yml
   - .github/workflows/contracts-nightly.yml
   - .github/workflows/contracts.yml
@@ -56,6 +58,7 @@ Workflow files own CI triggers and jobs. Root package scripts own reusable local
 | Agent | `.github/workflows/agent.yml` | `lint-typecheck-build`, `test` |
 | CI Gate | `.github/workflows/ci-gate.yml` | `gate` |
 | Client | `.github/workflows/client.yml` | `e2e`, `lighthouse`, `lint-build`, `sourcemaps`, `test` |
+| CodeQL Cache Prune | `.github/workflows/codeql-cache-prune.yml` | `prune` |
 | Contracts Manual | `.github/workflows/contracts-manual.yml` | `contracts` |
 | Contracts Nightly | `.github/workflows/contracts-nightly.yml` | `deep-fuzz` |
 | Contracts | `.github/workflows/contracts.yml` | `fork-readiness-arbitrum`, `fork-readiness-core`, `lint-build`, `realism-audit`, `unit` |

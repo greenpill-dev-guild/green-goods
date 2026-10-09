@@ -1,19 +1,23 @@
 import { useMemo } from "react";
-import { filterAssessmentQueue, filterCertificationQueue, filterPendingWorks } from "./hub.filters";
+import { filterAssessments, filterHypercerts, filterWorksByScope } from "./hub.filters";
 
 /**
- * The Hub's per-stage queues and the row a route currently selects. Pure
+ * The Hub's per-stage lists and the row a route currently selects. Pure
  * derivation over the workspace data, split out of
  * `useHubWorkbenchController` so that file stays inside its source-structure
  * cap; the controller passes what it already has and spreads the result.
  */
-export function useHubStageQueues(input: {
-  works: Parameters<typeof filterPendingWorks>[0];
-  actionsMap: Parameters<typeof filterPendingWorks>[1];
+export function useHubStageQueues<
+  TAssessment extends Parameters<typeof filterAssessments>[0][number] & { id: string },
+  THypercert extends Parameters<typeof filterHypercerts>[0][number],
+>(input: {
+  works: Parameters<typeof filterWorksByScope>[0];
+  workScope: Parameters<typeof filterWorksByScope>[1];
+  actionsMap: Parameters<typeof filterWorksByScope>[2];
   normalizedSearch: string;
-  sortDirection: Parameters<typeof filterPendingWorks>[3];
-  assessments: Parameters<typeof filterCertificationQueue>[0];
-  hypercerts: Parameters<typeof filterCertificationQueue>[1];
+  sortDirection: Parameters<typeof filterWorksByScope>[4];
+  assessments: TAssessment[];
+  hypercerts: THypercert[];
   routeWorkId?: string | null;
   activeWorkDetailId?: string | null;
   routeCertificationId?: string | null;
@@ -21,6 +25,7 @@ export function useHubStageQueues(input: {
 }) {
   const {
     works,
+    workScope,
     actionsMap,
     normalizedSearch,
     sortDirection,
@@ -32,19 +37,19 @@ export function useHubStageQueues(input: {
     activeCertificationId,
   } = input;
 
-  const pendingWorks = useMemo(
-    () => filterPendingWorks(works, actionsMap, normalizedSearch, sortDirection),
-    [actionsMap, normalizedSearch, sortDirection, works]
+  const scopedWorks = useMemo(
+    () => filterWorksByScope(works, workScope, actionsMap, normalizedSearch, sortDirection),
+    [actionsMap, normalizedSearch, sortDirection, workScope, works]
   );
 
-  const assessmentQueue = useMemo(
-    () => filterAssessmentQueue(works, actionsMap, normalizedSearch),
-    [actionsMap, normalizedSearch, works]
+  const assessmentList = useMemo(
+    () => filterAssessments(assessments, normalizedSearch),
+    [assessments, normalizedSearch]
   );
 
-  const certificationQueue = useMemo(
-    () => filterCertificationQueue(assessments, hypercerts, normalizedSearch),
-    [assessments, hypercerts, normalizedSearch]
+  const hypercertList = useMemo(
+    () => filterHypercerts(hypercerts, normalizedSearch),
+    [hypercerts, normalizedSearch]
   );
 
   const selectedWork = useMemo(() => {
@@ -52,17 +57,17 @@ export function useHubStageQueues(input: {
     return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
   }, [activeWorkDetailId, routeWorkId, works]);
 
+  // Read from every assessment, not the searched list: a record opened by its
+  // link stays open whatever the search box holds, as a work detail does.
   const selectedCertification = useMemo(() => {
     const resolvedId = routeCertificationId ?? activeCertificationId;
-    return resolvedId
-      ? certificationQueue.find((assessment) => assessment.id === resolvedId)
-      : undefined;
-  }, [activeCertificationId, certificationQueue, routeCertificationId]);
+    return resolvedId ? assessments.find((assessment) => assessment.id === resolvedId) : undefined;
+  }, [activeCertificationId, assessments, routeCertificationId]);
 
   return {
-    pendingWorks,
-    assessmentQueue,
-    certificationQueue,
+    scopedWorks,
+    assessmentList,
+    hypercertList,
     selectedWork,
     selectedCertification,
   };

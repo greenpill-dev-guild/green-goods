@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
+import { expect, within } from "storybook/test";
 import { PublicFooter } from "./PublicFooter";
 
 const messages = {
@@ -18,6 +19,25 @@ const messages = {
 const meta: Meta<typeof PublicFooter> = {
   title: "Client/Public/PublicFooter",
   component: PublicFooter,
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const footer = within(canvasElement).getByRole("navigation", { name: "Footer links" });
+    for (const label of [
+      "Gardens",
+      "Impact",
+      "Fund",
+      "Actions",
+      "Glossary",
+      "Twitter",
+      "Admin",
+      "Docs",
+      "GitHub",
+    ]) {
+      await expect(within(footer).getByRole("link", { name: label })).toBeVisible();
+    }
+    const document = canvasElement.ownerDocument;
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  },
   decorators: [
     (Story) => (
       <MemoryRouter>
@@ -44,7 +64,9 @@ const meta: Meta<typeof PublicFooter> = {
 export default meta;
 type Story = StoryObj<typeof PublicFooter>;
 
-export const Default: Story = {};
+export const Default: Story = { globals: { viewport: { value: "desktop" } } };
+
+export const Mobile: Story = { globals: { viewport: { value: "mobile" } } };
 
 export const InContext: Story = {
   render: () => (

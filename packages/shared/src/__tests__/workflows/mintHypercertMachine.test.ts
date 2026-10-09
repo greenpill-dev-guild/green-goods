@@ -8,7 +8,7 @@
 import type { Address, Hex } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
-import { flushPromises } from "../test-utils";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // Custom waitFor that doesn't require DOM (for pure XState tests)
 async function waitFor(

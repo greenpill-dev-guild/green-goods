@@ -1,22 +1,25 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
+import enMessages from "@green-goods/shared/i18n/en.json";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "@green-goods/shared/i18n/en.json";
 
-const { mockUseEnsName } = vi.hoisted(() => ({
+const { mockUseEnsName, mockUseGreenGoodsEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
+  mockUseGreenGoodsEnsName: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
 }));
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
+  useGreenGoodsEnsName: (address: Address | null | undefined) => mockUseGreenGoodsEnsName(address),
+}));
 
-import { HubAssessmentQueue } from "@/views/Hub/components/HubAssessmentQueue";
 import { HubWorkQueue } from "@/views/Hub/components/HubWorkQueue";
 
 const TEST_WORK: Work = {
@@ -44,12 +47,15 @@ describe("Hub queue ENS display", () => {
   beforeEach(() => {
     mockUseEnsName.mockReset();
     mockUseEnsName.mockReturnValue({ data: "river.greengoods.eth" });
+    mockUseGreenGoodsEnsName.mockReset();
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
   });
 
   it("uses ENS display names in the work queue description", () => {
     renderWithIntl(
       <HubWorkQueue
         items={[TEST_WORK]}
+        scope="pending"
         worksLoading={false}
         hasDataError={false}
         normalizedSearch=""
@@ -68,22 +74,66 @@ describe("Hub queue ENS display", () => {
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 
-  it("uses ENS display names in the assessment queue description", () => {
+  it("prefers the submitter's protocol name in the work queue", () => {
+    mockUseEnsName.mockReturnValue({ data: "other.eth" });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: "river.greengoods.eth" });
     renderWithIntl(
-      <HubAssessmentQueue
+      <HubWorkQueue
         items={[TEST_WORK]}
+        scope="pending"
         worksLoading={false}
         hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
         actionsMap={new Map([[1, { title: "Compost" }]])}
         selectedWorkId={undefined}
         onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
       />
     );
 
-    // The queue search matches on the action title, so the card has to show it
-    // — a hover-only title leaves a search hit with no visible matching text.
-    const card = screen.getByRole("button", { name: /Compost setup/ });
-    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
+    expect(screen.queryByText("other.eth")).not.toBeInTheDocument();
+    expect(mockUseGreenGoodsEnsName).toHaveBeenCalledWith(TEST_WORK.gardenerAddress);
+  });
+});
+
+describe("Hub work queue scopes", () => {
+  const renderQueue = (scope: "pending" | "approved", items: Work[]) =>
+    renderWithIntl(
+      <HubWorkQueue
+        items={items}
+        scope={scope}
+        worksLoading={false}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+  beforeEach(() => {
+    mockUseEnsName.mockReturnValue({ data: null });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
+  });
+
+  it.each([
+    { scope: "pending", title: "All caught up" },
+    { scope: "approved", title: "No approved work yet" },
+  ] as const)("says what an empty $scope scope holds", ({ scope, title }) => {
+    renderQueue(scope, []);
+
+    expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
+  it("marks an approved work Approved, with no Pending chip", () => {
+    renderQueue("approved", [{ ...TEST_WORK, status: "approved" }]);
+
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Approved")).toBeInTheDocument();
+    expect(within(card).queryByText("Pending")).not.toBeInTheDocument();
   });
 });

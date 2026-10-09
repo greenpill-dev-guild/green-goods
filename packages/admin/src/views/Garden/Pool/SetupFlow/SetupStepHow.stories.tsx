@@ -30,7 +30,7 @@ const meta: Meta<typeof SetupStepHow> = {
     docs: {
       description: {
         component:
-          "The first step of first-run setup: what this pool is for, in the steward's own words, and how many commitments one person may hold at once. Both are required before the flow moves on.",
+          "The first step of first-run setup: what this pool is for, in the steward's own words, and how many commitments one person may hold at once. Both are required before the flow moves on. The words stop at 420 characters, counted as the steward types.",
       },
     },
   },

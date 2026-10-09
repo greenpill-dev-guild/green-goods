@@ -1,7 +1,8 @@
 # Community Member Public Conviction Surface
 
+**Stage**: `ideas`
 **Slug**: `community-public-conviction-surface`
-**Status**: `IDEA`
+**Status**: `IDEA — parked pending a concrete allocation need`
 **Created**: `2026-04-25`
 **Priority**: `p2` (closes the most concrete persona gap in current code)
 **Branch**: `feature/community-public-conviction-surface` (when promoted)

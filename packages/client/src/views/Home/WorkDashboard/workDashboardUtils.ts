@@ -10,32 +10,6 @@ export function buildWorkMap(works: Work[]): Map<string, Work> {
   return map;
 }
 
-/**
- * Combine pending needs-review and my-submissions lists, deduplicating by id.
- */
-export function combinePendingWork(
-  pendingNeedsReview: Work[],
-  pendingMySubmissions: Work[]
-): Work[] {
-  const map = new Map<string, Work>();
-  for (const w of pendingNeedsReview) map.set(w.id, w);
-  for (const w of pendingMySubmissions) map.set(w.id, w);
-  return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
-}
-
-/**
- * Check if the given address is one of the reviewer garden IDs.
- */
-export function isStewardForGarden(
-  activeAddress: Address | undefined,
-  reviewerGardenIds: string[],
-  gardenAddress: string
-): boolean {
-  return Boolean(
-    activeAddress && reviewerGardenIds.some((id) => compareAddresses(id, gardenAddress))
-  );
-}
-
 /** Shape of a completed approval from useWorkApprovals. */
 interface CompletedApproval {
   workUID: string;

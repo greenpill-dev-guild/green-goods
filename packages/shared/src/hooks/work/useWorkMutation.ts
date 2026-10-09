@@ -2,6 +2,7 @@ import { connectivityStore } from "../../stores/connectivity";
 import { useIntl } from "react-intl";
 import { showWorkSubmissionFailure } from "./workSubmissionFeedback";
 import { createDraftUploadPersistence } from "../../modules/work/draft-upload";
+import { WorkTransactionReverted } from "../../modules/work/work-confirmation";
 import { draftDB } from "../../modules/job-queue/draft-db";
 /** Submits work through the current auth mode and preserves durable retry progress. */
 
@@ -26,7 +27,6 @@ import {
   submitWork,
   type SubmitWorkOutcome,
 } from "../../modules/work/submit-work-command";
-import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import type { Work, WorkDraft } from "../../types/domain";
 import { findActionByUID } from "../../utils/action/parsers";
@@ -63,6 +63,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     userAddress,
     completeClientFlow = true,
     allowOfflineQueue = true,
+    retainSubmission = false,
     onProgress,
     onSuccess,
     onError,
@@ -83,6 +84,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     generation: number;
     activeDraftId: string | null | undefined;
     journeyId: string;
+    clientWorkId?: string;
     outcome?: SubmitWorkOutcome;
   };
   const origins = useRef(new WeakMap<Variables, Origin>());
@@ -95,7 +97,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const ownsFlow = (origin: Origin | undefined) =>
     ownsSession(origin) &&
     (!completeClientFlow || origin?.activeDraftId === useWorkFlowStore.getState().activeDraftId);
-  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
   const retainedCheckpoint = useRef<{
     id: string;
     checkpoint: NonNullable<WorkDraft["uploadCheckpoint"]>;
@@ -105,6 +106,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     null
   );
   const lastSubmissionOutcomeRef = useRef<SubmitWorkOutcome | null>(null);
+  const retainedSubmission = useRef<{ scope: string; id: string } | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -166,9 +168,25 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       const persistence = persistedDraft
         ? await createDraftUploadPersistence(persistedDraft, draft, retainedCheckpoint)
         : {};
+      if (retainSubmission) {
+        const scope = `${origin.identity}:${origin.generation}:${gardenAddress}:${actionUID}`;
+        if (retainedSubmission.current?.scope !== scope)
+          retainedSubmission.current = { scope, id: crypto.randomUUID() };
+      }
+      const submission = retainSubmission ? retainedSubmission.current : null;
+      origin.clientWorkId = submission?.id;
       const outcome = await submitWork(
         {
           ...persistence,
+          ...(submission
+            ? {
+                clientWorkId: submission.id,
+                onTerminalUnsentFailure: () => {
+                  // A late failure must not retire a newer submission's identity.
+                  if (retainedSubmission.current === submission) retainedSubmission.current = null;
+                },
+              }
+            : {}),
           assertOwnership: () => {
             if (!ownsSession(origin)) throw new Error("submission-ownership-changed");
           },
@@ -181,6 +199,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           draft,
           images,
           allowOfflineQueue,
+          retainSubmission,
         },
         createDefaultSubmitWorkPorts({
           sender,
@@ -219,8 +238,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         })
       );
       origin.outcome = outcome;
+      // A changed draft must not hide a completed send from its caller: that
+      // caller still owns scheduling the original commitment link. Only UI
+      // effects belong to the current draft; account ownership remains required.
+      if (ownsSession(origin)) lastSubmissionOutcomeRef.current = outcome;
       if (ownsFlow(origin)) {
-        lastSubmissionOutcomeRef.current = outcome;
         setLastSubmissionOutcome(outcome);
       }
       return outcome.txHash;
@@ -383,10 +405,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         scheduleFollowUp();
       }
 
-      if (completeClientFlow) {
-        openWorkDashboard();
-      }
-
       onSuccess?.(txHash);
 
       if (DEBUG_ENABLED) {
@@ -402,6 +420,16 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onError: (error: unknown, variables, context) => {
       const origin = origins.current.get(variables);
       if (!origin || !ownsFlow(origin)) return;
+      const previous = lastSubmissionOutcomeRef.current;
+      if (
+        error instanceof WorkTransactionReverted &&
+        origin.clientWorkId !== undefined &&
+        previous?.kind === "awaiting-confirmation" &&
+        previous.clientWorkId === origin.clientWorkId
+      ) {
+        lastSubmissionOutcomeRef.current = null;
+        setLastSubmissionOutcome(null);
+      }
       const workSubmissionJourneyId = origin.journeyId;
 
       // Provide haptic feedback for error
@@ -424,6 +452,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
 
       showWorkSubmissionFailure(error, {
+        allowOfflineQueue,
         intl,
         authMode,
         actionUID,
@@ -442,6 +471,12 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   return {
     ...useSafeMutation(mutation),
+    reset: () => {
+      retainedSubmission.current = null;
+      lastSubmissionOutcomeRef.current = null;
+      setLastSubmissionOutcome(null);
+      mutation.reset();
+    },
     lastSubmissionOutcome,
     getLastSubmissionOutcome: () => lastSubmissionOutcomeRef.current,
     clearLastSubmissionOutcome: () => {

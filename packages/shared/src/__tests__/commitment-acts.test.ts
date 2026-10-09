@@ -56,7 +56,9 @@ describe("one act table for every surface", () => {
     // The bar offers everything available; the badge counts only what somebody
     // else is held up by. Withdrawing your own untaken offer is neither.
     const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
-    expect(selectCommitmentActKind({ commitment: offered, seat: "provider" })).toBe("withdraw");
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "provider", isCreator: true })
+    ).toBe("withdraw");
     expect(commitmentNeedsSeat({ commitment: offered, seat: "provider" })).toBe(false);
 
     const expired = { ...base, derivedState: "EXPIRED" as CommitmentDerivedState };
@@ -82,6 +84,57 @@ describe("one act table for every surface", () => {
     for (const seat of ["provider", "confirmer", "contributor", "bystander"] as const) {
       expect(selectCommitmentActKind({ commitment: base, seat, hasPendingJob: true })).toBeNull();
     }
+  });
+
+  it("does not offer withdrawal to a named confirmer who did not create an untaken offer", () => {
+    const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "confirmer", isMember: false })
+    ).toBeNull();
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "provider", isCreator: true })
+    ).toBe("withdraw");
+    expect(
+      selectCommitmentActKind({
+        commitment: { ...offered, derivedState: "REQUESTED" },
+        seat: "confirmer",
+        isCreator: true,
+      })
+    ).toBe("withdraw");
+  });
+
+  it("offers taking up only to a member of the garden, once membership is known", () => {
+    // The chain gates a personal claim on a garden role, so a visitor's tap
+    // could only park in the queue. Not read yet offers nothing, like no.
+    const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
+    const gated = {
+      ...base,
+      derivedState: "REQUESTED" as CommitmentDerivedState,
+      claimMode: "APPROVAL_GATED" as const,
+    };
+    expect(
+      selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember: true })
+    ).toBe("takeUp");
+    expect(selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember: true })).toBe(
+      "askToTakeUp"
+    );
+    for (const isMember of [false, undefined]) {
+      expect(
+        selectCommitmentActKind({ commitment: offered, seat: "bystander", isMember })
+      ).toBeNull();
+      expect(
+        selectCommitmentActKind({ commitment: gated, seat: "bystander", isMember })
+      ).toBeNull();
+    }
+    // Whoever made it takes it back whether or not the roster has caught up.
+    expect(
+      selectCommitmentActKind({
+        commitment: offered,
+        seat: "provider",
+        isMember: false,
+        isCreator: true,
+      })
+    ).toBe("withdraw");
   });
 });
 describe("composing a settled commitment again", () => {

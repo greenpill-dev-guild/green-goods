@@ -4,8 +4,8 @@ import { expect, fn, screen, userEvent, waitFor, within } from "storybook/test";
 import { GardensFilterSheet } from "./index";
 
 /**
- * Filtering the Home garden list at the full tier: membership, the four action domains as chips,
- * and sort order, under the shared header (DL-028). Reset Filters is the
+ * Filtering the Home garden list at the full tier: all, my, or open gardens, the four action domains
+ * as chips, and sort order, under the shared header (DL-028). Reset Filters is the
  * sheet's only action, pinned to the bottom edge in the shared bar (DL-016), and stays disabled
  * until a filter differs from the defaults.
  */
@@ -25,6 +25,7 @@ const meta: Meta<typeof GardensFilterSheet> = {
     onReset: fn(),
     canFilterMine: true,
     myGardensCount: 2,
+    openGardensCount: 3,
     isFilterActive: false,
   },
 };
@@ -40,6 +41,7 @@ export const Defaults: Story = {
     await expect(sheet.getByText("Narrow and sort the garden list.")).toBeVisible();
     const all = sheet.getByRole("button", { name: "All gardens" }).getBoundingClientRect();
     const mine = sheet.getByRole("button", { name: /My gardens \(2\)/ }).getBoundingClientRect();
+    const open = sheet.getByRole("button", { name: /Open gardens \(3\)/ }).getBoundingClientRect();
     const solar = sheet.getByRole("button", { name: "Solar" }).getBoundingClientRect();
     const agro = sheet.getByRole("button", { name: "Agroforestry" }).getBoundingClientRect();
     const education = sheet.getByRole("button", { name: "Education" }).getBoundingClientRect();
@@ -48,6 +50,9 @@ export const Defaults: Story = {
     const recent = sheet.getByRole("button", { name: "Newest first" }).getBoundingClientRect();
     await expect(all.x).toBe(mine.x);
     await expect(all.y).toBeLessThan(mine.y);
+    await expect(open.x).toBe(mine.x);
+    await expect(mine.y).toBeLessThan(open.y);
+    await expect(sheet.getByText("Anyone can join without an invitation.")).toBeVisible();
     await expect(solar.y).toBe(agro.y);
     await expect(education.y).toBe(waste.y);
     await expect(solar.width).toBe(agro.width);
@@ -55,6 +60,8 @@ export const Defaults: Story = {
     await expect(name.y).toBeLessThan(recent.y);
     await userEvent.click(sheet.getByRole("button", { name: /My gardens \(2\)/ }));
     await expect(args.onScopeChange).toHaveBeenCalledWith("mine");
+    await userEvent.click(sheet.getByRole("button", { name: /Open gardens \(3\)/ }));
+    await expect(args.onScopeChange).toHaveBeenCalledWith("open");
     await userEvent.click(sheet.getByRole("button", { name: "Agroforestry" }));
     await expect(args.onDomainsChange).toHaveBeenCalledWith([Domain.AGRO]);
   },
@@ -101,5 +108,7 @@ export const SignedOut: Story = {
     const hint = await screen.findByText("Sign in to filter by your gardens.");
     await waitFor(() => expect(hint).toBeVisible());
     await expect(screen.getByRole("button", { name: /My gardens \(0\)/ })).toBeDisabled();
+    // Open joining is a garden setting, so it filters without an account.
+    await expect(screen.getByRole("button", { name: /Open gardens \(3\)/ })).toBeEnabled();
   },
 };

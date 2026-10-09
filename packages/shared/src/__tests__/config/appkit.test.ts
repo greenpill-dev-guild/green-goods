@@ -1,6 +1,6 @@
 /**
  * AppKit configuration tests.
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -139,6 +139,28 @@ describe("AppKit config", () => {
         ],
         allWallets: "HIDE",
       })
+    );
+  });
+
+  it("tells developers where to set the WalletConnect project ID when none is configured", async () => {
+    mockEnv.VITE_WALLETCONNECT_PROJECT_ID = "";
+    // The default project ID is read at import and the instance is cached, so start fresh.
+    vi.resetModules();
+    const { logger } = await import("../../modules/app/logger");
+    const { ensureAppKit: ensureFreshAppKit } = await import("../../config/appkit");
+
+    ensureFreshAppKit({
+      metadata: {
+        name: "Green Goods",
+        description: "Test metadata",
+        url: "https://www.greengoods.app",
+        icons: [],
+      },
+      defaultChainId: 42161,
+    });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("(or in env.template + run `bun run env:sync`")
     );
   });
 });

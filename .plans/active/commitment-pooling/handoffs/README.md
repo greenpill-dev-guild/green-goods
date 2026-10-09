@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 27 files in this directory. The plan hub's document map points here for the enumeration, so
+All 36 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -12,10 +12,10 @@ order only, and a reader following the map could miss an active dispatch surface
 |---|---|---|---|
 | `README.md` | This index, the required handoff contract, the Linear boundary, and the shared safety rules that bind every lane | — | Always in force |
 | `codex-contracts.md` | Pooling module + register + resolver/schema contract work (PRD-721) | Codex | Backend lane 1 — the other two wait on it |
-| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Source GREEN; hosted deployment/read-back remains human-owned |
-| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Source GREEN; runtime capability remains fail-closed pending hosted read-back. **One open seat amendment (2026-08-18)** |
+| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Source GREEN; hosted deployment and read-back done, live since 2026-08-27 |
+| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Complete (closed 2026-09-27); Arbitrum One available since the hosted read-back, and the seat amendment landed in `d1b8ea042` |
 | `codex-gardener-celo-wallets.md` | Celo gardener wallet implementation and validation handoff | Codex | Active; live transfer proof remains pending |
-| `codex-work-linking.md` | Work linking implementation handoff | Codex | Consult lane status before dispatch |
+| `codex-work-linking.md` | Work linking implementation handoff | Codex | Complete (closed 2026-09-27) |
 | `commitment-view-state-reference.md` | Generated implementation contract for the commitment detail screen: every state's cast, seat, phase and act. Regenerate with `hifi/state-reference.gen.ts` | Claude (UI) | Generated — never hand-edit |
 | `commitment-pooling-query-contract.md` | PRD-723 entity/query contract, selector inventory, availability gate, and settlement extension | Codex | Accepted and implemented in source |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
@@ -23,9 +23,10 @@ order only, and a reader following the map could miss an active dispatch surface
 | `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Dispatched against `de7863391`; refresh required after candidate changes |
 | `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
 | `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Machine lane `in_progress` since the client gate commit (`a549877d1`, PR #749); each sub-lane dispatches narrowly |
-| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Narrowed D1 on PR #749 (`../prompt-client-loop.md`); D2 after it merges |
-| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Narrowed dispatch prepared 2026-08-21 (`../prompt-admin-console.md`, § Narrowed dispatch option) in a worktree stacked on PR #749; the session records the gate in `status.json` as its first commit |
-| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Backend readers merged (PR #745 / #746); UI on PR #748 |
+| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Complete (closed 2026-09-27); unbuilt scope in `ui-deferred-scope.md` |
+| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Complete (closed 2026-09-27); unbuilt scope in `ui-deferred-scope.md` |
+| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Complete (closed 2026-09-27); open NOT MET rows in `ui-deferred-scope.md` |
+| `ui-deferred-scope.md` | Scope the closed `ui_client`, `ui_admin` and `editorial` lanes left unbuilt, for triage before closeout | Afo | todo |
 | `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
 | `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
 | `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |
@@ -37,6 +38,14 @@ order only, and a reader following the map could miss an active dispatch surface
 | `claude-components-tab-brief.md` | Three-phase alignment brief for a reviewable Components tab in the existing prototypes artifact | Claude | Phase 1 is read-only; generation waits for explicit approval |
 | `human-release-ops.md` | Broadcast, Garden-ID cutover, and live settlement exit evidence (PRD-731) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
 | `human-settlement-evidence.md` | September measurement-definition and operational-assignment gate (COM-11) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
+| `w3a-members-act-everyone-reads.md` | Rehearsal follow-up W3-A: membership in the act table, one membership answer, the queued act row (N37, N38, N35) | Claude | Merged in #921 (`4615608d9`); the authenticated wallet walk stays pending; critical |
+| `w3b-commitment-screen-chrome.md` | Rehearsal follow-up W3-B: fixed chrome, the member's readiness notice, one season full width, the direction edge on the app row (N39, N40, N9, N10, N5, N23) | Claude | Queued after W3-H; pairs before merge |
+| `w3c-seed-wizard-questions.md` | Rehearsal follow-up W3-C: the reward question, garden work in hours, chips, the rail ends done, the field's height, the admin edge, a reason under Next (N8, N4, N12, N6, N11, N5, N30) | Claude | Queued after W3-B; pairs before merge |
+| `w3d-unlisted-gardens-reachable.md` | Rehearsal follow-up W3-D: an editorial-hidden garden renders by its own link, unlisted (N2) | Claude | Queued after W3-C |
+| `w3e-account-sessions.md` | Rehearsal follow-up W3-E: the identity-change reset and the store rule; the wallet sign-out only if reproduced (N36, N35) | Claude | Queued after W3-D; critical |
+| `w3f-inspector-story-and-names.md` | Rehearsal follow-up W3-F: the inspector's Detail story renders again; names in place of addresses (N26, N17) | Claude | Queued after W3-E |
+| `w3g-commitment-acts-record-their-sends.md` | Rehearsal follow-up W3-G: commitment acts record their sends, a recorded send is settled rather than sent again, and Discard follows the record (N41) | Claude | In progress on `fix/commitment-send-record`, next after W3-A; critical |
+| `w3h-host-garden-personal-claims.md` | Rehearsal follow-up W3-H: the host garden counts as a personal claim context on the protocol pool, never a garden claim (N42) | Claude | Queued after W3-G |
 
 ## Source order
 

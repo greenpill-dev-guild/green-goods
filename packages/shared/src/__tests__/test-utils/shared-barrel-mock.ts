@@ -70,8 +70,6 @@ function createDefaultHookMocks() {
     // UI store
     useUIStore: vi.fn((selector?: (state: any) => any) => {
       const state = {
-        isOfflineBannerVisible: false,
-        setOfflineBannerVisible: vi.fn(),
         isWorkDashboardOpen: false,
         openWorkDashboard: vi.fn(),
         closeWorkDashboard: vi.fn(),

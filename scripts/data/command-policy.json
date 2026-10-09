@@ -122,6 +122,8 @@
     "packages/agent/package.json": [
       "dev",
       "intake:smoke",
+      "reporting:driver",
+      "reporting:walkthrough",
       "build",
       "start",
       "lint",

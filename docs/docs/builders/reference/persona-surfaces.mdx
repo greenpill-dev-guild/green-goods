@@ -12,7 +12,7 @@ generated_from:
   - packages/client/src/config/pwaRouting.ts
   - packages/client/src/config/routes.tsx
   - packages/shared/src/ontology/green-goods-ontology.json
-source_digest: "sha256:7027ba7b9b32d9332db4e742839034ed5b1bf9f2e70e01bb85ade95befaed3c2"
+source_digest: "sha256:ad9d57b05f8169a70db6d2bc2051773a4d7b78a83356ffcf21beeb03757ebf92"
 source_of_truth:
   - packages/admin/src/router.tsx
   - packages/admin/src/routes/views.tsx
@@ -40,7 +40,7 @@ The ontology owns persona meaning. Route definitions own navigable paths. Paths 
 
 | Authority | Paths or segments |
 |---|---|
-| Client route tree | `*`, `:id`, `actions`, `assessments/:assessmentId`, `commitments/:commitmentId`, `commitments/:commitmentId/proof`, `commitments/new`, `cookies`, `fund`, `gardens`, `gardens/:id`, `gardens/:id/work/:workId`, `glossary`, `impact`, `landing`, `vaults`, `work/:workId` |
+| Client route tree | `*`, `:id`, `actions`, `agent/reporting/:requestId`, `agent/reporting/permissions`, `agent/reporting/recover/:requestId`, `assessments/:assessmentId`, `commitments/:commitmentId`, `commitments/:commitmentId/proof`, `commitments/group/:groupId`, `commitments/new`, `cookies`, `fund`, `gardens`, `gardens/:id`, `gardens/:id/work/:workId`, `glossary`, `impact`, `landing`, `vaults`, `work/:workId` |
 | Client canonical PWA routes | `/home/garden`, `/home`, `/home/login`, `/home/profile` |
 | Admin shell route tree | `*`, `gardens`, `gardens/:gardenId`, `gardens/:gardenId/*`, `login` |
 | Admin canvas route segments | `:assessmentId`, `:commitmentId`, `:historyEventId`, `:id`, `:id/edit`, `:workId`, `actions`, `activity`, `assess`, `assess/create`, `certify`, `certify/create`, `community`, `confirm`, `cookies`, `coordination`, `create`, `deploy`, `endowment`, `garden`, `governance`, `health`, `history`, `hub`, `hypercerts/:hypercertId`, `impact`, `members`, `overview`, `payouts`, `pool`, `pools`, `profile`, `resources`, `seed`, `settings`, `signal-pool/:poolType`, `strategies`, `treasury`, `vault`, `vault/deposit`, `vault/withdraw`, `work`, `work/submit` |

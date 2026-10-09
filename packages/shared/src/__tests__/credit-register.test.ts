@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -19,7 +19,8 @@ import {
   selectEditorialCreditPoolStats,
 } from "../modules/commitment-pooling";
 import { type CreditMutationInput, useCreditMutation } from "../hooks/commitment-pooling/useCredit";
-import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
+import { createTestQueryClient } from "./test-utils/query-client";
+import { renderHookWithProviders } from "./test-utils/render-helpers";
 
 const BORROWER = "0x1111111111111111111111111111111111111111";
 const VIEWER = "0x2222222222222222222222222222222222222222";
@@ -27,7 +28,7 @@ const TOKEN = "0x3333333333333333333333333333333333333333";
 const CREDIT_REGISTRY = "0x8080808080808080808080808080808080808080";
 
 const mocks = await vi.hoisted(async () => ({
-  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
+  sender: (await import("./test-utils/transaction-fakes")).createMockTransactionSender(),
   senderAvailable: true,
   mutationErrorHandler: vi.fn(),
 }));

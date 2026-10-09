@@ -10,7 +10,7 @@ const meta: Meta<typeof PoolFundingDialog> = {
     docs: {
       description: {
         component:
-          "A solid centered detail surface for balance composition, obligations, transit, GoodDollar fees, execution limits, route readiness, and the separate native CELO acknowledgment reserve.",
+          "A solid centered detail surface behind the Pool Funding card: first the Celo Safe the pool pays from, with its explorer link (moved here from the card, PRD-1025 D9), then balance composition, obligations, transit, GoodDollar fees, execution limits, route readiness, and the separate native CELO acknowledgment reserve.",
       },
     },
   },

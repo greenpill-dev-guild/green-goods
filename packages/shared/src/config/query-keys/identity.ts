@@ -24,6 +24,7 @@ export const ensKeys = {
   avatar: (address: Address | string) => ["greengoods", "ens", "avatar", address] as const,
   registrationStatus: (slug: string) => ["greengoods", "ens", "registration", slug] as const,
   availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
+  releaseFee: (slug: string) => ["greengoods", "ens", "releaseFee", slug] as const,
   protocolName: (address: Address | string) =>
     ["greengoods", "ens", "protocolName", address] as const,
   protocolMembership: (address: Address | string) =>
@@ -38,6 +39,17 @@ export const roleKeys = {
     ["greengoods", "role", "gardenRoles", gardenId, address] as const,
   hasRole: (gardenId?: string, address?: Address, role?: string) =>
     ["greengoods", "role", "hasRole", gardenId, address, role] as const,
+  /** Any of the six roles, read strictly: a failed read is an error, not "no". */
+  membership: (gardenId?: string, address?: Address, chainId?: number) =>
+    ["greengoods", "role", "membership", gardenId, address, chainId] as const,
+  /**
+   * Prefix of every exact-hat answer cached for one person in one garden.
+   * Both exact-hat keys take lowercased addresses, so they type them as strings.
+   */
+  roleHatsOf: (gardenId?: string, address?: string) =>
+    ["greengoods", "role", "roleHat", gardenId, address] as const,
+  roleHat: (gardenId?: string, address?: string, role?: string, chainId?: number) =>
+    ["greengoods", "role", "roleHat", gardenId, address, role, chainId] as const,
   evaluatorGardens: (address?: Address, gardenIds: string[] = []) =>
     [
       "greengoods",

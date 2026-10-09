@@ -188,6 +188,8 @@ export const Splash: React.FC<SplashProps> = ({
     <SplashScaffold
       pulse={!!loadingState}
       title={displayMessage}
+      // A loading message is a sentence; the app's name is the wordmark.
+      titleVoice={loadingState ? "status" : "name"}
       slotOne={usernameInput ? inputElement : primaryButton}
       slotTwo={usernameInput ? primaryButton : secondaryButton}
       message={

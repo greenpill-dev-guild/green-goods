@@ -69,7 +69,10 @@ vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
     }),
 }));
 
-vi.mock("@green-goods/shared/types/domain", () => ({
+// The assessment record the sheet descriptor can open reads the real Domain
+// enum, so only Confidence is replaced.
+vi.mock("@green-goods/shared/types/domain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/types/domain")>()),
   Confidence: {
     LOW: "LOW",
     MEDIUM: "MEDIUM",
@@ -497,6 +500,7 @@ describe("WorkDetail view", () => {
         selectedCertification: undefined,
         isResolvingSelection: false,
         canManage: true,
+        chainId: 11155111,
         hubContext: { gardenId: "0xGarden", sort: "newest" },
         closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
         onNavigateToBase,
@@ -511,6 +515,40 @@ describe("WorkDetail view", () => {
 
     expect(onBeforeClose).toHaveBeenCalledTimes(1);
     expect(onNavigateToBase).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the inspector descriptor when the route closes with retained work", () => {
+    const props = {
+      routeSheetContentId: "work-detail:0xWork",
+      routeWorkId: "0xWork",
+      routeCertificationId: undefined,
+      activeWorkDetailId: "0xWork",
+      selectedWork: mockUseWorks().works[0],
+      selectedCertification: undefined,
+      isResolvingSelection: false,
+      canManage: true,
+      chainId: 11155111,
+      hubContext: { gardenId: "0xGarden", sort: "newest" as const },
+      closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
+      onNavigateToBase: vi.fn(),
+      onBeforeClose: vi.fn(),
+    };
+    const rendered = renderWithIntl("en", React.createElement(HubSheetDescriptor, props));
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).not.toBeNull();
+
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(HubSheetDescriptor, {
+          ...props,
+          routeWorkId: undefined,
+          routeSheetContentId: null,
+        }),
+      })
+    );
+
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).toBeNull();
   });
 
   it("records a privacy-safe presentation failure separately after transaction success", () => {
@@ -649,7 +687,7 @@ describe("WorkDetail view", () => {
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 
-  it("localizes infrastructure milestone titles in the Portuguese Hub detail", () => {
+  it("leaves the work's name to the dialog title and shows only its status in the sheet", () => {
     mockUseWorks.mockReturnValue({
       works: [
         {
@@ -681,9 +719,9 @@ describe("WorkDetail view", () => {
       React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
     );
 
+    expect(screen.getByText("Pendente")).toBeInTheDocument();
     expect(
-      screen.getByText("Marco de infraestrutura - 2026-07-07T16:36:37.231Z")
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/Infrastructure Milestone/)).not.toBeInTheDocument();
+      screen.queryByText(/Marco de infraestrutura|Infrastructure Milestone/)
+    ).not.toBeInTheDocument();
   });
 });
