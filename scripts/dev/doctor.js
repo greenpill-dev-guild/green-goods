@@ -580,7 +580,7 @@ function checkEnv() {
     add(
       "pass",
       "Hosted production indexer selected by stack overlay",
-      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql",
+      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/e6edffd/v1/graphql",
       "",
       { check: "env:indexer-url" }
     );

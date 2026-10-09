@@ -1114,11 +1114,11 @@ function lines(value) {
   return value.split(/\r?\n/).filter(Boolean);
 }
 
-function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch, untrackedPaths) {
+function workingCopyFingerprint(cwd, committedRange, stagedPatch, unstagedPatch, untrackedPaths) {
   const hash = createHash("sha256");
-  hash.update("validation-working-copy-v1\0");
+  hash.update("validation-working-copy-v2\0");
   for (const [label, patch] of [
-    ["committed", committedPatch],
+    ["committed", committedRange],
     ["staged", stagedPatch],
     ["unstaged", unstagedPatch],
   ]) {
@@ -1143,19 +1143,39 @@ function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch,
 
 const LIVE_PR_BASE_INTENTS = new Set(["push", "ship", "merge", "readiness", "release"]);
 
+// A release promotion carries develop's already-judged history into main. Judging it against
+// main would re-flag every file changed since the last release, so it compares against develop,
+// the base every change met on its way in. The workflows set the same rule for their own
+// diff-aware steps.
+function promotionAwareBase(baseRefName, headRefName) {
+  if (baseRefName === "main" && String(headRefName ?? "").startsWith("release/")) {
+    return "origin/develop";
+  }
+  return `origin/${baseRefName}`;
+}
+
 export function resolveComparisonBase(options = {}, dependencies = {}) {
   if (options.base) return options.base;
 
   const environment = dependencies.environment ?? process.env;
-  if (environment.GITHUB_BASE_REF) return `origin/${environment.GITHUB_BASE_REF}`;
+  if (environment.GITHUB_BASE_REF) {
+    return promotionAwareBase(environment.GITHUB_BASE_REF, environment.GITHUB_HEAD_REF);
+  }
   if (!LIVE_PR_BASE_INTENTS.has(options.intent)) return "origin/develop";
 
   const execute = dependencies.execFileSync ?? execFileSync;
   try {
-    const baseRefName = String(
+    const [baseRefName, headRefName] = String(
       execute(
         "gh",
-        ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"],
+        [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ],
         {
           cwd: dependencies.cwd ?? projectRoot,
           encoding: "utf8",
@@ -1164,8 +1184,10 @@ export function resolveComparisonBase(options = {}, dependencies = {}) {
           env: { ...environment, GH_PROMPT_DISABLED: "1" },
         },
       ),
-    ).trim();
-    if (baseRefName) return `origin/${baseRefName}`;
+    )
+      .trim()
+      .split("\t");
+    if (baseRefName) return promotionAwareBase(baseRefName, headRefName);
   } catch {
     // No live PR, no GitHub CLI, or no authenticated access: use the repository default base.
   }
@@ -1198,8 +1220,10 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     throw new Error("Lane checkpoint requires explicit changed paths");
   }
   const pathspec = laneCheckpoint ? ["--", ...explicitPaths] : [];
-  const committedPatch = gitRawOutput(
-    ["diff", "--binary", `${resolvedBase}...${resolvedHead}`, ...pathspec],
+  // Blob hashes identify the committed range exactly without materializing its patch: a
+  // develop-to-main promotion diff exceeds the git output buffer and died with ENOBUFS.
+  const committedRange = gitOutput(
+    ["diff", "--raw", "--no-abbrev", "--no-renames", `${resolvedBase}...${resolvedHead}`, ...pathspec],
     cwd,
   );
   const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
@@ -1239,7 +1263,7 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     mutationPaths: resolveMutationPaths(changedPaths, { cwd }),
     workingCopyFingerprint: workingCopyFingerprint(
       cwd,
-      committedPatch,
+      committedRange,
       stagedPatch,
       unstagedPatch,
       fingerprintUntrackedPaths,

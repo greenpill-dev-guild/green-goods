@@ -172,8 +172,10 @@ implementation changes do not run complete Client, Admin, or Agent suites locall
 responsibilities.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
-successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
-command, policy, toolchain, or environment drift invalidates it.
+release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
+locally, because its history was already judged as it entered develop. A successful exact
+post-commit receipt is reusable by the pre-push hook. Commit, working-tree, command, policy,
+toolchain, or environment drift invalidates it.
 
 When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
 to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:

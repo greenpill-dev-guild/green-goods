@@ -24,7 +24,7 @@ reexecUnderSystemNodeIfNeeded({
 });
 
 const ARBITRUM_CHAIN_ID = 42161;
-const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const DEFAULT_PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 // Browser surfaces that must reach the production agent. AGENT_ALLOWED_ORIGINS
 // lives only in Fly secrets, so this live preflight is what guards the list.
