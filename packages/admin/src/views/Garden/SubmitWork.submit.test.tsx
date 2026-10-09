@@ -646,7 +646,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
   });
 
-  it("clears staged-photo dirtiness while a sent work awaits confirmation", async () => {
+  it("restores staged-photo dirtiness after awaiting work is confirmed reverted", async () => {
     const onDirtyChange = vi.fn();
     const panel = () => (
       <TestProviders>
@@ -669,6 +669,15 @@ describe("SubmitWorkPanel submit behavior", () => {
     mockState.mutation = { ...mockState.mutation, isSuccess: false, isPending: true };
     rerender(panel());
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    mockState.mutation = {
+      ...mockState.mutation,
+      isSuccess: false,
+      isPending: false,
+      isError: true,
+      lastSubmissionOutcome: null,
+    };
+    rerender(panel());
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
   });
 
   it("allows optional media actions with minImageCount 0 to submit without images", async () => {

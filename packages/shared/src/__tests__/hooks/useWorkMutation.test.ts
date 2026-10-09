@@ -1,6 +1,9 @@
 import { MAX_RETRIES } from "../../modules/job-queue/queue-policy";
 import { jobQueueDB } from "../../modules/job-queue/db";
-import { AwaitingWorkConfirmation } from "../../modules/work/work-confirmation";
+import {
+  AwaitingWorkConfirmation,
+  WorkTransactionReverted,
+} from "../../modules/work/work-confirmation";
 import { IntlProvider } from "react-intl";
 vi.mock("../../modules/job-queue/draft-db", () => ({
   draftDB: { getDraft: vi.fn(), updateDraft: vi.fn() },
@@ -365,7 +368,10 @@ describe("hooks/work/useWorkMutation", () => {
     expect(submitWorkDirectly).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the admin identity across confirmation checks and gives Submit Another a new identity", async () => {
+  it.each([
+    ["pending receipt", new AwaitingWorkConfirmation(MOCK_TX_HASH)],
+    ["unavailable receipt", new Error("Network request failed")],
+  ])("keeps the admin identity for an %s and gives Submit Another a new identity", async (_label, failure) => {
     const broadcast = vi.fn();
     vi.mocked(submitWorkDirectly).mockImplementation(
       async (_draft, _garden, _action, _title, _chain, _images, options) => {
@@ -373,7 +379,7 @@ describe("hooks/work/useWorkMutation", () => {
           broadcast();
           await options?.onBroadcast?.(MOCK_TX_HASH);
         }
-        throw new AwaitingWorkConfirmation(MOCK_TX_HASH);
+        throw failure;
       }
     );
     const { result } = renderHook(
@@ -403,6 +409,44 @@ describe("hooks/work/useWorkMutation", () => {
     });
     expect(result.current.lastSubmissionOutcome?.clientWorkId).not.toBe(first?.clientWorkId);
     expect(broadcast).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears the awaiting outcome when the same submission is confirmed reverted", async () => {
+    const failure = new WorkTransactionReverted(MOCK_TX_HASH);
+    vi.mocked(submitWorkDirectly)
+      .mockImplementationOnce(
+        async (_draft, _garden, _action, _title, _chain, _images, options) => {
+          await options?.onBroadcast?.(MOCK_TX_HASH);
+          throw new AwaitingWorkConfirmation(MOCK_TX_HASH);
+        }
+      )
+      .mockRejectedValueOnce(failure);
+    const onError = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useWorkMutation({
+          ...defaultOptions,
+          completeClientFlow: false,
+          allowOfflineQueue: false,
+          retainSubmission: true,
+          onError,
+        }),
+      { wrapper: createWrapper() }
+    );
+    await act(async () => {
+      await result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] });
+    });
+    expect(result.current.lastSubmissionOutcome?.kind).toBe("awaiting-confirmation");
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ draft: createMockWorkDraft(), images: [] })
+      ).rejects.toBe(failure);
+    });
+    expect(result.current.isError).toBe(true);
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(result.current.lastSubmissionOutcome).toBeNull();
+    expect(result.current.getLastSubmissionOutcome()).toBeNull();
+    expect(submitWorkDirectly).toHaveBeenCalledTimes(2);
   });
 
   it("keeps the sent outcome available for linking when the active draft changes", async () => {
@@ -435,17 +479,24 @@ describe("hooks/work/useWorkMutation", () => {
     expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
   });
 
-  it("does not retire the new account's draft when an earlier wallet request completes", async () => {
+  it.each([
+    "confirms",
+    "reverts",
+  ])("does not affect the new account when an earlier wallet request %s", async (outcome) => {
     let finish!: (hash: `0x${string}`) => void;
+    let fail!: (error: Error) => void;
     vi.mocked(submitWorkDirectly).mockImplementationOnce(
       () =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
           finish = resolve;
+          fail = reject;
         })
     );
     const onSuccess = vi.fn();
+    const onError = vi.fn();
     const { result, rerender } = renderHook(
-      ({ address }) => useWorkMutation({ ...defaultOptions, userAddress: address, onSuccess }),
+      ({ address }) =>
+        useWorkMutation({ ...defaultOptions, userAddress: address, onSuccess, onError }),
       {
         initialProps: { address: MOCK_ADDRESSES.user as string },
         wrapper: createWrapper(),
@@ -458,12 +509,20 @@ describe("hooks/work/useWorkMutation", () => {
     await waitFor(() => expect(submitWorkDirectly).toHaveBeenCalled());
     rerender({ address: MOCK_ADDRESSES.garden });
     await act(async () => {
-      finish(MOCK_TX_HASH);
-      await pending;
+      if (outcome === "confirms") {
+        finish(MOCK_TX_HASH);
+        await pending;
+      } else {
+        const failure = new WorkTransactionReverted(MOCK_TX_HASH);
+        const rejected = expect(pending).rejects.toBe(failure);
+        fail(failure);
+        await rejected;
+      }
     });
     expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
     expect(workMutationStoreMocks.openWorkDashboard).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
     expect(result.current.getLastSubmissionOutcome()).toBeNull();
   });
 
