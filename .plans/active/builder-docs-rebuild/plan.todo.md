@@ -3,7 +3,7 @@
 **Feature Slug**: `builder-docs-rebuild`
 **Status**: ACTIVE
 **Created**: 2026-09-02
-**Last Updated**: 2026-09-23
+**Last Updated**: 2026-10-09
 
 ## Decision Log
 
@@ -21,6 +21,8 @@
 | 10 | Community invites follow the product: Telegram `+N3o3_43iRec1Y2Jh` (Afo, 2026-09-22) and Discord `discord.gg/greenpill` to match | One invite set across the app, the docs, and the repo |
 | 11 | Develop's generated Command inventory and Contract operations pages stay under Packages (Afo, 2026-09-22) | Matches their slugs; Getting Started links Command inventory as the command source |
 | 12 | The integration projection stays English-only (Afo, 2026-09-23) | The docs site ships no locales, so routing its labels through i18n would add keys nobody reads; revisit if the docs add locales |
+| 13 | EAS and Tokenbound join the ontology's integration catalog, so every integration page with an on-chain footprint renders the deployment projection (2026-10-09, open to Afo's veto) | The catalog had been seeded from modules only; the resolvers and garden account contracts are deployed per network like any module, and Passkeys, with no deployment, says so in prose |
+| 14 | Develop merged into the branch a third time on 2026-10-09 (1182 commits, the 2.0.0 release sync), by merge again | Same reasoning as decision 8; the review threads stay anchored |
 
 ## Requirements Coverage
 
@@ -102,6 +104,11 @@ CONTRIBUTING.md one-way pointer · final `docs:audit` green · redirect map veri
 Status (2026-09-23): all five items done; the receipt is in `handoffs/claude-ui.md` and the gate
 measurements are in `eval.md`. Two outcome gates wait on Afo: the page-length gate and whether
 Reference gets a landing page.
+
+Status (2026-10-09): develop merged in again (decision 14), the last three Codex threads fixed
+(owner approvals, three next steps, projections on EAS and Tokenbound), and every gate re-run
+green on the merged tree; receipt in `handoffs/claude-ui.md`. What remains is Afo's: the three
+human gates below, the GitHub thread replies, and taking the PR out of draft.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

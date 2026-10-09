@@ -147,3 +147,38 @@ renders all 13 skills.
   logins (`packages/shared/src/providers/JobQueue.tsx`).
 - **Human gates open**: D12 (Afo judges the rendered Anatomy page), the page-length gate, and a
   Reference landing (see `eval.md`).
+
+## Validation Receipt — Third develop merge and the last Codex threads (2026-10-09)
+
+- **Tested implementation commit SHAs**: `2b4d44e04` (owner approvals, three next steps; the fixes
+  the previous session left uncommitted in its worktree), `e53c79bef` (merge of origin/develop
+  `55a67ae2b`, the 2.0.0 release sync, 1182 commits), `8cec31869` (env file names), `a048963e3`
+  (EAS and Tokenbound projections).
+- **Merge shape**: 22 conflicts. Eight projections regenerated on the merged tree; the erd,
+  env-management, Playwright and Vitest page deletions kept; develop's testing context, design
+  skill, Design workflow, validation policy and QA ledger taken with the branch's moved-page paths
+  re-applied; hand merges for the pre-push hook (develop's test-path loop plus `GG_PUSH_GATE_ARGS`
+  as separate words), ONBOARDING (both sides), the sidebar (develop's Commitment Pool, Brand kit and
+  builders Brand kit entries), the Admin page (commitment-pool scope note) and the Passkeys page
+  (develop's passkey directory section, lightly re-voiced).
+- **Results on the merged tree**: generator tests 23/23 · select-validation, parity, ci-gate,
+  branch-policy, ontology and docs-audit suites 286/286 · docs package tests 71/71 ·
+  `node scripts/docs/generate.mjs --check` (14) · `node docs/scripts/docs-audit.mjs --ci` exit 0
+  (the two advisory endpoint notes only) · `check-ontology` all guards, 3 generated artifacts current
+  · `check-qa-id-ledger --base origin/develop` 443 ids, none regressed · codex docs, skill behavior
+  contracts (15/15), guidance links (91 files) and docs design parity (11 bindings) pass · docs
+  typecheck clean · docs build green: 69 routes, 69 Markdown twins, `llms.txt` 96 lines, 225
+  redirect pages.
+- **Rendered check (built HTML, text read)**: the EAS and Tokenbound pages carry the deployment
+  projection (Sepolia, Arbitrum One, Celo; `WorkApprovalResolver`, `GardenAccount` and
+  `GardenToken` as indexer boundaries); the Passkeys page carries develop's directory section; the
+  Admin page carries the pooling note; the builders sidebar shows develop's Brand kit link.
+- **Policy and workflow routing**: the six contract sources the new catalog entries digest join the
+  `docs-generated` rule, the Docs workflow trigger paths and the CI Gate's Docs expectation, the
+  same way the module sources do; the 13 skill READMEs the catalog reads join the rule too (develop's
+  new parity test caught that they were unrouted).
+- **Install note**: `bun install --frozen-lockfile` ran in the worktree to pick up develop's
+  dependency moves (happy-dom in, MSW out, viem 2.55.13); no manifest or lockfile changed.
+- **Human gates open**: D12, the page-length gate, a Reference landing, the GitHub thread replies,
+  and taking PR #795 out of draft.
+
