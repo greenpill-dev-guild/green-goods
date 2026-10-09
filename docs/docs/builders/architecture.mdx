@@ -94,7 +94,7 @@ them to its admin, or lock them. The [Garden account sources](./packages/contrac
 
 Work, approvals, and assessments are [EAS attestations](./integrations/eas), but not free-form
 ones. Each schema is bound to a resolver contract that validates authorization at write time, so a
-Work Approval signed by someone without steward authority simply cannot be recorded. That single
+Work Approval from anyone but the garden's stewards or its owner simply cannot be recorded. That single
 move relocates trust: you don't have to believe an app's database that a steward approved
 something, because the record could not exist otherwise. The
 [data model](./architecture/data-model) shows how these records relate.

@@ -28,9 +28,9 @@ records that outlive any app Green Goods ships. (Commitments are the exception; 
 own contracts.)
 
 What makes the integration more than "we write attestations" is the resolver pattern. Each Green
-Goods schema is bound to a resolver contract that validates authorization at write time, so an
-approval signed by someone without steward authority cannot be recorded at all. Meaning is enforced,
-not implied.
+Goods schema is bound to a resolver contract that validates authorization at write time. An
+approval, for example, can only be recorded by one of the garden's stewards or its owner, and
+never by the person who submitted the work. Meaning is enforced, not implied.
 
 ## The records
 
