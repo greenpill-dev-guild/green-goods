@@ -50,6 +50,11 @@ describe("index descriptions", () => {
   test("use the first real sentence, never a generated banner", () => {
     const twin = "# Skills Catalog\n\n<!-- GENERATED FILE: do not edit. Run `node x`. -->\n\nSkills are packaged workflows. A second sentence.\n";
     assert.equal(leadSentence(twin), "Skills are packaged workflows.");
+    // Comments do not nest: the first --> closes one, and an opener left behind hides the rest, so
+    // no "<!--" can reach the index (the sanitizer case CodeQL flags).
+    const dangling = "# T\n\n<!-<!-- banner -->-\n\nA real sentence.\n";
+    assert.equal(leadSentence(dangling), "");
+    assert.equal(leadSentence("<!-- never closed\n\nHidden by the open comment."), "");
   });
 
   test("skip components, lists, and code, and keep link text", () => {

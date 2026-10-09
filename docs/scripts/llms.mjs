@@ -37,11 +37,27 @@ export function markdownTwin(source, title) {
 }
 
 /**
+ * Cuts every HTML comment out of the text, including comments nested inside another one, and
+ * drops the tail of a comment that never closes. A single regex replace would leave a dangling
+ * `<!--` behind when comments nest, so this scans until none remain.
+ */
+function withoutHtmlComments(text) {
+  let result = text;
+  let start = result.indexOf("<!--");
+  while (start !== -1) {
+    const end = result.indexOf("-->", start + 4);
+    result = end === -1 ? result.slice(0, start) : result.slice(0, start) + result.slice(end + 3);
+    start = result.indexOf("<!--");
+  }
+  return result;
+}
+
+/**
  * The first real sentence of a twin, for the index: skips headings, comments, components, lists,
  * tables, callouts, and code, so generated banners never become a page's description.
  */
 export function leadSentence(markdown) {
-  const withoutCode = markdown.replace(FENCED_CODE, "").replace(/<!--[\s\S]*?-->/g, "");
+  const withoutCode = withoutHtmlComments(markdown.replace(FENCED_CODE, ""));
   for (const block of withoutCode.split(/\n\s*\n/)) {
     const text = block.trim();
     if (!text || /^(#|<|\||[-*+]\s|\d+\.\s|:::|>|!\[)/.test(text)) continue;
