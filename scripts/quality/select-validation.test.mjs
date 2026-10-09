@@ -869,6 +869,15 @@ test("focused Solidity tests use the contracts match-path wrapper", () => {
   assert.deepEqual(contractsTest.focusedPaths, ["test/unit/Garden.t.sol"]);
 });
 
+test("focused indexer proof selects the handler scope accepted by its package wrapper", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/indexer/test/hypercerts.test.ts"],
+  });
+  const check = plan.checks.find((candidate) => candidate.id === "indexer-test");
+  assert.equal(check?.command, "bun run test --scope handlers test/hypercerts.test.ts");
+});
+
 test("multiple focused Solidity tests invoke the contracts wrapper once per path", () => {
   const plan = selectValidation({
     intent: "qa",

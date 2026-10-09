@@ -820,7 +820,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     command =
       check.id === "contracts-test"
         ? focusedPaths.map((path) => `bun run test --suite solidity --profile match ${path}`).join(" && ")
-        : `${check.command} ${focusedPaths.join(" ")}`;
+        : `${check.command}${check.id === "indexer-test" ? " --scope handlers" : ""} ${focusedPaths.join(" ")}`;
   }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
