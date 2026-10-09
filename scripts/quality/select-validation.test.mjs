@@ -1650,8 +1650,15 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
       environment: {},
       execFileSync(command, args) {
         assert.equal(command, "gh");
-        assert.deepEqual(args, ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"]);
-        return "release/1.4\n";
+        assert.deepEqual(args, [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ]);
+        return "release/1.4\tfeature/example\n";
       },
     },
   );
@@ -1670,6 +1677,29 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
   assert.equal(
     resolveComparisonBase({ intent: "push" }, { environment: { GITHUB_BASE_REF: "staging" } }),
     "origin/staging",
+  );
+
+  // A develop-to-main promotion is judged against develop, in CI and through a live PR.
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "push" },
+      { environment: { GITHUB_BASE_REF: "main", GITHUB_HEAD_REF: "release/october-2-0-0" } },
+    ),
+    "origin/develop",
+  );
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "push" },
+      { environment: { GITHUB_BASE_REF: "main", GITHUB_HEAD_REF: "fix/hotfix" } },
+    ),
+    "origin/main",
+  );
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "release" },
+      { environment: {}, execFileSync: () => "main\trelease/october-2-0-0\n" },
+    ),
+    "origin/develop",
   );
 });
 

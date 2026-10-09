@@ -186,6 +186,8 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
       const basenameCollides = knownPaths.some(
         (knownPath) => knownPath !== deletedPath && path.basename(knownPath) === basename,
       );
+      // The bare basename counts only as a whole token: `playwright.md` must not match `playwright.mdx`.
+      const basenameToken = new RegExp(`(^|[^\\w.-])${escapeRegex(basename)}(?!\\w)`);
       rules.push({
         label: basename,
         appliesTo: () => true,
@@ -196,7 +198,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
             line.includes(shortPath) ||
             line.includes(relativePath) ||
             line.includes(`./${relativePath}`) ||
-            (!basenameCollides && line.includes(basename))
+            (!basenameCollides && basenameToken.test(line))
           );
         },
       });
