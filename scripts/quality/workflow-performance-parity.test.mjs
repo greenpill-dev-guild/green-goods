@@ -251,9 +251,17 @@ test("Supply Chain classifier routes each change class without broad fallthrough
   }
 });
 
-test("pre-push forwards focused proof paths without shell expansion", () => {
+test("pre-push forwards focused proof paths and gate arguments without shell expansion", () => {
   const hook = read(".husky/pre-push");
-  for (const paths of ["", "client:src/views/example.test.tsx shared:src/**/example.test.ts"]) {
+  // Both variables are set explicitly: the hook reads the pushing shell's environment, so a value
+  // exported for a real push must not reach the hook under test.
+  const cases = [
+    { paths: "", gateArgs: "" },
+    { paths: "client:src/views/example.test.tsx shared:src/**/example.test.ts", gateArgs: "" },
+    { paths: "", gateArgs: "--check ontology" },
+    { paths: "docs:scripts/llms.test.mjs", gateArgs: "--base origin/develop --check ontology" },
+  ];
+  for (const { paths, gateArgs } of cases) {
     const result = spawnSync("sh", ["-c", `
 git() { :; }
 bun() { :; }
@@ -262,7 +270,7 @@ ${hook}
 `], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths },
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths, GG_PUSH_GATE_ARGS: gateArgs },
     });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.stdout.trim().split("\n"), [
@@ -270,6 +278,7 @@ ${hook}
       "scripts/dev/node-cli.js", "scripts/dev/ci-local.js", "--intent", "push",
       "--reuse-passing-receipts",
       ...paths.split(" ").filter(Boolean).flatMap((path) => ["--test-path", path]),
+      ...gateArgs.split(" ").filter(Boolean),
     ]);
   }
 });
