@@ -25,7 +25,7 @@ const statusLine = (
   <p>
     A deployment artifact does not by itself prove product activation, live indexing, or
     partner-service health. This projection regenerates from checked-in artifacts via{" "}
-    <code>bun run docs:generate</code>.
+    <code>node scripts/docs/generate.mjs</code>.
   </p>
 );
 

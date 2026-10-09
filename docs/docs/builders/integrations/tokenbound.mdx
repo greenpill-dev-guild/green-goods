@@ -4,17 +4,20 @@ sidebar_label: Tokenbound Accounts
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-09
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/accounts/Garden.sol
   - packages/contracts/src/tokens/Garden.sol
-  - packages/shared/src/ontology/green-goods-ontology.json
 keywords:
   - erc-6551
   - token-bound account
   - garden account
 ---
+
+import {IntegrationProjection} from "@site/src/components/docs";
 
 # Tokenbound Accounts
 
@@ -46,11 +49,13 @@ flowchart LR
 |---|---|
 | Garden token | `packages/contracts/src/tokens/Garden.sol` |
 | Garden account and action routing | `packages/contracts/src/accounts/` |
-| Account addresses per chain | The `accountProxy` and `gardenAccountImpl` fields in the [deployment record](/builders/reference/deployments) |
+| Account addresses per chain | The `accountProxy` and `gardenAccountImpl` fields, projected below and in the [deployment record](/builders/reference/deployments) |
 
 One consequence for consumers: the indexer's `Garden.id` is the garden account address, which is
 why it stays a bare address rather than a composite id (a documented exception in the
 [indexer package](../packages/indexer)).
+
+<IntegrationProjection id="tokenbound" />
 
 ## Working with it locally
 

@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:c925611fca7e01d4b00e7454e8dbab3a2291fc34b61586bc0e2985e35dbd4f47",
+  "digest": "sha256:548f65854753886ba5cf69f40dfee4712ef899485bd331ea101395d95aa644e0",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",
@@ -29,6 +29,46 @@
       "totalNetworks": 4,
       "indexedContracts": [
         "CookieJarFactory"
+      ]
+    },
+    "eas": {
+      "display": "EAS",
+      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, and Assessment records; each schema's resolver validates authorization when a record is written.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "assessmentResolver",
+            "workApprovalResolver",
+            "workResolver"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "assessmentResolver",
+            "workApprovalResolver",
+            "workResolver"
+          ]
+        },
+        {
+          "chainId": 42220,
+          "name": "Celo",
+          "status": "Deployed",
+          "recorded": [
+            "assessmentResolver",
+            "workApprovalResolver",
+            "workResolver"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "WorkApprovalResolver"
       ]
     },
     "ens": {
@@ -195,6 +235,44 @@
       "indexedContracts": [
         "OctantModule",
         "OctantVault"
+      ]
+    },
+    "tokenbound": {
+      "display": "Tokenbound Accounts",
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "networks": [
+        {
+          "chainId": 11155111,
+          "name": "Sepolia Testnet",
+          "status": "Deployed",
+          "recorded": [
+            "accountProxy",
+            "gardenAccountImpl"
+          ]
+        },
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "accountProxy",
+            "gardenAccountImpl"
+          ]
+        },
+        {
+          "chainId": 42220,
+          "name": "Celo",
+          "status": "Deployed",
+          "recorded": [
+            "accountProxy",
+            "gardenAccountImpl"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "GardenAccount",
+        "GardenToken"
       ]
     }
   }

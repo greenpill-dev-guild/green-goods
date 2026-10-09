@@ -4,9 +4,11 @@ sidebar_label: EAS
 slug: /builders/integrations/eas
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-09
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/resolvers/Work.sol
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/resolvers/Assessment.sol
@@ -18,6 +20,8 @@ keywords:
   - resolver
   - schema
 ---
+
+import {IntegrationProjection} from "@site/src/components/docs";
 
 # EAS (Attestation Service)
 
@@ -67,7 +71,11 @@ flowchart LR
 Schema UIDs and EAS endpoints are different on every chain, so read them from their source
 instead of copying them into code or prose. Each chain's deployment artifact lists its schema UIDs
 under `schemas` (for Arbitrum One, `packages/contracts/deployments/42161-latest.json`), and the EAS
-GraphQL endpoints the apps query live in `packages/shared/src/config/blockchain.ts`.
+GraphQL endpoints the apps query live in `packages/shared/src/config/blockchain.ts`. The projection
+below lists the networks whose artifacts record the three Green Goods resolvers; the EAS contracts
+themselves are the official per-chain deployments linked under upstream docs.
+
+<IntegrationProjection id="eas" />
 
 ## Working with it locally
 

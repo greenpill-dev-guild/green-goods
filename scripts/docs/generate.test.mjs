@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -393,13 +393,19 @@ test("integration projections move to one data file with per-network and indexin
   const payload = JSON.parse(renderProjection(REPO_ROOT, projection));
   assert.deepEqual(Object.keys(payload.integrations), [
     "cookie-jar",
+    "eas",
     "ens",
     "gardens",
     "hats",
     "hypercerts",
     "karma",
     "octant",
+    "tokenbound",
   ]);
+  assert.ok(
+    payload.integrations.eas.networks.some((network) => network.recorded.includes("workApprovalResolver")),
+    "the EAS projection records the Green Goods resolvers a network deployed",
+  );
   const hats = payload.integrations.hats;
   assert.ok(
     hats.networks.some(

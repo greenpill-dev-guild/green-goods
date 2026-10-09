@@ -49,6 +49,18 @@
       "additional_sources": []
     },
     {
+      "id": "eas",
+      "display": "EAS",
+      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, and Assessment records; each schema's resolver validates authorization when a record is written.",
+      "contract_source": "packages/contracts/src/resolvers/Work.sol",
+      "deployment_fields": ["assessmentResolver", "workApprovalResolver", "workResolver"],
+      "indexer_contracts": ["WorkApprovalResolver"],
+      "additional_sources": [
+        "packages/contracts/src/resolvers/WorkApproval.sol",
+        "packages/contracts/src/resolvers/Assessment.sol"
+      ]
+    },
+    {
       "id": "ens",
       "display": "ENS",
       "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
@@ -101,6 +113,15 @@
       "deployment_fields": ["octantFactory", "octantModule"],
       "indexer_contracts": ["OctantModule", "OctantVault"],
       "additional_sources": []
+    },
+    {
+      "id": "tokenbound",
+      "display": "Tokenbound Accounts",
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "contract_source": "packages/contracts/src/accounts/Garden.sol",
+      "deployment_fields": ["accountProxy", "gardenAccountImpl"],
+      "indexer_contracts": ["GardenAccount", "GardenToken"],
+      "additional_sources": ["packages/contracts/src/tokens/Garden.sol"]
     }
   ],
   "entities": [
