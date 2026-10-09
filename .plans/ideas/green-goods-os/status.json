@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-08T16:08:51Z",
-    "updated_at": "2026-10-09T05:12:23Z"
+    "updated_at": "2026-10-09T18:54:38Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,7 +19,10 @@
     "eval": "eval.md",
     "research": "research.md",
     "strategy": "strategy.md",
-    "evidence": "evidence-register.md"
+    "evidence": "evidence-register.md",
+    "architecture": "architecture.md",
+    "sensors": "sensor-kit-research.md",
+    "capture": "capture-and-device-flows.md"
   },
   "linear": {
     "parentIssue": null,
@@ -44,7 +47,14 @@
     "Current narrative is pitch-revision.md: Green Goods leads with global access; prior decks remain rejected drafts. Next: human review of the three representative compositions before full deck production.",
     "Prior commercial figures are withdrawn from the next core pitch; first cohort, buyer, geography, costs and ask remain unresolved. No partner interest is established.",
     "Revised three-slide checkpoint in artifacts/visual-direction-v2: short cover, knowledge silos, no generated faces or heads, right-side imagery and concrete browser-workspace explanation. Further alignment remains pending before full-deck expansion.",
-    "Latest user feedback rejects the italic cover title and requests fuller subtext. Typography/copy discussion must precede further slide edits. Dedicated research/green-goods-pitch-handoff branch preserves the work; see handoffs/pitch-restart-prompt.md."
+    "9 October technical discussion is consolidated in architecture.md. User requires participation without a dedicated computer node; extension-first active coordination and local setup remain untested proposals.",
+    "Sensor-kit-research.md records purchasable hardware, primary-source prices, local APIs, logging and configuration gates. Purchasing comparison covers the user-selected United States, Nigeria, Brazil and South Africa. Exact regional kit, first site and budget remain unresolved; no purchase, hardware access, firmware change or Green Goods adapter is authorized.",
+    "DIY/OEM research adds component cores, regional stock corrections, browser-flashing and firmware boundaries, documented supplier customization capabilities and setup-fee allocation. DIY versus assembled remains a proposal; no supplier outreach, agreement or branded order is authorized.",
+    "User identified California for the physical prototype, macOS/Brave on laptop and Brave/Chrome on Android. The recommended expansion-board kit and fully Green Goods commissioning workflow are documented proposals. Brave API availability, Android USB behavior, firmware and hardware remain untested. No purchase, browser-setting change, implementation or device operation is authorized.",
+    "User authorized preserving the eight data-capture areas in notes. Capture-and-device-flows.md records domain views, cultural/wellbeing consent, Coop source patterns and limits, local sensor history with proposed BLE/USB collection, optional Seeed add-ons and versioned browser defaults. Edge/macOS plus Chrome/Android is a proposed test combination, not accepted implementation scope or compatibility proof.",
+    "User requested saving the passive-networking discussion. The capture supplement now distinguishes measurement, collection and sharing; records unmeasured Bluetooth range and a proposed ten-metre test; compares receiver, MQTT and WebRTC roles; and separates IWA/native/hardware raw-socket routes from ordinary extensions and production PDS hosting. These remain research recommendations, not approved implementation or device tests.",
+    "Latest user feedback rejects the italic cover title and requests fuller subtext. Typography/copy discussion must precede further slide edits. Dedicated research/green-goods-pitch-handoff branch preserves the work; see handoffs/pitch-restart-prompt.md.",
+    "User explicitly authorized committing and pushing the research notes to the existing research/green-goods-pitch-handoff branch through draft PR #1055. This publication scope includes only research Markdown/JSON; product implementation and hardware tests remain unapproved."
   ],
   "lanes": {
     "ui": {

@@ -30,6 +30,12 @@ First cohort, buyer, geography, workflow, commercial inputs and ask remain propo
 - [ ] Align on revised cover, problem and solution before expanding the full deck.
 - [ ] Produce the next editable deck from aligned content and imagery, with all-slide inspection.
 - [x] Final link/claim/arithmetic/artifact checks and handoff; observed results in eval.md.
+- [x] Document the mesh, node-free start, extension hub, local setup, API boundaries, local AI and private/public separation.
+- [x] Research purchasable sensor kits using primary listings, manuals and local protocols; distinguish stock behavior from proposed Green Goods adapters.
+- [x] Compare purchasing evidence for the user-selected United States, Nigeria, Brazil and South Africa; preserve regional price, supply and approval gaps.
+- [x] Research DIY assembly cores and documented OEM/branding services; check live component prices, stock, setup fees and firmware/rights boundaries.
+- [ ] Select one sensor question, first test location, landed budget, power/network setting and exact hardware/firmware before a separately authorized device test.
+- [ ] Choose whether to test a DIY workshop kit, an assembled kit or both; settle a quote brief and supplier terms before any separately authorized branded order or outreach.
 
 The [PRD](spec.md) is the proposed future execution sequence. Its acceptance tests have not been run and are not receipts for an implemented product. No implementation lanes are authorized in this hub; lane status is `n/a` for this research task, while the feature remains at `ideas`.
 

@@ -17,6 +17,8 @@ The pitch is intended for audiences such as Ma Earth, Hypercerts, 5th World and 
 
 The prior prices, fit percentage, ARR, margins and funding ask are withdrawn from the next core pitch. [market-sizing.md](market-sizing.md) preserves the earlier hypothetical model; arithmetic review did not validate demand or willingness to pay. No approved replacement figures exist.
 
+**Technical exploration, 9 October 2026:** [local setup and device architecture](architecture.md) consolidates the mesh discussion, the user's requirement to begin without a dedicated computer node, the extension as an active laptop hub, offline setup, API limits and deliberate publication. [Purchasable sensor research](sensor-kit-research.md) compares stock products, browser configuration, local logging, primary-source prices and missing integration work. These are research companions, not an expanded prototype or approved procurement list.
+
 The [three-slide visual checkpoint](artifacts/visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx) now contains representative cover, problem and solution compositions. Review these before extending the editable deck. New imagery must reference the actual website's photographic language. Use no em dashes in revised copy. The [commission](handoffs/research-to-pitch-commission-draft.md) carries the research and production requirements forward.
 
 ## Decisions before implementation

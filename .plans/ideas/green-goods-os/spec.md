@@ -2,6 +2,8 @@
 
 **Stage 2 · proposed, 8 October 2026.** Follows the [Stage 1 evidence review](eval.md). No software, dependency, deployment, transaction or license change is authorized by this document. Every requirement describes future behavior unless explicitly labeled existing. Sources use the IDs in the [evidence register](evidence-register.md).
 
+**Later exploration, 9 October:** [architecture](architecture.md) records the user's node-free starting requirement and an extension-first vision. [Sensor research](sensor-kit-research.md) identifies possible real equipment. The synthetic recording, deferred mesh/hardware and separately gated pilot below remain the bounded prototype scope until a specific revision is accepted.
+
 ## Strategic alignment
 
 The user has accepted Accessibility, Sovereignty, Trust and Reciprocity as Green Goods' four pillars. Privacy, Interoperability and Verifiability remain essential across them. The [current narrative](pitch-revision.md) sets a global vision for communities caring for land and each other, regardless of economic circumstances. These principles govern the proposal; current compliance is not established by accepting them.

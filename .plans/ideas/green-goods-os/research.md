@@ -4,6 +4,8 @@
 
 **Stage 1 · 8 October 2026 · proposal, not implementation authorization.** Sources and exact implementation symbols are indexed in the [evidence register](evidence-register.md). References such as R06 and W10 resolve there. Recommendations below are inferences; they are not adopted product or legal decisions.
 
+**9 October technical supplement:** use [architecture.md](architecture.md) for the later node-free, extension-first networking/setup discussion and current Web API boundaries. Use [sensor-kit-research.md](sensor-kit-research.md) for purchasable products, local interfaces and logging/cost gates. This supplement adds research to the vision without replacing the historical baselines or expanding the [prototype](spec.md).
+
 The viable near-term direction is a private community workspace with optional local assistance, deliberate exports and a small public publishing adapter. Green Goods already has useful work, review, identity and funding infrastructure. It does not yet establish the proposed OS, a private AT mesh, broadly compatible local AI, verified ecological outcomes or a proven business model. Retain existing licenses while testing paid support and governed services. Do not base a pilot on an unverified cooperative agreement or on Coop code being MIT-compatible.
 
 **Pitch-revision note:** Technical and licensing findings below remain the research baseline. The nursery setting was a test-fixture recommendation, not validated demand. [Revised positioning](pitch-revision.md) now focuses on a farmer/adviser pair and one field moisture-check question; [new market evidence](market-sizing.md) supplies the buyer-channel model.
