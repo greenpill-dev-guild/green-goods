@@ -1,0 +1,146 @@
+{
+  "file": "/Users/afo/Code/greenpill/green-goods/.plans/ideas/green-goods-os/artifacts/visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx",
+  "sha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+  "slides": 3,
+  "editable_shapes_per_slide": [6, 12, 11],
+  "embedded_pictures_per_slide": [2, 0, 1],
+  "notes_parts": 3,
+  "em_dashes": 0,
+  "user_proposition_in_cover_notes": true,
+  "commercial_assumptions_excluded": true,
+  "render_engine": "Artifact Tool with repository Fraunces and Inter registered in the rendering process",
+  "render_review": "All three final exported slides inspected individually at 1280x720; text fit, right-side imagery, and no faces or heads observed",
+  "native_powerpoint_or_google_slides_tested": false,
+  "fonts_embedded": false,
+  "finalization": {
+    "schemaVersion": "presentation-finalization.v1",
+    "finalSha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+    "byteCount": 5965494,
+    "packageIntegrity": {
+      "chart_count": 0,
+      "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+      "finding_count": 0,
+      "findings": [],
+      "notes_parts_skipped": 3,
+      "relationship_part_count": 16,
+      "slide_count": 3,
+      "status": "pass",
+      "exitCode": 0,
+      "findingCount": 0,
+      "warnings": []
+    },
+    "presentationLayout": {
+      "finding_count": 0,
+      "findings": [],
+      "font_policy": {
+        "checked_text_script_count": 33,
+        "native_font_rendering_verified": false,
+        "observed_font_families": ["Fraunces", "Inter"],
+        "observed_font_use_counts": {
+          "Fraunces": 15,
+          "Inter": 18
+        },
+        "passed": true,
+        "performed": true
+      },
+      "slide_count": 3,
+      "slide_size_in": [13.3333, 7.5],
+      "warning_count": 0,
+      "warnings": [],
+      "exitCode": 0,
+      "findingCount": 0,
+      "fontPolicy": {
+        "checked_text_script_count": 33,
+        "native_font_rendering_verified": false,
+        "observed_font_families": ["Fraunces", "Inter"],
+        "observed_font_use_counts": {
+          "Fraunces": 15,
+          "Inter": 18
+        },
+        "passed": true,
+        "performed": true
+      }
+    },
+    "fontSelection": {
+      "basis": "design",
+      "approvedFamilies": ["Inter", "Fraunces"],
+      "scriptFonts": {},
+      "referenceSha256": null,
+      "referenceFontsVerifiedInEncodedText": false,
+      "checked_text_script_count": 33,
+      "native_font_rendering_verified": false,
+      "observed_font_families": ["Fraunces", "Inter"],
+      "observed_font_use_counts": {
+        "Fraunces": 15,
+        "Inter": 18
+      },
+      "passed": true,
+      "performed": true
+    },
+    "firstPartyImport": {
+      "performed": true,
+      "passed": true,
+      "slideCount": 3,
+      "sha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+      "runtimeNodeModules": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
+      "nodeExecutable": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+    },
+    "nativeTableArithmetic": {
+      "performed": true,
+      "checked_column_count": 0,
+      "checks": [],
+      "claim_boundary": "Displayed-value arithmetic with rounding tolerance; not source-data verification.",
+      "eligible_table_count": 0,
+      "finding_count": 0,
+      "findings": [],
+      "native_table_count": 0,
+      "passed": true,
+      "schema_version": "presentation-native-table-arithmetic.v1",
+      "skipped_tables": [],
+      "slide_count": 3,
+      "warning_count": 0,
+      "warnings": []
+    },
+    "nativeChartTitles": {
+      "performed": true,
+      "checks": [],
+      "finding_count": 0,
+      "findings": [],
+      "native_chart_count": 0,
+      "native_powerpoint_verified": false,
+      "passed": true,
+      "presentation_sha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+      "schema_version": "presentation-native-chart-titles.v1",
+      "slide_count": 3,
+      "source_text_emitted": false,
+      "unresolved_linked_title_count": 0
+    },
+    "sourceDerivedPolicyFlags": [
+      "--expected-slide-size-emu",
+      "12192000,6858000",
+      "--validate-bullet-geometry",
+      "--validate-heading-fit",
+      "--cover-role",
+      "none",
+      "--expected-slide-count",
+      "3",
+      "--approved-font-family",
+      "Inter",
+      "--approved-font-family",
+      "Fraunces"
+    ],
+    "nativeChartValidation": {
+      "detectedOwnerSlides": [],
+      "detectedChartCount": 0,
+      "targetApplication": "portable",
+      "sourceChartOwnersExplicitlyDeclared": true,
+      "validatorRan": false,
+      "passed": true
+    }
+  },
+  "renders": {
+    "slide-01.png": "608f5342363fe832349639f8bfa3a1e058610c9798f33a1f2bcca54c08291475",
+    "slide-02.png": "5b1fc1d21ce9771958dbafcd082b1cf030ccf229fba63aaa915ecf4a17c45f8f",
+    "slide-03.png": "4a97959c249f639bbf25d29fb19b2acdb54d3bc6d0d98dec925b55fac40e2817"
+  }
+}

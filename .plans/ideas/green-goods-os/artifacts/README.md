@@ -1,0 +1,59 @@
+# Editable pitch deck and inspection artifacts
+
+## Current status: design unresolved
+
+The user remains dissatisfied with the v2 cover. Italics are rejected; the shortened subtitle omits too much substance. No further slides were edited after this feedback. Start with the [continuation prompt](../handoffs/pitch-restart-prompt.md) and discuss title fonts and fuller copy before implementing.
+
+## Latest visual checkpoint
+
+Version 2 addresses the latest feedback: a short cover hook, explicit knowledge silos, no generated faces or heads, images on the right, and a concrete browser-workspace explanation. The preceding three-slide checkpoint is superseded.
+
+[Three editable treatments](visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx) cover the opening, problem and solution from the agreed flow. [Image briefs and exact prompts](visual-direction-v2/README.md) document the website references and two new conceptual images. These are representative compositions for review, not the complete revised pitch. All slide text remains editable; each slide has speaker notes and source references.
+
+## Status of earlier decks
+
+The 26-slide and 18-slide deck files below are prior drafts. The user rejected the narrative and generated imagery. Rendering and package checks establish artifact integrity, not acceptance. The [current agreed direction and revised flow](../pitch-revision.md) supersede their positioning and commercial figures. No slide or image changed during the narrative-alignment update. New imagery should follow the actual website references and a reviewed visual purpose.
+
+## Prior draft: Green Goods Warm Earth design
+
+- [Editable pitch deck](green-goods-os-pitch-warm-earth.pptx): the revised 26-slide narrative in the public Green Goods editorial style.
+- [Design references and editor handoff](design-reference.md), [speaker notes](speaker-notes-warm-earth.md), [source-to-claim index](pitch-source-index.md) and [verification](verification-warm-earth.json).
+- [Cover preview (in retained deck)](green-goods-os-pitch-warm-earth.pptx); the retained deck contains all slides.
+- [Brand font bundle](green-goods-pitch-fonts.zip): unchanged repository font files and their license/provenance. Fonts are referenced, not embedded in the PPTX; no software or fonts were installed.
+
+This prior draft uses Fraunces and Inter, warm linen and charcoal, restrained green, the official mark and square editorial layouts. All research text and notes are preserved from the narrative revision. Every slide was rendered and inspected; native PowerPoint/Google Slides behavior was not tested. Earlier versions below are retained for history.
+
+## Previous narrative revision
+
+- [Revised editable pitch](green-goods-os-pitch-revised.pptx): 18 core pitch slides and eight appendix slides; 201 native text/shape objects, nine native tables, two embedded concept illustrations and 26 speaker-note parts.
+- [Revised speaker notes](speaker-notes-revised.md) and [source-to-claim index](pitch-source-index.md).
+- [Revised verification receipt](verification-revised.json) and [rendered cover (in retained deck)](green-goods-os-pitch-revised.pptx). All slides remain in the retained editable deck.
+- [Market model](../market-sizing.md) and [revised strategic framing](../pitch-revision.md).
+
+This version replaces the earlier deck's research-review narrative. It leads with the vision, problem, solution, user/buyer, value proposition, reciprocal network, market, competition, revenue, go-to-market and proposed partner/funder ask. Technical and legal detail is retained in the appendix and notes. Market prices, qualified share, acquisition and margins remain assumptions. This is a proposal, not an implemented OS or a record of customer traction.
+
+The final PPTX was reimported and every slide rendered. All slides received individual full-size visual inspection; the final five content repairs were inspected again, and the other 21 final renders matched the already-inspected renders byte-for-byte. Package and geometry checks pass with no findings or warnings. Text and tables are editable; illustrations are replaceable bitmaps. Native PowerPoint/Google Slides behavior was not tested.
+
+The two new images are fictional editorial concepts generated with the built-in image tool on 8 October 2026 Pacific. `landscape-concept.png` depicts varied working lands, a creek and small groups of stewards in a tactile forest/sage/ochre palette, with dark space for editable title text. `field-adviser-concept.png` depicts a fictional farmer and adviser at a farm worktable with ordinary devices, notebook and probe. Neither depicts a real partner, pilot, person or environmental result. No private community data or images were used.
+
+## Superseded first version
+
+- [Green Goods OS pitch](green-goods-os-pitch.pptx): 18 editable slides, native text, eight native tables and speaker notes with source references.
+- [Speaker notes](speaker-notes.md): readable editable Markdown copy extracted from the final PPTX.
+- [Verification receipt](verification.json): file hash, package/layout/reimport checks and visual-inspection coverage.
+- [Rendered cover (in retained deck)](green-goods-os-pitch.pptx): the retained deck contains every slide.
+- [Nursery illustration (in retained deck)](green-goods-os-pitch.pptx): generated conceptual artwork, not field or pilot evidence.
+
+The presentation was rendered with Artifact Tool after importing the finalized PPTX. Every slide was inspected individually. Native PowerPoint and Google Slides application behavior was not tested. Text and tables are editable; the cover illustration is a replaceable bitmap. The renderer's first image-path export issue was repaired by embedding the image bytes before final validation.
+
+## Illustration provenance
+
+Created using the built-in image generation tool on 2026-10-08. Final prompt:
+
+> Create one sophisticated editorial illustration for a Green Goods proposal presentation. A fictional community plant nursery viewed from gently above, orderly small seedling beds, rich dark soil, a simple watering can and a handwritten field notebook with no legible words, diverse young green leaves. Warm earth palette: deep forest green, muted sage, warm ivory and subtle terracotta. Hand-painted gouache with fine botanical detail and subtle paper texture, calm and credible rather than futuristic. Portrait composition, approximately 4:5, with plants and beds flowing diagonally in the right two thirds, generous simple dark green space at upper left. No people, no flags, no logos, no computers, no sensors, no text. This is conceptual artwork, not evidence of an actual community, farm or product deployment.
+
+No private community images, personnel information or live field data were used.
+
+## Draft PR packaging
+
+All five editable decks, research, notes, source indexes, image prompts and both three-slide checkpoints are retained. Historical full-deck PNG previews and three standalone images duplicated inside those decks are omitted from this branch to keep the unchanged repository validation gate within its binary-diff buffer. Original files remain in the source checkout at `/Users/afo/Code/greenpill/green-goods/.plans/ideas/green-goods-os/artifacts/`. Their earlier render checks remain historical; this packaging pass did not alter any PPTX. Historical preview/image links now point to the corresponding retained deck.

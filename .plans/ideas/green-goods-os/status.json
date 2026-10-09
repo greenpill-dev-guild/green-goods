@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "green-goods-os",
+    "title": "Green Goods OS Research and Proposal",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-10-08T16:08:51Z",
+    "updated_at": "2026-10-09T05:12:23Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "research": "research.md",
+    "strategy": "strategy.md",
+    "evidence": "evidence-register.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["docs"],
+    "work_types": ["research", "review"],
+    "surfaces": [".plans/ideas/green-goods-os/"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User authorized research and planning artifacts only; no implementation, license changes or external writes.",
+    "Implementation lanes are n/a for this research task, not certified or canceled product work.",
+    "Research recommendations remain proposals until explicitly accepted.",
+    "User accepted Accessibility, Sovereignty, Trust and Reciprocity and the overall narrative sequence on 8 October 2026 Pacific. Privacy, Interoperability and Verifiability remain essential.",
+    "Current narrative is pitch-revision.md: Green Goods leads with global access; prior decks remain rejected drafts. Next: human review of the three representative compositions before full deck production.",
+    "Prior commercial figures are withdrawn from the next core pitch; first cohort, buyer, geography, costs and ask remain unresolved. No partner interest is established.",
+    "Revised three-slide checkpoint in artifacts/visual-direction-v2: short cover, knowledge silos, no generated faces or heads, right-side imagery and concrete browser-workspace explanation. Further alignment remains pending before full-deck expansion.",
+    "Latest user feedback rejects the italic cover title and requests fuller subtext. Typography/copy discussion must precede further slide edits. Dedicated research/green-goods-pitch-handoff branch preserves the work; see handoffs/pitch-restart-prompt.md."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "handoff": "handoffs/research.md"
+    }
+  }
+}
