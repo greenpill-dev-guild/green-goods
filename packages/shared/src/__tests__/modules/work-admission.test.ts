@@ -459,6 +459,40 @@ describe("PWA durable submission boundary", () => {
     expect(broadcast).toHaveBeenCalledTimes(1);
   });
 
+  it("retires only a durably terminal unsent submission, including a later terminal admission", async () => {
+    const { command, ports } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    const retired = vi.fn();
+    command.onTerminalUnsentFailure = retired;
+    const failure = new WorkSubmissionError("Cannot encode work", "transaction");
+    ports.direct.submitWork = vi.fn().mockRejectedValue(failure);
+    await expect(submitWork(command, ports)).rejects.toBe(failure);
+    expect(retired).toHaveBeenCalledTimes(1);
+    await expect(submitWork(command, ports)).rejects.toThrow("Cannot encode work");
+    expect(retired).toHaveBeenCalledTimes(2);
+    expect(ports.direct.submitWork).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retire an identity if persisting the terminal failure fails", async () => {
+    const { command, ports } = fixture();
+    command.allowOfflineQueue = false;
+    command.retainSubmission = true;
+    const retired = vi.fn();
+    command.onTerminalUnsentFailure = retired;
+    ports.direct.submitWork = vi.fn().mockRejectedValue(new Error("Cannot encode work"));
+    const storageFailure = new Error("Storage unavailable");
+    const markTerminal = vi
+      .spyOn(jobQueueDB, "markJobTerminalFailed")
+      .mockRejectedValueOnce(storageFailure);
+    try {
+      await expect(submitWork(command, ports)).rejects.toBe(storageFailure);
+      expect(retired).not.toHaveBeenCalled();
+    } finally {
+      markTerminal.mockRestore();
+    }
+  });
+
   it("keeps admin offline and unsent network failures out of queued-success outcomes", async () => {
     const { command, ports, send } = fixture();
     command.allowOfflineQueue = false;
