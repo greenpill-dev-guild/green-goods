@@ -113,6 +113,13 @@ test("a deleted guide basename does not match a longer filename that merely star
     ),
     [],
   );
+  assert.deepEqual(
+    scanDeletedSurfaceReferences(
+      [{ path: "docs/guide.mdx", text: "Keep `playwright.md.bak` and `playwright.md-notes` out of it." }],
+      deleted,
+    ),
+    [],
+  );
   const failures = scanDeletedSurfaceReferences(
     [{ path: "docs/guide.mdx", text: "See `playwright.md` for the rig." }],
     deleted,
