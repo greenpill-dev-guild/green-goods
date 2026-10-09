@@ -48,7 +48,10 @@ test("runs every verification tool from the contracts package", () => {
     const invocations = readFileSync(invocationLog, "utf8").trim().split("\n");
     assert.ok(invocations.length >= 4, `expected verifier calls, received: ${invocations.join(", ")}`);
     for (const invocation of invocations) {
-      assert.equal(invocation.split("|")[1], CONTRACTS_DIR, invocation);
+      const [, directory, command] = invocation.split("|");
+      // The repository-level checks (foundry-version, static-lint) run from the root on purpose.
+      const expected = command.startsWith("run check --only ") ? REPO_ROOT : CONTRACTS_DIR;
+      assert.equal(directory, expected, invocation);
     }
     const commands = invocations.map((invocation) => invocation.split("|")[2]);
     assert.ok(commands.includes("run browser e2e --preset all workflow"));
