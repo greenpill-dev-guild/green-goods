@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
-import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
-import { hasActiveWorkExecution } from "../../modules/work/execution-state";
+import {
+  hasActiveWorkExecution,
+  subscribeToWorkExecution,
+} from "../../modules/work/execution-state";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 
 /** Read immediately before activation too: a queue claim may start between renders. */
@@ -13,16 +15,17 @@ export function isWorkUpdateBlocked(): boolean {
   );
 }
 
-/** A draft's save shows in the work store; work being sent shows as queue events. */
+/**
+ * A draft's save shows in the work store, and work being sent holds a claim until it lets go. The
+ * queue's own events will not do for the second: it reports a job done before the send releases
+ * its claim, so a page told then would still read "held" and hear nothing afterwards.
+ */
 function subscribeToWork(onChange: () => void): () => void {
   const leaveDrafts = useWorkFlowStore.subscribe(onChange);
-  const leaveQueue = jobQueueEventBus.onMultiple(
-    ["job:processing", "job:completed", "job:failed", "queue:sync-completed"],
-    onChange
-  );
+  const leaveSends = subscribeToWorkExecution(onChange);
   return () => {
     leaveDrafts();
-    leaveQueue();
+    leaveSends();
   };
 }
 

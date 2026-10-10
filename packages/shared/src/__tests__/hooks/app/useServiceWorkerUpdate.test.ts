@@ -1275,12 +1275,36 @@ it("tells a mounted page when saving or sending work starts and ends", async () 
     act(() => useWorkFlowStore.setState({ draftSaveState: "saved" }));
     expect(result.current).toBe(false);
 
-    const release = claimWorkJobs([queued.jobId]);
-    act(() => jobQueueEventBus.emit("job:processing", queued));
+    // A send holds a claim. The queue reports the job done while that claim is still held, and
+    // only the release says the send has let go, so the release is what the page must hear.
+    let release: (() => void) | null = null;
+    act(() => {
+      release = claimWorkJobs([queued.jobId]);
+    });
     expect(result.current).toBe(true);
-    release?.();
     act(() => jobQueueEventBus.emit("job:completed", { ...queued, txHash: "0x" }));
+    expect(result.current).toBe(true);
+    act(() => release?.());
     expect(result.current).toBe(false);
+
+    // Preparing uploads in the background holds no update back, and a listener that throws
+    // stops neither a claim nor its release.
+    const { subscribeToWorkExecution } = await import("../../../modules/work/execution-state");
+    const leave = subscribeToWorkExecution(() => {
+      throw new Error("a page's listener broke");
+    });
+    let preparing: (() => void) | null = null;
+    act(() => {
+      preparing = claimWorkJobs(["guard-prepare"], { background: true });
+    });
+    expect(preparing).not.toBeNull();
+    expect(result.current).toBe(false);
+    act(() => preparing?.());
+    // Let go for real: the same job can be claimed again.
+    const again = claimWorkJobs(["guard-prepare"]);
+    expect(again).not.toBeNull();
+    again?.();
+    leave();
 
     // Once unmounted it hears nothing, and leaves no listener behind.
     unmount();
