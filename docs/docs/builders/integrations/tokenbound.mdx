@@ -1,27 +1,81 @@
 ---
-title: Tokenbound Accounts (ERC-6551)
-sidebar_label: Tokenbound
+title: Tokenbound Accounts
+sidebar_label: Tokenbound Accounts
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/accounts/Garden.sol
   - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/lib/TBA.sol
-  - packages/shared/src/utils/blockchain/contracts.ts
+keywords:
+  - erc-6551
+  - token-bound account
+  - garden account
 ---
 
-# Tokenbound Accounts (ERC-6551)
+import {IntegrationProjection} from "@site/src/components/docs";
 
-Each Garden token is associated with a deterministic tokenbound account that holds Garden-owned
-assets and participates in module flows.
+# Tokenbound Accounts
 
-The Garden token and account contracts own creation, authorization, and execution behavior. Shared
-blockchain utilities own application-side resolution. Callers must resolve with the selected chain,
-token contract, and token ID; an address from another chain is not interchangeable.
+[ERC-6551](https://eips.ethereum.org/EIPS/eip-6551) token-bound accounts are why a Green Goods
+garden is more than a database row: each garden is an ERC-721 token whose bound account is the
+garden on-chain. That account holds the treasury, wears the [Hats](./hats) role tree, and receives
+the garden's [attestations](./eas). Transfer the token and you've transferred the garden, assets
+and history included, as long as transfers are open: the GardenToken contract can limit them to
+the protocol's admin or lock them entirely (`transferRestriction`). Either way, no app of ours has
+to exist for a garden to keep being real.
 
-Treat the account as a protocol identity and treasury boundary, not as a generic user wallet.
-Changes to execution or ownership require contract-level tests, deployment rehearsal, and explicit
-recovery analysis.
+## How it flows
+
+Minting a garden creates the token and its account together. From then on, the account is the
+garden.
+
+```mermaid
+flowchart LR
+  mint["Garden minted"] --> token["Garden token<br/>(ERC-721)"]
+  token -->|ERC-6551 registry| account["Garden account"]
+  account --> treasury["Treasury and module state"]
+  account --> roles["Hats role tree"]
+  account --> records["Attestations it receives"]
+```
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Garden token | `packages/contracts/src/tokens/Garden.sol` |
+| Garden account and action routing | `packages/contracts/src/accounts/` |
+| Account addresses per chain | The `accountProxy` and `gardenAccountImpl` fields, projected below and in the [deployment record](/builders/reference/deployments) |
+
+One consequence for consumers: the indexer's `Garden.id` is the garden account address, which is
+why it stays a bare address rather than a composite id (a documented exception in the
+[indexer package](../packages/indexer)).
+
+<IntegrationProjection id="tokenbound" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One, so every live garden account exists locally; creating a new garden on the fork
+exercises the full token-plus-account flow without real gas.
+
+## Canonical upstream docs
+
+- [EIP-6551](https://eips.ethereum.org/EIPS/eip-6551), the standard itself; short and worth
+  reading in full.
+- [Tokenbound documentation](https://docs.tokenbound.org) for the reference implementation the
+  ecosystem builds against.
+- [The ERC-6551 reference implementation](https://github.com/erc6551/reference), the registry
+  and account the garden account builds on.
+- [tokenbound.org](https://tokenbound.org) for the SDK and the wider ecosystem.
+
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) covers the role tree each garden account wears.
+- [EAS](/builders/integrations/eas) shows the attestations a garden account receives.
+- [Architecture](/builders/architecture#a-garden-is-an-account) explains why a garden is an account at all.

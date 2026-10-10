@@ -40,6 +40,7 @@ colors:
   text: "#171717"
   community-accent: "#1A7544"
   builder-accent: "#0F766E"
+  active-nav-surface: "#E4EEE9"
   code-surface: "#F5F5F5"
 darkColors:
   background: "#171717"
@@ -49,6 +50,7 @@ darkColors:
   border: "#3D3D3D"
   community-accent: "#2EBB6B"
   builder-accent: "#2DD4BF"
+  active-nav-surface: "#1A2B21"
   link: "#45C97E"
   link-hover: "#7ADAA5"
   code-surface: "#292929"
@@ -91,13 +93,9 @@ components:
     typography: "{typography.code}"
     padding: "{spacing.md}"
     rounded: "{rounded.sm}"
-  community-active-nav:
-    backgroundColor: "{colors.surface}"
+  active-nav:
+    backgroundColor: "{colors.active-nav-surface}"
     textColor: "{colors.community-accent}"
-    rounded: "{rounded.sm}"
-  builders-active-nav:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.builder-accent}"
     rounded: "{rounded.sm}"
 ---
 
@@ -123,8 +121,8 @@ The docs site keeps its existing Docusaurus identity:
 - Display headings: Bricolage Grotesque
 - Code and inline reference text: IBM Plex Mono
 - Layout: neutral Docusaurus document shell with navbar, sidebar, article content, and table of contents
-- Accents: community green for community docs, builder teal for builder docs
-- Role accents: gardener green, steward blue, assessment violet, funder gold, builder teal
+- Accent: the primary green (`--ifm-color-primary`, the `community-accent` token) for active navigation and diagram controls on every page
+- Role accents: gardener green, steward blue, assessment violet, funder gold, builder teal (local signals such as the Builder role card)
 
 The docs dialect is quieter than the public browser site. It supports learning and reference, not campaign storytelling.
 
@@ -143,11 +141,11 @@ The docs dialect is quieter than the public browser site. It supports learning a
 **Code and reference clarity**
 - Code blocks use IBM Plex Mono and neutral code surfaces.
 - Reference pages should prioritize exact names, paths, commands, and current package boundaries.
-- Builder docs may use teal accents for active navigation and technical wayfinding.
+- Commands a reader will run carry a copy affordance: the code-block copy button stays visible at rest, and inline commands in tables render through the `CopyCommand` component.
 
-**Community and builder accents**
-- Community pages default to community green.
-- Builder pages use builder teal for active sidebar and technical accents.
+**Accents**
+- One active-navigation look on every page (`active-nav`): primary text on a 12% primary tint, 8px radius, no left border. The parent category of the current page shows primary text only; a category whose own page is open takes the same tint.
+- Builder teal survives only as the Builder role accent (`roleAccents.builder`); it no longer colors navigation or diagram controls.
 - Role accents are local signals only; do not recolor whole pages by role.
 
 ## Do's And Don'ts

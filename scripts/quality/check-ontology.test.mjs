@@ -656,8 +656,21 @@ const miniOntology = {
       transitions: [{ from: ["Ready"], to: ["Ready"], layer: "on-chain", mechanism: "markPoolReady | guard" }],
     },
   ],
+  integrations: [
+    {
+      id: "karma",
+      display: "Karma GAP",
+      definition: "Project reporting.",
+      contract_source: "a.sol",
+      deployment_fields: ["karmaGAPModule"],
+      indexer_contracts: [],
+      additional_sources: [],
+      matrix_column: "Karma GAP",
+    },
+  ],
   integration_matrix: {
     protocols: ["Karma GAP", "Unlock"],
+    column_notes: { Unlock: "Vocabulary mapping only." },
     rows: [{ ref: "entity:garden", label: "Garden", cells: { "Karma GAP": "Project" } }],
   },
   pattern_watches: [],
@@ -758,12 +771,50 @@ test("ontology renderer omits an empty specified-machines section", () => {
   assert.equal(rendered.includes("Specified machines without an implemented source"), false);
 });
 
-test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
+test("matrix columns must be claimed by one integration or carry a note", () => {
+  assert.deepEqual(checkSidecarIntegrity(miniOntology, () => true).filter((error) => /matrix/.test(error)), []);
+  const unmapped = structuredClone(miniOntology);
+  delete unmapped.integration_matrix.column_notes.Unlock;
+  assert.ok(checkSidecarIntegrity(unmapped, () => true).some((error) => error.includes('matrix column "Unlock": no integration claims it')));
+  const duplicate = structuredClone(miniOntology);
+  duplicate.integrations.push({ ...duplicate.integrations[0], id: "karma-two" });
+  assert.ok(checkSidecarIntegrity(duplicate, () => true).some((error) => error.includes('"Karma GAP" is already claimed by karma')));
+  const conflicting = structuredClone(miniOntology);
+  conflicting.integration_matrix.column_notes["Karma GAP"] = "Also noted.";
+  assert.ok(checkSidecarIntegrity(conflicting, () => true).some((error) => error.includes("notes describe unclaimed columns only")));
+  const missing = structuredClone(miniOntology);
+  delete missing.integrations[0].matrix_column;
+  assert.ok(checkSidecarIntegrity(missing, () => true).some((error) => error.includes("matrix_column is required")));
+  const undeclared = structuredClone(miniOntology);
+  undeclared.integrations[0].matrix_column = "Nope";
+  assert.ok(checkSidecarIntegrity(undeclared, () => true).some((error) => error.includes('"Nope" is not a declared integration_matrix protocol')));
+});
+
+test("matrix renderer reports code integrations and recorded networks per column", () => {
+  const integrations = {
+    karma: {
+      display: "Karma GAP",
+      networks: [{ chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["karmaGAPModule"] }],
+      totalNetworks: 4,
+      indexedContracts: [],
+    },
+  };
+  const matrix = renderEntityMatrixMdx(miniOntology, { integrations });
+  assert.ok(matrix.includes("| Karma GAP | [Karma GAP](/builders/integrations/karma) | Arbitrum One (Deployed) | 1 |"), matrix);
+  assert.ok(matrix.includes("| Unlock | Vocabulary mapping only, no code integration | — | 0 |"), matrix);
+  assert.ok(matrix.includes("- **Unlock**: Vocabulary mapping only."), matrix);
+  assert.equal(matrix.includes("Active integrations"), false);
+  assert.ok(renderEntityMatrixMdx(miniOntology).includes("deployment data not supplied"));
+});
+
+test("matrix renderer lists mapped terms per protocol and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
-  assert.ok(matrix.includes("| Garden | Project | — |"));
+  assert.ok(matrix.includes("| Garden | Project | Entity |"), matrix);
   const reference = renderOntologyMdx(miniOntology, miniProjections);
   assert.ok(reference.includes("markPoolReady \\| guard"));
-  assert.ok(matrix.includes("### Entities"));
+  assert.ok(matrix.includes("### Karma GAP"));
+  assert.equal(matrix.includes("### Unlock"), false, "a column with no mapped terms gets no section");
+  assert.ok(matrix.includes("Protocols in the matrix with no mapped terms yet: Unlock."), matrix);
 });
 
 test("integrity rejects undeclared executable transition endpoints and relationship targets", () => {

@@ -1,63 +1,113 @@
 ---
-title: Authentication
-sidebar_label: Authentication
+title: Passkeys
+sidebar_label: Passkeys
 slug: /builders/integrations/passkey
 audience: developer
 owner: docs
-last_verified: 2026-10-04
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/src/config/passkeyServer.ts
   - packages/shared/src/hooks/auth
-  - packages/shared/src/modules/auth
-  - packages/client/AGENTS.md
+  - packages/client/src/routes/WalletRuntimeProviders.tsx
+  - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/public-protection.ts
+  - packages/agent/src/services/passkey-directory.ts
+keywords:
+  - passkeys
+  - webauthn
+  - authentication
+  - smart accounts
 ---
 
-# Authentication
+# Passkeys
 
-The client supports passkey-backed accounts and wallet-aware recovery through shared auth modules.
-The implementation and provider configuration own ceremony details; this page explains the user
-boundary.
+Gardeners should never need a seed phrase to plant trees. Passkey authentication signs people in
+with the platform authenticator they already have (Face ID, a fingerprint, a device PIN) and backs
+their identity with a smart account, so field workers get real on-chain records without wallet
+onboarding. Wallets remain available for stewards and power users; passkeys are the default path.
 
-## Flow
+## How it flows
 
-1. The client establishes the intended presentation and chain context.
-2. Shared auth hooks start sign-in or registration with the configured relying party.
-3. The resulting account/session becomes the identity used by application and transaction flows.
-4. Recovery paths must preserve account continuity and make failure states explicit.
+A gardener signs with their device, and Green Goods sponsors the gas, so there's no wallet to set
+up.
+
+```mermaid
+flowchart LR
+  gardener([Gardener]) -->|Face ID, fingerprint, or PIN| passkey["Device passkey<br/>(WebAuthn)"]
+  passkey -->|signs for| account["Smart account"]
+  account -->|sponsored transaction| bundler["Bundler (Pimlico)"]
+  bundler --> chain["Arbitrum One"]
+```
+
+<figure className="gg-figure" style={{maxWidth: '560px'}}>
+  <img src="/img/builders/admin-sign-in.webp" alt="The admin sign-in screen: a filled Create Account button with a key icon, an outlined Connect Wallet button, and a link for people who already have an account" loading="lazy" width="1200" height="816" />
+  <figcaption>Sign-in in the cockpit: a passkey account first, a wallet second. The installed app opens the same way.</figcaption>
+</figure>
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Passkey server selection | `packages/shared/src/config/passkeyServer.ts` |
+| Auth hooks and providers | `packages/shared/src/hooks/auth` |
+| Runtime wiring and the dev bypass | `packages/client/src/routes/WalletRuntimeProviders.tsx` |
+
+Authentication branches through the shared auth APIs everywhere; no surface implements its own
+sign-in. One behavior worth knowing: signing in is not the same as joining a garden, and the two
+recover independently.
 
 ## Which sites a passkey works on
 
 A browser offers a passkey only for the domain it was created under. Whoever issues the sign-up
 options chooses that domain, so the passkey server decides where an account can sign in.
 
-- **Green Goods passkey directory** (the agent route `/public/passkeys/rpc`): issues every passkey
-  under `greengoods.app`, so one account signs in on every Green Goods site. Deployed builds use
-  it by default at the existing `VITE_API_BASE_URL`, and the agent always serves it. The agent
-  reuses its existing Pimlico API key to check names registered on the hosted server.
-- **Hosted passkey server**: issues each site its own hostname, so an account made there signs in
-  only on the site that created it. Accounts made before the directory stay on it, and sign in the
-  same way as before.
+- **The Green Goods passkey directory** (the agent route `/public/passkeys/rpc`) issues every
+  passkey under `greengoods.app`, so one account signs in on every Green Goods site. Deployed
+  builds use it by default at the existing `VITE_API_BASE_URL`, and the agent always serves it. The
+  agent reuses its Pimlico API key to check names registered on the hosted server.
+- **The hosted passkey server** issues each site its own hostname, so an account made there signs
+  in only on the site that created it. Accounts made before the directory stay on it and sign in
+  the same way as before.
 
 Sign-in asks the directory first and falls back to the hosted server for a name the directory does
 not hold. The directory refuses a name the hosted server already holds, which keeps one owner per
 name across both.
 
-Local development keeps passkeys local-only unless `VITE_PASSKEY_SERVER_ENABLED=true` enables
-the local agent directory. `VITE_PASSKEY_RP_ID` is a local-development override; deployed sites,
+The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
+production list that `bun run dev:smoke -- prod` expects lives in `scripts/dev/smoke-prod.js`).
+Every directory RPC and its preflight require an explicitly listed origin, and the public API's
+automatic Vercel-preview exception does not apply here, so adding a subdomain does not approve it.
+Of the listed origins, only `https` pages under `greengoods.app` are issued a passkey. The app's
+own check that a page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first
+filter, not the list.
+
+## Working with it locally
+
+You rarely need a real passkey ceremony in development. The dev-only bypass from
+[Getting Started](../getting-started#path-a-run-against-hosted-services)
+(`?mockAuth=steward&presentation=pwa`) signs you in as a test identity. The Playwright passkey
+project (`tests/specs/client.passkey.spec.ts`) drives a virtual authenticator and expects the
+directory to reject its substitute, which proves the ceremony wiring rather than a signed-in
+session; the real Pimlico cases in `tests/specs/client.auth.spec.ts` run only with
+`RUN_REAL_PASSKEY_E2E=true` and are otherwise skipped or marked fixme. The authenticated path,
+account creation, and the sponsored transaction are proven on a device, not in CI.
+
+Local development keeps passkeys local-only unless `VITE_PASSKEY_SERVER_ENABLED=true` enables the
+local agent directory. `VITE_PASSKEY_RP_ID` is a local-development override; deployed sites,
 including `beta.greengoods.app` and `beta.admin.greengoods.app`, use `greengoods.app`.
 
-The sites the directory answers are the agent's allowed origins (`AGENT_ALLOWED_ORIGINS`; the
-production list that `bun run dev:smoke -- prod` expects is in `scripts/dev/smoke-prod.js`). Every
-directory RPC and its preflight require an explicitly listed origin; the general public API's
-automatic Vercel-preview exception does not apply here. Adding a subdomain does not approve it. Of
-those, only `https` pages under `greengoods.app` are issued a passkey. The app's own check that a
-page sits under the passkey domain (`classifyPasskeyCeremonyContext`) is a first filter, not the
-list.
+## Canonical upstream docs
 
-## Testing boundary
+- [passkeys.dev](https://passkeys.dev) for the practical, platform-by-platform guidance.
+- [The WebAuthn specification](https://www.w3.org/TR/webauthn-2/) when you need the exact
+  ceremony semantics.
+- [Pimlico docs](https://docs.pimlico.io) for the bundler and paymaster that sponsor a passkey
+  account's transactions.
 
-Passkey ceremonies depend on the configured relying-party domain and cannot be treated as proven by
-localhost mocks. Use mocks for deterministic component and state tests; use the authenticated Brave
-profile on the appropriate deployed origin for real ceremony proof. Never log credentials,
-challenge material, wallet state, or session identifiers.
+
+## Next steps
+
+- [Getting Started](/builders/getting-started) lets you try the app with mock auth.
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) follows a gardener from sign-in to a recorded submission.
+- [Testing Guide](/builders/testing) lists the Playwright projects that exercise sign-in.

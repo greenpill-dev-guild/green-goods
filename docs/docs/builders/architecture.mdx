@@ -1,48 +1,203 @@
 ---
 title: Architecture
+sidebar_label: Architecture
 sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - AGENTS.md
   - package.json
-  - docs/sidebars.ts
-  - packages/client/AGENTS.md
-  - packages/admin/AGENTS.md
-  - packages/shared/AGENTS.md
-  - packages/indexer/AGENTS.md
-  - scripts/data/module-seam-registry.json
+  - packages/shared/package.json
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/contracts/src/modules
+  - packages/contracts/src/accounts/Garden.sol
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/modules/data/eas.ts
+keywords:
+  - architecture
+  - monorepo
+  - attestations
+  - token-bound accounts
+  - data flow
 ---
 
 # Architecture
 
-Green Goods is a Bun monorepo with six runtime packages: contracts, shared, indexer, client,
-admin, and agent. Code and package guides own their boundaries; this page is the map for finding
-the right owner.
+Green Goods carries one piece of work between two very different worlds. Regenerative work happens
+in gardens, on phones, often without signal. Verification and funding happen on-chain, where
+records are cheap to check and hard to fake. The whole architecture is the machinery for moving a
+work submission from the first world to the second without losing truth along the way.
 
-## Dependency direction
+## One submission, end to end
 
-```text
-contracts → shared → client / admin / agent
-    └─────→ indexer
+```mermaid
+flowchart LR
+  gardener([Gardener]) --> client["Client PWA<br/>(capture, offline)"]
+  client --> queue["Job queue<br/>(saved on the device)"]
+  queue --> contracts["Contracts + EAS resolvers<br/>(authorization, attestations)"]
+  contracts --> eas[("EAS records<br/>(work, approvals)")]
+  contracts -. current values .-> client
+  contracts -. current values .-> admin
+  contracts --> indexer[("Envio indexer<br/>(garden and module events)")]
+  eas --> client
+  eas --> admin["Admin cockpit<br/>(review, approve)"]
+  indexer --> client
+  indexer --> admin
+  indexer --> agent["Agent<br/>(bots, public API)"]
+  steward([Steward]) --> admin
+  admin --> contracts
 ```
 
-- `packages/contracts` owns protocol state, authorization, attestations, and deployment artifacts.
-- `packages/shared` owns cross-application hooks, modules, providers, types, and UI foundations.
-- `packages/indexer` projects contract events into queryable read models.
-- `packages/client` owns the public website and installed PWA.
-- `packages/admin` owns the steward cockpit.
-- `packages/agent` owns messaging and public HTTP surfaces.
+Follow the arrows once and you have the system. A gardener documents work in the
+[client PWA](./packages/client), offline if needed. The shared [job queue](./packages/shared)
+keeps it on the device until the gardener is back online and taps Upload all. The submission then
+lands in the [contracts](./packages/contracts) as an [EAS](./integrations/eas) attestation,
+checked by a resolver at the moment it's written.
 
-Read the nearest package `AGENTS.md` before changing a package. Use the generated [API
-index](./packages/api-index), [entity diagram](./architecture/erd), and [deployment
-status](./deployments/status) for volatile inventories.
+From there, apps read the data three ways:
 
-## Decisions that do not belong in code
+- **Attestations**, meaning the work itself and every approval, come straight from EAS through the
+  shared EAS data layer.
+- **History**, like garden events, membership changes, and module activity, comes from the
+  [indexer](./packages/indexer)'s GraphQL read models.
+- **Current values**, like someone's roles in a garden or a vault's yield status, come from the
+  contracts directly.
 
-Architecture rationale, rejected alternatives, and cross-package sequencing belong in the owning
-Plan Hub or an ADR-style record. Public docs explain stable boundaries and user flows; they do not
-copy exports, routes, addresses, or implementation walkthroughs.
+The client uses all three to show gardeners their status, the [admin cockpit](./packages/admin)
+is where a steward reviews and approves, and the [agent](./packages/agent) serves bots and the
+public API. An approval travels the same road as the work it approves.
+
+Two consequences of this shape are worth knowing early. Apps don't dig through the chain's history
+themselves, and EAS stays outside our indexer on purpose, so the attestation and history read
+paths stay independent. And writes have exactly one door: everything that becomes protocol truth
+goes through the contracts.
+
+## The ideas that carry the protocol
+
+The contract layer is small on purpose. Six ideas do most of the work, and once you hold them you
+can predict how the rest of the system behaves.
+
+### A garden is an account
+
+Each garden is an ERC-721 token whose
+[ERC-6551 token-bound account](./integrations/tokenbound) is the garden itself, on-chain: it holds
+the garden's treasury, wears its role tree, and receives its attestations. Nothing about a garden
+lives in an app database that could disappear. Transfer the token and you've transferred the
+garden, assets and history included, when transfers are allowed: the protocol can open them, limit
+them to its admin, or lock them. The [Garden account sources](./packages/contracts) and the
+[deployment record](/builders/reference/deployments) show what this looks like per chain.
+
+### A record is an attestation with enforced meaning
+
+Work, approvals, and assessments are [EAS attestations](./integrations/eas), but not free-form
+ones. Each schema is bound to a resolver contract that validates authorization at write time, so a
+Work Approval from anyone but the garden's stewards or its owner simply cannot be recorded. That single
+move relocates trust: you don't have to believe an app's database that a steward approved
+something, because the record could not exist otherwise. The
+[data model](./architecture/data-model) shows how these records relate.
+
+### Authority is a hat
+
+Roles are [Hats Protocol](./integrations/hats) tokens arranged in a small tree per garden: an
+owner, stewards, evaluators, and gardeners. Gardeners submit work, evaluators attest assessments,
+and stewards approve work. Roles stack, so a steward can also do what evaluators and gardeners do,
+and the owner can do all of it. Because hats are on-chain tokens, the resolvers above can check
+them directly, and because they're a tree, a garden's whole authority structure is inspectable at
+once.
+
+### Capital forms around verified work
+
+Verified work is what money organizes around here, and the protocol gives a garden several ways
+to let it. An endowment through an [Octant](./integrations/octant) vault keeps a funder's deposit
+intact and sends the yield to the garden's work. A
+[commitment pool](/community/steward-guide/commitment-pooling) lets neighbours make promises to
+each other, an offer or a request of work, under a charter: each commitment names one accountable
+lead, is confirmed by someone other than the person who made it, and is accounted for in a
+non-transferable register rather than a token anyone can trade. Settled support then splits into
+what the garden keeps and what its contributors are paid, through a payout plan that is frozen
+before anything is dispatched; when that payout happens in G$ on Celo, the settlement lane only
+carries the instruction and never holds the money. [Cookie jars](./integrations/cookie-jar) cover
+small, capped allowances, and [hypercerts](./integrations/hypercerts) turn a season of approved
+work into an impact claim a funder can hold a fraction of. The common thread is the record.
+Deposits, jar funding, and new commitments are open doors; the payouts are what is gated: a
+hypercert bundles approved work, and a commitment pays out against confirmed, evidenced work.
+Every flow ends in state a funder can inspect, which is what lets capital form around
+contribution without a treasury anyone has to trust.
+
+<figure className="gg-figure">
+  <img src="/img/builders/admin-garden-promises.webp" alt="The admin cockpit's Garden workspace on the Promises tab: a season with its commitments and a campaign, offers and requests waiting for review, and the pool's status with its per-person commitment limit" loading="lazy" width="2000" height="1250" />
+  <figcaption>A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register.</figcaption>
+</figure>
+
+### Capabilities are modules a garden opts into
+
+Vaults through [Octant](./integrations/octant), distributions through [Cookie Jar](./integrations/cookie-jar), impact certificates
+through [Hypercerts](./integrations/hypercerts), milestone reporting through [Karma GAP](./integrations/karma), names through
+[ENS](./integrations/ens), and commitment pooling with its settlement lane are modules a garden turns on per
+chain, not features baked into every garden. A module exists where its deployment artifact says it
+does, and nowhere else: the [Deployments & Addresses](/builders/reference/deployments) page is the
+canonical record, and no page in these docs claims a module is live anywhere without it.
+
+### Capture is local-first; reads are indexed
+
+The field is the other half of the protocol. The client keeps a submission on the device, in the
+shared job queue, until the gardener is back online, and only then does it travel to the
+contracts; nothing is lost to a dropped signal. On the way back, apps never crawl the chain: the
+[indexer](./packages/indexer) projects contract events into GraphQL read models, attestations come
+straight from EAS, and current values come from the contracts. Three read paths, one write door,
+and the truth stays where anyone can verify it.
+
+## The monorepo that serves it
+
+Seven packages serve that loop. The [Monorepo Map](./packages) lists each one with what it owns
+and where it runs in production; the shape to remember is the arrow.
+
+Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
+emit the events the indexer projects into read models, shared wraps both for the apps, and nothing
+points back. The agent is the one exception on the read side: its reporting services
+(`packages/agent/src/services/reporting/`) query the indexer directly rather than through shared,
+which is why the Architecture diagram draws `indexer → agent`. That is the data flow; in package
+terms the indexer imports nothing, and shared's indexer types are generated from the indexer's
+schema. Apps import shared code only through its
+[declared package exports](./packages/api-index), never `src/` paths, which is what keeps seven
+packages refactorable by a small team (and its agents) without fear.
+
+## Where data lives
+
+The system deliberately splits state into two homes:
+
+- **Local-first**: drafts, media being prepared, retry state, and install caches stay on the
+  device. The shared job queue keeps captured work safe offline, and the gardener sends it with
+  one tap on Upload all once they're back online.
+- **Chain-global**: attestations, garden roles, approvals, and contract state form the durable
+  coordination layer, scoped to a chain and shared by everyone.
+
+One rule keeps the boundary honest: UI may explain that something is syncing or failed, but it
+never presents unconfirmed work as protocol truth. If you're changing this boundary, start at the
+shared job-queue and service-worker modules, and prove offline recovery before touching interface
+copy.
+
+## Design principles
+
+Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Goods builds on:
+
+- **Verifiability.** Work, approvals, roles, and deployments all have inspectable sources of
+  truth.
+- **User agency.** A participant can keep their evidence and records without depending on any
+  single interface vendor.
+- **Least disclosure.** Public records carry only what coordination needs. Addresses, roles, and
+  submitted evidence are public by design, and anything written on-chain or to IPFS stays public
+  for good, so personal details stay out of them.
+- **Open implementation.** Protocol and client behavior can be inspected, tested, and replaced.
+- **Operational honesty.** A deployed address is never presented as a live, healthy feature
+  without separate evidence.
+
+## Next steps
+
+- [Anatomy of a Work Submission](./architecture/anatomy) follows one real record through every stage.
+- [Data Model & Ontology](./architecture/data-model) maps the entities and lifecycles, layer by layer.
+- [Deployments & Addresses](/builders/reference/deployments) lists every recorded contract per network.

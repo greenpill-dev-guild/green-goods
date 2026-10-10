@@ -1,0 +1,49 @@
+---
+title: Personas and Surfaces
+slug: /builders/architecture/personas
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/shared/src/ontology/green-goods-ontology.json
+source_digest: "sha256:c53c91ba68dcc516fe47c0603a15f3ae7140a79260deb43fb2bf5c4a1b2e7523"
+source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
+# Personas and Surfaces
+
+Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means and where it works, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step.
+
+## Personas
+
+| Persona | Hat | Definition |
+|---|---|---|
+| Gardener | `gardener` | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
+| Steward | `steward` | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
+| Evaluator | `evaluator` | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
+| Funder | `funder` | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
+| Community Member | `community` | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
+
+## Where each persona works
+
+A surface is a place a persona acts from. The matrix marks each persona's surfaces, and the list below says what each surface is.
+
+| Persona | Admin cockpit | Client app | Messaging agent | Public site | Docs |
+|---|---|---|---|---|---|
+| Gardener | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Steward | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Evaluator | ✓ | ✓ | — | ✓ | ✓ |
+| Funder | ✓ | ✓ | — | ✓ | ✓ |
+| Community Member | — | ✓ | — | ✓ | ✓ |
+
+- **Admin cockpit**: the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run.
+- **Client app**: the installed PWA at greengoods.app, where work is captured and tracked in the field.
+- **Messaging agent**: the Telegram bot and the public HTTP API, for people who never install anything.
+- **Public site**: the browser website at greengoods.app, where anyone reads gardens, impact, and funding.
+- **Docs**: this site.
+
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.

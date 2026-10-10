@@ -84,7 +84,7 @@ Three principles woven throughout — not a checklist, a lens:
 
 ### Regenerative Design
 
-Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/reference/design-research.md`.
+Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/builders/architecture/design.mdx`.
 
 ### User Ecosystem Thinking
 

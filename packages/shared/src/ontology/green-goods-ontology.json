@@ -26,7 +26,7 @@
       "reads": "generated from all sections (do not edit; run bun run ontology:generate)"
     },
     {
-      "path": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "path": "docs/docs/builders/architecture/entity-matrix.mdx",
       "reads": "generated from integration_matrix (do not edit; run bun run ontology:generate)"
     },
     {
@@ -42,6 +42,7 @@
     {
       "id": "cookie-jar",
       "display": "Cookie Jar",
+      "matrix_column": "Cookie Jar",
       "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
       "contract_source": "packages/contracts/src/modules/CookieJar.sol",
       "deployment_fields": ["cookieJarFactory", "cookieJarModule"],
@@ -49,8 +50,22 @@
       "additional_sources": []
     },
     {
+      "id": "eas",
+      "display": "EAS",
+      "matrix_column": null,
+      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, and Assessment records; each schema's resolver validates authorization when a record is written.",
+      "contract_source": "packages/contracts/src/resolvers/Work.sol",
+      "deployment_fields": ["assessmentResolver", "workApprovalResolver", "workResolver"],
+      "indexer_contracts": ["WorkApprovalResolver"],
+      "additional_sources": [
+        "packages/contracts/src/resolvers/WorkApproval.sol",
+        "packages/contracts/src/resolvers/Assessment.sol"
+      ]
+    },
+    {
       "id": "ens",
       "display": "ENS",
+      "matrix_column": "ENS",
       "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
       "contract_source": "packages/contracts/src/registries/ENS.sol",
       "deployment_fields": ["ensReceiver", "greenGoodsENS"],
@@ -60,6 +75,7 @@
     {
       "id": "gardens",
       "display": "Gardens",
+      "matrix_column": "Gardens V2",
       "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
       "contract_source": "packages/contracts/src/modules/Gardens.sol",
       "deployment_fields": ["gardensModule"],
@@ -69,6 +85,7 @@
     {
       "id": "hats",
       "display": "Hats Protocol",
+      "matrix_column": "Hats Protocol",
       "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
       "contract_source": "packages/contracts/src/modules/Hats.sol",
       "deployment_fields": ["hatsModule"],
@@ -78,6 +95,7 @@
     {
       "id": "hypercerts",
       "display": "Hypercerts",
+      "matrix_column": "Hypercerts",
       "definition": "Hypercerts represent certified impact claims and their fraction ownership.",
       "contract_source": "packages/contracts/src/modules/Hypercerts.sol",
       "deployment_fields": ["hypercertExchange", "hypercertMinter", "hypercertsModule"],
@@ -87,6 +105,7 @@
     {
       "id": "karma",
       "display": "Karma GAP",
+      "matrix_column": "Karma GAP",
       "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
       "contract_source": "packages/contracts/src/modules/Karma.sol",
       "deployment_fields": ["karmaGAPModule"],
@@ -96,11 +115,32 @@
     {
       "id": "octant",
       "display": "Octant",
+      "matrix_column": "Octant",
       "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
       "contract_source": "packages/contracts/src/modules/Octant.sol",
       "deployment_fields": ["octantFactory", "octantModule"],
       "indexer_contracts": ["OctantModule", "OctantVault"],
       "additional_sources": []
+    },
+    {
+      "id": "tokenbound",
+      "display": "Tokenbound Accounts",
+      "matrix_column": null,
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "contract_source": "packages/contracts/src/accounts/Garden.sol",
+      "deployment_fields": ["accountProxy", "gardenAccountImpl"],
+      "indexer_contracts": ["GardenAccount", "GardenToken"],
+      "additional_sources": ["packages/contracts/src/tokens/Garden.sol"]
+    },
+    {
+      "id": "unlock",
+      "display": "Unlock Protocol",
+      "matrix_column": "Unlock",
+      "definition": "Unlock Protocol locks back the GreenWill badges: the GreenWill registry proves a claim from on-chain state and grants the matching non-transferable Unlock key. Deployment artifacts and indexer configuration own recorded availability.",
+      "contract_source": "packages/contracts/src/registries/GreenWill.sol",
+      "deployment_fields": ["greenWill"],
+      "indexer_contracts": ["GreenWill"],
+      "additional_sources": ["packages/shared/src/modules/data/greenwill.ts"]
     }
   ],
   "entities": [
@@ -3958,6 +3998,12 @@
       "Lido",
       "FTC"
     ],
+    "column_notes": {
+      "Silvi": "Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.",
+
+      "Lido": "Liquid staking. A yield integration is an idea with no entity mappings and no code.",
+      "FTC": "Integration scope to be defined; no entity mappings and no code."
+    },
     "rows": [
       {
         "ref": "entity:garden",
@@ -4101,11 +4147,6 @@
     }
   ],
   "known_issues": [
-    {
-      "id": "erd-stale-assessment-fields",
-      "statement": "The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID).",
-      "anchors": ["docs/docs/builders/architecture/erd.mdx"]
-    },
     {
       "id": "missing-capital-mapping-fn",
       "statement": "No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ.",

@@ -62,7 +62,7 @@ mainnet affect live funds and state; review the operation and obtain release aut
 
 Release operators need the configured Foundry keystore, target-chain RPC, and capabilities named by
 the operation. Keep keys out of commands and documentation. Shared environment onboarding is
-covered in [environment guidance](../../docs/docs/builders/env-management.mdx).
+covered in [environment guidance](../../docs/docs/builders/getting-started.mdx#environment).
 
 Start with compile-only preflight, then simulate the chosen operation:
 

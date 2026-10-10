@@ -1,54 +1,83 @@
 ---
 title: Octant
+sidebar_label: Octant
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
+last_verified: 2026-10-10
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Octant.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:09f33604da5de6c3878857d17fc342af9dd774263f8a2a7a59149ff155c17690"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Octant.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Octant.sol
+keywords:
+  - octant
+  - vaults
+  - yield donation
 ---
 
-<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Octant
 
-Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.
+[Octant](https://docs.octant.app) provides the vault mechanics that let a garden hold an
+endowment. Funders deposit into a garden vault and keep a claim on what they put in, while the
+yield it earns flows to the garden's work. The deposit sits in a yield strategy, so like any
+on-chain investment, a strategy loss or a contract bug could reduce what can be withdrawn.
+Funders deposit and redeem directly on the ERC-4626 vaults; the Octant module owns vault
+creation, configuration, strategies, and the yield-donation routing, and has no deposit or
+withdrawal entrypoint of its own.
 
-## Checked-in deployment projection
+## How it flows
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `octantFactory`, `octantModule` |
-| Arbitrum One (`42161`) | Deployed | `octantFactory`, `octantModule` |
+Money moves one way for yield and the other way for deposits. Funders can take their deposit
+back; the yield stays with the garden.
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+```mermaid
+flowchart LR
+  funder([Funder]) -->|deposits| vault["Garden vault"]
+  vault --> strategy["Yield strategy"]
+  strategy -->|yield| garden["The garden's work"]
+  vault -.->|withdraw later| funder
+```
 
-## Indexer boundary
+<figure className="gg-figure">
+  <img src="/img/builders/site-vaults.webp" alt="The public Vaults page: a hero reading Public goods campaigns, powered by Octant vaults, above the list of active campaigns ready for support" loading="lazy" width="2000" height="1250" />
+  <figcaption>The public Vaults page, where a funder backs a campaign. The Octant module is the machinery under it.</figcaption>
+</figure>
 
-Configured indexer contracts: `OctantModule`, `OctantVault`.
+## Where it lives in the code
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Octant.sol` |
+| Vault data access | `packages/shared/src/modules/data/vaults.ts` and `vault-repository.ts` |
+| Yield routing | `packages/shared/src/modules/data/yield-allocations.ts` |
+
+The funder-facing behavior lives in the community docs'
+[funder guide](/community/funder-guide); these sources are the machinery under it.
+
+<IntegrationProjection id="octant" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One with the deployed vault contracts present, so deposit and withdrawal flows run
+locally without real funds.
+
+## Canonical upstream docs
+
+- [Octant documentation](https://docs.octant.app) for the platform and its vault model.
+- [Octant's developer section](https://docs.octant.app/docs/developers/introduction/) for the
+  contract-level reference.
+- [Octant v2 core](https://github.com/golemfoundation/octant-v2-core) for the vault and strategy
+  contracts the module talks to.
+- [The yield-donating strategy](https://docs.v2.octant.build/docs/developers/yield_donating_strategy/)
+  for the mechanism behind a garden vault's donations.
+
+
+## Next steps
+
+- [Cookie Jar](/builders/integrations/cookie-jar) covers a garden's spending money, next to the vault's endowment.
+- [Hypercerts](/builders/integrations/hypercerts) turns approved work into claims funders can hold.
+- [Deployments & Addresses](/builders/reference/deployments) lists the recorded vault contracts per chain.

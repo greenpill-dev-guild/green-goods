@@ -409,122 +409,119 @@ export function renderEntityMatrixMdx(
       "scripts/quality/ontology-render.mjs",
     ],
     digest = "sha256:unavailable",
+    integrations = null,
   } = {}
 ) {
   const { protocols, rows } = ontology.integration_matrix;
+  const KIND_LABELS = { entity: "Entity", schema: "Schema", persona: "Persona", concept: "Concept" };
+  // Status is data: the catalog says which columns have code, the artifacts say where it is
+  // recorded, and the sidecar's column notes explain every column without code.
+  const byColumn = new Map(
+    (ontology.integrations ?? []).filter((integration) => integration.matrix_column).map((integration) => [integration.matrix_column, integration])
+  );
+  const columnNotes = ontology.integration_matrix.column_notes ?? {};
+  const mappedRows = (protocol) => rows.filter((row) => row.cells[protocol]);
+  const networksFor = (integration) => {
+    const record = integrations?.[integration.id];
+    if (!record) return "deployment data not supplied";
+    if (record.networks.length === 0) return "none recorded";
+    return record.networks.map((network) => `${esc(network.name)} (${esc(network.status)})`).join(", ");
+  };
+  const integrationLink = (integration) => `[${esc(integration.display)}](/builders/integrations/${integration.id})`;
   const lines = [];
   lines.push(
     generatedFrontmatter({
       title: "Entity Matrix",
-      slug: "/builders/integrations/entity-matrix",
-      featureStatus: "Planned",
+      slug: "/builders/architecture/entity-matrix",
+      featureStatus: "Live",
       sources,
       digest,
       extra: ["sidebar_position: 2"],
     }).trimEnd()
   );
   lines.push("");
-  lines.push('import {NextBestAction, StatusBadge} from "@site/src/components/docs";');
+  lines.push('import {NextBestAction} from "@site/src/components/docs";');
   lines.push("");
   lines.push("# Entity Matrix");
   lines.push("");
-  lines.push('<StatusBadge status="Planned" />');
-  lines.push("");
   lines.push(
-    "This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). Cell mappings remain a draft vocabulary aid until each integration ships — a cell is a naming translation, not a shipped integration contract. The planned status keeps that maturity visible without hiding the reference from navigation or the sitemap."
+    "Every partner protocol has its own name for the things Green Goods records. This page is the translation table, one section per protocol: what that protocol calls a garden, a piece of work, an approval, or a role. A mapping is vocabulary, not a shipped integration; each section says whether code stands behind it and where its components are recorded. It is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section)."
   );
   lines.push("");
-  lines.push("## How to read this table");
+  lines.push("## Protocols at a glance");
   lines.push("");
-  lines.push("- **Rows** are grouped as entities, schemas, personas, or integration-facing concepts.");
-  lines.push("- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.");
-  lines.push("- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.");
   lines.push(
-    "- **Role entities** (Garden Steward through Data Scientist/Researcher) map to protocol-specific role or permission types."
+    "The integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A protocol without a catalog entry is a vocabulary mapping only."
   );
   lines.push("");
-  lines.push("## Integration Matrix");
+  lines.push("| Protocol | Code integration | Networks with recorded components | Mapped terms |");
+  lines.push("|---|---|---|---|");
+  for (const protocol of protocols) {
+    const integration = byColumn.get(protocol);
+    if (!integration) {
+      lines.push(`| ${esc(protocol)} | Vocabulary mapping only, no code integration | — | ${mappedRows(protocol).length} |`);
+      continue;
+    }
+    lines.push(`| ${esc(protocol)} | ${integrationLink(integration)} | ${networksFor(integration)} | ${mappedRows(protocol).length} |`);
+  }
   lines.push("");
-  for (const [kind, heading] of [
-    ["entity", "Entities"],
-    ["schema", "Schemas"],
-    ["persona", "Personas"],
-    ["concept", "Integration-facing concepts"],
-  ]) {
-    const groupedRows = rows.filter((row) => row.ref.startsWith(`${kind}:`));
-    if (groupedRows.length === 0) continue;
-    lines.push(`### ${heading}`);
+  const noted = protocols.filter((protocol) => columnNotes[protocol]);
+  if (noted.length > 0) {
+    lines.push("Columns without a code integration:");
     lines.push("");
-    lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
-    lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
-    for (const row of groupedRows) {
-      const cells = protocols.map((protocol) =>
-        row.cells[protocol] ? esc(row.cells[protocol]) : "—"
-      );
-      lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
+    for (const protocol of noted) lines.push(`- **${esc(protocol)}**: ${esc(columnNotes[protocol])}`);
+    lines.push("");
+  }
+  lines.push("## Mappings by protocol");
+  lines.push("");
+  lines.push(
+    "Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept."
+  );
+  lines.push("");
+  for (const protocol of protocols) {
+    const mapped = mappedRows(protocol);
+    if (mapped.length === 0) continue;
+    const integration = byColumn.get(protocol);
+    lines.push(`### ${esc(protocol)}`);
+    lines.push("");
+    lines.push(
+      integration
+        ? `Code integration: ${integrationLink(integration)}. Recorded on: ${networksFor(integration)}.`
+        : `Vocabulary mapping only, no code integration.${columnNotes[protocol] ? ` ${esc(columnNotes[protocol])}` : ""}`
+    );
+    lines.push("");
+    lines.push(`| Green Goods | ${esc(protocol)} | Kind |`);
+    lines.push("|---|---|---|");
+    for (const row of mapped) {
+      const kind = row.ref.split(":")[0];
+      lines.push(`| ${esc(row.label)} | ${esc(row.cells[protocol])} | ${KIND_LABELS[kind] ?? esc(kind)} |`);
     }
     lines.push("");
   }
-  lines.push("## Protocol integration notes");
-  lines.push("");
-  lines.push("### Active integrations");
-  lines.push("");
-  lines.push("These protocols have draft entity mappings and active or planned code integrations:");
-  lines.push("");
-  lines.push(
-    "- **Karma GAP**: Project reporting and milestone tracking. Maps all 5 core entities (Garden through Work Approval) and all role types."
-  );
-  lines.push(
-    "- **Hypercerts**: Impact certification tokens. Maps core entities to Hypercert Data and roles to Creator/Funder/Evaluator."
-  );
-  lines.push(
-    "- **Octant**: Vault and treasury management. Maps Garden to Vault Owner, with role mappings for admin, proposer, voter, and depositor flows."
-  );
-  lines.push(
-    "- **Gardens V2**: Community governance primitives. Maps Garden to Community, with role mappings for council and community membership."
-  );
-  lines.push(
-    "- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Steward Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst)."
-  );
-  lines.push("- **Silvi**: Forestry and agroforestry partner. Currently maps only Garden to Project.");
-  lines.push("- **Cookie Jar**: Payout and reward primitive. Currently maps only Garden to Jar.");
-  lines.push("- **Unlock**: Credential and badge primitive. Currently maps only Badges to Unlock NFT.");
-  lines.push("");
-  lines.push("### Integration planned");
-  lines.push("");
-  lines.push("These protocols appear in the matrix but have no entity mappings yet:");
-  lines.push("");
-  lines.push("- **ENS**: Ethereum Name Service — name resolution integration planned.");
-  lines.push("- **Lido**: Liquid staking — yield integration planned.");
-  lines.push("- **FTC**: Integration scope to be defined.");
-  lines.push("");
+  const unmapped = protocols.filter((protocol) => mappedRows(protocol).length === 0);
+  if (unmapped.length > 0) {
+    lines.push(`Protocols in the matrix with no mapped terms yet: ${unmapped.map(esc).join(", ")}.`);
+    lines.push("");
+  }
   lines.push("## Using the matrix");
   lines.push("");
-  lines.push("### For developers");
-  lines.push("");
   lines.push(
-    "When implementing a new protocol integration, consult this matrix to understand which Green Goods entities have equivalents in the target protocol. This prevents naming confusion and ensures API boundaries align with established mappings."
-  );
-  lines.push("");
-  lines.push("### For agents");
-  lines.push("");
-  lines.push(
-    'When a task involves a partner protocol, use this matrix to translate between vocabularies. For example, if a Karma GAP issue references "Project Milestones", map that to Green Goods Assessments.'
+    "When you build against a partner protocol, read its section first so the names at the API boundary match the mapping the team already settled on. When a task or an issue speaks the partner's language (a Karma GAP \"Project Milestone\", for instance), translate it back through the same section: that one is a Green Goods Assessment."
   );
   lines.push("");
   lines.push("### Maintenance");
   lines.push("");
   lines.push(
-    "The mapping data lives in the ontology sidecar's `integration_matrix` section. When a new protocol partnership is established, add a column only after its source-backed implementation or specification exists — edit the sidecar and run `node scripts/quality/check-ontology.mjs --generate`. `bun run check --only ontology` fails CI whenever this page drifts from the sidecar."
+    "The mapping data lives in the ontology sidecar's `integration_matrix` section, and each catalog integration names its column through `matrix_column`. Add a column only after its source-backed implementation or specification exists, give it a catalog entry or a column note (the ontology check refuses a column with neither), then run `node scripts/docs/generate.mjs --scope ontology` for this page and `node scripts/quality/check-ontology.mjs --generate` for the reference pages. `bun run check --only docs-generated` fails CI whenever this page drifts from its sources."
   );
   lines.push("");
   lines.push("<NextBestAction");
   lines.push('  title="Next best action"');
   lines.push('  why="See the full integrations overview with surface-level status for each protocol connection."');
   lines.push('  actionLabel="Integrations overview"');
-  lines.push('  actionHref="./overview"');
+  lines.push('  actionHref="/builders/integrations"');
   lines.push("  alternatives={[");
-  lines.push('    {label: "EAS integration", href: "./eas"},');
+  lines.push('    {label: "EAS integration", href: "/builders/integrations/eas"},');
   lines.push("  ]}");
   lines.push("/>");
   lines.push("");

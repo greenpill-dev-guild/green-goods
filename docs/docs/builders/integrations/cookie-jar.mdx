@@ -1,54 +1,87 @@
 ---
 title: Cookie Jar
+sidebar_label: Cookie Jar
 slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
+last_verified: 2026-10-10
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/CookieJar.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:4f5e067aa042237f100bf02bbd830026c02b8c9a6fef74a54ec9313030f80029"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/CookieJar.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/CookieJar.sol
+keywords:
+  - cookie jar
+  - distribution
+  - allowance
 ---
 
-<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Cookie Jar
 
-Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.
+Cookie Jars let a garden's community hand out small, capped allowances without a proposal for
+every withdrawal. Where vaults hold an endowment, a jar holds spending money; it's the difference
+between a treasury and a kitchen tin everyone trusts each other to dip into.
 
-## Checked-in deployment projection
+The jars come from [1Hive's Cookie Jar](https://github.com/1Hive/cookie-jar) protocol. When a
+garden is minted, the Green Goods Cookie Jar module deploys one jar per supported asset through
+1Hive's `CookieJarFactory`. Only people wearing the garden's gardener [hat](./hats) can claim;
+hats are ERC-1155 tokens, so the jar checks them directly. Each asset also has its own per-claim
+limit.
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Deployed | `cookieJarFactory`, `cookieJarModule` |
-| Arbitrum One (`42161`) | Deployed | `cookieJarFactory`, `cookieJarModule` |
+## How it flows
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+Jars are created with the garden, filled by funders, and emptied a little at a time by the people
+doing the work.
 
-## Indexer boundary
+```mermaid
+flowchart LR
+  mint["Garden minted"] --> module["Cookie Jar module"]
+  module -->|one jar per asset| factory["1Hive CookieJarFactory"]
+  factory --> jar["Garden jar"]
+  funders([Funders]) -->|deposit| jar
+  gardeners([Gardener hat wearers]) -->|claim up to the limit| jar
+```
 
-Configured indexer contracts: `CookieJarFactory`.
+<figure className="gg-figure">
+  <img src="/img/builders/site-cookies.webp" alt="The public Cookies page: a hero reading Shared cookie jars for seasonal campaign work, above the seasonal jars list" loading="lazy" width="2000" height="1250" />
+  <figcaption>The public Cookies page lists a garden's jars; claiming needs a connected wallet on the jar's allowlist.</figcaption>
+</figure>
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/CookieJar.sol` |
+| Factory interface | `packages/contracts/src/interfaces/ICookieJarFactory.sol` |
+| Data access | `packages/shared/src/modules/data/campaign-cookie-jars.ts` |
+| Hooks | `packages/shared/src/hooks/cookie-jar` |
+
+The jars themselves are 1Hive's contracts. The module above is the Green Goods side that creates
+and configures them.
+
+<IntegrationProjection id="cookie-jar" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One with the factory and module present, so jar creation and claim flows run locally
+without real funds.
+
+## Canonical upstream docs
+
+- [1Hive Cookie Jar](https://github.com/1Hive/cookie-jar) is the upstream protocol behind every
+  jar.
+- [1hive.org](https://1hive.org) for the community that maintains the protocol.
+- [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155), the multi-token standard behind a jar's
+  membership gating.
+
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) explains the gardener hat that decides who can claim.
+- [Octant](/builders/integrations/octant) covers the vault's endowment, the long-term money next to a jar's spending money.
+- [`CookieJar.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/modules/CookieJar.sol)
+  shows how the module sets up a garden's jars.
+- The public [Cookies page](https://greengoods.app/cookies) shows jars in the product.

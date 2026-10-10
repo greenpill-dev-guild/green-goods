@@ -1,0 +1,56 @@
+---
+title: Monorepo Map
+sidebar_label: Monorepo Map
+slug: /builders/packages
+audience: developer
+owner: docs
+last_verified: 2026-10-10
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - package.json
+keywords:
+  - monorepo
+  - packages
+  - ownership
+---
+
+# Monorepo Map
+
+Seven packages, one rule: find the owner before you change anything. Each package has its own page
+with a map of its `src` folders, its commands, and the conventions that actually bite.
+
+## The packages
+
+| Package | What it owns | Runs as | Start here when you change |
+|---|---|---|---|
+| [`contracts`](/builders/packages/contracts) | The Solidity protocol: garden accounts, authorization, attestation schemas and resolvers, deployment artifacts | Arbitrum One and the other [recorded networks](/builders/reference/deployments) | Protocol behavior, authorization, attestation schemas, deployments |
+| [`indexer`](/builders/packages/indexer) | Envio handlers that project contract events into GraphQL read models | Envio's hosted service | Event-derived read models or GraphQL shapes |
+| [`shared`](/builders/packages/shared) | Cross-app hooks, providers, stores, protocol modules, domain types, translations, UI foundations | Inside every app bundle | A hook, provider, store, shared UI primitive, or translation |
+| [`agent`](/builders/packages/agent) | Messaging bots and the public HTTP API | A hosted service | Bots, webhooks, or the public HTTP API |
+| [`qa`](/builders/packages/qa) | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) | The QA checklist app |
+| [`admin`](/builders/packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) | The steward cockpit |
+| [`client`](/builders/packages/client) | The public website and the installed, offline-first PWA | [greengoods.app](https://greengoods.app) | The public website or the installed PWA |
+
+Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
+emit the events the indexer projects into read models, shared wraps both for the apps, and nothing
+points back. The agent is the one exception on the read side: its reporting services
+(`packages/agent/src/services/reporting/`) query the indexer directly rather than through shared,
+which is why the Architecture diagram draws `indexer → agent`. That is the data flow; in package
+terms the indexer imports nothing, and shared's indexer types are generated from the indexer's
+schema. If your change crosses that arrow, validate
+from the repo root rather than inside one package.
+
+## Generated references
+
+- [API Index](/builders/packages/api-index): every public export and route, generated from the code.
+- [Command inventory](/builders/packages/commands): every repository command, root first, generated
+  from the package manifests.
+- [Contract operations](/builders/packages/contract-operations): every deploy, upgrade, and
+  verification command, grouped by task.
+
+## Next steps
+
+- [Architecture](/builders/architecture) shows how the packages work together on one submission.
+- [Getting Started](/builders/getting-started) gets them running on your machine.
+- [First Contribution](/builders/how-to-contribute) walks you from a task to a merged pull request.

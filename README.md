@@ -68,7 +68,7 @@ workflows may require additional credentials or roles; public browsing does not 
 ### Team members
 
 Use the host profile and your team's 1Password access. Environment requirements and
-recovery are explained in [Environment Management](https://docs.greengoods.app/builders/env-management).
+recovery are explained in [Getting Started](https://docs.greengoods.app/builders/getting-started#environment).
 
 Existing `.env` files are kept. Review readiness before explicitly replacing local credentials.
 **Confirmed transactions affect live Arbitrum.**

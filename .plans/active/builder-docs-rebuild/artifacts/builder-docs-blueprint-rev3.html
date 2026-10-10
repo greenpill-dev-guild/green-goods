@@ -1,0 +1,835 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Builder Docs Rebuild</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #faf9f7;
+    --surface: #ffffff;
+    --surface-2: #f3f2ee;
+    --line: #e4e2db;
+    --line-strong: #cfccc2;
+    --ink: #1a1c1a;
+    --sub: #585c57;
+    --faint: #8a8e88;
+    --teal: #0f766e;
+    --teal-soft: rgba(15, 118, 110, 0.09);
+    --green: #1a7544;
+    --green-soft: rgba(26, 117, 68, 0.09);
+    --amber: #8a5a0c;
+    --amber-soft: rgba(138, 90, 12, 0.10);
+    --red: #a13d31;
+    --red-soft: rgba(161, 61, 49, 0.09);
+    --violet: #5f4fa0;
+    --violet-soft: rgba(95, 79, 160, 0.09);
+    --blue: #2b5fa8;
+    --blue-soft: rgba(43, 95, 168, 0.09);
+    --code-bg: #f0efeb;
+    --shadow: 0 1px 2px rgba(20, 24, 20, 0.05), 0 4px 16px rgba(20, 24, 20, 0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #141715;
+      --surface: #1b1f1c;
+      --surface-2: #212622;
+      --line: #2d332e;
+      --line-strong: #414841;
+      --ink: #eef1ed;
+      --sub: #b0b6af;
+      --faint: #7d837c;
+      --teal: #2dd4bf;
+      --teal-soft: rgba(45, 212, 191, 0.12);
+      --green: #2ebb6b;
+      --green-soft: rgba(46, 187, 107, 0.12);
+      --amber: #e0a54a;
+      --amber-soft: rgba(224, 165, 74, 0.13);
+      --red: #e07a6d;
+      --red-soft: rgba(224, 122, 109, 0.12);
+      --violet: #a894e0;
+      --violet-soft: rgba(168, 148, 224, 0.13);
+      --blue: #7aa7e0;
+      --blue-soft: rgba(122, 167, 224, 0.13);
+      --code-bg: #22271f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #141715;
+    --surface: #1b1f1c;
+    --surface-2: #212622;
+    --line: #2d332e;
+    --line-strong: #414841;
+    --ink: #eef1ed;
+    --sub: #b0b6af;
+    --faint: #7d837c;
+    --teal: #2dd4bf;
+    --teal-soft: rgba(45, 212, 191, 0.12);
+    --green: #2ebb6b;
+    --green-soft: rgba(46, 187, 107, 0.12);
+    --amber: #e0a54a;
+    --amber-soft: rgba(224, 165, 74, 0.13);
+    --red: #e07a6d;
+    --red-soft: rgba(224, 122, 109, 0.12);
+    --violet: #a894e0;
+    --violet-soft: rgba(168, 148, 224, 0.13);
+    --blue: #7aa7e0;
+    --blue-soft: rgba(122, 167, 224, 0.13);
+    --code-bg: #22271f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 0 1.25rem 6rem; }
+  .measure { max-width: 46rem; }
+
+  h1, h2, h3 {
+    font-family: "Bricolage Grotesque", "Manrope", sans-serif;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -0.015em; }
+  h2 { font-size: 1.55rem; font-weight: 650; margin: 0 0 0.35rem; letter-spacing: -0.01em; }
+  h3 { font-size: 1.1rem; font-weight: 650; margin: 1.6rem 0 0.5rem; }
+  p { margin: 0.65rem 0; }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 2px; }
+  code, .mono {
+    font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+    font-size: 0.86em;
+  }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+  strong { font-weight: 700; }
+
+  header { padding: 3.5rem 0 2rem; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 0.9rem;
+  }
+  .standfirst { font-size: 1.08rem; color: var(--sub); margin-top: 1rem; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; margin-top: 1.2rem; font-size: 0.82rem; color: var(--faint); align-items: center; }
+  .status-pill {
+    display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--green); background: var(--green-soft); border: 1px solid var(--green);
+    border-radius: 999px; padding: 0.15rem 0.7rem;
+  }
+
+  nav.jump {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    margin: 0 -1.25rem; padding: 0.55rem 1.25rem;
+    display: flex; gap: 0.35rem; overflow-x: auto; white-space: nowrap;
+    scrollbar-width: thin;
+  }
+  nav.jump a {
+    font-size: 0.78rem; font-weight: 600; color: var(--sub); text-decoration: none;
+    padding: 0.25rem 0.65rem; border-radius: 999px; border: 1px solid transparent;
+  }
+  nav.jump a:hover { color: var(--teal); border-color: var(--line-strong); }
+
+  section { padding-top: 2.8rem; }
+  .kicker {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 0.4rem;
+  }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; margin: 1.4rem 0;
+  }
+  .stat { background: var(--surface); padding: 1rem 1.1rem; }
+  .stat .n {
+    font-family: "Bricolage Grotesque", sans-serif; font-size: 1.9rem; font-weight: 700;
+    line-height: 1.1; color: var(--teal); font-variant-numeric: tabular-nums;
+  }
+  .stat .n.bad { color: var(--red); }
+  .stat .l { font-size: 0.8rem; color: var(--sub); margin-top: 0.2rem; line-height: 1.35; }
+
+  .callout {
+    border: 1px solid var(--line); border-left: 3px solid var(--teal);
+    background: var(--surface); border-radius: 0 10px 10px 0;
+    padding: 0.9rem 1.15rem; margin: 1.2rem 0; font-size: 0.95rem;
+  }
+  .callout.green { border-left-color: var(--green); }
+  .callout.violet { border-left-color: var(--violet); }
+  .callout .tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal); display: block; margin-bottom: 0.25rem; }
+  .callout.green .tag { color: var(--green); }
+  .callout.violet .tag { color: var(--violet); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; margin: 1.2rem 0; background: var(--surface); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.87rem; }
+  th {
+    text-align: left; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--faint); font-weight: 700; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--line-strong);
+    background: var(--surface-2);
+  }
+  td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; color: var(--sub); white-space: nowrap; }
+  .section-row td {
+    background: var(--surface-2); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--sub); padding: 0.45rem 0.9rem;
+  }
+
+  .chip {
+    display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em;
+    border-radius: 999px; padding: 0.1rem 0.55rem; white-space: nowrap; border: 1px solid transparent;
+  }
+  .chip.rewrite { color: var(--teal); background: var(--teal-soft); border-color: color-mix(in srgb, var(--teal) 40%, transparent); }
+  .chip.keep { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+  .chip.merge { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+  .chip.remove { color: var(--red); background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+  .chip.new { color: var(--violet); background: var(--violet-soft); border-color: color-mix(in srgb, var(--violet) 40%, transparent); }
+  .chip.move { color: var(--blue); background: var(--blue-soft); border-color: color-mix(in srgb, var(--blue) 40%, transparent); }
+  .gen-tag {
+    display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 0.66rem; font-weight: 600;
+    color: var(--faint); border: 1px dashed var(--line-strong); border-radius: 4px; padding: 0 0.35rem;
+    margin-left: 0.35rem; vertical-align: 1px;
+  }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin: 1.3rem 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 0.15rem; font-size: 1rem; }
+  .card .sub-line { font-size: 0.78rem; color: var(--faint); margin-bottom: 0.6rem; }
+  .card ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.87rem; }
+  .card li { margin: 0.3rem 0; }
+  .card .avoid { margin-top: 0.6rem; font-size: 0.8rem; color: var(--red); }
+  .card .avoid::before { content: "avoid — "; font-weight: 700; }
+
+  ol.principles { padding-left: 0; counter-reset: p; list-style: none; margin: 1.2rem 0; }
+  ol.principles li {
+    counter-increment: p; position: relative; padding: 0.55rem 0 0.55rem 2.6rem;
+    border-bottom: 1px solid var(--line); font-size: 0.95rem;
+  }
+  ol.principles li::before {
+    content: counter(p, decimal-leading-zero);
+    position: absolute; left: 0; top: 0.62rem;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; font-weight: 600; color: var(--teal);
+  }
+
+  pre.tree {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.2rem 1.4rem; overflow-x: auto; font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem; line-height: 1.75; margin: 1.2rem 0; box-shadow: var(--shadow);
+  }
+  pre.tree .dim { color: var(--faint); }
+  pre.tree .sec { color: var(--ink); font-weight: 600; }
+  pre.tree .t-re { color: var(--teal); font-weight: 600; }
+  pre.tree .t-new { color: var(--violet); font-weight: 600; }
+  pre.tree .t-keep { color: var(--green); font-weight: 600; }
+  pre.tree .t-gen { color: var(--faint); }
+  pre.tree .t-note { color: var(--sub); }
+
+  details {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    margin: 0.7rem 0; box-shadow: var(--shadow);
+  }
+  details summary {
+    cursor: pointer; padding: 0.85rem 1.15rem; font-weight: 700; font-size: 0.95rem;
+    font-family: "Bricolage Grotesque", sans-serif; list-style: none; display: flex; align-items: center; gap: 0.6rem;
+  }
+  details summary::before { content: "+"; font-family: "IBM Plex Mono", monospace; color: var(--teal); font-weight: 600; }
+  details[open] summary::before { content: "–"; }
+  details summary::-webkit-details-marker { display: none; }
+  details .body { padding: 0 1.15rem 1.1rem; border-top: 1px solid var(--line); }
+  details .body ol { padding-left: 1.2rem; font-size: 0.92rem; }
+  details .body li { margin: 0.45rem 0; }
+  details .body .why { color: var(--faint); font-size: 0.85em; }
+
+  .tone-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin: 0.5rem 0 1rem; }
+  @media (max-width: 640px) { .tone-pair { grid-template-columns: 1fr; } }
+  .tone-pair > div { border-radius: 10px; padding: 0.7rem 0.9rem; font-size: 0.88rem; border: 1px solid var(--line); }
+  .tone-pair .before { background: var(--red-soft); }
+  .tone-pair .after { background: var(--green-soft); }
+  .tone-pair b { display: block; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.25rem; }
+  .tone-pair .before b { color: var(--red); }
+  .tone-pair .after b { color: var(--green); }
+
+  .decision {
+    display: flex; gap: 0.7rem; align-items: baseline; padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line); font-size: 0.93rem;
+  }
+  .decision .d-num { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; font-weight: 600; color: var(--green); flex-shrink: 0; }
+  .decision .d-what { color: var(--sub); }
+  .decision .d-what strong { color: var(--ink); }
+
+  ul.tight { padding-left: 1.2rem; }
+  ul.tight li { margin: 0.4rem 0; }
+  .footnote { color: var(--faint); font-size: 0.8rem; margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Green Goods · Research brief &amp; proposal</div>
+  <h1>Builder Docs Rebuild</h1>
+  <p class="standfirst measure">
+    What four reference documentation sites and the documentation-quality literature teach us,
+    what the current builder track actually contains, and a page-by-page plan to turn it into a
+    guide humans want to read. Revised after review — the shape below reflects Afo's decisions.
+  </p>
+  <div class="meta-row">
+    <span class="status-pill">Rev 3 · in execution</span>
+    <span>2026-09-02 (research 09-01 · decisions locked · Phase 1 in review as PR #795)</span>
+    <span>Sources: GainForest · EAS · Hats Protocol · Octant · Diátaxis · Google style guide · Write the Docs · full local inventory</span>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Sections">
+  <a href="#decisions">Decisions</a>
+  <a href="#diagnosis">Diagnosis</a>
+  <a href="#corrections">Sharper picture</a>
+  <a href="#reference">Reference sites</a>
+  <a href="#principles">Principles</a>
+  <a href="#ia">Target structure</a>
+  <a href="#anatomy">The lifecycle page</a>
+  <a href="#dispositions">Page dispositions</a>
+  <a href="#templates">Templates</a>
+  <a href="#tone">Tone</a>
+  <a href="#mechanical">Mechanical fixes</a>
+  <a href="#sequencing">Sequencing</a>
+</nav>
+
+<section id="decisions">
+  <div class="kicker">Part 0</div>
+  <h2>Decisions locked in review</h2>
+  <div class="measure">
+    <div class="decision"><span class="d-num">D1</span><span class="d-what"><strong>Testing:</strong> one consolidated Testing Guide replaces the four per-tool pages.</span></div>
+    <div class="decision"><span class="d-num">D2</span><span class="d-what"><strong>User Journeys:</strong> deleted outright — poorly written, and flow polish is owned by another session. No replacement journey pages; the technical trace value returns through the new lifecycle page (Part 5b).</span></div>
+    <div class="decision"><span class="d-num">D3</span><span class="d-what"><strong>Economics Explorer:</strong> moves to Builders → Reference.</span></div>
+    <div class="decision"><span class="d-num">D4</span><span class="d-what"><strong>Integrations:</strong> hybrid pages — hand-written meaning, purpose, and reason for the integration; generated concrete details (deployments, indexing).</span></div>
+    <div class="decision"><span class="d-num">D5</span><span class="d-what"><strong><code>llms.txt</code> + <code>.md</code> twins:</strong> yes, shipped in the sweep phase.</span></div>
+    <div class="decision"><span class="d-num">D6</span><span class="d-what"><strong>Root scripts (240):</strong> separate tracked follow-up after the docs phases.</span></div>
+    <div class="decision"><span class="d-num">D7</span><span class="d-what"><strong>Monorepo map</strong> is the Packages landing page itself — read before diving into any package. Same pattern for the <strong>Integrations landing</strong>.</span></div>
+    <div class="decision"><span class="d-num">D8</span><span class="d-what"><strong>Agentic Development</strong> gains a generated <strong>Skills</strong> page (one entry per skill: purpose, when it fires) sourced from per-skill READMEs, plus a high-level, very human <strong>Working with Agents</strong> landing.</span></div>
+    <div class="decision"><span class="d-num">D9</span><span class="d-what"><strong>Design</strong> becomes a builder-docs page under Architecture: the community-side Design Rationale moves over and is revamped into a clear, human reflection of how Green Goods approaches design.</span></div>
+    <div class="decision"><span class="d-num">D10</span><span class="d-what"><strong>License</strong> splits out of the community Credits &amp; Licenses page into Builders → Reference, so it's clear how builders may use the source (MIT).</span></div>
+    <div class="decision"><span class="d-num">D11</span><span class="d-what"><strong>CI &amp; GitHub Actions</strong> lives under Testing &amp; QA.</span></div>
+    <div class="decision"><span class="d-num">D12</span><span class="d-what"><strong>Anatomy of a Work Submission</strong> is tentative: build it first, Afo judges the rendered result before the name and page are final.</span></div>
+  </div>
+</section>
+
+<section id="diagnosis">
+  <div class="kicker">Part 1</div>
+  <h2>Diagnosis: the docs were written for agents, and it shows</h2>
+
+  <div class="stats">
+    <div class="stat"><div class="n">45</div><div class="l">pages in the builder track today</div></div>
+    <div class="stat"><div class="n bad">29</div><div class="l">of them under 220 words</div></div>
+    <div class="stat"><div class="n bad">3</div><div class="l">external links track-wide — zero at research time; all three added by this week's QA docs work</div></div>
+    <div class="stat"><div class="n">17</div><div class="l">machine-generated pages (digest-gated)</div></div>
+    <div class="stat"><div class="n">~5,900</div><div class="l">words across all 28 hand-written pages combined</div></div>
+    <div class="stat"><div class="n bad">240</div><div class="l">root package.json scripts (97 are <span class="mono">contracts:*</span>)</div></div>
+  </div>
+
+  <div class="measure">
+    <p>
+      The meeting's verdict — context-poor, not human-friendly, no flow, no links — is accurate,
+      and the inventory explains <em>why</em>. The builder pages were authored in the repository's
+      agent-contract register: the same compressed, authority-pointing prose as
+      <code>AGENTS.md</code>, projected onto a public docs site. "This page is the shortest safe
+      path for a code change." "Select honest validation." "Do not infer live health from an
+      address." That language is excellent at preventing agent drift and terrible at welcoming a
+      person.
+    </p>
+    <p>
+      The scale of it: all 28 hand-written builder pages together hold under 6,000 words — barely
+      more than <strong>three</strong> community-track pages (Welcome + How It Works + one gardener
+      guide ≈ 3,800 words). "How To Contribute" is 179 words, never mentions the Dev Guild, and
+      defers to <code>CONTRIBUTING.md</code> — which defers straight back to the docs page. Neither
+      contains the process. And at research time, not one page in the track linked to anything
+      off-repo: not the EAS or Hats docs we integrate, not Playwright, not even our own live
+      Storybook at <a href="https://design.greengoods.app">design.greengoods.app</a>. (The QA
+      rewrite that landed this week added the first three, including
+      <a href="https://qa.greengoods.app">qa.greengoods.app</a>.)
+    </p>
+
+    <div class="callout green">
+      <span class="tag">The good news</span>
+      Two major assets survive intact. First, <strong>the target voice already exists in-house</strong>:
+      the community track (1,100–1,500-word pages, benefit-led prose, outbound links, human tone) is
+      the register to adapt, not a new one to invent. Second, <strong>the trust machinery is
+      genuinely ahead of every reference site we studied</strong> — digest-gated generated pages,
+      <code>source_of_truth</code> frontmatter, a docs audit in CI. Hats ships stale testnet lists;
+      EAS ships pasted READMEs with LLM-editing residue; Octant runs two doc generations at once.
+      Our pipeline prevents all three failure classes. The rewrite changes the prose and the
+      shape, and keeps the machinery.
+    </div>
+
+    <div class="callout violet">
+      <span class="tag">Moved since the research snapshot</span>
+      The <code>feature/qa-report</code> work rewrote both QA pages mid-discussion: Product
+      Experience QA grew 630 → 1,514 words with real session steps (before / during / after the
+      call, results by priority, slices), Test Cases grew to 4,123 words with priority bands and a
+      case lifecycle, both now link the QA app, and GitHub Actions moved under
+      <code>deployments/</code>. This proposal builds on that work rather than redoing it — the
+      QA rows in Part 6 are now mostly <em>keep</em>.
+    </div>
+  </div>
+</section>
+
+<section id="corrections">
+  <div class="kicker">Part 2</div>
+  <h2>Where the inventory sharpens the meeting's read</h2>
+  <p class="measure">Six places where the fix is different (usually smaller) than the complaint implied — two of them already resolved by the QA-report session.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Meeting observation</th><th>What the inventory shows</th><th>Implication</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Test cases aren't organized by priority</td>
+          <td><strong>Now resolved on <span class="mono">feature/qa-report</span>:</strong> each surface leads with "P0 — run these first", then P1/P2 bands, with permanent test IDs and a change lifecycle</td>
+          <td>No work left beyond folding the page into the merged Testing &amp; QA section</td>
+        </tr>
+        <tr>
+          <td>The QA page doesn't link the QA tool</td>
+          <td><strong>Now resolved:</strong> both QA pages link <a href="https://qa.greengoods.app">qa.greengoods.app</a>; the rewritten guide has session-step structure</td>
+          <td>Remaining gap: <code>packages/qa</code> still has no package page — added in Part 5</td>
+        </tr>
+        <tr>
+          <td>ERD should follow the ontology instead of these bifurcations</td>
+          <td>It is generated <em>from</em> the ontology — but projects all 21 entities (8 of them <span class="mono">commitment_*</span>) into one 117-line Mermaid graph, unzoomable</td>
+          <td>Split the projection into layered diagrams (core protocol / funding / commitments) and add pan-zoom; a <code>renderErd</code> change, not a redraw</td>
+        </tr>
+        <tr>
+          <td>Task routing may be stale and hard to maintain; "should be a generated doc"</td>
+          <td>It already is — generated from <code>.claude/context/task-routing.json</code> with a digest gate</td>
+          <td>It needs a human-written introduction and framing, not a rebuild</td>
+        </tr>
+        <tr>
+          <td>Integrations all talk about "a deployed indexer boundary" even when irrelevant</td>
+          <td>7 of 12 integration pages come from one <code>renderIntegration</code> template that stamps the section unconditionally</td>
+          <td>Fix the template once (conditional sections), and all seven pages improve together</td>
+        </tr>
+        <tr>
+          <td>Sidebar highlight flips from teal to green on some builder pages</td>
+          <td>The teal override keys off a <span class="mono">docs-doc-id-builders…</span> class that only real doc pages get. Seven of ten builder categories use auto-generated index landings, which have no doc id — so they fall back to community green</td>
+          <td>Replacing auto-index landings with real landing pages (which the restructure does anyway — D7) fixes highlighting <em>and</em> gives every section an actual front door</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="reference">
+  <div class="kicker">Part 3</div>
+  <h2>What each reference site teaches</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h3>GainForest</h3>
+      <div class="sub-line">docs.gainforest.earth · GitBook · domain peer</div>
+      <ul>
+        <li>Audience tracks sit on top of a shared "Platform Fundamentals" section — concepts defined once, never per-track</li>
+        <li>Landing page = lifecycle stepper (Create → Upload → Link → Share → Use) + "start with these three pages"</li>
+        <li>How-tos open with "when to use this / when you don't need this" scoping</li>
+        <li>Every page ends in a predictable "Related pages" card cluster; concept pages chain via one "Next step"</li>
+      </ul>
+      <div class="avoid">its Repository page is a 35-word link dump — exactly our failure mode; no builder track at all</div>
+    </div>
+    <div class="card">
+      <h3>EAS</h3>
+      <div class="sub-line">docs.attest.org · Docusaurus · protocol we integrate</div>
+      <ul>
+        <li>"Speedrun" quickstart: one routed tour of every tool, 1–3 sentences + link each</li>
+        <li>Concept pages open with a definition callout ("WHAT ARE SCHEMAS?") before any prose</li>
+        <li>Concept ↔ tutorial pairing via typed link callouts (🎓 tutorial / 📖 read more)</li>
+        <li>Teaches the data model by dissecting a real attestation on the explorer, field by field</li>
+      </ul>
+      <div class="avoid">pasted GitHub READMEs as reference pages; visible LLM-editing residue; client-side-only rendering that blocks fetchers</div>
+    </div>
+    <div class="card">
+      <h3>Hats Protocol</h3>
+      <div class="sub-line">docs.hatsprotocol.xyz · GitBook · protocol we integrate</div>
+      <ul>
+        <li>Hub pages <em>only</em> navigate (~80 words, 8 links); leaf pages <em>only</em> teach — neither does the other's job</li>
+        <li>One canonical deployments page; everything else stubs to it</li>
+        <li>Integration how-to skeleton: overview → numbered screenshot steps with branches → FAQ → security conditions</li>
+        <li>Ships <code>llms.txt</code> + a <code>.md</code> twin of every page — the whole IA readable in one fetch</li>
+      </ul>
+      <div class="avoid">tree-structure concepts explained with zero diagrams; stale chain lists with no freshness signal</div>
+    </div>
+    <div class="card">
+      <h3>Octant</h3>
+      <div class="sub-line">docs.octant.app · Docusaurus · developer-section model</div>
+      <ul>
+        <li>Root segmented by audience (users / capital providers / projects / developers), each lane owning its tone</li>
+        <li>Quickstart states the outcome first, then forks into two named paths (core repo vs starter template)</li>
+        <li>Link density ≈ one link per 40 words; every claim links to its evidence</li>
+        <li>Operational truth stays in the repo (README, CONTRIBUTING, TESTING); docs link rather than restate</li>
+      </ul>
+      <div class="avoid">a Cloudflare bot wall that blocks every fetcher and agent; two live doc generations with no redirects</div>
+    </div>
+  </div>
+</section>
+
+<section id="principles">
+  <div class="kicker">Part 4</div>
+  <h2>Convergent principles</h2>
+  <p class="measure">Where three or more sources agree, treat it as settled. These become the working rules of the rewrite.</p>
+  <ol class="principles">
+    <li><strong>Hubs navigate, leaves teach.</strong> A category landing is a curated set of links with one-line value props; context lives in the leaf pages. Never both jobs on one page.</li>
+    <li><strong>Every page ends with next steps.</strong> Two to four curated forward links. A page with no exit is a dead end — the direct cure for "no flow."</li>
+    <li><strong>Facts live in exactly one place.</strong> Addresses, schema UIDs, commands: one canonical page (ours is the generated deployment status), stubbed to from everywhere. Docs frame and link <code>AGENTS.md</code> and upstream docs; they never restate them.</li>
+    <li><strong>Outcome-first getting started, one safe path.</strong> Say what the reader will have at the end, walk one path that cannot surprise them, checkpoint with expected output, then offer named alternatives.</li>
+    <li><strong>Definition-first concept pages.</strong> The first sentence must survive being quoted alone.</li>
+    <li><strong>Link density is context repair.</strong> Octant's landing runs one link per 40 words. Every noun with a deeper page links there; every tool links to its own docs.</li>
+    <li><strong>Reader modes shape pages, topics shape navigation.</strong> Diátaxis's four modes (learn / do / look up / understand) govern how a page is written — but a monorepo's nav is organized by topic, and mixed-mode package pages are correct at our scale.</li>
+    <li><strong>One diagram per concept, simple.</strong> Hats explains trees with no picture; we explain 21 entities with one unzoomable picture. Both wrong — each concept gets one small, legible diagram.</li>
+    <li><strong>Machine-readable docs are a feature.</strong> Both GitBook sites ship <code>llms.txt</code> + <code>.md</code> twins; EAS's client-side rendering and Octant's bot wall nearly defeated this research. For a repo whose contributors are largely agent-assisted, this is cheap and on-brand.</li>
+    <li><strong>Migrate iteratively.</strong> Diátaxis is explicit: never stand up an empty skeleton, never big-bang restructure. Every improved page is worth publishing on its own.</li>
+  </ol>
+</section>
+
+<section id="ia">
+  <div class="kicker">Part 5</div>
+  <h2>Target structure</h2>
+  <p class="measure">
+    From 45 pages in 10 flat categories to ~38 pages in 8 sections — fuller, linked, and with a
+    real front door on every category (which also fixes the sidebar highlight, D7). Two brand-new
+    surfaces enter the track: <strong>Design</strong> (D9) and the generated <strong>Skills</strong>
+    catalog (D8). Generated pages are marked <span class="gen-tag">gen</span>.
+  </p>
+
+  <pre class="tree">
+<span class="sec">Builders</span>
+├─ <span class="t-re">Getting Started</span>            <span class="t-note">rewrite; absorbs Environment Management — outcome-first, two named paths</span>
+│                              <span class="t-note">(full stack vs single-surface), checkpoints, troubleshooting, next steps</span>
+├─ <span class="t-re">First Contribution</span>         <span class="t-note">rewrite of How To Contribute — find work, Dev Guild, branch → develop,</span>
+│                              <span class="t-note">validation ladder, PR + CI Gate, review-bot expectations</span>
+├─ <span class="sec">Architecture</span>
+│  ├─ <span class="t-re">System Overview</span>         <span class="t-note">landing; absorbs Modular Approach + Local vs Global + Ethereum Alignment;</span>
+│  │                           <span class="t-note">one annotated diagram: work → attestation → indexer → interfaces</span>
+│  ├─ <span class="t-re">Data Model &amp; Ontology</span>   <span class="t-note">replaces ERD — layered, zoomable diagrams (core / funding / commitments);</span>
+│  │                           <span class="t-note">absorbs Entity Matrix and the commitment state machines</span> <span class="t-gen">gen·hybrid</span>
+│  ├─ <span class="t-new">Anatomy of a Work Submission</span>  <span class="t-note">NEW (D12, tentative) — trace one real submission end to end; see Part 5b</span>
+│  └─ <span class="t-new">Design</span>                  <span class="t-note">NEW (D9) — Design Rationale moves in from community reference, revamped:</span>
+│                              <span class="t-note">Warm Earth language, surface identities, tokens, live Storybook</span>
+├─ <span class="sec">Packages</span>
+│  ├─ <span class="t-new">Monorepo Map</span>            <span class="t-note">the landing itself (D7) — seven packages, dependency direction, where to start</span>
+│  ├─ <span class="t-re">Contracts · Shared · Client · Admin · Agent · Indexer</span>  <span class="t-note">rewrite ×6 on the package template</span>
+│  ├─ <span class="t-new">QA</span>                      <span class="t-note">new — the undocumented seventh package (qa.greengoods.app)</span>
+│  └─ API Index <span class="t-gen">gen</span>
+├─ <span class="sec">Integrations</span>
+│  ├─ <span class="t-re">Landing</span>                 <span class="t-note">the category page itself (D7): Overview's authority table + catalog cards</span>
+│  └─ <span class="t-re">EAS · Hats · Tokenbound · Passkeys · Karma · Octant · ENS · Gardens · Hypercerts · Cookie Jar</span>
+│                              <span class="t-note">hybrid template (D4): hand-written meaning &amp; purpose + generated</span>
+│                              <span class="t-note">deployment projection + canonical upstream links; conditional sections</span> <span class="t-gen">gen·hybrid</span>
+├─ <span class="sec">Agentic Development</span>
+│  ├─ <span class="t-new">Working with Agents</span>     <span class="t-note">landing — high-level and very human: the AGENTS.md contract, how</span>
+│  │                           <span class="t-note">agent-assisted contribution works here, Claude/Codex workflows</span>
+│  ├─ <span class="t-new">Skills</span> <span class="t-gen">gen</span>              <span class="t-note">NEW (D8) — one entry per skill: purpose, when it fires; generated</span>
+│  │                           <span class="t-note">from per-skill READMEs (convention to add; see Part 9)</span>
+│  ├─ Task Routing <span class="t-gen">gen</span>       <span class="t-note">+ human intro paragraph</span>
+│  └─ MCP Guide <span class="t-gen">gen</span>
+├─ <span class="sec">Testing &amp; QA</span>               <span class="t-note">two sidebar categories become one</span>
+│  ├─ <span class="t-re">Testing Guide</span>           <span class="t-note">consolidates Forge + Playwright + Vitest + Storybook (D1): test map,</span>
+│  │                           <span class="t-note">everyday loop, per-surface commands, external docs + live Storybook links</span>
+│  ├─ <span class="t-keep">Product Experience QA</span>   <span class="t-note">keep — rewritten this week on feature/qa-report; light alignment only</span>
+│  ├─ Test Cases <span class="t-gen">gen</span>         <span class="t-note">keep — already priority-banded with permanent IDs</span>
+│  └─ CI &amp; GitHub Actions <span class="t-gen">gen</span>  <span class="t-note">settled home (D11); moves from deployments/ in Phase 4</span>
+└─ <span class="sec">Reference</span>
+   ├─ Deployments &amp; Addresses <span class="t-gen">gen</span>  <span class="t-note">promoted — the one canonical address/schema page, stubbed to from everywhere</span>
+   ├─ Persona Surfaces <span class="t-gen">gen</span>   <span class="t-note">moved — route × persona inventory is lookup material</span>
+   ├─ <span class="t-re">Economics Explorer</span>      <span class="t-note">moved (D3) — the interactive sandbox, out of "Product Specifications"</span>
+   └─ <span class="t-new">License</span>                 <span class="t-note">NEW (D10) — MIT terms split from community Credits &amp; Licenses:</span>
+                               <span class="t-note">what builders may do with the source</span>
+</pre>
+
+  <p class="measure">
+    Community-side effects: the community Reference keeps FAQ, Glossary, Ontology, Product History,
+    and a slimmed <strong>Credits</strong> page (team, contributors, built-with, funders — license
+    section becomes a one-line pointer to the builder License page). <strong>Design Rationale</strong>
+    leaves the community sidebar for the builder Design page, with a redirect.
+  </p>
+</section>
+
+<section id="anatomy">
+  <div class="kicker">Part 5b</div>
+  <h2>Better than "Core Flows": Anatomy of a Work Submission</h2>
+  <div class="measure">
+    <p>
+      The journey pages are deleted (D2), and "Core Flows" died with them — rightly, because it was
+      still five abstract flows wearing one page. The replacement is one concrete story:
+      <strong>follow a single real work submission through every layer of the system</strong>, the
+      way EAS teaches attestations by dissecting a live record and Octant teaches its mechanism
+      with one worked example.
+    </p>
+    <p>The page walks eight stages, each with two or three human sentences, a code pointer, and a link to the real thing:</p>
+    <ol>
+      <li><strong>Capture</strong> — a gardener records work in the PWA, offline (media → details → review; the shared job queue holds it).</li>
+      <li><strong>Sync</strong> — connectivity returns; the queue replays through the authoritative path.</li>
+      <li><strong>Attest</strong> — the Work attestation lands on EAS via our resolver: the actual schema, the actual UID, linked live on arbitrum.easscan.org.</li>
+      <li><strong>Index</strong> — the Envio handler picks up the event and projects the read model (the GraphQL shape, linked).</li>
+      <li><strong>Review</strong> — the steward sees it in the admin cockpit.</li>
+      <li><strong>Approve</strong> — a separate WorkApproval attestation records the decision (also linked live).</li>
+      <li><strong>Display</strong> — status flows back to the gardener; the existing generated <span class="mono">work-display-status</span> sequence diagram slots in here, the one place it earns its keep.</li>
+      <li><strong>Onward</strong> — assessment, hypercerts, funding: one line each, linking the integration pages and the community guides.</li>
+    </ol>
+    <p>
+      Why this beats flow pages: it's the one page that makes the whole architecture <em>felt</em> —
+      every package appears in its real role, every integration in context, and a reader finishes
+      knowing where their future change would live. It pairs with the community "How It Works" as
+      the technical rung of the explanation ladder (cross-linked both ways, the Octant pattern).
+      The four <span class="mono">commitment-*</span> state diagrams from Sequences &amp; States
+      aren't part of this story — they move to the commitments layer of Data Model &amp; Ontology,
+      and the Sequences &amp; States page dissolves.
+    </p>
+  </div>
+</section>
+
+<section id="dispositions">
+  <div class="kicker">Part 6</div>
+  <h2>Page-by-page dispositions</h2>
+  <p class="measure">All 45 current pages plus the community pages this plan touches, grouped by today's sidebar. Updated for the review decisions and the <span class="mono">feature/qa-report</span> refresh.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Current page</th><th>Words</th><th>Disposition</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr class="section-row"><td colspan="4">Top level</td></tr>
+        <tr><td>Getting Started</td><td class="num">252</td><td><span class="chip rewrite">Rewrite</span></td><td>Outcome-first tutorial on the template; absorbs Environment Management; two named paths; checkpoints with expected output</td></tr>
+        <tr><td>How To Contribute</td><td class="num">179</td><td><span class="chip rewrite">Rewrite</span></td><td>Becomes "First Contribution": ways to contribute, good-first-issues, Dev Guild links (org guide, blog, code of conduct), PR → develop, CI Gate; resolves the CONTRIBUTING.md circular deferral</td></tr>
+        <tr><td>Environment Management</td><td class="num">192</td><td><span class="chip merge">Merge</span></td><td>Into Getting Started as the env step</td></tr>
+        <tr><td>Ethereum Alignment</td><td class="num">179</td><td><span class="chip merge">Merge</span></td><td>The five design tests become a "Design principles" section of System Overview; page removed</td></tr>
+        <tr class="section-row"><td colspan="4">Architecture</td></tr>
+        <tr><td>Architecture (landing)</td><td class="num">203</td><td><span class="chip rewrite">Rewrite</span></td><td>Becomes System Overview: annotated system diagram, package map, data flow, design principles</td></tr>
+        <tr><td>Local vs Global</td><td class="num">144</td><td><span class="chip merge">Merge</span></td><td>Into System Overview as the local-first vs on-chain data section</td></tr>
+        <tr><td>Entity Relationships <span class="gen-tag">gen</span></td><td class="num">986</td><td><span class="chip rewrite">Regenerate</span></td><td>Split into layered, zoomable diagrams (core / funding / commitments) via <code>renderErd</code>; becomes Data Model &amp; Ontology, which also receives the Entity Matrix and the commitment state diagrams</td></tr>
+        <tr><td>Modular Approach</td><td class="num">136</td><td><span class="chip merge">Merge</span></td><td>Into System Overview (contract modules + application boundary)</td></tr>
+        <tr><td>Sequences and States <span class="gen-tag">gen</span></td><td class="num">1629</td><td><span class="chip remove">Dissolve</span></td><td><span class="mono">work-display-status</span> diagram feeds Anatomy of a Work Submission; the four <span class="mono">commitment-*</span> state machines move into Data Model &amp; Ontology; page and slug retire with redirects</td></tr>
+        <tr><td><em>(new)</em> Anatomy of a Work Submission</td><td class="num">—</td><td><span class="chip new">New</span></td><td>The lifecycle trace (Part 5b) — hand narrative + real explorer links + the one generated diagram that fits</td></tr>
+        <tr class="section-row"><td colspan="4">User Journeys — deleted (D2)</td></tr>
+        <tr><td>Onboarding · Work Submission · Evaluation · Funding</td><td class="num">142–181</td><td><span class="chip remove">Remove</span></td><td>Deleted outright; flow polish is owned by another session. Redirects point at Anatomy of a Work Submission</td></tr>
+        <tr><td>Persona Surfaces <span class="gen-tag">gen</span></td><td class="num">382</td><td><span class="chip move">Move</span></td><td>Generated route × persona inventory moves to Reference</td></tr>
+        <tr class="section-row"><td colspan="4">Design (new section entry)</td></tr>
+        <tr><td>Design Rationale <em>(community Reference today)</em></td><td class="num">—</td><td><span class="chip move">Move + revamp</span></td><td>Becomes the builder Design page (D9): why Warm Earth, the surface identities (cockpit / field journal / editorial), how tokens and DesignMD files govern the system, live Storybook at design.greengoods.app, how to propose design changes; community slug redirects</td></tr>
+        <tr class="section-row"><td colspan="4">Packages and APIs</td></tr>
+        <tr><td><em>(new)</em> Monorepo Map — the landing</td><td class="num">—</td><td><span class="chip new">New</span></td><td>Read-first page (D7): the seven packages, dependency direction, which package owns which concern, where to start for a given change</td></tr>
+        <tr><td>Contracts · Indexer · Shared · Client · Admin · Agent</td><td class="num">125–143</td><td><span class="chip rewrite">Rewrite</span></td><td>Each on the package template: purpose, directory map, run/test commands, how it connects, gotchas, links (AGENTS.md, deployed surface, upstream docs)</td></tr>
+        <tr><td><em>(missing)</em> QA package</td><td class="num">—</td><td><span class="chip new">New</span></td><td>Document the seventh package: the two-writer QA recording surface behind qa.greengoods.app, its blob store, how deploys pin the catalog</td></tr>
+        <tr><td>API Index <span class="gen-tag">gen</span></td><td class="num">3365</td><td><span class="chip keep">Keep</span></td><td>Generated export inventory stays</td></tr>
+        <tr class="section-row"><td colspan="4">Product Specifications — dissolves</td></tr>
+        <tr><td>Revenue Explorer</td><td class="num">338</td><td><span class="chip move">Move</span></td><td>To Reference as Economics Explorer (D3); category dissolves</td></tr>
+        <tr class="section-row"><td colspan="4">Integrations</td></tr>
+        <tr><td>Overview</td><td class="num">202</td><td><span class="chip merge">Merge</span></td><td>Authority table becomes the section landing itself (D7), followed by catalog cards</td></tr>
+        <tr><td>Entity Matrix <span class="gen-tag">gen</span></td><td class="num">1005</td><td><span class="chip move">Move</span></td><td>Ontology projection joins Data Model &amp; Ontology</td></tr>
+        <tr><td>EAS · Passkeys · Tokenbound (hand-written)</td><td class="num">118–180</td><td><span class="chip rewrite">Rewrite</span></td><td>Onto the hybrid template (D4) with canonical upstream links (EAS SDK, schema concepts, Arbitrum explorer…)</td></tr>
+        <tr><td>Hats · Karma · Octant · ENS · Gardens · Hypercerts · Cookie Jar <span class="gen-tag">gen</span></td><td class="num">170–194</td><td><span class="chip rewrite">Regenerate</span></td><td>Hybrid template (D4): hand-written "what this integration means for Green Goods and why we have it" + conditional generated sections (no indexer boundary unless indexed) + upstream doc links + kept deployment projection</td></tr>
+        <tr class="section-row"><td colspan="4">Agentic Development</td></tr>
+        <tr><td><em>(new)</em> Working with Agents — the landing</td><td class="num">—</td><td><span class="chip new">New</span></td><td>High-level and very human (D8): what the AGENTS.md contract is, how agent-assisted contribution works here, Claude and Codex workflows, where the guardrails live</td></tr>
+        <tr><td><em>(new)</em> Skills <span class="gen-tag">gen</span></td><td class="num">—</td><td><span class="chip new">New</span></td><td>Generated catalog (D8): one entry per skill — purpose, when it fires, what it produces. Source: per-skill <code>README.md</code> in each <code>.claude/skills/*/</code> folder (new convention; 13 to author, generator falls back to <code>SKILL.md</code> descriptions until each README lands)</td></tr>
+        <tr><td>Task Routing <span class="gen-tag">gen</span></td><td class="num">927</td><td><span class="chip keep">Keep</span></td><td>Already generated with digest gate; gains a human intro</td></tr>
+        <tr><td>MCP Guide <span class="gen-tag">gen</span></td><td class="num">212</td><td><span class="chip keep">Keep</span></td><td>Stays generated</td></tr>
+        <tr class="section-row"><td colspan="4">Testing</td></tr>
+        <tr><td>Forge · Playwright · Vitest · Storybook</td><td class="num">137–162</td><td><span class="chip merge">Merge</span></td><td>Four ~150-word pages become one Testing Guide (D1): test map table, everyday loop, per-surface commands, links to Playwright/Vitest/Storybook/Foundry docs and the live Storybook</td></tr>
+        <tr class="section-row"><td colspan="4">Quality Assurance</td></tr>
+        <tr><td>Product Experience QA</td><td class="num">1514</td><td><span class="chip keep">Keep</span></td><td>Rewritten this week on <span class="mono">feature/qa-report</span> (session steps, results by priority, QA app linked); only a light alignment pass — cross-links to the Testing Guide, shared tone check</td></tr>
+        <tr><td>Test Cases <span class="gen-tag">gen</span></td><td class="num">4123</td><td><span class="chip keep">Keep</span></td><td>Already priority-banded (P0 "run these first" per surface, permanent IDs, lifecycle) — the meeting's ask is shipped</td></tr>
+        <tr class="section-row"><td colspan="4">Build and Deployments — dissolves</td></tr>
+        <tr><td>GitHub Actions <span class="gen-tag">gen</span></td><td class="num">884</td><td><span class="chip move">Move</span></td><td>Proposed home: Testing &amp; QA (it answers "what runs in CI and why did my PR fail"). Note: it moved under <code>deployments/</code> on <span class="mono">feature/qa-report</span> this week — coordinate before moving again</td></tr>
+        <tr><td>Deployment Status <span class="gen-tag">gen</span></td><td class="num">237</td><td><span class="chip move">Move</span></td><td>Promoted to Reference as the canonical Deployments &amp; Addresses page every other page stubs to</td></tr>
+        <tr class="section-row"><td colspan="4">Community pages this plan touches</td></tr>
+        <tr><td>Credits &amp; Licenses <em>(community Reference)</em></td><td class="num">—</td><td><span class="chip rewrite">Split</span></td><td>License section moves to builder Reference → License (D10); Credits keeps team, contributors, built-with, funders, with a one-line license pointer</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="templates">
+  <div class="kicker">Part 7</div>
+  <h2>Page templates</h2>
+  <p class="measure">
+    Five skeletons, synthesized from the frameworks research and the best concrete pages found on
+    the reference sites. Mixed-mode pages are deliberate — splitting a 400-word integration page
+    into "explanation" and "reference" pages would recreate the fragmentation we're fixing.
+  </p>
+
+  <details open>
+    <summary>Getting Started — the tutorial</summary>
+    <div class="body">
+      <ol>
+        <li><strong>What you'll have at the end</strong> — one paragraph + screenshot of the running client. <span class="why">Outcome first, so readers self-select (Octant, Astro).</span></li>
+        <li><strong>Prerequisites</strong> — Bun/Node/Git/Docker as a checklist. <span class="why">Front-loaded self-assessment.</span></li>
+        <li><strong>Choose your path</strong> — Path A: full stack (<code>bun run dev</code>); Path B: single surface against hosted services. <span class="why">Octant's two named paths; the fastest route to a working screen wins.</span></li>
+        <li><strong>Steps 1–N</strong> — one command per step with expected output; environment setup lives here (absorbed from Environment Management), using <code>?mockAuth</code> to avoid wallet friction. <span class="why">A tutorial "eliminates the unexpected" (Diátaxis).</span></li>
+        <li><strong>Checkpoint</strong> — "You should now see…" with screenshot.</li>
+        <li><strong>If something went wrong</strong> — the 3–5 real failures (<code>dev:doctor</code>, ports, Docker); everything else links out.</li>
+        <li><strong>Next steps</strong> — exactly three: System Overview · First Contribution · Testing Guide.</li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Package page — mixed-mode topic page</summary>
+    <div class="body">
+      <ol>
+        <li><strong>What this package is</strong> — one sentence of purpose + where it runs in production (with live URL).</li>
+        <li><strong>Map</strong> — 5–8-row table of key directories/entrypoints. <span class="why">A map, not a census; the generated API Index is the census.</span></li>
+        <li><strong>Run and test just this package</strong> — the scoped commands.</li>
+        <li><strong>How it connects</strong> — upstream/downstream data flow, linking the Architecture pages. <span class="why">This is the "use cases and implementation context" the meeting asked for.</span></li>
+        <li><strong>Conventions that will bite you</strong> — 3–5 project-specific gotchas, one line each. <span class="why">Highest value-per-word content; unique to us.</span></li>
+        <li><strong>Go deeper</strong> — links: package <code>AGENTS.md</code> / README, live Storybook, generated references.</li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Integration page — hand-written meaning + generated detail (D4)</summary>
+    <div class="body">
+      <ol>
+        <li><strong>Why Green Goods uses it</strong> — the meaning, purpose, and reason for the integration in one paragraph, definition-first. <span class="why">Hand-written; the grounding Afo asked for.</span></li>
+        <li><strong>How it flows through the stack</strong> — one small diagram: who signs, what's recorded, who reads it back.</li>
+        <li><strong>Where it lives in the code</strong> — linked table of the files/packages that touch it.</li>
+        <li><strong>Deployment projection</strong> — the current generated table (networks, recorded components), kept verbatim with its digest gate. <span class="why">Conditional: indexer section only when the integration is actually indexed.</span></li>
+        <li><strong>Working with it locally</strong> — how to exercise it in dev/tests without mainnet.</li>
+        <li><strong>Canonical upstream docs</strong> — 3–5 external links with one line each. For EAS: the SDK page, schema concepts, per-chain contracts page, arbitrum.easscan.org. For Hats: developer concepts hub, the viem SDK getting-started, the subgraph docs (the canonical answer to wearer enumeration), supported-chains page, app.hatsprotocol.xyz. <span class="why">Never paraphrase upstream at length (Octant, Hats).</span></li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Testing Guide — task page with a reference table (D1)</summary>
+    <div class="body">
+      <ol>
+        <li><strong>Test map</strong> — one table: runner (Vitest / Playwright / Storybook / Foundry) × what it covers × where it lives × docs link.</li>
+        <li><strong>The everyday loop</strong> — targeted proof first, then <code>bun run test:fast</code>; when to escalate. <span class="why">Recommended path first; alternatives labeled.</span></li>
+        <li><strong>Per-surface commands</strong> — client / admin / shared / contracts / indexer subsections, commands only.</li>
+        <li><strong>Manual QA</strong> — <code>?mockAuth</code> recipes, Storybook viewport checks, links to the live Storybook and the QA guide.</li>
+        <li><strong>Reproducing CI locally</strong> — what CI Gate runs and the local equivalent of each check.</li>
+        <li><strong>Writing new tests</strong> — where each test type goes + one linked exemplar file per type. <span class="why">Show, don't legislate.</span></li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Skills catalog — generated from per-skill READMEs (D8)</summary>
+    <div class="body">
+      <ol>
+        <li><strong>Intro</strong> — two hand-written sentences: what a skill is here, how you invoke one. <span class="why">Hybrid, like integrations: meaning by hand, inventory by machine.</span></li>
+        <li><strong>Per skill (generated)</strong> — name · one-line purpose · when it fires · what it produces · link to the skill's folder on GitHub. <span class="why">Source: <code>.claude/skills/&lt;name&gt;/README.md</code>, the new convention; digest-gated like every generated page.</span></li>
+        <li><strong>Fallback rule</strong> — until a skill has a README, the generator projects its <code>SKILL.md</code> description so the catalog is complete on day one and improves as READMEs land. <span class="why">13 skills today; READMEs are authored in the phase plan, and the same READMEs serve anyone browsing the repo (Codex included, via the <code>.agents/skills</code> symlink).</span></li>
+      </ol>
+    </div>
+  </details>
+</section>
+
+<section id="tone">
+  <div class="kicker">Part 8</div>
+  <h2>Tone contract</h2>
+  <p class="measure">
+    Five mechanical rules (from Google's style highlights + the reference sites), applied to real
+    sentences from our current pages. The register splits deliberately: hand-written pages sound
+    like the community track adapted for developers; generated reference pages stay terse — every
+    reference site we studied does exactly this split.
+  </p>
+
+  <h3>1 · Second person, active voice</h3>
+  <div class="tone-pair">
+    <div class="before"><b>Now</b>"Shared exposes supported entrypoints through <code>packages/shared/package.json</code>. Client, admin, and agent consume those exports…"</div>
+    <div class="after"><b>Rewrite</b>"Import from shared's declared exports — <code>@green-goods/shared/hooks/…</code> — never from <code>src/</code> paths. The client, admin, and agent apps all follow this rule."</div>
+  </div>
+
+  <h3>2 · Say why before what</h3>
+  <div class="tone-pair">
+    <div class="before"><b>Now</b>"This page is the shortest safe path for a code change."</div>
+    <div class="after"><b>Rewrite</b>"Green Goods is built by the Greenpill Dev Guild, and contributions of any size are welcome. Here's how to land your first change — from finding an issue to a merged PR."</div>
+  </div>
+
+  <h3>3 · Goal or condition before instruction</h3>
+  <div class="tone-pair">
+    <div class="before"><b>Now</b>"Run <code>npm run setup</code> only if Bun is not installed yet."</div>
+    <div class="after"><b>Rewrite</b>"Don't have Bun yet? <code>npm run setup</code> installs it. Already have it? Skip straight to <code>bun install</code>."</div>
+  </div>
+
+  <h3>4 · Plain declaratives; one idea per sentence</h3>
+  <div class="tone-pair">
+    <div class="before"><b>Now</b>"Integrations cross different authority boundaries. Before changing one, identify which layer owns the fact you need."</div>
+    <div class="after"><b>Rewrite</b>"Each integration touches several layers — contracts, indexer, app code. This table shows which layer owns which fact, so you change the right one."</div>
+  </div>
+
+  <h3>5 · Links say where they go, and every page has them</h3>
+  <div class="tone-pair">
+    <div class="before"><b>Now</b>"Storybook is the isolated contract for shared UI foundations." <em>(no link — anywhere)</em></div>
+    <div class="after"><b>Rewrite</b>"We develop shared UI in <a href="https://storybook.js.org/docs">Storybook</a> — browse the live instance at <a href="https://design.greengoods.app">design.greengoods.app</a> to see every component and its states."</div>
+  </div>
+</section>
+
+<section id="mechanical">
+  <div class="kicker">Part 9</div>
+  <h2>Mechanical fixes</h2>
+  <ul class="tight measure">
+    <li><strong>Sidebar highlight</strong> — replacing the auto-generated category landings with real doc pages (D7) gives every builder route a <span class="mono">docs-doc-id-builders…</span> class, so the teal accent holds track-wide. Add a CSS fallback for safety. (Two accents — green community, teal builders — stay; the bug was the inconsistency, not the pairing.)</li>
+    <li><strong>ERD</strong> — <code>renderErd</code> emits three layered diagrams instead of one 21-entity graph; wrap Mermaid output in a pan-zoom container so diagrams are explorable.</li>
+    <li><strong>Integration template</strong> — conditional sections (indexer boundary only when indexed), hand-authored meaning blocks, upstream link lists (D4).</li>
+    <li><strong>Skills generator + README convention</strong> — new <code>renderSkills</code> reads <code>.claude/skills/*/README.md</code> (falls back to <code>SKILL.md</code> descriptions); author the 13 READMEs as part of the phase plan (D8).</li>
+    <li><strong><code>llms.txt</code> + <code>.md</code> twins</strong> — emit at build time so the whole site is agent-readable in one fetch (D5).</li>
+    <li><strong>Redirects</strong> — <code>@docusaurus/plugin-client-redirects</code> for every moved or deleted slug (journeys, sequences, design-research, specs…), so old links and search results never dead-end (Octant's two-generation mess is the cautionary tale).</li>
+    <li><strong>License split</strong> — MIT terms get their own builder Reference page; community Credits slims to credits + pointer (D10).</li>
+    <li><strong>CONTRIBUTING.md</strong> — repo file becomes a short quick-reference that points one way (to the docs page); the circular deferral ends.</li>
+    <li><strong>Docs gates stay</strong> — <code>docs:audit</code>, trust frontmatter, digest checks, and <code>check:docs-generated</code> all survive; they gate provenance, not prose.</li>
+    <li><del><strong>Test-case priority sort</strong></del> — already shipped by the <span class="mono">feature/qa-report</span> work; nothing to do.</li>
+  </ul>
+</section>
+
+<section id="sequencing">
+  <div class="kicker">Part 10</div>
+  <h2>Sequencing</h2>
+  <p class="measure">Per Diátaxis: no big-bang. Each phase is an independently shippable PR to <code>develop</code>, and the site is never worse mid-migration. Coordinate with the <span class="mono">feature/qa-report</span> branch throughout — it owns the QA pages and just moved GitHub Actions.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Phase</th><th>Scope</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td><strong>0 · Blueprint</strong></td><td>This document — decisions locked in review (Part 0)</td><td>—</td></tr>
+        <tr><td><strong>1 · Generators &amp; mechanics</strong></td><td>ERD split + zoom, integration template upgrade, skills generator (with SKILL.md fallback), sidebar CSS fallback, redirects plugin</td><td>Low — no prose judgment involved</td></tr>
+        <tr><td><strong>2 · The spine</strong></td><td>Getting Started (+ env absorbed), First Contribution, System Overview — the three pages every newcomer hits; sets the voice for everything after (tone check on the first before the rest follow)</td><td>Medium</td></tr>
+        <tr><td><strong>3 · Sections</strong></td><td>Monorepo Map landing + packages ×7 (incl. new QA page); Integrations landing + hand-written meaning blocks; Anatomy of a Work Submission; Data Model &amp; Ontology consolidation; journeys deleted with redirects</td><td>Medium — bulk of the writing</td></tr>
+        <tr><td><strong>4 · Design, agents, testing</strong></td><td>Design page (moved + revamped, D9); Working with Agents landing + 13 skill READMEs (D8); Testing Guide consolidation (D1); License split (D10); light QA alignment pass</td><td>Low–medium</td></tr>
+        <tr><td><strong>5 · Sweep</strong></td><td><code>llms.txt</code> + <code>.md</code> twins (D5), link audit (every page has next steps + external links), CONTRIBUTING.md fix, final <code>docs:audit</code> green</td><td>Low</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="measure">
+    The root-scripts bloat (240 scripts, 97 <span class="mono">contracts:*</span>) is tracked as a
+    separate follow-up after these phases (D6); the docs link <code>scripts/README.md</code> in the
+    meantime rather than enumerating scripts.
+  </p>
+
+  <h3>Execution state</h3>
+  <ul class="tight measure">
+    <li><strong>Plan hub</strong> — <span class="mono">.plans/active/builder-docs-rebuild/</span> on branch <span class="mono">feature/builder-docs-rebuild</span>; Linear mirror <a href="https://linear.app/greenpill-dev-guild/issue/PRD-862/builder-docs-rebuild-roadmap">PRD-862</a>.</li>
+    <li><strong>Phase 1 (generators &amp; mechanics)</strong> — in review as <a href="https://github.com/greenpill-dev-guild/green-goods/pull/795">PR #795</a>: layered zoomable ERD, hybrid integration pages with conditional sections, generated skills catalog, builders accent fix (root-caused to the unprefixed <span class="mono">/category/*</span> index routes), redirects already wired. 19/19 generator tests, docs audit clean, build green.</li>
+    <li><strong>Next</strong> — Phase 2 spine rewrites start after Phase 1 merges; Getting Started goes first and waits for Afo's tone gate before the other two pages adopt the voice.</li>
+  </ul>
+</section>
+
+<p class="footnote">
+  Research basis: full builder-track inventory (word counts, generator provenance, link census, CSS
+  mechanism) from the repo, updated 2026-09-02 for the feature/qa-report refresh · reference-site
+  evidence packs for docs.gainforest.earth, docs.attest.org, docs.hatsprotocol.xyz, docs.octant.app
+  · Diátaxis, Google developer style highlights, Write the Docs, and structural surveys of Stripe
+  and Astro docs. Octant's site is bot-walled; its analysis was reconstructed from the public v1
+  docs source and search indexes.
+</p>
+
+</div>
+
+</body></html>

@@ -251,9 +251,17 @@ test("Supply Chain classifier routes each change class without broad fallthrough
   }
 });
 
-test("pre-push forwards focused proof paths without shell expansion", () => {
+test("pre-push forwards focused proof paths and gate arguments without shell expansion", () => {
   const hook = read(".husky/pre-push");
-  for (const paths of ["", "client:src/views/example.test.tsx shared:src/**/example.test.ts"]) {
+  // Both variables are set explicitly: the hook reads the pushing shell's environment, so a value
+  // exported for a real push must not reach the hook under test.
+  const cases = [
+    { paths: "", gateArgs: "" },
+    { paths: "client:src/views/example.test.tsx shared:src/**/example.test.ts", gateArgs: "" },
+    { paths: "", gateArgs: "--check ontology" },
+    { paths: "docs:scripts/llms.test.mjs", gateArgs: "--check ontology --check docs-generated" },
+  ];
+  for (const { paths, gateArgs } of cases) {
     const result = spawnSync("sh", ["-c", `
 git() { :; }
 bun() { :; }
@@ -262,7 +270,7 @@ ${hook}
 `], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths },
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: paths, GG_PUSH_GATE_ARGS: gateArgs },
     });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.stdout.trim().split("\n"), [
@@ -270,7 +278,26 @@ ${hook}
       "scripts/dev/node-cli.js", "scripts/dev/ci-local.js", "--intent", "push",
       "--reuse-passing-receipts",
       ...paths.split(" ").filter(Boolean).flatMap((path) => ["--test-path", path]),
+      ...gateArgs.split(" ").filter(Boolean),
     ]);
+  }
+  // Only the focus flags pass through: a value that would change what the gate runs stops the
+  // push before the gate starts, so an exported variable cannot downgrade validation.
+  // --base is refused too: "--base HEAD" would hand the gate an empty diff and an empty check list.
+  for (const gateArgs of ["--plan", "--only-lint", "--skip-docs", "--check", "--base HEAD", "--base origin/develop --check ontology", "--check ontology --plan"]) {
+    const result = spawnSync("sh", ["-c", `
+git() { :; }
+bun() { :; }
+node() { printf '%s\\n' "$@"; }
+${hook}
+`], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: "", GG_PUSH_GATE_ARGS: gateArgs },
+    });
+    assert.equal(result.status, 1, gateArgs);
+    assert.match(result.stderr, /GG_PUSH_GATE_ARGS/, gateArgs);
+    assert.doesNotMatch(result.stdout, /ci-local\.js/, `the gate must not run for ${gateArgs}`);
   }
 });
 

@@ -1,0 +1,85 @@
+{
+  "purpose": "Reader-facing purpose and use case for every GitHub Actions workflow. The docs generator renders this with the triggers and jobs it reads from the workflow files; a workflow file without an entry, or an entry without a file, fails the generator tests.",
+  "workflows": {
+    ".github/workflows/admin.yml": {
+      "purpose": "Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes.",
+      "useCase": "A change under packages/admin or the shared UI and hooks it depends on.",
+      "required": false
+    },
+    ".github/workflows/agent.yml": {
+      "purpose": "Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes.",
+      "useCase": "Bot, webhook, or public API changes.",
+      "required": false
+    },
+    ".github/workflows/ci-gate.yml": {
+      "purpose": "The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection.",
+      "useCase": "Every pull request on any base branch. Branch protection points here instead of at the per-package workflows.",
+      "required": true
+    },
+    ".github/workflows/client.yml": {
+      "purpose": "Builds, tests, and runs the client Playwright project for the public site and the installed PWA.",
+      "useCase": "Client views, routes, service worker, PWA packaging, or the shared UI they render.",
+      "required": false
+    },
+    ".github/workflows/codeql-cache-prune.yml": {
+      "purpose": "Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on.",
+      "useCase": "Housekeeping only: it runs after every push to develop and hourly as a backstop. Nothing to trigger by hand unless the cache fills up.",
+      "required": false
+    },
+    ".github/workflows/contracts-manual.yml": {
+      "purpose": "Runs a chosen contracts operation (fork readiness, the CI lane, or both) on demand by calling the Contracts workflow.",
+      "useCase": "An operator wants a contracts check outside a pull request, for example before a release.",
+      "required": false
+    },
+    ".github/workflows/contracts-nightly.yml": {
+      "purpose": "The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile.",
+      "useCase": "Nightly at 03:17 UTC, or on demand after a change to invariants or fuzz targets.",
+      "required": false
+    },
+    ".github/workflows/contracts.yml": {
+      "purpose": "Compiles, lints, and tests the Solidity packages and the contract script suite.",
+      "useCase": "Any change under packages/contracts or the contract scripts; the manual workflow calls it with an operation name.",
+      "required": false
+    },
+    ".github/workflows/coverage-nightly.yml": {
+      "purpose": "Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures.",
+      "useCase": "Nightly at 08:43 UTC and after every push to main.",
+      "required": false
+    },
+    ".github/workflows/design.yml": {
+      "purpose": "Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing.",
+      "useCase": "Shared components, styles, tokens, any DESIGN.md, or the docs stylesheet. Dispatch it with publish_chromatic to publish Storybook.",
+      "required": false
+    },
+    ".github/workflows/docs.yml": {
+      "purpose": "Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site.",
+      "useCase": "Anything under docs/, the generator scripts, the skills catalog, or a source a projection reads.",
+      "required": false
+    },
+    ".github/workflows/indexer.yml": {
+      "purpose": "Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts.",
+      "useCase": "Indexer handlers, schema, or config, or the ABIs and deployments they read.",
+      "required": false
+    },
+    ".github/workflows/ontology.yml": {
+      "purpose": "Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current.",
+      "useCase": "Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.",
+      "required": false
+    },
+    ".github/workflows/release.yml": {
+      "purpose": "Builds and publishes a tagged release.",
+      "useCase": "A pushed version tag. Maintainers cut releases from main; nothing to run by hand.",
+      "required": false
+    },
+    ".github/workflows/shared.yml": {
+      "purpose": "Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations.",
+      "useCase": "Any shared source change. It also runs weekly to catch drift that no pull request touched.",
+      "required": false
+    },
+    ".github/workflows/supply-chain-guardrails.yml": {
+      "purpose": "Checks manifests, lockfiles, and the release-age rule so a dependency change cannot land unreviewed.",
+      "useCase": "Dependency, lockfile, or workflow changes.",
+      "required": false
+    }
+  }
+}

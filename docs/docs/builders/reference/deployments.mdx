@@ -1,0 +1,320 @@
+---
+title: Deployments & Addresses
+slug: /builders/reference/deployments
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+source_digest: "sha256:79467ba1570f67cc3dd51554f635323756d5c57ce146a4dfd4a474b6150cd314"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
+import {CopyCommand} from "@site/src/components/docs";
+
+# Deployments & Addresses
+
+Every address below comes from the checked-in deployment artifacts (`packages/contracts/deployments/<chainId>-latest.json`), not from live RPC state. A recorded address means a deployment was written down; activation and operational health need their own evidence. The zero address is the artifacts' sentinel for no usable contract, and such fields are listed, not linked. Operator identities, lock managers, safes, and transaction receipts stay off this page by design.
+
+## Arbitrum One (42161)
+
+65 recorded contracts and 5 schemas. Addresses open on [arbiscan.io](https://arbiscan.io); schema UIDs open on [arbitrum.easscan.org](https://arbitrum.easscan.org).
+
+### Core protocol
+
+Gardens, their accounts, the registries, and the guardian.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| ERC-6551 account proxy | <CopyCommand command="0x0DeAf867724154C0Cf58000884df925D79070F22" /> | [arbiscan.io](https://arbiscan.io/address/0x0DeAf867724154C0Cf58000884df925D79070F22) |
+| Action registry | <CopyCommand command="0xA514eA2730b9eD401875693793BEfA9e2D51C0b4" /> | [arbiscan.io](https://arbiscan.io/address/0xA514eA2730b9eD401875693793BEfA9e2D51C0b4) |
+| Deployment registry | <CopyCommand command="0x4A42a13232f9dF989127C549036CBdEDb7e2785c" /> | [arbiscan.io](https://arbiscan.io/address/0x4A42a13232f9dF989127C549036CBdEDb7e2785c) |
+| Garden account implementation (ERC-6551) | <CopyCommand command="0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692" /> | [arbiscan.io](https://arbiscan.io/address/0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692) |
+| Garden token (ERC-721) | <CopyCommand command="0xe1Da335110b1ed48e7df63209f5D424d02276593" /> | [arbiscan.io](https://arbiscan.io/address/0xe1Da335110b1ed48e7df63209f5D424d02276593) |
+| Green Goods ENS registry | <CopyCommand command="0x4fAD8Db8e04005884D484eC730aDae10d7A2e491" /> | [arbiscan.io](https://arbiscan.io/address/0x4fAD8Db8e04005884D484eC730aDae10d7A2e491) |
+| Guardian | <CopyCommand command="0x05F486E3161F895Ad99f041065224F78bDf580a7" /> | [arbiscan.io](https://arbiscan.io/address/0x05F486E3161F895Ad99f041065224F78bDf580a7) |
+| Unified power registry | <CopyCommand command="0xD36004307c136FFed0Fe425f699FB1569BFabCBa" /> | [arbiscan.io](https://arbiscan.io/address/0xD36004307c136FFed0Fe425f699FB1569BFabCBa) |
+| Yield splitter | <CopyCommand command="0x90896C86108528abB600Da3C48a1aa054958bDeb" /> | [arbiscan.io](https://arbiscan.io/address/0x90896C86108528abB600Da3C48a1aa054958bDeb) |
+| Root garden | <CopyCommand command="0xf401f34378384713222d1d21f63359cc4E8a858a" /> | [arbiscan.io](https://arbiscan.io/address/0xf401f34378384713222d1d21f63359cc4E8a858a) |
+
+### EAS resolvers
+
+The contracts that check authorization before EAS records a Work, Work Approval, Assessment, or Testimony.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Assessment resolver | <CopyCommand command="0x0646B09bcf3993F02957651354dC267c450CFE58" /> | [arbiscan.io](https://arbiscan.io/address/0x0646B09bcf3993F02957651354dC267c450CFE58) |
+| Work approval resolver | <CopyCommand command="0x166732eD81Ab200A099215cF33F6A712309B69F7" /> | [arbiscan.io](https://arbiscan.io/address/0x166732eD81Ab200A099215cF33F6A712309B69F7) |
+| Work resolver | <CopyCommand command="0x23F29AF6138F126623bA20b4c051E8a04cC7B9e1" /> | [arbiscan.io](https://arbiscan.io/address/0x23F29AF6138F126623bA20b4c051E8a04cC7B9e1) |
+| Testimony resolver (proxy) | <CopyCommand command="0x2897BcAE282D5d99DaeE535803F531B333Cc2329" /> | [arbiscan.io](https://arbiscan.io/address/0x2897BcAE282D5d99DaeE535803F531B333Cc2329) |
+| Testimony resolver (implementation) | <CopyCommand command="0xA8283A563244dd002dA814A0C4CF24c29c8F30A7" /> | [arbiscan.io](https://arbiscan.io/address/0xA8283A563244dd002dA814A0C4CF24c29c8F30A7) |
+
+### EAS core
+
+The Ethereum Attestation Service contracts this network's records live in.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| EAS | <CopyCommand command="0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458" /> | [arbiscan.io](https://arbiscan.io/address/0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458) |
+| EAS schema registry | <CopyCommand command="0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB" /> | [arbiscan.io](https://arbiscan.io/address/0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB) |
+
+### EAS schemas
+
+The schema each record kind is written against.
+
+| Schema | UID | Explorer |
+|---|---|---|
+| Green Goods Assessment v2 | <CopyCommand command="0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93" /> | [arbitrum.easscan.org](https://arbitrum.easscan.org/schema/view/0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93) |
+| Green Goods Work Approval | <CopyCommand command="0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381" /> | [arbitrum.easscan.org](https://arbitrum.easscan.org/schema/view/0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381) |
+| Green Goods Work Submission | <CopyCommand command="0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4" /> | [arbitrum.easscan.org](https://arbitrum.easscan.org/schema/view/0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4) |
+| Green Goods Assessment v3 | <CopyCommand command="0x9358f3371f9fcf6b3467c524da3ba5f8d43f8f0b9cc3ba12c925e77ecbcf06a0" /> | [arbitrum.easscan.org](https://arbitrum.easscan.org/schema/view/0x9358f3371f9fcf6b3467c524da3ba5f8d43f8f0b9cc3ba12c925e77ecbcf06a0) |
+| Green Goods Community Testimony | <CopyCommand command="0xb9268b8a6096b7fda38a1aa642b66069e40b637f3fe0a846e0600e47e1aadcad" /> | [arbitrum.easscan.org](https://arbitrum.easscan.org/schema/view/0xb9268b8a6096b7fda38a1aa642b66069e40b637f3fe0a846e0600e47e1aadcad) |
+
+### Modules and integrations
+
+Capabilities a garden opts into, and the partner contracts behind them.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Cookie Jar factory (1Hive) | <CopyCommand command="0x294d222eDE6DF6625B43544F1C634322467528Da" /> | [arbiscan.io](https://arbiscan.io/address/0x294d222eDE6DF6625B43544F1C634322467528Da) |
+| Cookie Jar module | <CopyCommand command="0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157" /> | [arbiscan.io](https://arbiscan.io/address/0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157) |
+| Gardens module | <CopyCommand command="0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183" /> | [arbiscan.io](https://arbiscan.io/address/0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183) |
+| Hats module | <CopyCommand command="0x5b943088ecdDBF8E4ae387348A88A654aC5F7266" /> | [arbiscan.io](https://arbiscan.io/address/0x5b943088ecdDBF8E4ae387348A88A654aC5F7266) |
+| Hypercerts module | <CopyCommand command="0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0" /> | [arbiscan.io](https://arbiscan.io/address/0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0) |
+| Hypercert exchange | <CopyCommand command="0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83" /> | [arbiscan.io](https://arbiscan.io/address/0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83) |
+| Hypercert minter | <CopyCommand command="0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07" /> | [arbiscan.io](https://arbiscan.io/address/0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07) |
+| Karma GAP module | <CopyCommand command="0x0FC2bE8D57595b16af0953CB2d711118F34563FE" /> | [arbiscan.io](https://arbiscan.io/address/0x0FC2bE8D57595b16af0953CB2d711118F34563FE) |
+| Marketplace adapter | <CopyCommand command="0xE396137ef12c30075fd0B8509C6e389750f36159" /> | [arbiscan.io](https://arbiscan.io/address/0xE396137ef12c30075fd0B8509C6e389750f36159) |
+| Octant vault factory | <CopyCommand command="0x84bc88EdEB7d8C74683890070761bA225B65B74a" /> | [arbiscan.io](https://arbiscan.io/address/0x84bc88EdEB7d8C74683890070761bA225B65B74a) |
+| Octant module | <CopyCommand command="0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9" /> | [arbiscan.io](https://arbiscan.io/address/0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9) |
+| Transfer manager | <CopyCommand command="0x658c1695DCb298E57e6144F6dA3e83DdCF5e2BaB" /> | [arbiscan.io](https://arbiscan.io/address/0x658c1695DCb298E57e6144F6dA3e83DdCF5e2BaB) |
+| Hypercert fraction offer strategy | <CopyCommand command="0xecab24cade0261fc6513ca13bb3d10f760af3da8" /> | [arbiscan.io](https://arbiscan.io/address/0xecab24cade0261fc6513ca13bb3d10f760af3da8) |
+| GreenWill badge registry | <CopyCommand command="0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7" /> | [arbiscan.io](https://arbiscan.io/address/0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7) |
+| Unlock factory | <CopyCommand command="0x1FF7e338d5E582138C46044dc238543Ce555C963" /> | [arbiscan.io](https://arbiscan.io/address/0x1FF7e338d5E582138C46044dc238543Ce555C963) |
+| Unlock lock: Green Goods Genesis | <CopyCommand command="0x3703EfF5568C7455Fb141aDEE28B01efbc726445" /> | [arbiscan.io](https://arbiscan.io/address/0x3703EfF5568C7455Fb141aDEE28B01efbc726445) |
+| Unlock lock: Green Goods First Work | <CopyCommand command="0x7BE17077434834Bba963304C1C07741Cc208021f" /> | [arbiscan.io](https://arbiscan.io/address/0x7BE17077434834Bba963304C1C07741Cc208021f) |
+| Unlock lock: Green Goods First Support | <CopyCommand command="0xE8096e5E08c228E61775eD96EF8cDeaD5B166417" /> | [arbiscan.io](https://arbiscan.io/address/0xE8096e5E08c228E61775eD96EF8cDeaD5B166417) |
+| GreenWill badges (implementation) | <CopyCommand command="0x2F1D6BF292A24c0698D1Dc16099296833f9d8C96" /> | [arbiscan.io](https://arbiscan.io/address/0x2F1D6BF292A24c0698D1Dc16099296833f9d8C96) |
+
+### Commitment pooling and settlement
+
+Pools, registries, settlement, and their upgradeable implementations.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Commitment pooling module (proxy) | <CopyCommand command="0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a" /> | [arbiscan.io](https://arbiscan.io/address/0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a) |
+| Commitment pooling module (implementation) | <CopyCommand command="0x6268ec974bb217De39E7756d75c8D523b9A79218" /> | [arbiscan.io](https://arbiscan.io/address/0x6268ec974bb217De39E7756d75c8D523b9A79218) |
+| Commitment registry (proxy) | <CopyCommand command="0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959" /> | [arbiscan.io](https://arbiscan.io/address/0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959) |
+| Commitment registry (implementation) | <CopyCommand command="0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970" /> | [arbiscan.io](https://arbiscan.io/address/0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970) |
+| Settlement module (proxy) | <CopyCommand command="0x15c8F6CF25abA2161cc04719b4C4a93c4146935D" /> | [arbiscan.io](https://arbiscan.io/address/0x15c8F6CF25abA2161cc04719b4C4a93c4146935D) |
+| Settlement module (implementation) | <CopyCommand command="0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281" /> | [arbiscan.io](https://arbiscan.io/address/0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281) |
+| Credit registry (proxy) | <CopyCommand command="0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34" /> | [arbiscan.io](https://arbiscan.io/address/0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34) |
+| Credit registry (implementation) | <CopyCommand command="0x2ccd72813f02136EF54683c63DBe0bB48Ca13826" /> | [arbiscan.io](https://arbiscan.io/address/0x2ccd72813f02136EF54683c63DBe0bB48Ca13826) |
+
+### Linked libraries
+
+External libraries the pooling and settlement modules link against.
+
+<details>
+<summary>21 linked libraries</summary>
+
+| Contract | Address | Explorer |
+|---|---|---|
+| CommitmentPoolingClaimsLib | <CopyCommand command="0x6ab32927D709EA68b1B00aCAD31263F3B96b4D70" /> | [arbiscan.io](https://arbiscan.io/address/0x6ab32927D709EA68b1B00aCAD31263F3B96b4D70) |
+| CommitmentPoolingConfirmLib | <CopyCommand command="0x9022375cB1cF383263872a1CE87ffEb6aEA502A5" /> | [arbiscan.io](https://arbiscan.io/address/0x9022375cB1cF383263872a1CE87ffEb6aEA502A5) |
+| CommitmentPoolingCreationLib | <CopyCommand command="0xe027C99791A1F1b840d2E41675ca98DC7b89756c" /> | [arbiscan.io](https://arbiscan.io/address/0xe027C99791A1F1b840d2E41675ca98DC7b89756c) |
+| CommitmentPoolingCyclesLib | <CopyCommand command="0xfe079eD87f93E4eA6b91ca69bBEc7428Dc9fcA5D" /> | [arbiscan.io](https://arbiscan.io/address/0xfe079eD87f93E4eA6b91ca69bBEc7428Dc9fcA5D) |
+| CommitmentPoolingExchangeLib | <CopyCommand command="0xAB0DE52D60258098fdd3C4f91fE6BE07Ff2151fC" /> | [arbiscan.io](https://arbiscan.io/address/0xAB0DE52D60258098fdd3C4f91fE6BE07Ff2151fC) |
+| CommitmentPoolingPoolsLib | <CopyCommand command="0x715bD6b6713d32973D576471F75d9619BD4a541B" /> | [arbiscan.io](https://arbiscan.io/address/0x715bD6b6713d32973D576471F75d9619BD4a541B) |
+| CommitmentPoolingProofLib | <CopyCommand command="0xdd6b42215F166b692568cE67921e6B961E59aFbb" /> | [arbiscan.io](https://arbiscan.io/address/0xdd6b42215F166b692568cE67921e6B961E59aFbb) |
+| CommitmentPoolingRecognitionLib | <CopyCommand command="0x4BeF099fAD5F25708aA449FeDCa5E69fAEEFAAA4" /> | [arbiscan.io](https://arbiscan.io/address/0x4BeF099fAD5F25708aA449FeDCa5E69fAEEFAAA4) |
+| CommitmentPoolingRosterLib | <CopyCommand command="0x0B01c15e861449001b53eD7a58E082a7D4F0C1f2" /> | [arbiscan.io](https://arbiscan.io/address/0x0B01c15e861449001b53eD7a58E082a7D4F0C1f2) |
+| CommitmentPoolingSeriesLib | <CopyCommand command="0xE5053DfE8701d29a98c95Ba703EFC199e2f9dafc" /> | [arbiscan.io](https://arbiscan.io/address/0xE5053DfE8701d29a98c95Ba703EFC199e2f9dafc) |
+| CommitmentPoolingSyncLib | <CopyCommand command="0x9954BfDAb752184e9f04e7c69c00f1CbeC79D8A9" /> | [arbiscan.io](https://arbiscan.io/address/0x9954BfDAb752184e9f04e7c69c00f1CbeC79D8A9) |
+| CommitmentPoolingTerminalLib | <CopyCommand command="0x879Aa35D314924d6Ed426EfB9B7ACaf9C92a0a28" /> | [arbiscan.io](https://arbiscan.io/address/0x879Aa35D314924d6Ed426EfB9B7ACaf9C92a0a28) |
+| CommitmentPoolingTermsLib | <CopyCommand command="0xb24c7De88313ADd5e39e063427198f976d6BbA5c" /> | [arbiscan.io](https://arbiscan.io/address/0xb24c7De88313ADd5e39e063427198f976d6BbA5c) |
+| CommitmentPoolingViewsLib | <CopyCommand command="0xEeb5fc5f3BDba63E3CDD235808a91d8997c95aB9" /> | [arbiscan.io](https://arbiscan.io/address/0xEeb5fc5f3BDba63E3CDD235808a91d8997c95aB9) |
+| SettlementAcknowledgmentLib | <CopyCommand command="0xE81212903382ed03c4D4E8d72d23a098d56DE645" /> | [arbiscan.io](https://arbiscan.io/address/0xE81212903382ed03c4D4E8d72d23a098d56DE645) |
+| SettlementCommandLib | <CopyCommand command="0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8" /> | [arbiscan.io](https://arbiscan.io/address/0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8) |
+| SettlementConfigurationLib | <CopyCommand command="0xa7042e327369beF53E01CCdC46E713Af7Ea9a687" /> | [arbiscan.io](https://arbiscan.io/address/0xa7042e327369beF53E01CCdC46E713Af7Ea9a687) |
+| SettlementFundingLib | <CopyCommand command="0x8cC05D2443AE960c4CB98F462D87D619774B2bfA" /> | [arbiscan.io](https://arbiscan.io/address/0x8cC05D2443AE960c4CB98F462D87D619774B2bfA) |
+| SettlementLifecycleLib | <CopyCommand command="0xA9901d5AbA09aFdC180900AAC423d0bF14633501" /> | [arbiscan.io](https://arbiscan.io/address/0xA9901d5AbA09aFdC180900AAC423d0bF14633501) |
+| SettlementLoanLib | <CopyCommand command="0x44e0ADB51338dA96F2Aaa942924E47008e534122" /> | [arbiscan.io](https://arbiscan.io/address/0x44e0ADB51338dA96F2Aaa942924E47008e534122) |
+| SettlementPlanLib | <CopyCommand command="0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622" /> | [arbiscan.io](https://arbiscan.io/address/0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622) |
+
+</details>
+
+Recorded as the zero address on this network: `ensReceiver`, `gardenerAccountLogic`, `gardenerRegistry`.
+
+## Celo (42220)
+
+14 recorded contracts and 1 schemas. Addresses open on [celoscan.io](https://celoscan.io); schema UIDs open on [celo.easscan.org](https://celo.easscan.org).
+
+### Core protocol
+
+Gardens, their accounts, the registries, and the guardian.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| ERC-6551 account proxy | <CopyCommand command="0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D" /> | [celoscan.io](https://celoscan.io/address/0x3B4A3ACA9D52b01086F625a0EB6E6e24b65C810D) |
+| Action registry | <CopyCommand command="0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92" /> | [celoscan.io](https://celoscan.io/address/0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92) |
+| Deployment registry | <CopyCommand command="0xCf9Aa0c3853f3036daA819a93104841bFB2A7e47" /> | [celoscan.io](https://celoscan.io/address/0xCf9Aa0c3853f3036daA819a93104841bFB2A7e47) |
+| Garden account implementation (ERC-6551) | <CopyCommand command="0x710cBFB9a29920B4577692eD495972fcd27286b4" /> | [celoscan.io](https://celoscan.io/address/0x710cBFB9a29920B4577692eD495972fcd27286b4) |
+| Garden token (ERC-721) | <CopyCommand command="0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B" /> | [celoscan.io](https://celoscan.io/address/0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B) |
+| Guardian | <CopyCommand command="0xCE1Cf0e0c11500560C153778FA5428a6e1dBa8cC" /> | [celoscan.io](https://celoscan.io/address/0xCE1Cf0e0c11500560C153778FA5428a6e1dBa8cC) |
+| Root garden | <CopyCommand command="0x1Ebf285ab4816Bde1Ae64099ab93bBA9b1A7dF76" /> | [celoscan.io](https://celoscan.io/address/0x1Ebf285ab4816Bde1Ae64099ab93bBA9b1A7dF76) |
+
+### EAS resolvers
+
+The contracts that check authorization before EAS records a Work, Work Approval, Assessment, or Testimony.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Assessment resolver | <CopyCommand command="0xC81B11e3d199D60678D5fF962F616ab64df73554" /> | [celoscan.io](https://celoscan.io/address/0xC81B11e3d199D60678D5fF962F616ab64df73554) |
+| Work approval resolver | <CopyCommand command="0x54b9Dd27d4eD2282D8Cd12CD55ee4B983eC9E3D6" /> | [celoscan.io](https://celoscan.io/address/0x54b9Dd27d4eD2282D8Cd12CD55ee4B983eC9E3D6) |
+| Work resolver | <CopyCommand command="0x028ff0640262a1847d512B3690266d0B35d5260F" /> | [celoscan.io](https://celoscan.io/address/0x028ff0640262a1847d512B3690266d0B35d5260F) |
+
+### EAS core
+
+The Ethereum Attestation Service contracts this network's records live in.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| EAS | <CopyCommand command="0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92" /> | [celoscan.io](https://celoscan.io/address/0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92) |
+| EAS schema registry | <CopyCommand command="0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34" /> | [celoscan.io](https://celoscan.io/address/0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34) |
+
+### EAS schemas
+
+The schema each record kind is written against.
+
+| Schema | UID | Explorer |
+|---|---|---|
+| Green Goods Work Submission | <CopyCommand command="0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a" /> | [celo.easscan.org](https://celo.easscan.org/schema/view/0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a) |
+
+### Commitment pooling and settlement
+
+Pools, registries, settlement, and their upgradeable implementations.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Celo settlement executor (proxy) | <CopyCommand command="0xB8a7F3c3DfA407c45e05b7B2381233101938a84F" /> | [celoscan.io](https://celoscan.io/address/0xB8a7F3c3DfA407c45e05b7B2381233101938a84F) |
+| Celo settlement executor (implementation) | <CopyCommand command="0xe634f50f112C573b07f2b98A60aa828cBFdfE86d" /> | [celoscan.io](https://celoscan.io/address/0xe634f50f112C573b07f2b98A60aa828cBFdfE86d) |
+
+Recorded as the zero address on this network: `cookieJarModule`, `gardensModule`, `hatsModule`, `karmaGAPModule`, `octantModule`, `octantFactory`, `unifiedPowerRegistry`, `yieldSplitter`, `hypercertsModule`, `hypercertExchange`, `hypercertMinter`, `marketplaceAdapter`, `transferManager`, `strategyHypercertFractionOffer`, `greenGoodsENS`, `gardenerAccountLogic`, `gardenerRegistry`.
+
+## Ethereum Mainnet (1)
+
+4 recorded contracts and 0 schemas. Addresses open on [etherscan.io](https://etherscan.io); schema UIDs open on [easscan.org](https://easscan.org).
+
+### Core protocol
+
+Gardens, their accounts, the registries, and the guardian.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| ENS receiver | <CopyCommand command="0x742c8935d314363e8c16df5b0791525109Fb9387" /> | [etherscan.io](https://etherscan.io/address/0x742c8935d314363e8c16df5b0791525109Fb9387) |
+| ENS receiver (previous) | <CopyCommand command="0x80a906C175ea875af8a2afcA8F91F60b201dc824" /> | [etherscan.io](https://etherscan.io/address/0x80a906C175ea875af8a2afcA8F91F60b201dc824) |
+
+### EAS core
+
+The Ethereum Attestation Service contracts this network's records live in.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| EAS | <CopyCommand command="0xA1207F3BBa224E2c9c3c6D5aF63D0eb1582Ce587" /> | [etherscan.io](https://etherscan.io/address/0xA1207F3BBa224E2c9c3c6D5aF63D0eb1582Ce587) |
+| EAS schema registry | <CopyCommand command="0xA7b39296258348C78294F95B872b282326A97BDF" /> | [etherscan.io](https://etherscan.io/address/0xA7b39296258348C78294F95B872b282326A97BDF) |
+
+Recorded as the zero address on this network: `accountProxy`, `actionRegistry`, `assessmentResolver`, `cookieJarModule`, `deploymentRegistry`, `gardenAccountImpl`, `gardenToken`, `gardenerAccountLogic`, `gardenerRegistry`, `gardensModule`, `greenGoodsENS`, `guardian`, `hatsModule`, `hypercertsModule`, `karmaGAPModule`, `marketplaceAdapter`, `octantModule`, `unifiedPowerRegistry`, `workApprovalResolver`, `workResolver`, `yieldSplitter`, `rootGarden.address`.
+
+## Sepolia Testnet (11155111)
+
+25 recorded contracts and 3 schemas. Addresses open on [sepolia.etherscan.io](https://sepolia.etherscan.io); schema UIDs open on [sepolia.easscan.org](https://sepolia.easscan.org).
+
+### Core protocol
+
+Gardens, their accounts, the registries, and the guardian.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| ERC-6551 account proxy | <CopyCommand command="0x0DeAf867724154C0Cf58000884df925D79070F22" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x0DeAf867724154C0Cf58000884df925D79070F22) |
+| Action registry | <CopyCommand command="0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae) |
+| Deployment registry | <CopyCommand command="0x029DF9E43E6133fc5FED32ab6d3307d6bcA1A3cA" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x029DF9E43E6133fc5FED32ab6d3307d6bcA1A3cA) |
+| ENS receiver | <CopyCommand command="0x79b0628B0e136Fd7aa46128348A0Cd0BcA05eac2" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x79b0628B0e136Fd7aa46128348A0Cd0BcA05eac2) |
+| Garden account implementation (ERC-6551) | <CopyCommand command="0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692) |
+| Garden token (ERC-721) | <CopyCommand command="0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39) |
+| Green Goods ENS registry | <CopyCommand command="0xa33856C756B07A8Ac5472aE25d9fdaCF126C2636" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xa33856C756B07A8Ac5472aE25d9fdaCF126C2636) |
+| Guardian | <CopyCommand command="0x05F486E3161F895Ad99f041065224F78bDf580a7" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x05F486E3161F895Ad99f041065224F78bDf580a7) |
+| Unified power registry | <CopyCommand command="0x99BB8bAA32c9FdDD152d9A7971cd8fBc87E40B11" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x99BB8bAA32c9FdDD152d9A7971cd8fBc87E40B11) |
+| Yield splitter | <CopyCommand command="0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1) |
+| Root garden | <CopyCommand command="0xDc7B75b3Ed7F5aCFDadaEBBBc60706dB14175E20" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xDc7B75b3Ed7F5aCFDadaEBBBc60706dB14175E20) |
+
+### EAS resolvers
+
+The contracts that check authorization before EAS records a Work, Work Approval, Assessment, or Testimony.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Assessment resolver | <CopyCommand command="0x0646B09bcf3993F02957651354dC267c450CFE58" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x0646B09bcf3993F02957651354dC267c450CFE58) |
+| Work approval resolver | <CopyCommand command="0x166732eD81Ab200A099215cF33F6A712309B69F7" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x166732eD81Ab200A099215cF33F6A712309B69F7) |
+| Work resolver | <CopyCommand command="0x23F29AF6138F126623bA20b4c051E8a04cC7B9e1" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x23F29AF6138F126623bA20b4c051E8a04cC7B9e1) |
+
+### EAS core
+
+The Ethereum Attestation Service contracts this network's records live in.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| EAS | <CopyCommand command="0xC2679fBD37d54388Ce493F1DB75320D236e1815e" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xC2679fBD37d54388Ce493F1DB75320D236e1815e) |
+| EAS schema registry | <CopyCommand command="0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0) |
+
+### EAS schemas
+
+The schema each record kind is written against.
+
+| Schema | UID | Explorer |
+|---|---|---|
+| Green Goods Assessment v2 | <CopyCommand command="0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93" /> | [sepolia.easscan.org](https://sepolia.easscan.org/schema/view/0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93) |
+| Green Goods Work Approval | <CopyCommand command="0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381" /> | [sepolia.easscan.org](https://sepolia.easscan.org/schema/view/0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381) |
+| Green Goods Work Submission | <CopyCommand command="0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4" /> | [sepolia.easscan.org](https://sepolia.easscan.org/schema/view/0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4) |
+
+### Modules and integrations
+
+Capabilities a garden opts into, and the partner contracts behind them.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| Cookie Jar factory (1Hive) | <CopyCommand command="0x021368bf9958f4D535d39d571Bc45f74d20e4666" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x021368bf9958f4D535d39d571Bc45f74d20e4666) |
+| Cookie Jar module | <CopyCommand command="0x18512876A845c626f67f88C757357C61aBd5D877" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x18512876A845c626f67f88C757357C61aBd5D877) |
+| Gardens module | <CopyCommand command="0xa3938322bCc723Ff89fA8b34873ac046A7B8C837" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xa3938322bCc723Ff89fA8b34873ac046A7B8C837) |
+| Hats module | <CopyCommand command="0x8dF31575A30765d7cca6D788644fD0d4FE33a433" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x8dF31575A30765d7cca6D788644fD0d4FE33a433) |
+| Hypercerts module | <CopyCommand command="0x7748Db3Bb3e4CF1A1d489f982F3e1C258Ae9fD30" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x7748Db3Bb3e4CF1A1d489f982F3e1C258Ae9fD30) |
+| Karma GAP module | <CopyCommand command="0x329916F4598eB55eE9D70062Afbf11312c7F6E48" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x329916F4598eB55eE9D70062Afbf11312c7F6E48) |
+| Marketplace adapter | <CopyCommand command="0xB3b2e8AEA8bEDec3c5d4d7D9f74679a5BD1F271F" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xB3b2e8AEA8bEDec3c5d4d7D9f74679a5BD1F271F) |
+| Octant vault factory | <CopyCommand command="0xddA124A539B81e3e2aB41215E4716fcFAfdc2b22" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xddA124A539B81e3e2aB41215E4716fcFAfdc2b22) |
+| Octant module | <CopyCommand command="0xF70970DD1CC26d073A647DAfd1761D9E6d66c187" /> | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xF70970DD1CC26d073A647DAfd1761D9E6d66c187) |
+
+Recorded as the zero address on this network: `gardenerAccountLogic`, `gardenerRegistry`.
+
+Regenerate after a checked-in deployment artifact, schema configuration, indexer configuration, or capability projection changes.

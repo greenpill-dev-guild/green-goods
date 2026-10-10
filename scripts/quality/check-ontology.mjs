@@ -759,6 +759,42 @@ export function checkSidecarIntegrity(ontology, fileExists) {
     }
   }
 
+  // A matrix column is a vocabulary mapping; whether code stands behind it is a separate fact.
+  // Every column is either claimed by exactly one catalog integration or explained by a note,
+  // so the entity matrix can never again call an unbuilt protocol an active integration.
+  const matrixProtocols = ontology.integration_matrix?.protocols ?? [];
+  const claimedColumns = new Map();
+  for (const integration of ontology.integrations ?? []) {
+    if (!Object.hasOwn(integration, "matrix_column")) {
+      errors.push(`integration ${integration.id ?? "?"}: matrix_column is required (a declared integration_matrix protocol, or null when the integration has no column)`);
+      continue;
+    }
+    const column = integration.matrix_column;
+    if (column === null) continue;
+    if (typeof column !== "string" || !matrixProtocols.includes(column)) {
+      errors.push(`integration ${integration.id}: matrix_column "${column}" is not a declared integration_matrix protocol`);
+      continue;
+    }
+    if (claimedColumns.has(column)) {
+      errors.push(`integration ${integration.id}: matrix_column "${column}" is already claimed by ${claimedColumns.get(column)}`);
+      continue;
+    }
+    claimedColumns.set(column, integration.id);
+  }
+  const columnNotes = ontology.integration_matrix?.column_notes ?? {};
+  for (const [column, note] of Object.entries(columnNotes)) {
+    if (!matrixProtocols.includes(column)) errors.push(`matrix column note "${column}": not a declared protocol`);
+    else if (claimedColumns.has(column)) {
+      errors.push(`matrix column note "${column}": column is claimed by integration ${claimedColumns.get(column)}; notes describe unclaimed columns only`);
+    }
+    if (typeof note !== "string" || !note.trim()) errors.push(`matrix column note "${column}": text is required`);
+  }
+  for (const column of matrixProtocols) {
+    if (!claimedColumns.has(column) && !Object.hasOwn(columnNotes, column)) {
+      errors.push(`matrix column "${column}": no integration claims it and integration_matrix.column_notes has no entry; add one or the other`);
+    }
+  }
+
   for (const vocabulary of ontology.vocabularies) {
     if (vocabulary.canonical.members.length === 0) errors.push(`vocabulary ${vocabulary.id}: empty canonical member list`);
     // Display labels are the wire-vs-human seam: a member whose deployed name is not

@@ -5,61 +5,262 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-10
 feature_status: Live
-goal: "Run the repository, find the owning package, and select honest validation."
+goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
-estimated_time: "20-40 minutes."
-prereqs: "Node.js 22+ and Git. Docker for indexer or full-stack work."
+estimated_time: "15-30 minutes."
+prereqs: "Node.js 22.19 or later on the 22 line, and Git. Docker only for the team stack."
 next_steps: "./architecture"
-persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+persona_context: "Developers running Green Goods for the first time, as a public contributor against hosted services or as a team member on the connected local stack."
 source_of_truth:
-  - AGENTS.md
-  - CLAUDE.md
+  - ONBOARDING.md
   - package.json
+  - env.schema
+  - scripts/dev/setup.js
+  - scripts/dev/stack.js
+  - scripts/lib/dev-modes.mjs
+  - .mise.toml
 keywords:
   - developer quickstart
   - green goods monorepo
+  - local development
 ---
+
+import {OnboardingProcedure} from "@site/src/components/docs";
 
 # Getting Started
 
-## First run
+By the end of this page you'll have Green Goods running on your machine: the public site and
+installed-app experience and the steward cockpit, with this docs site and Storybook beside them on
+the hosted path, and a clear check at each step so you know it worked.
 
-Start with the repository's [ONBOARDING.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md).
-It is the setup procedure for humans and agents. Run these commands from the repository root.
+Green Goods is a [Bun](https://bun.sh) monorepo with seven packages spanning a React PWA, Solidity
+contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole
+system to run it. When you're curious, the [Architecture](./architecture) page has the map.
 
-Public contributors can browse with a non-secret baseline and hosted APIs:
+## Before you start
 
-```bash
-npm run setup -- --profile isolated
-bun run dev:health -- prod
-bun run dev -- prod
-```
+- **Node.js 22.19 or later, on the 22 line** (CI runs 22.22.1; setup refuses another major), and
+  **Git**.
+- **Bun 1.4.2**, the version `package.json` declares. Setup installs the current Bun when none is
+  found; mise installs the exact one.
+- **Docker**, only for the team path below. [OrbStack](https://orbstack.dev) and Docker Desktop
+  both work.
+- On Windows, work inside [WSL2](https://learn.microsoft.com/windows/wsl/install).
+- Optional: if you use [mise](https://mise.jdx.dev), `mise install` in the repo installs Node
+  22.22.1, Bun 1.4.2, and Foundry 1.7.1, the versions CI uses. They live in `.mise.toml`.
 
-Team members use `npm run setup -- --profile host`, resolve shared credentials with
-`bun run env:sync` only when `.env` is absent, check `bun run dev:health`, then start `bun run dev`.
-Confirmed transactions affect live Arbitrum. Setup preserves an existing environment.
-See [Environment Management](./env-management) for credential and capability blockers.
-The launcher prints local URLs; verify running services with `bun run dev:smoke -- prod`
-for the public path or `bun run dev:smoke` for the team path.
+## Choose your path
 
-## Find the owner
+- **Public contributor**: the right start for almost everyone doing UI, docs, or design work, or
+  taking a first look around. It needs no credentials and no Docker, and it talks to hosted
+  services.
+- **Team member**: for contract, indexer, or agent work. It runs the agent and indexer locally and
+  needs shared credentials from 1Password plus Docker.
 
-| Goal | Start here |
-|---|---|
-| Protocol or deployment behavior | `packages/contracts` |
-| Shared hooks, modules, providers, or UI foundations | `packages/shared` |
-| Public website or installed PWA | `packages/client` |
-| Steward cockpit | `packages/admin` |
-| Bot, webhook, or public Agent API | `packages/agent` |
-| Event-derived read models | `packages/indexer` |
+Both paths talk to **live Arbitrum One**. Browsing is safe. A wallet or passkey transaction you
+confirm is a real production transaction, so don't confirm one while you're exploring.
 
-Use the generated [API index](./packages/api-index), [persona surfaces](./journeys/persona-surfaces),
-and [deployment status](./deployments/status) for volatile inventories.
+## Path A: run against hosted services
 
-## Validate
+1. Clone and enter the repo:
 
-Run `bun run check --plan -- --intent qa` before selecting tests. Start with the
-targeted proof it returns, then escalate only when a public contract, shared dependency, or critical
-surface requires it.
+   ```bash
+   git clone https://github.com/greenpill-dev-guild/green-goods.git
+   cd green-goods
+   ```
+
+2. Run first-time setup. The isolated profile installs dependencies and writes a non-secret
+   root `.env` when you don't have one yet:
+
+   ```bash
+   npm run setup -- --profile isolated
+   ```
+
+   This is the only time you'll type `npm` here. After setup, every command starts with `bun run`.
+
+3. Check readiness. The health check changes nothing; it names anything missing for the mode you
+   pass, so fix exactly what it flags and rerun it:
+
+   ```bash
+   bun run dev:health -- prod
+   ```
+
+4. Start the local surfaces against the hosted APIs:
+
+   ```bash
+   bun run dev -- prod
+   ```
+
+5. **Checkpoint**: open the surfaces. The launcher prints these same links when it starts, and
+   this mode also opens a browser tab for you.
+
+   | Surface | URL |
+   |---|---|
+   | Client (public site + PWA) | [https://localhost:3001](https://localhost:3001) |
+   | Admin (steward cockpit) | [https://localhost:3002](https://localhost:3002) |
+   | Docs (this site) | [http://localhost:3003](http://localhost:3003) |
+   | Storybook | [http://localhost:3004](http://localhost:3004) |
+
+   <figure className="gg-figure">
+     <img src="/img/builders/green-goods-client-home.webp" alt="The Green Goods home page, with the headline From good intentions to green outcomes and an Explore Gardens button over a photo of a garden at sunset" loading="lazy" />
+     <figcaption>The client opens on the public home page. If you see this at localhost:3001, you're up and running.</figcaption>
+   </figure>
+
+   The client and admin run over HTTPS with a local certificate from
+   [mkcert](https://github.com/FiloSottile/mkcert). The first time, you may be asked for your
+   password so your machine can trust that certificate.
+
+   To see the installed-app experience without connecting a wallet, open
+   [https://localhost:3001/?mockAuth=steward&presentation=pwa](https://localhost:3001/?mockAuth=steward&presentation=pwa).
+   Mock auth signs you in as a test steward, in the PWA presentation. It works only on localhost,
+   and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
+   [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
+
+   <figure className="gg-figure">
+     <img src="/img/builders/admin-hub-work.webp" alt="The admin cockpit's Hub: the garden chip in the app bar, the Work tab listing approved submissions as cards, and the Hub, Garden, Community navigation dock" loading="lazy" width="2000" height="1250" />
+     <figcaption>The admin cockpit's Hub, the first screen a steward lands on. Mock auth shows it for a test steward's garden.</figcaption>
+   </figure>
+
+6. Confirm the services respond. The launcher runs this smoke check itself once the services are
+   up; rerun it by hand whenever you want. It submits no transactions:
+
+   ```bash
+   bun run dev:smoke -- prod
+   ```
+
+7. When you're done, press `Ctrl-C` in the terminal running the launcher. That stops only the
+   services it started.
+
+## Path B: run the connected local stack
+
+The team stack runs the agent API and the Envio indexer on your machine, next to the client and
+admin, so you can change them and see the result end to end.
+
+1. Start OrbStack or Docker Desktop. The local indexer runs in containers.
+
+2. Run host setup. It checks your tools and installs any that are missing, but it doesn't fetch
+   secrets:
+
+   ```bash
+   npm run setup -- --profile host
+   ```
+
+3. Resolve shared credentials, then validate them. The `test -f .env ||` guard runs the sync only
+   when you have no `.env` yet, so it never replaces values you already have:
+
+   ```bash
+   test -f .env || bun run env:sync
+   bun run env:check
+   ```
+
+4. Check readiness, then start the default stack:
+
+   ```bash
+   bun run dev:health
+   bun run dev
+   ```
+
+   The default mode, `local`, brings up the client and admin, the agent on port 3005, and the
+   indexer: GraphQL on 3006, the indexer itself on 3007, and Postgres on 3008.
+
+5. **Checkpoint**: verify the stack in one command.
+
+   ```bash
+   bun run dev:smoke
+   ```
+
+   The smoke check confirms the services respond and the chain and indexer are ready. It submits
+   no transactions. If the indexer is still replaying history, leave the launcher running and
+   rerun the smoke check once it catches up.
+
+6. Press `Ctrl-C` in the launcher's terminal to shut the stack down.
+
+### Other modes {#other-modes}
+
+Each mode takes the same name in all three commands, for example `bun run dev -- full` with
+`bun run dev:health -- full` and `bun run dev:smoke -- full`:
+
+- **`full`** adds this docs site and Storybook to the default stack, and opens a browser tab.
+- **`web`** starts only the browser surfaces (client, admin, docs, Storybook) against the live
+  chain and local APIs that must already be running. Its readiness check is
+  `bun run dev:health -- --profile web`; a profile stands in for the mode name, so pass one or the
+  other, never both.
+- **`prod-mirror`** runs a local live-data indexer next to the hosted agent, for indexer work
+  against production data.
+- **`fork`** swaps live Arbitrum for a local [Anvil](https://getfoundry.sh/anvil/overview) fork on
+  port 3009, for contract work you want off the live chain. The local indexer still reads live
+  Arbitrum, so it won't show what you do on the fork. Restarting Anvil resets the fork, and
+  passkeys don't work there.
+- **Service names** start a narrower set: `bun run dev -- client admin` starts just those two,
+  without the agent or indexer behind them.
+
+[ONBOARDING.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md#development-modes)
+lists every mode, what it starts, and which chain and data it uses. Stop the running launcher
+before you switch modes. For everything beyond starting the stack, the
+[Command inventory](/builders/packages/commands) lists every repository command, generated from
+the package manifests.
+
+## Bring an AI agent
+
+Green Goods is built with AI agents as a core practice, and the repository is set up so yours can
+onboard itself. Copy the procedure below into your agent (the copy button sits in the block's
+corner) and it will check your setup, pick the right path, and finish with a short report of what
+it verified and what is still missing. It is the repository's own
+[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md),
+embedded here from a generated copy so the two cannot drift.
+
+<details>
+<summary>ONBOARDING.md, ready to copy</summary>
+
+<OnboardingProcedure />
+
+</details>
+
+The [Bring an agent](./how-to-contribute#bring-an-agent) section of First Contribution places
+this in the wider contribution flow.
+
+## About the environment {#environment}
+
+Green Goods uses one `.env` at the repository root. Packages never carry their own.
+
+- **`env.schema` owns the rules.** It names every variable and whether it's required.
+  `bun run env:check` validates your `.env` against it.
+- **`env.template` holds references, not secrets.** Team members resolve those references from
+  1Password with `bun run env:sync`, which needs the 1Password CLI and access to the shared
+  vault. If the template is missing, `node scripts/dev/env-template-init.js` recreates its shape;
+  fill in the team references, then sync.
+- **Some capabilities need their own credentials.** `ENVIO_API_TOKEN` keeps indexer replay
+  reliable on the team stack, uploads and messaging need their service keys, and passkeys and
+  wallets bring their own. Personal credentials stay in your `.env`, never in the shared template.
+- **Setup never overwrites your `.env`.** A rerun keeps the file as it is; it doesn't merge in new
+  keys or repair old ones. The sync is an explicit write to it, so check what it would change
+  before you run it on an existing file.
+- **Capabilities have their own checks.** `bun run dev:health -- --profile upload`, for example,
+  explains what uploads still need.
+- **Secrets stay out of the repo.** Never put a value in docs, logs, test fixtures, package-level
+  files, or generated pages.
+
+A green smoke check proves the services respond. It doesn't prove that wallets, passkeys,
+uploads, or transactions work; each of those needs its own credentials and its own test.
+
+## If something goes wrong
+
+- **A port is busy.** Another session may own it. `bun run dev -- status` shows what's running and
+  which launcher owns it. Reuse a compatible service, and never stop a listener you didn't start.
+- **The health check flags something.** Fix exactly what it names, then rerun it with the same
+  mode.
+- **Path B fails early.** Make sure OrbStack or Docker Desktop is actually running; the local
+  indexer needs it.
+- **You need to stop or reset.** `Ctrl-C` stops the services a launcher started. `bun run dev -- stop`
+  stops a detached launcher (it needs the same owner identity the launcher started with), and
+  `bun run dev:clean` clears stale local state; its `--dry-run` flag shows what it would remove.
+- **Anything else.** [Ask us on Telegram or Discord](./how-to-contribute#stay-in-touch) if the
+  health output doesn't get you unstuck.
+
+## Next steps
+
+- [Architecture](./architecture) shows how the pieces you just ran fit together.
+- [First Contribution](./how-to-contribute) goes from finding work to a merged pull request.
+- [Testing Guide](/builders/testing) covers the runners behind `bun run test`.

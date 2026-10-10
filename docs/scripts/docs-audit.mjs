@@ -35,6 +35,8 @@ const canonicalRoots = [
 
 const approvedEndpointLiteralFiles = new Set([
   "docs/docs/builders/packages/api-index.mdx",
+  // The deployments projection links every schema UID to its EAS explorer page on purpose.
+  "docs/docs/builders/reference/deployments.mdx",
 ]);
 
 const requiredFrontmatter = [

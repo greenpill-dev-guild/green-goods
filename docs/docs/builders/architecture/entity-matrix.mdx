@@ -1,0 +1,190 @@
+---
+title: Entity Matrix
+slug: /builders/architecture/entity-matrix
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+source_digest: "sha256:fbcc8b77ba7b7ecc426ec1439fa02e9580859f7fd8d9e14891d6ccf358dd0aab"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+sidebar_position: 2
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Entity Matrix
+
+Every partner protocol has its own name for the things Green Goods records. This page is the translation table, one section per protocol: what that protocol calls a garden, a piece of work, an approval, or a role. A mapping is vocabulary, not a shipped integration; each section says whether code stands behind it and where its components are recorded. It is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section).
+
+## Protocols at a glance
+
+The integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A protocol without a catalog entry is a vocabulary mapping only.
+
+| Protocol | Code integration | Networks with recorded components | Mapped terms |
+|---|---|---|---|
+| Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 10 |
+| Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 11 |
+| Octant | [Octant](/builders/integrations/octant) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 5 |
+| Gardens V2 | [Gardens](/builders/integrations/gardens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
+| Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
+| Silvi | Vocabulary mapping only, no code integration | — | 1 |
+| Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 1 |
+| Unlock | [Unlock Protocol](/builders/integrations/unlock) | Arbitrum One (Deployed) | 1 |
+| ENS | [ENS](/builders/integrations/ens) | Ethereum Mainnet (Partial), Sepolia Testnet (Deployed), Arbitrum One (Partial) | 0 |
+| Lido | Vocabulary mapping only, no code integration | — | 0 |
+| FTC | Vocabulary mapping only, no code integration | — | 0 |
+
+Columns without a code integration:
+
+- **Silvi**: Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
+- **Lido**: Liquid staking. A yield integration is an idea with no entity mappings and no code.
+- **FTC**: Integration scope to be defined; no entity mappings and no code.
+
+## Mappings by protocol
+
+Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept.
+
+### Karma GAP
+
+Code integration: [Karma GAP](/builders/integrations/karma). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Karma GAP | Kind |
+|---|---|---|
+| Garden | Project | Entity |
+| Assessment | Project Milestone | Entity |
+| Action | Partial Project Update | Entity |
+| Work | Partial Project Update | Entity |
+| Work Approval | Partial Project Update | Schema |
+| Garden Steward | Project Owner | Persona |
+| Gardener | Project Member | Persona |
+| Community Member | Project Explorer | Persona |
+| Funder/Evaluator | Grant Evaluator | Concept |
+| Data Scientist/Researcher | Grant Evaluator | Concept |
+
+### Hypercerts
+
+Code integration: [Hypercerts](/builders/integrations/hypercerts). Recorded on: Sepolia Testnet (Partial), Arbitrum One (Deployed).
+
+| Green Goods | Hypercerts | Kind |
+|---|---|---|
+| Garden | Hypercert Holder | Entity |
+| Assessment | Hypercert Data | Entity |
+| Action | Hypercert Data | Entity |
+| Work | Hypercert Data | Entity |
+| Work Approval | Hypercert Data | Schema |
+| Garden Steward | Creator | Persona |
+| Gardener | Creator | Persona |
+| Community Member | Evaluator | Persona |
+| Funder/Evaluator | Funder | Concept |
+| Data Scientist/Researcher | Evaluator | Concept |
+| Impact | Hypercert Token | Concept |
+
+### Octant
+
+Code integration: [Octant](/builders/integrations/octant). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Octant | Kind |
+|---|---|---|
+| Garden | Vault Owner | Entity |
+| Garden Steward | Vault Admin, TAM Operator | Persona |
+| Gardener | TAM Proposer | Persona |
+| Community Member | TAM Voter | Persona |
+| Funder/Evaluator | Vault Depositor | Concept |
+
+### Gardens V2
+
+Code integration: [Gardens](/builders/integrations/gardens). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Gardens V2 | Kind |
+|---|---|---|
+| Garden | Community | Entity |
+| Garden Steward | Council Member | Persona |
+| Gardener | Community Member | Persona |
+| Community Member | Community Member | Persona |
+| Funder/Evaluator | Community Funder | Concept |
+| Data Scientist/Researcher | Community Explorer | Concept |
+
+### Hats Protocol
+
+Code integration: [Hats Protocol](/builders/integrations/hats). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Hats Protocol | Kind |
+|---|---|---|
+| Garden | Top Hat | Entity |
+| Garden Steward | Steward Hat | Persona |
+| Gardener | Gardener Hat | Persona |
+| Community Member | Community Member | Persona |
+| Funder/Evaluator | Garden Supporter | Concept |
+| Data Scientist/Researcher | Garden Analyst | Concept |
+
+### Silvi
+
+Vocabulary mapping only, no code integration. Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
+
+| Green Goods | Silvi | Kind |
+|---|---|---|
+| Garden | Project | Entity |
+
+### Cookie Jar
+
+Code integration: [Cookie Jar](/builders/integrations/cookie-jar). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Cookie Jar | Kind |
+|---|---|---|
+| Garden | Jar | Entity |
+
+### Unlock
+
+Code integration: [Unlock Protocol](/builders/integrations/unlock). Recorded on: Arbitrum One (Deployed).
+
+| Green Goods | Unlock | Kind |
+|---|---|---|
+| Badges | Unlock NFT | Concept |
+
+Protocols in the matrix with no mapped terms yet: ENS, Lido, FTC.
+
+## Using the matrix
+
+When you build against a partner protocol, read its section first so the names at the API boundary match the mapping the team already settled on. When a task or an issue speaks the partner's language (a Karma GAP "Project Milestone", for instance), translate it back through the same section: that one is a Green Goods Assessment.
+
+### Maintenance
+
+The mapping data lives in the ontology sidecar's `integration_matrix` section, and each catalog integration names its column through `matrix_column`. Add a column only after its source-backed implementation or specification exists, give it a catalog entry or a column note (the ontology check refuses a column with neither), then run `node scripts/docs/generate.mjs --scope ontology` for this page and `node scripts/quality/check-ontology.mjs --generate` for the reference pages. `bun run check --only docs-generated` fails CI whenever this page drifts from its sources.
+
+<NextBestAction
+  title="Next best action"
+  why="See the full integrations overview with surface-level status for each protocol connection."
+  actionLabel="Integrations overview"
+  actionHref="/builders/integrations"
+  alternatives={[
+    {label: "EAS integration", href: "/builders/integrations/eas"},
+  ]}
+/>

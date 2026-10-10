@@ -5,11 +5,11 @@ slug: /community/why-we-build
 sidebar_position: 3
 audience: all
 owner: docs
-last_verified: 2026-04-01
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
-  - docs/docs/builders/integrations/overview.mdx
+  - docs/docs/builders/integrations/index.mdx
   - packages/client/src/views/Public/Home.tsx
   - packages/client/src/views/Public/Impact.tsx
   - packages/shared/src/modules/work
@@ -38,13 +38,13 @@ Green Goods exists because regenerative communities deserve better tools. Field 
 
 ## Greenpill & Regen Core
 
-Green Goods is built by the **Greenpill Dev Guild**, a collective of developers and designers whose mission is to foster positive-sum actions where **impact = profit**.
+Green Goods grows out of the **Greenpill** movement, a network of builders and communities whose mission is to foster positive-sum actions where **impact = profit**.
 
-### Greenpill Dev Guild Mission
+### Our mission
 
-The Greenpill Dev Guild builds open-source tools for regenerative communities. We believe that the people who create positive impact should be the ones who benefit from it – not intermediaries, not platform stewards, but the **gardeners**, **waste collectors**, and **community organizers** doing the work.
+Green Goods builds open-source tools for regenerative communities. We believe that the people who create positive impact should be the ones who benefit from it – not intermediaries, not platform stewards, but the **gardeners**, **waste collectors**, and **community organizers** doing the work.
 
-Our core services:
+What the team does:
 
 - **Platform development** – Building and maintaining the Green Goods protocol
 - **Community onboarding** – Helping garden stewards set up and manage their communities
@@ -160,14 +160,22 @@ graph TD
     E --- SC["Spiritual/Cultural Capital<br/>(e.g. connection to land, purpose)"]
     SC --- N
 
-    style N fill:#22c55e,stroke:#16a34a,color:#fff
-    style S fill:#3b82f6,stroke:#2563eb,color:#fff
-    style F fill:#f59e0b,stroke:#d97706,color:#fff
-    style M fill:#ef4444,stroke:#dc2626,color:#fff
-    style L fill:#10b981,stroke:#059669,color:#fff
-    style I fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    style E fill:#ec4899,stroke:#db2777,color:#fff
-    style SC fill:#14b8a6,stroke:#0d9488,color:#fff
+    classDef natural fill:#166534,stroke:#86efac,color:#ffffff
+    classDef social fill:#1d4ed8,stroke:#93c5fd,color:#ffffff
+    classDef financial fill:#b45309,stroke:#fcd34d,color:#ffffff
+    classDef material fill:#b91c1c,stroke:#fca5a5,color:#ffffff
+    classDef living fill:#047857,stroke:#6ee7b7,color:#ffffff
+    classDef intellectual fill:#6d28d9,stroke:#c4b5fd,color:#ffffff
+    classDef experiential fill:#be185d,stroke:#f9a8d4,color:#ffffff
+    classDef cultural fill:#0f766e,stroke:#5eead4,color:#ffffff
+    class N natural
+    class S social
+    class F financial
+    class M material
+    class L living
+    class I intellectual
+    class E experiential
+    class SC cultural
 ```
 
 By measuring all eight forms, Green Goods ensures that regenerative work is valued **holistically** -- a tree planted isn't just carbon sequestered, it's also food security, biodiversity, community engagement, and educational opportunity.
