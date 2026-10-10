@@ -272,3 +272,32 @@ renders all 13 skills.
   Reference landing, the merge, and the review-pass items left to Afo (community pages and footer
   still name the guild; root DESIGN.md says website buttons are 16px while DL-029 and the Storybook
   say square; the Command inventory order).
+
+## Validation Receipt — Review-pass fixes (2026-10-10)
+
+- **Scope**: the self-review items Afo accepted after QA round 2; decisions 28 to 31. Commits
+  `461515da2` and `500082846`.
+- **Exact commands and results**:
+  `node --test scripts/docs/generate.test.mjs scripts/quality/check-ontology.test.mjs docs/scripts/developer-guides.test.mjs scripts/quality/select-validation.test.mjs docs/scripts/llms.test.mjs docs/scripts/docs-audit.test.mjs scripts/docs/mermaid-parse.test.mjs scripts/quality/task-routing-contract.test.mjs docs/scripts/check-search-index.test.mjs`
+  → 248/248 · `node scripts/docs/generate.mjs --check` → 16 projections current ·
+  `node docs/scripts/docs-audit.mjs --ci` → exit 0, the two advisory endpoint notes only (every
+  retired capture had its consumer repointed first) · `node scripts/quality/check-docs-design-parity.mjs`
+  → 11 bindings aligned · in `docs/`: `bun run test` 85/85, `bun run typecheck` clean,
+  `bun run build` green (70 routes, search index covers 70).
+- **Captures** (Storybook, deployed build, headless Chromium at 2x, light theme; easscan.org,
+  headless Chromium 1440x900 at 2x): Create Garden, Create Action, the Garden overview, the admin
+  sign-in, the shared foundation controls, Submit Work media and review, Your Work offline, and
+  the Green Goods Work Submission schema page. Not usable: the hats app renders tree 92 too small
+  at viewport size and arbiscan answers with a bot check.
+- **Rendered proof** (docs local production build on 127.0.0.1:3013, browser pane): every image on
+  EAS, Submit Work (six) and Managing Actions (two) reports `complete` with a natural width;
+  Deployments & Addresses shows "ERC-6551 account proxy" and "Root garden" with the raw key only in
+  the zero-address line; Why We Build's article carries no "Dev Guild" (the footer copyright line
+  still does, by decision 28).
+- **Validated paths**: `docs/`, `scripts/docs/`, `DESIGN.md` (prose only; the front matter and the
+  generated token JSON are unchanged in value).
+- **Worktree identity**: `git status --porcelain` → empty after the two commits.
+- **Push gate**: run on the pushed head through this branch's own pre-push hook with the ontology
+  check and the nine docs test files as focus; the PR body records the result.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge) plus
+  the items left on purpose in the status note above.

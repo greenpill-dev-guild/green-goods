@@ -36,6 +36,10 @@
 | 25 | Architecture carries six ideas: Capital forms around verified work joins the five from decision 20 (Afo, 2026-10-10) | Five ideas still missed commitment pooling and capital formation |
 | 26 | Package order is contracts, indexer, shared, agent, qa, admin, client in the Monorepo Map and the Packages sidebar (Afo, 2026-10-10); the Command inventory keeps the contributor order from round 1 unless Afo says otherwise | The map follows the dependency direction; the inventory order was a separate explicit ask |
 | 27 | The builder track is Green Goods-centric: no dev-guild byline, guild-wide guide or blog link in First Contribution, and the closing section is Stay in touch (Afo, 2026-10-10) | Afo is stripping the dev-guild framing; the community pages, footer blog link and copyright line still name the guild and are his call |
+| 28 | The community track, Credits and the FAQ drop the dev-guild framing as well (2026-10-10, applying Afo's round-2 direction); the footer copyright line and the License page keep the legal copyright holder until `LICENSE` changes | A byline and guild headings on Welcome, Why We Build and Credits contradicted the builder track; the copyright holder is a legal fact, not framing |
+| 29 | Root `DESIGN.md`'s quick reference follows DL-029 and DL-038 for button corners (16px in the installed app, 12px while pressed, square on the public website) and the Design page says the same (2026-10-10) | The root file still carried DL-026's values a day after DL-029 replaced them; the docs follow the code and the decision log |
+| 30 | Community guide captures are refreshed only where a current Storybook story exists (Create Garden, Create Action, the Garden overview, the Submit Work media and review steps, Your Work offline and pending, the Hub Hypercerts tab); Reviewing Work keeps its two old captures until the Hub work stories mount a seeded garden; no Hats tree or arbiscan visual (2026-10-10) | A stale screenshot beats a wrong one: the Hub work-detail story renders Work not found, the hats app draws tree 92 too small headlessly, and arbiscan sits behind a bot check |
+| 31 | Deployments & Addresses labels every contract by name through a renderer label map with a words fallback; artifact keys appear only in the zero-address line (2026-10-10) | Raw keys such as `accountProxy` and `unifiedPowerRegistry` read as code, not as a reference page |
 
 ## Requirements Coverage
 
@@ -147,6 +151,13 @@ protocol, the personas page is a persona-by-surface matrix from the ontology alo
 ledgers leave the two command pages, Unlock Protocol gets a catalog entry and a page through
 GreenWill, the Design page is one system then three dialects with captures, and the package order
 follows the dependency direction. The self-review outline went to Afo in chat and the Linear comment.
+
+Status (2026-10-10, review pass): the self-review follow-ups Afo accepted landed as `461515da2` (named
+contracts on Deployments & Addresses) and `500082846` (guild framing off the community track, the
+root DesignMD corner rule, current community captures, visuals for EAS, Shared and Passkeys, the
+admin navigation claim softened); decisions 28 to 31. Left on purpose: the Command inventory
+order, Lido and FTC in the matrix, moving the seven principles off the Design page, seeding the
+Hub work stories (shared package), and the footer and License copyright lines.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

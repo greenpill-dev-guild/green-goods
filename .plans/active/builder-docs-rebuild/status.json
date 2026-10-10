@@ -217,6 +217,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "QA round 2 (decisions 21 to 27): eleven items from Afo's second walk landed; current product captures, Unlock through GreenWill in the catalog, per-protocol entity matrix, persona-by-surface matrix, retired commands dropped from the generated pages, six ideas on Architecture, the Design page as one system and three dialects. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T11:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Review-pass fixes (decisions 28 to 31): named contracts on the deployments page, guild framing off the community track, root DesignMD corner rule aligned with DL-029, current community captures, visuals for EAS, Shared and Passkeys. Commits 461515da2 and 500082846; receipt in handoffs/claude-ui.md."
     }
   ]
 }
