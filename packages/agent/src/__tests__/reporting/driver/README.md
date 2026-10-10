@@ -34,6 +34,11 @@ bun run --cwd packages/agent reporting:driver
 To drive the client ceremony pages locally, set `REPORTING_DRIVER_ORIGIN` to the client dev
 origin and proxy `/api/messaging` from the client dev server to the driver.
 
+The browser suite does this itself: `bun run browser e2e --preset passkey` starts the driver on
+port 3016 behind the Client test server and walks the Account step of a chat link
+(`tests/specs/client.reporting-account.passkey.spec.ts`). A change to the driver's ingress, outbox
+or origin handling can break that run, which the Client workflow reports, not the Agent's.
+
 A deployed Agent runs its ceremonies on one Green Goods site, named by `AGENT_REPORTING_SITE`:
 `production` (the default, `https://www.greengoods.app`) or `beta` (`https://beta.greengoods.app`).
 The addresses are fixed in code, so the setting cannot name another host. Everywhere else the
