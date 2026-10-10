@@ -410,7 +410,7 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPa
   // more than a focused run would. Docs tests have no focused mode and always run whole.
   const deleted = new Set(deletedPaths);
   const unfocusable = [
-    ...deletedPaths.filter(isTestPath),
+    ...deletedPaths.filter(affectsTests),
     ...changedPaths.filter(
       (path) => affectsTests(path) && !isRunnableTestPath(path) && !deleted.has(path),
     ),

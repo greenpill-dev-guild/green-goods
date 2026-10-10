@@ -2639,6 +2639,13 @@ test("only a test file becomes a focused run; helpers and notes under a test dir
     assert.equal(packageTest(plan, "agent"), undefined, intent);
     assert.equal(plan.status, "ready", intent);
   }
+  // Removing or renaming notes asks for no test either, even beside a suite too dear to run whole.
+  const oldNotes = "packages/shared/src/__tests__/NOTES.md";
+  for (const changedPaths of [[oldNotes], [oldNotes, "packages/shared/src/__tests__/README.md"]]) {
+    const plan = selectValidation({ intent: "push", changedPaths, deletedPaths: [oldNotes] });
+    assert.equal(plan.status, "ready", changedPaths.join(" + "));
+    assert.equal(packageTest(plan, "shared"), undefined, changedPaths.join(" + "));
+  }
 
   // A helper is never the focus. A suite as cheap as a focused run runs whole.
   const helper = "packages/agent/src/__tests__/reporting/driver/server.ts";
