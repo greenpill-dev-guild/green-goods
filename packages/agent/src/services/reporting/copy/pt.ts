@@ -91,6 +91,8 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.gardenTakenWords": " Envie GARDEN para trocar, ou JOIN para entrar em outra horta.",
   "report.gardenDropped":
     "Esta conta não está em {garden}, então seu relato precisa de outra horta.",
+  "report.gardenUnlisted":
+    "A horta deste relato não recebe mais relatos pelo chat, então ele precisa de outra horta.",
   "report.joinFirst":
     "Ainda não vejo {account} em nenhuma horta, então não há para onde enviar este relato. Ele está guardado.\n\nEntre no Jardim Comunitário aqui abaixo, ou peça a um responsável pela sua horta para adicionar esta conta. Uma horta em que você acabou de entrar pode levar alguns minutos para aparecer aqui.",
   "report.joinFirstSteward":

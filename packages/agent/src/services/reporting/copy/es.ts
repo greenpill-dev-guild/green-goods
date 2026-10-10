@@ -89,6 +89,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.gardenTakenWords": " Envía GARDEN para cambiarlo, o JOIN para unirte a otro huerto.",
   "report.gardenDropped":
     "Esta cuenta no está en {garden}, así que tu reporte necesita otro huerto.",
+  "report.gardenUnlisted":
+    "El huerto de este reporte ya no recibe reportes por chat, así que necesita otro huerto.",
   "report.joinFirst":
     "Aún no veo {account} en ningún huerto, así que no hay adónde enviar este reporte. Está guardado.\n\nÚnete al Huerto Comunitario aquí abajo, o pide a un administrador de tu huerto que agregue esta cuenta. Un huerto al que acabas de unirte puede tardar unos minutos en aparecer aquí.",
   "report.joinFirstSteward":

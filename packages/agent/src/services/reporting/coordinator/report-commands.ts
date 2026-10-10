@@ -16,7 +16,7 @@ import type { ChatCommand } from "./commands";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditMenu } from "./edit-menu";
 import { askGarden, askJoin, sayJoin } from "./garden-step";
-import { gardenLabel, promptNextStep } from "./prompting";
+import { askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnExternal } from "./report-work";
 import type { TurnWriter } from "./writer";
 
@@ -48,6 +48,8 @@ export function confirmDraft(
   const draft = ctx.draft;
   const prompt = ctx.prompt;
   if (!draft) return writer.say("report.noStatus");
+  // A report whose garden has left the list cannot be published, so it is not confirmed either.
+  if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
   const current =
     prompt?.kind === "confirm_report" &&
     prompt.subjectId === draft.id &&

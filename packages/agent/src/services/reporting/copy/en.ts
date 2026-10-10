@@ -88,6 +88,8 @@ export const EN_REPORTING_COPY = {
   "report.gardenTaken": "{garden} is your only garden, so I'll use it for this report.{how}",
   "report.gardenTakenWords": " Send GARDEN to change it, or JOIN to join another garden.",
   "report.gardenDropped": "This account isn't in {garden}, so your report needs another garden.",
+  "report.gardenUnlisted":
+    "The garden this report was for no longer takes reports from chat, so it needs another garden.",
   "report.joinFirst":
     "I don't see {account} in a garden yet, so there's nowhere to send this report. It's saved.\n\nJoin the Community Garden below, or ask a steward of your garden to add this account. A garden you just joined can take a few minutes to show here.",
   "report.joinFirstSteward":

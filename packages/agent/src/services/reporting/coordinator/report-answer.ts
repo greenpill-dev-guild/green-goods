@@ -22,6 +22,7 @@ import {
 } from "./garden-step";
 import {
   askAction,
+  askAnotherGarden,
   askField,
   fieldHint,
   fieldQuestionText,
@@ -163,6 +164,8 @@ export function handleReportAnswer(
       break;
     }
     case "select_action": {
+      // The activities belonged to a garden that has since left the list.
+      if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
       if (page !== null) return askAction(writer, draft, external.catalog, page);
       const actions = external.catalog.result?.ok ? external.catalog.result.actions : [];
       const uid =

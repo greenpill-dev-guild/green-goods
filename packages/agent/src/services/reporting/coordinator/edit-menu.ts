@@ -1,7 +1,7 @@
 import { findInput } from "@green-goods/shared/modules/agent-reporting";
 import type { DraftRecord } from "../drafts";
 import { askGarden } from "./garden-step";
-import { askAction, askField, type CatalogView } from "./prompting";
+import { askAction, askAnotherGarden, askField, type CatalogView } from "./prompting";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -49,6 +49,7 @@ export function askEditField(
     case "garden":
       return askGarden(writer, draft, writer.ctx.account?.address ?? null);
     case "action":
+      if (askAnotherGarden(writer, draft, writer.ctx.account?.address ?? null)) return;
       return askAction(writer, draft, view);
     case "title":
       writer.ask({ ...base, kind: "title", fieldKey: "title" }, () =>

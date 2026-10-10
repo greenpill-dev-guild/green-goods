@@ -11,8 +11,9 @@ import {
 import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
-import { findGarden, type GardenDirectory, type ReportingGarden } from "../gardens";
+import { findGarden, type GardenDirectory, isUnlisted, type ReportingGarden } from "../gardens";
 import { closeConversationPrompt, type PromptOption, promptsAsked } from "../prompts";
+import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askGarden } from "./garden-step";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
@@ -354,6 +355,24 @@ export function askConfirmation(
   );
 }
 
+/**
+ * A report whose garden has left the list can go nowhere until it names another, so it is told
+ * why and asked which garden it is for. The garden stays on the report until another is picked:
+ * nothing is lost if it is listed again, and choosing it again then carries the report on.
+ * Publishing refuses such a garden either way. Returns whether the question was put.
+ */
+export function askAnotherGarden(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  account: Address | null
+): boolean {
+  if (!EDITABLE_STATES.has(lifecycleState(draft))) return false;
+  if (!isUnlisted(writer.core.gardens, draft.content.garden?.address)) return false;
+  writer.say("report.gardenUnlisted");
+  askGarden(writer, draft, account);
+  return true;
+}
+
 /** Asks for whatever the draft needs next, or shows the summary when nothing is missing. */
 export function promptNextStep(writer: TurnWriter, draft: DraftRecord, view: CatalogView): void {
   promptNextStepFor(writer, draft, view, writer.ctx.account?.address ?? null);
@@ -366,6 +385,7 @@ export function promptNextStepFor(
   view: CatalogView,
   account: Address | null
 ): void {
+  if (askAnotherGarden(writer, draft, account)) return;
   const requirements = outstandingRequirements(draft.content, draft.snapshot);
   if (requirements.length === 0) {
     askConfirmation(writer, draft, account);

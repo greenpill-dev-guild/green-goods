@@ -78,6 +78,19 @@ export function findGarden(
   return wanted ? (gardens.list().find((garden) => garden.address === wanted) ?? null) : null;
 }
 
+/**
+ * Whether a garden has left the list: the list has been read and does not have it. A garden
+ * leaves when it is hidden from every Green Goods surface or the indexer no longer returns it.
+ * An empty list says nothing, since that is what the directory holds until its first read.
+ */
+export function isUnlisted(gardens: GardenDirectory, address: string | null | undefined): boolean {
+  const wanted = address?.toLowerCase();
+  const listed = gardens.list();
+  return (
+    Boolean(wanted) && listed.length > 0 && !listed.some((garden) => garden.address === wanted)
+  );
+}
+
 export function gardenByKey(gardens: GardenDirectory, key: string): ReportingGarden | null {
   return gardens.list().find((garden) => garden.key === key) ?? null;
 }

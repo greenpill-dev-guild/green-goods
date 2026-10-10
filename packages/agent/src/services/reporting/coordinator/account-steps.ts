@@ -6,7 +6,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
 import { issueContinuation } from "../continuations";
 import { commitDraft, type DraftRecord } from "../drafts";
-import { gardenScope, type ReportingGarden } from "../gardens";
+import { gardenScope, isUnlisted, type ReportingGarden } from "../gardens";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
@@ -239,13 +239,15 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
     ]);
     writer.say("report.gardenDropped", { garden: dropped.label });
   }
+  // A garden that has left the list is no one's: the report says so and asks for another.
+  const unlisted = isUnlisted(core.gardens, work.content.garden?.address);
   // There is nothing to check the report's garden against, so it waits at the garden question.
-  if (work.content.garden && gardenScope(core.gardens, account).kind === "unavailable")
+  if (!unlisted && work.content.garden && gardenScope(core.gardens, account).kind === "unavailable")
     return askGarden(writer, draft, account);
   // A report waiting on its garden, showing its summary or left with no question asks what it
   // needs now. An open garden question is put again within this account's gardens, and a
   // question about the report's details stays open as it was.
-  if (!work.content.garden || !ctx.prompt || ctx.prompt.kind === "confirm_report")
+  if (!work.content.garden || !ctx.prompt || ctx.prompt.kind === "confirm_report" || unlisted)
     finish(writer, draft, work, external, "account");
   else if (ctx.prompt.kind === "select_garden") askGarden(writer, draft, account);
 }

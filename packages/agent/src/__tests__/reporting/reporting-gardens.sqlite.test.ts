@@ -5,8 +5,8 @@ import type { ReportingGarden } from "../../services/reporting/gardens";
 import { TestBrowser } from "./support/browser";
 import { VIDEO_CLIP } from "./support/media";
 import { AIYELOJA, TAS } from "./support/fixtures";
-import { adaAccount, bolaAccount, latestLink } from "./support/flows";
-import { ADA, BOLA, Harness, type Person } from "./support/harness";
+import { adaAccount, bolaAccount, latestLink, reportUntilSummary } from "./support/flows";
+import { ADA, BOLA, Harness, type Person, summaryToken } from "./support/harness";
 
 /**
  * Which gardens a linked chat may report to: its account's own, read from the garden directory.
@@ -36,6 +36,8 @@ const OWN_GARDENS =
   "Which of your gardens is this report for?\n1. TAS\n2. Aiyeloja Family Garden\n3. Join another garden";
 const TAS_ACTIVITIES =
   "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding";
+const UNLISTED =
+  "The garden this report was for no longer takes reports from chat, so it needs another garden.";
 const CANNOT_LOAD =
   "I can't load your gardens right now. That's a problem on my side, and your report is saved. Tap Try again or send any message.\n1. Try again";
 
@@ -310,6 +312,69 @@ describe("a linked account's reporting gardens", () => {
       "Photo added to your report.",
       TAS_ACTIVITIES,
     ]);
+  });
+
+  it("asks for another garden when a report's garden leaves the list, and loses nothing until one is picked", async () => {
+    const listed = [TAS, AIYELOJA];
+    harness = new Harness({ gardens: listed });
+    const another = [UNLISTED, "Which garden is this report for?\n1. Aiyeloja Family Garden"];
+    await harness.say(ADA, "START");
+    await harness.say(ADA, "yes");
+    await harness.say(ADA, STORY);
+    expect(await harness.say(ADA, "1")).toEqual([TAS_ACTIVITIES]);
+
+    // TAS leaves the list while its activity question is open. No activity can be chosen there.
+    listed.splice(listed.indexOf(TAS), 1);
+    expect(await harness.press(ADA, "Tree planting")).toEqual(another);
+    // It is listed again before another is picked: naming it carries the report on as it was.
+    listed.unshift(TAS);
+    expect(await harness.say(ADA, "TAS")).toEqual([TAS_ACTIVITIES]);
+    await harness.press(ADA, "Tree planting");
+    await harness.say(ADA, "12");
+    await harness.say(ADA, "2");
+    const summary = await harness.say(ADA, "3 hours");
+
+    // Gone again at the summary: the edit menu's Activity entry has no activities to show, and a
+    // report that cannot be published is not confirmed either.
+    listed.splice(listed.indexOf(TAS), 1);
+    await harness.say(ADA, "EDIT");
+    expect(await harness.press(ADA, "Activity")).toEqual(another);
+    expect(await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`)).toEqual(another);
+    expect(harness.core.db.query("SELECT count(*) AS n FROM confirmations").get()).toEqual({
+      n: 0,
+    });
+    // Picking another garden is what changes the report, and its activity is asked again.
+    expect((await harness.say(ADA, "1"))[0]).toContain("Which activity in Aiyeloja Family Garden");
+  });
+
+  it("turns to the garden question when an account is linked or publishing finds the garden gone", async () => {
+    const listed = [TAS, AIYELOJA];
+    harness = new Harness({ gardens: listed });
+    joins(adaAccount, TAS, AIYELOJA);
+    joins(bolaAccount, AIYELOJA);
+    const another = [
+      UNLISTED,
+      "Which of your gardens is this report for?\n1. Aiyeloja Family Garden\n2. Join another garden",
+    ];
+    // Ada's report is confirmed and waits for her word to publish. Bola's is on its activity.
+    const summary = await reportUntilSummary(harness);
+    await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    const consent = await pair(adaAccount);
+    await harness.say(BOLA, "START");
+    await harness.say(BOLA, "yes");
+    await harness.say(BOLA, STORY);
+    await harness.say(BOLA, "1");
+    await harness.say(BOLA, "CONNECT");
+
+    listed.splice(listed.indexOf(TAS), 1);
+    expect(await pair(bolaAccount, BOLA)).toEqual([
+      `Your account ${bola} is now linked.`,
+      ...another,
+    ]);
+    // Publishing refuses a garden that is not listed. Trying again could never help, so the
+    // report says why and asks, in place of the reply that told her to send RETRY.
+    const token = /PUBLISH (\d{4})/.exec(consent.join("\n"))?.[1];
+    expect(await harness.say(ADA, `PUBLISH ${token}`)).toEqual(another);
   });
 
   it("answers HELP and STOP without waiting on the garden list or a garden's activities", async () => {

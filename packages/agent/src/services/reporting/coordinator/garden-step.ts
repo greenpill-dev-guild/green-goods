@@ -2,7 +2,14 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { createLogger } from "../../logger";
 import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
-import { type GardenScope, gardenScope, gardensIn, type ReportingGarden } from "../gardens";
+import {
+  type GardenDirectory,
+  type GardenScope,
+  gardenScope,
+  gardensIn,
+  isUnlisted,
+  type ReportingGarden,
+} from "../gardens";
 import { type PromptOption, type PromptRecord, typedChoice } from "../prompts";
 import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
@@ -127,12 +134,18 @@ const REPORT_QUESTIONS = new Set([
 
 /**
  * Whether a turn's reply can show or use the linked account's gardens. A report with no garden
- * yet takes or asks for one whenever it is carried on. One that has its garden meets the
- * account's gardens again only at the garden question, on linking, and where a model reads the
- * words and may find a garden named in them.
+ * yet, or one whose garden has left the list, takes or asks for one whenever it is carried on.
+ * One that has its garden meets the account's gardens again only at the garden question, on
+ * linking, and where a model reads the words and may find a garden named in them.
  */
-function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): boolean {
-  const gardenless = !ctx.draft?.content.garden;
+function usesOwnGardens(
+  gardens: GardenDirectory,
+  ctx: TurnContext,
+  plan: TurnPlan,
+  modelReads: boolean
+): boolean {
+  const unlisted = isUnlisted(gardens, ctx.draft?.content.garden?.address);
+  const gardenless = !ctx.draft?.content.garden || unlisted;
   switch (plan.kind) {
     case "command":
       switch (plan.command.kind) {
@@ -146,7 +159,8 @@ function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): 
         // START welcomes an idle chat with its account's gardens; otherwise it lists the commands.
         case "start":
           return !ctx.draft && !ctx.review;
-        // CONFIRM with no summary showing puts the report's open question again.
+        // CONFIRM puts the report's question again when no summary is showing, and turns to the
+        // garden question when the report's garden has left the list.
         case "confirm":
           return ctx.draft !== null && gardenless;
         default:
@@ -155,11 +169,14 @@ function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): 
     case "answer": {
       const { kind } = plan.prompt;
       if (kind === "select_garden") return true;
-      // The edit menu opens the garden question from its Garden entry alone.
-      if (kind === "edit_field")
-        return (
-          modelReads || (plan.option ?? typedChoice(plan.prompt, plan.text))?.value === "garden"
-        );
+      // Confirm is turned back to the garden question when the report's garden has left the list.
+      if (kind === "confirm_report") return unlisted;
+      // The edit menu opens the garden question from its Garden entry, and from its Activity
+      // entry when the report's garden has left the list.
+      if (kind === "edit_field") {
+        const entry = (plan.option ?? typedChoice(plan.prompt, plan.text))?.value;
+        return modelReads || entry === "garden" || (entry === "action" && unlisted);
+      }
       return REPORT_QUESTIONS.has(kind) && (gardenless || modelReads);
     }
     case "message":
@@ -183,7 +200,7 @@ export async function readGardensForTurn(
   plan: TurnPlan,
   modelReads: boolean
 ): Promise<void> {
-  if (!usesOwnGardens(ctx, plan, modelReads)) return;
+  if (!usesOwnGardens(core.gardens, ctx, plan, modelReads)) return;
   // A reply that puts a garden question with no garden to offer again is asking to look again,
   // whether it answers that question or taps a button of an earlier one.
   const reply = plan.kind === "answer" || plan.kind === "stale_reply";
