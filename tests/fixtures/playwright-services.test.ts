@@ -167,8 +167,10 @@ describe("passkey project", () => {
     vi.stubEnv("SKIP_WEBSERVER", "false");
     vi.stubEnv("SKIP_INDEXER", "true");
     const { default: config } = await import("../../playwright.config");
-    // One case at a time: a route's first load can make the dev server reload every open page.
-    expect(config.workers).toBe(1);
+    // One case at a time, as the project's own limit, so that --workers cannot lift it: a
+    // route's first load can make the dev server reload every open page.
+    expect(config.projects?.find((project) => project.name === "passkey-mock")?.workers).toBe(1);
+    expect(config.workers).toBe(2);
     const servers = [config.webServer].flat();
     const driver = servers.find((server) => server?.cwd === "./packages/agent");
     const client = servers.find((server) => server?.cwd === "./packages/client");
