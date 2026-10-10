@@ -96,15 +96,6 @@ vi.mock("@green-goods/shared/utils/action/translations", () => ({
   localizeAction: (action: unknown) => action,
 }));
 
-vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
-  adminRoutes: {
-    hub: (search?: Record<string, string>) => {
-      const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/hub?${query}` : "/hub";
-    },
-  },
-}));
-
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
@@ -326,13 +317,14 @@ describe("WorkDetail view", () => {
   });
 
   it("leads back to the Hub as it was filtered, following the router from one work to the next", () => {
-    mockSearch = "?gardenId=0xGarden&view=assess&sort=oldest";
+    // The real route builder: the way back is the Hub's work list with the garden and the order.
+    mockSearch = "?gardenId=0xGarden&sort=oldest";
     const view = renderWithIntl();
     const back = () => screen.getByRole("link", { name: "Hub" }).getAttribute("href");
-    expect(back()).toBe("/hub?gardenId=0xGarden&view=assess&sort=oldest");
+    expect(back()).toBe("/hub/work?gardenId=0xGarden&sort=oldest");
 
-    // Another work opens in the same view with other filters, and no page load in between.
-    mockSearch = "?view=certify";
+    // Another work opens in the same view from a Hub filtered another way, with no page load.
+    mockSearch = "?gardenId=0xOther&sort=newest";
     view.rerender(
       React.createElement(IntlProvider, {
         locale: "en",
@@ -340,8 +332,7 @@ describe("WorkDetail view", () => {
         children: React.createElement(WorkDetail),
       })
     );
-    expect(back()).toContain("view=certify");
-    expect(back()).not.toContain("0xGarden");
+    expect(back()).toBe("/hub/work?gardenId=0xOther&sort=newest");
     mockSearch = "";
   });
 
