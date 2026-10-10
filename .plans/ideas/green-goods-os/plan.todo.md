@@ -27,7 +27,9 @@ First cohort, buyer, geography, workflow, commercial inputs and ask remain propo
 - [x] Record accepted pillars, global scope, broader proposition and sequence; research intended partner audiences.
 - [x] Create image briefs, two reference-guided photographic concepts and three editable representative compositions.
 - [x] Receive visual feedback and revise: shorter cover, knowledge silos, no generated faces, right-side images and concrete solution.
-- [ ] Align on revised cover, problem and solution before expanding the full deck.
+- [x] Discuss title typography and fuller cover copy; record the decisions: Fraunces upright, subtitle Option 1, composition C1.
+- [x] Produce the v3 cover: a rendered 400 and 500 pair, then the agreed Medium 500 cover with the accent green second line, as an editable PPTX with a browser render and a font bundle.
+- [ ] Align the solution composition on the same typographic rules and review it before the full deck.
 - [ ] Produce the next editable deck from aligned content and imagery, with all-slide inspection.
 - [x] Final link/claim/arithmetic/artifact checks and handoff; observed results in eval.md.
 - [x] Document the mesh, node-free start, extension hub, local setup, API boundaries, local AI and private/public separation.

@@ -1,32 +1,22 @@
 # Green Goods pitch: continuation prompt
 
-Continue the Green Goods research-to-pitch project by resolving the narrative and visual direction with the user before editing another slide. The user is dissatisfied with the deck despite repeated iterations. The latest PPTX is a review artifact, not an accepted design. Success is an agreed, credible story and visual direction followed by an editable deck that communicates the whole Green Goods offer.
+Continue the Green Goods research-to-pitch project by resolving the narrative and visual direction with the user before editing another slide. The cover typography and copy are now agreed; the latest PPTX is a review artifact, not an accepted design. Success is an agreed, credible story and visual direction followed by an editable deck that communicates the whole Green Goods offer.
 
 ## Start here
 
 Read the nearest AGENTS.md, then this hub's `brief.md`, `pitch-revision.md`, `artifacts/README.md` and `eval.md`. The full commission is `handoffs/research-to-pitch-commission-draft.md`. Use this prompt for the immediate next step where older production instructions conflict with it. Inspect git status and the actual branch before editing. Work on the dedicated proposal branch, not the shared release checkout. Preserve unrelated work. Do not repeat the entire research phase by default; audit the claims the next decision depends on.
 
-The current package contains technical/licensing research, evidence register, PRD, strategy/theory of change, historical market assumptions, multiple rejected decks and two three-slide visual checkpoints. The most recent checkpoint is `artifacts/visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx`, with rendered slides, source notes, exact image prompts and verification. Structural and rendering checks passed, but the user remains unsatisfied. Never equate package integrity with a persuasive pitch or user acceptance.
+The current package contains technical/licensing research, evidence register, PRD, strategy/theory of change, historical market assumptions, multiple rejected decks, two three-slide visual checkpoints and the v3 cover pair. The most recent checkpoint is `artifacts/visual-direction-v3/green-goods-pitch-cover-v3.pptx`, with rendered covers, notes and verification; `artifacts/visual-direction-v2/` still holds the problem and solution compositions. Structural and rendering checks passed; the cover is agreed. Never equate package integrity with a persuasive pitch or user acceptance.
 
-## Latest feedback and immediate task
+## Latest decisions and immediate task
 
-The user finds the italic cover title tacky and wants alternative intro fonts suggested before implementation. The shortened subtitle lost too much substance. Previous corrections also remain binding: include knowledge silos in the unequal-access slide, use no AI-generated human faces, position images on the right of split compositions, and explain the actual solution rather than saying only that Green Goods connects tools, knowledge and support.
+Decided on 9 October 2026 Pacific (10 October UTC) after the typography and copy discussion: Fraunces Medium 500 upright for the cover title with no italic, Land care in charcoal and within reach in the website's accent green `#1A7544`; an 18-word third-person subtitle for land stewards over three lines at 20 pt, chosen from measured shorter options after the 27-word version ran to five lines; composition C1, the v2 linen panel left and the conceptual garden scene right; and approval to fetch the Fraunces Medium cut, with nothing installed. Regular 400 was rendered alongside and not chosen. Inter Semibold, Newsreader and Source Serif 4 were considered and not chosen. Previous corrections remain binding: include knowledge silos in the unequal-access slide, use no AI-generated human faces, position images on the right of split compositions, and explain the actual solution rather than saying only that Green Goods connects tools, knowledge and support.
 
-First deliver a concise discussion document in chat. Include three specific title-font directions, their rationale/tradeoffs, two fuller subtitle options, and a recommendation. Separate title typography, copy and composition so the user can select them deliberately. Do not generate images, edit slides, install fonts or change the website/design system in this step. Wait for the user's direction before producing the next visual sample.
+The [v3 cover checkpoint](../artifacts/visual-direction-v3/README.md) holds the agreed cover as an editable one-slide PPTX with a browser render, speaker notes, a verification receipt and the v3 font bundle. The cover is accepted for this stage; the full-deck pass may still refine it.
 
-Candidate font directions, not approved choices:
+Immediate task: produce the solution-slide sample on the same rules from the v2 solution composition: Fraunces Medium upright headings, Inter body, green reserved for one accent per slide, image on the right, labels for current, proposed and later capabilities, and source-bearing notes. Present it for review before any full-deck expansion. Render it the same way as v3 and state that browser replicas are not native PowerPoint, Keynote or Google Slides output; this environment has no LibreOffice or python-pptx.
 
-- Inter Medium or Semibold: direct and restrained; test whether it has enough character for the cover.
-- Newsreader upright: an editorial alternative already named in the browser design guide; potentially calmer than the rejected Fraunces italic treatment. Availability and presentation rights need verification before use.
-- Fraunces upright: preserve the existing website identity while removing the decorative emphasis. This provides a useful control when deciding whether the issue is the family or its treatment.
-
-Source Serif 4 is another documented alternative if the user prefers a more restrained serif. Keep Inter for supporting text. These are aesthetic proposals, not tested samples. Check actual font files, cuts, rights, export and fallback behavior before using a newly selected family. Nothing is authorized for installation.
-
-Proposed fuller subtitle for discussion only:
-
-> Affordable tools and infrastructure for communities caring for land and each other. Learn from one another, coordinate support and retain sovereignty over your knowledge.
-
-The current hook, “Land care within reach,” is also a proposal, not an accepted final title. Do not force the full proposition into a dense cover paragraph. Preserve its meaning across a short headline and readable supporting copy. The whole pitch must communicate Green Goods, not reduce the offer to a browser notebook or the OS alone.
+The hook "Land care within reach" remains a working title, not an accepted final title. Do not force the full proposition into a dense cover paragraph. The whole pitch must communicate Green Goods, not reduce the offer to a browser notebook or the OS alone.
 
 ## Decisions already accepted
 
@@ -56,4 +46,4 @@ Use the presentation and image-generation skills. Produce one representative cov
 
 Research and planning only. No product code, license changes, issue changes, dependencies, software/font installation, hardware access, sensitive live data, deployments, spending, transactions, partner contact or applications. The current user authorized a dedicated branch and draft PR to preserve this work; that is not authorization to merge or contact pitch audiences. Keep personnel assessments and personal financial information out of all artifacts.
 
-Stop this next step after delivering the typography/copy recommendations for discussion. Do not treat another unreviewed deck iteration as completion. The later completion criterion is user-aligned narrative/design plus an inspected editable deck and accurate source-to-claim index.
+Stop after the solution sample has been reviewed; do not expand the full deck before the solution sample is accepted. Do not treat another unreviewed deck iteration as completion. The later completion criterion is user-aligned narrative/design plus an inspected editable deck and accurate source-to-claim index.

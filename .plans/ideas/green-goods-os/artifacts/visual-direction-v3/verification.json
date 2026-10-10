@@ -1,0 +1,62 @@
+{
+  "file": "artifacts/visual-direction-v3/green-goods-pitch-cover-v3.pptx",
+  "sha256": "9b99b2afc2216e2064fc779d4e9dd43b0f6333604e1464976245f84028a639fc",
+  "byteCount": 3247351,
+  "slides": 1,
+  "variants": {
+    "slide1": "Fraunces Medium 500 title; Land care in 292524, within reach in 1A7544 (website tertiary-action green), upright"
+  },
+  "editable_shapes_per_slide": [7],
+  "embedded_pictures_per_slide": [2],
+  "notes_parts": 1,
+  "em_dashes": 0,
+  "italic_runs_on_slides": 0,
+  "user_proposition_in_cover_notes": true,
+  "commercial_assumptions_excluded": true,
+  "observed_font_families": ["Fraunces", "Fraunces Medium", "Inter"],
+  "font_sizes_pt": {
+    "wordmark": 25.5,
+    "title": 50,
+    "subtitle": 20,
+    "caption": 10.5
+  },
+  "line_spacing_pt": {
+    "title": 54,
+    "subtitle": 28
+  },
+  "structural_checks": {
+    "zipIntegrity": true,
+    "xmlWellFormed": true,
+    "relationshipTargetsResolve": true,
+    "allPartsTyped": true,
+    "slideIdList": [["256", "/ppt/slides/slide1.xml"]],
+    "method": "Python standard library: zip test, minidom parse of every XML and rels part, relationship target existence, content-type coverage, slide id list resolution, text and attribute scans."
+  },
+  "source_package": {
+    "file": "artifacts/visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx",
+    "sha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+    "edit": "slide 1 title and subtitle rebuilt (Fraunces Medium, second title line in 1A7544, 18-word subtitle at 20 pt); v2 slides 2 and 3 and their media dropped from this checkpoint file"
+  },
+  "render_engine": "Headless Chromium 148.0.7778.96 through the repository's @playwright/test 1.60.0, rendering an HTML replica of the slide geometry at 1280x720 (96 px per inch) with the exact font files loaded by the page",
+  "render_review": "Render inspected at 1280x720 and 2560x1440; title fits on two lines with margin, three subtitle lines fit the 5.9 in box kerned and unkerned, second title line in the accent green, no faces or heads, no italics",
+  "render_is_native_pptx_output": false,
+  "native_powerpoint_keynote_or_google_slides_tested": false,
+  "fonts_embedded": false,
+  "fonts_bundle": {
+    "file": "artifacts/green-goods-pitch-fonts-v3.zip",
+    "fraunces_medium_sha256": "0c2fad18ed36cc400041f1e281ee79954a329b345caffc38dfaa3bb8bcef57de"
+  },
+  "renders": {
+    "slide-01.png": "f26ccbf71c64c6b43cb34c0fa5084acbfc66e0888628f50cdc37a4d41a627fec"
+  },
+  "date_utc": "2026-10-10",
+  "subtitle": {
+    "text": "Affordable tools for land stewards to learn from one another, coordinate support and keep sovereignty over their knowledge.",
+    "lines": 3,
+    "box_in": [0.833, 4.58, 5.9, 1.167],
+    "widest_line_px_kerned": 528.5,
+    "widest_line_px_unkerned": 532.6,
+    "box_px": 566.4,
+    "runs_kern": "1200"
+  }
+}

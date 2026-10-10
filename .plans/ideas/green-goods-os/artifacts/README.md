@@ -1,12 +1,16 @@
 # Editable pitch deck and inspection artifacts
 
-## Current status: design unresolved
+## Current status: cover agreed, solution sample next
 
-The user remains dissatisfied with the v2 cover. Italics are rejected; the shortened subtitle omits too much substance. No further slides were edited after this feedback. Start with the [continuation prompt](../handoffs/pitch-restart-prompt.md) and discuss title fonts and fuller copy before implementing.
+On 9 October 2026 Pacific (10 October UTC) the user accepted Fraunces upright for the title with no italic or green accent word, then chose an 18-word third-person subtitle for land stewards from measured options, kept the v2 panel composition, approved fetching the Fraunces Medium cut, and settled on Medium 500 with the second title line in the website's accent green. Start with the [continuation prompt](../handoffs/pitch-restart-prompt.md). The problem and solution compositions stay at v2; the solution sample and full-deck expansion follow.
 
-## Latest visual checkpoint
+## Latest visual checkpoint: v3 cover
 
-Version 2 addresses the latest feedback: a short cover hook, explicit knowledge silos, no generated faces or heads, images on the right, and a concrete browser-workspace explanation. The preceding three-slide checkpoint is superseded.
+[The agreed editable cover](visual-direction-v3/green-goods-pitch-cover-v3.pptx): one slide in Fraunces Medium 500 upright with the second title line in accent green, the 18-word subtitle and the v2 panel composition. The [decision record, measurements and limitations](visual-direction-v3/README.md) accompany it with [speaker notes](visual-direction-v3/speaker-notes.md) and a [verification receipt](visual-direction-v3/verification.json). The render is a headless Chromium replica of the slide geometry with the exact font files, not PowerPoint or Keynote output. The [v3 font bundle](green-goods-pitch-fonts-v3.zip) adds the Medium cut with provenance; nothing was installed.
+
+## Previous checkpoint: v2 cover, problem and solution
+
+Version 2 addressed the preceding feedback: a short cover hook, explicit knowledge silos, no generated faces or heads, images on the right, and a concrete browser-workspace explanation. Its cover is superseded by v3; its problem and solution slides remain the current reference for those compositions.
 
 [Three editable treatments](visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx) cover the opening, problem and solution from the agreed flow. [Image briefs and exact prompts](visual-direction-v2/README.md) document the website references and two new conceptual images. These are representative compositions for review, not the complete revised pitch. All slide text remains editable; each slide has speaker notes and source references.
 
