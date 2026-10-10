@@ -9,9 +9,10 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
+import { MemoryRouter, type NavigateFunction, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -77,6 +78,34 @@ function setLocation(path: string) {
   });
 }
 
+/** The route the public router is on for this document: the fragment under the hash router. */
+function documentRoute(): string {
+  const { hash, pathname } = window.location;
+  return hash.startsWith("#/") ? hash.slice(1) : pathname;
+}
+
+let navigate: NavigateFunction;
+function Navigator() {
+  navigate = useNavigate();
+  return null;
+}
+
+/** Inside a router that starts on the document's route, as the public site's does. */
+function routed(element: ReactElement) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [documentRoute()] },
+    createElement(Navigator),
+    element
+  );
+}
+
+/** An in-site move: the router changes route and the document's address follows. */
+function moveTo(path: string) {
+  setLocation(path);
+  act(() => navigate(path));
+}
+
 function actionElement(destination?: string) {
   return createElement(
     IntlProvider,
@@ -124,7 +153,7 @@ function actionElement(destination?: string) {
 }
 
 function renderAction(destination?: string) {
-  return render(actionElement(destination));
+  return render(routed(actionElement(destination)));
 }
 
 describe("PublicInstallAction", () => {
@@ -385,10 +414,12 @@ describe("PublicInstallAction", () => {
     });
     const destination = `/home/0x${"1".repeat(40)}/work/0x${"2".repeat(64)}`;
     render(
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: {}, onError: () => {} },
-        createElement(PublicInstallCta, { variant: "compact", destination })
+      routed(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(PublicInstallCta, { variant: "compact", destination })
+        )
       )
     );
     expect(screen.getByRole("link", { name: "Open This Work in the App" })).toHaveAttribute(
@@ -418,10 +449,12 @@ describe("PublicInstallAction", () => {
       primaryAction: { type: "open-in-browser", label: "Open in Chrome" },
       openInBrowserUrl: "intent:stale-homepage",
     });
-    const view = renderAction();
+    renderAction();
     const destination = `/home/0x${"1".repeat(40)}/work/0x${"2".repeat(64)}`;
-    setLocation(destination.replace("/home/", "/gardens/"));
-    view.rerender(actionElement());
+    // Nothing renders the action again from outside: it hears the route change itself, as it
+    // must in the site header, which outlives every page.
+    moveTo(destination.replace("/home/", "/gardens/"));
+    expect(JSON.parse(localStorage.getItem("gg-pending-shared-link")!).path).toBe(destination);
     fireEvent.click(screen.getByTestId("cta"));
     expect(screen.getByRole("link", { name: "Open in Chrome" })).toHaveAttribute(
       "href",
@@ -443,10 +476,12 @@ describe("PublicInstallAction", () => {
     setLocation(`/ipfs/cid/?pwaLaunch=1#${destination.replace("/home/", "/gardens/")}`);
     const source = new URL(window.location.href);
     render(
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: {}, onError: () => {} },
-        createElement(PublicInstallCta, { variant: "compact", destination })
+      routed(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(PublicInstallCta, { variant: "compact", destination })
+        )
       )
     );
     for (const name of ["Open App", "Open This Work in the App"]) {

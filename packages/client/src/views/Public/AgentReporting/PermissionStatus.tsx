@@ -3,7 +3,7 @@ import { RiCheckLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import type { MessageDescriptor } from "react-intl";
 import { StageNotice } from "./CeremonyFrame";
-import { PERMISSION_FAILURE_COPY } from "./failures";
+import { type CeremonyProblem, PERMISSION_FAILURE_COPY, type SpokenProblem } from "./failures";
 
 type Permissions = ReturnType<typeof useAgentReportingPermissions>;
 
@@ -101,12 +101,15 @@ const STANDING: Record<Permissions["stage"], Standing> = {
  * Where a check or a removal stands, in the card the ceremonies use for a request's status. The
  * page has it from the start, before an account is connected, so nothing under it moves when a
  * check begins, finds something, or fails. A failure takes the card over, title and two lines.
+ * Before an account is connected, a failed attempt to connect one takes the two lines and the
+ * card keeps its title, since nothing has been checked either way.
  */
 export function PermissionStatus({
   stage,
   connected,
   active,
   failure,
+  problem = null,
 }: {
   stage: Permissions["stage"];
   connected: boolean;
@@ -114,6 +117,8 @@ export function PermissionStatus({
   active: number;
   /** What went wrong, other than a saved record its own field rejects. */
   failure: NonNullable<Permissions["error"]> | null;
+  /** Why connecting an account failed, while none is connected. */
+  problem?: CeremonyProblem | SpokenProblem | null;
 }) {
   if (failure) {
     const copy = PERMISSION_FAILURE_COPY[failure];
@@ -122,6 +127,16 @@ export function PermissionStatus({
         variant={CAUTIONS.has(failure) ? "warning" : "error"}
         title={copy.title}
         body={copy.message}
+      />
+    );
+  }
+  if (!connected && problem) {
+    return (
+      <StageNotice
+        variant={problem.tone === "error" ? "error" : "warning"}
+        title={STANDING.idle.title}
+        body={"spoken" in problem ? problem.spoken : problem.message}
+        values={"spoken" in problem ? undefined : problem.values}
       />
     );
   }

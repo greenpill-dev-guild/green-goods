@@ -1,5 +1,5 @@
 /** @vitest-environment happy-dom */
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   buildEnvelope,
   resolveReportingDeployment,
@@ -494,5 +494,75 @@ describe("top bar", () => {
     expect(within(sheet).getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Sign Out of This Page" }));
     expect(props.leave).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("focus when the step changes", () => {
+  const title = () => screen.getByRole("heading", { level: 1 });
+  const opened = (): Props => ({
+    ...makeProps(),
+    stage: "intro",
+    purpose: null,
+    grant: null,
+    account: null,
+    sessionAccount: null,
+  });
+  const onAccountStep = (): Props => ({ ...opened(), stage: "connect", purpose: "link_account" });
+  /** As a browser does it: the control takes focus, then is pressed. */
+  const press = (control: HTMLElement) => {
+    control.focus();
+    fireEvent.click(control);
+  };
+  /** Long enough for the page to have moved focus, had it meant to. */
+  const settled = () => act(() => new Promise<void>((done) => setTimeout(done, 0)));
+
+  it("goes to the new step's title once the act the person pressed is gone", async () => {
+    const { rerender } = render(view(opened()));
+    await settled();
+    // Opening the page moves nothing.
+    expect(document.body).toHaveFocus();
+
+    press(within(bar()).getByRole("button", { name: "Continue" }));
+    rerender(view(onAccountStep()));
+    await waitFor(() => expect(title()).toHaveFocus());
+    expect(title()).toHaveTextContent("New to Green Goods?");
+    // The page can give its title focus. The Tab key passes it by.
+    expect(title()).toHaveAttribute("tabindex", "-1");
+
+    // A screen inside a step replaces its acts too.
+    press(within(bar()).getByRole("button", { name: "Create Account" }));
+    await waitFor(() => expect(title()).toHaveFocus());
+    expect(title()).toHaveTextContent("Create Your Account");
+  });
+
+  it("stays where it is when the page changes by itself, or the act pressed is still there", async () => {
+    // A send that settles is no one's act.
+    const { rerender } = render(view({ ...review(), stage: "submitted" }));
+    rerender(view({ ...review(), stage: "published" }));
+    await settled();
+    expect(document.body).toHaveFocus();
+
+    // A press that only starts something leaves its act in place, and focus on it.
+    const waiting = { ...onAccountStep(), savedPasskey: true };
+    rerender(view(waiting));
+    const passkey = within(bar()).getByRole("button", { name: "Use Passkey" });
+    press(passkey);
+    rerender(view({ ...waiting, connecting: true }));
+    await settled();
+    expect(passkey).toHaveFocus();
+  });
+
+  it("is left in the account sheet while that is open", async () => {
+    const { rerender } = render(view(opened()));
+    press(within(bar()).getByRole("button", { name: "Continue" }));
+    press(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
+    const close = within(sheet).getAllByRole("button")[0];
+    close.focus();
+    rerender(view(onAccountStep()));
+    await settled();
+    expect(close).toHaveFocus();
+    // The open sheet hides the page from assistive technology, so the title is found by its id.
+    expect(document.getElementById("ceremony-title")).toHaveTextContent("New to Green Goods?");
   });
 });
