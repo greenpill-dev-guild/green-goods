@@ -12,6 +12,7 @@ import {
 import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
 import { takeSoleGarden, type Working } from "../coordinator/report-work";
+import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
@@ -62,6 +63,8 @@ export interface ProcessingResult {
   sourceKind: MediaSource["kind"] | null;
 }
 
+const log = createLogger("reporting");
+
 const done: JobOutcome = { status: "done" };
 
 function clip(text: string): string {
@@ -92,10 +95,15 @@ export async function applyProcessedAsset(
   const listed = garden
     ? findGarden(core.gardens, garden.address)
     : soleGarden(gardenScope(core.gardens, account?.address ?? null));
-  const catalog: CatalogView = {
-    garden: listed,
-    result: listed ? await catalogFor(listed) : null,
-  };
+  // Activities that cannot be read must not cost the file: the report says so when it comes to
+  // ask for one.
+  const activities = listed
+    ? await catalogFor(listed).catch((err): CatalogView["result"] => {
+        log.warn({ err }, "Could not read a garden's activities for a processed file");
+        return { ok: false, reason: "unavailable" };
+      })
+    : null;
+  const catalog: CatalogView = { garden: listed, result: activities };
   try {
     return inTransaction(core.db, () => commitInTransaction(core, asset, result, catalog));
   } catch (error) {

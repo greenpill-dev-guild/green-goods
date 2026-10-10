@@ -77,6 +77,16 @@ describe("photos", () => {
     expect(metadata.format).toBe("jpeg");
   });
 
+  it("adds a photo when the garden's activities cannot be read", async () => {
+    await plantingDraft();
+    harness.catalog.eligibleActions = async () => {
+      throw new Error("activities unreachable");
+    };
+    const replies = await send("photo-1", await photoWithLocation(), "image/jpeg");
+    expect(replies[0]).toBe("Photo added to your report.");
+    expect(draft()?.content.evidence).toHaveLength(1);
+  });
+
   it("proposes only observed values from a photo and leaves time for the gardener", async () => {
     await plantingDraft();
     const openai = scriptedOpenAI([

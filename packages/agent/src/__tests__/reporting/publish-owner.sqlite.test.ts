@@ -241,6 +241,12 @@ describe("owner publication", () => {
     });
     // No fresh attempt is possible while the first one may still land.
     expect((await reserve(browser, view, envelope, "attempt-key-2")).status).toBe(409);
+    // A report that is being sent has no garden question to ask, so GARDEN says so without
+    // waiting on a read of the garden list.
+    harness.clock.advance(10_000);
+    const reads = harness.gardens.reads;
+    expect((await harness.say(ADA, "GARDEN"))[0]).toContain("so I can't change it now");
+    expect(harness.gardens.reads).toBe(reads);
 
     harness.chain.submit({
       attester: adaAccount.address,

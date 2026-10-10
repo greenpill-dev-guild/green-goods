@@ -185,11 +185,14 @@ describe("a linked account's reporting gardens", () => {
     // It placed Bola in TAS, and that still counts while the indexer is down.
     expect(await harness.say(BOLA, STORY)).toEqual([`TAS ${ONLY_GARDEN}`, TAS_ACTIVITIES]);
 
-    // A steward adds Ada to TAS and the indexer comes back. A failed read is left alone for half
-    // a minute, but never by the person asking: Try again reads at once, even tapped on the
-    // question's first copy.
+    // A steward adds Ada to TAS and the indexer comes back. Words sent to the question share the
+    // read of the last few seconds, failed as it was, so a run of messages is not a run of
+    // requests to the indexer.
     joins(adaAccount, TAS);
     harness.gardens.unavailable = false;
+    expect(await harness.say(ADA, "TAS")).toEqual([CANNOT_LOAD]);
+    // A few seconds on they read again, and so does a tap on the question's first copy.
+    harness.clock.advance(5_000);
     const first = harness.transport.sent
       .flatMap((sent) => sent.message.choices ?? [])
       .find((choice) => choice.label === "Try again");
@@ -210,8 +213,9 @@ describe("a linked account's reporting gardens", () => {
     // against hers. The activity question gives way to the garden question, which says so.
     harness.gardens.unavailable = true;
     expect(await pair(adaAccount)).toEqual([`Your account ${ada} is now linked.`, CANNOT_LOAD]);
-    // A steward has added her to TAS by the time it is back, and the report carries on from her
-    // gardens.
+    // A steward has added her to TAS by the time it is back. A tap on the question's own Try
+    // again reads at once, with no wait after the read that failed, and the report carries on
+    // from her gardens.
     joins(adaAccount, TAS);
     harness.gardens.unavailable = false;
     expect(await harness.press(ADA, "Try again")).toEqual([
@@ -382,9 +386,11 @@ describe("a linked account's reporting gardens", () => {
     harness.gardens.unavailable = true;
     expect(await harness.press(person, copy.again)).toEqual([copy.failed]);
 
-    // Typed out, the one choice is an answer in each language, never a command word.
+    // Typed out, the one choice is an answer in each language, never a command word. Typed
+    // words wait out the few seconds after a read that failed.
     joins(adaAccount, AIYELOJA);
     harness.gardens.unavailable = false;
+    harness.clock.advance(5_000);
     expect((await harness.say(person, copy.retry))[0]).toBe(copy.taken);
     joins(adaAccount, TAS);
     expect(await harness.say(person, "GARDEN")).toEqual([copy.own]);

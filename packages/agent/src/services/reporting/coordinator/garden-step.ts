@@ -8,6 +8,7 @@ import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
 import { accountLink } from "./account-link";
 import type { TurnContext, TurnPlan } from "./context";
+import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import type { ConversationWriter } from "./writer";
 
 const log = createLogger("reporting");
@@ -29,23 +30,30 @@ const OWN_GARDENS_MAX_AGE_MS = 10_000;
 
 /**
  * The same, when the person has asked to look again. A list read this recently still serves, so
- * replies moments apart, in one chat or several, share a read. A read that failed never does:
- * their reply reads again at once, whatever wait the directory is keeping, so Try again does try,
- * as it does for a garden's activities.
+ * replies moments apart, in one chat or several, share a read.
  */
 const LOOK_AGAIN_MAX_AGE_MS = 3_000;
+
+/**
+ * How a reply asks to look at the account's gardens again. A tap on the question's own Try again,
+ * Check again or Show my gardens reads at once even after a read that failed, whatever wait the
+ * directory is keeping, so Try again does try, as it does for a garden's activities. Any other
+ * words sent to that question share the read of the last few seconds whether it worked or not,
+ * so a run of messages is not a run of requests to an indexer that is down.
+ */
+type LookAgain = "tap" | "words";
 
 /**
  * Reads the garden list again before a linked account's gardens are used, unless it was read
  * moments ago. A garden joined on the link page a minute ago should be there, and an account must
  * not be told it has none from an old list. A read that fails is answered by the directory, which
- * then says the account's gardens cannot be read. `lookAgain` is for a reply that asks for
- * exactly that.
+ * then says the account's gardens cannot be read. `again` is for a reply that asks for exactly
+ * that.
  */
-export async function readOwnGardens(core: ReportingCore, lookAgain = false): Promise<void> {
+export async function readOwnGardens(core: ReportingCore, again?: LookAgain): Promise<void> {
   const now = core.clock.now();
-  const read = lookAgain
-    ? core.gardens.refresh(now, LOOK_AGAIN_MAX_AGE_MS, 0)
+  const read = again
+    ? core.gardens.refresh(now, LOOK_AGAIN_MAX_AGE_MS, again === "tap" ? 0 : LOOK_AGAIN_MAX_AGE_MS)
     : core.gardens.refresh(now, OWN_GARDENS_MAX_AGE_MS);
   await read.catch((err) =>
     log.warn({ err }, "Could not read the garden list for a linked account")
@@ -132,9 +140,9 @@ function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): 
         case "connect":
         case "join":
           return true;
-        // GARDEN asks its question only of a report; without one it says there is none.
+        // GARDEN asks its question only of a report that can still change.
         case "garden":
-          return ctx.draft !== null;
+          return ctx.draft !== null && EDITABLE_STATES.has(lifecycleState(ctx.draft));
         // START welcomes an idle chat with its account's gardens; otherwise it lists the commands.
         case "start":
           return !ctx.draft && !ctx.review;
@@ -179,7 +187,9 @@ export async function readGardensForTurn(
   // A reply that puts a garden question with no garden to offer again is asking to look again,
   // whether it answers that question or taps a button of an earlier one.
   const reply = plan.kind === "answer" || plan.kind === "stale_reply";
-  await readOwnGardens(core, reply && ctx.prompt !== null && asksToLookAgain(ctx.prompt));
+  if (!reply || ctx.prompt === null || !asksToLookAgain(ctx.prompt)) return readOwnGardens(core);
+  const tapped = plan.kind === "answer" && plan.option?.value === AGAIN_CHOICE;
+  await readOwnGardens(core, tapped ? "tap" : "words");
 }
 
 function ask(
