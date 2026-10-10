@@ -3,7 +3,7 @@ title: Credits
 slug: /reference/credits
 audience: all
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - LICENSE
@@ -12,7 +12,7 @@ source_of_truth:
 
 # Credits
 
-Built with love by the Greenpill Dev Guild and contributors worldwide.
+Built with love by the Green Goods team and contributors worldwide.
 
 ---
 
@@ -27,9 +27,9 @@ text.
 
 ## Core Team
 
-### Greenpill Dev Guild
+### The Green Goods team
 
-Green Goods is developed by the [Greenpill Dev Guild](https://github.com/greenpill-dev-guild), a community of builders creating regenerative web3 infrastructure.
+Green Goods is developed in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods) by a community of builders creating regenerative web3 infrastructure.
 
 **Key Contributors**:
 - Protocol design & smart contracts

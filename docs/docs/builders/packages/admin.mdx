@@ -25,8 +25,8 @@ per route, and restrained color over marketing polish.
 ## The shell
 
 The canonical shell is `CanvasLayout`: an admin-owned top `AppBar` (garden chip, search, account
-actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` with exactly four
-items: Hub, Garden, Community, Actions. Every workspace overlay is a centered `AdminDialog`;
+actions), the `.workspace-canvas`, a `MainSheet`, and a bottom `NavigationBar` whose canonical
+items are Hub, Garden, Community, and Actions; a slot can be hidden, so a garden may show three. Every workspace overlay is a centered `AdminDialog`;
 profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
 mobile). The `/hub` route is the reference surface for new page composition.
 
