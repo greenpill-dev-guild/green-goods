@@ -2628,6 +2628,60 @@ test("measured budgets keep routine and sensitive push decisions", () => {
   assert.ok(summed < 300, `the critical estimate follows measured budgets, got ${summed}s`);
 });
 
+test("only a test file becomes a focused run; helpers and notes under a test directory do not", () => {
+  const packageTest = (plan, surface) => plan.checks.find((check) => check.id === `${surface}-test`);
+  const push = (changedPaths, testPaths = {}) => selectValidation({ intent: "push", changedPaths, testPaths });
+
+  // A runner handed a README finds no tests and fails, so notes select no test run in any intent.
+  const notes = "packages/agent/src/__tests__/reporting/driver/README.md";
+  for (const intent of ["push", "checkpoint", "qa"]) {
+    const plan = selectValidation({ intent, changedPaths: [notes] });
+    assert.equal(packageTest(plan, "agent"), undefined, intent);
+    assert.equal(plan.status, "ready", intent);
+  }
+  // Removing or renaming notes asks for no test either, even beside a suite too dear to run whole.
+  const oldNotes = "packages/shared/src/__tests__/NOTES.md";
+  for (const changedPaths of [[oldNotes], [oldNotes, "packages/shared/src/__tests__/README.md"]]) {
+    const plan = selectValidation({ intent: "push", changedPaths, deletedPaths: [oldNotes] });
+    assert.equal(plan.status, "ready", changedPaths.join(" + "));
+    assert.equal(packageTest(plan, "shared"), undefined, changedPaths.join(" + "));
+  }
+
+  // A helper is never the focus. A suite as cheap as a focused run runs whole.
+  const helper = "packages/agent/src/__tests__/reporting/driver/server.ts";
+  const whole = packageTest(push([helper]), "agent");
+  assert.deepEqual(whole.focusedPaths, []);
+  assert.equal(whole.command, turboTestCommand("agent"));
+  // Changed beside a test, the test alone is the focus.
+  const sqliteTest = "src/__tests__/reporting/driver.sqlite.test.ts";
+  assert.deepEqual(packageTest(push([helper, `packages/agent/${sqliteTest}`]), "agent").focusedPaths, [sqliteTest]);
+
+  // A dearer suite asks for the test that exercises the helper, whatever the runner.
+  for (const [path, surface, proof] of [
+    ["packages/shared/src/__tests__/test-utils/query-client.ts", "shared", "src/__tests__/hooks/garden/useFilteredGardens.test.ts"],
+    ["packages/client/src/__tests__/test-utils.tsx", "client", "src/__tests__/routes/SessionGate.test.tsx"],
+    ["packages/contracts/test/helpers/DeploymentBase.sol", "contracts", "test/unit/Garden.t.sol"],
+    ["packages/indexer/test/helpers/events.ts", "indexer", "test/garden.test.ts"],
+  ]) {
+    const alone = push([path]);
+    assert.equal(alone.status, "needs-focus", path);
+    assert.equal(alone.stopReason, "focused-proof-required", path);
+    assert.ok(alone.remediation.includes(`--test-path ${surface}:`), path);
+    const named = push([path], { [surface]: [proof] });
+    assert.equal(named.status, "ready", path);
+    assert.deepEqual(packageTest(named, surface).focusedPaths, [proof], path);
+  }
+
+  // The indexer's entry test is named test.ts, and a checkpoint runs a helper's suite whole.
+  assert.deepEqual(packageTest(push(["packages/indexer/test/test.ts"]), "indexer").focusedPaths, ["test/test.ts"]);
+  const checkpoint = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/shared/src/__tests__/test-utils/query-client.ts"],
+  });
+  assert.equal(checkpoint.status, "ready");
+  assert.equal(packageTest(checkpoint, "shared").command, turboTestCommand("shared", "checkpoint"));
+});
+
 test("the push gate routes test quality and generated or audited docs to the paths that break them", () => {
   const push = (changedPath) => ids(selectValidation({ intent: "push", changedPaths: [changedPath] }));
   for (const changedPath of [

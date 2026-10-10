@@ -13,7 +13,8 @@ fixture ports in place of providers.
 | Models | Off (deterministic questions) | Fallback behavior only |
 
 It binds to `127.0.0.1`, refuses to start when `NODE_ENV` or `APP_ENV` is `production`, and its
-synthetic ingress and signing helpers are never mounted by `createServer`.
+synthetic ingress and signing helpers are never mounted by `createServer`. Its database and media
+live in a temporary directory that it removes when it stops, on Ctrl-C or `SIGTERM`.
 
 ## Run it
 
@@ -33,6 +34,11 @@ bun run --cwd packages/agent reporting:driver
 
 To drive the client ceremony pages locally, set `REPORTING_DRIVER_ORIGIN` to the client dev
 origin and proxy `/api/messaging` from the client dev server to the driver.
+
+The browser suite does this itself: `bun run browser e2e --preset passkey` starts the driver on
+port 3016 behind the Client test server and walks the Account step of a chat link
+(`tests/specs/client.reporting-account.passkey.spec.ts`). A change to the driver's ingress, outbox
+or origin handling can break that run, which the Client workflow reports, not the Agent's.
 
 A deployed Agent runs its ceremonies on one Green Goods site, named by `AGENT_REPORTING_SITE`:
 `production` (the default, `https://www.greengoods.app`) or `beta` (`https://beta.greengoods.app`).

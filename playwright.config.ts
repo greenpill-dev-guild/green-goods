@@ -76,6 +76,9 @@ const webServers: NonNullable<PlaywrightTestConfig["webServer"]> = [
           url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
           reuseExistingServer: false,
           timeout: 120000,
+          // Playwright ends a server with SIGKILL unless told otherwise, and a killed driver
+          // leaves its data directory in the OS temp folder. SIGTERM lets it remove that first.
+          gracefulShutdown: { signal: "SIGTERM" as const, timeout: 5000 },
           env: {
             APP_ENV: "test",
             NODE_ENV: "test",
@@ -309,9 +312,11 @@ export default defineConfig({
       testMatch: /.*\.exploration\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], channel: "chromium" },
     },
-    // The passkey cases share one dev server. When a route first loads on a cold dependency cache
-    // the server re-bundles and reloads every open page, so a case running beside that load loses
-    // its page mid-step. The project runs one case at a time, whatever --workers says.
+    // The passkey cases share one dev server and run one at a time, whatever --workers says. A
+    // dependency the server has not pre-bundled is found when a route first asks for it; the
+    // server then re-bundles and reloads every open page, so a case beside that load loses its
+    // page mid-step. The Client's optimizeDeps list covers today's dependencies. This limit
+    // covers the next one added to Shared and not to that list.
     {
       name: "passkey-mock",
       testMatch: /.*\.passkey\.spec\.ts$/,

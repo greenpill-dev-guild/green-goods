@@ -88,9 +88,10 @@ The default report lives in `.cache/validation/browser-<preset>/results.json`; s
 `PLAYWRIGHT_JSON_OUTPUT_FILE` to preserve a run elsewhere. Playwright attachments include screenshots
 and, for exploration, the seed, role, viewport, data and attempted action sequence.
 
-The passkey cases use a real Chromium virtual authenticator and run one at a time: the first load
-of a route on a cold dependency cache makes the dev server reload every open page, which breaks a
-case running beside it. One requires a server rejection to leave the user signed out after reload. Two walk the chat link's Account step
+The passkey cases use a real Chromium virtual authenticator and run one at a time. A dependency
+the dev server has not pre-bundled is found when a route first asks for it, and the server then
+reloads every open page, which breaks a case running beside it. The Client's `optimizeDeps` list
+covers today's dependencies; the one-at-a-time rule covers the next one that is missed. One requires a server rejection to leave the user signed out after reload. Two walk the chat link's Account step
 (`/agent/reporting/:link`) against the Agent's loopback reporting driver. A newcomer on a phone
 that last saw another account gets past a taken name and a closed prompt, and the page returns to
 the step by itself once the account exists. Someone with an account gets back in after a closed

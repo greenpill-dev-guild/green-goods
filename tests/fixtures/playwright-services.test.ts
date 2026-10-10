@@ -182,6 +182,8 @@ describe("passkey project", () => {
       cwd: "./packages/agent",
       url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
       reuseExistingServer: false,
+      // A killed driver cannot remove its data directory, so it is asked to stop.
+      gracefulShutdown: { signal: "SIGTERM" },
       env: {
         REPORTING_DRIVER_PORT: String(REPORTING_DRIVER_PORT),
         // The driver refuses a page on any origin but this one.
