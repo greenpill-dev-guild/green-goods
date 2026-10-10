@@ -1,10 +1,7 @@
-import {
-  type Action,
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
@@ -152,6 +149,27 @@ export const WithValidationErrors: Story = {
     (Story) => (
       <WithSeededClient actions={MOCK_ACTIONS}>
         <WithAssessmentStore seed={{}}>
+          <Story />
+        </WithAssessmentStore>
+      </WithSeededClient>
+    ),
+  ],
+};
+
+/**
+ * The one order the step refuses: a last day before the first. A period names
+ * whole days, so one that starts and ends on the same day is valid.
+ */
+export const PeriodOutOfOrder: Story = {
+  args: {
+    showValidation: true,
+  },
+  decorators: [
+    (Story) => (
+      <WithSeededClient actions={MOCK_ACTIONS}>
+        <WithAssessmentStore
+          seed={{ reportingPeriodStart: "2026-07-28", reportingPeriodEnd: "2026-07-27" }}
+        >
           <Story />
         </WithAssessmentStore>
       </WithSeededClient>

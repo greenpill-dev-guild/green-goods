@@ -59,7 +59,7 @@ export const POOL_TYPE_MAP: Record<number, PoolType> = {
 export const GARDEN_ROLE = {
   Gardener: 0,
   Evaluator: 1,
-  Operator: 2,
+  Steward: 2,
   Owner: 3,
   Funder: 4,
   Community: 5,

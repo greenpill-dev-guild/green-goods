@@ -10,28 +10,71 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { en as enMessages } from "@green-goods/shared";
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 
 // ── Mock state ──────────────────────────────────────────
 
 const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
+const mockOnSubmit = vi.fn();
+const mockCreateAnother = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+// Where the flow stands: a test moves it to the Review and through its send.
+const controllerState = vi.hoisted(() => ({
+  currentStep: 0,
+  isSending: false,
+  isSent: false,
+  hasError: false,
+}));
+
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: ({
+    children,
+    loading,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
+    React.createElement("button", props, loading ? "Loading..." : children),
+}));
+
+vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock("@green-goods/shared/components/Form/StepIndicator", () => ({
+  StepIndicator: () => null,
+}));
+
+vi.mock("@green-goods/shared/components/Surface/Surface", () => ({
+  Surface: ({
+    as: Component = "div",
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
+    React.createElement(Component, props, children),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
-  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/config/domain", () => ({
   DOMAIN_CONFIG: {
     0: { labelId: "app.domain.tab.solar" },
     1: { labelId: "app.domain.tab.agro" },
     2: { labelId: "app.domain.tab.education" },
     3: { labelId: "app.domain.tab.waste" },
   },
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  adminRoutes: {
-    actions: () => "/actions",
-  },
-  getActionsListSearch: () => ({}),
-  en: {},
+}));
+
+vi.mock("@green-goods/shared/hooks/action/useActionForm", () => ({
   createActionSchema: {
     // Minimal Zod-compatible schema mock for zodResolver
     _def: { typeName: "ZodObject" },
@@ -41,49 +84,40 @@ vi.mock("@green-goods/shared", () => ({
     parse: vi.fn().mockReturnValue({}),
     spa: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
-  defaultTemplate: {
-    title: "Work Submission",
-    description: "",
-    feedbackPlaceholder: "",
-    inputs: [],
-  },
-  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
-  toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
-  uploadFileToIPFS: vi.fn(),
-  Button: ({
-    children,
-    loading,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
-    React.createElement("button", props, loading ? "Loading..." : children),
-  Surface: ({
-    as: Component = "div",
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
-    React.createElement(Component, props, children),
-  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
-  useStepFocus: () => ({ current: null }),
-  useDirtyClose: () => ({
-    onOpenChange: vi.fn(),
-    confirmOpen: false,
-    cancelClose: vi.fn(),
-    confirmClose: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/action/useActionOperations", () => ({
+  useActionOperations: () => ({
+    registerAction: mockRegisterAction,
+    isLoading: false,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/actions/actions.utils", () => ({
+  getActionsListSearch: () => ({}),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", () => ({
   useCreateActionController: () => ({
-    currentStep: 0,
+    currentStep: controllerState.currentStep,
     domainOptions: [],
+    errorMessage: "User rejected the request.",
+    errorTitle: "Transaction cancelled",
     form: {
       handleSubmit: (handler: (data: Record<string, unknown>) => void) => () => handler({}),
     },
     goToStep: vi.fn(),
     handleBack: vi.fn(),
     handleCancel: () => mockNavigate("/actions"),
+    handleCreateAnother: mockCreateAnother,
     handleDiscard: vi.fn(),
     handleNext: vi.fn(),
+    hasError: controllerState.hasError,
     isDirty: false,
-    isLoading: false,
-    onSubmit: vi.fn(),
+    isSending: controllerState.isSending,
+    isSent: controllerState.isSent,
+    onSubmit: mockOnSubmit,
+    txErrorView: { severity: "warning" },
     stepConfigs: [
       { id: "basics", title: "Basics", description: "Title and timeline" },
       { id: "capitals", title: "Capitals & Media", description: "Forms of capital and images" },
@@ -91,25 +125,18 @@ vi.mock("@green-goods/shared", () => ({
       { id: "review", title: "Review", description: "Confirm and submit" },
     ],
   }),
-  useActionOperations: () => ({
-    registerAction: mockRegisterAction,
-    isLoading: false,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: vi.fn(),
+    confirmOpen: false,
+    cancelClose: vi.fn(),
+    confirmClose: vi.fn(),
   }),
-  useSheetOrchestratorStore: Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) =>
-      selector({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    {
-      getState: () => ({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    }
-  ),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useFormWizardStepValidation", () => ({
   useFormWizardStepValidation: ({
     currentStep,
     steps,
@@ -155,7 +182,67 @@ vi.mock("@green-goods/shared", () => ({
       },
     };
   },
-  StepIndicator: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useStepFocus", () => ({
+  useStepFocus: () => ({ current: null }),
+}));
+
+vi.mock("@green-goods/shared/i18n/en.json", () => ({
+  default: {},
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
+  uploadFileToIPFS: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/stores/useSheetOrchestratorStore", () => ({
+  useSheetOrchestratorStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    {
+      getState: () => ({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    }
+  ),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
+  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("@green-goods/shared/utils/action/templates", () => ({
+  defaultTemplate: {
+    title: "Work Submission",
+    description: "",
+    feedbackPlaceholder: "",
+    inputs: [],
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
+  adminRoutes: {
+    actions: () => "/actions",
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 vi.mock("@hookform/resolvers/zod", () => ({
@@ -179,7 +266,13 @@ vi.mock("@/components/Action/CreateActionSteps", () => ({
     React.createElement("div", { "data-testid": "capitals-step" }, "Capitals Step"),
   InstructionsStep: () =>
     React.createElement("div", { "data-testid": "instructions-step" }, "Instructions Step"),
-  ReviewStep: () => React.createElement("div", { "data-testid": "review-step" }, "Review Step"),
+  ReviewStep: ({ status }: { status: { title: string; description: string } }) =>
+    React.createElement(
+      "div",
+      { "data-testid": "review-step" },
+      React.createElement("p", null, status.title),
+      React.createElement("p", null, status.description)
+    ),
 }));
 
 // Mock the flow chrome — the wizard grammar is exercised by ActionFlowShell's
@@ -224,7 +317,6 @@ vi.mock("@/components/AdminButton", () => ({
     React.createElement("button", { type, onClick, disabled }, loading ? "Loading..." : children),
 }));
 
-vi.mock("@/components/AdminLinearProgress", () => ({ AdminLinearProgress: () => null }));
 vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));
 
 vi.mock("@remixicon/react", () => {
@@ -242,7 +334,7 @@ vi.mock("@/components/Layout/PageHeader", () => ({
     ),
 }));
 
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
@@ -262,6 +354,12 @@ function renderWithIntl(ui: React.ReactElement) {
 describe("views/Actions/CreateAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(controllerState, {
+      currentStep: 0,
+      isSending: false,
+      isSent: false,
+      hasError: false,
+    });
   });
 
   describe("rendering", () => {
@@ -297,6 +395,58 @@ describe("views/Actions/CreateAction", () => {
 
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(mockNavigate).toHaveBeenCalledWith("/actions");
+    });
+  });
+
+  // DL-080: the flow ends on its Review, whose primary sends; the status row
+  // says how the send went and the footer follows it.
+  describe("the Review's send", () => {
+    it("sends from the Review with Create Action and says the wallet asks once", async () => {
+      controllerState.currentStep = 3;
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Registers this action on-chain")).toBeInTheDocument();
+      expect(screen.getByText("Your wallet will ask you once.")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Create Action" }));
+      expect(mockOnSubmit).toHaveBeenCalledOnce();
+    });
+
+    it("ends a successful send on the Review with Done and Create Another", async () => {
+      Object.assign(controllerState, { currentStep: 3, isSent: true });
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByTestId("review-step")).toBeInTheDocument();
+      expect(screen.getByText("Action registered")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Create Action" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Create Another" }));
+      expect(mockCreateAnother).toHaveBeenCalledOnce();
+      await user.click(screen.getByRole("button", { name: "Done" }));
+      expect(mockNavigate).toHaveBeenCalledWith("/actions");
+    });
+
+    it("keeps a failed send on the Review with its error, Try Again and Back", async () => {
+      Object.assign(controllerState, { currentStep: 3, hasError: true });
+      const user = userEvent.setup();
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Transaction cancelled")).toBeInTheDocument();
+      expect(screen.getByText("User rejected the request.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+      await user.click(screen.getByRole("button", { name: "Try Again" }));
+      expect(mockOnSubmit).toHaveBeenCalledOnce();
+    });
+
+    it("holds every button while the send works", () => {
+      Object.assign(controllerState, { currentStep: 3, isSending: true });
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByText("Registering the action")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
     });
   });
 });

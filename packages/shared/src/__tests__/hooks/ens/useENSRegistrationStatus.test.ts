@@ -10,20 +10,22 @@
  * We must use mockResolvedValueOnce in the correct order.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================================================
 // MOCKS
 // ============================================================================
 
 const mockReadContract = vi.fn();
+const mockGetEnsAddress = vi.fn();
 
 const ENS_ADDRESS = "0xENSContract000000000000000000000000000001";
 const L1_RECEIVER_ADDRESS = "0xL1Receiver0000000000000000000000000000001";
 const MOCK_OWNER = "0x1234567890123456789012345678901234567890";
+const OTHER_OWNER = "0x2345678901234567890123456789012345678901";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
@@ -37,11 +39,16 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   createClients: vi.fn(() => ({
     publicClient: {
       readContract: mockReadContract,
+      getEnsAddress: mockGetEnsAddress,
     },
   })),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -52,6 +59,7 @@ vi.mock("viem", async () => {
     ...actual,
     createPublicClient: vi.fn(() => ({
       readContract: mockReadContract,
+      getEnsAddress: mockGetEnsAddress,
     })),
   };
 });
@@ -61,24 +69,8 @@ vi.mock("../../../utils/blockchain/chain-registry", () => ({
 }));
 
 // Import after mocks
+import { ensKeys } from "../../../config/query-keys/identity";
 import { useENSRegistrationStatus } from "../../../hooks/ens/useENSRegistrationStatus";
-
-// ============================================================================
-// TEST HELPERS
-// ============================================================================
-
-function createTestWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
-    },
-  });
-  return {
-    queryClient,
-    wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
-  };
-}
 
 // ============================================================================
 // TESTS
@@ -87,9 +79,17 @@ function createTestWrapper() {
 describe("useENSRegistrationStatus", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadContract.mockReset();
+    mockGetEnsAddress.mockResolvedValue(MOCK_OWNER);
+    mockReadContract.mockImplementation(async ({ functionName }) => {
+      if (functionName === "slugOwner") return ZERO_ADDRESS;
+      if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+      return { owner: ZERO_ADDRESS, nameType: 0, registeredAt: 0n };
+    });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -99,8 +99,7 @@ describe("useENSRegistrationStatus", () => {
 
   describe("available status", () => {
     it("returns 'available' when slug is undefined (query disabled)", () => {
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus(undefined), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus(undefined));
 
       // Query is disabled when slug is undefined
       expect(result.current.data).toBeUndefined();
@@ -113,8 +112,7 @@ describe("useENSRegistrationStatus", () => {
         greenGoodsENS: ZERO_ADDRESS,
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("alice"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("alice"));
 
       await waitFor(() => {
         expect(result.current.data?.status).toBe("available");
@@ -130,8 +128,7 @@ describe("useENSRegistrationStatus", () => {
       // Call sequence: slugOwner returns zero address => early return "available"
       mockReadContract.mockResolvedValueOnce(ZERO_ADDRESS);
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("alice"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("alice"));
 
       await waitFor(() => expect(result.current.data?.status).toBe("available"));
     });
@@ -152,13 +149,12 @@ describe("useENSRegistrationStatus", () => {
         .mockResolvedValueOnce(L1_RECEIVER_ADDRESS) // l1Receiver
         .mockResolvedValueOnce({ owner: ZERO_ADDRESS, nameType: 0, registeredAt: 0n }); // getRegistration
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("bob"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("bob"));
 
       await waitFor(() => expect(result.current.data?.status).toBe("pending"));
     });
 
-    it("returns 'pending' when L1 query fails (graceful fallthrough)", async () => {
+    it("reports an observation error when L1 is unreachable, without inventing a status", async () => {
       // Call sequence:
       // 1. slugOwner => MOCK_OWNER (claimed)
       // 2. l1Receiver => L1_RECEIVER_ADDRESS
@@ -168,10 +164,10 @@ describe("useENSRegistrationStatus", () => {
         .mockResolvedValueOnce(L1_RECEIVER_ADDRESS) // l1Receiver
         .mockRejectedValueOnce(new Error("Network error")); // getRegistration fails
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("bob"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("bob"));
 
-      await waitFor(() => expect(result.current.data?.status).toBe("pending"));
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.data).toBeUndefined();
     });
 
     it("returns 'pending' when L1 receiver address is zero", async () => {
@@ -183,8 +179,7 @@ describe("useENSRegistrationStatus", () => {
         .mockResolvedValueOnce(MOCK_OWNER) // slugOwner
         .mockResolvedValueOnce(ZERO_ADDRESS); // l1Receiver is zero
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("bob"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("bob"));
 
       await waitFor(() => expect(result.current.data?.status).toBe("pending"));
     });
@@ -209,8 +204,7 @@ describe("useENSRegistrationStatus", () => {
           registeredAt: 1700000000n,
         }); // getRegistration
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("carol"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"));
 
       await waitFor(() => expect(result.current.data?.status).toBe("active"));
 
@@ -223,22 +217,392 @@ describe("useENSRegistrationStatus", () => {
     });
   });
 
+  it.each([
+    "pending",
+    "timed_out",
+    "active",
+  ] as const)("rechecks an old %s registration before applying the delay threshold", async (status) => {
+    const queryClient = createTestQueryClient();
+    const submittedAt = Date.now() - 24 * 60 * 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status,
+      submittedAt,
+      ccipMessageId: "0xmessage",
+    });
+    mockReadContract
+      .mockResolvedValueOnce(MOCK_OWNER)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({ owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data?.registration?.owner).toBe(MOCK_OWNER));
+    expect(result.current.data).toMatchObject({
+      status: "active",
+      submittedAt,
+      ccipMessageId: "0xmessage",
+    });
+    expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
+  });
+
+  it.each([
+    null,
+    "0x9999999999999999999999999999999999999999",
+  ])("does not show Ready when the forward name resolves to %s", async (resolvedAddress) => {
+    mockReadContract
+      .mockResolvedValueOnce(MOCK_OWNER)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({ owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n });
+    mockGetEnsAddress.mockResolvedValueOnce(resolvedAddress);
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"));
+    await waitFor(() => expect(result.current.data?.status).toBe("pending"));
+  });
+
+  it("recovers a confirmed name from the receiver when the sender has no owner", async () => {
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({ owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"));
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+  });
+
+  it("keeps a submitted claim pending during a stale sender read", async () => {
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "pending",
+      submittedAt: Date.now(),
+    });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(mockReadContract).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data?.status).toBe("pending");
+  });
+
+  it("does not apply an earlier completed release to a later reservation", async () => {
+    const queryClient = createTestQueryClient();
+    const submittedAt = Date.now() - 24 * 60 * 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "available",
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(MOCK_OWNER)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: MOCK_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.release).toBeUndefined();
+    expect(result.current.data?.submittedAt).toBeUndefined();
+  });
+
+  it("keeps a completed release available when the sender still reports its former owner", async () => {
+    const queryClient = createTestQueryClient();
+    const release = { owner: MOCK_OWNER };
+    const submittedAt = Date.now() - 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "available",
+      release,
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(MOCK_OWNER)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({ owner: ZERO_ADDRESS, nameType: 0, registeredAt: 0n });
+    mockGetEnsAddress.mockResolvedValue(null);
+
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data).toMatchObject({ status: "available", release, submittedAt });
+  });
+
+  it("clears the former owner's cached name after a receiver takeover", async () => {
+    const queryClient = createTestQueryClient();
+    const submittedAt = Date.now() - 60_000;
+    const oldOwnerNameKey = ensKeys.protocolName(MOCK_OWNER.toLowerCase());
+    queryClient.setQueryDefaults(oldOwnerNameKey, { gcTime: Infinity });
+    queryClient.setQueryData(oldOwnerNameKey, "carol.greengoods.eth");
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "pending",
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: OTHER_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+    mockGetEnsAddress.mockResolvedValue(OTHER_OWNER);
+
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.registration?.owner).toBe(OTHER_OWNER);
+    expect(queryClient.getQueryData(oldOwnerNameKey)).toBeNull();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: oldOwnerNameKey });
+  });
+
+  it("recognizes a receiver-only registration for the same owner after a completed release", async () => {
+    const queryClient = createTestQueryClient();
+    const submittedAt = Date.now() - 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "available",
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: MOCK_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.release).toBeUndefined();
+    expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
+  });
+
+  it.each([
+    "pending",
+    "timed_out",
+  ])("recognizes receiver-only recovery while a release is still %s", async (status) => {
+    const queryClient = createTestQueryClient();
+    const submittedAt = Date.now() - 26 * 60_000;
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status,
+      release: { owner: MOCK_OWNER },
+      submittedAt,
+    });
+    mockReadContract
+      .mockResolvedValueOnce(ZERO_ADDRESS)
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce({
+        owner: MOCK_OWNER,
+        nameType: 0,
+        registeredAt: BigInt(Math.floor(submittedAt / 1000) + 30),
+      });
+
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data?.status).toBe("active"));
+    expect(result.current.data?.release).toBeUndefined();
+    expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
+  });
+
+  it("waits for the forward record after the receiver clears a release", async () => {
+    const queryClient = createTestQueryClient();
+    const release = { owner: MOCK_OWNER };
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "pending",
+      release,
+      submittedAt: Date.now(),
+    });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data).toMatchObject({ status: "pending", release });
+
+    const readsBeforeClear = mockGetEnsAddress.mock.calls.length;
+    mockGetEnsAddress.mockResolvedValue(null);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() =>
+      expect(result.current.data).toMatchObject({ status: "available", release })
+    );
+    expect(mockGetEnsAddress.mock.calls.length).toBeGreaterThan(readsBeforeClear);
+  });
+
+  it("rechecks the forward record before trusting a cached completed release", async () => {
+    const queryClient = createTestQueryClient();
+    const release = { owner: MOCK_OWNER };
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+      status: "available",
+      release,
+      submittedAt: Date.now(),
+    });
+
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.data).toMatchObject({ status: "pending", release }));
+    expect(mockGetEnsAddress).toHaveBeenCalledWith({ name: "carol.greengoods.eth" });
+  });
+
+  it.each([
+    "getRegistration",
+    "forward resolution",
+  ])("preserves yesterday's confirmed identity across a failed %s refresh and recovery", async (failure) => {
+    const queryClient = createTestQueryClient();
+    const confirmed = {
+      status: "active",
+      submittedAt: Date.now() - 24 * 60 * 60_000,
+      registration: { owner: MOCK_OWNER, nameType: 0, registeredAt: "1700000000" },
+    };
+    queryClient.setQueryData(ensKeys.registrationStatus("carol"), confirmed);
+    mockReadContract.mockImplementation(async ({ functionName }) => {
+      if (functionName === "slugOwner") return MOCK_OWNER;
+      if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+      if (failure === "getRegistration") throw new Error("RPC unavailable");
+      return { owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n };
+    });
+    if (failure === "forward resolution")
+      mockGetEnsAddress.mockRejectedValue(new Error("RPC unavailable"));
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toEqual(confirmed);
+    mockReadContract.mockImplementation(async ({ functionName }) => {
+      if (functionName === "slugOwner") return MOCK_OWNER;
+      if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+      return { owner: MOCK_OWNER, nameType: 0, registeredAt: 1700000000n };
+    });
+    mockGetEnsAddress.mockResolvedValue(MOCK_OWNER);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.data).toEqual(confirmed);
+  });
+
+  it("keeps a restored release pending through receiver lag and errors, then clears the account name", async () => {
+    const queryClient = createTestQueryClient();
+    const release = { owner: MOCK_OWNER };
+    queryClient.setQueryData(
+      ensKeys.registrationStatus("carol"),
+      JSON.parse(
+        JSON.stringify({
+          status: "pending",
+          release,
+          submittedAt: Date.now(),
+          ccipMessageId: "0xrelease",
+        })
+      )
+    );
+    queryClient.setQueryData(ensKeys.protocolName(MOCK_OWNER), "carol.greengoods.eth");
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    let receiverPresent = true;
+    let unavailable = false;
+    mockReadContract.mockImplementation(async ({ functionName }) => {
+      if (functionName === "slugOwner") return ZERO_ADDRESS;
+      if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+      if (unavailable) throw new Error("RPC unavailable");
+      return {
+        owner: receiverPresent ? MOCK_OWNER : ZERO_ADDRESS,
+        nameType: 0,
+        registeredAt: 1700000000n,
+      };
+    });
+    const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("carol"), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data).toMatchObject({ status: "pending", release });
+    expect(mockGetEnsAddress).not.toHaveBeenCalled();
+    unavailable = true;
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toMatchObject({ status: "pending", release });
+    unavailable = false;
+    receiverPresent = false;
+    mockGetEnsAddress.mockResolvedValue(null);
+    await act(async () => {
+      await result.current.refetch();
+    });
+    await waitFor(() =>
+      expect(result.current.data).toMatchObject({ status: "available", release })
+    );
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ensKeys.protocolName(MOCK_OWNER) });
+    // A lagging receiver read cannot undo a completed release.
+    receiverPresent = true;
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(result.current.data).toMatchObject({ status: "available", release });
+  });
+
   // --------------------------------------------------------------------------
   // Adaptive Polling Logic
   // --------------------------------------------------------------------------
 
   describe("refetchInterval behavior", () => {
+    it("continues checking a release after the delay threshold and stops after completion", async () => {
+      vi.useFakeTimers();
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(ensKeys.registrationStatus("carol"), {
+        status: "pending",
+        release: { owner: MOCK_OWNER },
+        submittedAt: Date.now() - 26 * 60_000,
+      });
+      let receiverPresent = true;
+      mockReadContract.mockImplementation(async ({ functionName }) => {
+        if (functionName === "slugOwner") return ZERO_ADDRESS;
+        if (functionName === "l1Receiver") return L1_RECEIVER_ADDRESS;
+        return {
+          owner: receiverPresent ? MOCK_OWNER : ZERO_ADDRESS,
+          nameType: 0,
+          registeredAt: 1700000000n,
+        };
+      });
+      const { result, unmount } = renderHookWithQueryClient(
+        () => useENSRegistrationStatus("carol"),
+        { queryClient }
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(result.current.data?.status).toBe("timed_out");
+      receiverPresent = false;
+      mockGetEnsAddress.mockResolvedValue(null);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_001);
+      });
+      expect(result.current.data?.status).toBe("available");
+      const readsAtCompletion = mockReadContract.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(mockReadContract).toHaveBeenCalledTimes(readsAtCompletion);
+      unmount();
+      queryClient.clear();
+    });
+
     it("does not refetch when status is 'available'", async () => {
       mockReadContract.mockResolvedValueOnce(ZERO_ADDRESS); // slugOwner => no owner
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useENSRegistrationStatus("dave"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useENSRegistrationStatus("dave"));
 
       await waitFor(() => expect(result.current.data?.status).toBe("available"));
 
       // readContract should have been called once (slugOwner only)
       // No refetch because status is not "pending"
-      expect(mockReadContract).toHaveBeenCalledTimes(1);
+      expect(mockReadContract).toHaveBeenCalledTimes(3);
     });
   });
 });

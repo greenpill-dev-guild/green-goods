@@ -29,7 +29,7 @@
 |-------------|--------------|--------|
 | User can X  | Step 3       | ⏳     |
 
-## CLAUDE.md Compliance
+## Repository guidance compliance
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses
@@ -58,6 +58,16 @@
 - [ ] TypeScript passes
 - [ ] Tests pass
 - [ ] Build succeeds
+
+### Fresh Evidence Receipt
+- **Tested implementation commit SHA**: `<full SHA>`
+- **Run at (UTC)**: `YYYY-MM-DDTHH:MM:SSZ`
+- **Command**: `<exact command>`
+- **Result**: `<counts or concise output summary>`
+- **Validated paths**: `<implementation, dependency, configuration, and validation paths>`
+- **Worktree identity command and result**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
+- **Evidence-only diff command and result (if applicable)**: `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- **Evidence-only worktree-status command and result (if applicable)**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
 ```
 
 ## `status.json` Lane-State Example
@@ -66,9 +76,9 @@
 {
   "feature": { "slug": "feature-slug", "stage": "active" },
   "lanes": {
-    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
-    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
-    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
+    "ui": { "owner": "claude", "status": "ready", "branch": "feature/profile-avatar-editor" },
+    "state_api": { "owner": "codex", "status": "ready", "branch": "feature/profile-avatar-storage" },
+    "contracts": { "owner": "codex", "status": "n/a", "branch": null },
     "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
     "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
   }
@@ -76,6 +86,9 @@
 ```
 
 ## Batch Report Template
+
+Include the shared [task/phase record](../../context/task-handoffs.md) in batch and lane handoffs.
+Keep validation receipts with their existing proof; the record links them for measurement.
 
 ```markdown
 ## Batch [N] Complete
@@ -99,4 +112,20 @@
 |---|----------|-----------|
 | 1 | Direct vault interaction | Standard ERC-4626; no proxy gas overhead |
 | 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
+```
+
+## Closeout Section Template
+
+Append to `plan.todo.md` when the hub closes, per [SKILL.md § Closing a Plan Hub](./SKILL.md#closing-a-plan-hub).
+
+```markdown
+**Status**: `CLOSED — shipped in PR #123; <the one thing a reader must know>`
+
+## Closeout (YYYY-MM-DD)
+
+Closed as `<resolution>`. Shipped in PR #123 (merged YYYY-MM-DD). <Why this resolution: which
+lanes or proofs were never certified, if any.>
+
+Still open:
+- <item> → <Linear issue | other hub | dropped because …>
 ```

@@ -1,8 +1,12 @@
-import { logger, toastService, useInViewReveal } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import type {
   PublicSubscribeRequest,
   PublicSubscribeResponse,
-} from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/public-contracts/core";
 import { type FormEvent, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
@@ -99,12 +103,13 @@ export function PublicGetInTouch() {
 
   return (
     <section
+      id="contact"
       ref={sectionRef}
       data-revealed={revealed}
-      className="editorial-section-reveal bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
+      className="editorial-section-reveal @container bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-get-in-touch-title"
     >
-      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-24">
+      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 sm:gap-8 @min-[70rem]:grid-cols-[1fr_1.1fr] @min-[70rem]:gap-24">
         <div>
           <EditorialKicker tone="dark" className="mb-5">
             {formatMessage({
@@ -145,8 +150,8 @@ export function PublicGetInTouch() {
                   defaultMessage: "Your email",
                 })}
               </label>
-              <div className="mt-3 flex flex-col gap-3 border-b border-editorial-deep-fg/30 pb-3 focus-within:border-editorial-deep-fg/60 sm:flex-row sm:items-center sm:gap-3 sm:pb-2">
-                <input
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                <TextInput
                   id="public-subscribe-email"
                   type="email"
                   name="email"
@@ -156,17 +161,18 @@ export function PublicGetInTouch() {
                     id: "public.home.getInTouch.emailPlaceholder",
                     defaultMessage: "you@example.com",
                   })}
-                  className="w-full flex-1 bg-transparent font-serif text-xl font-normal text-editorial-deep-fg placeholder-editorial-deep-fg/40 focus:outline-none sm:w-auto md:text-2xl"
+                  surface="editorial"
+                  className="flex-1 text-xl text-editorial-deep-fg md:text-2xl"
                 />
                 <EditorialPrimaryButton
                   type="submit"
-                  disabled={submitState === "loading"}
-                  className="w-full shrink-0 px-5 py-2.5 sm:w-auto"
+                  loading={submitState === "loading"}
+                  className="w-full shrink-0 sm:w-auto"
                 >
                   {submitState === "loading"
                     ? formatMessage({
                         id: "public.home.getInTouch.submitting",
-                        defaultMessage: "…",
+                        defaultMessage: "Subscribing…",
                       })
                     : formatMessage({
                         id: "public.home.getInTouch.submit",
@@ -219,26 +225,40 @@ export function PublicGetInTouch() {
 
           <div className="mt-10">
             <EditorialDivider tone="dark" />
+            <h3 className="mt-5 font-serif text-2xl font-normal text-editorial-deep-fg">
+              {formatMessage({ id: "public.home.getInTouch.callTitle" })}
+            </h3>
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-xl text-sm leading-relaxed text-editorial-deep-fg/72">
                 {formatMessage({
-                  id: "public.home.getInTouch.scheduleIntro",
+                  id: "public.home.getInTouch.callBody",
                   defaultMessage:
-                    "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
+                    "Talk with Green Goods about a Garden’s work, funding needs, or a larger grant or partnership.",
                 })}
               </p>
-              <a
-                href={publicCuration.appointmentUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg transition-colors hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 sm:w-auto"
+              {/* A secondary on the walnut section: linen ink and outline. */}
+              <Button
+                asChild
+                emphasis="secondary"
+                trailingIcon={<span aria-hidden="true">→</span>}
+                className="w-full shrink-0 border-editorial-deep-fg/40 bg-transparent text-editorial-deep-fg hover:bg-editorial-deep-fg/10 sm:w-auto"
               >
-                {formatMessage({
-                  id: "public.home.getInTouch.scheduleCall",
-                  defaultMessage: "Schedule a call",
-                })}
-                <span aria-hidden="true">→</span>
-              </a>
+                <a
+                  href={publicCuration.appointmentUrl || "https://x.com/greengoodsapp"}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  {publicCuration.appointmentUrl
+                    ? formatMessage({
+                        id: "public.home.getInTouch.scheduleCall",
+                        defaultMessage: "Schedule a Call",
+                      })
+                    : formatMessage({
+                        id: "public.home.getInTouch.contact",
+                        defaultMessage: "Contact Green Goods",
+                      })}
+                </a>
+              </Button>
             </div>
           </div>
         </div>

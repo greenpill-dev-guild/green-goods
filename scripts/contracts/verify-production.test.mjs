@@ -18,7 +18,7 @@ test("runs every verification tool from the contracts package", () => {
 
   const fakeTool = [
     "#!/bin/sh",
-    'printf \'%s|%s\\n\' "${0##*/}" "$PWD" >> "$VERIFY_LOG"',
+    'printf \'%s|%s|%s\\n\' "${0##*/}" "$PWD" "$*" >> "$VERIFY_LOG"',
     "exit 0",
     "",
   ].join("\n");
@@ -32,7 +32,7 @@ test("runs every verification tool from the contracts package", () => {
   try {
     const result = spawnSync(
       "/bin/bash",
-      [SCRIPT_PATH, "--skip-e2e", "--skip-dry-run"],
+      [SCRIPT_PATH],
       {
         cwd: REPO_ROOT,
         encoding: "utf8",
@@ -48,8 +48,17 @@ test("runs every verification tool from the contracts package", () => {
     const invocations = readFileSync(invocationLog, "utf8").trim().split("\n");
     assert.ok(invocations.length >= 4, `expected verifier calls, received: ${invocations.join(", ")}`);
     for (const invocation of invocations) {
-      assert.equal(invocation.split("|")[1], CONTRACTS_DIR, invocation);
+      const [, directory, command] = invocation.split("|");
+      // The repository-level checks (foundry-version, static-lint) run from the root on purpose.
+      const expected = command.startsWith("run check --only ") ? REPO_ROOT : CONTRACTS_DIR;
+      assert.equal(directory, expected, invocation);
     }
+    const commands = invocations.map((invocation) => invocation.split("|")[2]);
+    assert.ok(commands.includes("run browser e2e --preset all workflow"));
+    for (const network of ["sepolia", "arbitrum", "celo"]) {
+      assert.ok(commands.includes(`run contracts -- deploy core --network ${network} --mode preflight`));
+    }
+    assert.ok(commands.every((command) => !command.includes("--broadcast")));
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }

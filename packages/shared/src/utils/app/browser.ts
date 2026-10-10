@@ -400,3 +400,43 @@ export function canTriggerInstallPrompt(browserInfo: BrowserInfo): boolean {
     browserInfo.isRecommendedBrowser
   );
 }
+
+const APP_LAUNCH_FALLBACK_PARAM = "ggAppLaunch";
+
+/** A user-tapped external protocol lets Android resolve the installed WebAPK. */
+export function createAndroidAppLaunchUrl(
+  target: string,
+  source: string,
+  position = { left: 0, top: 0 }
+): string {
+  const destination = new URL(target);
+  const fallback = new URL(source);
+  // Never put untrusted intent syntax, credentials, or another origin into an intent.
+  if (
+    !["https:", "http:"].includes(destination.protocol) ||
+    destination.origin !== fallback.origin ||
+    destination.username ||
+    destination.password ||
+    !destination.pathname.startsWith("/home/")
+  )
+    return target;
+  const coordinate = (value: number) =>
+    Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+  fallback.searchParams.set(
+    APP_LAUNCH_FALLBACK_PARAM,
+    `${coordinate(position.left)},${coordinate(position.top)}`
+  );
+  return `intent://${destination.host}${destination.pathname}${destination.search}#Intent;scheme=${destination.protocol.slice(0, -1)};S.browser_fallback_url=${encodeURIComponent(fallback.href)};end`;
+}
+
+/** Consume the browser's explicit fallback once, retaining the original page URL. */
+export function consumeAppLaunchFallback(): { left: number; top: number } | null {
+  const url = new URL(window.location.href);
+  const marker = url.searchParams.get(APP_LAUNCH_FALLBACK_PARAM);
+  if (marker === null) return null;
+  url.searchParams.delete(APP_LAUNCH_FALLBACK_PARAM);
+  window.history.replaceState(window.history.state, "", url.href);
+  if (!/^\d{1,9},\d{1,9}$/.test(marker)) return null;
+  const [left, top] = marker.split(",").map(Number);
+  return { left, top };
+}

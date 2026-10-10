@@ -1,11 +1,10 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import {
   buildCampaignCookieJarMetadata,
-  DEFAULT_CHAIN_ID,
   getCampaignCookieJarPayoutAssets,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type Garden,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import type { IntlShape } from "react-intl";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -19,7 +18,7 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../../shared/.storybook/decorators";
-import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm";
+import type { CampaignCookieJarCreateFormProps } from "./CampaignCookieJarCreateForm.types";
 import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 
 export const STORYBOOK_CAMPAIGN_JAR = "0x7777777777777777777777777777777777777777" as Address;
@@ -31,7 +30,7 @@ export const campaignCookieJarStoryDecorators = [
   withCanvasFrame({
     className: "p-0",
     heightClassName: "h-[760px]",
-    workspace: "hub",
+    workspace: "community",
   }),
 ];
 
@@ -44,7 +43,7 @@ const panelViewFormatMessage = ((
 ) => {
   if (descriptor.id === "cockpit.community.cookies.listDescription") {
     const count = typeof values?.count === "number" ? values.count : 0;
-    return `${count} trusted campaign ${count === 1 ? "jar" : "jars"} indexed for this network.`;
+    return `${count} campaign ${count === 1 ? "jar" : "jars"} on this network.`;
   }
 
   return formatMessage(descriptor);
@@ -57,7 +56,6 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   moduleConfigured: true,
   isDeployer: true,
   roleLoading: false,
-  createError: null,
   createPending: false,
   gardensLoading: false,
   factoryLoading: false,
@@ -67,7 +65,7 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   setSelectedAssetId: () => undefined,
   campaignTitle: "Earth Week rewards",
   setCampaignTitle: () => undefined,
-  campaignDescription: "Rewards for the campaign's selected garden operators.",
+  campaignDescription: "Rewards for the campaign's selected garden stewards.",
   setCampaignDescription: () => undefined,
   campaignImage: FIXTURE_IMAGE_AGROFORESTRY,
   setCampaignImage: () => undefined,
@@ -85,9 +83,9 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   gardenSearch: "",
   setGardenSearch: () => undefined,
   aggregation: {
-    allowlist: STORYBOOK_PRIMARY_ADMIN_GARDEN.operators,
+    allowlist: STORYBOOK_PRIMARY_ADMIN_GARDEN.stewards,
     sources: [{ gardenAddress: STORYBOOK_PRIMARY_ADMIN_GARDEN.id }],
-    missingOperatorGardens: [],
+    missingStewardGardens: [],
     invalidAddresses: [],
   },
   advancedOpen: false,
@@ -107,8 +105,6 @@ export const campaignCookieJarCreateFormProps: CampaignCookieJarCreateFormProps 
   setExtraAddresses: () => undefined,
   payoutLabel: `5 ${payoutAssets[0]?.symbol ?? "USDC"}`,
   canCreate: true,
-  onCreate: () => undefined,
-  onCancel: () => undefined,
 };
 
 export const storybookCampaign: CampaignCookieJarCampaign = {
@@ -120,7 +116,7 @@ export const storybookCampaign: CampaignCookieJarCampaign = {
   metadata: buildCampaignCookieJarMetadata({
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
-    description: "Shared campaign rewards for selected garden operators.",
+    description: "Shared campaign rewards for selected garden stewards.",
     image: FIXTURE_IMAGE_AGROFORESTRY,
     externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
     sourceGardens: [STORYBOOK_PRIMARY_ADMIN_GARDEN.id],

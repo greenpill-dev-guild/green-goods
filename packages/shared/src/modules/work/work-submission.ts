@@ -1,8 +1,30 @@
+import { type WorkAttachmentPolicy, validateWorkAttachments } from "./work-attachments";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
-import { getActionTitle } from "../../utils/action/parsers";
-import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
+import { findActionByUID } from "../../utils/action/parsers";
+import { resolveKnownWorkTitle } from "../../utils/work/workTitles";
 import { serviceWorkerManager } from "../app/service-worker";
-import { createOfflineTxHash, jobQueue } from "../job-queue";
+import { jobQueue } from "../job-queue/default-instance";
+import type { JobQueueHandle } from "../job-queue/ports";
+import { createOfflineTxHash } from "../job-queue/queue-policy";
+
+export interface WorkSubmissionDependencies {
+  queue: Pick<JobQueueHandle, "addJob">;
+  backgroundSync: Pick<typeof serviceWorkerManager, "requestBackgroundSync">;
+  newClientWorkId: () => string;
+}
+
+const defaultWorkSubmissionDependencies: WorkSubmissionDependencies = {
+  queue: jobQueue,
+  backgroundSync: serviceWorkerManager,
+  newClientWorkId: () => crypto.randomUUID(),
+};
+
+function resolveWorkSubmissionDependencies(
+  overrides: Partial<WorkSubmissionDependencies>
+): WorkSubmissionDependencies {
+  return { ...defaultWorkSubmissionDependencies, ...overrides };
+}
 
 /**
  * Consolidated work submission utility
@@ -23,8 +45,10 @@ export async function submitWorkToQueue(
   actions: Action[],
   chainId: number,
   images: File[],
-  userAddress: Address
+  userAddress: Address,
+  dependencies: Partial<WorkSubmissionDependencies> = {}
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
+  const deps = resolveWorkSubmissionDependencies(dependencies);
   if (!gardenAddress) {
     throw new Error("Garden address is required");
   }
@@ -37,16 +61,23 @@ export async function submitWorkToQueue(
     throw new Error("User address is required");
   }
 
-  const actionTitle = getActionTitle(actions, actionUID);
+  // Only a real title is stored; an untitled job looks its action up when it sends.
+  const title = resolveKnownWorkTitle({
+    draftTitle: draft.title,
+    actionTitle: findActionByUID(actions, actionUID)?.title,
+    actionUID,
+  });
 
-  const clientWorkId = crypto.randomUUID();
+  const clientWorkId = deps.newClientWorkId();
 
   // Add job to queue - this handles both offline and online scenarios
-  const jobId = await jobQueue.addJob(
+  const { title: _draftTitle, ...untitledDraft } = draft;
+  const jobId = await deps.queue.addJob(
     "work",
     {
-      ...draft,
-      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
+      ...untitledDraft,
+      clientWorkId,
+      ...(title ? { title } : {}),
       actionUID,
       gardenAddress,
       media: images,
@@ -57,7 +88,7 @@ export async function submitWorkToQueue(
 
   // Progressive enhancement: request background sync so queued jobs can flush
   // when connectivity returns (supported browsers only).
-  void serviceWorkerManager.requestBackgroundSync();
+  void deps.backgroundSync.requestBackgroundSync();
 
   // Return an offline transaction hash for UI compatibility and clientWorkId for deduplication
   return { txHash: createOfflineTxHash(jobId), jobId, clientWorkId };
@@ -76,8 +107,10 @@ export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
   chainId: number,
-  userAddress: Address
+  userAddress: Address,
+  dependencies: Partial<WorkSubmissionDependencies> = {}
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
+  const deps = resolveWorkSubmissionDependencies(dependencies);
   if (!draft.workUID) {
     throw new Error("Work UID is required");
   }
@@ -91,7 +124,7 @@ export async function submitApprovalToQueue(
   }
 
   // Add approval job to queue - this handles both offline and online scenarios
-  const jobId = await jobQueue.addJob(
+  const jobId = await deps.queue.addJob(
     "approval",
     {
       ...draft,
@@ -107,17 +140,10 @@ export async function submitApprovalToQueue(
 }
 
 /**
- * Maximum file size for work images (10MB)
- */
-export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-export const MAX_IMAGE_COUNT = 10;
-export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
-export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-/**
  * Options for validating work submission context
  */
-export interface ValidateWorkContextOptions {
+export interface ValidateWorkContextOptions extends WorkAttachmentPolicy {
+  audioNotes?: File[];
   /** Minimum required images (from action config). Defaults to 0 if not provided. */
   minRequired?: number;
 }
@@ -144,7 +170,9 @@ export function validateWorkSubmissionContext(
   // Default to 0 so direct callers don't accidentally require media.
   const minRequired = options.minRequired ?? 0;
 
-  if (!gardenAddress) {
+  // A garden curated out of every surface counts as none: a saved draft, a
+  // commitment link, or navigation state can carry one past the garden picker.
+  if (!gardenAddress || isGardenHiddenEverywhere(gardenAddress)) {
     errors.push("Garden must be selected");
   }
 
@@ -152,33 +180,23 @@ export function validateWorkSubmissionContext(
     errors.push("Action must be selected");
   }
 
-  if (images.length < minRequired) {
-    if (minRequired === 1) {
-      errors.push("At least one image is required");
-    } else {
-      errors.push(`At least ${minRequired} images are required`);
-    }
-  }
-
-  if (images.length > MAX_IMAGE_COUNT) {
-    errors.push(`You can upload up to ${MAX_IMAGE_COUNT} images`);
-  }
-
-  // Check image file sizes
-  const oversizedImages = images.filter((img) => img.size > MAX_IMAGE_SIZE_BYTES);
-  if (oversizedImages.length > 0) {
-    errors.push(`${oversizedImages.length} image(s) exceed 10MB limit`);
-  }
-
-  const totalSize = images.reduce((acc, image) => acc + image.size, 0);
-  if (totalSize > MAX_TOTAL_IMAGE_SIZE_BYTES) {
-    errors.push("Total image upload size cannot exceed 50MB");
-  }
-
-  const invalidImageTypes = images.filter((img) => !ALLOWED_IMAGE_TYPES.has(img.type));
-  if (invalidImageTypes.length > 0) {
-    errors.push("Only JPEG, PNG, and WebP images are supported");
-  }
+  const messages: Record<string, string> = {
+    "photos-required":
+      minRequired === 1
+        ? "At least one image is required"
+        : `At least ${minRequired} images are required`,
+    "media-count": "You can upload up to 10 photos and videos",
+    "media-type": "Only JPEG, PNG, WebP, MP4, and WebM are supported",
+    "media-size": "Photos must be 10MB or smaller; videos must be 20MB or smaller",
+    "audio-type": "Audio recordings must use an audio format",
+    "empty-media": "An attachment is empty. Please select it again",
+    "total-size": "All attachments together must be 50MB or smaller",
+  };
+  errors.push(
+    ...validateWorkAttachments(images, options.audioNotes, minRequired, {
+      pendingHeic: options.pendingHeic,
+    }).map((code) => messages[code])
+  );
 
   return errors;
 }

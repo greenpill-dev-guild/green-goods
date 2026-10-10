@@ -1,19 +1,24 @@
 # Yield Split Visibility and Operator Presets
 
 **Branch**: `codex/yield-split-ui`
-**Status**: BACKLOG
+**Stage**: `backlog`
+**Status**: `BACKLOG — re-audit distribution UI; guarded presets remain gated`
 **Created**: 2026-03-16
-**Last Updated**: 2026-06-26
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+PRD-351 is Todo in Linear. Current source has `useHarvestDistribution`, receipt-derived distribution outcomes and `useYieldStatus` consuming live split configuration, in addition to the older split hooks. The former blanket claim that no split action exists needs a fresh consumer audit. Reassess remaining hardcoded displays and preset UX; preserve Green Goods governance of the treasury share and the `setGardenTreasury` permission-hardening gate before presets. No contract or product policy changes are selected.
 
 ## Current State
 
 This plan is parked in backlog. Linear `PRD-351` remains the parent-only mirror; lane issues are not created or reactivated until the hub moves back to `.plans/active/`.
 
-The current repo already has `useSplitConfig`, `usePendingYield`, and
-`useAllocateYield` in `@green-goods/shared`. The stale work is the product and
-governance surface: admin/client UI still has hardcoded split displays, no
-operator-only `splitYield` action in the current vault flow, and preset editing
-cannot safely ship while `setGardenTreasury` is still operator-accessible.
+The current source includes `useSplitConfig`, `usePendingYield`, `useAllocateYield`,
+`useHarvestDistribution` and receipt-derived distribution outcomes in `@green-goods/shared`.
+Re-audit the consuming admin/client views before treating the older hardcoded-display or
+missing-action claims as remaining work. Preset editing remains gated on a fresh verification
+and hardening of `setGardenTreasury` permissions.
 
 The accepted product model is:
 

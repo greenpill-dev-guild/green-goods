@@ -1,0 +1,233 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Button } from "@green-goods/shared/components/Button";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import type { ProofRosterMember } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { MAX_EVIDENCE_LINKS } from "@green-goods/shared/commitment-pooling";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
+import { useState } from "react";
+import { useIntl } from "react-intl";
+
+/** What the note's hint says, from what the proof already holds. */
+export type NoteHint =
+  | { kind: "needed" }
+  | { kind: "linkEnough"; count: number }
+  | { kind: "alreadyAdded"; summary: string };
+
+export interface ProofDetailsProps {
+  /** The active roster: the only people who may be credited. */
+  roster: ProofRosterMember[];
+  credited: Address[];
+  onToggleCredit: (address: Address) => void;
+  viewer: Address | null;
+  note: string;
+  onNote: (value: string) => void;
+  noteHint: NoteHint;
+  links: string[];
+  onLinks: (value: string[]) => void;
+  linkInvalid: boolean;
+}
+
+const CHIP =
+  "shrink-0 rounded-full bg-bg-weak-50 px-2 py-0.5 text-[10px] font-medium text-text-sub-600";
+
+/**
+ * Who did this, and the words that go with it.
+ *
+ * Credit is a labelled, bounded choice over the active roster, never an
+ * invisible default: the first proof that credits someone gives them their
+ * share of recognition, so the list is shown in full and the member ticks it.
+ * The signed-in member is preselected visibly when they are on the roster. The
+ * note's hint tells the truth for this proof: needed when nothing else was
+ * added, optional otherwise, and why.
+ */
+export function ProofDetails({
+  roster,
+  credited,
+  onToggleCredit,
+  viewer,
+  note,
+  onNote,
+  noteHint,
+  links,
+  onLinks,
+  linkInvalid,
+}: ProofDetailsProps) {
+  const { formatMessage } = useIntl();
+  const [pendingLink, setPendingLink] = useState("");
+
+  const isCredited = (address: Address) =>
+    credited.some((entry) => entry.toLowerCase() === address.toLowerCase());
+  // The pinned document keeps only the first MAX_EVIDENCE_LINKS, so the limit
+  // is held here instead: a link that would be dropped is never accepted, and
+  // the member is not told their proof was saved whole when it was not.
+  const linksFull = links.length >= MAX_EVIDENCE_LINKS;
+  const addLink = () => {
+    const url = pendingLink.trim();
+    if (!url || linksFull) return;
+    onLinks([...links, url]);
+    setPendingLink("");
+  };
+  const hint =
+    noteHint.kind === "needed"
+      ? formatMessage({ id: "app.proof.details.noteHint.needed" })
+      : noteHint.kind === "linkEnough"
+        ? formatMessage({ id: "app.proof.details.noteHint.linkEnough" }, { count: noteHint.count })
+        : formatMessage(
+            { id: "app.proof.details.noteHint.alreadyAdded" },
+            { summary: noteHint.summary }
+          );
+
+  return (
+    <>
+      <fieldset>
+        <legend className="text-sm font-medium text-text-strong-950">
+          {formatMessage({ id: "app.proof.details.credit" })}
+        </legend>
+        <p className="mt-1 text-xs text-text-sub-600">
+          {formatMessage({ id: "app.proof.details.creditHelp" })}
+        </p>
+        {roster.length === 0 ? (
+          <p className="mt-3 text-sm text-text-sub-600">
+            {formatMessage({ id: "app.proof.details.noRoster" })}
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {roster.map((member) => {
+              const selected = isCredited(member.address);
+              const isYou = viewer?.toLowerCase() === member.address.toLowerCase();
+              return (
+                <li
+                  key={member.address}
+                  className={cn(
+                    "flex items-center gap-3 rounded-[var(--radius-lg)] border p-3",
+                    selected
+                      ? "border-primary-alpha-24 bg-primary-alpha-10"
+                      : "border-stroke-soft-200 bg-bg-white-0"
+                  )}
+                >
+                  {/* The row's own control carries the name, because the address
+                    display beside it is itself interactive and cannot sit inside
+                    a label. */}
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => onToggleCredit(member.address)}
+                    aria-label={formatMessage(
+                      { id: "app.proof.details.creditOne" },
+                      { who: formatAddress(member.address) }
+                    )}
+                    className="h-5 w-5 shrink-0 accent-[var(--color-primary-on-surface)]"
+                  />
+                  <span className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                    {/* A choice of who to credit, not an identity card: the name only. */}
+                    <AddressDisplay address={member.address} interactive={false} />
+                    {member.isLead ? (
+                      <span className={CHIP}>
+                        {formatMessage({ id: "app.proof.details.lead" })}
+                      </span>
+                    ) : null}
+                    {isYou ? (
+                      <span className={CHIP}>
+                        {formatMessage({ id: "app.commitment.people.you" })}
+                      </span>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </fieldset>
+
+      <div>
+        <label className="block text-sm font-medium text-text-strong-950" htmlFor="proof-note">
+          {formatMessage({ id: "app.proof.details.noteLabel" })}
+        </label>
+        <Textarea
+          id="proof-note"
+          value={note}
+          rows={3}
+          maxLength={2000}
+          placeholder={formatMessage({ id: "app.proof.details.notePlaceholder" })}
+          onChange={(event) => onNote(event.target.value)}
+          aria-describedby="proof-note-hint"
+          className="mt-1.5"
+        />
+        <p
+          id="proof-note-hint"
+          className={cn(
+            "mt-1.5 text-xs",
+            noteHint.kind === "needed" ? "text-warning-dark" : "text-text-sub-600"
+          )}
+        >
+          {hint}
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-text-strong-950" htmlFor="proof-link">
+          {formatMessage({ id: "app.proof.details.linksLabel" })}
+        </label>
+        <div className="mt-1.5 flex gap-2">
+          <TextInput
+            id="proof-link"
+            type="url"
+            inputMode="url"
+            value={pendingLink}
+            placeholder="https://"
+            onChange={(event) => setPendingLink(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addLink();
+              }
+            }}
+            className="min-w-0 flex-1"
+          />
+          <Button
+            type="button"
+            emphasis="secondary"
+            onClick={addLink}
+            disabled={pendingLink.trim().length === 0 || linksFull}
+            leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+            className="shrink-0"
+          >
+            {formatMessage({ id: "app.proof.details.addLink" })}
+          </Button>
+        </div>
+        {linkInvalid ? (
+          <p className="mt-1.5 text-xs text-error-base" role="alert">
+            {formatMessage({ id: "app.compose.details.linkInvalid" })}
+          </p>
+        ) : null}
+        {links.length > 0 ? (
+          <ul
+            className="mt-2 space-y-1"
+            aria-label={formatMessage({ id: "app.compose.details.links" })}
+          >
+            {links.map((url, index) => (
+              <li
+                key={`${url}-${index}`}
+                className="flex items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0 truncate text-text-strong-950" title={url}>
+                  {url}
+                </span>
+                <IconButton
+                  size="compact"
+                  onClick={() => onLinks(links.filter((_, i) => i !== index))}
+                  aria-label={formatMessage({ id: "app.compose.details.removeLink" }, { url })}
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </>
+  );
+}

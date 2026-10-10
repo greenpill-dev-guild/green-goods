@@ -1,17 +1,26 @@
-import { type PublicGardenSummary, useInViewReveal, usePublicGardens } from "@green-goods/shared";
-import { useMemo, useState } from "react";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import {
+  type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useMatch } from "react-router-dom";
+import { useNavigationType } from "react-router-dom";
 import {
   EditorialDivider,
   EditorialHeading,
   EditorialKicker,
-  EditorialTitleAccent,
+  EditorialMediaCardSkeleton,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+import { focusRememberedGardenCard } from "./gardenReturnFocus";
 
 /**
  * Gardens — public discovery and browsing view.
@@ -24,10 +33,17 @@ import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
  */
 export default function GardensGallery() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const [query, setQuery] = useState("");
-  const dialogRouteActive = Boolean(useMatch("/gardens/:id"));
+  const navigationType = useNavigationType();
   const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
+
+  // Arriving back from a Garden page: ScrollRestoration puts the grid back
+  // where it was, this puts focus back on the card the reader opened.
+  useEffect(() => {
+    if (navigationType !== "POP" || isLoading) return;
+    focusRememberedGardenCard();
+  }, [isLoading, navigationType]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -40,12 +56,16 @@ export default function GardensGallery() {
       return haystack.includes(q);
     });
   }, [gardens, query]);
+  const surfaceState = selectPublicSurfaceState({
+    isLoading,
+    isError,
+    itemCount: filtered.length,
+  });
 
   return (
     <>
       <PublicEditorialHero
         variant="banner"
-        disableViewTransition={dialogRouteActive}
         imageSrc={getPublicHeroImage("gardens")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
@@ -53,16 +73,15 @@ export default function GardensGallery() {
         title={formatMessage(
           {
             id: "public.gardens.heroTitle",
-            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record.",
+            defaultMessage:
+              "<line>Explore the</line> <line><accent>Gardens</accent> growing</line> <line>the public record</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Anyone can read the record they build.",
+            "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
         })}
       />
 
@@ -85,7 +104,7 @@ export default function GardensGallery() {
               <EditorialHeading id="public-gardens-archive-title">
                 {formatMessage({
                   id: "public.gardens.archiveTitle",
-                  defaultMessage: "Browse every Garden keeping a public record.",
+                  defaultMessage: "Meet the Gardens.",
                 })}
               </EditorialHeading>
             </div>
@@ -93,18 +112,19 @@ export default function GardensGallery() {
               <span className="sr-only">
                 {formatMessage({
                   id: "public.gardens.searchLabel",
-                  defaultMessage: "Search Gardens",
+                  defaultMessage: "Search gardens",
                 })}
               </span>
-              <input
+              <TextInput
                 type="search"
+                surface="editorial"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={formatMessage({
                   id: "public.gardens.searchPlaceholder",
                   defaultMessage: "Search Gardens…",
                 })}
-                className="w-full border-b border-stroke-soft-200 bg-transparent px-1 pb-2 font-serif text-lg text-text-strong-950 placeholder-text-soft-400 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] focus:border-primary-action focus:outline-none"
+                className="text-text-strong-950"
               />
             </label>
           </header>
@@ -139,49 +159,49 @@ export default function GardensGallery() {
           {/* Reserve a stable height so filtering down to a single result
               does not collapse the page and shift the footer up. */}
           <div className="min-h-[60vh]">
-            {isLoading ? (
-              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="mt-12">
-                <p className="font-serif text-2xl italic text-text-soft-400">
-                  {query.trim().length > 0
-                    ? formatMessage(
-                        {
-                          id: "public.gardens.noMatches",
-                          defaultMessage: 'No Gardens match "{query}".',
-                        },
-                        { query: query.trim() }
-                      )
-                    : formatMessage({
-                        id: "public.gardens.empty",
-                        defaultMessage: "Gardens will appear here as they come online.",
-                      })}
-                </p>
-                <div className="mt-6">
-                  <EditorialDivider />
+            <PublicSurfaceState
+              state={surfaceState}
+              loading={
+                <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <EditorialMediaCardSkeleton key={i} />
+                  ))}
                 </div>
-              </div>
-            ) : (
+              }
+              onRetry={() => void refetch()}
+              empty={
+                <div className="mt-12">
+                  <p className="font-serif text-2xl italic text-text-soft-400">
+                    {query.trim().length > 0
+                      ? formatMessage(
+                          {
+                            id: "public.gardens.noMatches",
+                            defaultMessage: 'No Gardens match "{query}".',
+                          },
+                          { query: query.trim() }
+                        )
+                      : formatMessage({
+                          id: "public.gardens.empty",
+                          defaultMessage: "Gardens will appear here as they come online.",
+                        })}
+                  </p>
+                  <div className="mt-6">
+                    <EditorialDivider />
+                  </div>
+                </div>
+              }
+            >
               <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((garden: PublicGardenSummary) => (
                   <PublicGardenCard key={garden.id} garden={garden} />
                 ))}
               </div>
-            )}
+            </PublicSurfaceState>
           </div>
         </div>
       </section>
 
       <PublicFooter variant="soil" />
-      <Outlet />
     </>
   );
 }

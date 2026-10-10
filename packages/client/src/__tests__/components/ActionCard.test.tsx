@@ -2,12 +2,21 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", async () => {
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/components/Display/ActionBannerFallback", async () => {
   const React = await import("react");
   return {
-    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(" "),
     ActionBannerFallback: ({ title }: { title: string }) =>
       React.createElement("div", { "data-testid": "action-banner-fallback" }, title),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
+  const React = await import("react");
+  return {
     ImageWithFallback: ({
       alt,
       className,

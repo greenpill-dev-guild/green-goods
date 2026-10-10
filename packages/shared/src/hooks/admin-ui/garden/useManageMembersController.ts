@@ -1,4 +1,6 @@
-import { adminRoutes, useAdminGardenContext, useGardenDetailData } from "@green-goods/shared";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
+import { useGardenDetailData } from "../../garden/useGardenDetailData";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 

@@ -8,7 +8,7 @@
 // regressions — a trimmed description that stops firing, or a greedy one that
 // swallows another skill's queries. Run it after any description/trigger edit.
 //
-// Caller: `bun run eval:skills` (root package.json). NOT in CI — it needs a
+// Caller: `bun run check --only skill-evaluation` (root package.json). NOT in CI — it needs a
 // logged-in `claude` CLI and spends real tokens (one batched call per run).
 // Fixtures: scripts/data/skill-trigger-eval.json. EVAL_MODEL overrides the
 // model (default haiku; use sonnet to arbitrate a disputed case).

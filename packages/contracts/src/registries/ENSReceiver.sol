@@ -193,15 +193,16 @@ contract GreenGoodsENSReceiver is CCIPReceiver, Ownable {
         if (NAME_WRAPPER != address(0)) {
             // Wrapped path: create subnode via NameWrapper, sets resolver in one call.
             // Resolver's isAuthorised() checks nameWrapper.ownerOf(node) == msg.sender.
-            INameWrapper(NAME_WRAPPER).setSubnodeRecord(
-                BASE_NODE,
-                slug,
-                address(this), // receiver owns the wrapped subnode
-                ENS_RESOLVER,
-                0, // ttl
-                0, // fuses: CAN_DO_EVERYTHING (no restrictions)
-                type(uint64).max // expiry: clamped to parent's expiry by NameWrapper
-            );
+            INameWrapper(NAME_WRAPPER)
+                .setSubnodeRecord(
+                    BASE_NODE,
+                    slug,
+                    address(this), // receiver owns the wrapped subnode
+                    ENS_RESOLVER,
+                    0, // ttl
+                    0, // fuses: CAN_DO_EVERYTHING (no restrictions)
+                    type(uint64).max // expiry: clamped to parent's expiry by NameWrapper
+                );
             IENSResolver(ENS_RESOLVER).setAddr(node, _owner);
         } else {
             // Unwrapped path: raw registry (Sepolia, localhost)

@@ -1,9 +1,6 @@
-import {
-  adminRoutes,
-  type AdminGardenRouteContext,
-  type MetaStripItem,
-  type ViewAction,
-} from "@green-goods/shared";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import { type AdminGardenRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
 import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
 
 /**
@@ -17,7 +14,7 @@ export interface GardenHeaderStatsInput {
   impactCount: number | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 
@@ -76,11 +73,13 @@ export function buildGardenHeaderStats({
  * deep links, but it opens as a dialog over the Health view rather than taking
  * a tab slot.
  */
-export type GardenWorkspaceView = "health" | "impact" | "activity";
+export type GardenWorkspaceView = "health" | "impact" | "activity" | "pool";
 
 export function resolveGardenView(pathname: string): GardenWorkspaceView {
   if (pathname.startsWith("/garden/activity")) return "activity";
   if (pathname.startsWith("/garden/impact")) return "impact";
+  // The pool console and its seed / commitment inspectors all sit on the Pool tab.
+  if (pathname.startsWith("/garden/pool")) return "pool";
   return "health";
 }
 
@@ -101,7 +100,7 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
  * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
-  view: GardenWorkspaceView,
+  _view: GardenWorkspaceView,
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,

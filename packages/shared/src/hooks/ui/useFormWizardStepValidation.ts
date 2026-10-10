@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type FormWizardValidationStep<TStepId extends string = string> = {
   id: TStepId;
@@ -30,9 +30,17 @@ export interface UseFormWizardStepValidationOptions<
 
 export interface UseFormWizardStepValidationResult {
   showValidation: boolean;
+  /** Changes on every explicit validation, including repeated failed Next attempts. */
+  validationAttempt: number;
   setShowValidation: (showValidation: boolean) => void;
   validateCurrentStep: () => Promise<boolean>;
   validateAll: () => Promise<boolean>;
+  /**
+   * Show validation on a step the flow is about to move to, such as Submit
+   * sending the person back to a step with a bad value. Every other step
+   * change hides validation.
+   */
+  showValidationOnStep: (stepIndex: number) => void;
   handleNext: () => Promise<void>;
   handleBack: () => void;
   handleStepClick: (stepIndex: number) => void;
@@ -52,13 +60,29 @@ export function useFormWizardStepValidation<
   clearValidationAfterValidNext = false,
 }: UseFormWizardStepValidationOptions<TStepId, TFieldName>): UseFormWizardStepValidationResult {
   const [showValidation, setShowValidation] = useState(false);
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const revealOnStepRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setShowValidation(false);
+    const reveal = revealOnStepRef.current === currentStep;
+    revealOnStepRef.current = null;
+    setShowValidation(reveal);
   }, [currentStep]);
+
+  const showValidationOnStep = useCallback(
+    (stepIndex: number) => {
+      if (stepIndex === currentStep) {
+        setShowValidation(true);
+        return;
+      }
+      revealOnStepRef.current = stepIndex;
+    },
+    [currentStep]
+  );
 
   const validateCurrentStep = useCallback(async () => {
     setShowValidation(true);
+    setValidationAttempt((attempt) => attempt + 1);
 
     const currentStepId = steps[currentStep]?.id;
     const fields = currentStepId ? stepFields?.[currentStepId] : undefined;
@@ -72,6 +96,7 @@ export function useFormWizardStepValidation<
 
   const validateAll = useCallback(async () => {
     setShowValidation(true);
+    setValidationAttempt((attempt) => attempt + 1);
     return trigger ? trigger(undefined, { shouldFocus: true }) : true;
   }, [trigger]);
 
@@ -101,9 +126,11 @@ export function useFormWizardStepValidation<
 
   return {
     showValidation,
+    validationAttempt,
     setShowValidation,
     validateCurrentStep,
     validateAll,
+    showValidationOnStep,
     handleNext,
     handleBack,
     handleStepClick,

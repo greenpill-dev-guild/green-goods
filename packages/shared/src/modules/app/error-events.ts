@@ -299,6 +299,9 @@ export function trackUploadBatchProgress(context: {
  * Track an error caught by a React Error Boundary.
  * Use this in componentDidCatch to properly track React errors.
  *
+ * The person is now looking at a crash screen, so the report is kept on the device until it can
+ * be sent and is filed with error tracking as well (see `crash-reports`).
+ *
  * @example
  * ```typescript
  * componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -333,6 +336,7 @@ export function trackErrorBoundary(
     category,
     source: boundaryName,
     isOffline,
+    durable: true,
     metadata: {
       component_stack: componentStack?.slice(0, 2000), // Limit size
       boundary_name: boundaryName,

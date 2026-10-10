@@ -1,14 +1,19 @@
 import {
-  cn,
   type PublicGardenSummary,
-  useInViewReveal,
   usePublicGardens,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
-import { EditorialHeading, EditorialKicker, EditorialLinkArrow } from "./atoms";
+import {
+  EditorialHeading,
+  EditorialKicker,
+  EditorialLinkArrow,
+  EditorialMediaCardSkeleton,
+} from "./atoms";
 import { PublicGardenCard } from "./PublicGardenCard";
+import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
 const FEATURED_FALLBACK_LIMIT = 4;
 const PLACEHOLDER_BANNER = "/images/no-image-placeholder.png";
@@ -33,11 +38,11 @@ function pickFeatured(
   if (all.length === 0) return [];
 
   const imageBacked = all.filter((garden) => isImageBacked(garden, failedImageKeys));
-  if (imageBacked.length === 0) return [];
 
   if (curatedKeys.length > 0) {
     const indexById = new Map<string, PublicGardenSummary>();
-    for (const garden of imageBacked) {
+    // Explicit editorial choices keep their place even when a banner needs its fallback.
+    for (const garden of all) {
       indexById.set(garden.id.toLowerCase(), garden);
       indexById.set(garden.address.toLowerCase(), garden);
     }
@@ -75,7 +80,7 @@ function pickFeatured(
  */
 export function PublicFeaturedGardens() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
   const [failedImageKeys, setFailedImageKeys] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -103,17 +108,21 @@ export function PublicFeaturedGardens() {
             <EditorialHeading id="public-featured-title">
               {formatMessage({
                 id: "public.home.featured.title",
-                defaultMessage: "Tended places, openly recorded.",
+                defaultMessage: "Meet the communities doing the work.",
               })}
             </EditorialHeading>
           </div>
           <EditorialLinkArrow to="/gardens">
             {formatMessage({
               id: "public.home.featured.cta",
-              defaultMessage: "Browse all Gardens",
+              defaultMessage: "Browse All Gardens",
             })}
           </EditorialLinkArrow>
         </header>
+
+        <p className="mt-6 max-w-3xl text-base leading-relaxed text-text-sub-600 md:text-lg">
+          {formatMessage({ id: "public.home.featured.definition" })}
+        </p>
 
         {isLoading ? (
           <div
@@ -127,14 +136,16 @@ export function PublicFeaturedGardens() {
                 key={index}
                 className="mb-10 break-inside-avoid last:mb-0 sm:mb-12"
               >
-                <div
-                  className={cn(
-                    "w-full animate-pulse bg-editorial-warm",
-                    index === 0 || index === 3 ? "aspect-[4/3]" : "aspect-[3/2]"
-                  )}
+                <EditorialMediaCardSkeleton
+                  mediaClassName={index === 0 || index === 3 ? "aspect-[4/3]" : "aspect-[3/2]"}
                 />
               </div>
             ))}
+          </div>
+        ) : isError && gardens.length === 0 ? (
+          // A failed read is not an empty one: the section says so and offers the read again.
+          <div role="alert">
+            <PublicReadUnavailable className="mt-10" onRetry={() => void refetch()} />
           </div>
         ) : featured.length === 0 ? (
           <p className="mt-10 max-w-md text-sm text-text-sub-600">

@@ -1,29 +1,8 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, OctantModule, OctantVault } from "./v3";
+import { createTestIndexer, OctantModule, OctantVault, processEvents } from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
 
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 const GARDEN = addr(20);
 const ASSET = addr(21);
@@ -174,8 +153,6 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: event1, mockDb });
-
     const event2 = OctantVault.Deposit.createMockEvent({
       sender: addr(30),
       owner: addr(31),
@@ -187,7 +164,7 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: event2, mockDb });
+    mockDb = await processEvents(mockDb, [event1, event2]);
 
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
     const deposit = await mockDb.VaultDeposit.get(depositId);
@@ -216,8 +193,6 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit1, mockDb });
-
     const deposit2 = OctantVault.Deposit.createMockEvent({
       sender: addr(32),
       owner: addr(33),
@@ -229,7 +204,7 @@ describe("OctantVault.Deposit", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit2, mockDb });
+    mockDb = await processEvents(mockDb, [deposit1, deposit2]);
 
     const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
@@ -298,9 +273,13 @@ describe("OctantVault.Deposit", () => {
       }),
     });
 
-    const result = await OctantVault.Deposit.processEvent({ event, mockDb });
-    // Should not throw, just skip
-    assert.equal(await result.GardenVault.get(vaultId()), undefined);
+    // Envio rejects an event whose address is not indexed rather than silently
+    // skipping it, so the guarantee is now enforced before the handler runs.
+    await assert.rejects(
+      () => OctantVault.Deposit.processEvent({ event, mockDb }),
+      /never reached a handler/
+    );
+    assert.equal(await mockDb.GardenVault.get(vaultId()), undefined);
   });
 });
 
@@ -324,8 +303,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     // Withdraw
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
@@ -339,7 +316,7 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
     const vault = await mockDb.GardenVault.get(vaultId());
     assert.ok(vault);
@@ -367,8 +344,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     // Withdraw 100 (more than deposited)
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
@@ -382,7 +357,7 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
     const depositId = `${CHAIN_ID}-${VAULT.toLowerCase()}-${addr(31).toLowerCase()}`;
     const depositRecord = await mockDb.VaultDeposit.get(depositId);
@@ -406,8 +381,6 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 1,
       }),
     });
-    mockDb = await OctantVault.Deposit.processEvent({ event: deposit, mockDb });
-
     const withdraw = OctantVault.Withdraw.createMockEvent({
       sender: addr(30),
       receiver: addr(31),
@@ -420,7 +393,7 @@ describe("OctantVault.Withdraw", () => {
         logIndex: 3,
       }),
     });
-    mockDb = await OctantVault.Withdraw.processEvent({ event: withdraw, mockDb });
+    mockDb = await processEvents(mockDb, [deposit, withdraw]);
 
     const vaultEvent = await mockDb.VaultEvent.get(`${CHAIN_ID}-${tx}-3`);
     assert.ok(vaultEvent);
@@ -588,8 +561,6 @@ describe("OctantModule.DonationAddressUpdated", () => {
       asset: secondAsset,
       mockEventData: mockEvent(CHAIN_ID, 1500, { txHash: txHash(150), logIndex: 1 }),
     });
-    mockDb = await OctantModule.VaultCreated.processEvent({ event: createEvent, mockDb });
-
     // Update donation address
     const updateEvent = OctantModule.DonationAddressUpdated.createMockEvent({
       garden: GARDEN,
@@ -597,7 +568,7 @@ describe("OctantModule.DonationAddressUpdated", () => {
       newAddress: addr(27),
       mockEventData: mockEvent(CHAIN_ID, 4000, { txHash: txHash(400), logIndex: 1 }),
     });
-    mockDb = await OctantModule.DonationAddressUpdated.processEvent({ event: updateEvent, mockDb });
+    mockDb = await processEvents(mockDb, [createEvent, updateEvent]);
 
     const vault1 = await mockDb.GardenVault.get(vaultId());
     const vault2 = await mockDb.GardenVault.get(

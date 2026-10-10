@@ -25,6 +25,19 @@ import { registerHealthRoutes } from "./routes/health";
 import { registerMessageRoutes } from "./routes/messages";
 import { registerSubscribeRoutes } from "./routes/subscribe";
 import { registerUploadSignRoutes } from "./routes/upload-sign";
+import { registerProfileAvatarRoutes } from "./routes/profile-avatars";
+import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
+import { registerSavedOfferRoutes } from "./routes/saved-offers";
+import { bindPublicRequestPeerIp } from "./public-protection";
+import { registerGardenJoinRequestRoutes } from "./routes/garden-join-requests";
+import { publicBrowserCorsPreflight, publicBrowserCorsResponse } from "./http/public";
+import { trackGardenJoinRequestEvent } from "../services/analytics";
+import { GardenJoinRequestRateLimitPressure } from "../services/garden-join-requests";
+import { registerPublicGardenImpactRoutes } from "./routes/public-garden-impact";
+import { registerMessagingRoutes } from "./routes/messaging";
+import { registerReportingOpsRoutes } from "./routes/reporting-ops";
+import { registerPublicCommitmentImpactRoutes } from "./routes/public-commitment-impact";
+import { registerPasskeyDirectoryRoutes } from "./routes/passkey-directory";
 
 const log = loggers.api;
 
@@ -99,6 +112,44 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     }
   }
 
+  const joinRequestSweepIntervalMs =
+    deps.gardenJoinRequestSweepIntervalMs === undefined
+      ? 24 * 60 * 60 * 1000
+      : deps.gardenJoinRequestSweepIntervalMs;
+  let joinRequestSweepTimer: ReturnType<typeof setInterval> | null = null;
+  const joinRequestsEnabled = deps.gardenJoinRequestsEnabled === true;
+  const joinRequestsAvailable = Boolean(
+    joinRequestsEnabled &&
+      deps.gardenJoinRequestStore &&
+      deps.gardenJoinRequestChainId &&
+      deps.gardenJoinRequestChainReader &&
+      deps.gardenJoinRequestSignatureVerifier
+  );
+  const gardenJoinRequestRateLimitPressure =
+    deps.gardenJoinRequestRateLimitPressure ?? new GardenJoinRequestRateLimitPressure();
+  const sweepJoinRequests = () =>
+    deps
+      .gardenJoinRequestStore!.sweep(new Date(deps.now?.() ?? Date.now()).toISOString())
+      .then((result) => {
+        if (result.expiredPending > 0) {
+          void trackGardenJoinRequestEvent("join_request_expired", {
+            count: result.expiredPending,
+          });
+        }
+      })
+      .catch((err) => log.warn({ err }, "Garden join-request retention sweep failed"));
+  if (deps.gardenJoinRequestStore && joinRequestSweepIntervalMs > 0) {
+    void sweepJoinRequests();
+    joinRequestSweepTimer = setInterval(() => void sweepJoinRequests(), joinRequestSweepIntervalMs);
+    if (
+      typeof joinRequestSweepTimer === "object" &&
+      joinRequestSweepTimer &&
+      "unref" in joinRequestSweepTimer
+    ) {
+      (joinRequestSweepTimer as { unref?: () => void }).unref?.();
+    }
+  }
+
   app.close = async () => {
     if (sweepTimer) {
       clearInterval(sweepTimer);
@@ -107,6 +158,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     if (chatSweepTimer) {
       clearInterval(chatSweepTimer);
       chatSweepTimer = null;
+    }
+    if (joinRequestSweepTimer) {
+      clearInterval(joinRequestSweepTimer);
+      joinRequestSweepTimer = null;
     }
     const server = runningServers.get(app);
     if (server) {
@@ -120,6 +175,40 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerUploadSignRoutes(app, routeContext);
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
+  registerPublicGardenImpactRoutes(app, routeContext);
+  registerPublicCommitmentImpactRoutes(app, routeContext);
+  registerProfileAvatarRoutes(app, {
+    ...routeContext,
+    profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),
+  });
+  registerSavedOfferRoutes(app, {
+    ...routeContext,
+    savedOfferStore: deps.savedOfferStore,
+    savedOffersSessionStore: deps.savedOffersSessionStore,
+  });
+  const joinRequestAvailabilityRoute = "/public/features/garden-join-requests";
+  app.options(joinRequestAvailabilityRoute, (c) => publicBrowserCorsPreflight(c, deps));
+  app.get(joinRequestAvailabilityRoute, (c) =>
+    publicBrowserCorsResponse(c, deps, {
+      ok: true,
+      enabled: joinRequestsAvailable,
+      supportedKinds: joinRequestsAvailable ? ["garden_membership", "steward_access"] : [],
+    })
+  );
+  if (joinRequestsAvailable) {
+    registerGardenJoinRequestRoutes(app, {
+      ...routeContext,
+      deps: { ...routeContext.deps, gardenJoinRequestRateLimitPressure },
+      store: deps.gardenJoinRequestStore,
+    });
+  }
+
+  if (deps.passkeyDirectory) {
+    registerPasskeyDirectoryRoutes(app, {
+      ...routeContext,
+      passkeyDirectory: deps.passkeyDirectory,
+    });
+  }
 
   const fundingRouteContext: FundingRouteContext = {
     deps,
@@ -134,6 +223,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     },
   };
   registerFundingRoutes(app, fundingRouteContext);
+  // Agent reporting ceremonies exist only when the reporting runtime is configured.
+  if (deps.messaging) {
+    registerMessagingRoutes(app, deps.messaging);
+    registerReportingOpsRoutes(app, deps, deps.messaging.core);
+  }
   return app;
 }
 
@@ -143,7 +237,11 @@ export async function startServer(app: AgentServer, config: ServerConfig): Promi
     const server = Bun.serve({
       port: config.port,
       hostname: config.host || "0.0.0.0",
-      fetch: app.fetch,
+      fetch(request, bunServer) {
+        const peerIp = bunServer.requestIP(request)?.address;
+        if (peerIp) bindPublicRequestPeerIp(request, peerIp);
+        return app.fetch(request);
+      },
     });
     runningServers.set(app, server);
     log.info({ port: config.port, host: config.host }, "Server listening");

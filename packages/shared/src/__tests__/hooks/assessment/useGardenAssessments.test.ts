@@ -7,7 +7,7 @@
  */
 
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,28 +21,27 @@ vi.mock("../../../modules/data/eas", () => ({
   getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
 }));
 
-vi.mock("../../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
-}));
+vi.mock("../../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 11155111 }));
 
 const mockUseQuery = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => mockUseQuery(options),
 }));
 
-vi.mock("../../../config/query-keys", () => ({
-  queryKeys: {
-    assessments: {
-      byGardenBase: (addr: string, chainId: number) => [
-        "greengoods",
-        "assessments",
-        "byGarden",
-        addr,
-        chainId,
-      ],
-    },
-  },
+vi.mock("../../../config/query-keys/constants", () => ({
   STALE_TIME_MEDIUM: 300000,
+}));
+
+vi.mock("../../../config/query-keys/garden", () => ({
+  assessmentsKeys: {
+    byGardenBase: (addr: string, chainId: number) => [
+      "greengoods",
+      "assessments",
+      "byGarden",
+      addr,
+      chainId,
+    ],
+  },
 }));
 
 // ============================================
@@ -106,7 +105,7 @@ describe("useGardenAssessments", () => {
     const options = mockUseQuery.mock.calls[0][0];
     await options.queryFn();
 
-    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN_ADDRESS, 11155111);
+    expect(mockGetGardenAssessments).toHaveBeenCalledExactlyOnceWith(GARDEN_ADDRESS, 11155111);
   });
 
   it("uses correct staleTime and refetchInterval", () => {
@@ -144,7 +143,7 @@ describe("useGardenAssessments", () => {
     const options = mockUseQuery.mock.calls[0][0];
     await options.queryFn();
 
-    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN_ADDRESS, 42161);
+    expect(mockGetGardenAssessments).toHaveBeenCalledExactlyOnceWith(GARDEN_ADDRESS, 42161);
   });
 
   it("defaults to DEFAULT_CHAIN_ID when chainId is not provided", () => {

@@ -7,7 +7,8 @@ paths:
 
 # React Patterns
 
-Rules for React code in shared, client, and admin packages. Use utility hooks from `@green-goods/shared` to enforce these patterns.
+Rules for React code in shared, client, and admin packages. Consumer packages use the declared
+`@green-goods/shared/*` leaf exports for these utility hooks.
 
 ## Rule 1: Timer Cleanup in Hooks
 
@@ -34,7 +35,7 @@ navigator.serviceWorker.addEventListener("controllerchange", () => { window.loca
 navigator.serviceWorker.addEventListener("controllerchange", handler, { once: true });
 
 // Good - Option 2
-import { useEventListener } from '@green-goods/shared';
+import { useEventListener } from "@green-goods/shared/hooks/utils/useEventListener";
 useEventListener(navigator.serviceWorker, "controllerchange", handler);
 ```
 
@@ -47,7 +48,7 @@ Never run async in `useEffect` without `isMounted` guard. Use `useAsyncEffect()`
 useEffect(() => { fetchData().then(data => setData(data)); }, []);
 
 // Good
-import { useAsyncEffect } from '@green-goods/shared';
+import { useAsyncEffect } from "@green-goods/shared/hooks/utils/useAsyncEffect";
 useAsyncEffect(async ({ isMounted }) => {
   const data = await fetchData();
   if (isMounted()) setData(data);
@@ -100,12 +101,12 @@ Never chain useMemo depending on another useMemo output. Combine into single use
 ```typescript
 // Bad
 const membership = useMemo(() => buildSets(data), [data]);
-const addresses = useMemo(() => Array.from(membership.operatorIds), [membership.operatorIds]);
+const addresses = useMemo(() => Array.from(membership.stewardIds), [membership.stewardIds]);
 
 // Good
 const { membership, addresses } = useMemo(() => {
   const m = buildSets(data);
-  return { membership: m, addresses: Array.from(m.operatorIds) };
+  return { membership: m, addresses: Array.from(m.stewardIds) };
 }, [data]);
 ```
 
@@ -128,16 +129,18 @@ The entry files are the source of truth; current shape:
 
 **Admin** (`packages/admin/src/main.tsx`):
 ```
-PersistQueryClientProvider > ErrorBoundary > AppKitProvider
+QueryPersistenceProvider > ErrorBoundary > AppKitProvider
   > AuthGate (DevAuthProvider when dev `?mockAuth=`, else AuthProvider)
   > AppProvider > RouterProvider
 ```
 
-**Client** (`packages/client/src/main.tsx` + `App.tsx`):
+**Client** (`packages/client/src/bootstrapPublic.tsx` / `bootstrapPwa.tsx` + `PublicApp.tsx` / `PwaApp.tsx`):
 ```
-HelmetProvider > AppErrorBoundary > AppProvider > App
-  > PersistQueryClientProvider > AppErrorBoundary > RouterProvider
+PublicRecoveryViews | AppRecoveryViews > HelmetProvider > AppErrorBoundary > AppProvider > App
+  > QueryPersistenceProvider (installed app only) > AppErrorBoundary > RouterProvider
 ```
+The recovery views stay outermost: every boundary, the outermost included, reads its error screens
+from them, and each entry hands over only its own so neither bundle carries the other's.
 Client wallet/auth providers do NOT live at the app root — they mount at route level via
 `routes/WalletRuntimeProviders.tsx` (`AppKitProvider > AuthGate`) so public/editorial routes
 never pay the wallet bundle.
@@ -150,10 +153,18 @@ Key constraints:
 
 ```typescript
 import {
-  useEventListener, useWindowEvent, useDocumentEvent,  // Rule 2
-  useTimeout, useDelayedInvalidation,                    // Rule 1
-  useAsyncEffect, useAsyncSetup,                         // Rule 3
-} from '@green-goods/shared';
+  useDocumentEvent,
+  useEventListener,
+  useWindowEvent,
+} from "@green-goods/shared/hooks/utils/useEventListener"; // Rule 2
+import {
+  useDelayedInvalidation,
+  useTimeout,
+} from "@green-goods/shared/hooks/utils/useTimeout"; // Rule 1
+import {
+  useAsyncEffect,
+  useAsyncSetup,
+} from "@green-goods/shared/hooks/utils/useAsyncEffect"; // Rule 3
 ```
 
 > Full package context: [.claude/context/shared.md](../context/shared.md) (hooks, stores, job queue, error utilities) and [.claude/context/testing.md](../context/testing.md) (test-utils, mocks, coverage).

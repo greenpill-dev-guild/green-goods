@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="rest-title rest-desc">
+  <title id="rest-title">Rest without erasure</title>
+  <desc id="rest-desc">Resting an ongoing Offer stops one thing and preserves everything else. New places can no longer be created and the offer leaves pool discovery. Promises already offered or taken up continue unchanged, the whole story stays readable, and the saved details stay privately stored. Resuming returns the offer to active without creating availability. Retiring is terminal, can be chosen directly from active or from resting, and still changes no existing promise.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Rest without erasure</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">A person can stop offering without losing what they built, or letting anyone down.</text>
+
+  <!-- state band -->
+  <g>
+    <rect x="60" y="106" width="228" height="62" rx="11" fill="#DFEBDE" stroke="#24422E" stroke-width="2.5"/>
+    <text x="174" y="144" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">Active</text>
+    <path d="M292 137 L338 137" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar2)"/>
+    <text x="315" y="126" text-anchor="middle" font-size="14" fill="#4C6B54">rest</text>
+
+    <rect x="344" y="106" width="228" height="62" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2.5"/>
+    <text x="458" y="144" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">Resting</text>
+    <path d="M458 176 C 380 208, 232 200, 190 176" stroke="#4C7A57" stroke-width="2.5" fill="none" marker-end="url(#ar2)"/>
+    <text x="322" y="207" text-anchor="middle" font-size="14" fill="#4C6B54">resume — creates no availability</text>
+
+    <path d="M576 137 L622 137" stroke="#988D77" stroke-width="2.5" fill="none" marker-end="url(#ar3)"/>
+    <text x="599" y="126" text-anchor="middle" font-size="14" fill="#6E6857">retire</text>
+
+    <path d="M120 168 L120 210 Q120 222 132 222 L722 222 Q734 222 734 210 L734 174" stroke="#988D77" stroke-width="2.5" fill="none" marker-end="url(#ar3)"/>
+    <text x="648" y="211" text-anchor="middle" font-size="14" fill="#6E6857">retire</text>
+
+    <rect x="628" y="106" width="212" height="62" rx="11" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5"/>
+    <text x="734" y="138" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">Retired</text>
+    <text x="734" y="158" text-anchor="middle" font-size="14" fill="#8A6D3B">terminal</text>
+  </g>
+
+  <!-- three columns -->
+  <g>
+    <rect x="60" y="236" width="248" height="384" rx="13" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5"/>
+    <text x="184" y="272" text-anchor="middle" font-size="19" font-weight="700" fill="#8A6D3B">What stops</text>
+    <text x="184" y="316" text-anchor="middle" font-size="16" fill="#3B372E">Adding new places</text>
+    <text x="184" y="356" text-anchor="middle" font-size="16" fill="#3B372E">Appearing in the pool</text>
+    <text x="184" y="380" text-anchor="middle" font-size="16" fill="#3B372E">as something to take up</text>
+    <text x="184" y="440" text-anchor="middle" font-size="15" fill="#6E6857">That is the whole list.</text>
+    <text x="184" y="490" text-anchor="middle" font-size="15" fill="#6E6857">Resting is one action</text>
+    <text x="184" y="512" text-anchor="middle" font-size="15" fill="#6E6857">with one effect, so it</text>
+    <text x="184" y="534" text-anchor="middle" font-size="15" fill="#6E6857">carries no penalty and</text>
+    <text x="184" y="556" text-anchor="middle" font-size="15" fill="#6E6857">needs no explanation.</text>
+  </g>
+
+  <g>
+    <rect x="326" y="236" width="248" height="384" rx="13" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+    <text x="450" y="272" text-anchor="middle" font-size="19" font-weight="700" fill="#24422E">What continues</text>
+    <rect x="352" y="296" width="196" height="56" rx="9" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+    <text x="450" y="320" text-anchor="middle" font-size="15" font-weight="600" fill="#3B372E">Session taken up</text>
+    <text x="450" y="340" text-anchor="middle" font-size="15" fill="#6E6857">runs exactly as agreed</text>
+    <rect x="352" y="364" width="196" height="56" rx="9" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+    <text x="450" y="388" text-anchor="middle" font-size="15" font-weight="600" fill="#3B372E">A place still open</text>
+    <text x="450" y="408" text-anchor="middle" font-size="15" fill="#6E6857">stays claimable</text>
+    <text x="450" y="452" text-anchor="middle" font-size="15" fill="#6E6857">Evidence, confirmation,</text>
+    <text x="450" y="474" text-anchor="middle" font-size="15" fill="#6E6857">review, and recognition</text>
+    <text x="450" y="496" text-anchor="middle" font-size="15" fill="#6E6857">all proceed normally.</text>
+    <text x="450" y="546" text-anchor="middle" font-size="15" fill="#4C6B54">Nobody who was relying</text>
+    <text x="450" y="568" text-anchor="middle" font-size="15" fill="#4C6B54">on a promise loses it.</text>
+  </g>
+
+  <g>
+    <rect x="592" y="236" width="248" height="384" rx="13" fill="#DFEBDE" stroke="#24422E" stroke-width="2.5"/>
+    <text x="716" y="272" text-anchor="middle" font-size="19" font-weight="700" fill="#24422E">What stays</text>
+    <text x="716" y="316" text-anchor="middle" font-size="22" font-weight="700" fill="#24422E">Kept 12 times</text>
+    <text x="716" y="342" text-anchor="middle" font-size="16" fill="#3E5C41">across 5 cycles</text>
+    <text x="716" y="392" text-anchor="middle" font-size="15" fill="#3E5C41">The whole story stays</text>
+    <text x="716" y="414" text-anchor="middle" font-size="15" fill="#3E5C41">readable, including the</text>
+    <text x="716" y="436" text-anchor="middle" font-size="15" fill="#3E5C41">records that did not</text>
+    <text x="716" y="458" text-anchor="middle" font-size="15" fill="#3E5C41">go to plan.</text>
+    <text x="716" y="508" text-anchor="middle" font-size="15" fill="#3E5C41">Your saved details</text>
+    <text x="716" y="530" text-anchor="middle" font-size="15" fill="#3E5C41">stay privately stored,</text>
+    <text x="716" y="552" text-anchor="middle" font-size="15" fill="#3E5C41">ready whenever you are.</text>
+  </g>
+
+  <rect x="60" y="652" width="780" height="112" rx="12" fill="#F1ECE2" stroke="#988D77" stroke-width="2"/>
+  <text x="88" y="684" font-size="14" font-weight="700" fill="#8A6D3B" letter-spacing="1.2">WHY THIS IS PART OF THE DESIGN, NOT A GAP IN IT</text>
+  <text x="88" y="714" font-size="17" fill="#3B372E">A pool that never lets someone stop will quietly consume the people who hold it up.</text>
+  <text x="88" y="738" font-size="17" fill="#3B372E">Resting says &#8220;enough&#8221; without anyone disappearing. Retiring keeps the record.</text>
+
+  <text x="450" y="820" text-anchor="middle" font-size="17" fill="#4C6B54">Rest is a first-class act, not a failure state.</text>
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4C7A57"/>
+    </marker>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#988D77"/>
+    </marker>
+  </defs>
+</svg>

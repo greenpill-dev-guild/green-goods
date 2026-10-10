@@ -1,6 +1,6 @@
 /**
  * useGardenTabs Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests tab switching, scroll position tracking,
  * and ref management for garden view tabs.

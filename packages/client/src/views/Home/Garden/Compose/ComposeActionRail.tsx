@@ -1,0 +1,222 @@
+import { Chip } from "@green-goods/shared/components/Chip";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
+import {
+  type CommitmentComposerValues,
+  MAX_COMMITMENT_REQUIREMENTS,
+} from "@green-goods/shared/commitment-pooling";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
+import { type UseFormReturn, useWatch } from "react-hook-form";
+import { useIntl } from "react-intl";
+
+import { ImageWithFallback } from "@/components/Display";
+
+const ROW_COUNT_CHOICES = [1, 2, 4] as const;
+
+export interface ComposeActionRailProps {
+  form: UseFormReturn<CommitmentComposerValues>;
+  chainId: number;
+  /** The garden's registered actions, which name the chosen rows. */
+  actions: Action[];
+  /**
+   * The actions that can take work now, which are the ones offered: Work is
+   * refused outside an action's window, so a commitment kept by one outside it
+   * could not be kept.
+   */
+  openActions: Action[];
+  /** Chosen actions whose window has ended; each stays listed, marked closed, until removed. */
+  closedActionUIDs: readonly string[];
+}
+
+/**
+ * The actions a garden-work commitment is kept by, each with how many
+ * approved submissions it needs. Those rows are what the contract calls
+ * requirements. There are as many as the commitment genuinely needs; the
+ * module's ceiling is a validation limit, never a number a member is shown
+ * as a plan.
+ */
+export function ComposeActionRail({
+  form,
+  chainId,
+  actions,
+  openActions,
+  closedActionUIDs,
+}: ComposeActionRailProps) {
+  const { formatMessage } = useIntl();
+  const requirements = useWatch({ control: form.control, name: "requirements" });
+  const isRequest = useWatch({ control: form.control, name: "direction" }) === "REQUEST";
+  const setRows = (rows: CommitmentComposerValues["requirements"]) =>
+    form.setValue("requirements", rows, { shouldValidate: true, shouldDirty: true });
+
+  const rowFor = (action: Action) => {
+    const uid = actionUIDOf(action.id, chainId);
+    return uid === null ? undefined : requirements.find((row) => row.actionUID === uid);
+  };
+  const toggleAction = (action: Action) => {
+    const uid = actionUIDOf(action.id, chainId);
+    if (uid === null) return;
+    const existing = requirements.find((row) => row.actionUID === uid);
+    if (existing) {
+      setRows(requirements.filter((row) => row.actionUID !== uid));
+      return;
+    }
+    if (requirements.length >= MAX_COMMITMENT_REQUIREMENTS) return;
+    setRows([...requirements, { actionUID: uid, requiredCount: 1 }]);
+  };
+  const setRowCount = (uid: string, requiredCount: number) =>
+    setRows(requirements.map((row) => (row.actionUID === uid ? { ...row, requiredCount } : row)));
+
+  const invalidRows = requirements.filter(
+    (row) => !Number.isInteger(row.requiredCount) || row.requiredCount < 1
+  );
+  const rowTitle = (uid: string) =>
+    actions.find((action) => actionUIDOf(action.id, chainId) === uid)?.title ?? `#${uid}`;
+
+  return (
+    <section aria-labelledby="compose-proof-heading">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="compose-proof-heading" className="text-sm font-medium text-text-strong-950">
+          {formatMessage({ id: "app.compose.proof.title" })}
+        </h2>
+        {requirements.length > 0 ? (
+          <span className="text-xs text-text-sub-600">
+            {formatMessage({ id: "app.compose.proof.chosen" }, { count: requirements.length })}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs text-text-sub-600">
+        {formatMessage({
+          id: isRequest ? "app.compose.proof.noteRequest" : "app.compose.proof.noteOffer",
+        })}
+      </p>
+
+      {invalidRows.length > 0 ? (
+        <p className="mt-2 text-xs text-error-base" role="alert">
+          {formatMessage({ id: "app.compose.proof.invalid" })}
+        </p>
+      ) : null}
+
+      {openActions.length === 0 ? (
+        <p className="mt-3 text-sm text-text-sub-600">
+          {formatMessage({ id: "app.compose.proof.noActions" })}
+        </p>
+      ) : (
+        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+          {openActions.map((action) => {
+            const row = rowFor(action);
+            const selected = Boolean(row);
+            return (
+              <button
+                key={action.id}
+                type="button"
+                data-pressable="card"
+                aria-pressed={selected}
+                onClick={() => toggleAction(action)}
+                className={cn(
+                  "flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-lg)] border text-left",
+                  selected
+                    ? "border-primary-alpha-24 bg-primary-alpha-10"
+                    : "border-stroke-soft-200 bg-bg-white-0"
+                )}
+              >
+                <ImageWithFallback
+                  src={action.media[0]}
+                  alt=""
+                  className="h-20 w-full object-cover"
+                  fallbackClassName="h-20 w-full"
+                />
+                <span className="flex flex-1 flex-col gap-1 p-3">
+                  <span className="truncate text-sm font-medium text-text-strong-950">
+                    {action.title}
+                  </span>
+                  {action.domain ? <DomainBadge domain={action.domain} size="sm" /> : null}
+                  <span className="mt-auto text-xs text-text-sub-600">
+                    {selected
+                      ? formatMessage(
+                          { id: "app.compose.proof.times" },
+                          { count: row?.requiredCount ?? 1 }
+                        )
+                      : formatMessage({ id: "app.compose.proof.tapToAdd" })}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {requirements.length > 0 ? (
+        <ul className="mt-3 space-y-2" aria-label={formatMessage({ id: "app.compose.proof.rows" })}>
+          {requirements.map((row) => (
+            <li
+              key={row.actionUID}
+              className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate text-sm font-medium text-text-strong-950">
+                  {rowTitle(row.actionUID)}
+                </span>
+                <IconButton
+                  size="compact"
+                  onClick={() => setRows(requirements.filter((r) => r.actionUID !== row.actionUID))}
+                  aria-label={formatMessage(
+                    { id: "app.compose.proof.remove" },
+                    { action: rowTitle(row.actionUID) }
+                  )}
+                  icon={<RiCloseLine aria-hidden="true" />}
+                />
+              </div>
+              {closedActionUIDs.includes(row.actionUID) ? (
+                <p className="mt-1 text-xs text-error-base">
+                  {formatMessage({ id: "app.compose.proof.closed" })}
+                </p>
+              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {ROW_COUNT_CHOICES.map((count) => (
+                  <Chip
+                    key={count}
+                    selected={row.requiredCount === count}
+                    onClick={() => setRowCount(row.actionUID, count)}
+                  >
+                    {formatMessage({ id: "app.compose.proof.times" }, { count })}
+                  </Chip>
+                ))}
+                <label className="sr-only" htmlFor={`compose-row-${row.actionUID}`}>
+                  {formatMessage(
+                    { id: "app.compose.proof.countFor" },
+                    { action: rowTitle(row.actionUID) }
+                  )}
+                </label>
+                <TextInput
+                  id={`compose-row-${row.actionUID}`}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={Number.isFinite(row.requiredCount) ? row.requiredCount : ""}
+                  onChange={(event) => setRowCount(row.actionUID, Number(event.target.value))}
+                  className="w-20"
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 flex items-center gap-2 text-xs text-text-soft-400">
+          <RiAddLine className="h-4 w-4" aria-hidden="true" />
+          {formatMessage({ id: "app.compose.proof.empty" })}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** Action ids are `${chainId}-${uid}`; the uid is what the contract takes. */
+export function actionUIDOf(actionId: string, chainId: number): string | null {
+  const prefix = `${chainId}-`;
+  if (!actionId.startsWith(prefix)) return null;
+  const uid = actionId.slice(prefix.length);
+  return /^\d+$/.test(uid) ? uid : null;
+}

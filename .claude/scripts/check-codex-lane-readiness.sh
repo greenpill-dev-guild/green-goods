@@ -6,7 +6,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-CODEX="${CODEX:-/Applications/Codex.app/Contents/Resources/codex}"
+CODEX="$("$SCRIPT_DIR/resolve-codex-binary.sh" 2>/dev/null || true)"
 SCHEMA="${CODEX_SCHEMA:-$REPO_ROOT/.codex/output-schema.json}"
 WORKTREE_PARENT="${CODEX_WORKTREE_PARENT:-/tmp}"
 
@@ -16,10 +16,10 @@ INFO=()
 echo "🌿 Green Goods Codex lanes preflight"
 echo "Repository: $REPO_ROOT"
 
-if [ -x "$CODEX" ]; then
+if [ -n "$CODEX" ] && [ -x "$CODEX" ]; then
   INFO+=("codex: $CODEX")
 else
-  FAILURES+=("Codex binary not executable at $CODEX. Install Codex.app or set CODEX env var.")
+  FAILURES+=("Codex CLI not found. Install ChatGPT.app/Codex.app, add codex to PATH, or set CODEX.")
 fi
 
 if [ -f "$SCHEMA" ]; then
@@ -48,11 +48,7 @@ else
   INFO+=("worktree parent: $WORKTREE_PARENT")
 fi
 
-if [ -f "$REPO_ROOT/.env" ]; then
-  INFO+=(".env: present — will be symlinked into worktrees")
-else
-  INFO+=(".env: missing — worktree .env symlink will be skipped")
-fi
+INFO+=("delegated env: fixed non-secret allowlist; configured CODEX_HOME is preserved; root .env is never linked")
 
 DISPATCH="$SCRIPT_DIR/dispatch-codex-lane.sh"
 if [ -x "$DISPATCH" ]; then
@@ -67,7 +63,7 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
   for f in "${FAILURES[@]}"; do echo "- $f"; done
   echo ""
   echo "Suggested remediation:"
-  echo "1. Install Codex.app from https://chatgpt.com/codex (or set CODEX env var)."
+  echo "1. Install ChatGPT.app/Codex.app from https://chatgpt.com/codex, add codex to PATH, or set CODEX."
   echo "2. Install missing CLIs: brew install jq"
   echo "3. Re-run: bash .claude/scripts/check-codex-lane-readiness.sh"
   exit 1

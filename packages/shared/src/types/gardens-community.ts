@@ -9,7 +9,7 @@ import type { Address } from "./domain";
  * Selected at garden mint time and immutable thereafter.
  *
  * Values correspond to the Solidity enum WeightScheme in IGardensModule.sol.
- * Each scheme defines (community, gardener, operator) weights in basis points
+ * Each scheme defines (community, gardener, steward) weights in basis points
  * (10_000 = 1x multiplier). Weights must be >= 10_000 so that HAT-based
  * sources (binary balance=1) produce non-zero power after integer division
  * in UnifiedPowerRegistry: (1 * weight) / 10_000 > 0.
@@ -28,14 +28,14 @@ export enum WeightScheme {
 export interface WeightSchemeConfig {
   community: number;
   gardener: number;
-  operator: number;
+  steward: number;
 }
 
-/** Maps WeightScheme enum to its (community, gardener, operator) bps values */
+/** Maps WeightScheme enum to its (community, gardener, steward) bps values */
 export const WEIGHT_SCHEME_VALUES: Record<WeightScheme, WeightSchemeConfig> = {
-  [WeightScheme.Linear]: { community: 10_000, gardener: 20_000, operator: 30_000 },
-  [WeightScheme.Exponential]: { community: 20_000, gardener: 40_000, operator: 160_000 },
-  [WeightScheme.Power]: { community: 30_000, gardener: 90_000, operator: 810_000 },
+  [WeightScheme.Linear]: { community: 10_000, gardener: 20_000, steward: 30_000 },
+  [WeightScheme.Exponential]: { community: 20_000, gardener: 40_000, steward: 160_000 },
+  [WeightScheme.Power]: { community: 30_000, gardener: 90_000, steward: 810_000 },
 };
 
 // ============================================

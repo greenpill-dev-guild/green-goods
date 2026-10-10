@@ -42,6 +42,7 @@ export type QueryKey =
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byChain>
   | ReturnType<typeof queryKeys.assessments.byGarden>
+  | ReturnType<typeof queryKeys.assessments.detail>
   | typeof queryKeys.conviction.all
   | ReturnType<typeof queryKeys.conviction.strategies>
   | ReturnType<typeof queryKeys.conviction.registeredHypercerts>
@@ -64,6 +65,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.pendingYield>
   | ReturnType<typeof queryKeys.yield.protocolSummary>
   | typeof queryKeys.ens.all
+  | typeof queryKeys.profileAvatars.all
+  | ReturnType<typeof queryKeys.profileAvatars.record>
   | ReturnType<typeof queryKeys.ens.name>
   | ReturnType<typeof queryKeys.ens.address>
   | ReturnType<typeof queryKeys.ens.avatar>

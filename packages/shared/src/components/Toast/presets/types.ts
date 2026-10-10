@@ -89,21 +89,6 @@ export const toastMessageIds = {
     savedOffline: {
       message: "app.toast.approval.savedOffline.message",
     },
-    errorApproval: {
-      title: "app.toast.approval.errorApproval.title",
-    },
-    errorDecision: {
-      title: "app.toast.approval.errorDecision.title",
-    },
-    errorWallet: {
-      message: "app.toast.approval.errorWallet.message",
-      description: "app.toast.approval.errorWallet.description",
-    },
-    errorQueue: {
-      approvalMessage: "app.toast.approval.errorQueue.approval.message",
-      decisionMessage: "app.toast.approval.errorQueue.decision.message",
-      description: "app.toast.approval.errorQueue.description",
-    },
   },
   // Queue
   queue: {
@@ -129,8 +114,15 @@ export const toastMessageIds = {
       workMessage: "app.toast.queue.jobFailed.workMessage",
       approvalMessage: "app.toast.queue.jobFailed.approvalMessage",
     },
+    retryFailed: {
+      title: "app.toast.queue.retryFailed.title",
+      message: "app.toast.queue.retryFailed.message",
+    },
     stillQueued: {
       title: "app.toast.queue.stillQueued.title",
+      offline: "app.toast.queue.stillQueued.offline",
+      signedOut: "app.toast.queue.stillQueued.signedOut",
+      retrying: "app.toast.queue.stillQueued.retrying",
     },
     queueClear: {
       title: "app.toast.queue.queueClear.title",
@@ -166,5 +158,28 @@ export const toastMessageIdsUpdate = {
   stalled: {
     title: "app.toast.update.stalled.title",
     message: "app.toast.update.stalled.message",
+    action: "app.toast.update.stalled.action",
+  },
+  failed: {
+    title: "app.toast.update.failed.title",
+    message: "app.toast.update.failed.message",
+    action: "app.toast.update.failed.action",
+  },
+  applied: {
+    title: "app.toast.update.applied.title",
+    message: "app.toast.update.applied.message",
+  },
+  /**
+   * A restart lands on a new shell, so the offline-ready tier is fetched again.
+   * Unchanged files are copied from the previous shell, so this is usually
+   * instant and never shown; it surfaces only when the download really runs.
+   */
+  preparingOffline: {
+    title: "app.toast.update.preparingOffline.title",
+    message: "app.toast.update.preparingOffline.message",
+  },
+  offlineReady: {
+    title: "app.toast.update.offlineReady.title",
+    message: "app.toast.update.offlineReady.message",
   },
 } as const;

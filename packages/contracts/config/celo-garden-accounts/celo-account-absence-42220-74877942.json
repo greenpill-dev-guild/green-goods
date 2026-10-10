@@ -1,0 +1,252 @@
+{
+  "snapshot": {
+    "chainId": 42220,
+    "blockNumber": 74877942,
+    "blockHash": "0x2fa5b357de77d2d91e826cb4d92dfde6e635ba46ea2fb074be0433a3d60954fb",
+    "timestamp": 1786778700
+  },
+  "immutableSourceTuple": {
+    "chainId": 42161,
+    "tokenContract": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+    "implementation": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+    "salt": "0x6551655165516551655165516551655165516551655165516551655165516551"
+  },
+  "dependencies": {
+    "nickFactory": {
+      "address": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+      "present": true,
+      "codeBytes": 69,
+      "codeHash": "0x2fa86add0aed31f33a762c9d88e807c475bd51d0f52bd0955754b2608f7e4989"
+    },
+    "entryPoint": {
+      "address": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+      "present": true,
+      "codeBytes": 23689,
+      "codeHash": "0xc93c806e738300b5357ecdc2e971d6438d34d8e4e17b99b758b1f9cac91c8e70"
+    },
+    "multicallForwarder": {
+      "address": "0xcA11bde05977b3631167028862bE2a173976CA11",
+      "present": true,
+      "codeBytes": 3808,
+      "codeHash": "0xd5c15df687b16f2ff992fc8d767b4216323184a2bbc6ee2f9c398c318e770891"
+    },
+    "erc6551Registry": {
+      "address": "0x000000006551c19487814612e58FE06813775758",
+      "present": true,
+      "codeBytes": 571,
+      "codeHash": "0xda1d5b06e579f9e42e59b00fbc22939896ecb38dc8830d40de0a2508fecd6735"
+    },
+    "resolverStub": {
+      "address": "0x74c96fCEa9ad0345D476f0e4feF3D8Ef29C157d9",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    "guardian": {
+      "address": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    "workApprovalResolver": {
+      "address": "0x166732eD81Ab200A099215cF33F6A712309B69F7",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    "assessmentResolver": {
+      "address": "0x0646B09bcf3993F02957651354dC267c450CFE58",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    "gardenAccountImplementation": {
+      "address": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    }
+  },
+  "accounts": [
+    {
+      "tokenId": 0,
+      "expected": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "predicted": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "matches": true,
+      "address": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 1,
+      "expected": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "predicted": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "matches": true,
+      "address": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 2,
+      "expected": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "predicted": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "matches": true,
+      "address": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 3,
+      "expected": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "predicted": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "matches": true,
+      "address": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 4,
+      "expected": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "predicted": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "matches": true,
+      "address": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 5,
+      "expected": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "predicted": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "matches": true,
+      "address": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 6,
+      "expected": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "predicted": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "matches": true,
+      "address": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 7,
+      "expected": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "predicted": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "matches": true,
+      "address": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 8,
+      "expected": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "predicted": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "matches": true,
+      "address": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 9,
+      "expected": "0x636962584b1F492B06151Fee87810281372879b6",
+      "predicted": "0x636962584b1F492B06151Fee87810281372879b6",
+      "matches": true,
+      "address": "0x636962584b1F492B06151Fee87810281372879b6",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 10,
+      "expected": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "predicted": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "matches": true,
+      "address": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 11,
+      "expected": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "predicted": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "matches": true,
+      "address": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 12,
+      "expected": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "predicted": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "matches": true,
+      "address": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 13,
+      "expected": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "predicted": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "matches": true,
+      "address": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 14,
+      "expected": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "predicted": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "matches": true,
+      "address": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 15,
+      "expected": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "predicted": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "matches": true,
+      "address": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 16,
+      "expected": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "predicted": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "matches": true,
+      "address": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    },
+    {
+      "tokenId": 17,
+      "expected": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "predicted": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "matches": true,
+      "address": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "present": false,
+      "codeBytes": 0,
+      "codeHash": null
+    }
+  ]
+}

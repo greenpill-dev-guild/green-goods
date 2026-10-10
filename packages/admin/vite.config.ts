@@ -1,16 +1,20 @@
 /// <reference types="vitest" />
 
-import tailwindcss from "@tailwindcss/vite";
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
-import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import babel from "@rolldown/plugin-babel";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
+import tailwindcss from "@tailwindcss/vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "../../scripts/lib/env-parity.mjs";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
 
 function envValue(key: string): string | undefined {
@@ -115,8 +119,7 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
 const ADMIN_WEB3_MODULES =
   /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
 const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
-const ADMIN_REACT_MODULES =
-  /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -157,11 +160,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveAdminSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
+  // The Sentry environment above is the last reader of Vercel's VITE_-prefixed copies.
+  // Vite collects what it exposes after this function returns.
+  dropVercelFrameworkVariables(process.env);
   if (command === "build") {
     assertEnvParity({
       app: "admin",
       env: process.env,
-      schemaPath: resolve(rootDir, ".env.schema"),
+      schemaPath: resolve(rootDir, "env.schema"),
     });
     assertSentryDsnResolvable({ app: "admin", sentryDsn, env: process.env });
   }
@@ -216,9 +222,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
             },
             org: process.env.SENTRY_ORG || "greenpill",
             project:
-              process.env.SENTRY_ADMIN_PROJECT ||
-              process.env.SENTRY_PROJECT ||
-              "green-goods-admin",
+              process.env.SENTRY_ADMIN_PROJECT || process.env.SENTRY_PROJECT || "green-goods-admin",
             release: {
               name: sentryRelease,
             },
@@ -241,6 +245,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     },
   };
 
+  const watchOptions =
+    process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {};
+
   return {
     root: __dirname,
     base: isIPFSBuild ? "./" : "/",
@@ -254,6 +261,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       chunkSizeWarningLimit: 2000,
       rolldownOptions: {
         output: {
+          // Keep lazy chunk URLs opaque. Browser privacy filters can block
+          // semantic names (the boot-critical `AdminRoot-*` chunk was blocked
+          // in Brave even though Vercel served it as valid JavaScript).
+          chunkFileNames: "assets/[hash].js",
           codeSplitting: {
             groups: [
               { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 20 },
@@ -281,9 +292,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
-        "@green-goods/shared/sentry": resolve(
+        "@green-goods/shared/sentry": resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
+        "@green-goods/shared/commitment-pooling": resolve(
           __dirname,
-          "../shared/src/modules/app/sentry.ts"
+          "../shared/src/commitment-pooling"
         ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
@@ -335,17 +347,20 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
+        "@green-goods/shared > @tanstack/query-persist-client-core",
         "@green-goods/shared > @use-gesture/react",
         "@green-goods/shared > @wagmi/core",
         "@green-goods/shared > @xstate/react",
         "@green-goods/shared > browser-image-compression",
         "@green-goods/shared > clsx",
+        "@green-goods/shared > dexie",
         "ethers",
         "gql.tada",
         "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
         "@green-goods/shared > idb",
         "idb-keyval",
+        "multiformats/cid",
         "@green-goods/shared > permissionless",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
@@ -377,10 +392,17 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // Polling is only required on Docker bind mounts and some network filesystems.
       // On macOS native FSEvents the default watcher is much cheaper than polling
       // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch:
-        process.env.VITE_USE_POLLING === "true"
-          ? { usePolling: true, interval: 100 }
-          : undefined,
+      watch: {
+        ...watchOptions,
+        ignored: [
+          "**/.git/**",
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/.turbo/**",
+          "**/.plans/**",
+          "**/coverage/**",
+        ],
+      },
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
         "/api/graphql": graphqlProxy,

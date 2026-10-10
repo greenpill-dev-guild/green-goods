@@ -1,8 +1,8 @@
 /**
  * Sendable-token balances for the client PWA "Send" flow.
  *
- * Resolves the GOODS token address from `GardensModule.goodsToken()` (module-level,
- * one GOODS per chain), builds the curated token list (GOODS + stablecoins), and
+ * When governance is enabled, resolves GOODS from `GardensModule.goodsToken()`.
+ * Builds the currently available curated token list and
  * reads each balance in parallel. Uses `Promise.allSettled` so one reverting or
  * absent token never nukes the whole list (per-token `errored` flag instead).
  *
@@ -11,13 +11,19 @@
  * @module hooks/blockchain/useSendableTokens
  */
 
+import { GOVERNANCE_ENABLED } from "../../config/app";
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { tokensKeys } from "../../config/query-keys/tokens";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
-import { buildSendableTokens, type SendableToken } from "../../config/tokens";
+import {
+  buildSendableTokens,
+  isSendableTokenAvailable,
+  type SendableToken,
+} from "../../config/tokens";
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI, GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
+import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 
@@ -62,14 +68,14 @@ export function useSendableTokens(
   const enabled = Boolean(account && chainId);
 
   const query = useQuery({
-    queryKey: queryKeys.tokens.balances(accountKey, chainId ?? 0),
+    queryKey: tokensKeys.balances(accountKey, chainId ?? 0),
     enabled,
     staleTime: STALE_TIME_FAST,
     queryFn: async (): Promise<SendableTokenBalance[]> => {
       if (!account || !chainId) return [];
       const client = createPublicClientForChain(chainId);
 
-      const goodsAddress = await resolveGoodsAddress(client, chainId);
+      const goodsAddress = GOVERNANCE_ENABLED ? await resolveGoodsAddress(client, chainId) : null;
       const tokens = buildSendableTokens(chainId, goodsAddress);
 
       const settled = await Promise.allSettled(
@@ -100,7 +106,15 @@ export function useSendableTokens(
   });
 
   return {
-    tokens: query.data ?? [],
+    // Older persisted balance rows predate SendableToken.chainId. The query key
+    // supplies their authoritative chain until a fresh RPC read replaces them.
+    tokens:
+      chainId === undefined
+        ? []
+        : (query.data ?? [])
+            .filter((token) => token.chainId === undefined || token.chainId === chainId)
+            .map((token) => ({ ...token, chainId }))
+            .filter(isSendableTokenAvailable),
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     isError: query.isError,

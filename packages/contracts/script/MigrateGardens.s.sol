@@ -69,7 +69,7 @@ contract MigrateGardens is Script {
 
                 // 2. Grant operator roles (best-effort sub-grants handled by module)
                 for (uint256 j = 0; j < operators.length; j++) {
-                    hatsModule.grantRole(garden, operators[j], IHatsModule.GardenRole.Operator);
+                    hatsModule.grantRole(garden, operators[j], IHatsModule.GardenRole.Steward);
                 }
 
                 // 3. Create GAP project (graceful degradation handled in module)

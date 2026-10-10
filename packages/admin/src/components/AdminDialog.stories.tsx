@@ -112,7 +112,7 @@ function OpenGeometryDialog({
 
 /**
  * Wait for the dialog's enter animation to finish so geometry is measured at
- * rest. The admin-owned keyframes (admin-m3-overrides.css) animate transform +
+ * rest. The admin-owned keyframes (admin-m3-components.css) animate transform +
  * opacity, so a naive measurement could land mid-flight. `getAnimations()`
  * resolves once every running CSS animation on the surface has settled.
  */
@@ -239,14 +239,10 @@ export const LongBody: Story = {
 };
 
 export const MobileSheetContract: Story = {
-  parameters: {
-    viewport: {
-      defaultViewport: "mobile1",
-    },
-  },
+  globals: { viewport: { value: "mobile" } },
   render: () => (
     <DialogPreview
-      title="Edit domains"
+      title="Edit Domains"
       description="Mobile action dialogs use a full-width sheet while desktop remains centered."
       body="The body scrolls inside the AdminDialog surface and actions stay pinned below it."
       confirmLabel="Save"
@@ -307,13 +303,13 @@ export const FlowVariant: Story = {
       variant="flow"
       className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={() => undefined}
-      title="Submit work"
+      title="Submit Work"
       description="Capture the action, evidence, and notes for a new contribution."
       bodyClassName="flex min-h-0 flex-col !overflow-hidden"
     >
       <ActionFlowShell
         layout="dialog"
-        title="Submit work"
+        title="Submit Work"
         context="Rio Rainforest Lab"
         footer={
           <>
@@ -336,10 +332,10 @@ export const FlowVariant: Story = {
               className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak text-xs font-semibold text-text-sub">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak body-xs font-semibold text-text-sub">
                   {`0${index + 1}`}
                 </span>
-                <h2 className="text-base font-semibold text-text-strong">{sectionTitle}</h2>
+                <h2 className="body-md font-semibold text-text-strong">{sectionTitle}</h2>
               </div>
               <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
               <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />
@@ -382,6 +378,35 @@ export const ConfirmVariant: Story = {
         cancelLabel="Cancel"
         variant="danger"
       />
+    </div>
+  ),
+};
+
+/** A confirmation that rests on facts shows them under the description. */
+export const ConfirmWithDetails: Story = {
+  render: () => (
+    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6">
+      <AdminConfirmDialog
+        isOpen
+        onClose={() => undefined}
+        onConfirm={() => undefined}
+        title="Update Per-Claim Limit"
+        description="Gardeners in Riverbend Garden will be able to claim up to 10 DAI at a time, once a day."
+        confirmLabel="Update Limit"
+      >
+        <dl className="divide-y divide-stroke-soft rounded-lg bg-bg-weak px-3">
+          {[
+            ["Per-claim limit", "0.01 → 10 DAI"],
+            ["Jar holds", "9.98 DAI · one claim could empty it"],
+            ["Signs as", "Garden account"],
+          ].map(([term, value]) => (
+            <div key={term} className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="shrink-0 text-label-sm text-text-soft">{term}</dt>
+              <dd className="text-right text-body-sm font-medium text-text-strong">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </AdminConfirmDialog>
     </div>
   ),
 };
@@ -508,10 +533,10 @@ export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
   parameters: {
     viewport: {
-      defaultViewport: "adminMobile390x844",
-      viewports: ADMIN_MOBILE_390_VIEWPORT,
+      options: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "adminMobile390x844" } },
   render: () => (
     <OpenGeometryDialog
       title="Mobile bottom sheet"
@@ -623,6 +648,40 @@ export const MobileSheetGeometry: Story = {
   },
 };
 
+// Compact content still uses the same edge-to-edge mobile sheet geometry.
+export const MobileConfirmWidth: Story = {
+  tags: ["storybook-ci"],
+  parameters: { viewport: { options: ADMIN_MOBILE_390_VIEWPORT } },
+  globals: { viewport: { value: "adminMobile390x844" } },
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Confirm" variant="confirm">
+      <p>Confirm this change?</p>
+    </AdminDialog>
+  ),
+  play: async () => {
+    const surface = await within(document.body).findByRole("dialog");
+    await waitForDialogSettled(surface);
+    const rect = surface.getBoundingClientRect();
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+    await expect(Math.abs(rect.left)).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+    await expect(Math.abs(rect.right - document.documentElement.clientWidth)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expect(Math.abs(rect.bottom - document.documentElement.clientHeight)).toBeLessThanOrEqual(
+      VIEWPORT_EDGE_TOLERANCE_PX
+    );
+  },
+};
+
+export const MobilePaletteWidth: Story = {
+  ...MobileConfirmWidth,
+  render: () => (
+    <AdminDialog open onOpenChange={() => undefined} title="Command palette" variant="palette">
+      <input aria-label="Search commands" />
+    </AdminDialog>
+  ),
+};
+
 /**
  * Long-content geometry. Verifies prose wraps (no horizontal overflow inside
  * the body), the body scrolls within the surface, the surface stays within the
@@ -729,7 +788,7 @@ export const ToneMatrix: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}
           </div>
           <DialogPreview

@@ -1,46 +1,9 @@
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import esMessages from "@green-goods/shared/i18n/es";
+import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import { MinimalWorkCard, WorkCard } from "../../components/Cards/Work/WorkCard";
+import { MinimalWorkCard } from "../../components/Cards/Work/WorkCard";
 import { renderWithProviders as render, screen, userEvent } from "../test-utils";
-
-describe("components/Cards/WorkCard", () => {
-  const workItem = {
-    id: "work-1",
-    type: "work" as const,
-    title: "Tree Planting",
-    gardenId: "0x2222222222222222222222222222222222222222",
-    gardenName: "Community Garden",
-    status: "pending" as const,
-    createdAt: Date.now() - 7_200_000,
-    retryCount: 2,
-    error: "Network timeout",
-    size: 1_024_000,
-    images: {
-      count: 3,
-      totalSize: 512_000,
-    },
-    mediaPreview: ["https://example.com/tree-planting.jpg"],
-  };
-
-  it("renders status, media count, retry state, and click behavior", async () => {
-    const handleClick = vi.fn();
-    const user = userEvent.setup();
-
-    render(<WorkCard work={workItem} onClick={handleClick} />);
-
-    const card = screen.getByRole("button");
-
-    expect(screen.getByText("Tree Planting")).toBeInTheDocument();
-    expect(screen.getByText("Pending")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(card).toHaveTextContent("2 hours ago");
-    expect(card).toHaveTextContent("Community Garden");
-    expect(screen.getByText("Error loading work")).toBeInTheDocument();
-    expect(card).toHaveTextContent("↻ 2");
-
-    await user.click(card);
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe("components/Cards/MinimalWorkCard", () => {
   const work = {
@@ -72,7 +35,99 @@ describe("components/Cards/MinimalWorkCard", () => {
 
     render(<MinimalWorkCard work={work as any} onClick={handleClick} />);
 
-    await user.click(screen.getByRole("button"));
+    const card = screen.getByRole("button");
+    expect(card).toHaveAttribute("data-pressable", "card");
+    await user.click(card);
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a card with nothing to open as content, not a button that does nothing", () => {
+    render(
+      <SharedWorkCard
+        work={{
+          id: "work-2",
+          title: "Plant Flowers",
+          status: "approved",
+          createdAt: work.createdAt,
+        }}
+      />
+    );
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("keeps the compact row and its media square on the same height contract", () => {
+    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
+
+    const card = screen.getByRole("button");
+    const image = card.querySelector("img");
+    const media = image?.parentElement;
+
+    expect(card).toHaveStyle({ height: "88px" });
+    expect(media).toHaveStyle({ height: "100%", aspectRatio: "1 / 1" });
+  });
+
+  it("uses one primary state and supporting line for a queued card", () => {
+    render(
+      <MinimalWorkCard
+        work={work as any}
+        onClick={vi.fn()}
+        presentation={{
+          statusLabel: "To upload",
+          statusTone: "uploading",
+          contextLabel: "You submitted",
+          supportingText: "Ready to sign and upload",
+        }}
+      />
+    );
+
+    const card = screen.getByRole("button");
+    expect(screen.getByText("To upload")).toBeInTheDocument();
+    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+    expect(screen.getByText("Ready to sign and upload")).toBeInTheDocument();
+    expect(card.querySelectorAll("h4")).toHaveLength(1);
+  });
+
+  describe("title", () => {
+    const title = () => screen.getByRole("heading", { level: 4 });
+
+    it("drops the timestamps older submissions appended to a hosted title", () => {
+      render(
+        <MinimalWorkCard
+          work={
+            {
+              ...work,
+              title: "Maintenance Activity - 2026-03-19T23:56:54.981Z - 2026-03-19T23:56:55.093Z",
+            } as any
+          }
+          onClick={vi.fn()}
+        />
+      );
+
+      expect(title()).toHaveTextContent(/^Maintenance Activity$/);
+      expect(title()).toHaveAttribute("title", "Maintenance Activity");
+    });
+
+    it("reads the work's own title when its action has only a generated name", () => {
+      render(
+        <MinimalWorkCard
+          work={{ ...work, title: "Plant Flowers - 2026-03-19T23:56:54.981Z" } as any}
+          onClick={vi.fn()}
+          actionTitle="Action 1"
+        />
+      );
+
+      expect(title()).toHaveTextContent(/^Plant Flowers$/);
+    });
+
+    it("calls a work with no real title untitled, in the reader's language", () => {
+      render(
+        <IntlProvider locale="es" messages={esMessages}>
+          <MinimalWorkCard work={{ ...work, title: "Action 1" } as any} onClick={vi.fn()} />
+        </IntlProvider>
+      );
+
+      expect(title()).toHaveTextContent(/^Trabajo sin título$/);
+    });
   });
 });

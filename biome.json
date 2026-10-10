@@ -79,6 +79,7 @@
       "**/packages/contracts/src/**/*.{ts,tsx,js,jsx}",
       "**/packages/contracts/script/**/*.{ts,tsx,js,jsx}",
       "**/packages/client/*.config.{ts,js}",
+      "**/packages/admin/*.config.{ts,js}",
       "**/tests/**/*.{ts,tsx,js,jsx,json}",
       "*.config.{ts,js}",
       "**/*.json",

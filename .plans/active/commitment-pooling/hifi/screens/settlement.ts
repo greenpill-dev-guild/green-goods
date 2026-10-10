@@ -5,10 +5,15 @@
 // states are never member-visible arrival proof; only an authenticated CCIP
 // success acknowledgment produces “Confirmed”. G$ stays on Celo — no bridge language, ever.
 
+import { CYCLE, POOL_HOLDINGS, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, disclosure, field, input, kv, radio, stepDots } from "../kit";
-import { acard, adminCanvas, adminChromeHots, adminDialogM3, deskWin, dtable, pageHeader, stages, tabRail } from "./admin";
+import {
+  acard, adminCanvas, adminDialogM3, banner, btn, chip, decisionRow, deskWin, disclosure, dtable, emptyState, field, flowDialog, input, kv, pageHeader, poolHoldings, commitmentRow, radio,
+  reasonChips, skeleton, stages, tabRail,
+} from "../kit";
+import type { FlowStep } from "../kit";
+import { adminChromeHots, w7Behind } from "./admin";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
 
@@ -16,12 +21,36 @@ import type { StateFacts } from "../types";
 // W12 — Community workspace, Pools mode (uiux-spec §6.8, rescoped 2026-07-18)
 // ---------------------------------------------------------------------------
 
-const W12_STATES = [["protocol", "Protocol pool"], ["current-garden", "This garden"]] as const;
+const W12_JOB_STATES = [
+  "seed-queued", "seed-indexing", "seed-failed", "seed-blocked-authority", "seed-blocked-membership", "seed-blocked-pool", "seed-blocked-cycle", "seed-blocked-conflict",
+  "seed-offer-queued", "seed-offer-indexing", "seed-offer-failed", "seed-offer-blocked-authority", "seed-offer-blocked-membership", "seed-offer-blocked-pool", "seed-offer-blocked-cycle", "seed-offer-blocked-conflict",
+] as const;
+const W12_TERMINAL_ERRORS: Record<string, { code: string; message: string }> = {
+  authority: { code: "NotPoolSteward", message: "Your root-garden steward/owner Hat is no longer valid. Restore the required pool role before creating a new commitment." },
+  membership: { code: "UnauthorizedCaller", message: "Module ownership remains valid, but your root-garden membership was lost. Restore membership before seeding this service." },
+  pool: { code: "PoolNotInState", message: "The protocol pool is no longer open. Wait for it to reopen, then review a new creation." },
+  cycle: { code: "CycleNotAcceptingCommitments", message: "The selected season is no longer open. Choose an open season or use a due date for a new creation." },
+  conflict: { code: "CommitmentCreationRequestConflict", message: "This creation key belongs to different terms. Read the existing commitment before preparing a new creation with a fresh key." },
+};
+const W12_STATES = [
+  ["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol commitment"],
+  ["protocol-reader", "Other garden steward · read only"], ["protocol-owner", "Module owner without root-garden membership"],
+  ["seed-offer", "Seed a protocol offer"], ["seed-unbounded", "Missing lifecycle bound"],
+  ["seed-queued", "Queued offline"], ["seed-indexing", "Waiting for index"],
+  ["seed-failed", "Send failed"], ["seed-published", "Request indexed"],
+  ["seed-offer-published", "Offer indexed"], ["seed-offer-queued", "Offer queued offline"],
+  ["seed-offer-indexing", "Offer waiting for index"], ["seed-offer-failed", "Offer send failed"],
+  ["seed-offer-unbounded", "Offer missing lifecycle bound"],
+  ["seed-discarded", "Request job discarded"], ["seed-offer-discarded", "Offer job discarded"],
+  ...W12_JOB_STATES.filter(id => id.includes("-blocked-")).map(id => [id, `${id.startsWith("seed-offer") ? "Offer" : "Request"} · ${id.split("-blocked-")[1]} error`] as const),
+  ...W12_JOB_STATES.map(id => [`pool-${id}`, `Saved ${id.startsWith("seed-offer") ? "Offer" : "Request"} · ${id.replace(/^seed-(?:offer-)?/, "")}`] as const),
+  ["loading", "Loading"], ["read-error", "Read error"],
+] as const;
 type W12State = (typeof W12_STATES)[number][0];
 
 function w12(state: W12State): string {
   // The toggle tabs ARE this screen's states — wire each inactive tab to navigate.
-  const ix = state === "protocol" ? 0 : 1;
+  const ix = state === "current-garden" ? 1 : 0;
   const rail = tabRail(
     [
       { label: "Protocol pool", hot: "w12.tab-protocol" },
@@ -29,39 +58,175 @@ function w12(state: W12State): string {
     ],
     ix,
   );
+  // The protocol pool is the community's garden pool — SAME anatomy as the W7
+  // pool tab (2026-08-16 review point 13): a two-column split whose left column
+  // carries the pool's objects (claims, confirmations) and whose rail carries
+  // the container card and quick actions. Only scope differs.
+  // What the pool holds, protocol scope (2026-08-16 round 7). Same block and
+  // same grammar as W7 — one concept, one component, everywhere. Only the
+  // members differ: this pool's are gardens, so the rows say so.
+  const protocolHoldings = acard(
+    "What This Pool Holds",
+    poolHoldings({
+      units: [
+        { label: "surveys", open: 3, people: 2 },
+        { label: "methodology reviews", open: 2, people: 2 },
+      ],
+      capacityNote: "Open commitments, grouped by what they're measured in.",
+      who: { one: "garden", many: "gardens" },
+    }),
+  );
+  const hasPoolAuthority = state !== "protocol-reader" && !state.endsWith("-blocked-authority");
+  const ownerOnly = state === "protocol-owner" || state.endsWith("-blocked-membership");
+  const poolOpen = !state.endsWith("-blocked-pool");
+  const canSeed = hasPoolAuthority && !ownerOnly && poolOpen;
+  const canManageClaims = hasPoolAuthority && poolOpen;
+  const canConfirm = hasPoolAuthority && !ownerOnly && poolOpen;
+  const seedAuthority = "Root-garden steward or owner · root-garden member";
+  const savedJob = state.startsWith("pool-seed-") ? state.slice(5) : null;
+  const savedOffer = savedJob?.startsWith("seed-offer") ?? false;
+  const savedJobs = savedJob
+    ? acard("Saved seeding", commitmentRow({
+        title: savedOffer ? "Methodology coaching" : "Methodology survey · dry-season round",
+        chips: chip(savedJob.includes("-blocked-") ? "Needs repair" : savedJob.endsWith("-failed") ? "Send failed" : savedJob.endsWith("-indexing") ? "Awaiting index" : "Queued", "warn"),
+        meta: `${savedOffer ? "Offer" : "Request"} · saved on this device · not claimable`,
+        hotId: `w12.${savedJob}-open`, chevron: true,
+      }))
+    : canSeed ? acard("Saved seeding", hot("w12.saved-seeds", btn("Open saved creation", { kind: "sec", sm: true }))) : "";
   const inner =
     state === "current-garden"
       ? acard(
-          "Rocinha pool",
-          `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept 7/9 · 18 units promised</span></div>
-<div class="actrow" style="justify-content:flex-end">${hot("w12.open-garden-pool", btn("Open garden pool", { kind: "pri", sm: true }))}</div>
-${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in deployer-gated Operations.", "stone"))}`,
+          "Rocinha Pool",
+          `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept ${SEASON_LIVE.kept}/${SEASON_LIVE.made}</span></div>
+${poolHoldings({
+            units: POOL_HOLDINGS.units,
+            capacityNote: "Open commitments, grouped by what they're measured in.",
+          })}
+<div class="actrow">${hot("w12.open-garden-pool", btn("Open Garden Pool", { kind: "pri", sm: true }))}</div>
+${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}`,
         )
-      : `${acard(
-          "Funding view",
+      : `<div class="wsrow"><div class="wsmain">${acard(
+          "Claims",
+          decisionRow({
+            title: "Methodology survey",
+            chips: `${chip("Request", "request")}${chip("Waiting", "warn", { dot: true })}${chip("Garden Claim", "ink")}`,
+            meta: "Awka Hub · asked by Leila · Jul 9",
+            decline: canManageClaims ? hot("w12.decline", btn("Decline…", { kind: "sec", sm: true })) : undefined,
+            affirm: canManageClaims ? hot("w12.accept", btn("Accept", { kind: "pri", sm: true })) : undefined,
+          }),
+        )}${acard(
+          "Confirm Queue",
+          commitmentRow({
+            title: "Methodology survey",
+            chips: `${chip("Request", "request")}${chip("Ready", "warn", { dot: true })}`,
+            meta: "Awka Hub → the protocol pool · 1 of 2 confirmed",
+            hotId: canConfirm ? "w12.confirm-row" : undefined,
+            chevron: canConfirm,
+          }),
+        )}${savedJobs}</div><aside class="wsrail">${protocolHoldings}${acard(
+          "Pool Status",
+          // "Pool — the container" named the container twice on a tab already
+          // called Pools, and diverged from the identical card on W7. Same
+          // concept, same component, same title (interaction-patterns §5).
+          `<div class="t-meta">The container the protocol pool's commitments run in.</div>${kv("Scope", "Green Goods protocol pool")}${kv("Member delivery gate", "")}
+<div class="arow">${hot("w12.gate-status", `<div class="grow"><b>Enabled</b> <span class="t-meta">changed by Dana · Aug 2 · proof ref 0x91…4c</span></div>`)}${chip("read only", "plain")}</div>
+${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}
+${canSeed
+  ? `<div class="actrow">${hot("w12.seed", btn("Seed Commitment", { kind: "sec", sm: true }))}</div>${kv("Seeding authority", seedAuthority)}`
+  : banner(state === "protocol-owner"
+      ? "Module ownership alone cannot seed this service. The creator must also be a root-garden member. Restore membership before seeding."
+      : "Only a root-garden steward or owner can seed this service; a module owner must also be a root-garden member. A role in another garden does not grant this authority.", "stone", "information-line")}
+<div class="t-meta">Prefilled from protocol templates · steward-reviewed by default.</div>`,
+          chip(state.endsWith("-blocked-pool") ? "Paused" : "Open", state.endsWith("-blocked-pool") ? "warn" : "ok", { dot: true }),
+        )}${acard(
+          "Funding View",
           `<div class="arow"><div class="grow">20 DAI · protocol treasury → Methodology survey <span class="t-meta">co-funded with Awka Hub</span></div>${chip("Reference", "plain")}</div>`,
           chip("read only here", "plain"),
-        )}
-${acard(
-          "Claims across gardens — steward-reviewed",
-          `<div class="arow"><div class="grow"><b>Methodology survey</b> · Awka Hub (garden claim) · asked by Leila</div>${hot("w12.accept", btn("Accept", { kind: "pri", sm: true }))}${hot("w12.decline", btn("Decline…", { kind: "sec", sm: true }))}</div>`,
-        )}
-${acard(
-          "Confirmations queue",
-          `<div class="arow">${hot("w12.confirm-row", `<div class="grow"><b>Methodology survey</b> — 1 of 2 confirmed</div>`)}${icon("arrow-right-s-line", "s")}</div>`,
-        )}`;
+        )}</aside></div>`;
   const header = pageHeader({
     title: "Community",
     eyebrow: "Pools",
-    description: "The protocol pool and this garden — all-garden oversight lives in Operations.",
+    description: "The protocol pool and this garden. All-garden oversight lives in Operations.",
   });
+  // Seeding is a dialog over the dimmed workspace (interaction-patterns §2) —
+  // never an in-content form card.
+  if (state.startsWith("seed-")) {
+    const offer = state.startsWith("seed-offer");
+    const unbounded = state.endsWith("-unbounded");
+    const discarded = state.endsWith("-discarded");
+    const terminal = W12_TERMINAL_ERRORS[state.split("-blocked-")[1] ?? ""];
+    const closeHot = W12_JOB_STATES.includes(state as typeof W12_JOB_STATES[number]) ? `w12.${state}-close` : "w12.seed-close";
+    const review = state === "seed-protocol" || state === "seed-offer" || unbounded;
+    const published = state === "seed-published" || state === "seed-offer-published";
+    const title = offer ? "Methodology coaching" : "Methodology survey · dry-season round";
+    const terms = `${kv("Kind", "Support service")}${kv("Direction", offer ? "The pool offers · gardens receive" : "The pool requests · gardens provide")}${kv("Title", title)}${kv("Unit · target", offer ? "sessions · 3" : "surveys · 3")}${kv("Season", unbounded ? "No season selected" : "Protocol dry-season round · Open")}${kv("Due date", unbounded ? "Not set" : "Aug 30, 2026")}${kv("Claim mode", "Steward-reviewed · protocol default")}${kv("Confirmers", offer ? "Claiming garden’s eligible stewards · resolved when accepted" : "2 of 2 protocol stewards")}`;
+    const direction = `<div class="actrow">${hot(unbounded ? "w12.seed-unbounded-request" : "w12.seed-request", btn("Request from gardens", { kind: offer ? "sec" : "pri", sm: true }))}${hot(unbounded ? "w12.seed-unbounded-offer" : "w12.seed-offer", btn("Offer to gardens", { kind: offer ? "pri" : "sec", sm: true }))}</div>`;
+    const queued = banner("Saved on this device, waiting to send. This commitment is not published or claimable yet. Reconnect to continue the same queued creation.", "amber", "time-line");
+    const indexing = banner("The transaction landed. Waiting for the indexed commitment before showing it as published or claimable. Do not seed it again.", "stone", "time-line");
+    const failed = banner("The send timed out; its outcome is unknown. Your answers and creation key are saved. Retry first checks the creator and creation key for an existing commitment. If found, recover it and wait for the index; resend the same job only if no commitment exists. Do not create a second commitment.", "amber", "error-warning-line");
+    const cancel = hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }));
+    const actions = review
+      ? `${cancel}${unbounded ? btn("Seed This Commitment", { kind: "pri", disabled: true }) : hot(offer ? "w12.seed-offer-confirm" : "w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`
+      : `${hot(closeHot, btn("Back to pool", { kind: "ghost" }))}${terminal ? hot(offer ? "w12.seed-offer-discard" : "w12.seed-discard", btn("Discard failed job", { kind: "sec" })) : discarded ? hot(offer ? "w12.seed-offer-new" : "w12.seed-new", btn("Review a new creation", { kind: "pri" })) : state.endsWith("-failed") ? hot(offer ? "w12.seed-offer-retry" : "w12.seed-retry", btn("Retry send", { kind: "pri" })) : ""}`;
+    const behind = adminCanvas("community", "community", {
+      screenId: "W12",
+      garden: "Rocinha",
+      interactiveChrome: false,
+      header,
+      tabRail: tabRail([{ label: "Protocol pool" }, { label: "This garden" }], 0),
+      body: acard(
+        "Claims",
+        decisionRow({
+          title: "Methodology survey",
+          chips: `${chip("Request", "request")}${chip("Waiting", "warn", { dot: true })}`,
+          meta: "Awka Hub · asked by Leila · Jul 9",
+        }),
+      ),
+    });
+    return deskWin(
+      "admin.greengoods.app/community/pools",
+      adminDialogM3(behind, "community", {
+        title: "Seed a protocol commitment",
+        body: `${review ? direction : ""}${terms}${review
+          ? unbounded
+            ? `${banner("Choose an open season or set a due date before seeding. A commitment needs at least one lifecycle bound.", "amber", "error-warning-line")}${hot(offer ? "w12.seed-offer-fix-bound" : "w12.seed-fix-bound", btn("Choose season and due date", { kind: "sec", sm: true }))}`
+            : banner("Review the direction and lifecycle bound before seeding. Eligible garden stewards can claim it only after the commitment appears in the index.", "stone", "information-line")
+          : published
+            ? `${chip("Published", "ok", { dot: true })}${banner("The indexed commitment is now visible in the protocol pool and claimable by eligible garden stewards for their gardens.", "stone", "information-line")}`
+            : terminal ? `${kv("Error", terminal.code)}${banner(`${terminal.message} Retrying unchanged terms cannot repair this failure. Discard this unsent job; keep its answers as a draft and review them before creating with a fresh key.`, "amber", "error-warning-line")}`
+            : discarded ? banner("The failed unsent job was discarded. Its answers remain a draft. No on-chain commitment was erased. Review the repaired terms and required authority before submitting with a fresh creation key.", "stone", "information-line")
+            : state.endsWith("-failed") ? failed : state.endsWith("-indexing") ? indexing : queued}`,
+        actions,
+        closeHot: review ? "w12.seed-cancel" : closeHot,
+      }),
+    );
+  }
+  // The protocol workspace reads across gardens, so it has the most to fail on
+  // (2026-08-18 round 46, Afo). It previously had no read casts at all.
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/community/pools",
+      adminCanvas("community", "community", {
+        screenId: "W12", garden: "Rocinha", header, tabRail: rail,
+        body:
+          state === "loading"
+            ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+            : emptyState(
+                "wifi-off-line",
+                "Couldn't load the protocol pool",
+                "Something went wrong reaching the indexer. No claim, confirmation, or funding record has changed.",
+                hot("w12.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+              ),
+      }),
+    );
   return deskWin(
-    "admin.greengoods.app/dashboard/community/pools",
+    "admin.greengoods.app/community/pools",
     adminCanvas("community", "community", { screenId: "W12", garden: "Rocinha", header, tabRail: rail, body: inner }),
   );
 }
 
 const W12_HOTS: HifiDef["hots"] = {
+  "w12.retry": { l: "Try again", info: "Read recovery for the protocol workspace, added round 46. It reads across gardens, so it has the most to fail on, and it had no read casts at all." },
   "w12.tab-protocol": { l: "Protocol pool tab", to: "screen:W12@protocol", info: "The root protocol pool view." },
   "w12.tab-garden": { l: "This garden tab", to: "screen:W12@current-garden", info: "This garden's pool scope only." },
   "w12.open-garden-pool": { l: "Open garden pool", to: "screen:W7", info: "One-tap handoff from the Community summary to the selected garden's full Pool workspace." },
@@ -69,6 +234,29 @@ const W12_HOTS: HifiDef["hots"] = {
   "w12.decline": { l: "Decline a garden claim", info: "Declines this garden claim with a required reason while leaving other pending requests intact (CS:734).", calls: ["declineClaim"] },
   "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10@garden-ready", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
   "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or command/ack controls render here; all-garden operations live in W24 (UX:314)." },
+  "w12.gate-status": { l: "Member delivery gate status", info: "Register #34f: the read-only gate row — enabled/disabled, changed by, date, evidence ref — mirrored from W21@gate-status so the Community workspace answers the delivery-readiness question without leaving it. No toggle renders here; changing the gate is an Operations act." },
+  "w12.seed": { l: "Seed a protocol commitment", to: "screen:W12@seed-protocol", info: "The protocol pool makes its own asks and offers to gardens — seeding starts here in the Community workspace, prefilled from protocol templates (register #96)." },
+  "w12.seed-cancel": { l: "Cancel protocol seeding", to: "screen:W12", info: "Returns to the protocol pool without creating anything." },
+  ...Object.fromEntries(W12_JOB_STATES.flatMap(id => [
+    [`w12.${id}-close`, { l: "Back to pool", to: `screen:W12@pool-${id}`, info: "Close the overlay; the same saved job remains reachable from its pool row with direction and status preserved." }],
+    [`w12.${id}-open`, { l: "Open saved creation", to: `screen:W12@${id}`, info: "Reopen this existing saved creation without resubmitting or changing its key." }],
+  ])),
+  "w12.saved-seeds": { l: "Open saved creation", to: "screen:W12@pool-seed-queued", info: "The pool retains an optimistic row for every saved creation until it is indexed or an unsent failed job is discarded." },
+  "w12.seed-unbounded-request": { l: "Request from gardens", to: "screen:W12@seed-unbounded", info: "Change direction without filling a missing lifecycle bound." },
+  "w12.seed-unbounded-offer": { l: "Offer to gardens", to: "screen:W12@seed-offer-unbounded", info: "Change direction without filling a missing lifecycle bound." },
+  "w12.seed-offer-fix-bound": { l: "Choose a lifecycle bound", to: "screen:W12@seed-offer", info: "Repair the missing end while preserving Offer direction." },
+  "w12.seed-discard": { l: "Discard failed job", to: "screen:W12@seed-discarded", info: "Discard only the unsent terminal job, preserving its answers as a draft. Read any conflicting existing commitment first. This is local queue cleanup, not an on-chain cancellation." },
+  "w12.seed-offer-discard": { l: "Discard failed job", to: "screen:W12@seed-offer-discarded", info: "Discard only the unsent terminal Offer job, preserving the draft. Read any conflicting existing commitment first. Never erase a submitted transaction." },
+  "w12.seed-new": { l: "Review a new creation", to: "screen:W12@seed-protocol", info: "Recheck repaired terms, lifecycle and authority, then assign a fresh creation key. Never reuse the failed conflicting key." },
+  "w12.seed-offer-new": { l: "Review a new creation", to: "screen:W12@seed-offer", info: "Recheck repaired Offer terms, lifecycle and authority before assigning a fresh key." },
+  "w12.seed-request": { l: "Request from gardens", to: "screen:W12@seed-protocol", info: "Protocol asks gardens to provide a service." },
+  "w12.seed-offer": { l: "Offer to gardens", to: "screen:W12@seed-offer", info: "Protocol provides a service to a claiming garden." },
+  "w12.seed-fix-bound": { l: "Choose a lifecycle bound", to: "screen:W12@seed-protocol", info: "At least one open cycle binding or due date is required. The shared composer always requires a positive dueInDays." },
+  "w12.seed-confirm": { l: "Seed this protocol request", to: "screen:W12@seed-queued", info: "Root-garden steward/owner, or module owner with root-garden membership. Queue createCommitment with a lifecycle bound, request direction, and protocol context; publication waits for indexed read-back.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-offer-confirm": { l: "Seed this protocol offer", to: "screen:W12@seed-offer-queued", info: "The same authorized, bounded queued creation with Offer direction. The queue preserves the selected direction on every retry.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-offer-retry": { l: "Retry offer send", to: "screen:W12@seed-offer-queued", info: "Reconcile creator and creation key first; recover an existing Offer or resend only if absent, using the same client commitment ID and stored terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
+  "w12.seed-close": { l: "Back to pool", to: "screen:W12", info: "Return to the pool without submitting a creation. Pending jobs use their own close-and-reopen path." },
+  "w12.seed-retry": { l: "Retry send", to: "screen:W12@seed-queued", info: "Reconcile creator and creation key first; recover an existing Request or resend only if absent, preserving the original client commitment ID and terms.", calls: ["createCommitment"], pendingSync: true, facts: { pool: "Open" } },
 };
 
 // ---------------------------------------------------------------------------
@@ -77,6 +265,14 @@ const W12_HOTS: HifiDef["hots"] = {
 
 const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
+  ["payout-plan", "Contributor payout plan · draft"], ["payout-plan-edit", "Contributor payout plan · edit draft"],
+  ["payout-finalized", "Contributor payout plan · finalized"],
+  ["payout-prepared", "Contributor payout prepared · 1 of 3"],
+  ["payout-prepared-2", "Contributor payout prepared · 2 of 3"],
+  ["payout-prepared-all", "Contributor payout prepared · 3 of 3"],
+  ["payout-retained-draft", "All support retained · draft"],
+  ["payout-retained", "All support retained · complete"], ["payout-partial", "Contributor payouts · partial"],
+  ["payout-complete", "Contributor payouts · complete"],
   ["register-account", "Register account"], ["registered", "Account registered"],
   ["failed-recovery", "Failed — recovery"], ["gate-status", "Delivery gate"],
   ["requeue-confirm", "Requeue — confirm"], ["requeued", "Requeued"],
@@ -84,7 +280,10 @@ const W21_STATES = [
   ["cancel-queued-confirm", "Cancel queued — confirm"], ["cancelled-queued", "Queued item cancelled"],
   ["batch-cancelled", "Batch cancelled"],
   ["close-delivery-confirm", "Close delivery — confirm"], ["cancelled-failed", "Failed item cancelled"],
-  ["protocol-queue", "Protocol queue — garden beneficiary"],
+  ["protocol-queue", "Protocol queue — garden funding"],
+  ["protocol-funding-queued", "Garden funding — queued"],
+  ["refund-queued", "Member refund — queued"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -95,10 +294,10 @@ const w21Rows = () =>
   dtable(
     ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
     [
-      ["104 · attempt 0", "Maria", "Reward — member", `<span class="num">20 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
-      ["103 · attempt 1", "João", "Reward — member", `<span class="num">15 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source follow-up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close delivery", { kind: "ghost", sm: true }))}`],
-      ["102 · attempt 0", "Ana", "Reward — member", `<span class="num">12 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack details", { kind: "ghost", sm: true }))],
-      ["101 · attempt 0", "Kwame", "Reward — member", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+      ["104 · attempt 0", "Maria", "Contributor payout", `<span class="num">160 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
+      ["103 · attempt 1", "Kwame", "Contributor payout", `<span class="num">100 G$</span>`, chip("Failed, route rejected", "err"), `${hot("w21.requeue", btn("Source Follow-Up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close Delivery", { kind: "ghost", sm: true }))}`],
+      ["102 · attempt 0", "Ana", "Contributor payout", `<span class="num">140 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack Details", { kind: "ghost", sm: true }))],
+      ["101 · attempt 0", "Kwame", "Contributor payout", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
     ],
     "Rocinha settlement disbursement queue",
   );
@@ -110,152 +309,355 @@ const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
     screenId: "W21",
     garden: "Rocinha",
     interactiveChrome: false,
-    header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate." }),
+    header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: "The garden's Celo settlement account, disbursement queue, batches, and delivery gate." }),
     body: acard(
       "Settlement (Celo)",
       state === "unregistered"
         ? `<div class="t-meta">No registered settlement account.</div>`
         : state === "queued"
           ? `${kv("Settlement 104 / attempt 0", "Queued · unbatched")}`
-          : `${kv("Settlement 103 / attempt 1", "Failed — route rejected")}`,
+          : `${kv("Settlement 103 / attempt 1", "Failed, route rejected")}`,
     ),
   });
 
 function w21(state: W21State): string {
+  // The garden's money queue had no read casts (2026-08-18 round 51, Afo).
+  // An unreadable settlement queue must never render like an empty one: a
+  // steward would read "nothing owed, nothing dispatched" and act on it.
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/garden/settlement",
+      adminCanvas("garden", "garden", {
+        screenId: "W21", garden: "Rocinha",
+        header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: state === "loading" ? "Loading this garden's settlement." : "This garden's settlement could not be loaded." }),
+        body: state === "loading"
+          ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 4 })}`
+          : emptyState(
+              "wifi-off-line",
+              "Couldn't load the settlement queue",
+              "Something went wrong reaching the indexer. Nothing was queued, dispatched, cancelled, or paid while this was unreachable, and every recorded attempt is unchanged.",
+              hot("w21.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+            ),
+      }),
+    );
+  if (state === "refund-queued") {
+    const header = pageHeader({
+      title: "Member refund queued",
+      eyebrow: "Garden · Celo",
+      description: "One ordinary settlement child returns the recorded deposit to the funder's frozen account.",
+    });
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/refund",
+      adminCanvas("garden", "garden", {
+        screenId: "W21",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Refund · settlement 108",
+          `${banner("The funding record points to this one queued child. Repeating the queue action returns settlement 108 and cannot create another refund.", "stone", "shield-check-line")}
+${kv("Funding", "F-204 · RefundQueued")}${kv("Kind", "Refund")}${kv("Source", "Rocinha garden Safe")}${kv("Recipient", "Maria · recorded 0x12…9a")}${kv("Amount", "40 G$")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.dispatch-refund", btn("Dispatch Refund", { kind: "pri", sm: true }))}</div>`,
+        ),
+      }),
+    );
+  }
   if (state === "register-account")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("unregistered"), "garden", {
         title: "Register settlement account",
         body: `${banner("Register an existing, governance-deployed Celo Safe only after its route and recovery policy have been verified.", "stone")}${field("Celo Safe address", input("0x8a…2d"))}${kv("Policy", "2-of-3 recovery · scoped executor role")}`,
-        actions: `${hot("w21.register-dismiss", btn("Cancel", { kind: "ghost" }))}${hot("w21.register-confirm", btn("Register account", { kind: "pri" }))}`,
+        actions: `${hot("w21.register-dismiss", btn("Cancel", { kind: "ghost" }))}${hot("w21.register-confirm", btn("Register Account", { kind: "pri" }))}`,
         closeHot: "w21.register-dismiss",
       }),
     );
   if (state === "requeue-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("failed"), "garden", {
         title: "Requeue failed delivery",
-        body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "João")}${kv("Amount", "15 G$")}${kv("Next state", "Queued · attempt 2")}`,
-        actions: `${hot("w21.requeue-dismiss", btn("Keep failed", { kind: "ghost" }))}${hot("w21.requeue-confirm", btn("Requeue attempt", { kind: "pri" }))}`,
+        body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "Kwame")}${kv("Amount", "100 G$")}${kv("Next state", "Queued · attempt 2")}`,
+        actions: `${hot("w21.requeue-dismiss", btn("Keep Failed", { kind: "ghost" }))}${hot("w21.requeue-confirm", btn("Requeue Attempt", { kind: "pri" }))}`,
         closeHot: "w21.requeue-dismiss",
       }),
     );
   if (state === "batch-create")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("queued"), "garden", {
         title: "Create a delivery batch",
         body: `${banner("Only queued deliveries with the same source, route, version, and gas limit can be grouped. Membership becomes immutable when you create the batch.", "stone")}
-${kv("Settlement 104 · Maria", "20 G$ · eligible")}${kv("Settlement 99 · Leila", "10 G$ · eligible")}${kv("Batch total", "2 deliveries · 30 G$")}`,
-        actions: `${hot("w21.create-batch-dismiss", btn("Keep unbatched", { kind: "ghost" }))}${hot("w21.create-batch-confirm", btn("Create batch", { kind: "pri" }))}`,
+${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Leila", "10 G$ · eligible")}${kv("Batch total", "2 deliveries · 170 G$")}`,
+        actions: `${hot("w21.create-batch-dismiss", btn("Keep Unbatched", { kind: "ghost" }))}${hot("w21.create-batch-confirm", btn("Create Batch", { kind: "pri" }))}`,
         closeHot: "w21.create-batch-dismiss",
       }),
     );
   if (state === "cancel-queued-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("queued"), "garden", {
         title: "Cancel queued delivery",
-        body: `${banner("This cancels only unbatched settlement 104 before dispatch. No batch members or other queued deliveries change.", "amber", "error-warning-line")}${field("Reason (required)", input("recipient asked to use another route"))}`,
-        actions: `${hot("w21.cancel-queued-dismiss", btn("Keep queued", { kind: "ghost" }))}${hot("w21.cancel-queued-confirm", btn("Cancel delivery", { kind: "danger" }))}`,
+        body: `${banner("This cancels only unbatched settlement 104 before dispatch. No batch members or other queued deliveries change.", "amber", "error-warning-line")}${reasonChips(["Recipient asked for another route", "Details need correcting", "Superseded by a new plan"])}${field("Reason (required)", input("recipient asked to use another route"))}`,
+        actions: `${hot("w21.cancel-queued-dismiss", btn("Keep Queued", { kind: "ghost" }))}${hot("w21.cancel-queued-confirm", btn("Cancel Delivery", { kind: "danger" }))}`,
         closeHot: "w21.cancel-queued-dismiss",
       }),
     );
   if (state === "close-delivery-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind(), "garden", {
         title: "Close this delivery",
         body:
           banner(
-            "Settlement 103 failed with an authenticated route rejection. Closing ends this delivery for good — the failed attempt and its bounded failure code stay visible, and no new execution key is created.",
+            "Settlement 103 failed with an authenticated route rejection. Closing ends this delivery for good. The failed attempt and its bounded failure code stay visible, and no new execution key is created.",
             "amber",
             "error-warning-line",
-          ) + field("Reason (required)", input("recipient account cannot receive; handled off-platform")),
-        actions: `${hot("w21.close-dismiss", btn("Keep for retry", { kind: "ghost" }))}${hot("w21.close-delivery-confirm", btn("Close delivery", { kind: "danger" }))}`,
+          ) + reasonChips(["Account cannot receive", "Handled off-platform", "Recipient unreachable"]) + field("Reason (required)", input("recipient account cannot receive; handled off-platform")),
+        actions: `${hot("w21.close-dismiss", btn("Keep for Retry", { kind: "ghost" }))}${hot("w21.close-delivery-confirm", btn("Close Delivery", { kind: "danger" }))}`,
         closeHot: "w21.close-dismiss",
       }),
     );
 
   if (state === "protocol-queue") {
-    // The protocol pool's own queue. Every other row in this artifact pays an
-    // individual; here the beneficiary is a garden's Celo Safe, which is what
-    // a garden-claimed protocol commitment settles to (AM:43).
+    // The protocol pool's own queue. Protocol-to-garden value is a discretionary
+    // Funding disbursement created through queueFunding, never a commitment reward.
     const rows = dtable(
       ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
       [
-        ["105 · attempt 0", "Awka Hub — garden Safe", "Reward — garden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
-        ["98 · attempt 0", "Leila", "Reward — member", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+        ["105 · attempt 0", "Awka Hub. Garden Safe", "Funding · ProtocolToGarden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
+        ["98 · attempt 0", "Leila", "Contributor payout", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
       ],
       "Protocol pool settlement queue",
     );
     const header = pageHeader({
       title: "Settlement",
       eyebrow: "Protocol · Celo",
-      description: "The protocol pool's Celo settlement account — garden-beneficiary rewards sit beside member ones.",
+      description: "The protocol pool's Celo settlement account. Garden funding and contributor payouts remain distinct rails.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/community/pools/settlement",
+      "admin.greengoods.app/community/pools/settlement",
       adminCanvas("community", "community", {
         screenId: "W21",
         garden: "Rocinha",
         header,
-        body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Source is the GG protocol Safe; a garden beneficiary is the providing garden's registered Celo Safe, never its Arbitrum account.", "stone")}`),
+        body: acard("Settlement (Celo), protocol pool", `${rows}${banner("Settlement 105 was created by queueFunding. Its kind is Funding and its immutable route is ProtocolToGarden; it is not tied to a commitment being fulfilled or a payout plan.", "stone")}`),
+      }),
+    );
+  }
+  if (state === "protocol-funding-queued") {
+    const rows = dtable(
+      ["Settlement · attempt", "Recipient", "Kind", "Route", "Amount", "State", ""],
+      [
+        [
+          "106 · attempt 0",
+          "Awka Hub, registered garden Safe",
+          "Funding",
+          "ProtocolToGarden",
+          `<span class="num">500 G$</span>`,
+          chip("Queued", "plain", { dot: true }),
+          hot("w21.dispatch-funding", btn("Dispatch", { kind: "sec", sm: true })),
+        ],
+      ],
+      "Queued protocol funding",
+    );
+    const header = pageHeader({
+      title: "Garden funding queued",
+      eyebrow: "Protocol · Celo",
+      description: "A discretionary treasury transfer, separate from commitment fulfillment and contributor payout plans.",
+    });
+    return deskWin(
+      "admin.greengoods.app/community/pools/settlement",
+      adminCanvas("community", "community", {
+        screenId: "W21",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Funding queued",
+          `${rows}${banner("This Funding row has no commitment ID. queueFunding derived the GG protocol Safe, canonical G$, and the selected garden's registered Safe from onchain configuration.", "stone")}`,
+        ),
       }),
     );
   }
 
   let inner: string;
   switch (state) {
+    case "payout-plan":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("The provider garden accounts for the fulfilled commitment's support. The recognition vector matches its snapshot hash, and payment weights are derived from this complete amount vector.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "100 G$")}${kv("Contributor total", "400 G$")}
+${dtable(
+  ["Contributor", "Recognition", "Payment", "State", ""],
+  [
+    ["Maria · lead", "40%", "160 G$", chip("Draft", "plain", { dot: true }), ""],
+    ["Ana", "35%", "140 G$", chip("Draft", "plain", { dot: true }), ""],
+    ["Kwame", "25%", "100 G$", chip("Draft", "plain", { dot: true }), ""],
+  ],
+  "Contributor payout plan",
+)}
+${banner("Payment uses the recognition weights without correction. The full vector, retained amount, and reason remain editable until explicit finalization.", "amber")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.edit-plan", btn("Edit Draft", { kind: "sec", sm: true }))}${hot("w21.finalize-plan", btn("Finalize Payout Plan", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-plan-edit":
+      inner = acard(
+        "Edit payout draft",
+        `${banner("Prefilled from recognition, change only what needs correcting. Saving replaces the Draft snapshot atomically; it does not create a second plan or finalize this one.", "stone", "information-line")}
+${field("Garden retains", input("100 G$"))}${field("Maria · lead", input("160 G$"))}${field("Ana", input("140 G$"))}${field("Kwame", input("100 G$"))}${field("Reason (required while retaining support)", input("Garden operations and follow-up costs"))}
+${kv("Conservation", "100 + 160 + 140 + 100 = 500 G$ · valid")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.edit-cancel", btn("Cancel", { kind: "ghost", sm: true }))}${hot("w21.edit-save", btn("Save Complete Draft", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-finalized":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Finalized. Recognition and payment snapshot hashes match the visible rows, and retained plus contributor amounts equals 500 G$.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 0 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Not prepared", "plain"), hot("w21.prepare-payout", btn("Prepare Payout", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Not prepared", "plain"), ""],
+    ["Kwame", "100 G$", chip("Not prepared", "plain"), ""],
+  ],
+  "Finalized contributor payout plan",
+)}`,
+      );
+      break;
+    case "payout-prepared":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Maria's frozen row has one immutable queued child. Repeating Prepare payout returns the same settlement ID; it cannot create a duplicate.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 1 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Not prepared", "plain"), hot("w21.prepare-ana", btn("Prepare Payout", { kind: "sec", sm: true }))],
+    ["Kwame", "100 G$", chip("Not prepared", "plain"), ""],
+  ],
+  "Prepared contributor payout",
+)}`,
+      );
+      break;
+    case "payout-prepared-2":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Maria and Ana now have immutable queued children. Kwame's payable row remains explicitly actionable.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 2 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Queued · settlement 106", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Kwame", "100 G$", chip("Not prepared", "plain"), hot("w21.prepare-kwame", btn("Prepare Payout", { kind: "sec", sm: true }))],
+  ],
+  "Two prepared contributor payouts",
+)}`,
+      );
+      break;
+    case "payout-prepared-all":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Every non-zero frozen payout row has one immutable queued child. The plan can now dispatch individually or enter an optional homogeneous batch.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 3 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Queued · settlement 106", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Kwame", "100 G$", chip("Queued · settlement 107", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+  ],
+  "All contributor payouts prepared",
+)}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.create-batch", btn("Create Batch", { kind: "ghost", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-retained-draft":
+      inner = acard(
+        "All support retained · payout plan",
+`${banner("Draft. The garden retains the full declared support and every contributor payment weight is the canonical zero vector.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "500 G$")}${kv("Contributor total", "0 G$")}${kv("Divergence reason", "Shared materials and follow-up costs · recorded")}
+${banner("Finalization rechecks the recognition and payment snapshots, then completes locally because there is no payable child.", "amber")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.finalize-retained-plan", btn("Finalize Retained Plan", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-retained":
+      inner = acard(
+        "All support retained · payout plan",
+`${banner("Complete without dispatch. The garden retained the full declared support, so finalization created no contributor child and sent no CCIP message. This local completion remains available while member delivery is disabled.", "stone", "checkbox-circle-fill")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "500 G$")}${kv("Contributor total", "0 G$")}${kv("Payment weights", "Maria 0% · Ana 0% · João 0% · canonical zero vector")}${kv("Divergence reason", "Shared materials and follow-up costs · recorded")}${kv("Parent pointer", "Stable · one plan for this commitment")}`,
+      );
+      break;
+    case "payout-partial":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${kv("Parent status", "Partial · 2 of 3 arrived")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State"],
+  [
+    ["Maria · lead", "160 G$", chip("Confirmed ↗", "ok", { dot: true })],
+    ["Ana", "140 G$", chip("Confirmed ↗", "ok", { dot: true })],
+    ["Kwame", "100 G$", chip("Failed, recoverable", "err")],
+  ],
+  "Contributor payout progress",
+)}
+${banner("The commitment stays Fulfilled. One failed child delivery never rewrites recognition or the two successful receipts.", "stone")}`,
+      );
+      break;
+    case "payout-complete":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("All contributor payouts arrived.", "stone", "checkbox-circle-fill")}${kv("Parent status", "Complete · 3 of 3")}${kv("Garden retained", "100 G$")}${kv("Contributor receipts", "Maria 160 · Ana 140 · Kwame 100 G$")}`,
+      );
+      break;
     case "unregistered":
       inner = acard(
         "Settlement (Celo)",
-        `<div class="t-meta">No registered settlement account yet. Safe creation and the 2-of-3 recovery/Roles policy are Release-gated. After governance deploys and verifies that route, a steward can register the existing account here.</div>${hot("w21.setup", btn("Register existing account", { kind: "pri" }))}`,
+        `<div class="t-meta">No registered settlement account yet. Safe creation and the 2-of-3 recovery/Roles policy are Release-gated. After governance deploys and verifies that route, a steward can register the existing account here.</div>${hot("w21.setup", btn("Register Existing Account", { kind: "pri" }))}`,
       );
       break;
     case "registered":
       inner = acard(
         "Settlement (Celo)",
-        `<div class="quietok">${icon("check-line")}Account registered.</div>${kv("Celo Safe", "0x8a…2d")}${kv("Recovery policy", "2 of 3")}${kv("Executor role", "scoped · verified")}<div class="actrow">${hot("w21.open-queue", btn("Open disbursement queue", { kind: "pri", sm: true }))}</div>`,
+        `<div class="quietok">${icon("check-line")}Account registered.</div>${kv("Celo Safe", "0x8a…2d")}${kv("Recovery policy", "2 of 3")}${kv("Executor role", "scoped · verified")}<div class="actrow">${hot("w21.open-queue", btn("Open Disbursement Queue", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "requeued":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("A new logical attempt is queued. The failed attempt remains in history and cannot be overwritten.", "stone")}${kv("Settlement 103 · attempt 2", "Queued · awaiting dispatch")}${kv("Execution key", "created when this attempt dispatches")}${kv("Previous", "Settlement 103 · attempt 1 · Failed")}<div class="actrow">${hot("w21.open-queue", btn("Back to queue", { kind: "pri", sm: true }))}</div>`,
+        `${banner("A new logical attempt is queued. The failed attempt remains in history and cannot be overwritten.", "stone")}${kv("Settlement 103 · attempt 2", "Queued · awaiting dispatch")}${kv("Execution key", "created when this attempt dispatches")}${kv("Previous", "Settlement 103 · attempt 1 · Failed")}<div class="actrow">${hot("w21.open-queue", btn("Back to Queue", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "batch-created":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("Batch #12 is queued. Its two-member snapshot is now immutable; dispatch creates the execution key.", "stone")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Route", "Rocinha owning-pool Safe → member accounts")}${kv("State", "Queued · batch #12")}<div class="actrow">${hot("w21.open-batch-command", btn("Open batch command", { kind: "pri", sm: true }))}</div>`,
+        `${banner("Batch #12 is queued. Its two-member snapshot is now immutable; dispatch creates the execution key.", "stone")}${kv("Members", "Maria · 160 G$ · Leila · 10 G$")}${kv("Route", "Rocinha provider garden Safe → contributor accounts")}${kv("State", "Queued · batch #12")}<div class="actrow">${hot("w21.open-batch-command", btn("Open Batch Command", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "cancelled-queued":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("Settlement 104 was cancelled before dispatch. No command or batch was created.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Reason", "recipient asked to use another route")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
+        `${banner("Settlement 104 was cancelled before dispatch. No command or batch was created.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Reason", "recipient asked to use another route")}${hot("w21.open-queue", btn("Back to Queue", { kind: "sec", sm: true }))}`,
       );
       break;
     case "batch-cancelled":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("Batch #12 and both immutable members were cancelled before dispatch.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Reason", "garden withdrew the request before dispatch")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
+        `${banner("Batch #12 and both immutable members were cancelled before dispatch.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Members", "Maria · 160 G$ · Leila · 10 G$")}${kv("Reason", "garden withdrew the request before dispatch")}${hot("w21.open-queue", btn("Back to Queue", { kind: "sec", sm: true }))}`,
       );
       break;
     case "cancelled-failed":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("Settlement 103 is closed. Its failed attempt and bounded route-rejection code remain in history.", "stone")}${kv("State", "Cancelled from Failed")}${kv("Previous", "Attempt 1 · route rejected")}${kv("Reason", "recipient account cannot receive; handled off-platform")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
+        `${banner("Settlement 103 is closed. Its failed attempt and bounded route-rejection code remain in history.", "stone")}${kv("State", "Cancelled from Failed")}${kv("Previous", "Attempt 1 · route rejected")}${kv("Reason", "recipient account cannot receive; handled off-platform")}${hot("w21.open-queue", btn("Back to Queue", { kind: "sec", sm: true }))}`,
       );
       break;
     case "gate-status":
       inner = acard(
-        "Member delivery gate — read-only status",
-        `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Evidence", "round-trip check ↗")}
-${banner("The flip itself is owner-only ops — this row keeps the gate legible to every steward.", "stone")}`,
+        "Member delivery gate. Read-only status",
+        `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Proof", "round-trip check ↗")}
+${banner("The flip itself is owner-only ops. This row keeps the gate legible to every steward.", "stone")}`,
       );
       break;
     case "failed-recovery":
@@ -276,31 +678,60 @@ ${disclosure(
           "Account status",
           "source · reserves · gate",
           `${kv("Source", "canonical pooling interface pending")}${kv("Fee reserve", "native ETH / CELO monitored")}
-<div class="arow">${hot("w21.gate-row", `<div class="grow">Member delivery: <b>enabled</b> <span class="t-meta">· changed by 0x9a…4f · Jul 30 · evidence ↗</span></div>`)}</div>
+<div class="arow">${hot("w21.gate-row", `<div class="grow">Member delivery: <b>enabled</b> <span class="t-meta">· changed by 0x9a…4f · Jul 30 · proof ↗</span></div>`)}</div>
 <div class="arow"><div class="grow">CCIP: peers configured · command/ack fee reserves monitored</div></div>`,
         )}`,
-        hot("w21.create-batch", btn("Create batch", { kind: "pri", sm: true })),
+        hot("w21.create-batch", btn("Create Batch", { kind: "pri", sm: true })),
       )}`;
   }
   const header = pageHeader({
     title: "Settlement",
     eyebrow: "Garden · Celo",
-    description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate.",
+    description: "The garden's Celo settlement account. Disbursement queue, batches, and delivery gate.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/settlement",
+    "admin.greengoods.app/garden/settlement",
     adminCanvas("garden", "garden", { screenId: "W21", garden: "Rocinha", header, body: inner }),
   );
 }
 
 const W21_HOTS: HifiDef["hots"] = {
-  "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
+  "w21.retry": { l: "Try again", info: "Read recovery for the garden settlement queue, added round 51. An unreadable money queue must never render like an empty one — a steward would read it as nothing waiting and nothing dispatched." },
+  "w21.dispatch-refund": {
+    l: "Dispatch refund",
+    to: "screen:W22@refund-dispatched",
+    info: "dispatchDisbursement sends the typed Refund child through the existing bounded garden-Safe command route. Dispatch is not arrival proof.",
+    calls: ["dispatchDisbursement"],
+  },
+  "w21.edit-plan": { l: "Edit payout draft", to: "screen:W21@payout-plan-edit", info: "Opens the complete Draft vector, retained amount, and reason before finalization." },
+  "w21.edit-cancel": { l: "Cancel payout draft edit", to: "screen:W21@payout-plan", info: "Returns to the unchanged Draft plan." },
+  "w21.edit-save": { l: "Save complete payout draft", to: "screen:W21@payout-plan", info: "Calls setContributorPayouts with the complete ordered contributor vector, retention, totals, and required reason; the stable parent pointer and Draft status remain unchanged.", calls: ["setContributorPayouts"] },
+  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes this payable plan as Pending without creating child disbursements.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Pending" } },
+  "w21.finalize-retained-plan": { l: "Finalize retained-only payout plan", to: "screen:W21@payout-retained", info: "Verifies the all-zero contributor vector and exact full retention, then completes immediately with no child or CCIP command.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Complete" } },
+  "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
+  "w21.prepare-ana": { l: "Prepare Ana payout", to: "screen:W21@payout-prepared-2", info: "Materializes Ana's one immutable queued child from her frozen non-zero row; Maria's existing child is unchanged.", calls: ["prepareContributorPayout"] },
+  "w21.prepare-kwame": { l: "Prepare Kwame payout", to: "screen:W21@payout-prepared-all", info: "Materializes Kwame's one immutable queued child; every payable row is now prepared exactly once.", calls: ["prepareContributorPayout"] },
+  "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@individual-dispatched", info: "Dispatches one unbatched child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
+  "w21.dispatch-garden": {
+    l: "Dispatch protocol-to-garden funding",
+    to: "screen:W22@garden-command",
+    info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement rechecks both settlement accounts, creates its immutable execution key, and sends the data-only command; no commitment reward or payout plan is involved.",
+    calls: ["dispatchDisbursement"],
+    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
+  "w21.dispatch-funding": {
+    l: "Dispatch queued garden funding",
+    to: "screen:W22@garden-command",
+    info: "Dispatches the typed Funding/ProtocolToGarden row created by queueFunding after rechecking both settlement accounts; no commitment or payout-plan identity is attached.",
+    calls: ["dispatchDisbursement"],
+    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
   "w21.register-confirm": { l: "Register settlement account", to: "screen:W21@registered", info: "registerSettlementAccount stores the verified Celo Safe route for this pool.", calls: ["registerSettlementAccount"] },
   "w21.open-queue": { l: "Open disbursement queue", to: "screen:W21", info: "Returns to the garden's settlement queue." },
   "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
-  "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
+  "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The resolved settlement steward or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance. The module owner has no independent dispatch authority." },
   "w21.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A next attempt requires an authenticated failure and the future source integration." },
   "w21.requeue-dismiss": { l: "Keep failed", to: "screen:W21@failed-recovery", info: "Leaves the authenticated failure available for a later source follow-up." },
   "w21.requeue-confirm": { l: "Requeue attempt", to: "screen:W21@requeued", info: "requeue clears the old batch id and increments attempts; the new execution key is created only on the next unbatched dispatch.", calls: ["requeue"] },
@@ -324,13 +755,16 @@ const W21_HOTS: HifiDef["hots"] = {
 const W22_STATES = [
   ["ready", "Queued"], ["dispatched", "Dispatched"], ["delivery-delayed", "Delivery delayed"], ["executed", "Celo executed"],
   ["acknowledgment-pending", "Acknowledgment pending"], ["outcome", "Confirmed / failed"], ["role-guard", "Route gate"],
-  ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Garden-beneficiary command"],
+  ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Protocol-to-garden funding command"],
+  ["individual-dispatched", "Contributor payout — dispatched"],
+  ["refund-dispatched", "Member refund — dispatched"], ["refund-confirmed", "Member refund — confirmed"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
 const w22Members = dtable(
   ["Member", "Amount", "To"],
-  [["Maria", `<span class="num">20 G$</span>`, `<span class="num">0x12…9a</span>`], ["Leila", `<span class="num">10 G$</span>`, `<span class="num">0x77…3c</span>`]],
+  [["Maria", `<span class="num">160 G$</span>`, `<span class="num">0x12…9a</span>`], ["Leila", `<span class="num">10 G$</span>`, `<span class="num">0x77…3c</span>`]],
   "Batch #12 members",
 );
 
@@ -341,22 +775,65 @@ const w22Behind = () =>
     garden: "Rocinha",
     interactiveChrome: false,
     header: pageHeader({ title: "Settlement 104", eyebrow: "Command/ack console", description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment." }),
-    body: acard("Batch", `${kv("Batch #12", "2 immutable members · Maria 20 G$ · Leila 10 G$")}${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 0)}`),
+    body: acard("Batch", `${kv("Batch #12", "2 immutable members · Maria 160 G$ · Leila 10 G$")}${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 0)}`),
   });
 
 function w22(state: W22State): string {
+  // The transport console is the most dangerous surface to misread (round 51):
+  // it is where a steward learns whether a command is in flight. An
+  // unreadable console says nothing about the payment in either direction, and
+  // has to say so — silence here is not "nothing dispatched" and not "failed".
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/command",
+      adminCanvas("garden", "garden", {
+        screenId: "W22", garden: "Rocinha",
+        header: pageHeader({ title: "Command / acknowledgment", eyebrow: "Garden · Celo", description: state === "loading" ? "Loading transport state." : "Transport state could not be loaded." }),
+        body: state === "loading"
+          ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+          : `${emptyState(
+              "wifi-off-line",
+              "Couldn't load the command state",
+              "Something went wrong reaching the indexer. This says nothing about the payment: a command already dispatched is still in flight, and no acknowledgment is lost by a failed read.",
+              hot("w22.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+            )}
+${banner("Do not requeue or cancel on an unreadable console. A new attempt is legal only after an authenticated failure acknowledgment, which this screen cannot currently show you.", "amber", "shield-check-line")}`,
+      }),
+    );
+  if (state === "refund-dispatched" || state === "refund-confirmed") {
+    const confirmed = state === "refund-confirmed";
+    const header = pageHeader({
+      title: "Refund · settlement 108",
+      eyebrow: "Command/ack console",
+      description: "The refund shares the ordinary command, Celo execution, and authenticated acknowledgment route.",
+    });
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/refund/108",
+      adminCanvas("garden", "garden", {
+        screenId: "W22",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Member refund",
+          `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], confirmed ? 3 : 1)}
+${banner(confirmed ? "The authenticated acknowledgment confirmed the 40 G$ transfer and closed F-204 as Refunded." : "The immutable Refund command was dispatched. Maria still sees returning until the authenticated acknowledgment arrives.", "stone", confirmed ? "checkbox-circle-fill" : "information-line")}
+${kv("Funding", `F-204 · ${confirmed ? "Refunded" : "RefundQueued"}`)}${kv("Recipient", "Maria · recorded 0x12…9a")}${kv("Amount", "40 G$")}${kv("Execution key", "0x3f…88 · same-key retry only")}${kv("Receipt", confirmed ? "0xac…44 · authenticated" : "Waiting")}`,
+        ),
+      }),
+    );
+  }
   if (state === "cancel-batch-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement/batch",
+      "admin.greengoods.app/garden/settlement/batch",
       adminDialogM3(w22Behind(), "garden", {
         title: "Cancel this batch",
         body:
           banner(
-            "Cancelling closes all 2 members of batch #12 at once — Maria (20 G$) and Leila (10 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
+            "Cancelling closes all 2 members of batch #12 at once. Maria (160 G$) and Leila (10 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
             "amber",
             "error-warning-line",
-          ) + field("Reason (required)", input("garden withdrew the request before dispatch")),
-        actions: `${hot("w22.cancel-dismiss", btn("Keep batch queued", { kind: "ghost" }))}${hot("w22.cancel-batch-confirm", btn("Cancel batch", { kind: "danger" }))}`,
+          ) + reasonChips(["Garden withdrew the request", "Wrong amounts in the batch", "Superseded by a new batch"]) + field("Reason (required)", input("garden withdrew the request before dispatch")),
+        actions: `${hot("w22.cancel-dismiss", btn("Keep Batch Queued", { kind: "ghost" }))}${hot("w22.cancel-batch-confirm", btn("Cancel Batch", { kind: "danger" }))}`,
         closeHot: "w22.cancel-dismiss",
       }),
     );
@@ -368,7 +845,7 @@ function w22(state: W22State): string {
       description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/community/pools/settlement/command",
+      "admin.greengoods.app/community/pools/settlement/command",
       adminCanvas("community", "community", {
         screenId: "W22",
         garden: "Rocinha",
@@ -376,9 +853,32 @@ function w22(state: W22State): string {
         body: acard(
           "Command",
           `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
-${banner("Dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
-${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
+${banner("Funding/ProtocolToGarden was queued independently through queueFunding, then dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges, arrival is not proven until that acknowledgment lands.", "stone")}
+${kv("Disbursement kind", "Funding")}${kv("Funding route", "ProtocolToGarden")}${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
 <div class="actrow" style="justify-content:flex-end">${hot("w22.garden-open-ops", btn("Open Operations", { kind: "sec", icon: "external-link-line" }))}</div>`,
+        ),
+      }),
+    );
+  }
+
+  if (state === "individual-dispatched") {
+    const header = pageHeader({
+      title: "Settlement 104",
+      eyebrow: "Individual command/ack console",
+      description: "One finalized contributor child is dispatched independently from every batch.",
+    });
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/104",
+      adminCanvas("garden", "garden", {
+        screenId: "W22",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Contributor payout",
+          `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
+${banner("Maria's unbatched command keeps its own execution key. A same-key retry changes only the CCIP message ID and cannot target batch #12.", "stone")}
+${kv("Recipient", "Maria · 0x12…9a")}${kv("Amount", "160 G$")}${kv("Command message", "0xab…14 · CCIP Explorer ↗")}${kv("Batch", "None · individual child")}
+<div class="actrow" style="justify-content:flex-end">${hot("w22.retry-individual-command", btn("Retry Same Command", { kind: "pri" }))}</div>`,
         ),
       }),
     );
@@ -390,7 +890,7 @@ ${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG prot
   const routeDetails = disclosure(
     "Route details",
     "payer · route · batch",
-    `${kv("Settlement 104 — attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable members · limit 8 · ceiling 24")}`,
+    `${kv("Settlement 104, attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha garden Safe · Celo")}${kv("Plan", "Prune the north beds · contributor payout")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable child payouts · limit 8 · ceiling 24")}`,
   );
   let inner: string;
   const stage = (n: number) => stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], n);
@@ -406,27 +906,27 @@ ${w22Members}${routeDetails}`;
     case "delivery-delayed":
       inner = `${stage(1)}
 ${banner("Delivery is past the configured service window. This is a derived operational condition, not a contract mutation or payment failure.", "amber")}
-${endRow(hot("w22.manual-execution-guide", btn("Manual-execution guidance", { kind: "ghost", icon: "external-link-line" })), hot("w22.retry-command", btn("Retry same command", { kind: "pri" })))}
+${endRow(hot("w22.manual-execution-guide", btn("Manual-execution guidance", { kind: "ghost", icon: "external-link-line" })), hot("w22.retry-command", btn("Retry Same Command", { kind: "pri" })))}
 ${kv("Command message", "0xab…11 · CCIP Explorer ↗")}${kv("Manual execution", "Follow CCIP guidance only when Explorer marks this message eligible")}
 ${w22Members}${routeDetails}`;
       break;
     case "executed":
       inner = `${stage(2)}
 ${banner("Celo has stored its idempotent outcome. The source stays Dispatched until an authenticated acknowledgment arrives.", "stone")}
-${endRow(hot("w22.open-destination-explorer", btn("Open destination transaction", { kind: "ghost", icon: "external-link-line" })), hot("w22.retry-acknowledgment", btn("Retry acknowledgment", { kind: "pri" })))}
+${endRow(hot("w22.open-destination-explorer", btn("Open destination transaction", { kind: "ghost", icon: "external-link-line" })), hot("w22.retry-acknowledgment", btn("Retry Acknowledgment", { kind: "pri" })))}
 ${kv("Command message", "0xab…11 · CCIP Explorer ↗")}${kv("Destination transaction", "0xce…42 · Celoscan ↗")}${kv("Acknowledgment", "Not submitted · reserve recovery available")}
 ${w22Members}${routeDetails}`;
       break;
     case "acknowledgment-pending":
       inner = `${stage(2)}
 ${kv("Status", "Celo executed · acknowledgment pending")}
-<div class="arow"><div class="grow">A delayed acknowledgment never invokes the Safe route again.</div>${hot("w22.retry-acknowledgment-again", btn("Retry acknowledgment", { kind: "sec", sm: true }))}</div>
+<div class="arow"><div class="grow">A delayed acknowledgment never invokes the Safe route again.</div>${hot("w22.retry-acknowledgment-again", btn("Retry Acknowledgment", { kind: "sec", sm: true }))}</div>
 ${kv("Command message", "0xab…11 · CCIP Explorer ↗")}${kv("Destination transaction", "0xce…42 · Celoscan ↗")}${kv("Acknowledgment message", "0xac…09 · CCIP Explorer ↗")}
 ${routeDetails}`;
       break;
     case "outcome":
       inner = `<div class="arow"><div class="grow"><b>Settlement 101</b></div>${chip("Confirmed ↗", "ok", { dot: true })}</div>
-<div class="arow"><div class="grow"><b>Settlement 103</b> <span class="t-meta">route rejected</span></div>${chip("Failed", "err")}${hot("w22.requeue-member", btn("Source follow-up", { kind: "sec", sm: true }))}</div>
+<div class="arow"><div class="grow"><b>Settlement 103</b> <span class="t-meta">route rejected</span></div>${chip("Failed", "err")}${hot("w22.requeue-member", btn("Source Follow-Up", { kind: "sec", sm: true }))}</div>
 ${banner("Duplicate or stale terminal acknowledgments are emitted, ignored, and remain observable; they never mutate the settled source state.", "stone")}
 <div class="quietok">${icon("check-line")}Only a confirmed outcome tells the member their support arrived.</div>
 ${routeDetails}`;
@@ -443,7 +943,7 @@ ${routeDetails}`;
       // grammar on a desktop console.
       inner = `${stage(0)}
 ${banner("Queued batch membership is immutable. Cancellation applies atomically to both members; no member-level action is available.", "amber")}
-<div class="actrow" style="justify-content:space-between">${hot("w22.cancel-batch", btn("Cancel whole batch", { kind: "danger", sm: true }))}<span style="display:flex;gap:8px">${hot("w22.route-gate", btn("Open route gate", { kind: "ghost", icon: "external-link-line" }))}${hot("w22.dispatch-command", btn("Dispatch command", { kind: "pri" }))}</span></div>
+<div class="actrow" style="justify-content:space-between">${hot("w22.cancel-batch", btn("Cancel Whole Batch", { kind: "danger", sm: true }))}<span style="display:flex;gap:8px">${hot("w22.route-gate", btn("Open Route Gate", { kind: "ghost", icon: "external-link-line" }))}${hot("w22.dispatch-command", btn("Dispatch Command", { kind: "pri" }))}</span></div>
 ${w22Members}${routeDetails}`;
   }
   const header = pageHeader({
@@ -452,21 +952,23 @@ ${w22Members}${routeDetails}`;
     description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/settlement/batch",
+    "admin.greengoods.app/garden/settlement/batch",
     adminCanvas("garden", "garden", { screenId: "W22", garden: "Rocinha", header, body: acard("Batch", inner) }),
   );
 }
 
 const W22_HOTS: HifiDef["hots"] = {
-  "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The cross-garden funds board is where a garden-beneficiary delivery is watched to arrival; it is deployer-gated." },
+  "w22.retry": { l: "Try again", info: "Read recovery for the transport console, added round 51. This is where a steward learns whether a command is in flight, so an unreadable console has to say it means neither \u201cnothing dispatched\u201d nor \u201cfailed\u201d." },
+  "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The capability-gated cross-garden funds board separates contributor payout-plan delivery from discretionary ProtocolToGarden funding." },
   "w22.route-gate": { l: "Open route gate", to: "screen:W22@role-guard", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
   "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21@batch-cancelled", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3).", calls: ["cancelBatch"] },
-  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance.", calls: ["dispatchBatch"] },
+  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The resolved settlement steward or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance. The module owner has no independent dispatch authority.", calls: ["dispatchBatch"] },
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
   "w22.retry-command": { l: "Retry command", to: "screen:W22@executed", info: "A transport retry preserves the execution key and payload, and cannot create a second Celo execution.", calls: ["retryBatchCommand"] },
+  "w22.retry-individual-command": { l: "Retry individual command", to: "screen:W22@individual-dispatched", info: "Retries only settlement 104 with retryCommand; batch #12 and every other contributor child remain untouched.", calls: ["retryCommand"] },
   "w22.open-destination-explorer": { l: "Open destination transaction", info: "The destination transaction is evidence of Celo execution, but arrival remains unconfirmed until the authenticated acknowledgment reaches Arbitrum." },
   "w22.retry-acknowledgment": { l: "Retry acknowledgment", to: "screen:W22@acknowledgment-pending", info: "Permissionless destination retry sends the stored outcome without moving G$ again.", calls: ["retryAcknowledgment"] },
   "w22.retry-acknowledgment-again": { l: "Retry acknowledgment", info: "CELO reserve or delivery recovery may retry the stored acknowledgment independently.", calls: ["retryAcknowledgment"] },
@@ -474,18 +976,42 @@ const W22_HOTS: HifiDef["hots"] = {
 };
 
 // ---------------------------------------------------------------------------
-// W24 — Operations workspace (wireframes.md:643, deployer-gated)
+// W24 — Operations workspace (wireframes.md:881, capability-gated)
 // ---------------------------------------------------------------------------
 
-const W24_STATES = [["queue", "Queue"], ["ccip", "CCIP"], ["flows", "Flows"]] as const;
+const W24_STATES = [
+  ["queue", "Queue"],
+  ["ccip", "CCIP"],
+  ["flows", "Flows"],
+  ["flows-funding-unavailable", "Flows · funding unavailable"],
+  ["funding", "Seed / top up"],
+  ["funding-unauthorized", "Funding unavailable"],
+  ["loading", "Loading"], ["read-error", "Read error"],
+  ["stranded", "CCIP · a stranded command"], ["strand-confirm", "Mark it failed — confirm"], ["stranded-failed", "Marked failed — recoverable"],
+] as const;
 type W24State = (typeof W24_STATES)[number][0];
+
+// Dimmed Operations canvas behind the stranded-disposition dialog (round 50).
+const w24Behind = () =>
+  adminCanvas("actions", "operations", {
+    screenId: "W24",
+    garden: "Rocinha",
+    interactiveChrome: false,
+    header: pageHeader({ title: "Operations", eyebrow: "All gardens", description: "One execution home for every garden's settlement, transport, and funding." }),
+    body: acard(
+      "CCIP command/ack health",
+      `${kv("Retired peer", "0x9c…f2 · grace expired Aug 17")}${kv("Unresolved", "Settlement 106 · Dispatched")}`,
+    ),
+  });
 
 function w24(state: W24State): string {
   // The rail tabs ARE this screen's states — wire each inactive tab to navigate.
-  const stateIx = state === "queue" ? 0 : state === "ccip" ? 1 : 2;
+  // The stranded casts live on the CCIP tab — it is the command/ack health
+  // surface, and a stranded subject is a transport fact rather than a queue one.
+  const stateIx = state === "queue" ? 0 : state === "ccip" || state.includes("strand") ? 1 : 2;
   const rail = tabRail(
     [
-      { label: "Queue", count: 4, hot: "w24.tab-queue" },
+      { label: "Queue", count: 3, hot: "w24.tab-queue" },
       { label: "CCIP", hot: "w24.tab-ccip" },
       { label: "Flows", hot: "w24.tab-flows" },
     ],
@@ -502,49 +1028,151 @@ function w24(state: W24State): string {
 ${banner("Manual execution is guidance, not a Green Goods state change. Show it only when CCIP Explorer marks a command eligible; a destination transaction alone never means support arrived.", "stone")}`,
       );
       break;
-    case "flows":
+    // Decision Log #60's liveness half, drawn (2026-08-18 round 50, Afo). The
+    // settlement machine reaches Failed two ways: an authenticated failure
+    // acknowledgment, or this. The first was drawn everywhere and the second
+    // existed nowhere, so a Dispatched subject whose executor peer retired past
+    // its grace window had no exit at all — and requeue needs Failed while
+    // cancelDisbursement takes only Queued|Failed, which is exactly why the
+    // decision calls such a child "unrecoverable" without it.
+    //
+    // Grace is "a liveness window, not a timeout-based failure oracle"
+    // (settlement-spec §3.1.2), and the module "never silently requeues,
+    // cancels, overwrites, or pays a replacement command merely because grace
+    // elapsed". So this screen offers a CHOICE, never an automatic outcome:
+    // extend grace after re-verification, or escalate to the disposition.
+    case "stranded":
+      inner = acard(
+        "CCIP command/ack health",
+        `${banner("The value lane is paused. A retired executor peer still holds one unresolved command, and its grace window has expired.", "amber", "error-warning-line")}
+${kv("Retired peer", "0x9c…f2 · replaced Aug 4 · grace expired Aug 17")}
+${kv("Unresolved", "Settlement 106 · attempt 0 · Dispatched Aug 12")}
+${kv("Why it is stuck", "Requeue needs Failed, and cancel takes only Queued or Failed. A Dispatched subject can be neither until it is dispositioned.")}
+${banner("Grace expiring proves nothing about the payment. Nothing is requeued, cancelled, or paid because a window closed, so this is a decision rather than an outcome.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w24.extend-grace", btn("Extend Grace After Re-verification", { kind: "sec", sm: true }))}${hot("w24.strand", btn("Mark It Failed…", { kind: "danger", sm: true }))}</div>`,
+      );
+      break;
+    case "strand-confirm":
+      return deskWin(
+        "admin.greengoods.app/operations",
+        adminDialogM3(w24Behind(), "actions", {
+          title: "Mark Settlement 106 failed?",
+          body:
+            `${kv("Subject", "Settlement 106 · attempt 0 · Dispatched")}${kv("Recorded as", "Failed · SourceStranded")}${kv("Authority", "Module owner only. An executor can never send this code.")}
+${banner("This moves no G$ and can never record the payment as Confirmed. It says only that this attempt is over, so the subject can be requeued or cancelled.", "stone", "shield-check-line")}
+${kv("Retired peer", "0x9c…f2 · replaced Aug 4")}${kv("Grace expired", "Aug 17 · re-verification not taken")}
+${banner("No typed reason: unlike cancelDisbursement and cancelBatch, this disposition is not specified to take a reasonCID, so the record is the event and the route facts above. Settling that signature is a spec gap, not a UI choice.", "stone", "information-line")}`,
+          actions: `${hot("w24.strand-cancel", btn("Keep Waiting", { kind: "ghost" }))}${hot("w24.strand-confirm", btn("Mark It Failed", { kind: "danger" }))}`,
+          closeHot: "w24.strand-cancel",
+        }),
+      );
+    case "stranded-failed":
+      inner = acard(
+        "CCIP command/ack health",
+        `<div class="quietok">${icon("check-line")}Settlement 106 · Failed · SourceStranded · event recorded.</div>
+${kv("What changed", "The attempt is over. No G$ moved and nothing was confirmed.")}
+${kv("Now possible", "Requeue as attempt 1, or cancel it outright.")}
+${banner("A later acknowledgment from the retired peer for this subject is ignored and stays observable. A source-side disposition is never overwritten by a message.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w24.strand-requeue", btn("Requeue as Attempt 1", { kind: "pri", sm: true }))}${hot("w24.strand-cancel-subject", btn("Cancel It Instead…", { kind: "sec", sm: true }))}</div>`,
+      );
+      break;
+    case "flows-funding-unavailable":
+    case "flows": {
+      const canQueueFunding = state === "flows";
       inner = acard(
         "Cross-chain funds board",
         `<div class="arow">${hot("w24.inflow-row", `<div class="grow">GoodDollar pool → GG protocol Safe</div>`)}<span class="num">balance 4,120 G$</span>${chip("Celo read", "plain")}</div>
-${hot("w24.queue-funding", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">source integration gate</span>${btn("View route gate", { kind: "sec", sm: true })}</div>`)}
+${hot(canQueueFunding ? "w24.queue-funding" : "w24.queue-funding-unavailable", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">discretionary treasury funding</span>${btn(canQueueFunding ? "Seed / top up" : "Funding unavailable", { kind: "sec", sm: true })}</div>`)}
 <div class="arow"><div class="grow">Garden Safes → members</div><span class="t-meta num">source integration gate</span></div>
 ${hot("w24.gardens", `<div class="arow"><div class="grow">Gardens: Awka kept 8/9 · Muizenberg kept 5/6</div>${chip("alphabetical", "plain")}</div>`)}
-${banner("Queued, dispatched, executed, confirming, confirmed, failed, and delayed stay distinct here. Inflow is a Celo balance read — no upstream hop is recorded.", "stone")}`,
+${banner(canQueueFunding ? "Commitment-earned support follows the provider garden's payout-plan actions. Seed / top up is a separate protocol-steward/module-owner treasury action. Inflow is a Celo balance read, no upstream hop is recorded." : "This account can inspect Operations through another capability, but it cannot queue garden funding. Inflow remains a Celo balance read, no upstream hop is recorded.", "stone")}`,
+      );
+      break;
+    }
+    case "funding":
+      inner = acard(
+        "Seed or top up a garden",
+        `${banner("Available only to a current protocol steward or the SettlementModule owner. Onchain queueFunding authority, not deployer status, controls submission.", "stone")}
+${field("Garden", radio([{ label: "Awka Hub", meta: "registered Celo Safe", on: true }, { label: "Muizenberg", meta: "registered Celo Safe" }], { interactive: true, name: "funding-garden" }))}
+${field("Amount", input("500 G$"))}
+${kv("Source", "GG protocol Safe · Celo")}${kv("Recipient", "Selected garden's registered Celo Safe")}
+${banner("Treasury support outside a commitment. This does not fulfill, reward, or alter a commitment; fulfilled commitments use the provider garden's contributor payout plan.", "stone")}
+<div class="actrow" style="justify-content:flex-end">${hot("w24.cancel-funding", btn("Cancel", { kind: "ghost" }))}${hot("w24.queue-funding-confirm", btn("Queue Seed or Top Up", { kind: "pri" }))}</div>`,
+      );
+      break;
+    case "funding-unauthorized":
+      inner = acard(
+        "Garden funding unavailable",
+        `${banner("Your connected account is neither a current protocol steward nor the SettlementModule owner.", "amber", "error-warning-line")}
+${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("Deployer role", "Does not grant queueFunding authority")}
+<div class="t-meta">Another Operations capability may still grant read or settlement access, but this account cannot submit garden funding.</div>`,
       );
       break;
     default:
       inner = acard(
-        "Queue — all gardens",
+        "Queue, all gardens",
         dtable(
           ["Garden", "Item", "State", ""],
           [
             ["Rocinha", `settlement 104 · attempt 0`, chip("Queued", "plain", { dot: true }), hot("w24.execute", btn("Dispatch ▸", { kind: "pri", sm: true }))],
-            ["Awka", `settlement 103 · attempt 1`, chip("Failed ▸", "err"), hot("w24.requeue", btn("Source follow-up", { kind: "sec", sm: true }))],
-            // Viewing a gate is a read, not a peer of dispatch — one primary per view.
-            ["protocol", `future funding → Muizenberg`, chip("Integration gate", "plain", { dot: true }), hot("w24.execute-protocol", btn("View gate ▸", { kind: "sec", sm: true }))],
+            ["Awka", `settlement 103 · attempt 1`, chip("Failed ▸", "err"), hot("w24.requeue", btn("Source Follow-Up", { kind: "sec", sm: true }))],
+            ["Muizenberg", `Funding · ProtocolToGarden · no commitment`, chip("Queued", "plain", { dot: true }), hot("w24.execute-funding", btn("Dispatch ▸", { kind: "sec", sm: true }))],
           ],
           "All gardens settlement queue",
-        ) + banner("Deployer-gated workspace — source integration and production Safe/Zodiac route evidence gate all future value controls.", "stone"),
+        ) + banner("Only emitted Queued or Failed rows appear here. Route access is capability-gated, and each write still checks its own onchain authority.", "stone"),
       );
   }
   const header = pageHeader({
     title: "Operations",
-    eyebrow: "Protocol execution · deployer-gated",
-    description: "Every garden's command queue, CCIP health, and cross-chain funds — one execution home.",
+    eyebrow: "Protocol execution · capability-gated",
+    description: "Every garden's command queue, CCIP health, and cross-chain funds. One execution home.",
   });
+  // Operations drives settlement, so an unreadable queue must never be mistaken
+  // for an empty one — a steward would read "nothing to dispatch" (round 46).
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/operations",
+      adminCanvas("actions", "operations", {
+        screenId: "W24", garden: "Rocinha", header, tabRail: rail,
+        body:
+          state === "loading"
+            ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+            : emptyState(
+                "wifi-off-line",
+                "Couldn't load the operations queue",
+                "Something went wrong reaching the indexer. Nothing was dispatched, cancelled, or refunded while this was unreachable.",
+                hot("w24.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+              ),
+      }),
+    );
   return deskWin(
-    "admin.greengoods.app/dashboard/operations",
+    "admin.greengoods.app/operations",
     adminCanvas("actions", "operations", { screenId: "W24", garden: "Rocinha", header, tabRail: rail, body: inner }),
   );
 }
 
 const W24_HOTS: HifiDef["hots"] = {
+  "w24.extend-grace": { l: "Extend grace after re-verification", to: "screen:W24@ccip", info: "The other half of the choice (settlement-spec §3.1.2): the owner may extend the bounded grace after re-verifying the retiring peer, rather than dispositioning. Grace is a liveness window, not a failure oracle, so nothing is failed merely because it elapsed." },
+  "w24.strand": { l: "Mark a stranded subject failed", to: "screen:W24@strand-confirm", info: "Decision Log #60's liveness exit, owner-only. Authentication requires the snapshotted executor to still be the active peer or inside its grace, which strands anything genuinely in flight at a cutover — and requeue needs Failed while cancelDisbursement takes only Queued|Failed, so a Dispatched child is otherwise unrecoverable." },
+  "w24.strand-cancel": { l: "Keep waiting", to: "screen:W24@stranded", info: "Leaves the subject Dispatched and the value lane paused. The disposition is never automatic." },
+  "w24.strand-confirm": { l: "Mark it failed (confirm)", to: "screen:W24@stranded-failed", info: "Writes FailureCode.SourceStranded — a source-side code never accepted from an executor over CCIP, and one that can never produce Confirmed. It moves no G$; it only ends the attempt so recovery becomes legal.", calls: ["failStrandedSubject"] },
+  "w24.strand-requeue": { l: "Requeue as attempt 1", to: "screen:W24@queue", info: "Now legal because the subject is Failed. Requeue preserves attempt 0 and creates a fresh queued attempt against the live route.", calls: ["requeue"] },
+  "w24.strand-cancel-subject": { l: "Cancel it instead", to: "screen:W21@close-delivery-confirm", info: "The terminal alternative to requeueing. A stranded subject has already been marked Failed, so it takes the failed-delivery close rather than the queued-cancel path, which would claim the subject was still Queued. cancelDisbursement is legal from either, but only one of them is true here." },
+  "w24.retry": { l: "Try again", info: "Read recovery for the operations queue, added round 46. Operations drives settlement, so an unreadable queue must never render like an empty one — a steward would read it as “nothing to dispatch”." },
   "w24.tab-queue": { l: "Queue tab", to: "screen:W24@queue", info: "Cross-garden execution queue." },
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
   "w24.tab-flows": { l: "Flows tab", to: "screen:W24@flows", info: "Cross-chain funds board with transport state, not raw G$ indexing." },
   "w24.execute": { l: "Dispatch command", to: "screen:W22", info: "Cross-garden source-command home; production value authority remains externally gated." },
-  "w24.execute-protocol": { l: "View protocol funding gate", info: "ProtocolToGarden requires the future source integration and approved production route." },
-  "w24.queue-funding": { l: "View funding route gate", to: "screen:W24@flows", info: "No upstream HoA hop is written onchain; future ProtocolToGarden facts are source-integrated." },
+  "w24.execute-funding": { l: "Dispatch queued funding", to: "screen:W22@garden-command", info: "Dispatches an already-emitted Funding/ProtocolToGarden row with no commitment identity after rechecking both settlement accounts.", calls: ["dispatchDisbursement"] },
+  "w24.queue-funding": { l: "Seed or top up a garden", to: "screen:W24@funding", info: "Rendered only when canQueueFunding is true; deployer status alone is insufficient." },
+  "w24.queue-funding-unavailable": { l: "Garden funding unavailable", to: "screen:W24@funding-unauthorized", info: "Capability-specific fixture: the account may inspect Operations but lacks current queueFunding authority." },
+  "w24.cancel-funding": { l: "Cancel garden funding", to: "screen:W24@flows", info: "Returns to the funds board without creating a disbursement." },
+  "w24.queue-funding-confirm": {
+    l: "Queue seed or top up",
+    to: "screen:W21@protocol-funding-queued",
+    info: "queueFunding derives the GG protocol Safe, selected garden Safe, and canonical G$ token. It creates Funding/ProtocolToGarden with no commitment ID.",
+    calls: ["queueFunding"],
+  },
   "w24.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A new logical attempt requires an authenticated failure and source integration ownership." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },
@@ -556,71 +1184,146 @@ const W24_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W26_STATES = [
-  ["review", "1 · Review"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
+  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Compost the cycle"],
   ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
-  ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
+  ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Compost the cycle"],
+  ["close-failed", "1 · Closing failed"], ["mint-failed", "3 · Mint failed"], ["compost-failed", "4 · Composting failed"],
 ] as const;
 type W26State = (typeof W26_STATES)[number][0];
 type W26Phase = "review" | "shares" | "certificate" | "rest";
 
+// The close wizard runs in the same flow-dialog shell as every other admin
+// multi-step flow (2026-08-16 review decision — it was the lone full-page
+// wizard, drifting from its own "AdminDialog" spec label). One stable 4-step
+// rail; the advance lives in the footer; the X exits without losing the
+// on-chain position.
+const CLOSE_STEPS: FlowStep[] = [
+  { title: "Review", desc: "close this season's exact bundle" },
+  { title: "Shares", desc: "the six-role snapshot, locked at open" },
+  { title: "Certificate", desc: "mint the impact record" },
+  // "Rest" retired here too (2026-08-18 round 46, Afo). C.27 retired it on the
+  // client, where an ongoing Offer stops; carrying it on the cycle-close wizard
+  // left one word meaning two different things across two surfaces. The honest
+  // word was already in the contract: the cycle's terminal transition is
+  // Reconciled → Composted via compostCycle(cycleId) (CS:206), and compost is
+  // established Green Goods vocabulary for an ending that feeds what follows.
+  { title: "Compost", desc: "roll the season up into pool history" },
+];
+
 function w26(state: W26State): string {
+  if (state === "recognition-blocked")
+    return deskWin(
+      "admin.greengoods.app/garden/pool/close",
+      adminDialogM3(w7Behind("open"), "garden", {
+        title: "Recognition data conflict",
+        body: `${banner("Certificate expansion is blocked. Green Goods never awards this commitment to the lead automatically.", "amber", "error-warning-line")}
+${kv("Commitment", "Repair the shared tool handles")}${kv("Before", "Eligible contributors · 0")}${kv("Roster", "Maria · lead · Ana · Kwame")}
+${banner("New commitments cannot reach Ready or resolve as Fulfilled without an available recognition policy and at least one verified contributor. This inconsistent record needs a governed migration or source-data correction; mint metadata cannot change on-chain credit.", "stone", "shield-check-line")}`,
+        actions: hot("w26.recognition-blocked-back", btn("Back to Review", { kind: "pri" })),
+        closeHot: "w26.recognition-blocked-back",
+      }),
+    );
   const paused = state.startsWith("paused-");
-  const phase = (paused ? state.slice("paused-".length) : state) as W26Phase;
+  // Closing a season is a CHAIN of writes, not one signature, so a failure has
+  // to say which links already landed (2026-08-18 round 49, Afo). The flow had
+  // no failure cast at all, on the most consequential act in the product: it
+  // closes a cycle, mints an irreversible certificate, then composts. A generic
+  // "it failed" would leave a steward guessing whether the certificate exists.
+  const failed = state.endsWith("-failed") ? (state.split("-")[0] as "close" | "mint" | "compost") : undefined;
+  const phase = (
+    failed === "close" ? "review" : failed === "mint" ? "certificate" : failed === "compost" ? "rest"
+    : paused ? state.slice("paused-".length) : state
+  ) as W26Phase;
   const stepIx = phase === "review" ? 0 : phase === "shares" ? 1 : phase === "certificate" ? 2 : 3;
   const h = (name: "continue-shares" | "continue-certificate" | "mint" | "compost") =>
     `w26.${paused ? "paused-" : ""}${name}`;
   let inner: string;
+  let next: string;
   switch (phase) {
     case "shares":
       inner = `${kv("Gardeners", "60%")}${kv("Treasury", "15%")}${kv("Steward", "10%")}${kv("Evaluator", "5%")}${kv("Community", "5%")}${kv("Funder", "5%")}
-${banner("Read-only — the six-role snapshot locked when this cycle opened.", "stone")}
-${hot(h("continue-certificate"), btn("Continue", { kind: "pri" }))}`;
+${banner("Read-only. The six-role snapshot locked when this cycle opened.", "stone")}`;
+      next = hot(h("continue-certificate"), btn("Continue", { kind: "pri" }));
       break;
     case "certificate":
-      inner = `${kv("Bundle", "7 fulfilled promises + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
-${hot(h("mint"), btn("Mint impact certificate", { kind: "pri" }))}
-${banner("Uses the garden's existing impact-certificate pipeline.", "stone")}`;
+      inner = `${kv("Bundle", "7 fulfilled commitments + their work, proof, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
+<div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less commitment</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
+${
+        failed === "mint"
+          // The one link that already landed is the one that matters: the cycle
+          // is Reconciled, so its bundle is locked and cannot be re-opened.
+          ? banner("The certificate was not minted. The season is already closed and its bundle is locked at Reconciled, so nothing needs closing again. No certificate exists yet and no allowlist was written.", "error", "error-warning-line")
+          : banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only. It cannot join a certificate bundle (UX §6.10).", "stone")
+      }`;
+      next = failed === "mint"
+        ? hot("w26.mint-retry", btn("Try Minting Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));
       break;
     case "rest":
-      inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "seeds fresh on this pool")}
-${hot(h("compost"), btn("Reconcile and compost cycle", { kind: "pri" }))}
-<div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
+      inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "starts fresh on this pool")}
+${
+        failed === "compost"
+          // Both earlier links landed, and one of them is irreversible.
+          ? banner("The season did not compost. It stays closed at Reconciled and its impact certificate is already minted, so neither step needs repeating. Composting is the only one left.", "error", "error-warning-line")
+          : `<div class="quietok">${icon("check-line")}Certificate minted · 7 commitments bundled.</div>`
+      }`;
+      // The step rail said Compost and its act said Archive (round 46 renamed
+      // the step and left the button behind). One word for one act, and the
+      // contract's own: compostCycle (CS:206).
+      next = failed === "compost"
+        ? hot("w26.compost-retry", btn("Try Composting Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("compost"), btn("Compost the Season", { kind: "pri" }));
       break;
     default:
-      inner = `${kv("Season of First Rains", "9 promises · 7 kept")}
-<div class="arow"><div class="grow">Unresolved first: <b>1 expired</b></div>${hot("w26.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}</div>
-<div class="arow"><div class="grow"><b>1 under steward review</b></div>${hot("w26.resolve", btn("Resolve…", { kind: "sec", sm: true }))}</div>
-${banner("Closing runs as one sequence: settle what's unresolved, read back the shares, certify, then rest the cycle.", "stone")}
-${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
+      inner = `${kv(CYCLE, `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept`)}
+${kv("Terminal set", "7 fulfilled · 1 expired · 1 cancelled after steward review")}
+${
+        failed === "close"
+          // Nothing landed, which is the reassuring case and worth saying.
+          ? banner("The season did not close. Nothing changed: it is still open, no bundle was locked, and every commitment sits exactly where it did.", "error", "error-warning-line")
+          : banner("Every commitment is terminal and nothing is live. Closing now locks this exact bundle before shares are read or the certificate is minted.", "stone")
+      }
+<div class="arow"><div class="grow"><b>Ending it without a report?</b> <span class="t-meta">Cancelling records a reason members read and closes the season without shares or a certificate.</span></div>${hot(
+        paused ? "w7.cancel-cycle-paused" : "w7.cancel-cycle",
+        btn("Cancel Season Instead…", { kind: "sec", sm: true }),
+      )}</div>`;
+      next = failed === "close"
+        ? hot("w26.close-retry", btn("Try Closing Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("continue-shares"), btn("Close Season and Continue", { kind: "pri" }));
   }
   if (paused)
-    inner = `${banner("The pool remains paused throughout this cycle close. Only the cycle advances from Reviewing to Reconciled to Composted.", "amber", "error-warning-line")}${inner}`;
-  const header = pageHeader({
-    title: "Close cycle",
-    eyebrow: `${paused ? "Pool paused · " : ""}Step ${stepIx + 1} of 4`,
-    description: "Season of First Rains — review, share, certify, then reconcile and rest.",
-    actions: stepDots(4, stepIx),
-  });
+    inner = `${banner("The pool remains paused throughout this cycle close. Step 1 closes the cycle to Reconciled; the final step composts it.", "amber", "error-warning-line")}${inner}`;
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool/close",
-    adminCanvas("garden", "garden", { screenId: "W26", garden: "Rocinha", header, body: `<div class="flowform">${inner}</div>` }),
+    "admin.greengoods.app/garden/pool/close",
+    flowDialog(w7Behind(paused ? "paused" : "open"), "garden", {
+      context: `Rocinha · ${CYCLE}`,
+      title: "Close the season",
+      steps: CLOSE_STEPS,
+      current: stepIx,
+      body: inner,
+      cancelHot: paused ? "w26.paused-exit" : "w26.exit",
+      next,
+    }),
   );
 }
 
 const W26_HOTS: HifiDef["hots"] = {
-  "w26.continue-shares": { l: "Continue to shares", to: "screen:W26@shares", info: "Moves from unresolved-item review to the locked six-role allocation snapshot." },
+  "w7.cancel-cycle": { l: "Cancel season instead", to: "screen:W7@cancel-cycle-confirm", info: "The alternative ENDING, offered where the season's state is already on screen rather than behind a row overflow (2026-08-16 round 6). cancelCycle and closeCycle are legal at the same moment — both need zero live commitments — so the choice belongs here." },
+  "w7.cancel-cycle-paused": { l: "Cancel season instead", to: "screen:W7@paused-cancel-cycle-confirm", info: "Same alternative ending while the pool stays paused; cancelling never implies a resume." },
+  "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to the terminal-set review; no metadata-only action can mutate canonical recognition credit." },
+  "w26.exit": { l: "Leave the close wizard", to: "screen:W7", info: "Leaving keeps the cycle exactly where it is — Open before the first write, Reconciled after — and the wizard resumes from the pool workspace. No back edges: each step's write has already landed." },
+  "w26.paused-exit": { l: "Leave the close wizard (pool paused)", to: "screen:W7@paused", info: "Leaving keeps the Paused pool and the cycle's current lifecycle state; the wizard resumes from the paused pool workspace." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
-  // Unresolved items are handled in a dialog over the wizard. Sending the
-  // steward off to another workspace mid-close abandoned a four-step sequence
-  // with no described way back.
-  "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
-  "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
-  "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "Two ordered writes after unresolved review and certificate mint: closeCycle changes Reviewing/Open-on-chain → Reconciled, then compostCycle archives it.", calls: ["closeCycle", "compostCycle"] },
-  "w26.paused-continue-shares": { l: "Continue to shares while pool paused", to: "screen:W26@paused-shares", info: "Moves through the reconciliation report without changing the Paused pool." },
+  "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
+  "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled commitments + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
+  "w26.close-retry": { l: "Try closing again", to: "screen:W26@shares", info: "closeCycle did not land, so nothing changed and the same call repeats. The reassuring half of a chain failure is worth stating: a steward needs to know the bundle was not half-locked (round 49).", calls: ["closeCycle"] },
+  "w26.mint-retry": { l: "Try minting again", to: "screen:W26@rest", info: "The cycle is already Reconciled and its bundle locked, so only the certificate mint repeats. Retrying must never re-run closeCycle." },
+  "w26.compost-retry": { l: "Try composting again", to: "screen:W7@cycle-composted", info: "Close and mint both landed, and the mint is irreversible, so only compostCycle repeats. This is why the close flow needs per-step failures rather than one generic cast.", calls: ["compostCycle"] },
+  "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
+  "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
   "w26.paused-mint": { l: "Mint impact certificate while pool paused", to: "screen:W26@paused-rest", info: "Uses the existing certificate pipeline without changing pool or cycle lifecycle state." },
-  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
+  "w26.paused-compost": { l: "Compost closed cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "The cycle was closed before minting; compostCycle archives it while the pool remains Paused.", calls: ["compostCycle"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -628,20 +1331,93 @@ const W26_HOTS: HifiDef["hots"] = {
 const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
   if (state === "registered") return { settlementAccount: "Registered" };
+  if (state === "payout-plan" || state === "payout-plan-edit" || state === "payout-retained-draft")
+    return { payoutPlan: "Draft", settlementAccount: "Active" };
+  if (state === "payout-finalized") return { payoutPlan: "Pending", settlementAccount: "Active" };
+  if (state === "payout-prepared" || state === "payout-prepared-2" || state === "payout-prepared-all")
+    return { payoutPlan: "Pending", disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "payout-retained") return { payoutPlan: "Complete" };
+  if (state === "payout-partial") return { payoutPlan: "Partial" };
+  if (state === "payout-complete") return { payoutPlan: "Complete" };
   if (state === "failed-recovery" || state === "requeue-confirm" || state === "close-delivery-confirm")
-    return { disbursement: "Failed" };
+    return { disbursement: "Failed", settlementAccount: "Active" };
   if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))
-    return { disbursement: "Queued" };
+    return { disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "protocol-funding-queued")
+    return {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+    };
+  if (state === "refund-queued")
+    return {
+      commitment: "Cancelled",
+      funding: "RefundQueued",
+      disbursement: "Queued",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
   if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
     return { disbursement: "Cancelled" };
   return undefined;
 };
 
 const w22Facts = (state: W22State): StateFacts | undefined => {
+  if (state === "refund-dispatched")
+    return {
+      commitment: "Cancelled",
+      funding: "RefundQueued",
+      disbursement: "Dispatched",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
+  if (state === "refund-confirmed")
+    return {
+      commitment: "Cancelled",
+      funding: "Refunded",
+      disbursement: "Confirmed",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
   if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
-    return { disbursement: "Queued" };
-  if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command"].includes(state))
+    return { disbursement: "Queued", settlementAccount: "Active" };
+  if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command", "individual-dispatched"].includes(state))
     return { disbursement: "Dispatched" };
+  return undefined;
+};
+
+const w24Facts = (state: W24State): StateFacts | undefined => {
+  // The stranded arc is the one place a Dispatched subject is acted on, so it
+  // declares that fact and the validator can check the disposition is legal
+  // from it (round 50). After the disposition it is Failed, which is what makes
+  // requeue and cancel legal on the following state.
+  if (state === "stranded" || state === "strand-confirm")
+    return { disbursement: "Dispatched", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" };
+  if (state === "stranded-failed")
+    return { disbursement: "Failed", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" };
+  if (state === "queue")
+    return {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+    };
+  // Authority, not deployer status, is what the funding form validates against.
+  if (state === "funding")
+    return {
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "ProtocolSteward",
+    };
+  if (state === "funding-unauthorized")
+    return {
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "None",
+    };
   return undefined;
 };
 
@@ -650,7 +1426,10 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
     states: W12_STATES.map(([id, label]) => ({
       id,
       label,
-      facts: id === "protocol" ? { commitment: "Requested", kind: "SupportService" } satisfies StateFacts : undefined,
+      facts: id === "seed-offer" || id === "seed-offer-unbounded" || id === "seed-offer-published"
+        ? { commitment: "Offered", kind: "SupportService" } satisfies StateFacts
+        : id === "protocol" || id === "protocol-owner" || id.startsWith("pool-seed-") || id === "seed-protocol" || id === "seed-published"
+          ? { commitment: "Requested", kind: "SupportService" } satisfies StateFacts : undefined,
       html: w12(id),
     })) }, hots: { ...adminChromeHots("w12", "community"), ...W12_HOTS } },
   { screen: { id: "W21", title: "W21 · Settlement section (admin)", surface: "admin", frame: "desktop", group: "Admin console",
@@ -658,12 +1437,24 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
   { screen: { id: "W22", title: "W22 · Command/ack console", surface: "admin", frame: "desktop", group: "Admin console",
     states: W22_STATES.map(([id, label]) => ({ id, label, facts: w22Facts(id), html: w22(id) })) }, hots: { ...adminChromeHots("w22", "garden"), ...W22_HOTS } },
   { screen: { id: "W24", title: "W24 · Operations workspace (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W24_STATES.map(([id, label]) => ({ id, label, html: w24(id) })) }, hots: { ...adminChromeHots("w24", "operations"), ...W24_HOTS } },
+    states: W24_STATES.map(([id, label]) => ({ id, label, facts: w24Facts(id), html: w24(id) })) }, hots: { ...adminChromeHots("w24", "operations"), ...W24_HOTS } },
   { screen: { id: "W26", title: "W26 · Cycle-close wizard (admin)", surface: "admin", frame: "desktop", group: "Admin console",
     states: W26_STATES.map(([id, label]) => ({
       id,
       label,
-      facts: { pool: id.startsWith("paused-") ? "Paused" : "Open", cycle: "Open" } satisfies StateFacts,
+      facts: {
+        pool: id.startsWith("paused-") ? "Paused" : "Open",
+        // close-failed is Open, not Reconciled. Its own banner says the close did
+        // not land and no bundle was locked, and closeCycle is legal only from
+        // Open — which is what makes the retry drawn on this screen legal at all.
+        cycle:
+          id === "review" || id === "paused-review" || id === "recognition-blocked" || id === "close-failed"
+            ? "Open"
+            : "Reconciled",
+        cycleLiveCommitments: "Zero",
+        poolLiveCommitments: "Zero",
+        poolNonTerminalCycles: "One",
+      } satisfies StateFacts,
       html: w26(id),
-    })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },
+    })) }, hots: W26_HOTS },
 ];

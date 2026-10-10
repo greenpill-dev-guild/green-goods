@@ -1,4 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
+import { PERSIST_MAX_AGE } from "./query-cache-policy";
+import { connectivityStore } from "../stores/connectivity";
 
 /**
  * Centralized stale time constants for consistent caching behavior
@@ -20,8 +22,8 @@ export const STALE_TIMES = {
  * Garbage collection time constants
  */
 export const GC_TIMES = {
-  baseLists: 30 * 60 * 1000, // 30 minutes
-  works: 5 * 60 * 1000, // 5 minutes
+  baseLists: PERSIST_MAX_AGE,
+  works: PERSIST_MAX_AGE,
   queue: 30_000, // 30 seconds
 } as const;
 
@@ -31,7 +33,7 @@ export const queryClient = new QueryClient({
     queries: {
       networkMode: "offlineFirst",
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
+      gcTime: PERSIST_MAX_AGE,
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnReconnect: "always",
@@ -45,7 +47,7 @@ export const queryClient = new QueryClient({
 
 // Resume paused mutations on reconnect
 if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    void queryClient.resumePausedMutations();
+  connectivityStore.subscribe(() => {
+    if (connectivityStore.getSnapshot()) void queryClient.resumePausedMutations();
   });
 }

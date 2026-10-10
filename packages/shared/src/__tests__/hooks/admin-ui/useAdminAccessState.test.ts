@@ -1,12 +1,16 @@
 /**
  * useAdminAccessState Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseAuth = vi.fn();
+const mockPrimaryAddress = vi.fn();
+vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockPrimaryAddress(),
+}));
 vi.mock("../../../hooks/auth/useAuth", () => ({
   useAuth: () => mockUseAuth(),
 }));
@@ -43,7 +47,34 @@ describe("useAdminAccessState", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue(baseAuth);
+    mockPrimaryAddress.mockReturnValue(baseAuth.eoaAddress);
     mockUseEligibleAdminGardens.mockReturnValue(baseEligibleGardens);
+  });
+
+  it("admits a role-confirmed passkey account without an external wallet", () => {
+    const garden = { id: "0x2222222222222222222222222222222222222222", name: "Garden" };
+    mockUseAuth.mockReturnValue({ ...baseAuth, authMode: "passkey", eoaAddress: undefined });
+    mockPrimaryAddress.mockReturnValue("0x3333333333333333333333333333333333333333");
+    mockUseEligibleAdminGardens.mockReturnValue({
+      ...baseEligibleGardens,
+      eligibleGardens: [garden],
+      resolvedDefaultGarden: garden,
+    });
+    const { result } = renderHook(() => useAdminAccessState());
+    expect(result.current.status).toBe("ready");
+  });
+
+  it("shows no access for a passkey account without eligible gardens", () => {
+    mockUseAuth.mockReturnValue({ ...baseAuth, authMode: "passkey", eoaAddress: undefined });
+    mockPrimaryAddress.mockReturnValue("0x3333333333333333333333333333333333333333");
+    const { result } = renderHook(() => useAdminAccessState());
+    expect(result.current.status).toBe("no-access");
+  });
+
+  it("does not admit another wallet address when the primary identity is absent", () => {
+    mockPrimaryAddress.mockReturnValue(null);
+    const { result } = renderHook(() => useAdminAccessState());
+    expect(result.current.status).toBe("disconnected");
   });
 
   it("classifies checking while auth is unresolved", () => {

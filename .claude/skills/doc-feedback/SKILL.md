@@ -120,7 +120,7 @@ For each accepted item, in order:
 When all accepted items are addressed:
 
 - Run touched-package verification: `bun lint && bun run test` scoped to whichever packages were edited.
-- Surface a suggested commit grouping (e.g. "all `docs/concepts/*` edits → `docs(concepts): apply review`").
+- Surface a suggested commit grouping (e.g. "all `docs/docs/community/*` edits → `docs(community): apply review`").
 - Do **not** run `/ship` yourself — let the user.
 
 #### out-of-repo mode

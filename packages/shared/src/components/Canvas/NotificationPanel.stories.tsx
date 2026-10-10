@@ -170,7 +170,7 @@ export const WarnTone: Story = {
           baseItem(
             "w2",
             "Garden capacity low",
-            "Operator queue at 80% — consider adding reviewers.",
+            "Steward queue at 80% — consider adding reviewers.",
             "1h ago",
             "warn"
           ),

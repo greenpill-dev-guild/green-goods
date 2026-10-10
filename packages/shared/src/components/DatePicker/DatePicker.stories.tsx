@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { DialogShell } from "../Dialog";
 import { DatePicker } from "./DatePicker";
 
 // Fixed timestamps for deterministic stories (2025-06-15 12:00:00 UTC)
@@ -83,7 +84,7 @@ export const Default: Story = {
 
 export const WithValue: Story = {
   args: {
-    label: "Start Date",
+    label: "Start date",
     value: JUNE_15_2025,
     id: "date-with-value",
   },
@@ -216,5 +217,119 @@ export const Interactive: Story = {
     // DayPicker renders day buttons — find at least one
     const dayButtons = portal.getAllByRole("gridcell");
     await expect(dayButtons.length).toBeGreaterThan(0);
+  },
+};
+
+export const ChangingMonth: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The two month arrows take a press anywhere on them. The month title is laid out across the same row, and when it was a positioned box it painted over the inner half of each arrow, so a press on an arrow's centre landed on the title and the month did not change.",
+      },
+    },
+  },
+  args: {
+    label: "Start date",
+    value: JUNE_15_2025,
+    id: "date-changing-month",
+  },
+  render: function Render(args) {
+    const [value, setValue] = useState<number | null>(args.value ?? null);
+    return <DatePicker {...args} value={value} onChange={setValue} />;
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = canvasElement.querySelector<HTMLButtonElement>("#date-changing-month");
+    await expect(trigger).not.toBeNull();
+    await userEvent.click(trigger as HTMLButtonElement);
+
+    const popover = document.querySelector<HTMLElement>('[data-component="DatePickerPopover"]');
+    await expect(popover).not.toBeNull();
+    const calendar = within(popover as HTMLElement);
+    await expect(calendar.getByText("June 2025")).toBeInTheDocument();
+
+    for (const [name, month] of [
+      ["Go to the Previous Month", "May 2025"],
+      ["Go to the Next Month", "June 2025"],
+    ]) {
+      const arrow = calendar.getByRole("button", { name });
+      const box = arrow.getBoundingClientRect();
+      // What a pointer would land on at the arrow's outer part, centre and inner part.
+      for (const across of [0.15, 0.5, 0.85]) {
+        const landsOn = document.elementFromPoint(
+          box.left + box.width * across,
+          box.top + box.height / 2
+        );
+        await expect(arrow.contains(landsOn)).toBe(true);
+      }
+
+      await userEvent.click(arrow);
+      await expect(calendar.getByText(month)).toBeInTheDocument();
+    }
+  },
+};
+
+export const InsideModalDialog: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The popover is a **modal** Radix popover stacked at `calc(var(--z-modal) + 1)`, so it stays visible and clickable over a host dialog. A non-modal popover portals to `document.body`, lands under the dialog surface at `z-modal`, and inherits the dialog's `pointer-events: none` — which is what made the Create Assessment reporting-period calendars unusable. Going modal also means the calendar traps focus and locks scroll while open, and Escape closes the calendar without closing the dialog underneath.",
+      },
+    },
+  },
+  render: function Render() {
+    const [value, setValue] = useState<number | null>(null);
+    return (
+      <DialogShell
+        open
+        onOpenChange={fn()}
+        title="Submit Assessment"
+        description="Reporting-period pickers inside a dialog surface."
+      >
+        <DatePicker
+          label="Reporting period start"
+          placeholder="Select start date"
+          helperText="Opens above the dialog it is rendered inside."
+          id="date-in-dialog"
+          value={value}
+          onChange={setValue}
+          required
+        />
+      </DialogShell>
+    );
+  },
+  play: async () => {
+    const portal = within(document.body);
+
+    // Held by reference: a modal popover marks everything outside it aria-hidden,
+    // so the trigger is unreachable by role query while the calendar is open.
+    const trigger = portal.getByRole("button", { name: /select start date/i });
+    const surface = document.querySelector('[data-component="DialogShell"][data-slot="surface"]');
+    await expect(surface).not.toBeNull();
+
+    await userEvent.click(trigger);
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const popover = document.querySelector<HTMLElement>('[data-component="DatePickerPopover"]');
+    await expect(popover).not.toBeNull();
+
+    // Stacks above the dialog surface rather than behind it.
+    const popoverZ = Number.parseInt(getComputedStyle(popover as HTMLElement).zIndex, 10);
+    const surfaceZ = Number.parseInt(getComputedStyle(surface as HTMLElement).zIndex, 10);
+    await expect(popoverZ).toBeGreaterThan(surfaceZ);
+
+    // And the days are actually reachable — the regression was a calendar that
+    // rendered but swallowed every click.
+    const day = within(popover as HTMLElement)
+      .getAllByRole("gridcell")
+      .map((cell) => cell.querySelector("button"))
+      .find((button): button is HTMLButtonElement => !!button && !button.disabled);
+    await expect(day).toBeTruthy();
+
+    await userEvent.click(day as HTMLButtonElement);
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).not.toHaveTextContent(/select start date/i);
   },
 };

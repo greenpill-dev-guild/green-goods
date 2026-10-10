@@ -1,6 +1,6 @@
 import { RiCheckboxCircleLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface Step {
   id: string;

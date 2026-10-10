@@ -1,3 +1,4 @@
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
 import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
@@ -25,11 +26,11 @@ export function useToastAction() {
       });
       const defaultSuccessMessage = intl.formatMessage({
         id: "app.toast.default.successMessage",
-        defaultMessage: "Action completed successfully",
+        defaultMessage: "All set.",
       });
       const defaultErrorMessage = intl.formatMessage({
         id: "app.toast.default.errorMessage",
-        defaultMessage: "Action failed",
+        defaultMessage: "Please try again.",
       });
 
       const {
@@ -63,6 +64,16 @@ export function useToastAction() {
         });
         return result;
       } catch (error) {
+        if (error instanceof TransactionConfirmationPendingError) {
+          toastService.info({
+            id: toastId,
+            title: intl.formatMessage({ id: "app.account.transactionSubmitted" }),
+            message: intl.formatMessage({ id: "app.account.transactionPending" }),
+            context,
+            suppressLogging: true,
+          });
+          throw error;
+        }
         toastService.error({
           id: toastId,
           message: errorMessage ?? "Action failed",

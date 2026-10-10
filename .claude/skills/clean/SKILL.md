@@ -11,7 +11,7 @@ effort: very-high
 
 Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-only, then the human locks a numbered fix scope before any implementation begins. Unlike `/audit`, `/clean` may transform code, but only inside that approved scope.
 
-**References**: `CLAUDE.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
+**References**: `AGENTS.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
 
 ---
 
@@ -32,7 +32,7 @@ Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-on
 Before assessment:
 
 1. **Inspect repository state**: `git status --short --branch`. If unrelated or unknown changes overlap the requested scope, stop and surface them; do not format, stash, branch, or edit around them.
-2. **Run a non-mutating baseline**: `bun format:check`, `bun lint`, and `bun run test` — capture pass/fail counts without rewriting files.
+2. **Run a non-mutating baseline**: `bun run format --check`, `bun run lint`, and `bun run test` — capture pass/fail counts without rewriting files.
 3. **Load prior accepted findings when requested**: query current Linear issues in the approved scope; do not treat old repo-local reports as a registry.
 4. **Stay on the current branch**: never create or switch branches during pre-flight.
 5. **Record the assessment base**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"`.
@@ -43,27 +43,7 @@ No source, report, branch, worktree, lockfile, or plan mutation is allowed befor
 
 ## The 8 Agents
 
-Dispatch assessment lanes in parallel only when the user or active agent policy permits subagents. Assessment lanes are read-only and return findings to the lead; they do not create worktrees or report files. After scope lock, implement sequentially on the current branch by default. Isolated worktrees and their branches require separate, explicit human approval; when approved, base them on the checkpoint SHA, never `main`, `origin/main`, or the tool's default branch.
-
-### Worktree Base Invariant
-
-When worktrees were explicitly approved, verify each implementation worktree base from the orchestrator:
-
-```bash
-test "$(git -C "$WORKTREE" merge-base "$CHECKPOINT_SHA" HEAD)" = "$CHECKPOINT_SHA"
-```
-
-If any agent worktree fails this check, stop and re-dispatch that agent from the checkpoint. Do not continue a stale-base run by default.
-
-Salvage is allowed only when the human explicitly approves a stale-base salvage after seeing:
-- checkpoint SHA and stale worktree SHA
-- commit gap (`git rev-list --count "$STALE_BASE..$CHECKPOINT_SHA"`)
-- affected file list
-- planned validation and conflict audit steps
-
-When stale-base salvage is approved, record every conflict and every dropped/ported
-agent insight in the conversation or, for plan-backed work, in the existing feature
-hub's `reports/merge-audit.md`.
+Dispatch assessment lanes in parallel only when the user or active agent policy permits subagents. Assessment lanes are read-only and return findings to the lead; they do not create worktrees or report files. After scope lock, implement sequentially on the current branch by default. Isolated worktrees require separate, explicit human approval; when approved, follow [worktree-protocol.md](./worktree-protocol.md) (checkpoint-SHA base invariant, stale-base salvage rules, merge audit) — on any stale base or conflict, stop and show the user.
 
 ### Agent Protocol (all agents)
 
@@ -81,19 +61,9 @@ plan-backed work, the lead may add a compact result to the existing feature hub'
 handoff or report; do not create a generic cleanup-report directory. In `--dry-run`
 mode, lanes stop after Phase 2 and do not write files.
 
-Every report must include a provenance block:
+Every implementation report records its execution mode plus checkpoint/implementation SHAs — the full provenance block spec lives in [worktree-protocol.md](./worktree-protocol.md).
 
-```md
-## Provenance
-- execution_mode: current-branch | authorized-worktree
-- checkpoint_sha:
-- implementation_base_sha:
-- implementation_head_sha:
-- merge_base_with_checkpoint: (authorized worktree only)
-- stale_base: yes/no/not-applicable
-```
-
-Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect CLAUDE.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
+Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect AGENTS.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
 
 ### Agent 1: Deduplication & DRY
 
@@ -109,7 +79,7 @@ Remove unused files/exports/types/deps found by `bunx knip --reporter compact`. 
 
 ### Agent 4: Circular Dependency Resolution (madge)
 
-Zero out cycles from `npx madge --circular --extensions ts,tsx packages/`. Resolution preference: `import type` → extract shared interface → dependency inversion → merge modules. Rules: respect build order `contracts -> shared -> indexer -> client/admin/agent`; never create upward dependencies; hooks stay in shared; `bun build` must pass after.
+Zero out cycles from `npx madge --circular --extensions ts,tsx packages/`. Resolution preference: `import type` → extract shared interface → dependency inversion → merge modules. Rules: respect build order `contracts -> shared -> indexer -> client/admin/agent`; never create upward dependencies; hooks stay in shared; `bun run build` must pass after.
 
 ### Agent 5: Type Strengthening
 
@@ -167,45 +137,14 @@ digraph clean_flow {
 ### After approved implementation:
 
 1. **Collect implementation results** from the lanes/session, each tied to approved finding IDs.
-2. **Verify provenance when worktrees were authorized** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval.
-3. **Merge authorized worktrees only** without blanket "take ours" / "take theirs" conflict resolution; skip this step for current-branch execution.
-4. **Write merge audit** if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred.
-5. **Run the non-mutating Review Readiness Gate** from `.claude/context/validation-pipeline.md`. Run the mutating Ship Gate only when the user separately requests ship, PR, commit, merge, or release readiness and its pre-flight passes.
-6. **Run residue checks**: `git diff --check`, targeted removed-symbol scans, package TypeScript checks, and locally installed `knip` for unused export/dependency drift.
-7. **Revert only the specific approved change** if it caused a regression; do not fix unrelated failures.
-8. **Run the Codex final review** unless `--no-codex`; never auto-apply miss-hunt findings.
-9. **Summarize** files changed, approved finding IDs, validation, skipped findings, and merge-audit or review callouts.
+2. **When worktrees were authorized**, verify provenance, merge, and write the merge audit per [worktree-protocol.md](./worktree-protocol.md); skip for current-branch execution.
+3. **Run the selector-chosen review evidence** from `.claude/context/validation-pipeline.md`. For ordinary publication, use targeted proof and the Ready-for-CI Push Gate; run the full local Ship Gate only for explicit offline/full-local readiness, critical work, or releases.
+4. **Run residue checks**: `git diff --check`, targeted removed-symbol scans, package TypeScript checks, and locally installed `knip` for unused export/dependency drift.
+5. **Revert only the specific approved change** if it caused a regression; do not fix unrelated failures.
+6. **Run the Codex final review** unless `--no-codex`; never auto-apply miss-hunt findings.
+7. **Summarize** files changed, approved finding IDs, validation, skipped findings, and merge-audit or review callouts.
 
 ---
-
-### Merge Audit Format
-
-Use this format in the conversation, or in the existing feature hub's
-`reports/merge-audit.md`, whenever a merge is not a clean
-fast-forward/cherry-pick with no conflicts:
-
-```md
-# Clean Merge Audit
-
-## Base Provenance
-- checkpoint_sha:
-- expected_base:
-- stale_agent_worktrees:
-
-## Conflict Resolutions
-| Agent | File | Agent intent | Resolution | Develop already covered it? | Follow-up needed |
-|-------|------|--------------|------------|-----------------------------|------------------|
-
-## Auto-Merge / Stash Events
-| Event | Files | Action | Residual risk |
-|-------|-------|--------|---------------|
-
-## Validation
-- command:
-- result:
-```
-
-For each conflict, inspect the agent diff before resolving. "Ours" is valid only when the checkpoint/develop side already contains the same improvement or the agent hunk is obsolete. If it drops a real cleanup, either port the cleanup immediately or record it as a follow-up in the audit.
 
 ### Commit Hygiene
 
@@ -228,7 +167,7 @@ A second-opinion pass after Claude's 8 agents merge and validation passes. Codex
 
 ### Lanes
 
-Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the approved implementation head, with `--phase regression` and `--phase gap`. Use worktree-backed lanes only when branch/worktree creation was explicitly approved.
+Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the approved implementation head. Lane R uses `--branch chore/cleanup-regression-review`; Lane G uses `--branch chore/cleanup-gap-review`. Use worktree-backed lanes only when branch/worktree creation was explicitly approved.
 
 The verbatim lane prompts (Lane R — regression hunt, diff-scoped; Lane G — miss hunt,
 codebase-wide) live in [codex-prompts.md](./codex-prompts.md) — load them at dispatch time,
@@ -270,9 +209,9 @@ Use `--no-codex` when:
 
 ```bash
 git diff --check                # Whitespace / conflict marker sanity
-bun format:check && bun lint    # Non-mutating style gate
+bun run format --check && bun run lint    # Non-mutating style gate
 bun run test                    # Correctness
-bun build                       # Build integrity
+bun run build                   # Build integrity
 madge --circular --extensions ts,tsx packages/  # Only when locally installed or explicitly approved
 bunx knip --reporter compact    # Checked-in dependency; reduced dead code
 ```
@@ -293,7 +232,7 @@ For symbol-removal agents (dead code, legacy, type consolidation), add targeted 
 - **Test after implement** — each agent runs `bun run test` in affected packages
 - **No cross-agent dependencies** — agents don't depend on each other's output
 - **HIGH-confidence only** — agents only implement findings they're confident about
-- **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, declared public imports, Address types, single .env)
+- **Preserve invariants** — all AGENTS.md rules apply (hook boundary, declared public imports, Address types, single .env)
 - **Conflict audit** — every conflict resolution records agent intent, chosen side, and whether any cleanup insight was dropped
 - **Never remove offline-first code** — the job queue, IndexedDB persistence, and service worker are intentional complexity
 - **Codex reviews the integrated result** — dispatch only after implementation + validation, so Codex sees the same code the user will ship

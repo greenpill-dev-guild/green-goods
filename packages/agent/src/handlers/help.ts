@@ -9,12 +9,12 @@ export async function handleHelp(
   message: InboundMessage,
   user: User | undefined
 ): Promise<HandlerResult> {
-  const isOperator = user?.role === "operator";
+  const isSteward = user?.role === "steward";
 
   let helpText = agentMessage(message.locale, "help.basic");
 
-  if (isOperator) {
-    helpText += agentMessage(message.locale, "help.operator");
+  if (isSteward) {
+    helpText += agentMessage(message.locale, "help.steward");
   }
 
   helpText += agentMessage(message.locale, "help.footer");

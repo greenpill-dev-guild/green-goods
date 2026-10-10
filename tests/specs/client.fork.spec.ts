@@ -1,14 +1,12 @@
 /**
  * Client Fork Tests
  *
- * E2E tests that run against an Anvil fork of Sepolia.
- * These tests verify real blockchain interactions with deterministic state.
+ * Contract-side checks run against an Anvil fork of Sepolia.
+ * Legacy Client smoke cases require a caller-managed Client surface; the preset
+ * does not start or retarget a Sepolia test server. These cases do not certify
+ * browser-to-fork-to-indexer integration or authenticated-session behavior.
  *
- * Prerequisites:
- * - Anvil running: bun anvil:start
- * - Client dev server: bun run dev:client
- *
- * Run with: bun test:e2e:fork
+ * Run with: bun run browser e2e --preset fork
  */
 import { expect, type Page, test } from "@playwright/test";
 import {
@@ -107,7 +105,7 @@ test.describe("Fork Integration Tests", () => {
         name: "E2E Test Garden",
         description: "Garden created during E2E test",
         bannerImage: "ipfs://test-banner",
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
         gardeners: [anvilContext.accounts.gardener1.address],
       });
 
@@ -159,7 +157,7 @@ test.describe("Fork Integration Tests", () => {
   });
 
   test.describe("Client with Fork Backend", () => {
-    test("client can load with forked chain", async ({ page }) => {
+    test("caller-managed client can load", async ({ page }) => {
       // Navigate to client
       await page.goto("/");
       await page.waitForLoadState("domcontentloaded");
@@ -176,7 +174,7 @@ test.describe("Fork Integration Tests", () => {
       expect(url).toMatch(/\/(login|landing)?$/);
     });
 
-    test("authenticated user can view gardens from fork", async ({ page }) => {
+    test("creates a garden on fork with a caller-managed client smoke check", async ({ page }) => {
       const helper = new ClientTestHelper(page);
 
       // First, create a garden on the fork
@@ -186,7 +184,7 @@ test.describe("Fork Integration Tests", () => {
         bannerImage: "ipfs://test",
       });
 
-      // Inject wallet auth (using deployer address who is an operator)
+      // Inject wallet auth (using deployer address who is a steward)
       await helper.injectWalletAuth(anvilContext.accounts.deployer.address);
 
       // Navigate to home
@@ -218,7 +216,7 @@ test.describe("Fork Integration Tests", () => {
         name: "Gardener Test Garden",
         description: "Testing gardener addition",
         bannerImage: "ipfs://test",
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
       });
 
       // Initially, gardener2 should not be a gardener

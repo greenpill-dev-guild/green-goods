@@ -3,12 +3,13 @@
  */
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { getTradeHistory } from "../../modules/data/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { FractionTrade } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { marketplaceKeys } from "../../config/query-keys/hypercert";
 
 export interface UseTradeHistoryResult {
   trades: FractionTrade[];
@@ -21,7 +22,7 @@ export function useTradeHistory(hypercertId?: bigint): UseTradeHistoryResult {
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: queryKeys.marketplace.tradeHistory(hypercertId?.toString() ?? "", chainId),
+    queryKey: marketplaceKeys.tradeHistory(hypercertId?.toString() ?? "", chainId),
     queryFn: () => {
       logger.debug("[useTradeHistory] Fetching trade history", {
         hypercertId: hypercertId?.toString(),

@@ -1,6 +1,6 @@
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 type FooterLinkKind = "internal" | "external";
 
@@ -12,6 +12,10 @@ interface FooterLink {
 }
 
 const FOOTER_LINKS: readonly FooterLink[] = [
+  { to: "/gardens", labelId: "public.footer.gardens", defaultLabel: "Gardens", kind: "internal" },
+  { to: "/impact", labelId: "public.footer.impact", defaultLabel: "Impact", kind: "internal" },
+  { to: "/fund", labelId: "public.footer.fund", defaultLabel: "Fund", kind: "internal" },
+  { to: "/actions", labelId: "public.footer.actions", defaultLabel: "Actions", kind: "internal" },
   {
     to: "/glossary",
     labelId: "public.footer.glossary",
@@ -71,16 +75,16 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
   return (
     <footer
       className={cn(
-        "border-t px-6 py-6 sm:px-10 sm:py-5",
+        "@container mt-auto border-t px-6 py-6 sm:px-10 sm:py-5",
         isSoil ? "border-static-white/10 bg-editorial-deep" : "border-stroke-soft-200 bg-bg-weak-50"
       )}
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-8">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-x-8 @min-[70rem]:grid-cols-[1fr_auto_1fr]">
         <Link
           to="/"
           viewTransition
           className={cn(
-            "justify-self-start font-serif text-base font-medium tracking-[-0.01em]",
+            "justify-self-start whitespace-nowrap font-serif text-base font-medium tracking-[-0.01em]",
             isSoil ? "text-static-white" : "text-text-strong-950"
           )}
         >
@@ -92,7 +96,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
 
         <p
           className={cn(
-            "text-xs tracking-[0.02em] sm:justify-self-center sm:text-center",
+            "text-xs tracking-[0.02em] sm:col-span-2 sm:row-start-2 @min-[70rem]:col-span-1 @min-[70rem]:col-start-2 @min-[70rem]:row-start-1 @min-[70rem]:justify-self-center @min-[70rem]:text-center",
             isSoil ? "text-static-white/72" : "text-text-sub-600"
           )}
         >
@@ -108,7 +112,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
 
         <nav
           className={cn(
-            "flex flex-wrap items-center gap-x-5 gap-y-1 text-xs tracking-[0.02em] sm:justify-self-end sm:text-right",
+            "flex flex-wrap items-center gap-x-5 gap-y-1 text-xs tracking-[0.02em] sm:col-start-2 sm:row-start-1 sm:justify-self-end sm:text-right @min-[70rem]:col-start-3",
             isSoil ? "text-static-white/72" : "text-text-sub-600"
           )}
           aria-label={formatMessage({

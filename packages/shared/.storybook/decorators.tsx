@@ -4,13 +4,21 @@ import {
   QueryClientProvider,
   type QueryKey,
 } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
-import { IntlProvider } from "react-intl";
-import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { IntlProvider, type IntlShape, useIntl } from "react-intl";
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  type MemoryRouterProps,
+  RouterProvider,
+} from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
 import { custom } from "viem";
 import { WagmiProvider, createConfig, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
+import toast from "react-hot-toast";
+import { createProofToasts } from "../src/components/Toast/presets/proof";
+import { ToastViewport } from "../src/components/Toast/ToastViewport";
 import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
 import { AppContext, supportedLanguages } from "../src/providers/App";
@@ -82,7 +90,7 @@ if (typeof window !== "undefined") {
   installFrozenClock();
 }
 
-export function createStorybookQueryClient() {
+function createStorybookQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -124,6 +132,59 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
   return <Story />;
 };
 
+/**
+ * Surface parity. One Storybook build serves shared, admin, and client stories,
+ * so each surface's tokens must load only for that surface's stories. The
+ * surface is stamped on <html> as `data-surface` (so dialogs and sheets that
+ * portal out of the story still match) and the CSS in `surfaces.css` keys off
+ * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
+ * aliases for `admin`; the client typography rules for `app` and `website`;
+ * and `data-site="website"` (the public shell's attribute, DL-026) around
+ * website stories so the shared buttons take the square corner and semibold
+ * label (DL-029).
+ *
+ * `withSurface` runs globally (preview.tsx) and infers the surface from the
+ * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,
+ * everything else → app. A story overrides it with `parameters.surface`, which
+ * keeps a single surface root: a root nested by a story decorator would be
+ * overwritten by this outer one, whose layout effect runs after its child's.
+ */
+export type StorySurface = "app" | "website" | "admin";
+
+export function surfaceForTitle(title: string): StorySurface {
+  if (/^(Admin\/|Design System\/Admin)/.test(title)) return "admin";
+  if (/^(Client\/Public\/|Public\/|Design System\/Website)/.test(title)) return "website";
+  return "app";
+}
+
+function SurfaceRoot({ surface, children }: { surface: StorySurface; children: React.ReactNode }) {
+  useLayoutEffect(() => {
+    document.documentElement.dataset.surface = surface;
+    return () => {
+      delete document.documentElement.dataset.surface;
+    };
+  }, [surface]);
+
+  if (surface === "website") {
+    return (
+      <div data-site="website" className="contents">
+        {children}
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
+export const withSurface: Decorator = (Story, context) => {
+  const surface =
+    (context.parameters.surface as StorySurface | undefined) ?? surfaceForTitle(context.title);
+  return (
+    <SurfaceRoot surface={surface}>
+      <Story />
+    </SurfaceRoot>
+  );
+};
+
 export const withTheme: Decorator = (Story) => {
   const [{ theme }] = useGlobals();
   const currentTheme = theme || "light";
@@ -144,6 +205,19 @@ export function withRouter(initialEntries: MemoryRouterProps["initialEntries"] =
     <MemoryRouter initialEntries={initialEntries}>
       <Story />
     </MemoryRouter>
+  );
+}
+
+/**
+ * A data router around the story, mounted at `path`. Components with a
+ * dirty-close guard block navigation through `useBlocker`, which only a data
+ * router provides; `withRouter`'s `MemoryRouter` makes them throw.
+ */
+export function withDataRouter(path = "/"): Decorator {
+  return (Story) => (
+    <RouterProvider
+      router={createMemoryRouter([{ path, element: <Story /> }], { initialEntries: [path] })}
+    />
   );
 }
 
@@ -175,6 +249,7 @@ const installedPwaContext = {
   isPwaPresentation: true,
   isStandalone: true,
   installState: "installed",
+  installedAppEvidence: { status: "installed", source: "standalone" },
   presentationMode: "pwa",
   wasInstalled: true,
   platform: "ios",
@@ -304,7 +379,7 @@ function storybookMockTransport(chainId: number) {
  * their loading / empty states. Writes are inert. Multicall batching is off so
  * each read is its own `eth_call` and one empty response can't fail a batch.
  */
-const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.operator;
+const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.steward;
 
 function createStorybookWagmiConfig(address: `0x${string}` = STORYBOOK_MOCK_ADDRESS) {
   return createConfig({
@@ -334,19 +409,6 @@ export const withWagmi: Decorator = (Story) => (
 );
 
 /**
- * Provides the shared Auth context via `DevAuthProvider`, which exposes
- * the same context shape as the real `AuthProvider` but with hardcoded
- * role values keyed off the `?mockAuth=` URL param (defaults to
- * `operator`). Stories that need a connected admin identity should layer
- * this on top of `withWagmi`.
- */
-export const withDevAuth: Decorator = (Story) => (
-  <DevAuthProvider>
-    <Story />
-  </DevAuthProvider>
-);
-
-/**
  * Combined decorator for stories that render real components which read
  * auth + wagmi state. Applies `withWagmi` then `withDevAuth`. Must sit
  * inside `withQueryClient` / `withI18n` (the global preview decorators
@@ -373,6 +435,27 @@ export function withAdminIdentityRole(role: Exclude<DevMockAuthRole, "disconnect
     );
   };
 }
+
+/**
+ * Auth context with nobody signed in: no address and no chosen username. For a component that
+ * only reads the username from auth and takes its account from a mocked data hook.
+ */
+export const withSignedOutAuth: Decorator = (Story, context) => (
+  <DevAuthProvider mockRole="disconnected">
+    <Story {...context} />
+  </DevAuthProvider>
+);
+
+/**
+ * An installed-app screen, edge to edge on the app's white ground. The preview
+ * pads every story and paints its own neutral; a page captured beside a design
+ * frame has to fill the viewport the way the client draws it.
+ */
+export const withAppPage: Decorator = (Story) => (
+  <div className="-m-[var(--gg-space-md)] min-h-dvh bg-bg-white-0 text-text-strong-950">
+    <Story />
+  </div>
+);
 
 /**
  * Client runtime harness for protected PWA/client stories that render the real
@@ -449,4 +532,62 @@ export function withSelectedAdminGarden(garden: AdminStoreGarden): Decorator {
 
     return <Story {...context} />;
   };
+}
+
+/** The proof toast a frame shows, raised through the real preset. */
+export type ProofToastMoment =
+  | "adding"
+  | "addingSendToo"
+  | "confirming"
+  | "added"
+  | "sent"
+  | "savedOffline"
+  | "notAdded"
+  | "takingLonger"
+  | "couldNotAdd";
+
+/**
+ * One toast held in place over a frame. The app's toasts leave after a few
+ * seconds; a frame holds its moment, so the same toast is raised again in
+ * place before it would go, and is gone at once when the story ends.
+ */
+function HeldToast({ show }: { show: (formatMessage: IntlShape["formatMessage"]) => void }) {
+  const { formatMessage } = useIntl();
+  useEffect(() => {
+    show(formatMessage);
+    const hold = window.setInterval(() => show(formatMessage), 1500);
+    return () => {
+      window.clearInterval(hold);
+      toast.remove();
+    };
+  }, [formatMessage, show]);
+  return <ToastViewport toastOptions={{ style: { borderRadius: "var(--radius-md)" } }} />;
+}
+
+/** A client page with one toast over it, raised through the app's own call. */
+export function withHeldToast(show: (formatMessage: IntlShape["formatMessage"]) => void): Decorator {
+  return (Story) => (
+    <>
+      <Story />
+      <HeldToast show={show} />
+    </>
+  );
+}
+
+function showProofToast(moment: ProofToastMoment, formatMessage: IntlShape["formatMessage"]) {
+  const toasts = createProofToasts(formatMessage);
+  if (moment === "adding") toasts.adding({ sendToo: false });
+  else if (moment === "addingSendToo") toasts.adding({ sendToo: true });
+  else if (moment === "confirming") toasts.confirming();
+  else if (moment === "added") toasts.added({ sent: false, leads: true });
+  else if (moment === "sent") toasts.added({ sent: true, leads: true });
+  else if (moment === "savedOffline") toasts.savedOffline();
+  else if (moment === "notAdded") toasts.notAdded();
+  else if (moment === "takingLonger") toasts.takingLonger();
+  else toasts.couldNotAdd(() => undefined);
+}
+
+/** A client page with one proof toast over it, where the app's viewport draws it. */
+export function withProofToast(moment: ProofToastMoment): Decorator {
+  return withHeldToast((formatMessage) => showProofToast(moment, formatMessage));
 }

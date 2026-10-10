@@ -1,6 +1,6 @@
 # Shared Package Context
 
-Loaded when working in `packages/shared/`. Extends CLAUDE.md.
+Loaded when working in `packages/shared/`. Extends `packages/shared/AGENTS.md`.
 
 ## Quick Reference
 
@@ -127,7 +127,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
 
 **Admin** (`packages/admin/src/main.tsx`):
 ```tsx
-<PersistQueryClientProvider>  {/* Persisted query cache (admin-specific) */}
+<QueryPersistenceProvider>  {/* Reading cache, one record per query (admin database) */}
   <ErrorBoundary>
     <AppKitProvider>          {/* Wallet connection */}
       <AuthProvider>          {/* Auth state — depends on wallet context */}
@@ -137,7 +137,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
       </AuthProvider>
     </AppKitProvider>
   </ErrorBoundary>
-</PersistQueryClientProvider>
+</QueryPersistenceProvider>
 ```
 
 **Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)
@@ -248,27 +248,30 @@ All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`
 
 `jobQueue` singleton (`modules/job-queue/index.ts`, barrel-exported) — the write path for all offline ops; every method is scoped by `userAddress` (`addJob` throws without it):
 
-- `addJob(kind, payload, userAddress, meta?) → jobId` · `processJob(jobId, ctx)` · `flush(ctx)` (ctx carries `userAddress` + `smartAccountClient`)
+- `addJob(kind, payload, userAddress, meta?) → jobId` · `processJob(jobId, ctx)` · `flush(ctx)` (ctx carries `transactionSender`; `explicit: true` marks a person's own tap; `flush` also takes `userAddress` and optional `kinds`)
 - `getStats` · `getJobs(userAddress, filter?)` · `getPendingCount` · `hasPendingJobs` · `subscribe(listener) → unsub` · `cleanup()`
-- `JobKind` = `"work" | "approval"` (`JobKindMap`, `types/job-queue.ts`)
+- `JobKind` = `keyof JobKindMap` (`types/job-queue.ts`): `work`, `approval`, and the commitment kinds. Work and decisions are the upload kinds (`modules/work/upload-kinds.ts`); they wait for Upload all, and every send goes through `modules/work/send-with-checkpoint.ts`
 - Job states `pending → processing → synced` / `failed`; retry `MAX_RETRIES = 5`, backoff `min(1000 · 2^attempts, 60_000)` ms
 - React access: `useJobQueue()` (`providers/JobQueue.tsx`)
 
-**Two IndexedDB databases** (not one):
+**Two IndexedDB databases** (not one), both typed Dexie databases whose version history is the
+schema (`modules/job-queue/db-schema.ts`, `modules/job-queue/draft-connection.ts`). Dexie stores a
+declared version ×10, so these open the `idb`-era databases in place. `jobQueueDB.observeJobs` /
+`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStatistics`).
 
-| DB | Version | Object stores |
-|----|---------|---------------|
-| `green-goods-job-queue` | 5 | `jobs`, `job_images`, `cached_work`, `client_work_id_mappings` |
-| `green-goods-drafts` | 1 | `drafts`, `draft_images` (`draftDB`, `modules/job-queue/draft-db.ts`) |
+| DB | Dexie version | Object stores |
+|----|---------------|---------------|
+| `green-goods-job-queue` | 8 | `jobs`, `job_images`, `cached_work`, `client_work_id_mappings`, `client_commitment_id_mappings`, `client_series_id_mappings`, `work_completions`, `execution_claims` |
+| `green-goods-drafts` | 4 | `drafts`, `draft_images`, `active_drafts`, `draft_migrations` (`draftDB`, `modules/job-queue/draft-db.ts`) |
 
 ### Error Utilities
 
-Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (CLAUDE.md § Key Patterns), `utils/errors/` (barrel) provides:
+Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
 
 - `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
 - `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)
 - `ValidationError` — throw for precondition/programming-error checks (`validation-error.ts`)
-- `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`
+- `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription?, formatMessage? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`. Pass a hook's `formatMessage` and a known error whose parser names its copy (`titleKey`, `messageKey`, `messageValues`) shows in the reader's language: a wallet on another network, an earlier version still queued, and offline (`unsent-failures.ts`). Every other known error still shows the parser's English.
 - `USER_FRIENDLY_ERRORS` lives in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
 
 ### React Compiler
@@ -453,6 +456,6 @@ The a11y addon runs automatically:
 Read these docs pages when you need domain context beyond code patterns:
 
 - System architecture with Mermaid diagrams: `docs/docs/builders/architecture.mdx`
-- Domain glossary: `docs/docs/reference/glossary-community.md`
+- Domain authority: `packages/shared/src/ontology/green-goods-ontology.json`; public projection: `docs/docs/reference/glossary.generated.mdx`
 - Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
 - Cross-protocol entity matrix (draft/vocab aid): `docs/docs/builders/integrations/entity-matrix.mdx`

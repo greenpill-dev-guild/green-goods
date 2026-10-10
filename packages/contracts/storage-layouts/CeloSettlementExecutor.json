@@ -1,0 +1,404 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_sourcePeer",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_struct(SourcePeer)_storage"
+    },
+    {
+      "label": "_gardenRoutes",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_mapping(t_address,t_struct(GardenRoute)_storage)"
+    },
+    {
+      "label": "safeToGarden",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "label": "_executionResults",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_mapping(t_bytes32,t_struct(ExecutionResult)_storage)"
+    },
+    {
+      "label": "maxBatchSize",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_uint16"
+    },
+    {
+      "label": "maxTransferAmount",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_uint256"
+    },
+    {
+      "label": "maxBatchAmount",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_uint256"
+    },
+    {
+      "label": "periodDuration",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_uint64"
+    },
+    {
+      "label": "maxPeriodAmount",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_uint256"
+    },
+    {
+      "label": "_gardenPeriodSpends",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_mapping(t_address,t_struct(GardenPeriodSpend)_storage)"
+    },
+    {
+      "label": "acknowledgmentFeeReserveMinimum",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_uint256"
+    },
+    {
+      "label": "paused",
+      "offset": 0,
+      "slot": "163",
+      "type": "t_bool"
+    },
+    {
+      "label": "maxFeeBps",
+      "offset": 1,
+      "slot": "163",
+      "type": "t_uint16"
+    },
+    {
+      "label": "maxFeeAmount",
+      "offset": 0,
+      "slot": "164",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "165",
+      "type": "t_array(t_uint256)36_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)36_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[36]",
+      "numberOfBytes": "1152"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_enum(AcknowledgmentDeferralCode)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"],
+      "label": "enum ICeloSettlementExecutor.AcknowledgmentDeferralCode",
+      "numberOfBytes": "1"
+    },
+    "t_enum(FailureCode)": {
+      "encoding": "inplace",
+      "enumMembers": [
+        "None",
+        "GardenRouteUnavailable",
+        "InvalidRecipient",
+        "BatchSizeExceeded",
+        "TransferAmountExceeded",
+        "BatchAmountExceeded",
+        "PeriodCapExceeded",
+        "RouteRejected",
+        "RouteReverted",
+        "UnsupportedReceiverPaysFee",
+        "FeeQuoteExceeded",
+        "BalanceDeltaMismatch"
+      ],
+      "label": "enum ICeloSettlementExecutor.FailureCode",
+      "numberOfBytes": "1"
+    },
+    "t_enum(ResultStatus)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Success", "Failed"],
+      "label": "enum ICeloSettlementExecutor.ResultStatus",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_struct(GardenPeriodSpend)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ICeloSettlementExecutor.GardenPeriodSpend)",
+      "numberOfBytes": "32",
+      "value": "t_struct(GardenPeriodSpend)_storage"
+    },
+    "t_mapping(t_address,t_struct(GardenRoute)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ICeloSettlementExecutor.GardenRoute)",
+      "numberOfBytes": "32",
+      "value": "t_struct(GardenRoute)_storage"
+    },
+    "t_mapping(t_bytes32,t_struct(ExecutionResult)_storage)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => struct ICeloSettlementExecutor.ExecutionResult)",
+      "numberOfBytes": "32",
+      "value": "t_struct(ExecutionResult)_storage"
+    },
+    "t_struct(ExecutionResult)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICeloSettlementExecutor.ExecutionResult",
+      "members": [
+        {
+          "label": "commandMessageId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "acknowledgmentMessageId",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "acknowledgmentReceiver",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "protocolVersion",
+          "offset": 20,
+          "slot": "2",
+          "type": "t_uint8"
+        },
+        {
+          "label": "status",
+          "offset": 21,
+          "slot": "2",
+          "type": "t_enum(ResultStatus)"
+        },
+        {
+          "label": "failureCode",
+          "offset": 22,
+          "slot": "2",
+          "type": "t_enum(FailureCode)"
+        },
+        {
+          "label": "acknowledgmentDeferralCode",
+          "offset": 23,
+          "slot": "2",
+          "type": "t_enum(AcknowledgmentDeferralCode)"
+        },
+        {
+          "label": "acknowledgmentSent",
+          "offset": 24,
+          "slot": "2",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "96"
+    },
+    "t_struct(GardenPeriodSpend)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICeloSettlementExecutor.GardenPeriodSpend",
+      "members": [
+        {
+          "label": "periodStartedAt",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint64"
+        },
+        {
+          "label": "amount",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_struct(GardenRoute)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICeloSettlementExecutor.GardenRoute",
+      "members": [
+        {
+          "label": "safe",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "rolesModifier",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "roleKey",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "allowanceKey",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "permissionsConfigHash",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "active",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "192"
+    },
+    "t_struct(SourcePeer)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICeloSettlementExecutor.SourcePeer",
+      "members": [
+        {
+          "label": "sourceChainSelector",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint64"
+        },
+        {
+          "label": "sourceSettlementModule",
+          "offset": 8,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "previousSourceSettlementModule",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "previousPeerExpiresAt",
+          "offset": 20,
+          "slot": "1",
+          "type": "t_uint64"
+        },
+        {
+          "label": "protocolVersion",
+          "offset": 28,
+          "slot": "1",
+          "type": "t_uint8"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint16": {
+      "encoding": "inplace",
+      "label": "uint16",
+      "numberOfBytes": "2"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

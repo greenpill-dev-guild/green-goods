@@ -12,7 +12,8 @@
  * 5. Connect prompt — unauthenticated
  */
 
-import { adminRoutes, useAdminAccessState } from "@green-goods/shared";
+import { useAdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { Navigate } from "react-router-dom";
 import { AdminAccessStateRenderer } from "@/components/Layout/AdminAccessStateRenderer";
 

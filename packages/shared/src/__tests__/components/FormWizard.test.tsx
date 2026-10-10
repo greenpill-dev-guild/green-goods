@@ -8,7 +8,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render } from "../test-utils";
+import { renderWithProviders as render } from "../test-utils/render-helpers";
 
 // Mock dependencies
 vi.mock("@green-goods/shared/utils", () => ({
@@ -28,9 +28,9 @@ import { FormWizard } from "../../components/Form/FormWizard";
 
 describe("components/Form/FormWizard", () => {
   const mockSteps = [
-    { id: "details", label: "Details" },
-    { id: "team", label: "Team" },
-    { id: "review", label: "Review" },
+    { id: "details", title: "Details" },
+    { id: "team", title: "Team" },
+    { id: "review", title: "Review" },
   ];
 
   const defaultProps = {
@@ -273,7 +273,9 @@ describe("components/Form/FormWizard", () => {
       );
 
       const submitButton = screen.getByRole("button", { name: "Submit" });
-      expect(submitButton).toBeDisabled();
+      // A submitting button stays focusable but inert (shared Button loading contract).
+      expect(submitButton).not.toBeDisabled();
+      expect(submitButton).toHaveAttribute("aria-disabled", "true");
       expect(submitButton).toHaveAttribute("aria-busy", "true");
     });
   });

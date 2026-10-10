@@ -1,0 +1,12 @@
+{
+  "pngFilesChecked": 340,
+  "checks": [
+    "Dimensions match export manifest",
+    "All PNGs have an RGBA channel",
+    "Transparent variants have transparent corners and opaque artwork",
+    "App icons have fully opaque backgrounds",
+    "Large symbols occupy about 84% width and are centered",
+    "Maskable artwork fits the 40% radius safe circle",
+    "All eight ICO variants contain 16/32/48/64/128/256 sizes"
+  ]
+}

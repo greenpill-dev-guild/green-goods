@@ -1,0 +1,122 @@
+# Commitment Pooling — Fable 5 Phase A Release Review
+
+## Status
+
+- Reviewer: Fable 5
+- Owner: Afolabi Aiyeloja
+- State: dispatched by Afolabi Aiyeloja on 2026-08-11 against the then-current `de7863391`
+  candidate; informative review in flight, but not a final-candidate disposition
+- Best review point: after the paused deployer-owned scope correction is committed, all
+  manifests/locks are regenerated, and the full Phase A gate is green; before any paused-deployment
+  Phase B authorization request
+- Authority: read-only review only; no file mutation, deployment, broadcast, ownership transfer,
+  Safe/Zodiac grant, value movement, indexer activation, ping, canary, unpause, cap change, or
+  Linear write
+
+This is an additional independent review of the final combined Phase A candidate. It complements
+the accountable internal committed-range review selected by the August 10 owner decision; it is
+not a commissioned external audit and is never broadcast authority.
+
+**Post-dispatch scope correction (2026-08-11).** Repository policy is now threshold >= 2 with at
+least 3 owners, and the exact live 2-of-6 protocol Safe is approved. Hosted production-indexer
+deployment is removed from this release lane; PRD-722 owns that later work and receives only the
+contract address/start-block handoff here. Because this correction changes the candidate after
+dispatch, the in-flight response may inform remediation but cannot certify the final commit. Refresh
+the exact-range review after the final scope correction, lock regeneration, and final gates.
+
+**Second post-dispatch scope correction (2026-08-11).** The current ceremony now ends paused and
+deployment-sender owned. Ownership transfer, the approved 18-garden/root-token-0 backfill, and core
+unpause move to a separately reviewed later Product issue. The paused-registration increment is
+therefore not part of the current combined base. Current review must prove that transfer/backfill
+commands are absent from the deployer operator and ownership broadcast fails closed. The in-flight
+review of `de7863391` cannot certify this later scope correction.
+
+## Activation gate
+
+The release operator must replace every bracketed field before sending this prompt. Fable must
+stop immediately if any field is absent, the worktree is dirty, the range is not an ancestor range,
+or the artifact hashes do not match the pinned commit.
+
+- Combined base: `[40-character merged develop commit]`
+- Candidate commit: `[40-character release-candidate commit]`
+- Review range: `[combined-base]..[candidate-commit]`
+- Manifest hash: `[0x-prefixed 32-byte hash]`
+- Release lock path/hash: `[path]` / `[0x-prefixed 32-byte hash]`
+- Protocol Safe decision/policy disposition: `[exact recorded disposition]`
+- Indexer handoff: `PRD-722; exact contract address/start-block diff only; no hosted deployment`
+- Validation receipt: `[new final Phase A report path]`
+
+Before review, prove the paused-registration increment derived from `5e70654c3` is not silently
+absorbed into the current combined base. It remains later-issue work unless a newer explicit owner
+decision changes the scope.
+
+## Ready-to-paste review prompt
+
+You are Fable 5 performing an independent, adversarial, read-only review of the Green Goods
+Commitment Pooling, Settlement, and Commitment Credit Phase A release candidate.
+
+Repository: `/Users/afo/Code/greenpill/green-goods`
+
+Review exactly the activation-gate commit and range above from a clean snapshot. Do not review
+uncommitted files, later commits, commit messages as evidence, or either implementation branch.
+Read the root `AGENTS.md`, package guides for contracts and indexer, the complete active Commitment
+Pooling and Commitment Credit hubs, the three frozen specs, the final Phase A report, combined
+manifest/lock, deployment wrappers, artifact merge/recovery code, courier fixture, post-deploy
+verifiers, inert PRD-722 indexer handoff, and every changed file in the exact range. Read actual code.
+
+The architecture is frozen: Arbitrum holds commitment/payout/credit truth; SettlementModule sends
+message-only authenticated CCIP commands; CeloSettlementExecutor invokes bounded Safe/Zodiac
+canonical-G$ authority; Celo acknowledgment is required before Arbitrum confirmation. There is no
+token bridge, raw G$ indexing, custodial module, or enabled G$ repayment rail.
+
+Review these lanes independently and then as one transaction sequence:
+
+1. Manifest and identity: chain IDs/selectors, routers, peers, CREATE2 salts, libraries, bytecode
+   hashes, proxy/admin/owner/initializer state, schema UIDs, exact 18-garden/root-token-0 inventory,
+   artifacts, and stale/partial/conflicting recovery.
+2. Authority and custody: protocol Safe owners/threshold and its recorded guidance disposition,
+   rollback ownership, executor-not-owner, Safe recovery, Zodiac target/selector/recipient
+   conditions, caps, fee policy, reserve floors, sender drift, owner races, nonce drift, and any
+   path to value authority before a separate authorization.
+3. Settlement safety: peer/version/gas snapshots, unsupported lanes, retirement grace and unresolved
+   commands, replay/idempotency, same-key reroute, duplicate value, cancellation after execution,
+   batch-kind mixing, malformed messages, acknowledgment receiver/version binding, and authenticated
+   success as the only confirmation path.
+4. Upgrade and rollback: actual old implementations, storage/ABI/event compatibility, the sequential
+   AssessmentResolver upgrade plus canonical v2 pin, schema finalization, integration upgrades,
+   the paused deployment-sender-owned terminal state, one-transaction boundaries, post-action
+   verification, and the safe resumable state after every possible one-of-many failure. Confirm
+   that ownership transfer, pool backfill, and core unpause are later-issue operations.
+5. Persistence and recovery: first run, replay, stale side file, interrupted write, on-chain-success/
+   local-write-failure, code-hash mismatch after retry, preservation of unrelated historical Celo
+   keys, and canonical artifact mutation during simulation.
+6. Indexer boundary: Green Goods settlement events only, exact address/start-block diff, no raw G$
+   indexing, no hosted deployment/reindex/cutover command in this release lane, and an unambiguous
+   PRD-722 handoff. Flag any path by which a Git push or dry-run could activate production.
+7. Review provenance: exact committed range, generated ABI/storage/event/lock equality, current live
+   read-only evidence, proposed signer/owner/window/rollback checkpoint, and whether any claim uses
+   dry-run language as deployed or Celo execution as paid.
+
+Use only repository Bun wrappers. Do not run raw Forge. You may run read-only local/fork/live
+inspection, but no mutating command and no hosted-indexer action. Re-run the exact
+help and validation commands named by the final report rather than inventing commands.
+
+Report numbered findings first, ordered Critical, High, Medium, Low. Each finding must include the
+concrete failure mode, impact, exact file and line, and the smallest safe remediation. Separate
+confirmed defects from missing external evidence and from intentionally gated future stages. Then
+provide a requirement coverage ledger for the seven lanes above and one verdict:
+
+- `ACCEPTED FOR PHASE B AUTHORIZATION REQUEST`
+- `BLOCKED ON CODE OR ARTIFACT DEFECTS`
+- `BLOCKED ON EXTERNAL EVIDENCE OR OWNER DECISION`
+
+Acceptance requires no unresolved Critical or High, exact manifest/artifact/generated-output
+agreement, clean dry-run/recovery/courier/verifier entrypoints, explicit disposition of every
+Medium, and no hidden broadcast or value authority. A review acceptance never authorizes Phase B.
+
+## Dispatch evidence
+
+When the activation gate is complete, attach the Fable response unchanged to the new final Phase A
+report, record every disposition, rerun any affected gate, and pin the post-disposition commit. Any
+code or artifact change after Fable review invalidates that review and requires a new exact-range
+pass.

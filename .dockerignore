@@ -2,6 +2,7 @@
 
 !package.json
 !bun.lock
+!bunfig.toml
 
 # `bun install --frozen-lockfile` resolves package.json#patchedDependencies from here,
 # so the patch files must stay in the build context or the image install fails.
@@ -27,6 +28,8 @@ packages/indexer/.envio/
 packages/indexer/generated/
 packages/indexer/node_modules/
 !packages/shared/
+!packages/qa/
+!packages/qa/package.json
 !packages/shared/package.json
 !packages/shared/src/
 !packages/shared/src/**
@@ -37,3 +40,7 @@ packages/indexer/node_modules/
 !scripts/**
 
 packages/agent/dist/
+# Runtime SQLite files change whenever the agent runs; they are not image inputs.
+packages/agent/data/
+**/node_modules/
+**/coverage/

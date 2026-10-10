@@ -5,6 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as yaml from "js-yaml";
 
+import { validatePinnedPoolingContracts } from "./indexing-boundary-rules.mjs";
+import { validateKarmaGapBoundary } from "./indexing-boundary-rules.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const indexerRoot = path.resolve(__dirname, "..");
@@ -19,16 +22,18 @@ const ALLOWED_CONTRACT_EVENTS = {
     "ActionInstructionsUpdated",
     "ActionMediaUpdated",
   ]),
-  GardenToken: new Set(["GardenMinted"]),
+  GardenToken: new Set(["GardenMinted", "KarmaHookFailed"]),
   GardenAccount: new Set([
     "NameUpdated",
     "DescriptionUpdated",
     "LocationUpdated",
     "BannerImageUpdated",
-    "GAPProjectCreated",
     "OpenJoiningUpdated",
+    "KarmaHookFailed",
   ]),
-  HatsModule: new Set(["RoleGranted", "RoleRevoked"]),
+  KarmaGAPModule: new Set(["GAPProjectCreated", "GAPProjectReset", "KarmaSyncRecorded"]),
+  HatsModule: new Set(["RoleGranted", "RoleRevoked", "KarmaHookFailed"]),
+  WorkApprovalResolver: new Set(["KarmaHookFailed"]),
   OctantModule: new Set([
     "VaultCreated",
     "HarvestTriggered",
@@ -40,12 +45,186 @@ const ALLOWED_CONTRACT_EVENTS = {
   HypercertMinter: new Set(["TransferSingle", "ClaimStored"]),
   GreenWill: new Set(["BadgeClassConfigured", "BadgeIssued"]),
   CookieJarFactory: new Set(["JarCreated", "MetadataUpdated"]),
+  CommitmentPoolingModule: new Set([
+    "PoolRegistered",
+    "PoolCharterUpdated",
+    "PoolReady",
+    "PoolOpened",
+    "PoolPaused",
+    "PoolResumed",
+    "PoolClosed",
+    "PoolComposted",
+    "PoolReopened",
+    "CycleSeeded",
+    "CycleOpened",
+    "CycleClosed",
+    "CycleComposted",
+    "CycleCancelled",
+    "CommitmentSeriesCreated",
+    "CommitmentSeriesMetadataUpdated",
+    "CommitmentSeriesRested",
+    "CommitmentSeriesResumed",
+    "CommitmentSeriesRetired",
+    "CommitmentCreated",
+    "ConsiderationDeclared",
+    "ValueDeclared",
+    "ConfirmerRuleSet",
+    "ClaimRequested",
+    "ClaimDeclined",
+    "CommitmentAccepted",
+    "ExchangeAccepted",
+    "ContributorAdded",
+    "ContributorRemoved",
+    "ContributorRequirementAssigned",
+    "ContributorRosterFrozen",
+    "WorkLinked",
+    "WorkUnlinked",
+    "ApprovedWorkCounted",
+    "ApprovedWorkReversed",
+    "EvidenceAttached",
+    "AssessmentAttached",
+    "CommitmentReadyForConfirmation",
+    "ConfirmationRecorded",
+    "CommitmentFulfilled",
+    "CommitmentCancelled",
+    "CommitmentExpired",
+    "CommitmentDisputed",
+    "DisputeResolved",
+    "ConsiderationPaid",
+    "ModuleDependencyUpdated",
+    "ModuleSchemaUIDUpdated",
+    "ModulePauseStatusChanged",
+  ]),
+  CommitmentRegistry: new Set([
+    "ModuleUpdated",
+    "ClassRegistered",
+    "ProviderOpenCommitmentCapUpdated",
+    "UnitsCommitted",
+    "UnitsReleased",
+    "UnitsFulfilled",
+  ]),
+  // Green Goods' own Arbitrum settlement command state (registers #90/#91). The boundary this
+  // gate protects — no EAS re-indexing, no raw Celo/G$ transfer indexing — is unchanged: these
+  // events are the module's command/acknowledgment lifecycle, not token movement observation.
+  SettlementModule: new Set([
+    "SettlementDeploymentPinned",
+    "FundingConfigurationLocked",
+    "FundingPledged",
+    "FundingDepositRecorded",
+    "FundingConsumed",
+    "FundingWithdrawn",
+    "SettlementAccountRegistered",
+    "SettlementRecoveryUpdated",
+    "SettlementAccountStatusChanged",
+    "CcipRouteUpdated",
+    "GardenerDeliveryStatusChanged",
+    "BatchSizeLimitUpdated",
+    "DispatcherUpdated",
+    "FeeReserveMinimumUpdated",
+    "HatsModuleUpdated",
+    "CommitmentPoolingModuleUpdated",
+    "CreditRegistryUpdated",
+    "PausedSet",
+    "CommitmentPayoutPlanCreated",
+    "ContributorPayoutSet",
+    "CommitmentPayoutSnapshotCommitted",
+    "CommitmentPayoutPlanFinalized",
+    "DisbursementQueued",
+    "LoanPrincipalQueued",
+    "BatchCreated",
+    "SettlementCommandDispatched",
+    "SettlementCommandRetried",
+    "SettlementAcknowledged",
+    "DuplicateAcknowledgmentIgnored",
+    "StaleAcknowledgmentIgnored",
+    "StrandedSubjectFailed",
+    "DisbursementRequeued",
+    "DisbursementCancelled",
+    "BatchCancelled",
+    "FeeReserveFunded",
+    "ExcessFeesWithdrawn",
+  ]),
+  CreditRegistry: new Set([
+    "CreditRegistryInitialized",
+    "PoolCreditConfigured",
+    "ExecutorUpdated",
+    "LoanRequested",
+    "LoanApproved",
+    "LoanDisbursed",
+    "RepaymentRecorded",
+    "LoanRepaid",
+    "LoanDefaulted",
+    "LoanCancelled",
+    "HatsModuleUpdated",
+    "CommitmentPoolingModuleUpdated",
+    "SettlementModuleUpdated",
+    "PausedSet",
+  ]),
+  // Executor protocol events describe Green Goods command execution and acknowledgment state.
+  // The production Celo deployment is pinned in the 42220 chain block below.
+  CeloSettlementExecutor: new Set([
+    "ExecutorDeploymentPinned",
+    "SourcePeerUpdated",
+    "GardenRouteConfigured",
+    "GardenRouteStatusChanged",
+    "CapsUpdated",
+    "FeePolicyUpdated",
+    "PeriodicCapUpdated",
+    "AcknowledgmentFeeReserveMinimumUpdated",
+    "AcknowledgmentFeeReserveFunded",
+    "ExcessAcknowledgmentFeesWithdrawn",
+    "PausedSet",
+    "SettlementExecutionStored",
+    "DuplicateSettlementMessage",
+    "AcknowledgmentSent",
+    "AcknowledgmentDeferred",
+  ]),
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
+const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
+  [
+    42161,
+    new Set([
+      "ActionRegistry",
+      "GardenToken",
+      "GardenAccount",
+      "KarmaGAPModule",
+      "HatsModule",
+      "WorkApprovalResolver",
+      "OctantModule",
+      "OctantVault",
+      "YieldSplitter",
+      "HypercertMinter",
+      "GreenWill",
+      "CookieJarFactory",
+      "CommitmentPoolingModule",
+      "CommitmentRegistry",
+      "SettlementModule",
+      "CreditRegistry",
+    ]),
+  ],
+  [
+    11155111,
+    new Set([
+      "ActionRegistry",
+      "GardenToken",
+      "GardenAccount",
+      "HatsModule",
+      "OctantModule",
+      "OctantVault",
+      "YieldSplitter",
+      "HypercertMinter",
+      "CookieJarFactory",
+      "CreditRegistry",
+    ]),
+  ],
+  [42220, new Set(["CeloSettlementExecutor"])],
+]);
 const REQUIRED_CHAIN_BOUNDARIES = new Map([
   [42161, { startBlock: 433_713_812, endBlock: undefined }],
   [11155111, { startBlock: 10_243_363, endBlock: undefined }],
+  [42220, { startBlock: 74_691_430, endBlock: undefined }],
 ]);
 
 const DISALLOWED_SCHEMA_ENTITIES = [
@@ -138,6 +317,8 @@ async function main() {
   }
 
   const chains = Array.isArray(config?.chains) ? config.chains : [];
+  errors.push(...validatePinnedPoolingContracts(chains));
+  errors.push(...validateKarmaGapBoundary(chains));
   if (chains.length !== REQUIRED_CHAIN_BOUNDARIES.size) {
     errors.push(
       `Expected ${REQUIRED_CHAIN_BOUNDARIES.size} configured chains, found ${chains.length}`
@@ -147,6 +328,7 @@ async function main() {
   for (const chain of chains) {
     const chainId = Number(chain?.id);
     const requiredBoundary = REQUIRED_CHAIN_BOUNDARIES.get(chainId);
+    const allowedContractsForChain = ALLOWED_CONTRACTS_BY_CHAIN.get(chainId);
     const chainContracts = Array.isArray(chain?.contracts) ? chain.contracts : [];
 
     if (!requiredBoundary) {
@@ -170,19 +352,30 @@ async function main() {
       const name = String(chainContract?.name || "");
       if (!ALLOWED_CONTRACTS.has(name)) {
         errors.push(`Chain ${chainId} includes disallowed contract: ${name}`);
+      } else if (!allowedContractsForChain?.has(name)) {
+        errors.push(`Chain ${chainId} includes contract outside its chain allowlist: ${name}`);
       }
     }
 
-    const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
-    if (!octantVault) {
-      errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);
-    } else if (Object.hasOwn(octantVault, "address")) {
-      errors.push(`Chain ${chainId} OctantVault must omit address for dynamic registration`);
-    }
+    if (chainId !== 42220) {
+      const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
+      if (!octantVault) {
+        errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);
+      } else if (Object.hasOwn(octantVault, "address")) {
+        errors.push(`Chain ${chainId} OctantVault must omit address for dynamic registration`);
+      }
 
-    const gardenAccount = chainContracts.find((contract) => contract?.name === "GardenAccount");
-    if (!gardenAccount?.address) {
-      errors.push(`Chain ${chainId} is missing the seeded GardenAccount implementation address`);
+      const gardenAccount = chainContracts.find((contract) => contract?.name === "GardenAccount");
+      if (!gardenAccount?.address) {
+        errors.push(`Chain ${chainId} is missing the seeded GardenAccount implementation address`);
+      }
+    } else {
+      const executor = chainContracts.find(
+        (contract) => contract?.name === "CeloSettlementExecutor"
+      );
+      if (!executor?.address) {
+        errors.push("Chain 42220 is missing the CeloSettlementExecutor deployment address");
+      }
     }
 
     const greenWill = chainContracts.find((contract) => contract?.name === "GreenWill");

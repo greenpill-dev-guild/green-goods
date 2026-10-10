@@ -42,6 +42,10 @@ const READY_CONTRACTS = {
   hypercertsModule: "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0" as Address,
   strategyHypercertFractionOffer: "0xecab24cade0261fc6513ca13bb3d10f760af3da8" as Address,
   greenWill: VALID_ADDRESS,
+  commitmentPoolingModule: VALID_ADDRESS,
+  commitmentRegistry: VALID_ADDRESS,
+  settlementModule: VALID_ADDRESS,
+  celoSettlementExecutor: VALID_ADDRESS,
 } satisfies NetworkContracts;
 
 describe("marketplace readiness", () => {

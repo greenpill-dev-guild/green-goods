@@ -1,3 +1,5 @@
+/** @vitest-environment jsdom */
+// jsdom pin (happy-dom A/B): asserts an inline var(--color-primary-on-surface) colour; happy-dom resolves the custom property to empty.
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -97,6 +99,100 @@ describe("toastService auto-dismiss (service-owned timers)", () => {
     walletProgressToasts.uploading();
     vi.advanceTimersByTime(20_001);
     expect(dismissSpy).toHaveBeenCalledWith("wallet-submission");
+  });
+
+  it("renders actions with the shared green text-button treatment and preserves activation", () => {
+    const onClick = vi.fn();
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({
+        id: "action",
+        message: "Review the pending work.",
+        action: {
+          label: "Review Pending Work from This Garden",
+          onClick,
+          dismissOnClick: true,
+        },
+      });
+    });
+
+    const action = screen.getByRole("button", {
+      name: "Review Pending Work from This Garden",
+    });
+    expect(action).toHaveClass("gg-button");
+    expect(action).toHaveAttribute("data-emphasis", "tertiary");
+    expect(action).toHaveAttribute("data-size", "sm");
+    expect(action).toHaveStyle({
+      color: "var(--color-primary-on-surface)",
+      overflowWrap: "anywhere",
+      whiteSpace: "normal",
+    });
+
+    fireEvent.click(action);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(dismissSpy).toHaveBeenCalledWith("action");
+  });
+
+  it("puts the one status icon on the title's line and runs the message below it", () => {
+    render(<Toaster />);
+
+    act(() => {
+      toastService.error({
+        id: "anatomy",
+        title: "Couldn't add proof",
+        message: "It's still saved on this phone. Try again here or from Your Work.",
+      });
+    });
+
+    const body = screen.getByTestId("toast-content");
+    const titleLine = screen.getByText("Couldn't add proof").parentElement;
+    // One icon, beside the title: the library's own icon column stays empty.
+    expect(body.querySelectorAll("svg")).toHaveLength(1);
+    expect(titleLine?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    // The message is the body's own row, so it spans the toast's width.
+    expect(
+      screen.getByText("It's still saved on this phone. Try again here or from Your Work.")
+        .parentElement
+    ).toBe(body);
+  });
+
+  it("does not add an action control to notifications without actions", () => {
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({ id: "no-action", message: "Nothing else is required." });
+    });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("keeps actions independently usable when notifications stack", () => {
+    const firstAction = vi.fn();
+    const secondAction = vi.fn();
+    render(<Toaster />);
+
+    act(() => {
+      toastService.info({
+        id: "stacked-first",
+        message: "First notification",
+        action: { label: "Open first", onClick: firstAction },
+      });
+      toastService.info({
+        id: "stacked-second",
+        message: "Second notification",
+        action: { label: "Open second", onClick: secondAction },
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open first" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open second" }));
+
+    expect(firstAction).toHaveBeenCalledTimes(1);
+    expect(secondAction).toHaveBeenCalledTimes(1);
+    expect(dismissSpy).toHaveBeenCalledWith("stacked-first");
+    expect(dismissSpy).toHaveBeenCalledWith("stacked-second");
   });
 
   describe("hover/focus pause (rendered)", () => {

@@ -69,6 +69,20 @@ export function addRecentRecipient(address: Address, note?: string, ens?: string
 }
 
 /**
+ * Forget every recent recipient. A different account signing in on the device
+ * must not be offered the last one's recipients (`useIdentityChangeReset`).
+ */
+export function clearRecentRecipients(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(RECENT_RECIPIENTS_KEY);
+  } catch {
+    // ignore — recents are best-effort
+  }
+  notifyRecentsChanged();
+}
+
+/**
  * Same-tab freshness counter. Increments whenever recents change in this tab.
  * Use as a `useMemo`/`useEffect` dependency. Mirrors `usePendingJoinsVersion`.
  */
@@ -87,5 +101,6 @@ export function useRecentRecipientsVersion(): number {
 /** Returns the recent recipients for this tab, fresh on same-tab writes. */
 export function useRecentRecipients(): RecentRecipient[] {
   const version = useRecentRecipientsVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   return useMemo(() => readRecents(), [version]);
 }

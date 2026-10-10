@@ -9,7 +9,6 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_ANVIL_WALLETS?: string;
   readonly VITE_ALCHEMY_API_KEY?: string;
   readonly VITE_ENABLE_SW_DEV?: string;
-  readonly VITE_ENABLE_RPC_BG_SYNC?: string;
   readonly VITE_USE_HASH_ROUTER?: string;
   readonly VITE_CLIENT_APP_URL?: string;
   readonly VITE_ADMIN_APP_URL?: string;

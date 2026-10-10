@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 
 import { validateAllowlist } from "../../lib/hypercerts";
+import { selectHypercertMetadataComplete } from "../../stores/transitions/hypercert-wizard";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
 
 export interface UseCreateHypercertWorkflowResult {
@@ -25,6 +26,8 @@ export function useCreateHypercertWorkflow(): UseCreateHypercertWorkflowResult {
   const workScopes = useHypercertWizardStore((state) => state.workScopes);
   const workTimeframeStart = useHypercertWizardStore((state) => state.workTimeframeStart);
   const workTimeframeEnd = useHypercertWizardStore((state) => state.workTimeframeEnd);
+  const impactTimeframeStart = useHypercertWizardStore((state) => state.impactTimeframeStart);
+  const impactTimeframeEnd = useHypercertWizardStore((state) => state.impactTimeframeEnd);
   const allowlist = useHypercertWizardStore((state) => state.allowlist);
 
   // Memoize allowlist validation since it's potentially expensive
@@ -36,15 +39,15 @@ export function useCreateHypercertWorkflow(): UseCreateHypercertWorkflowResult {
       switch (step) {
         case 1: // Attestations
           return selectedAttestationIds.length > 0;
-        case 2: // Metadata
-          // Required fields: title, workScopes, workTimeframeStart, workTimeframeEnd
-          // (as indicated by * in UI)
-          return (
-            title.trim().length > 0 &&
-            workScopes.length > 0 &&
-            workTimeframeStart > 0 &&
-            workTimeframeEnd > 0
-          );
+        case 2: // Metadata: the rule a restored draft is also held to.
+          return selectHypercertMetadataComplete({
+            title,
+            workScopes,
+            workTimeframeStart,
+            workTimeframeEnd,
+            impactTimeframeStart,
+            impactTimeframeEnd,
+          });
         case 3: // Distribution
           return allowlistValidation.valid;
         case 4: // Preview & Mint - always true (submit handled separately)
@@ -60,6 +63,8 @@ export function useCreateHypercertWorkflow(): UseCreateHypercertWorkflowResult {
       workScopes,
       workTimeframeStart,
       workTimeframeEnd,
+      impactTimeframeStart,
+      impactTimeframeEnd,
       allowlistValidation,
     ]
   );

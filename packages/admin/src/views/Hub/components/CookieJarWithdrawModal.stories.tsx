@@ -1,13 +1,13 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
+import { Button } from "@green-goods/shared/components/Button";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import {
-  Button,
-  formatTokenAmount,
   NativeSelect,
   Textarea,
   TextInput,
-  TxInlineFeedback,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/ControlPrimitives";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
@@ -57,7 +57,7 @@ function CookieJarWithdrawModalHarness({
     >
       <div className="space-y-4">
         <div>
-          <label htmlFor="mock-withdraw-jar" className="block text-sm font-medium text-text-strong">
+          <label htmlFor="mock-withdraw-jar" className="block body-sm font-medium text-text-strong">
             Cookie Jar
           </label>
           <NativeSelect
@@ -65,7 +65,7 @@ function CookieJarWithdrawModalHarness({
             surface="admin"
             value={jarAddress}
             onChange={(e) => setJarAddress(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
+            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 body-sm text-text-strong"
           >
             <option value="">--</option>
             {activeJars.map((jar) => (
@@ -79,7 +79,7 @@ function CookieJarWithdrawModalHarness({
         <div>
           <label
             htmlFor="mock-withdraw-amount"
-            className="block text-sm font-medium text-text-strong"
+            className="block body-sm font-medium text-text-strong"
           >
             Amount
           </label>
@@ -92,7 +92,7 @@ function CookieJarWithdrawModalHarness({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
+              className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 body-sm text-text-strong"
             />
             <AdminButton
               variant="outlined"
@@ -115,7 +115,7 @@ function CookieJarWithdrawModalHarness({
         <div>
           <label
             htmlFor="mock-withdraw-purpose"
-            className="block text-sm font-medium text-text-strong"
+            className="block body-sm font-medium text-text-strong"
           >
             Purpose
           </label>
@@ -125,13 +125,13 @@ function CookieJarWithdrawModalHarness({
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
             placeholder="Describe what these funds will be used for…"
-            className="mt-1.5 w-full resize-none rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
+            className="mt-1.5 w-full resize-none rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 body-sm text-text-strong"
             rows={2}
           />
         </div>
 
         <Button
-          variant="primary"
+          emphasis="primary"
           className="w-full"
           loading={isPending}
           disabled={!selected || amount.trim() === ""}

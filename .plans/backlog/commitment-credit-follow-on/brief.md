@@ -1,15 +1,15 @@
-# Commitment Credit Follow-on
+# Commitment Credit — August Companion
 
-**Slug**: `commitment-credit-follow-on`  
-**Stage**: `backlog`  
-**Priority**: `p2`
+**Slug**: `commitment-credit-follow-on`
+**Stage**: `backlog`
+**Priority**: `p1`
 
 ## Outcome
 
-Add a records-only, interest-free borrow-and-repay register after Commitment Pooling and settlement interfaces stabilize. The module records loan state and existing payment-rail references; it never custodies or transfers funds and never creates a personal credit score.
+Add a records-only, interest-free borrow-and-repay register against the merged Commitment Pooling and settlement interfaces. The module records loan state and authenticated or steward-attested payment-rail references; it never custodies or transfers funds and never creates a personal credit score.
 
 ## Activation boundary
 
-This is a blocked follow-on, not part of the August Commitment Pooling MVP. Activation requires an explicit scope unlock, revalidation against shipped pooling and settlement interfaces, current legal/operations review, and a fresh migration/deployment plan.
+The explicit scope unlock was granted 2026-08-01 (pooling plan register #73, Grassroots Economics review session). The three contracts dispatch gates cleared on 2026-08-09: stage 1 merged at `c60b38dea`, Afo approved the interest-free records-only legal/operations posture, and the revalidation in [spec.md](spec.md) froze the exact `LoanPrincipal` selector against the interfaces at branch HEAD `238e4e218`. This stage owns the contract implementation and proof only. Deployment targets, artifacts, recovery/courier paths, live configuration, and broadcast are stage 3 after this contracts increment merges.
 
-The detailed design is in [spec.md](spec.md). The original active hub now contains only a pointer to this backlog feature.
+The detailed design is in [spec.md](spec.md).

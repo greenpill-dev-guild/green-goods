@@ -3,7 +3,7 @@ applyTo: "packages/indexer/**"
 ---
 
 - The indexer owns protocol event indexing, not EAS attestations. Do not move EAS indexing into this package.
-- Every persisted entity needs a `chainId`, and entity IDs should include `chainId` to avoid cross-chain collisions.
+- Every persisted entity needs a `chainId`, and entity IDs should include `chainId` to avoid cross-chain collisions. The documented compatibility exception is `Garden.id`, which remains the bare GardenAccount address; use `chainId` for filtering and disambiguation.
 - When relationships change, update both sides of the relationship.
 - Schema and config changes are high-risk because generated code can drift silently. After touching `schema.graphql` or `config.yaml`, regenerate `.envio/` before trusting tests.
 - Review handler changes with codegen awareness: check entity shapes, chain-aware IDs, and relationship updates together.

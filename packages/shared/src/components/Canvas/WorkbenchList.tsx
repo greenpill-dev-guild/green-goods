@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export function WorkbenchList({
   children,
@@ -16,7 +16,7 @@ export function WorkbenchList({
         className
       )}
       style={{
-        boxShadow: "var(--edge-rest), var(--elevation-1)",
+        boxShadow: "var(--edge-rest), var(--m3-elevation-1)",
         ...style,
       }}
     >

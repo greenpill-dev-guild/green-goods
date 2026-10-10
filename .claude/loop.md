@@ -10,7 +10,7 @@ Run these checks and report a concise summary. Only flag issues, not passing che
 
 ## 1. Guidance Consistency
 ```!
-cd $CLAUDE_PROJECT_DIR && bun run check:codex-guidance 2>&1 | tail -5
+cd $CLAUDE_PROJECT_DIR && bun run check --only codex-guidance 2>&1 | tail -5
 ```
 
 ## 2. Stale References

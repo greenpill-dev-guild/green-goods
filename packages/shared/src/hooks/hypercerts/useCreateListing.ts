@@ -2,38 +2,30 @@
  * Create Listing Hook
  *
  * Two-phase listing creation:
- * 1. Build + sign EIP-712 maker ask order (gasless wallet popup)
+ * 1. Build + sign EIP-712 maker ask order (account signature prompt)
  * 2. Register on-chain via HypercertsModule.listForYield()
  *
  * @module hooks/hypercerts/useCreateListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { type Address, encodeFunctionData } from "viem";
-import { useWalletClient } from "wagmi";
+import { type Address } from "viem";
 import { toastService } from "../../components/Toast/toast.service";
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
-import { getChain } from "../../config/chains";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
-import {
-  buildMakerAsk,
-  getOrderNonces,
-  signMakerAsk,
-  validateOrder,
-} from "../../modules/marketplace";
-import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { getOrderNonces } from "../../modules/marketplace/client";
+import { buildMakerAsk, signMakerAsk, validateOrder } from "../../modules/marketplace/signing";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../../config/query-keys";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useIntl } from "react-intl";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export type ListingStep =
@@ -54,8 +46,9 @@ export interface UseCreateListingResult {
 }
 
 export function useCreateListing(gardenAddress?: Address): UseCreateListingResult {
-  const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const signer = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const [step, setStep] = useState<ListingStep>("idle");
@@ -63,8 +56,13 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const mutation = useMutation({
     mutationFn: async (params: CreateListingParams) => {
       if (!gardenAddress) throw new Error("Garden address required");
-      const signer = (smartAccountAddress || eoaAddress) as Address;
-      if (!signer) throw new Error("Connect a wallet first");
+      if (!signer || !sender)
+        throw new Error(
+          formatMessage({
+            id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      await sender.assertOwnership?.(signer, chainId);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -87,15 +85,11 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         throw new Error(`Order validation failed: ${validation.errors.join(", ")}`);
       }
 
-      // Step 2: Sign EIP-712 (gasless wallet popup)
+      // Step 2: Sign EIP-712 (account signature prompt)
       setStep("signing");
       logger.info("[useCreateListing] Requesting EIP-712 signature", { signer, chainId });
 
-      if (!walletClient) {
-        throw new Error("Wallet client not available for signing");
-      }
-      await ensureAppKitWalletChain(chainId);
-      const signature = await signMakerAsk(makerAsk, walletClient, chainId);
+      const signature = await signMakerAsk(makerAsk, sender, chainId);
 
       // Step 3: Register on-chain via HypercertsModule.listForYield()
       setStep("registering");
@@ -124,39 +118,21 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         additionalParameters: makerAsk.additionalParameters,
       };
 
-      const callData = encodeFunctionData({
+      const call = {
+        address: moduleAddress,
+        account: signer,
+        chainId,
         abi: HYPERCERTS_MODULE_ABI,
         functionName: "listForYield",
         args: [gardenAddress, params.hypercertId, makerAskStruct, signature],
-      });
+      };
 
       setStep("confirming");
 
-      if (smartAccountClient) {
-        assertLocalArbitrumForkSmartAccountsDisabled();
-
-        const hash = await smartAccountClient.sendUserOperation({
-          account: smartAccountClient.account,
-          calls: [{ to: moduleAddress, data: callData, value: 0n }],
-        });
-        await smartAccountClient.getUserOperationReceipt({ hash });
-      } else if (walletClient) {
-        await ensureAppKitWalletChain(chainId);
-        await assertLocalArbitrumForkWallet();
-
-        const txHash = await walletClient.sendTransaction({
-          to: moduleAddress,
-          data: callData,
-          account: signer,
-          chain: getChain(chainId),
-        });
-        await publicClient.waitForTransactionReceipt({
-          hash: txHash,
-          timeout: TX_RECEIPT_TIMEOUT_MS,
-        });
-      } else {
-        throw new Error("No wallet available for transaction");
-      }
+      const result = await sender.sendContractCall(call, {
+        assertOwnership: () => sender.assertOwnership?.(signer, chainId),
+      });
+      if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
 
       setStep("done");
       logger.info("[useCreateListing] Listing created successfully", {
@@ -179,10 +155,18 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       setStep("error");
 
       const { title, message, parsed } = parseAndFormatError(error);
-      const displayMessage = parsed.isKnown
-        ? message
-        : "Failed to create listing. Please try again.";
-      const displayTitle = parsed.isKnown ? title : "Listing failed";
+      const displayMessage =
+        error instanceof TransactionConfirmationPendingError
+          ? formatMessage({ id: "app.account.transactionPending" })
+          : parsed.isKnown
+            ? message
+            : "Failed to create listing. Please try again.";
+      const displayTitle =
+        error instanceof TransactionConfirmationPendingError
+          ? formatMessage({ id: "app.account.transactionSubmitted" })
+          : parsed.isKnown
+            ? title
+            : "Listing failed";
 
       logger.error("[useCreateListing] Failed to create listing", {
         gardenAddress,
@@ -210,7 +194,10 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     createListing: (params) => mutation.mutateAsync(params),
     step,
     isCreating: mutation.isPending,
-    error: mutation.error as Error | null,
+    error:
+      mutation.error instanceof TransactionConfirmationPendingError
+        ? new Error(formatMessage({ id: "app.account.transactionPending" }))
+        : (mutation.error as Error | null),
     reset,
   };
 }

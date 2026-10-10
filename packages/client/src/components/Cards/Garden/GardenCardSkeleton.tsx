@@ -1,6 +1,6 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
-import { Card } from "../Base/Card";
+import { Card } from "../Card";
 import { type GardenCardVariantProps, gardenCardVariants } from "./GardenCard";
 
 type GardenCardSkeletonProps = GardenCardVariantProps & {

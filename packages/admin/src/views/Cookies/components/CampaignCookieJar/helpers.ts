@@ -1,4 +1,4 @@
-import { type Address, type Garden } from "@green-goods/shared";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { parseUnits } from "viem";
 
 export const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";
@@ -31,7 +31,7 @@ export function gardensForAggregation(gardens: readonly Garden[]) {
   return gardens.map((garden) => ({
     id: garden.id,
     name: garden.name,
-    operators: garden.operators,
+    stewards: garden.stewards,
   }));
 }
 

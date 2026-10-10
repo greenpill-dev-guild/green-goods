@@ -5,36 +5,38 @@
  * `$gardenId: String!` to match the indexer's `Hypercert.garden: String!`
  * column. A prior `$gardenId: ID!` declaration was rejected by Hasura
  * ("variable 'gardenId' is declared as 'ID!', but used where 'String' is
- * expected") and broke garden hypercert loading on every garden the operator
+ * expected") and broke garden hypercert loading on every garden the steward
  * switched to. Mocked-client unit tests don't exercise the real GraphQL
  * validator, so this test guards the query document string directly.
  */
 
+import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
+import type { RequestDocument } from "graphql-request";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const { queryMock } = vi.hoisted(() => ({ queryMock: vi.fn() }));
-
-vi.mock("../../../modules/data/graphql-client", () => ({
-  greenGoodsIndexer: { query: queryMock },
-  GQLClient: class GQLClient {
-    query = vi.fn();
-  },
-}));
-
-vi.mock("../../../modules/app/logger", () => ({
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-}));
+import { logger } from "../../../modules/app/logger";
+import type { GraphQLReader } from "../../../modules/data/graphql-client";
 
 import { getGardenHypercerts } from "../../../modules/data/hypercerts-fetch";
 
 describe("getGardenHypercerts query contract (PRD-559 regression)", () => {
+  const queryMock = vi.fn();
+  const reader: GraphQLReader = {
+    async query<TData, TVariables extends Record<string, unknown> = Record<string, unknown>>(
+      query: TypedDocumentNode<TData, TVariables> | RequestDocument,
+      variables?: TVariables,
+      source?: string
+    ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }> {
+      queryMock(query, variables, source);
+      return { data: { Hypercert: [] } as TData, error: undefined };
+    },
+  };
+
   beforeEach(() => {
     queryMock.mockReset();
-    queryMock.mockResolvedValue({ data: { Hypercert: [] }, error: null });
   });
 
   it("declares $gardenId as String! to match the indexer's Hypercert.garden column", async () => {
-    await getGardenHypercerts("0xGardenAddress", 42161);
+    await getGardenHypercerts("0xGardenAddress", 42161, undefined, 50, reader);
 
     expect(queryMock).toHaveBeenCalledTimes(1);
     const [query, variables, source] = queryMock.mock.calls[0] as [
@@ -48,5 +50,40 @@ describe("getGardenHypercerts query contract (PRD-559 regression)", () => {
     expect(query).not.toMatch(/\$gardenId:\s*ID!/);
     expect(variables).toMatchObject({ gardenId: "0xGardenAddress", chainId: 42161 });
     expect(source).toBe("getGardenHypercerts");
+  });
+});
+
+describe("getGardenHypercerts read failures", () => {
+  type ReadResult = { data: unknown; error?: undefined } | { data?: undefined; error: Error };
+
+  function readerReturning(result: ReadResult): GraphQLReader {
+    return {
+      async query<TData>() {
+        return result as { data: TData; error?: undefined } | { data?: undefined; error: Error };
+      },
+    };
+  }
+
+  // The Hub and the garden Impact tab say "none yet" for an empty list and
+  // "could not load" for a failed read. A failure that resolved to an empty list
+  // told a steward the garden had no hypercerts during an indexer outage.
+  it("tells a failed read from a garden with no hypercerts", async () => {
+    const logged = vi.spyOn(logger, "error").mockImplementation(() => undefined);
+    const failure = new Error("indexer unavailable");
+
+    await expect(
+      getGardenHypercerts("0xGarden", 42161, undefined, 50, readerReturning({ error: failure }))
+    ).rejects.toBe(failure);
+    await expect(
+      getGardenHypercerts(
+        "0xGarden",
+        42161,
+        undefined,
+        50,
+        readerReturning({ data: { Hypercert: [] } })
+      )
+    ).resolves.toEqual([]);
+
+    logged.mockRestore();
   });
 });

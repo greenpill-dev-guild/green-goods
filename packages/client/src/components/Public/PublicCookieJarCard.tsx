@@ -1,82 +1,45 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import {
-  type Address,
-  Alert,
-  Button,
-  type CampaignCookieJarCampaign,
   classifyTxError,
-  cn,
-  formatTokenAmount,
-  FormattedAmountInput,
-  ImageWithFallback,
   isMeaningfulTxErrorMessage,
-  type PublicGardenSummary,
-  resolveIPFSUrl,
-  TransactionSuccessAffordance,
-  TxInlineFeedback,
-  useAuth,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  FormattedAmountInput,
+  useFormattedAmountInput,
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import {
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
-  useFormattedAmountInput,
-  useUser,
-} from "@green-goods/shared";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+} from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
-import { WalletConnectButton } from "@/components/WalletConnectButton";
-
+import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import {
+  EDITORIAL_COOKIE_JAR_CARD_FRAME,
+  EditorialCookieJarActionsSkeleton,
+  EditorialSkeleton,
+  EditorialStatSkeleton,
+} from "@/components/Public/atoms";
+import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
-
 const STRICT_PURPOSE_MIN_LENGTH = 27;
 const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
-
-export type CookieJarStatus =
-  | { kind: "for-you-claimable"; bucket: "for-you" }
-  | { kind: "for-you-cooldown"; bucket: "for-you"; nextClaimAt: number }
-  | { kind: "for-you-claimed"; bucket: "for-you" }
-  | { kind: "needs-funding"; bucket: "active" }
-  | { kind: "claims-paused"; bucket: "active" }
-  | { kind: "active-open"; bucket: "active" }
-  | { kind: "active-not-eligible"; bucket: "active" }
-  | { kind: "loading"; bucket: "unresolved" }
-  | { kind: "error"; bucket: "unresolved" };
-
-interface JarLikeForStatus {
-  isPaused: boolean;
-  balance: bigint;
-  isEligible: boolean;
-  canClaimNow: boolean;
-  nextClaimAt: number | null;
-  oneTimeWithdrawal: boolean;
-  totalWithdrawn: bigint;
-}
-
-export function classifyCookieJarStatus(
-  jar: JarLikeForStatus | null | undefined,
-  options: { hasError: boolean; isConnected: boolean }
-): CookieJarStatus {
-  if (options.hasError) return { kind: "error", bucket: "unresolved" };
-  if (!jar) return { kind: "loading", bucket: "unresolved" };
-
-  if (jar.isPaused) return { kind: "claims-paused", bucket: "active" };
-  if (jar.balance === 0n) return { kind: "needs-funding", bucket: "active" };
-
-  if (options.isConnected && jar.isEligible) {
-    if (jar.canClaimNow) return { kind: "for-you-claimable", bucket: "for-you" };
-    if (jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n) {
-      return { kind: "for-you-claimed", bucket: "for-you" };
-    }
-    if (jar.nextClaimAt && jar.nextClaimAt * 1000 > Date.now()) {
-      return { kind: "for-you-cooldown", bucket: "for-you", nextClaimAt: jar.nextClaimAt };
-    }
-  }
-
-  if (options.isConnected && !jar.isEligible) {
-    return { kind: "active-not-eligible", bucket: "active" };
-  }
-  return { kind: "active-open", bucket: "active" };
-}
 
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
@@ -166,7 +129,11 @@ export function PublicCookieJarCard({
   const intl = useIntl();
   const rootRef = useRef<HTMLElement>(null);
   const { jar, isLoading, error, hasDetailReadFailure } = useCampaignCookieJar(campaign.address);
-  const status = classifyCookieJarStatus(jar, { hasError: Boolean(error), isConnected });
+  const status = classifyCookieJarStatus(jar, {
+    hasError: Boolean(error),
+    isConnected,
+    isLoading,
+  });
 
   const metadata = jar?.metadata ?? campaign.metadata;
   const title = metadata?.title ?? campaign.title ?? campaign.label;
@@ -222,10 +189,7 @@ export function PublicCookieJarCard({
           defaultMessage: "Not on this list",
         });
       case "loading":
-        return intl.formatMessage({
-          id: "public.cookies.status.loading",
-          defaultMessage: "Reading...",
-        });
+        return null;
       case "error":
         return intl.formatMessage({
           id: "public.cookies.status.error",
@@ -234,7 +198,7 @@ export function PublicCookieJarCard({
     }
   })();
 
-  const heroAmount: { value: string; label: string } = (() => {
+  const heroAmount: { value: ReactNode; label: ReactNode } = (() => {
     if (status.kind === "for-you-claimable" && jar) {
       return {
         value: formatTokenAmount(getClaimableAmount(jar), decimals, 4),
@@ -257,7 +221,7 @@ export function PublicCookieJarCard({
       return {
         value: formatTokenAmount(jar.totalWithdrawn, decimals, 4),
         label: intl.formatMessage(
-          { id: "public.cookies.metric.youClaimed", defaultMessage: "{symbol} claimed" },
+          { id: "public.cookies.metric.youClaimed", defaultMessage: "{symbol} you've claimed" },
           { symbol }
         ),
       };
@@ -272,11 +236,15 @@ export function PublicCookieJarCard({
       };
     }
     return {
-      value: isLoading ? "..." : "?",
-      label: intl.formatMessage({
-        id: "public.cookies.metric.unknown",
-        defaultMessage: "balance unavailable",
-      }),
+      value: isLoading ? <EditorialStatSkeleton className="h-[1lh] w-24" /> : "?",
+      label: isLoading ? (
+        <EditorialSkeleton className="h-[1lh] w-32" />
+      ) : (
+        intl.formatMessage({
+          id: "public.cookies.metric.unknown",
+          defaultMessage: "balance unavailable",
+        })
+      ),
     };
   })();
 
@@ -285,7 +253,7 @@ export function PublicCookieJarCard({
     if (jar.accessType === "allowlist") {
       return intl.formatMessage({
         id: "public.cookies.access.allowlist",
-        defaultMessage: "Operator allowlist",
+        defaultMessage: "Steward allowlist",
       });
     }
     if (jar.accessType === "erc721" || jar.accessType === "erc1155") {
@@ -311,7 +279,8 @@ export function PublicCookieJarCard({
       id={`cookie-jar-${campaign.slug}`}
       aria-label={title}
       className={cn(
-        "flex h-full flex-col gap-4 border-t border-stroke-soft-200 pt-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
+        EDITORIAL_COOKIE_JAR_CARD_FRAME,
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
         isHighlighted && "ring-2 ring-primary-action ring-offset-2"
       )}
     >
@@ -322,7 +291,7 @@ export function PublicCookieJarCard({
             STATUS_PILL_CLASSES[status.kind]
           )}
         >
-          {statusLabel}
+          {isLoading ? <EditorialSkeleton className="h-[1lh] w-20 rounded-full" /> : statusLabel}
         </span>
         {campaign.createdAt ? (
           <span className="text-xs text-text-soft-400">
@@ -383,6 +352,7 @@ export function PublicCookieJarCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-soft-400">
+        {isLoading && <EditorialSkeleton className="h-4 w-24" />}
         {accessLabel ? <span>{accessLabel}</span> : null}
         {accessLabel && partialReadHint ? (
           <span
@@ -416,18 +386,14 @@ export function PublicCookieJarCard({
 
       {jar ? (
         <CampaignCookieJarInlineActions jar={jar} />
+      ) : isLoading ? (
+        <EditorialCookieJarActionsSkeleton isConnected={isConnected} />
       ) : (
         <div className="mt-auto rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm text-text-sub-600">
-          {isLoading
-            ? intl.formatMessage({
-                id: "public.cookies.status.loading",
-                defaultMessage: "Reading...",
-              })
-            : intl.formatMessage({
-                id: "public.cookies.loadFailed",
-                defaultMessage:
-                  "This cookie jar could not be loaded. Check the link and try again.",
-              })}
+          {intl.formatMessage({
+            id: "public.cookies.loadFailed",
+            defaultMessage: "This cookie jar could not be loaded. Check the link and try again.",
+          })}
         </div>
       )}
     </article>
@@ -440,6 +406,7 @@ function CampaignCookieJarInlineActions({
   jar: NonNullable<ReturnType<typeof useCampaignCookieJar>["jar"]>;
 }) {
   const { formatMessage, locale } = useIntl();
+  const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const { loginWithWallet } = useAuth();
   const claimId = useId();
@@ -474,6 +441,17 @@ function CampaignCookieJarInlineActions({
 
   const claimTooLarge = !fixedClaim && parsedClaim > 0n && parsedClaim > jar.maxWithdrawal;
   const claimExceedsBalance = parsedClaim > jar.balance;
+  const claimErrorMessage = claimTooLarge
+    ? formatMessage(
+        { id: "public.cookies.claimTooLarge", defaultMessage: "Maximum claim is {amount}." },
+        { amount: formatDisplayAmount(jar.maxWithdrawal, decimals, symbol) }
+      )
+    : claimExceedsBalance
+      ? formatMessage({
+          id: "public.cookies.claimExceedsBalance",
+          defaultMessage: "The jar does not have enough funds for that claim.",
+        })
+      : claimInputErrorMessage;
   const claimDisabled =
     !primaryAddress ||
     !jar.isEligible ||
@@ -487,6 +465,7 @@ function CampaignCookieJarInlineActions({
     !primaryAddress || parsedDeposit <= 0n || Boolean(depositError) || depositMutation.isPending;
 
   const { data: walletBalance } = useBalance({
+    chainId,
     address: primaryAddress as Address | undefined,
     token: jar.assetAddress,
     query: { enabled: Boolean(primaryAddress && jar.assetAddress) },
@@ -561,14 +540,28 @@ function CampaignCookieJarInlineActions({
 
   if (!primaryAddress) {
     return (
-      <div className="mt-auto rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4">
+      <div className="mt-auto grid gap-3 border-t border-stroke-soft-200 pt-4">
         <p className="text-sm leading-[1.5] text-text-sub-600">
           {formatMessage({
             id: "public.cookies.connectHint",
             defaultMessage: "Connect a wallet to check claim access and add funds.",
           })}
         </p>
-        <WalletConnectButton className="mt-4" />
+        <WalletConnectButton
+          emphasis="secondary"
+          className="w-full"
+          connectLabel={formatMessage({
+            id: "public.cookies.checkClaimAccess",
+            defaultMessage: "Check claim access",
+          })}
+        />
+        <WalletConnectButton
+          className="w-full"
+          connectLabel={formatMessage({
+            id: "public.cookies.addFunds",
+            defaultMessage: "Add funds",
+          })}
+        />
       </div>
     );
   }
@@ -617,39 +610,26 @@ function CampaignCookieJarInlineActions({
         <ClaimEligibilityNote jar={jar} nextClaimLabel={nextClaimLabel} />
 
         {!fixedClaim ? (
-          <label className="block" htmlFor={claimId}>
-            <span className="text-sm font-medium text-text-strong-950">
+          <div>
+            <label htmlFor={claimId} className="text-sm font-medium text-text-strong-950">
               {formatMessage({
                 id: "public.cookies.amountToClaim",
                 defaultMessage: "Amount to claim",
               })}
-            </span>
+            </label>
             <FormattedAmountInput
               id={claimId}
               value={claimAmount}
               onValueChange={setClaimAmount}
-              inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+              error={claimErrorMessage}
+              errorClassName="mt-3 text-sm text-error-dark"
+              containerClassName="mt-2"
               placeholder="0.00"
             />
-          </label>
-        ) : null}
-
-        {claimInputErrorMessage || claimTooLarge || claimExceedsBalance ? (
-          <p className="text-sm text-error-dark">
-            {claimTooLarge
-              ? formatMessage(
-                  {
-                    id: "public.cookies.claimTooLarge",
-                    defaultMessage: "Maximum claim is {amount}.",
-                  },
-                  { amount: formatDisplayAmount(jar.maxWithdrawal, decimals, symbol) }
-                )
-              : claimExceedsBalance
-                ? formatMessage({
-                    id: "public.cookies.claimExceedsBalance",
-                    defaultMessage: "The jar does not have enough funds for that claim.",
-                  })
-                : claimInputErrorMessage}
+          </div>
+        ) : claimErrorMessage ? (
+          <p role="alert" className="text-sm text-error-dark">
+            {claimErrorMessage}
           </p>
         ) : null}
 
@@ -661,27 +641,29 @@ function CampaignCookieJarInlineActions({
         >
           {formatMessage({
             id: "public.cookies.claimCookie",
-            defaultMessage: "Claim cookie",
+            defaultMessage: "Claim Cookie",
           })}
         </Button>
       </div>
 
       <div className="grid gap-3 border-t border-stroke-soft-200 pt-4">
-        <label className="block" htmlFor={depositId}>
-          <span className="text-sm font-medium text-text-strong-950">
+        <div>
+          <label htmlFor={depositId} className="text-sm font-medium text-text-strong-950">
             {formatMessage({
               id: "public.cookies.depositAmount",
               defaultMessage: "Deposit amount",
             })}
-          </span>
+          </label>
           <FormattedAmountInput
             id={depositId}
             value={depositAmount}
             onValueChange={setDepositAmount}
-            inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+            error={depositErrorMessage}
+            errorClassName="mt-3 text-sm text-error-dark"
+            containerClassName="mt-2"
             placeholder="0.00"
           />
-        </label>
+        </div>
 
         {walletBalance ? (
           <p className="text-xs text-text-soft-400">
@@ -695,12 +677,9 @@ function CampaignCookieJarInlineActions({
           </p>
         ) : null}
 
-        {depositErrorMessage ? (
-          <p className="text-sm text-error-dark">{depositErrorMessage}</p>
-        ) : null}
-
         <Button
           onClick={handleDeposit}
+          emphasis="secondary"
           disabled={depositDisabled}
           loading={depositMutation.isPending}
           className="w-full"
@@ -732,66 +711,46 @@ function ClaimEligibilityNote({
 }) {
   const { formatMessage } = useIntl();
 
-  if (jar.isPaused) {
+  const restriction = !jar.isEligible
+    ? formatMessage({
+        id: "public.cookies.notEligible",
+        defaultMessage:
+          "This jar is for garden stewards on the campaign allowlist. Your wallet is not on the list yet.",
+      })
+    : jar.balance === 0n
+      ? formatMessage({
+          id: "public.cookies.needsFunding",
+          defaultMessage: "This jar needs funds before claims can go out.",
+        })
+      : jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n
+        ? formatMessage({
+            id: "public.cookies.alreadyClaimed",
+            defaultMessage: "This wallet has already claimed from this jar.",
+          })
+        : nextClaimLabel
+          ? formatMessage(
+              {
+                id: "public.cookies.nextClaim",
+                defaultMessage: "Next claim window opens at {time}.",
+              },
+              { time: nextClaimLabel }
+            )
+          : null;
+  if (jar.isPaused || !restriction) {
     return (
-      <Alert variant="warning" className="p-3">
+      <Alert variant={jar.isPaused ? "warning" : "success"} className="p-3">
         {formatMessage({
-          id: "public.cookies.paused",
-          defaultMessage: "Claims are paused for this jar.",
+          id: jar.isPaused ? "public.cookies.paused" : "public.cookies.ready",
+          defaultMessage: jar.isPaused
+            ? "Claims are paused for this jar."
+            : "You are on the list. Claim when you are ready.",
         })}
       </Alert>
     );
   }
-  if (!jar.isEligible) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.notEligible",
-          defaultMessage:
-            "This jar is for garden operators on the campaign allowlist. Your wallet is not on the list yet.",
-        })}
-      </p>
-    );
-  }
-  if (jar.balance === 0n) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.needsFunding",
-          defaultMessage: "This jar needs funds before claims can go out.",
-        })}
-      </p>
-    );
-  }
-  if (jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.alreadyClaimed",
-          defaultMessage: "This wallet has already claimed from this jar.",
-        })}
-      </p>
-    );
-  }
-  if (nextClaimLabel) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage(
-          {
-            id: "public.cookies.nextClaim",
-            defaultMessage: "Next claim window opens at {time}.",
-          },
-          { time: nextClaimLabel }
-        )}
-      </p>
-    );
-  }
   return (
-    <Alert variant="success" className="p-3">
-      {formatMessage({
-        id: "public.cookies.ready",
-        defaultMessage: "You are on the list. Claim when you are ready.",
-      })}
-    </Alert>
+    <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
+      {restriction}
+    </p>
   );
 }

@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  * The size scale collapsed to three tiers (sm | md | lg); `xl`/`2xl` no longer
  * exist and an out-of-scale size fails silently at runtime (sizeClasses[size]
  * is undefined → the dialog loses its width constraint). The admin package has
- * no whole-package tsc gate wired into `bun build` (its tsconfig.json is
+ * no whole-package tsc gate wired into `bun run build` (its tsconfig.json is
  * solution-style with `files: []`), so this guard is the durable check that:
  *
  *   1. every `<AdminDialog` consumer passes a size within the shipped scale,

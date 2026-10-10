@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Validate .env against .env.schema.
+ * Validate .env against env.schema.
  *
- * Replaces varlock's startup validation. Reads .env.schema as the key contract,
+ * Replaces varlock's startup validation. Reads env.schema as the key contract,
  * checks .env has every required key non-empty. Never prints values.
  *
  * Exit 0 = valid. Exit 1 = missing/empty required keys.
@@ -25,11 +25,11 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const schemaPath = path.join(projectRoot, ".env.schema");
+const schemaPath = path.join(projectRoot, "env.schema");
 const envPath = path.join(projectRoot, ".env");
 
-// Conservative required list: only the keys that MUST be present for `bun run dev:web`
-// to function. It remains a fallback until `.env.schema` carries `@required-in dev`.
+// Conservative required list: only the keys that MUST be present for `bun run dev -- web`
+// to function. It remains a fallback until `env.schema` carries `@required-in dev`.
 const baselineRequiredKeys = new Set([
   "APP_ENV",
   "VITE_CHAIN_ID",
@@ -83,14 +83,14 @@ function main() {
 
   const schema = parseSchema(schemaPath);
   if (!schema) {
-    console.error("error: .env.schema not found at", schemaPath);
+    console.error("error: env.schema not found at", schemaPath);
     process.exit(1);
   }
 
   const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
   if (!env) {
     console.error("error: .env not found.");
-    console.error("  fix: Run `bun run env:template:init` then `bun run env:sync` to create one.");
+    console.error("  fix: Run `node scripts/dev/env-template-init.js` then `bun run env:sync` to create one.");
     process.exit(1);
   }
 
@@ -98,7 +98,7 @@ function main() {
   const sourceLabel = options.envSource === "process" ? "process environment" : ".env";
 
   if (missing.length === 0 && empty.length === 0) {
-    console.log(`env-check: ${sourceLabel} satisfies .env.schema (${schema.length} keys checked).`);
+    console.log(`env-check: ${sourceLabel} satisfies env.schema (${schema.length} keys checked).`);
     process.exit(0);
   }
 
@@ -116,7 +116,7 @@ function main() {
   console.error("");
   if (options.envSource === "file") {
     console.error("Fix:");
-    console.error("  - Add the missing keys to .env.template (with op:// refs or plain values)");
+    console.error("  - Add the missing keys to env.template (with op:// refs or plain values)");
     console.error("  - Run `bun run env:sync` to materialize");
     console.error("  - Or set the value directly in .env if it's a personal local credential");
   } else {

@@ -19,6 +19,11 @@ const TITLE_BUCKETS = [
   { bucket: "garden", pattern: /^Admin\/Workspaces\/Garden$/ },
   { bucket: "community", pattern: /^Admin\/Workspaces\/Community$/ },
   { bucket: "actions", pattern: /^Admin\/Workspaces\/Actions$/ },
+  // Commitment pooling (PR #752). These titles sit outside Admin/Workspaces, so
+  // without their own patterns bucketFor() returns null and every pooling story
+  // is silently skipped. Consumed by the Commitment Loop Walk artifact build.
+  { bucket: "pooling", pattern: /^Admin\/Pool\// },
+  { bucket: "pooling", pattern: /^Admin\/(Hub\/HubConfirmQueue|Community\/CommunityPools)$/ },
   { bucket: "primitives", pattern: /^Admin\/Primitives\// },
   { bucket: "shell", pattern: /^Admin\/Shell\/CanvasLayout$/ },
   {
@@ -65,6 +70,25 @@ const variantMode = flags.variants === "all" ? "all" : "first";
 const titleFilter = typeof flags.titles === "string" ? flags.titles.toLowerCase() : null;
 const themes = (flags.themes ?? "light,dark").split(",");
 const port = Number(flags.port ?? 6789);
+// Workspace stories shoot fullPage by default, which the design-export lane relies on.
+// Pass --route-fullpage=false for a viewport-sized shot instead: withCanvasFrame's
+// min-h-[560px] is a *min* height, so against an auto-height Storybook root the
+// cockpit's internal scroller never engages and fullPage stretches the shell to
+// 2000-3000px — unfaithful to a fixed shell, and 2-3x the bytes.
+const routeFullPage = String(flags["route-fullpage"] ?? "true") !== "false";
+// --ids-file=<path> narrows the run to an explicit story-id list, for callers that
+// curate rather than sweep. The file is JSON: either an array of ids, or an object
+// with a `stories` map keyed by id. Bypasses the --variants dedupe.
+let idFilter = null;
+if (typeof flags["ids-file"] === "string") {
+  const parsed = JSON.parse(readFileSync(resolve(flags["ids-file"]), "utf8"));
+  const ids = Array.isArray(parsed) ? parsed : Object.keys(parsed.stories ?? {});
+  if (!ids.length) {
+    console.error(`No story ids in ${flags["ids-file"]}`);
+    process.exit(1);
+  }
+  idFilter = new Set(ids);
+}
 
 function safeSlug(s) {
   return s.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -117,6 +141,7 @@ async function main() {
   const allStories = Object.values(index.entries).filter((e) => e.type === "story");
   const matchedTitles = new Set();
   const targets = allStories.filter((s) => {
+    if (idFilter) return idFilter.has(s.id);
     if (bucketFor(s.title) === null) return false;
     if (titleFilter && !s.title.toLowerCase().includes(titleFilter)) return false;
     if (variantMode === "first") {
@@ -129,6 +154,7 @@ async function main() {
   console.log(`Storybook static: ${staticDir}`);
   console.log(`Target stories: ${targets.length} (${variantMode} variants per title)`);
   console.log(`Themes: ${themes.join(", ")}`);
+  console.log(`Workspace stories: ${routeFullPage ? "fullPage" : "viewport-sized"}`);
   console.log(`Total captures: ${targets.length * themes.length}`);
   console.log(`Output: ${outputDir}`);
 
@@ -147,7 +173,8 @@ async function main() {
         ? { width: 1440, height: 1024 }
         : { width: 1280, height: 800 };
 
-      const bucket = bucketFor(story.title);
+      // With --ids-file a caller can name a story whose title has no bucket.
+      const bucket = bucketFor(story.title) ?? "misc";
       for (const theme of themes) {
         const url = `http://localhost:${port}/iframe.html?id=${encodeURIComponent(story.id)}&viewMode=story&globals=theme:${theme}`;
         const titleSlug = safeSlug(story.title);
@@ -161,7 +188,7 @@ async function main() {
           await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
           await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
           await page.waitForTimeout(800);
-          await page.screenshot({ path: filePath, fullPage: isRoute });
+          await page.screenshot({ path: filePath, fullPage: isRoute && routeFullPage });
           captured += 1;
           if (captured % 10 === 0) {
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

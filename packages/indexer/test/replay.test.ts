@@ -20,6 +20,7 @@ async function runRepresentativeReplay(indexer = createTestIndexer()) {
   const asset = address(12);
   const owner = address(13);
   const badgeId = hash(500);
+  const projectUID = hash(600);
 
   const result = await indexer.process({
     chains: {
@@ -49,6 +50,29 @@ async function runRepresentativeReplay(indexer = createTestIndexer()) {
             params: { updater: owner, newName: "Replay Garden Updated" },
             transaction: { hash: hash(2) },
             logIndex: 2,
+          },
+          {
+            contract: "KarmaGAPModule",
+            event: "GAPProjectCreated",
+            params: { projectUID, garden, projectName: "Replay Garden" },
+            transaction: { hash: hash(20) },
+            logIndex: 20,
+          },
+          {
+            contract: "KarmaGAPModule",
+            event: "KarmaSyncRecorded",
+            params: {
+              garden,
+              projectUID,
+              account: owner,
+              operation: 3n,
+              outcome: 1n,
+              sourceUID: hash(601),
+              resultUID: hash(602),
+              reason: "",
+            },
+            transaction: { hash: hash(21) },
+            logIndex: 21,
           },
           {
             contract: "HatsModule",
@@ -168,6 +192,8 @@ async function snapshotRepresentativeEntities(
     "Gardener",
     "GreenWillBadgeDefinition",
     "Hypercert",
+    "KarmaProjectAccess",
+    "KarmaSyncRecord",
     "VaultAddressIndex",
     "VaultDeposit",
     "VaultEvent",

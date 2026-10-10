@@ -8,7 +8,7 @@ const rows = [
   {
     eyebrow: "Review",
     title: "River bank cleanup",
-    description: "Evidence package ready for operator review.",
+    description: "Evidence package ready for steward review.",
     meta: ["Jardim Botafogo", "2 photos", "4h field work"],
     statusLabel: "Pending",
     statusTone: "pending" as const,

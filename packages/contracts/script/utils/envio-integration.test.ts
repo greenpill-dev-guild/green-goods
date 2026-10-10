@@ -15,6 +15,12 @@ const ADDRESS = {
   octantModule: "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9",
   octantVault: "0xac2B839acfcF01DF04E442928a40b152fC0A407f",
   yieldSplitter: "0x90896C86108528abB600Da3C48a1aa054958bDeb",
+  cookieJarFactory: "0x294d222eDE6DF6625B43544F1C634322467528Da",
+  commitmentPoolingModule: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+  commitmentRegistry: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959",
+  settlementModule: "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
+  creditRegistry: "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
+  celoSettlementExecutor: "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F",
 } as const;
 
 /** Mirrors the shape config.yaml carries for a configured chain, including the dynamic vault. */
@@ -29,6 +35,11 @@ function existingArbitrumChain() {
       // Dynamically registered — intentionally address-less.
       { name: "OctantVault" },
       { name: "YieldSplitter", address: ADDRESS.yieldSplitter },
+      { name: "CookieJarFactory", address: ADDRESS.cookieJarFactory },
+      { name: "CommitmentPoolingModule", address: ADDRESS.commitmentPoolingModule },
+      { name: "CommitmentRegistry", address: ADDRESS.commitmentRegistry },
+      { name: "SettlementModule", address: ADDRESS.settlementModule },
+      { name: "CreditRegistry", address: ADDRESS.creditRegistry },
     ],
   };
 }
@@ -108,7 +119,154 @@ describe("applyDeploymentToEnvioChains", () => {
       "OctantModule",
       "OctantVault",
       "YieldSplitter",
+      "CookieJarFactory",
+      "CommitmentPoolingModule",
+      "CommitmentRegistry",
+      "SettlementModule",
+      "CreditRegistry",
     ]);
+  });
+
+  it("updates every configured commitment-pooling contract from deployment artifacts", () => {
+    const chains = applyDeploymentToEnvioChains({
+      chains: [existingArbitrumChain()],
+      chainId: ARBITRUM,
+      deployment: {
+        actionRegistry: ADDRESS.actionRegistry,
+        gardenToken: ADDRESS.gardenToken,
+        cookieJarFactory: ADDRESS.cookieJarFactory,
+        commitmentPoolingModule: ADDRESS.commitmentPoolingModule,
+        commitmentRegistry: ADDRESS.commitmentRegistry,
+        settlementModule: ADDRESS.settlementModule,
+        creditRegistry: ADDRESS.creditRegistry,
+      },
+      gardenAccountAddress: ADDRESS.gardenAccount,
+      fallbackStartBlock: ARBITRUM_START_BLOCK,
+    });
+
+    expect(findContract(chains, "CookieJarFactory")?.address).toBe(ADDRESS.cookieJarFactory);
+    expect(findContract(chains, "CommitmentPoolingModule")?.address).toBe(ADDRESS.commitmentPoolingModule);
+    expect(findContract(chains, "CommitmentRegistry")?.address).toBe(ADDRESS.commitmentRegistry);
+    expect(findContract(chains, "SettlementModule")?.address).toBe(ADDRESS.settlementModule);
+    expect(findContract(chains, "CreditRegistry")?.address).toBe(ADDRESS.creditRegistry);
+  });
+
+  it.each([
+    "CommitmentPoolingModule",
+    "CommitmentRegistry",
+    "SettlementModule",
+    "CreditRegistry",
+  ] as const)("rejects duplicate %s entries instead of silently collapsing them", (name) => {
+    const existing = existingArbitrumChain();
+    const canonical = existing.contracts.find((contract) => contract.name === name);
+    expect(canonical).toBeDefined();
+    existing.contracts.push({ ...canonical! });
+
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [existing],
+        chainId: ARBITRUM,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          commitmentPoolingModule: ADDRESS.commitmentPoolingModule,
+          commitmentRegistry: ADDRESS.commitmentRegistry,
+          settlementModule: ADDRESS.settlementModule,
+          creditRegistry: ADDRESS.creditRegistry,
+        },
+        gardenAccountAddress: ADDRESS.gardenAccount,
+        fallbackStartBlock: ARBITRUM_START_BLOCK,
+      }),
+    ).toThrow(`Chain ${ARBITRUM} contains duplicate ${name} entries`);
+  });
+
+  it.each([
+    ["CommitmentPoolingModule", "commitmentPoolingModule"],
+    ["CommitmentRegistry", "commitmentRegistry"],
+    ["SettlementModule", "settlementModule"],
+    ["CreditRegistry", "creditRegistry"],
+  ] as const)("rejects a pinned %s address replacement", (name, deploymentKey) => {
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [existingArbitrumChain()],
+        chainId: ARBITRUM,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          [deploymentKey]: "0x9999999999999999999999999999999999999999",
+        },
+        gardenAccountAddress: ADDRESS.gardenAccount,
+        fallbackStartBlock: ARBITRUM_START_BLOCK,
+      }),
+    ).toThrow(`Chain ${ARBITRUM} refuses ${name} address replacement`);
+  });
+
+  it("keeps deployment-driven Celo updates executor-only", () => {
+    const celoChain = {
+      id: 42220,
+      start_block: 52_000_000,
+      contracts: [{ name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor }],
+    };
+    const chains = applyDeploymentToEnvioChains({
+      chains: [celoChain],
+      chainId: 42220,
+      deployment: {
+        actionRegistry: ADDRESS.actionRegistry,
+        gardenToken: ADDRESS.gardenToken,
+        octantModule: ADDRESS.octantModule,
+        commitmentPoolingModule: ADDRESS.commitmentPoolingModule,
+        celoSettlementExecutor: ADDRESS.celoSettlementExecutor,
+      },
+      gardenAccountAddress: ADDRESS.gardenAccount,
+      fallbackStartBlock: 1,
+    });
+
+    expect(chains[0]?.contracts).toEqual([{ name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor }]);
+  });
+
+  it("rejects a Celo executor replacement", () => {
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [
+          {
+            id: 42220,
+            start_block: 74_691_430,
+            contracts: [{ name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor }],
+          },
+        ],
+        chainId: 42220,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          celoSettlementExecutor: "0x9999999999999999999999999999999999999999",
+        },
+        fallbackStartBlock: 74_691_430,
+      }),
+    ).toThrow("Chain 42220 refuses CeloSettlementExecutor address replacement");
+  });
+
+  it("rejects duplicate Celo executor entries", () => {
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [
+          {
+            id: 42220,
+            start_block: 74_691_430,
+            contracts: [
+              { name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor },
+              { name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor },
+            ],
+          },
+        ],
+        chainId: 42220,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          celoSettlementExecutor: ADDRESS.celoSettlementExecutor,
+        },
+        fallbackStartBlock: 74_691_430,
+      }),
+    ).toThrow("Chain 42220 contains duplicate CeloSettlementExecutor entries");
   });
 
   it("ignores zero addresses rather than writing placeholders", () => {

@@ -6,7 +6,9 @@ import {
   FIXTURE_IMAGE_EDU,
   FIXTURE_IMAGE_SOLAR,
 } from "../../../.storybook/fixtures";
+import { Button } from "../Button";
 import { ImagePreviewDialog, type ImagePreviewDialogProps } from "./ImagePreviewDialog";
+import { PwaSheet } from "./PwaSheet";
 
 const meta: Meta<typeof ImagePreviewDialog> = {
   title: "Shared/Feedback/ImagePreviewDialog",
@@ -55,6 +57,20 @@ function ImagePreviewDialogHarness(args: ImagePreviewDialogProps) {
         setIsOpen(false);
       }}
     />
+  );
+}
+
+/** A sheet that holds the control which opens the viewer, as the app's proof and confirm sheets do. */
+function OpenedFromSheetHarness(args: ImagePreviewDialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <PwaSheet open onClose={() => undefined} title="Proof" closeLabel="Close" size="half">
+      <Button emphasis="secondary" onClick={() => setIsOpen(true)}>
+        Open photo
+      </Button>
+      <ImagePreviewDialog {...args} isOpen={isOpen} onClose={() => setIsOpen(false)} />
+    </PwaSheet>
   );
 }
 
@@ -198,6 +214,40 @@ export const StartAtSecondImage: Story = {
   play: async () => {
     await within(document.body).findByRole("dialog", { name: /image preview/i });
     await closeImagePreviewDialog();
+  },
+};
+
+/**
+ * The viewer is the one dialog that opens from inside another surface. A sheet or
+ * dialog already holds the modal layer, so the viewer's scrim shares that layer
+ * and mounts after it, and closing the viewer hands focus back to its opener.
+ */
+export const OpenedFromSheet: Story = {
+  // Left out of the docs page, which a sheet that is always open would cover.
+  tags: ["!autodocs"],
+  args: {
+    isOpen: false,
+    onClose: fn(),
+    images: sampleImages,
+    initialIndex: 0,
+  },
+  // storybook-quality-allow state-harness: renders the real ImagePreviewDialog from inside a real PwaSheet, whose opener the play presses.
+  render: (args) => <OpenedFromSheetHarness {...args} />,
+  play: async () => {
+    const page = within(document.body);
+    const opener = await page.findByRole("button", { name: "Open photo" });
+    const sheet = page.getByTestId("pwa-sheet-overlay");
+
+    await userEvent.click(opener);
+    const scrim = await page.findByTestId("image-preview-dialog");
+    const layer = (element: Element) => Number(getComputedStyle(element).zIndex);
+    await expect(layer(scrim)).toBeGreaterThanOrEqual(layer(sheet));
+    await expect(
+      sheet.compareDocumentPosition(scrim) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    await closeImagePreviewDialog();
+    await expect(opener).toHaveFocus();
   },
 };
 

@@ -85,7 +85,7 @@ library KarmaLib {
     bytes32 internal constant GAP_PROJECT_SCHEMA_SEI = 0xf6b89107f8096220051240b89a48abb66e0a23e529c914953b80f5a2bc5ea44c;
     bytes32 internal constant GAP_DETAILS_SCHEMA_SEI = 0x1b4365b92aa47de3f67cdfb53127518381c1e66e0d9e0f8a15bbfa7250950967;
     bytes32 internal constant GAP_MEMBEROF_SCHEMA_SEI = 0xb7278b94cea2b9f1a8fdd1c4bb52ed66906516a0ff9d59d0f80daffcf147ea5d; // Note:
-        // SEI mainnet schema not yet deployed
+    // SEI mainnet schema not yet deployed
 
     // ============================================================================
     // SCHEMA UIDs - SEI TESTNET (Chain ID: 1328)

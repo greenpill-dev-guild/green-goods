@@ -22,7 +22,7 @@ export interface CreateActionSessionDraft {
   currentStep: number;
 }
 
-export interface EditActionSessionDraft {
+export interface EditActionSessionDraft extends Record<string, unknown> {
   title: string;
   startTime: string | null;
   endTime: string | null;

@@ -1,6 +1,6 @@
 /**
  * useConvictionWeightAllocator integration tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Round-trip coverage for the optimistic-state container that drives the
  * WeightAllocator: mirroring server state, debouncing saves, computing signed
@@ -28,7 +28,7 @@ vi.mock("../../../hooks/conviction/useMemberVotingPower", () => ({
 }));
 
 vi.mock("../../../hooks/conviction/useAllocateHypercertSupport", () => ({
-  useAllocateHypercertSupport: (...args: unknown[]) => mockUseAllocateHypercertSupport(...args),
+  useAllocateHypercertSupport: () => mockUseAllocateHypercertSupport(),
 }));
 
 import { useConvictionWeightAllocator } from "../../../hooks/conviction/useConvictionWeightAllocator";

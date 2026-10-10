@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Workspace manifests and runtime package sources.
 COPY package.json bun.lock ./
+COPY patches ./patches
 COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent ./packages/agent
 COPY packages/client/package.json ./packages/client/package.json
@@ -15,14 +16,17 @@ COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
 COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
 # The build image needs the root dev type graph.
 RUN bun install --frozen-lockfile
 
-# Build the agent (outputs to packages/agent/dist)
-RUN bun run build:agent
+# Build the agent (outputs to packages/agent/dist). The Bun image does not ship
+# a compatible Node runtime, so invoke TypeScript directly instead of the
+# Node-only dev CLI wrapper used by the host development script.
+RUN bun --bun tsc -p packages/agent/tsconfig.json
 
 # Upload Sentry source maps when the deploy provides a BuildKit secret, then
 # remove maps so they are not copied into the runtime image.
@@ -39,6 +43,7 @@ FROM oven/bun:${BUN_VERSION} AS prod-deps
 WORKDIR /app
 
 COPY package.json bun.lock ./
+COPY patches ./patches
 COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent/package.json ./packages/agent/package.json
 COPY packages/client/package.json ./packages/client/package.json
@@ -47,6 +52,7 @@ COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
 COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages/qa/package.json ./packages/qa/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
@@ -59,11 +65,29 @@ FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Media tools pinned to this image's Debian trixie release. Office conversion uses both Writer
+# and Calc in a bubblewrap namespace with prlimit bounds; it never falls back to an unsandboxed
+# process. Conversion fails closed when the runtime host lacks user-namespace support.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      poppler-utils=25.03.0-5+deb13u4 \
+      ffmpeg=7:7.1.5-0+deb13u1 \
+      libreoffice-writer=4:25.2.3-2+deb13u7 \
+      libreoffice-calc=4:25.2.3-2+deb13u7 \
+      bubblewrap=0.12.0-1~deb13u1 \
+      util-linux=2.41.5-0+deb13u1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && pdfinfo -v \
+    && ffmpeg -hide_banner -version | head -n 1 \
+    && ffprobe -hide_banner -version | head -n 1
+
 # Copy production dependencies and runtime workspace files only.
 # Env vars are injected by the runtime platform;
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/packages/agent/node_modules ./packages/agent/node_modules
+# Shared resolves runtime peers through its own Bun workspace links (for example zod).
+COPY --from=prod-deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=base /app/packages/agent/package.json ./packages/agent/package.json
 COPY --from=base /app/packages/agent/dist ./packages/agent/dist

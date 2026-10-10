@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "WebWorker"],
+    "types": [],
+    "tsBuildInfoFile": "./.tsbuildinfo/sw.tsbuildinfo"
+  },
+  "include": ["src/sw/**/*", "src/vite-env.d.ts"],
+  "exclude": []
+}

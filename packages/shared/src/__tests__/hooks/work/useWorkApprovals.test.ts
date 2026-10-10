@@ -1,16 +1,17 @@
 /**
  * useWorkApprovals Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the work approvals query hook including memoization stability,
  * type correctness, and query key usage.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -21,6 +22,11 @@ vi.mock("../../../modules/data/graphql", () => ({
 }));
 
 const mockQueryFn = vi.fn().mockResolvedValue({ data: null, error: null });
+const mockGetWorksByUIDs = vi.fn();
+vi.mock("../../../modules/data/eas", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../modules/data/eas")>()),
+  getWorksByUIDs: (...args: unknown[]) => mockGetWorksByUIDs(...args),
+}));
 vi.mock("../../../modules/data/graphql-client", () => ({
   createEasClient: () => ({
     query: (...args: unknown[]) => mockQueryFn(...args),
@@ -32,6 +38,10 @@ vi.mock("../../../config/blockchain", () => ({
   getEASConfig: () => ({
     WORK_APPROVAL: { uid: "0xTestSchemaUID" },
   }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../../modules/app/logger", () => ({
@@ -55,21 +65,6 @@ import { useWorkApprovals } from "../../../hooks/work/useWorkApprovals";
 
 const TEST_CHAIN_ID = 11155111;
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -79,8 +74,9 @@ describe("useWorkApprovals", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockQueryFn.mockResolvedValue({ data: null, error: null });
+    mockGetWorksByUIDs.mockResolvedValue([]);
   });
 
   // ------------------------------------------
@@ -89,10 +85,10 @@ describe("useWorkApprovals", () => {
 
   describe("query key", () => {
     it("uses queryKeys.workApprovals.byAttester directly without fallback", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -106,12 +102,72 @@ describe("useWorkApprovals", () => {
     });
 
     it("does not enable query when attester address is undefined", () => {
-      const { result } = renderHook(() => useWorkApprovals(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(undefined), {
+        queryClient,
       });
 
       expect(result.current.isLoading).toBe(false);
       expect(result.current.approvals).toEqual([]);
+    });
+
+    it("skips malformed GraphQL approval addresses", async () => {
+      mockQueryFn.mockResolvedValue({
+        data: {
+          attestations: [
+            {
+              id: "0xApproval",
+              attester: "not-an-address",
+              recipient: MOCK_ADDRESSES.gardener,
+              timeCreated: 1_700_000_000,
+              decodedDataJson: "[]",
+            },
+          ],
+        },
+      });
+
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.approvals).toEqual([]);
+    });
+
+    it("resolves the linked work so a reviewed work card can open and show its photos", async () => {
+      const workUID = `0x${"ab".repeat(32)}`;
+      mockQueryFn.mockResolvedValue({
+        data: {
+          attestations: [
+            {
+              id: `0x${"cd".repeat(32)}`,
+              attester: MOCK_ADDRESSES.steward,
+              recipient: MOCK_ADDRESSES.gardener,
+              timeCreated: 1_700_000_000,
+              decodedDataJson: JSON.stringify([
+                { name: "workUID", value: { value: workUID } },
+                { name: "approved", value: { value: true } },
+              ]),
+            },
+          ],
+        },
+        error: null,
+      });
+      const media = ["https://gateway.test/ipfs/bafy-trail"];
+      mockGetWorksByUIDs.mockResolvedValue([
+        { id: workUID, gardenAddress: MOCK_ADDRESSES.garden, title: "Restored trail", media },
+      ]);
+
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
+      });
+
+      await waitFor(() => expect(result.current.completedApprovals).toHaveLength(1));
+      expect(mockGetWorksByUIDs).toHaveBeenCalledWith([workUID], TEST_CHAIN_ID);
+      expect(result.current.completedApprovals[0]).toMatchObject({
+        gardenId: MOCK_ADDRESSES.garden,
+        title: "Restored trail",
+        media,
+      });
     });
   });
 
@@ -122,13 +178,13 @@ describe("useWorkApprovals", () => {
   describe("memoization", () => {
     it("returns stable computed values across re-renders when data hasn't changed", async () => {
       // Seed query data with mock approvals to avoid network calls
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const mockApprovals = [
         {
           id: "0xApproval1",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -140,7 +196,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval2",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -154,9 +210,12 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result, rerender } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result, rerender } = renderHookWithQueryClient(
+        () => useWorkApprovals(attesterAddress),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.approvals.length).toBe(2);
@@ -184,13 +243,13 @@ describe("useWorkApprovals", () => {
     });
 
     it("computes correct counts for mixed approval states", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const mockApprovals = [
         {
           id: "0xApproval1",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -202,7 +261,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval2",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -214,7 +273,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xApproval3",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 3,
           workUID: "0xWork3",
@@ -228,8 +287,8 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -244,7 +303,7 @@ describe("useWorkApprovals", () => {
     });
 
     it("sorts approvals by creation date newest first", async () => {
-      const attesterAddress = MOCK_ADDRESSES.operator;
+      const attesterAddress = MOCK_ADDRESSES.steward;
       const queryKey = queryKeys.workApprovals.byAttester(attesterAddress, TEST_CHAIN_ID);
 
       const olderTime = Date.now() - 10000;
@@ -253,7 +312,7 @@ describe("useWorkApprovals", () => {
       const mockApprovals = [
         {
           id: "0xOlder",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 1,
           workUID: "0xWork1",
@@ -265,7 +324,7 @@ describe("useWorkApprovals", () => {
         },
         {
           id: "0xNewer",
-          operatorAddress: MOCK_ADDRESSES.operator,
+          stewardAddress: MOCK_ADDRESSES.steward,
           gardenerAddress: MOCK_ADDRESSES.gardener,
           actionUID: 2,
           workUID: "0xWork2",
@@ -279,8 +338,8 @@ describe("useWorkApprovals", () => {
 
       queryClient.setQueryData(queryKey, mockApprovals);
 
-      const { result } = renderHook(() => useWorkApprovals(attesterAddress), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(attesterAddress), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -300,8 +359,8 @@ describe("useWorkApprovals", () => {
     it("returns empty arrays on query error without throwing", async () => {
       mockQueryFn.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useWorkApprovals(MOCK_ADDRESSES.operator), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useWorkApprovals(MOCK_ADDRESSES.steward), {
+        queryClient,
       });
 
       await waitFor(() => {

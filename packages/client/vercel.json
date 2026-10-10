@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs client",
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
@@ -213,6 +214,40 @@
       ]
     },
     {
+      "source": "/agent/reporting/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/api/messaging/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/assets/:path*",
       "headers": [
         {
@@ -246,6 +281,10 @@
     {
       "source": "/cookies",
       "destination": "/cookies/index.html"
+    },
+    {
+      "source": "/api/messaging/:path*",
+      "destination": "https://agent.greengoods.app/messaging/:path*"
     },
     {
       "source": "/:path((?!assets/).*)",

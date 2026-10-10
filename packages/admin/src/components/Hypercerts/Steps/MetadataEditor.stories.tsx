@@ -3,8 +3,8 @@ import {
   CynefinPhase,
   Domain,
   type GardenAssessment,
-  type HypercertDraft,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import type { HypercertDraft } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { MetadataEditor } from "./MetadataEditor";
@@ -12,7 +12,7 @@ import { MetadataEditor } from "./MetadataEditor";
 const EMPTY_DRAFT: HypercertDraft = {
   id: "draft-1",
   gardenId: "0x1234567890123456789012345678901234567890",
-  operatorAddress: "0x1111111111111111111111111111111111111111" as Address,
+  stewardAddress: "0x1111111111111111111111111111111111111111" as Address,
   stepNumber: 2,
   attestationIds: [],
   title: "",
@@ -25,7 +25,7 @@ const EMPTY_DRAFT: HypercertDraft = {
   impactTimeframeEnd: null,
   sdgs: [],
   capitals: [],
-  outcomes: {},
+  outcomes: { predefined: {}, custom: {} },
   allowlist: [],
   externalUrl: "",
   createdAt: 0,

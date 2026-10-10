@@ -1,27 +1,30 @@
+import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
+import type {
+  ActionInstructionConfig,
+  ActionInstructionInputTranslation,
+  ActionInstructionTranslationData,
+  ActionTranslationLocale,
+  ActionTranslationMap,
+  ActionTranslationRecord,
+  WorkInput,
+} from "@green-goods/shared/types/domain";
 import {
   ACTION_TRANSLATION_LOCALES,
-  type ActionInstructionConfig,
-  type ActionInstructionInputTranslation,
-  type ActionInstructionTranslationData,
-  type ActionTranslationLocale,
-  type ActionTranslationMap,
-  type ActionTranslationRecord,
-  browserTranslator,
-  cn,
   createActionTranslationDraft,
   getActionSourceHash,
   hasActionTranslationContent,
   hasCompleteActionTranslationContent,
   markStaleActionTranslations,
   normalizeActionTranslations,
-  Textarea,
-  type WorkInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/action/translations";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminTextField } from "@/components/AdminTextField";
+import { AdminCardTitle } from "@/components/AdminCard";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
 
 interface ActionTranslationEditorProps {
   sourceTitle: string;
@@ -29,8 +32,6 @@ interface ActionTranslationEditorProps {
   value: ActionTranslationMap | undefined;
   onChange: (translations: ActionTranslationMap) => void;
 }
-
-type TranslationScope = "media" | "details" | "review";
 
 const LOCALE_LABELS: Record<ActionTranslationLocale, { id: string; defaultMessage: string }> = {
   es: { id: "app.admin.actions.translations.spanish", defaultMessage: "Spanish" },
@@ -48,7 +49,7 @@ function createEmptyRecord(sourceHash: string): ActionTranslationRecord {
 
 function updateScope(
   data: ActionInstructionTranslationData,
-  scope: TranslationScope,
+  scope: "media" | "details" | "review",
   updater: (
     scopeData: NonNullable<NonNullable<ActionInstructionTranslationData["uiConfig"]>[typeof scope]>
   ) => NonNullable<NonNullable<ActionInstructionTranslationData["uiConfig"]>[typeof scope]>
@@ -147,26 +148,19 @@ function TranslationTextControl({
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
         helperText={`${sourceLabel}: ${source}`}
-        variant="outlined"
       />
     );
   }
 
   return (
-    <label className="flex flex-col gap-1" htmlFor={id}>
-      <span className="text-label-md font-medium text-[rgb(var(--m3-on-surface))]">{label}</span>
-      <Textarea
-        surface="admin"
-        id={id}
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value)}
-        rows={3}
-        className="min-h-24"
-      />
-      <span className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-        {sourceLabel}: {source}
-      </span>
-    </label>
+    <AdminTextArea
+      id={id}
+      label={label}
+      value={value ?? ""}
+      onChange={(event) => onChange(event.target.value)}
+      rows={3}
+      helperText={`${sourceLabel}: ${source}`}
+    />
   );
 }
 
@@ -260,13 +254,11 @@ export function ActionTranslationEditor({
       data: updater(record.data),
     }));
   };
-
   const updateTopLevel = (key: "title" | "description", nextValue: string) => {
     updateActiveData((data) => ({ ...data, [key]: nextValue }));
   };
-
   const updateScopedField = (
-    scope: TranslationScope,
+    scope: "media" | "details" | "review",
     key: string,
     nextValue: string | string[]
   ) => {
@@ -277,7 +269,6 @@ export function ActionTranslationEditor({
       }))
     );
   };
-
   const updateInputField = (
     path: string[],
     updater: (input: ActionInstructionInputTranslation) => ActionInstructionInputTranslation
@@ -285,11 +276,14 @@ export function ActionTranslationEditor({
     updateActiveData((data) =>
       updateScope(data, "details", (details) => ({
         ...details,
-        inputs: upsertInputTranslation(details.inputs, path, updater),
+        inputs: upsertInputTranslation(
+          "inputs" in details ? details.inputs : undefined,
+          path,
+          updater
+        ),
       }))
     );
   };
-
   const handleGenerateDraft = async () => {
     setMessage(null);
     if (!browserTranslator.isSupported) {
@@ -365,16 +359,11 @@ export function ActionTranslationEditor({
     return (
       <div
         key={prefix}
-        className={cn(
-          "space-y-3 border-l border-[rgb(var(--m3-outline-variant))] pl-3",
-          depth > 0 && "ml-3"
-        )}
+        className={cn("space-y-3 border-l border-stroke-soft pl-3", depth > 0 && "ml-3")}
       >
         <div>
-          <p className="text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
-            {input.title}
-          </p>
-          <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <p className="text-label-md font-semibold text-text-strong">{input.title}</p>
+          <p className="text-body-sm text-text-sub">
             {input.key} / {input.type}
           </p>
         </div>
@@ -456,19 +445,19 @@ export function ActionTranslationEditor({
   };
 
   return (
-    <section className="mt-6 space-y-4 rounded-[var(--m3-shape-sm)] border border-[rgb(var(--m3-outline-variant))] p-4">
+    <section className="mt-6 space-y-4 rounded-[var(--m3-shape-sm)] border border-stroke-soft p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <RiTranslate2 className="h-4 w-4 text-[rgb(var(--m3-on-surface-variant))]" />
-            <h3 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+            <RiTranslate2 className="h-4 w-4 text-text-sub" />
+            <AdminCardTitle>
               {formatMessage({
                 id: "app.admin.actions.translations.title",
                 defaultMessage: "Translations",
               })}
-            </h3>
+            </AdminCardTitle>
           </div>
-          <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <p className="mt-1 text-body-sm text-text-sub">
             {formatMessage({
               id: "app.admin.actions.translations.description",
               defaultMessage:
@@ -478,29 +467,21 @@ export function ActionTranslationEditor({
         </div>
         <div className="flex flex-wrap gap-2">
           {ACTION_TRANSLATION_LOCALES.map((locale) => {
-            const selected = locale === activeLocale;
             const record = translations[locale];
             return (
-              <button
+              <AdminFilterChip
                 key={locale}
-                type="button"
-                onClick={() => setActiveLocale(locale)}
-                className={cn(
-                  "rounded-[var(--m3-shape-full)] border px-3 py-1.5 text-label-md",
-                  selected
-                    ? "border-[rgb(var(--m3-primary))] bg-[rgb(var(--m3-primary-container))] text-[rgb(var(--m3-on-primary-container))]"
-                    : "border-[rgb(var(--m3-outline-variant))] text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-              >
-                {formatMessage(LOCALE_LABELS[locale])} · {getStatusLabel(record, formatMessage)}
-              </button>
+                label={`${formatMessage(LOCALE_LABELS[locale])} · ${getStatusLabel(record, formatMessage)}`}
+                selected={locale === activeLocale}
+                onToggle={() => setActiveLocale(locale)}
+              />
             );
           })}
         </div>
       </div>
 
       {hasUnreviewedTranslations ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-tertiary-container))] px-3 py-2 text-body-sm text-[rgb(var(--m3-on-tertiary-container))]">
+        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 text-body-sm text-warning-dark">
           {formatMessage({
             id: "app.admin.actions.translations.publishWarning",
             defaultMessage:
@@ -510,7 +491,7 @@ export function ActionTranslationEditor({
       ) : null}
 
       {activeRecord?.status === "stale" ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-error-container))] px-3 py-2 text-body-sm text-[rgb(var(--m3-on-error-container))]">
+        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 text-body-sm text-error-dark">
           {formatMessage({
             id: "app.admin.actions.translations.sourceChanged",
             defaultMessage:
@@ -532,7 +513,7 @@ export function ActionTranslationEditor({
         >
           {formatMessage({
             id: "app.admin.actions.translations.generateDraft",
-            defaultMessage: "Generate draft",
+            defaultMessage: "Generate Draft",
           })}
         </AdminButton>
         <AdminButton
@@ -544,20 +525,18 @@ export function ActionTranslationEditor({
         >
           {formatMessage({
             id: "app.admin.actions.translations.markReviewed",
-            defaultMessage: "Mark reviewed",
+            defaultMessage: "Mark Reviewed",
           })}
         </AdminButton>
         <AdminButton type="button" variant="text" size="sm" onClick={markDraft}>
           {formatMessage({
             id: "app.admin.actions.translations.markDraft",
-            defaultMessage: "Mark draft",
+            defaultMessage: "Mark Draft",
           })}
         </AdminButton>
       </div>
 
-      {message ? (
-        <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">{message}</p>
-      ) : null}
+      {message ? <p className="text-body-sm text-text-sub">{message}</p> : null}
 
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -585,12 +564,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.mediaSection",
               defaultMessage: "Media guidance",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-media-title`}
@@ -661,12 +640,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.detailsSection",
               defaultMessage: "Details form",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-details-title`}
@@ -710,12 +689,12 @@ export function ActionTranslationEditor({
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-label-lg font-semibold text-[rgb(var(--m3-on-surface))]">
+          <AdminCardTitle as="h4">
             {formatMessage({
               id: "app.admin.actions.translations.reviewSection",
               defaultMessage: "Review copy",
             })}
-          </h4>
+          </AdminCardTitle>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TranslationTextControl
               id={`${activeLocale}-review-title`}

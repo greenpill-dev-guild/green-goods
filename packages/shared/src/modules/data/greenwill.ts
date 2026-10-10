@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type {
   GreenWillBadgeDefinition,
   GreenWillBadgeGrant,

@@ -8,19 +8,35 @@ import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
-import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
-import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import { VitePWA } from "vite-plugin-pwa";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
   type PwaManifestBranding,
   resolvePwaManifestFlavor,
-} from "./src/config/pwa-manifest";
-import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
+} from "./src/config/pwaManifest";
+import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
+import { createChainImportsPlugin } from "./vite/chain-imports";
+import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { resolveViteWatchOptions } from "./vite/watch";
 
-const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
+const CLIENT_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const CLIENT_QUERY_MODULES =
+  /[\\/]node_modules[\\/]@tanstack[\\/](?:query-core|react-query|react-query-persist-client|query-sync-storage-persister)[\\/]/;
+const CLIENT_VIEM_MODULES = /[\\/]node_modules[\\/](?:viem|ox|abitype)[\\/]/;
+const CLIENT_WALLET_MODULES =
+  /[\\/]node_modules[\\/](?:wagmi|permissionless|@wagmi|@walletconnect|@reown|@safe-global|@coinbase)[\\/]/;
+const CLIENT_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
+const CLIENT_POSTHOG_MODULES = /[\\/]node_modules[\\/]posthog-js[\\/]/;
+const CLIENT_SENTRY_MODULES = /[\\/]node_modules[\\/]@sentry[\\/]/;
 
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
@@ -123,6 +139,7 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
 
   const replacements = {
     "%PWA_APP_NAME%": branding.name,
+    "%PWA_APP_SHORT_NAME%": branding.shortName,
     "%PWA_APPLE_ICON_57%": appleIcon("57x57"),
     "%PWA_APPLE_ICON_60%": appleIcon("60x60"),
     "%PWA_APPLE_ICON_72%": appleIcon("72x72"),
@@ -160,35 +177,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     if (process.env[key] === undefined) process.env[key] = value;
   }
 
-  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
-
-  const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
-    enableRpcBgSync
-      ? ([
-          {
-            urlPattern: /https:\/\/api\.pimlico\.xyz\/.*\/rpc$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          {
-            urlPattern: /https:\/\/(\w+\.)?alchemyapi\.io\/v2\/.*/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "rpc-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-        ] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>)
-      : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
+  const watch = resolveViteWatchOptions(process.env);
+  if (command === "serve") {
+    const polling = watch.usePolling === true;
+    console.info(
+      `[vite-watch] checkout=${rootDir} clientRoot=${__dirname} ` +
+        `watcher=${polling ? "polling" : "native"} polling=${polling} ` +
+        `interval=${polling ? `${watch.interval}ms` : "n/a"}`
+    );
+  }
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
@@ -220,11 +217,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveClientSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
+  // The PWA flavor and the Sentry environment above are the last readers of Vercel's
+  // VITE_-prefixed copies. Vite collects what it exposes after this function returns.
+  dropVercelFrameworkVariables(process.env);
   if (command === "build") {
     assertEnvParity({
       app: "client",
       env: process.env,
-      schemaPath: resolve(rootDir, ".env.schema"),
+      schemaPath: resolve(rootDir, "env.schema"),
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
@@ -232,7 +232,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
     (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
-  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -279,31 +278,29 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
+    createPwaShellAssetsPlugin(),
+    createChainImportsPlugin(),
     VitePWA({
-      includeAssets: pwaBranding.includeAssets,
+      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
       injectRegister: false,
-      registerType: "autoUpdate",
-      workbox: {
-        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
-        // generated service worker. Keep the app build in production mode, but
-        // avoid SW minification on Bun so `bun run build` remains deterministic.
-        mode: isBunRuntime ? "development" : nodeEnv,
-        disableDevLogs: true,
+      registerType: "prompt",
+      // The worker is TypeScript in src/sw, bundled by Vite with the precache
+      // manifest injected; Workbox behaviour lives in that source, not here.
+      strategies: "injectManifest",
+      srcDir: "src/sw",
+      filename: "sw.ts",
+      injectManifest: {
+        rollupFormat: "iife",
+        minify: nodeEnv === "production",
+        sourcemap: false,
+        // Build-time VITE_ flags come from the same env files.
+        envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
-        globPatterns: ["index.html", "assets/*.css"],
+        // No JavaScript is precached here: the worker installs it from the
+        // shell tiers listed in pwa-shell-assets.json.
+        globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
           "**/*.map",
-          "assets/Actions-*.js",
-          "assets/Cookies-*.js",
-          "assets/EditorialReadDeeper-*.js",
-          "assets/Fund-*.js",
-          "assets/Gardens-*.js",
-          "assets/Glossary-*.js",
-          "assets/Impact-*.js",
-          "assets/Public*.js",
-          "assets/TopNav-*.js",
-          "assets/index-*.js",
-          "assets/socials-*.js",
           "social/**",
           "social-*.png",
           "actions/index.html",
@@ -313,91 +310,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           "glossary/index.html",
           "impact/index.html",
           "landing/index.html",
-        ],
-        cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
-        // The browser-origin worker is scoped to /home, so the app shell fallback
-        // only owns installed-app routes while public/editorial routes stay in the browser.
-        navigateFallback: "index.html",
-        navigateFallbackDenylist: [
-          /^\/$/,
-          /^\/actions(?:[?#].*)?$/,
-          /^\/cookies(?:[?#].*)?$/,
-          /^\/fund(?:[?#].*)?$/,
-          /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
-          /^\/glossary(?:[?#].*)?$/,
-          /^\/impact(?:[?#].*)?$/,
-        ],
-        sourcemap: false,
-        importScripts: ["sw-custom.js"],
-        runtimeCaching: [
-          {
-            urlPattern: /.*\.(png|jpg|jpeg|svg|gif|webp)$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "image-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
-            // Matches dedicated Pinata gateway + public IPFS gateways.
-            urlPattern:
-              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|ipfs\.io)\/ipfs\/.+/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "ipfs-cache",
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year — CIDs are immutable
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // Indexer API - show cached immediately, revalidate in background
-            urlPattern: /indexer\.hyperindex\.xyz|localhost:3006/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "indexer-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // GraphQL fallback (EAS, etc.) - show cached immediately, revalidate in background
-            urlPattern: /graphql/,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "graphql-cache",
-              expiration: {
-                maxAgeSeconds: 24 * 60 * 60, // 24 hours for offline
-                maxEntries: 100,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          // Background sync for critical POSTs (users/me updates as example)
-          {
-            urlPattern: /\/users\/me$/,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "gg-api-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          ...rpcBgSyncCaching,
         ],
       },
       manifest: {
@@ -411,6 +323,39 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         icons: pwaBranding.manifestIcons,
         start_url: pwaStartUrl,
         scope: pwaRouting.manifestScope,
+        launch_handler: {
+          client_mode: "navigate-existing",
+        },
+        related_applications: [
+          {
+            platform: "webapp",
+            url: pwaRouting.relatedApplicationManifestUrl,
+          },
+        ],
+        share_target: {
+          action: "/home/share",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+            files: [
+              {
+                name: "images",
+                accept: [
+                  "image/jpeg",
+                  "image/png",
+                  "image/webp",
+                  "image/heic",
+                  "image/heif",
+                  ".heic",
+                  ".heif",
+                ],
+              },
+            ],
+          },
+        },
         display: "standalone",
         orientation: "portrait-primary",
         theme_color: pwaBranding.themeColor,
@@ -437,7 +382,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         ],
         categories: [],
       },
-      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
+      // The dev worker is served as a module from /dev-sw.js?dev-sw with only
+      // the entry document precached; main.tsx registers that URL in dev.
+      devOptions: {
+        enabled: process.env.VITE_ENABLE_SW_DEV === "true",
+        type: "module",
+        navigateFallback: "index.html",
+      },
     }),
     ...(shouldUploadSentrySourceMaps
       ? [
@@ -475,6 +426,60 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // — or served to — browsers. The upload lane deletes them after upload.
       sourcemap: enableSourceMaps ? "hidden" : false,
       chunkSizeWarningLimit: 2000,
+      manifest: true,
+      rolldownOptions: {
+        treeshake: {
+          // AppKit's React barrel re-exports unused Lit button wrappers. Their
+          // module only creates those wrappers, but its imports register the
+          // entire modal UI eagerly. Keep that UI on AppKit's dynamic path when
+          // none of the wrapper exports are used by the client.
+          moduleSideEffects: [
+            {
+              test: /[\\/]@reown[\\/]appkit[\\/]dist[\\/]esm[\\/]src[\\/]library[\\/]react[\\/]components\.js$/,
+              sideEffects: false,
+            },
+          ],
+        },
+        output: {
+          // Keep lazy chunk URLs opaque, as admin does. Privacy filters block a
+          // site's own files by name under Brave's Aggressive blocking and in
+          // uBlock Origin: EasyPrivacy's `/analytics-events-` rule blocks the
+          // chunk every auth-importing lazy route loads, and the browser reports
+          // that against the route's chunk. Keep the `-<hash>` suffix: the worker
+          // reuses an unchanged shell file only when its name is content-addressed.
+          // scripts/check-pwa-precache-budget.mjs fails a build that drifts and
+          // expects exactly this 8-character hash.
+          chunkFileNames: "assets/chunk-[hash:8].js",
+          codeSplitting: {
+            groups: [
+              // Keep Vite's dynamic-import helper neutral. If it is assigned to a feature
+              // vendor chunk, every lazy import accidentally preloads that whole feature.
+              { name: "vite-runtime", test: CLIENT_VITE_RUNTIME_MODULES, priority: 50 },
+              { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
+              { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
+              // Public read paths use viem without needing Reown/Wagmi UI.
+              {
+                name: "vendor-viem",
+                test: CLIENT_VIEM_MODULES,
+                priority: 25,
+                entriesAware: true,
+                includeDependenciesRecursively: false,
+              },
+              // Group by actual consumers so offline routes do not inherit the
+              // SDK's online-only modal and connector dependencies.
+              {
+                name: "vendor-wallet",
+                test: CLIENT_WALLET_MODULES,
+                priority: 20,
+                entriesAware: true,
+              },
+              { name: "vendor-posthog", test: CLIENT_POSTHOG_MODULES, priority: 10 },
+              { name: "vendor-sentry", test: CLIENT_SENTRY_MODULES, priority: 10 },
+            ],
+          },
+          strictExecutionOrder: true,
+        },
+      },
     },
     define: {
       "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
@@ -499,6 +504,18 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@green-goods/shared/service-worker": resolve(
           __dirname,
           "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+        "@green-goods/shared/commitment-pooling/demo-mode": resolve(
+          __dirname,
+          "../shared/src/modules/commitment-pooling/demo/demo-mode.ts"
+        ),
+        "@green-goods/shared/commitment-pooling": resolve(
+          __dirname,
+          "../shared/src/commitment-pooling"
+        ),
+        "@green-goods/shared/public": resolve(
+          __dirname,
+          "../shared/src/hooks/public/publicSurfaceState.ts"
         ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
@@ -530,7 +547,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // runtime dep surface up front — otherwise a cold cache discovers these
       // at request time and broadcasts "optimized dependencies changed.
       // reloading", a full-page reload that kills in-flight lazy-route
-      // navigation. Keep in sync with packages/admin/vite.config.ts.
+      // navigation, and in a browser run takes the page from every other
+      // case on the server. Keep in sync with packages/admin/vite.config.ts.
+      // To check after adding a bare import to shared: delete
+      // node_modules/.vite, start the server with DEBUG=vite:deps and load
+      // the routes; "new dependencies found" names what this list lacks.
       include: [
         "@hookform/resolvers/zod",
         "react",
@@ -538,7 +559,6 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "react-hook-form",
         "zod",
         "posthog-js",
-        "posthog-js/react",
         "@sentry/react",
         // ── @green-goods/shared runtime surface ──
         "@ethereum-attestation-service/eas-sdk",
@@ -551,17 +571,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
+        "@green-goods/shared > @tanstack/query-persist-client-core",
         "@green-goods/shared > @use-gesture/react",
         "@green-goods/shared > @wagmi/core",
         "@green-goods/shared > @xstate/react",
+        "@green-goods/shared > @zerodev/permissions",
+        "@green-goods/shared > @zerodev/permissions/policies",
+        "@green-goods/shared > @zerodev/permissions/signers",
+        "@green-goods/shared > @zerodev/sdk",
+        "@green-goods/shared > @zerodev/sdk/constants",
         "@green-goods/shared > browser-image-compression",
         "@green-goods/shared > clsx",
+        "@green-goods/shared > dexie",
         "ethers",
         "gql.tada",
         "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
         "idb",
         "idb-keyval",
+        "multiformats/cid",
         "@green-goods/shared > permissionless",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
@@ -572,11 +600,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "tailwind-merge",
         "tailwind-variants",
         "viem/account-abstraction",
+        "viem/accounts",
         "viem/chains",
         "@green-goods/shared > xstate",
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── the service worker (src/sw/sw.ts) ──
+        // It is not reached from index.html, so the scan misses its imports too. A page that
+        // registers the dev worker, as the browser suite's do, asks for them at request time.
+        "workbox-background-sync",
+        "workbox-cacheable-response",
+        "workbox-expiration",
+        "workbox-precaching",
+        "workbox-routing",
+        "workbox-strategies",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
@@ -589,14 +627,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // cloudflared quick tunnels change hostname each run; allow remote Host headers in dev.
       allowedHosts: tunnelHmr ? true : undefined,
       hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
-      // Polling is only required on Docker bind mounts and some network filesystems.
-      // On macOS native FSEvents the default watcher is much cheaper than polling
-      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch: {
-        ignored: ["**/dev-dist/**"],
-        ...(process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {}),
-      },
+      watch,
       proxy: {
+        // Reporting ceremony API, as the Vercel rewrite serves it in production. Locally it
+        // reaches the loopback reporting driver (packages/agent reporting:driver), or, with
+        // REPORTING_AGENT_URL set, a running Agent, which serves the API under /messaging.
+        "/api/messaging": process.env.REPORTING_AGENT_URL
+          ? {
+              target: process.env.REPORTING_AGENT_URL,
+              changeOrigin: false,
+              rewrite: (path) => path.replace(/^\/api\/messaging/, "/messaging"),
+            }
+          : {
+              target: process.env.REPORTING_DRIVER_URL || "http://127.0.0.1:8787",
+              changeOrigin: false,
+            },
         "/api/graphql": {
           target: indexerProxyTarget,
           changeOrigin: true,

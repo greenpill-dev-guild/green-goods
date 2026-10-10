@@ -1,0 +1,300 @@
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import {
+  useProfileAvatarEditor,
+  useResolvedProfileAvatar,
+} from "@green-goods/shared/hooks/profile/useProfileAvatar";
+import {
+  getProfileAvatarFailureMessage,
+  getProfileAvatarStageMessage,
+} from "@green-goods/shared/modules/profile-avatar/editor-messages";
+import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiLoader4Line } from "@remixicon/react";
+import { useEffect, useId, useState } from "react";
+import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
+import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
+
+const AVATAR_PREVIEW_TRACKING_ID = "admin-profile-avatar-editor";
+
+interface AccountProfileAvatarEditorProps {
+  fallbackInitials: string;
+}
+
+/** The admin account inspector's avatar trigger and single-purpose editor. */
+export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileAvatarEditorProps) {
+  const { formatMessage } = useIntl();
+  const editor = useProfileAvatarEditor();
+  const resolved = useResolvedProfileAvatar();
+  const isOnline = useOnlineStatus();
+  const inputId = useId();
+  const [open, setOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [draftPreview, setDraftPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const displayedError =
+    error ??
+    (editor.error
+      ? formatMessage({
+          id: "profile.avatar.restoreError",
+          defaultMessage: "We could not restore your saved profile photo draft.",
+        })
+      : null);
+  const draftFile = editor.draft?.file ?? null;
+  const previewSrc = selectedPreview ?? draftPreview ?? resolved.avatarUri;
+  const status = getProfileAvatarStageMessage(editor.stage, formatMessage);
+  const busy = editor.isSaving || Boolean(status);
+  const recoverableDraft = Boolean(editor.draft) && !selectedFile;
+  const hasUnpublishedDraft = Boolean(selectedFile ?? draftFile);
+  const saveLabel =
+    resolved.source === "app"
+      ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace Photo" })
+      : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save Photo" });
+
+  useEffect(() => {
+    setSelectedPreview(null);
+    if (!selectedFile) return;
+    const url = mediaResourceManager.createUrl(
+      selectedFile,
+      `${AVATAR_PREVIEW_TRACKING_ID}:selected`
+    );
+    setSelectedPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [selectedFile]);
+
+  useEffect(() => {
+    setDraftPreview(null);
+    if (!draftFile) return;
+    const url = mediaResourceManager.createUrl(draftFile, `${AVATAR_PREVIEW_TRACKING_ID}:draft`);
+    setDraftPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [draftFile]);
+
+  useEffect(() => {
+    setSelectedFile(null);
+    setError(null);
+    setRemoveConfirmOpen(false);
+  }, [editor.address]);
+
+  const save = async () => {
+    if (!selectedFile) return;
+    setError(null);
+    try {
+      await editor.save(selectedFile);
+      setSelectedFile(null);
+    } catch {
+      setSelectedFile(null);
+      setError(getProfileAvatarFailureMessage("save", formatMessage));
+    }
+  };
+
+  const remove = async () => {
+    setError(null);
+    try {
+      await editor.clear();
+      setSelectedFile(null);
+    } catch {
+      setError(getProfileAvatarFailureMessage("remove", formatMessage));
+    }
+  };
+
+  const continueAfterReconnect = async () => {
+    setError(null);
+    try {
+      await editor.continueAfterReconnect();
+    } catch {
+      setError(getProfileAvatarFailureMessage("continue", formatMessage));
+    }
+  };
+
+  const discardDraft = async () => {
+    setError(null);
+    try {
+      await editor.discardDraft();
+      setSelectedFile(null);
+    } catch {
+      setError(getProfileAvatarFailureMessage("discard", formatMessage));
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="account-avatar-tile relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
+        aria-label={formatMessage({
+          id: "profile.avatar.edit",
+          defaultMessage: "Edit Profile Photo",
+        })}
+      >
+        {resolved.avatarUri ? (
+          <img
+            src={resolved.avatarUri}
+            alt={formatMessage({ id: "profile.avatar.alt", defaultMessage: "Profile photo" })}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="body-sm font-semibold">{fallbackInitials}</span>
+        )}
+        <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[var(--color-material-solid)] bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]">
+          <RiCameraLine className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+      </button>
+
+      <AdminDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={formatMessage({ id: "profile.avatar.edit", defaultMessage: "Edit Profile Photo" })}
+        description={formatMessage({
+          id: "profile.avatar.privacyNotice",
+          defaultMessage: "Photos stay public on IPFS, even after replacement or removal.",
+        })}
+        icon={RiCameraLine}
+        size="md"
+        tone="hub"
+        preventClose={busy}
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {resolved.source === "app" ? (
+              <AdminButton
+                variant="danger"
+                onClick={() => setRemoveConfirmOpen(true)}
+                disabled={busy}
+                leadingIcon={<RiDeleteBinLine />}
+              >
+                {formatMessage({ id: "profile.avatar.remove", defaultMessage: "Remove Photo" })}
+              </AdminButton>
+            ) : null}
+            <AdminButton
+              variant="filled"
+              onClick={save}
+              disabled={!selectedFile || busy}
+              loading={busy && Boolean(selectedFile)}
+            >
+              {saveLabel}
+            </AdminButton>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className="account-avatar-tile flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden">
+              {previewSrc ? (
+                <img src={previewSrc} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-title-lg font-semibold">{fallbackInitials}</span>
+              )}
+            </div>
+            {hasUnpublishedDraft ? (
+              <p className="body-sm font-medium text-text-strong" aria-live="polite">
+                {formatMessage({
+                  id: "profile.avatar.unpublishedDraft",
+                  defaultMessage: "This draft photo has not been published.",
+                })}
+              </p>
+            ) : null}
+          </div>
+
+          <label
+            htmlFor={inputId}
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border border-stroke-soft px-4 py-2 body-sm font-medium text-text-strong transition-colors hover:bg-bg-soft focus-within:ring-2 focus-within:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-within:ring-offset-2"
+          >
+            <input
+              id={inputId}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label={formatMessage({
+                id: "profile.avatar.chooseFile",
+                defaultMessage: "Choose Photo",
+              })}
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                event.currentTarget.value = "";
+                setError(null);
+                setSelectedFile(file);
+              }}
+              disabled={busy}
+            />
+            <RiImageAddLine className="h-4 w-4" aria-hidden="true" />
+            {formatMessage({ id: "profile.avatar.chooseFile", defaultMessage: "Choose Photo" })}
+          </label>
+
+          {status ? (
+            <output className="flex items-center gap-2 body-sm text-text-sub" aria-live="polite">
+              <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {status}
+            </output>
+          ) : null}
+          {recoverableDraft ? (
+            <div
+              className="rounded-[var(--radius-md)] border border-stroke-soft bg-bg-soft p-3"
+              aria-live="polite"
+            >
+              <p className="body-sm text-text-sub">
+                {formatMessage({
+                  id: "profile.avatar.offlineSavedForRetry",
+                  defaultMessage:
+                    "Your draft is saved on this device. Continue when you are connected and ready to publish it.",
+                })}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <AdminButton
+                  variant="text"
+                  size="md"
+                  onClick={continueAfterReconnect}
+                  disabled={!isOnline || busy}
+                >
+                  {isOnline
+                    ? formatMessage({ id: "profile.avatar.continue", defaultMessage: "Continue" })
+                    : formatMessage({
+                        id: "profile.avatar.reconnect",
+                        defaultMessage: "Reconnect to publish",
+                      })}
+                </AdminButton>
+                <AdminButton variant="text" size="md" onClick={discardDraft} disabled={busy}>
+                  {formatMessage({
+                    id: "profile.avatar.discardDraft",
+                    defaultMessage: "Discard Draft",
+                  })}
+                </AdminButton>
+              </div>
+            </div>
+          ) : null}
+          {displayedError ? (
+            <p role="alert" className="body-sm text-error-base">
+              {displayedError}
+            </p>
+          ) : null}
+        </div>
+      </AdminDialog>
+
+      <AdminConfirmDialog
+        isOpen={removeConfirmOpen}
+        onClose={() => setRemoveConfirmOpen(false)}
+        onConfirm={async () => {
+          await remove();
+          setRemoveConfirmOpen(false);
+        }}
+        title={formatMessage({
+          id: "profile.avatar.confirmRemove",
+          defaultMessage: "Remove profile photo?",
+        })}
+        description={formatMessage({
+          id: "profile.avatar.confirmRemoveDescription",
+          defaultMessage: "This removes the photo from your Green Goods profile.",
+        })}
+        confirmLabel={formatMessage({
+          id: "profile.avatar.remove",
+          defaultMessage: "Remove Photo",
+        })}
+        cancelLabel={formatMessage({ id: "profile.avatar.cancel", defaultMessage: "Cancel" })}
+        variant="danger"
+        isLoading={busy}
+        tone="hub"
+      />
+    </>
+  );
+}

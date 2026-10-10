@@ -43,7 +43,15 @@ const surfaces = [
     root: path.join(repoRoot, "docs/build"),
     publicRoot: true,
     spaFallback: false,
-    routes: ["/", "/builders/agentic/codex", "/builders/testing/storybook", "/builders/quality/agentic-eval"],
+    routes: [
+      "/",
+      "/builders/agentic/mcp-guide",
+      "/builders/testing/storybook",
+      "/builders/quality/product-experience-qa",
+      "/builders/quality/test-cases",
+      "/builders/quality/gh-actions",
+      "/builders/deployments/gh-actions",
+    ],
   },
 ];
 
@@ -99,7 +107,7 @@ function ensureBuildOutputs() {
   const missing = surfaces.filter((surface) => !existsSync(path.join(surface.root, "index.html")));
   if (missing.length) {
     throw new Error(
-      `Missing built output for ${missing.map((surface) => surface.name).join(", ")}. Run bun run browser-proof:routes.`,
+      `Missing built output for ${missing.map((surface) => surface.name).join(", ")}. Run bun run browser routes.`,
     );
   }
 }

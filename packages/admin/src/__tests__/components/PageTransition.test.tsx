@@ -1,6 +1,6 @@
 /**
  * PageTransition Tests — close-then-navigate sheet orchestration
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";
@@ -30,13 +30,9 @@ const mockOrchestrator = vi.hoisted(() => ({
   onNavigateArrive: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useSheetOrchestrator: () => mockOrchestrator,
-  };
-});
+vi.mock("@green-goods/shared/hooks/navigation/useSheetOrchestrator", () => ({
+  useSheetOrchestrator: () => mockOrchestrator,
+}));
 
 // Stub document.startViewTransition for jsdom
 const mockStartViewTransition = vi.fn((callback: () => void) => {
@@ -68,6 +64,14 @@ function PageB() {
   return <div data-testid="page-b">Page B</div>;
 }
 
+function PageWithItem() {
+  return (
+    <div data-testid="page-c">
+      <section data-route-item="campaigns">Campaign Cookie Jars</section>
+    </div>
+  );
+}
+
 function LazyPage() {
   return <div data-testid="lazy-page">Lazy Page</div>;
 }
@@ -91,6 +95,7 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
         <Route element={<PageTransition />}>
           <Route path="/page-a" element={<PageA />} />
           <Route path="/page-b" element={<PageB />} />
+          <Route path="/page-c" element={<PageWithItem />} />
           <Route path="/hub/work/:workId" element={<PageB />} />
           <Route path="/hub/history" element={<PageB />} />
           <Route path="/hub/history/:historyEventId" element={<PageB />} />
@@ -302,7 +307,10 @@ describe("PageTransition", () => {
     });
   });
 
-  it("restores Hub history sheets when the target URL owns the sheet", async () => {
+  it("never restores retired Hub history sheets from stale persisted state", async () => {
+    // The History stage retired 2026-08-25: its routes redirect and the
+    // inspector is gone, but workspace state persisted before the release can
+    // still carry hub:history:* ids. Restoring one would open an empty sheet.
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
       sheetContentId: "hub:history:allocation-1",
@@ -316,25 +324,7 @@ describe("PageTransition", () => {
     await user.click(screen.getByTestId("nav-/hub/history/allocation-1"));
 
     await waitFor(() => {
-      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:history:allocation-1");
-    });
-  });
-
-  it("does not restore Hub history sheets from legacy item query state", async () => {
-    mockOrchestrator.onNavigateArrive.mockReturnValue({
-      sheetOpen: "left",
-      sheetContentId: "hub:history:allocation-1",
-      formState: {},
-      scrollPosition: 0,
-    });
-
-    renderPageTransition("/page-a", ["/page-a", "/hub/history?item=allocation-1"]);
-    const user = userEvent.setup();
-
-    await user.click(screen.getByTestId("nav-/hub/history?item=allocation-1"));
-
-    await waitFor(() => {
-      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/history");
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalled();
     });
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
@@ -361,7 +351,10 @@ describe("PageTransition", () => {
   });
 
   it("keeps Hub stage tab pane changes motionless", () => {
-    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+    // The pane's layout rules live in admin-layout.css; index.css holds the motion.
+    const css = ["../../index.css", "../../styles/admin-layout.css"]
+      .map((path) => readFileSync(resolve(__dirname, path), "utf-8"))
+      .join("\n");
 
     // The pane no longer carries `key={hub.stage}`, so a stage switch doesn't
     // remount the subtree — there is nothing to animate. The CSS must not
@@ -374,16 +367,21 @@ describe("PageTransition", () => {
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {
-    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-overrides.css"), "utf-8");
+    // The dock's material + motionless contract lives in admin-m3-tokens.css
+    // (the shell fork owns geometry in JSX; see Shell/NavigationBar.tsx).
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-tokens.css"), "utf-8");
 
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/s);
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*none;/s);
-    expect(css).not.toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*all/s);
+    // Anchored to line start: an unanchored pattern also matches a re-scoped
+    // `.admin-m3 .canvas-navigation-bar`, which is the regression this guards
+    // against for portaled surfaces.
+    expect(css).toMatch(/^\.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/m);
+    expect(css).toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*none;/m);
+    expect(css).not.toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*all/m);
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/m
     );
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/m
     );
   });
 
@@ -437,6 +435,32 @@ describe("PageTransition", () => {
         expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
       });
     } finally {
+      document.body.removeChild(main);
+    }
+  });
+
+  it("lands a view change on the element its URL item names instead of the top", async () => {
+    const main = document.createElement("main");
+    main.id = "main-content";
+    const scrollTo = vi.fn();
+    main.scrollTo = scrollTo as unknown as typeof main.scrollTo;
+    document.body.appendChild(main);
+    const scrollIntoView = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      renderPageTransition("/page-a", ["/page-c?item=campaigns"]);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByTestId("nav-/page-c?item=campaigns"));
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+      });
+      expect(scrollIntoView.mock.contexts[0]).toHaveAttribute("data-route-item", "campaigns");
+      expect(scrollTo).not.toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = original;
       document.body.removeChild(main);
     }
   });

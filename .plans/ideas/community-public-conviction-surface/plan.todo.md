@@ -1,9 +1,13 @@
 # Community Public Conviction Surface Plan
 
 **Feature Slug**: community-public-conviction-surface
-**Stage**: ideas
-**Status**: IDEA - research only, not dispatchable
-**Last Updated**: 2026-07-19
+**Stage**: `ideas`
+**Status**: `IDEA — parked pending a concrete allocation need`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+The original public conviction proposal remains parked. Confirm an actual community allocation need and the current public-browser direction before any build. Re-audit shared conviction hooks and the conviction-data-integrity backlog at activation; old persona-gap claims are hypotheses, not current rendered findings.
 
 ## Next steps
 

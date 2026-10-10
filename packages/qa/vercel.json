@@ -1,0 +1,18 @@
+{
+  "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs qa",
+  "installCommand": "cd ../.. && bun install --frozen-lockfile --filter @green-goods/qa",
+  "buildCommand": "node build.mjs",
+  "outputDirectory": "dist",
+  "framework": null,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
+}

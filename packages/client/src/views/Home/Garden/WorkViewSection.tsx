@@ -1,15 +1,17 @@
-import {
-  formatTimeSpent,
-  type Garden,
-  type Work,
-  type WorkDisplayStatus,
-  type WorkMetadata,
-  type WorkMetadataV1,
-} from "@green-goods/shared";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import type {
+  Garden,
+  Work,
+  WorkDisplayStatus,
+  WorkMetadata,
+  WorkMetadataV1,
+} from "@green-goods/shared/types/domain";
+import { formatTimeSpent } from "@green-goods/shared/utils/form/normalizers";
 import {
   RiCheckDoubleFill,
   RiDownloadLine,
   RiExternalLinkLine,
+  RiFeedbackFill,
   RiFileFill,
   RiLeafFill,
   RiPencilFill,
@@ -19,11 +21,12 @@ import {
 } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { queuedWorkExplanation, readQueuedWorkState } from "@/components/Cards/Work/queuedWorkCopy";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
-type ViewingMode = "operator" | "gardener" | "viewer";
+type ViewingMode = "steward" | "gardener" | "viewer";
 
-type MetadataStatus = "idle" | "loading" | "success" | "error";
+type MetadataStatus = "idle" | "loading" | "success" | "error" | "unavailable";
 
 type WorkViewSectionProps = {
   garden?: Garden;
@@ -37,6 +40,10 @@ type WorkViewSectionProps = {
   onDownloadMedia?: () => void;
   onShare: () => void;
   onViewAttestation?: () => void;
+  /** Why the gardener's own queued work is still on this phone; its heading stays plain. */
+  notice?: React.ReactNode;
+  /** The commitment this work fulfils, read-only, with a way to it. */
+  fulfills?: React.ReactNode;
   footer?: React.ReactNode;
   reserveFooterSpace?: boolean;
   footerSpacerClassName?: string;
@@ -85,7 +92,7 @@ function buildMetadataDetails(
         items.push({
           label: intl.formatMessage({
             id: "app.home.workApproval.timeSpent",
-            defaultMessage: "Time Spent",
+            defaultMessage: "Time spent",
           }),
           value: formatted,
           icon: RiTimeFill,
@@ -179,13 +186,18 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   onDownloadMedia,
   onShare,
   onViewAttestation,
+  notice = null,
+  fulfills = null,
   footer,
   reserveFooterSpace,
   footerSpacerClassName,
 }) => {
   const intl = useIntl();
+  const isOnline = useOnlineStatus();
+  const queuedState = readQueuedWorkState(work.metadata);
+  const { submissionState } = queuedState;
 
-  const { feedback: workFeedback, media } = work;
+  const { feedback: workFeedback, media, reviewFeedback } = work;
 
   const isOfflineStatus =
     effectiveStatus === "syncing" ||
@@ -195,11 +207,27 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic title based on status and viewing mode
   const getTitle = () => {
+    // The notice under the heading says where queued work stands.
+    if (notice)
+      return intl.formatMessage({
+        id: "app.home.work.yourSubmission",
+        defaultMessage: "Your work submission",
+      });
     if (isOfflineStatus) {
+      if (submissionState === "awaiting-confirmation")
+        return intl.formatMessage({
+          id: "app.work.awaitingConfirmation",
+          defaultMessage: "Awaiting confirmation",
+        });
+      if (submissionState === "checking-submission")
+        return intl.formatMessage({
+          id: "app.work.checkingSubmission",
+          defaultMessage: "Checking whether this work was sent",
+        });
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Sending didn't work",
+          defaultMessage: "Upload didn't work",
         });
       }
       return intl.formatMessage({
@@ -208,17 +236,17 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
 
-    if (viewingMode === "operator") {
+    if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
           id: "app.home.workApproval.workApproved",
-          defaultMessage: "Work Approved",
+          defaultMessage: "Work approved",
         });
       }
       if (effectiveStatus === "rejected") {
         return intl.formatMessage({
           id: "app.home.workApproval.workRejected",
-          defaultMessage: "Work Rejected",
+          defaultMessage: "Work rejected",
         });
       }
       return intl.formatMessage({
@@ -231,12 +259,12 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
           id: "app.home.work.yourSubmissionApproved",
-          defaultMessage: "Your Work Submission",
+          defaultMessage: "Your submission has been approved",
         });
       }
       return intl.formatMessage({
         id: "app.home.work.yourSubmission",
-        defaultMessage: "Your Work Submission",
+        defaultMessage: "Your work submission",
       });
     }
 
@@ -248,27 +276,16 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
   // Dynamic info text based on status and viewing mode
   const getInfo = () => {
-    if (isOfflineStatus) {
-      if (effectiveStatus === "sync_failed") {
-        return intl.formatMessage({
-          id: "app.home.work.syncFailedInfo",
-          defaultMessage: "We couldn't send this just now. We'll keep trying when you're online.",
-        });
-      }
-      if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
-        return intl.formatMessage({
-          id: "app.home.work.syncingInfo",
-          defaultMessage: "Sending to the garden record...",
-        });
-      }
-      return intl.formatMessage({
-        id: "app.home.work.offlineInfo",
-        defaultMessage:
-          "Saved on your device — we'll send it to the garden record when you're online.",
-      });
-    }
+    if (notice) return actionTitle;
+    if (isOfflineStatus)
+      return intl.formatMessage(
+        queuedWorkExplanation(queuedState, {
+          isOnline,
+          sendFailed: effectiveStatus === "sync_failed",
+        })
+      );
 
-    if (viewingMode === "operator") {
+    if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
           id: "app.home.workApproval.workHasBeenApproved",
@@ -290,14 +307,14 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     if (viewingMode === "gardener") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
-          id: "app.home.work.approvedByOperator",
-          defaultMessage: "Your work has been approved by the garden operator",
+          id: "app.home.work.approvedBySteward",
+          defaultMessage: "Approved by steward",
         });
       }
       if (effectiveStatus === "rejected") {
         return intl.formatMessage({
           id: "app.home.work.notApproved",
-          defaultMessage: "This work was not approved",
+          defaultMessage: "Not yet approved",
         });
       }
       return intl.formatMessage({
@@ -308,7 +325,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
 
     return intl.formatMessage({
       id: "app.home.work.exploreSubmission",
-      defaultMessage: "Explore this work submission",
+      defaultMessage: "Explore This Work Submission",
     });
   };
 
@@ -321,9 +338,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
         defaultMessage: "Download Data",
       }),
       onClick: onDownloadData,
-      icon: <RiDownloadLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-primary-base !text-primary-base hover:!bg-primary-alpha-10 !outline-none",
+      icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -334,9 +349,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
               defaultMessage: "Download Media",
             }),
             onClick: onDownloadMedia,
-            icon: <RiDownloadLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-warning-base !text-warning-dark hover:!bg-warning-lighter !outline-none",
+            icon: <RiDownloadLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),
@@ -344,9 +357,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       id: "share",
       label: intl.formatMessage({ id: "app.home.work.share", defaultMessage: "Share Work" }),
       onClick: onShare,
-      icon: <RiShareLine className="w-6 h-6" />,
-      className:
-        "!bg-bg-white-0 !border-2 !border-warning-dark !text-warning-dark hover:!bg-warning-lighter !outline-none",
+      icon: <RiShareLine className="h-5 w-5" aria-hidden="true" />,
     },
     ...(onViewAttestation
       ? [
@@ -354,12 +365,10 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "view-attestation",
             label: intl.formatMessage({
               id: "app.home.work.viewAttestation",
-              defaultMessage: "View certificate",
+              defaultMessage: "View Certificate",
             }),
             onClick: onViewAttestation,
-            icon: <RiExternalLinkLine className="w-6 h-6" />,
-            className:
-              "!bg-bg-white-0 !border-2 !border-verified-base !text-verified-dark hover:!bg-verified-lighter !outline-none",
+            icon: <RiExternalLinkLine className="h-5 w-5" aria-hidden="true" />,
           },
         ]
       : []),
@@ -376,9 +385,21 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     [workMetadata, metadataUnavailable, intl]
   );
 
-  // Add feedback to details if present
+  // The review's feedback leads, so a gardener reads why before the rest;
+  // then the work's own description.
   const allDetails = useMemo(() => {
     const items = [...metadataDetails];
+    const decided = effectiveStatus === "approved" || effectiveStatus === "rejected";
+    if (reviewFeedback && decided) {
+      items.unshift({
+        label: intl.formatMessage({
+          id: "app.home.work.reviewFeedback",
+          defaultMessage: "Review feedback",
+        }),
+        value: reviewFeedback,
+        icon: RiFeedbackFill,
+      });
+    }
     if (workFeedback) {
       items.push({
         label: intl.formatMessage({
@@ -390,7 +411,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
     return items;
-  }, [metadataDetails, workFeedback, intl]);
+  }, [metadataDetails, reviewFeedback, effectiveStatus, workFeedback, intl]);
 
   const isDetailsLoading = metadataStatus === "loading" || metadataStatus === "idle";
 
@@ -417,7 +438,10 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       actionTitle={actionTitle}
       media={media}
       audioNoteCids={audioNoteCids}
+      mediaTypes={resolveMetadata(workMetadata)?.attachments?.map((attachment) => attachment.type)}
       details={allDetails}
+      afterHeading={notice}
+      afterDetails={fulfills}
       isDetailsLoading={isDetailsLoading}
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}

@@ -22,6 +22,8 @@ export interface SheetOrchestratorState {
   setFormState: (path: string, formState: Record<string, unknown>) => void;
   setScrollPosition: (path: string, position: number) => void;
   clearViewState: (path: string) => void;
+  /** Close every sheet and forget every page's sheet and form state. */
+  clearAll: () => void;
 }
 
 const createDefaultViewState = (): ViewSheetState => ({
@@ -96,6 +98,8 @@ export const useSheetOrchestratorStore = create<SheetOrchestratorState>()(
             return { viewStates: rest };
           });
         },
+
+        clearAll: () => set({ viewStates: {}, activeSheet: null, activeContentId: null }),
       }),
       {
         name: SHEET_STATE_STORAGE_KEY,

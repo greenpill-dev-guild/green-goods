@@ -1,12 +1,51 @@
-import { indexer } from "envio";
+import { indexer, type Garden } from "envio";
+import type { Address } from "viem";
 
+import { addUniqueAddress, GARDEN_ROLE, normalizeAddress, removeAddress } from "./shared";
 import {
-  addUniqueAddress,
   createDefaultGarden,
-  GARDEN_ROLE,
-  normalizeAddress,
-  removeAddress,
-} from "./shared";
+  createDefaultKarmaProjectAccess,
+  type EventContext,
+} from "./entity-defaults";
+import { getKarmaProjectAccessId } from "./ids";
+
+function markKarmaAccessPending(garden: Garden, account: Address, role: number): Garden {
+  if (role !== GARDEN_ROLE.Steward && role !== GARDEN_ROLE.Owner) return garden;
+
+  return {
+    ...garden,
+    karmaTrackedAccessAccounts: addUniqueAddress(garden.karmaTrackedAccessAccounts ?? [], account),
+    karmaMembershipState: "PENDING",
+    karmaMembershipPendingAccounts: addUniqueAddress(
+      garden.karmaMembershipPendingAccounts ?? [],
+      account
+    ),
+    karmaAccessState: "PENDING",
+    karmaAccessPendingAccounts: addUniqueAddress(garden.karmaAccessPendingAccounts ?? [], account),
+  };
+}
+
+async function setPendingAccessAggregate(
+  context: EventContext,
+  chainId: number,
+  garden: Address,
+  account: Address,
+  timestamp: number,
+  projectUID?: string
+) {
+  const id = getKarmaProjectAccessId(chainId, garden, account);
+  const existing = await context.KarmaProjectAccess.get(id);
+  const base = existing ?? createDefaultKarmaProjectAccess(chainId, garden, account, projectUID);
+
+  context.KarmaProjectAccess.set({
+    ...base,
+    projectUID: projectUID ?? base.projectUID,
+    membershipState: "PENDING",
+    membershipUpdatedAt: timestamp,
+    accessState: "PENDING",
+    accessUpdatedAt: timestamp,
+  });
+}
 
 // ============================================================================
 // HATS MODULE EVENT HANDLERS
@@ -31,7 +70,7 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event
 
   if (role === GARDEN_ROLE.Gardener) {
     updatedGardeners = addUniqueAddress(updatedGardeners, account);
-  } else if (role === GARDEN_ROLE.Operator) {
+  } else if (role === GARDEN_ROLE.Steward) {
     updatedOperators = addUniqueAddress(updatedOperators, account);
   } else if (role === GARDEN_ROLE.Evaluator) {
     updatedEvaluators = addUniqueAddress(updatedEvaluators, account);
@@ -51,15 +90,31 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event
     updatedFunders !== existingGarden.funders ||
     updatedCommunities !== existingGarden.communities
   ) {
-    context.Garden.set({
-      ...existingGarden,
-      gardeners: updatedGardeners,
-      operators: updatedOperators,
-      evaluators: updatedEvaluators,
-      owners: updatedOwners,
-      funders: updatedFunders,
-      communities: updatedCommunities,
-    });
+    const projectedGarden = markKarmaAccessPending(
+      {
+        ...existingGarden,
+        gardeners: updatedGardeners,
+        operators: updatedOperators,
+        evaluators: updatedEvaluators,
+        owners: updatedOwners,
+        funders: updatedFunders,
+        communities: updatedCommunities,
+      },
+      account,
+      role
+    );
+    context.Garden.set(projectedGarden);
+
+    if (role === GARDEN_ROLE.Steward || role === GARDEN_ROLE.Owner) {
+      await setPendingAccessAggregate(
+        context,
+        event.chainId,
+        gardenId,
+        account,
+        event.block.timestamp,
+        existingGarden.gapProjectUID
+      );
+    }
   }
 
   if (role === GARDEN_ROLE.Gardener) {
@@ -109,7 +164,7 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleRevoked" }, async ({ event
   let updatedFunders = existingGarden.funders;
   let updatedCommunities = existingGarden.communities;
 
-  if (role === GARDEN_ROLE.Operator) {
+  if (role === GARDEN_ROLE.Steward) {
     updatedOperators = removeAddress(updatedOperators, account);
   }
 
@@ -141,15 +196,31 @@ indexer.onEvent({ contract: "HatsModule", event: "RoleRevoked" }, async ({ event
     updatedFunders !== existingGarden.funders ||
     updatedCommunities !== existingGarden.communities
   ) {
-    context.Garden.set({
-      ...existingGarden,
-      gardeners: updatedGardeners,
-      operators: updatedOperators,
-      evaluators: updatedEvaluators,
-      owners: updatedOwners,
-      funders: updatedFunders,
-      communities: updatedCommunities,
-    });
+    const projectedGarden = markKarmaAccessPending(
+      {
+        ...existingGarden,
+        gardeners: updatedGardeners,
+        operators: updatedOperators,
+        evaluators: updatedEvaluators,
+        owners: updatedOwners,
+        funders: updatedFunders,
+        communities: updatedCommunities,
+      },
+      account,
+      role
+    );
+    context.Garden.set(projectedGarden);
+
+    if (role === GARDEN_ROLE.Steward || role === GARDEN_ROLE.Owner) {
+      await setPendingAccessAggregate(
+        context,
+        event.chainId,
+        gardenId,
+        account,
+        event.block.timestamp,
+        existingGarden.gapProjectUID
+      );
+    }
   }
 
   if (role === GARDEN_ROLE.Gardener) {

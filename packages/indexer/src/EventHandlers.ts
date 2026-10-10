@@ -16,9 +16,17 @@
  */
 import "./handlers/actionRegistry";
 import "./handlers/garden";
+import "./handlers/karma";
+import "./handlers/karma-hook-failures";
 import "./handlers/hatsModule";
 import "./handlers/octantVault";
 import "./handlers/hypercerts";
 import "./handlers/greenWill";
 import "./handlers/yieldSplitter";
 import "./handlers/cookieJarFactory";
+import "./handlers/commitmentPool";
+import "./handlers/settlement";
+import "./handlers/settlement-lifecycle";
+import "./handlers/settlement-executor";
+import "./handlers/credit-registry";
+import "./handlers/credit-registry-loans";

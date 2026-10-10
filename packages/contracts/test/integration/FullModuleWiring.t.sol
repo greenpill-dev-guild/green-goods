@@ -164,7 +164,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x05, // Solar + Edu
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
     }
 
@@ -286,7 +286,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01, // Solar only
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[1] = GardenToken.GardenConfig({
@@ -300,7 +300,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x0A, // Agro + Waste
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[2] = GardenToken.GardenConfig({
@@ -314,7 +314,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Power,
             domainMask: 0x0F, // All domains
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.prank(multisig);

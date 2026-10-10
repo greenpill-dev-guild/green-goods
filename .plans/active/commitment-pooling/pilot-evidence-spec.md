@@ -5,7 +5,7 @@
 - **Accountable owner**: Afolabi Aiyeloja
 - **Linear mirror**: COM-11 (formerly PRD-735) under PRD-650
 - **Operational checkpoint**: 2026-09-30
-- **Last updated**: 2026-07-23
+- **Last updated**: 2026-08-02
 
 ## 1. Authority and boundary
 
@@ -24,9 +24,15 @@ Those remain operational decisions in the blocked `settlement_evidence` lane.
 
 Companion authorities remain separate:
 
+- `standing-commitments-spec.md` owns Offer once/over time, internal series, availability, Story,
+  trust, and succession
+  boundaries.
 - `contract-spec.md` owns commitment state and permissions.
 - `settlement-spec.md` owns transport, execution, acknowledgment, and the mechanical circulation
   definitions in §11.
+- `exchange-architecture-brief.md` owns the future promise/series/voucher boundary, backing modes,
+  redemption, single-pool exchange, and federation gates. Evidence collected here does not
+  automatically authorize any of those stages.
 - `uiux-spec.md` owns rendered state and public-display behavior.
 - `acceptance-matrix.md` owns cross-surface implementation and QA targets.
 - `handoffs/human-settlement-evidence.md` owns the operational-assignment gate and evidence-packet
@@ -134,6 +140,17 @@ not a numeric composite:
 | Were failures repaired fairly? | Repair receipts, time to resolution, outcome, appeal/re-entry state | Closing a ticket is not evidence that trust or participation was restored |
 | Did G$ circulate meaningfully? | Cohort-based, non-duplicative measures from `settlement-spec.md` §11 | Raw transfer count or volume is not healthy circulation |
 | Were benefits and burdens distributed without public ranking? | Garden/cycle aggregates, concentration review, qualitative context | No participant score, leaderboard, or public comparative ranking |
+| After a commitment was fulfilled, what reciprocal relation remained among the contributor, recipient, group, and pool? | Qualitative evidence (§6.2) per garden; counter-commitment pair records; series Story and pool participation history consulted as separate records; rotation-template turns where a garden opted in | Added 2026-08-01 and clarified 2026-08-02. Distinguishes evidence-backed project contribution from ROLA-like reciprocity. Observational only — it never scores or ranks anyone, and a low-reciprocity answer is a valid design finding, not a garden failure |
+| Did an Offer used over time become genuinely dependable through repeated fulfillment? | Exact linked-instance outcomes and fulfilled-cycle IDs plus recipient/member qualitative evidence | Repetition is necessary evidence, not sufficient proof of trust or impact; do not substitute “kept N times” for how others actually planned around the Offer |
+| Did repeating the Offer create hidden burden or pressure to continue? | Rest/ask-again/retire use, confidential provider pulse, cap saturation, unresolved work, safe-refusal evidence | More instances or fewer rests is not automatically better; Resting is not a negative outcome |
+| Did people understand Offer once, Offer over time, saved Offer metadata, and available place? | Observed task comprehension, correction/error notes, device-change persistence check, claim walkthrough | Product comprehension is not inferred from clicks; saved Offer metadata may not be described as onchain or as an obligation |
+| Could people depend on the displayed availability? | Offered-instance count matched reserved provider slots; claims succeeded without capacity races; qualitative recipient evidence | Drafts, desired quantity, failed sync, or series metadata never count as availability |
+| Did Story visibility support trust without creating reputation pressure? | Viewer-role audit, small-pool privacy review, qualitative member/steward evidence, absence of scores/ranks/comparisons | Public or cross-pool personal history is not a pilot success condition |
+| After fulfillment, is there a real need for a redeemable claim rather than ordinary support or G$ settlement? | Cross-role qualitative evidence, attempted coordination workarounds, exact service/basis examples, and reasons ordinary rails were insufficient | Feature interest or a fulfilled commitment is not voucher demand |
+| Is there demand to exchange a claim before the underlying Offer is fulfilled? | Voluntary scenario walkthroughs, explicit provider/recipient consent, exposure analysis, and a named repair/default model | Current reserved capacity does not authorize capacity-backed issuance |
+| Who may issue, price, seed, pause, and redeem a future voucher class? | Role and authority read-back, operating-cost estimate, conflict review, and failure walkthrough | A steward role in the base pool does not silently grant venue or issuer authority |
+| What supply and holding exposure is acceptable for one bounded pool? | Declared basis, supply and holding caps, liquidity source, failed-redemption scenario, and safeguarding review | No cross-pool expansion or personal limit may be inferred |
+| Does a one-pool voucher improve reciprocity enough to justify custody and operating burden? | Exchange-in/out and redemption evidence, repair receipts, operator burden, and participant interpretation | Volume, velocity, or wallet count alone is insufficient |
 | Can findings be shared without exposing participants? | Publication tier, consent, suppression, linkability, retention, and access review | A UI display threshold alone is not a research privacy decision |
 
 ## 4. Units of analysis
@@ -386,10 +403,17 @@ and values below:
 | Privacy | Three purpose-limited tiers with suppression and linkability review | Name privacy owner; set research publication threshold, exact retention periods, deletion process, and incident response |
 | Operational packet | Reproducible no-product first cycle | Name packet owner and second reviewer; record the registry, workbook/script, template, and private-store locations |
 | Publication | Separated evidence, context, safeguard/privacy, and publication rights | Name internal decision and partner/public publication owners and record conflict backups |
+| Future-pool promotion evidence | No voucher stage is automatic; fulfilled backing precedes capacity backing and one pool precedes federation | Name the decision owner, exact unmet need, allowed backing mode, issuer/redemption authority, supply/exposure cap, repair owner, and evidence that ordinary commitment/support rails were insufficient |
 
 Assignments must be dated before outcome interpretation. Thresholds must be dated before the
 comparison-cycle outcomes are reviewed. Until these records are complete, COM-11 and the
 `settlement_evidence` lane remain blocked and receive no `agent:*` label.
+
+For Tech and Sun, the first evidence window evaluates the ordinary commitment loop: bounded
+climate-education Offers, reserved places, evidence, eligible participant confirmation, exact
+Story, and the separate support rails. A future voucher question is recorded only as a second
+horizon. It cannot be treated as an active pilot until the promotion row above is complete and a
+new scope lock authorizes one fulfilled-backed class.
 
 ## 11. September evidence packet
 
@@ -411,7 +435,10 @@ The evidence base contains:
 8. privacy tier, suppression, retention, and publication review;
 9. an allowed/prohibited claims table;
 10. garden-specific continue/refine/pause/stop decisions, with their limits; and
-11. dated sign-off from the evidence, context, privacy, safeguarding, and publication owners.
+11. a future-pool appendix stating whether ordinary commitment/support rails were sufficient,
+    whether fulfilled-backed voucher testing is Supported, Mixed, Not supported, or Unavailable,
+    and why capacity backing or federation remains off; and
+12. dated sign-off from the evidence, context, privacy, safeguarding, and publication owners.
 
 The packet must preserve the distinctions between queued, dispatched,
 executed/acknowledgment-pending, confirmed, failed, and delayed settlement, and between zero,

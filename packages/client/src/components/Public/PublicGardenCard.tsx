@@ -1,9 +1,11 @@
-import { cn, type PublicGardenSummary } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import { useIntl } from "react-intl";
-import { Link, useMatch } from "react-router-dom";
-import { ImageWithFallback } from "@/components/Display";
+import { Link } from "react-router-dom";
+import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
+import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 
 export interface PublicGardenCardProps {
   garden: PublicGardenSummary;
@@ -24,16 +26,9 @@ export function PublicGardenCard({
   variant = "default",
   onImageError,
 }: PublicGardenCardProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
   const isLead = variant === "lead";
-  const match = useMatch("/gardens/:id");
-  const openId = match?.params.id?.toLowerCase();
-  const isActiveDialogTarget = openId
-    ? openId === garden.id.toLowerCase() ||
-      openId === garden.address.toLowerCase() ||
-      openId === garden.slug.toLowerCase()
-    : false;
-  const heroVtName = isActiveDialogTarget ? undefined : `garden-card-${garden.id}`;
+  const description = getPublicGardenDescription(garden, formatMessage);
 
   const metaItems: { label: string }[] = [];
   if (garden.location) metaItems.push({ label: garden.location });
@@ -41,16 +36,32 @@ export function PublicGardenCard({
     label: formatMessage(
       {
         id: "public.gardens.gardeners",
-        defaultMessage: "{count} gardeners",
+        defaultMessage: "{count, plural, one {# member} other {# members}}",
       },
-      { count: garden.contributorCount }
+      { count: garden.gardenerCount }
     ),
   });
+
+  if (garden.lastActivityAt > 0) {
+    metaItems.push({
+      label: formatMessage(
+        { id: "public.gardens.latestWork" },
+        {
+          date: formatDate(garden.lastActivityAt * 1000, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+        }
+      ),
+    });
+  }
   metaItems.push({
     label: formatMessage(
       {
         id: "public.gardens.works",
-        defaultMessage: "{count} entries",
+        defaultMessage:
+          "{count, plural, one {# approved submission} other {# approved submissions}}",
       },
       { count: garden.actionCount }
     ),
@@ -71,12 +82,11 @@ export function PublicGardenCard({
           "relative w-full overflow-hidden bg-editorial-warm",
           isLead ? "aspect-[4/3]" : "aspect-[3/2]"
         )}
-        style={heroVtName ? { viewTransitionName: heroVtName } : undefined}
       >
         <ImageWithFallback
           src={garden.bannerImage}
           alt={garden.name}
-          className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+          className="h-full w-full object-cover"
           backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
           onErrorCallback={onImageError}
         />
@@ -96,15 +106,15 @@ export function PublicGardenCard({
         <span className="line-clamp-2">{garden.name || garden.slug}</span>
       </h3>
 
-      {garden.description ? (
+      {description ? (
         <p
           className={cn(
             "text-sm font-medium leading-[1.55] text-text-sub-600",
             isLead ? "line-clamp-3" : "line-clamp-2"
           )}
-          title={garden.description}
+          title={description}
         >
-          {garden.description}
+          {description}
         </p>
       ) : null}
 

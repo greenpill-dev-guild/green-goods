@@ -1,34 +1,31 @@
 # Contracts Package Context
 
-Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
+Loaded when working in `packages/contracts/`. Extends `packages/contracts/AGENTS.md`.
 
 ## Quick Reference
 
 | Command | Purpose |
 |---------|---------|
 | `bun run test` | Run unit tests (skips E2E) |
-| `bun run test:gas` | Tests with gas report |
-| `bun build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
-| `bun build:changed` | Build changed Solidity under `src/test/script` only |
-| `bun build:target -- <path...>` | Build explicit Solidity target(s) only |
-| `bun build:fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
-| `bun build:full` | Full compilation including tests (>180s cold) |
-| `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
+| `bun run --cwd packages/contracts test --suite solidity --profile gas` | Tests with gas report |
+| `bun run build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
+| `bun run --cwd packages/contracts build --mode changed` | Build changed Solidity under `src/test/script` only |
+| `bun run --cwd packages/contracts build --mode target <path...>` | Build explicit Solidity target(s) only |
+| `bun run --cwd packages/contracts build --mode fast` | Explicit fast mode (`src` only, skips Foundry test/script) |
+| `bun run --cwd packages/contracts build --mode full` | Full compilation including tests (>180s cold) |
+| `bun run --cwd packages/contracts test --suite solidity --profile lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
-| `bun deploy:testnet` | Deploy to Sepolia |
-| `bun upgrade:sepolia` | Upgrade existing contracts on Sepolia (named targets + gates: see § Upgrade CLI below) |
+| `bun run contracts -- deploy core --network sepolia --mode simulate` | Simulate Sepolia deployment |
+| `bun run contracts -- upgrade all --network sepolia --mode preflight` | Check upgrade prerequisites (named targets + gates: see § Upgrade CLI below) |
 
 > **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
-> **Operator defaults:** Use root/package scripts for deploys and upgrades. Arbitrum `contracts:*`
-> wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, and upgrade scripts that need the
+> **Steward defaults:** Use the package-owned contracts CLI. Applicable Arbitrum operations
+> set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, and upgrades that need the
 > current proxy owner use sender `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
-> Contract wrappers clear `PINATA_JWT_OP_REF` so media upload credentials do not block contract
-> upgrades. For signal-pool/yield wiring, run the named scripts in order:
-> `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`,
-> `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`,
-> `bun run contracts:migrate:vaults:dry:arbitrum`,
-> `bun run contracts:migrate:vaults:arbitrum`,
-> `bun run contracts:verify:post-deploy:arbitrum`.
+> Applicable operations clear `PINATA_JWT_OP_REF` so media upload credentials do not block upgrades.
+> For signal-pool/yield wiring, simulate and then broadcast the explicit upgrade target, simulate and
+> then broadcast vault migration, and finish with `bun run contracts -- verify --network arbitrum`.
+> Broadcasting remains subject to release authorization; see `packages/contracts/AGENTS.md`.
 
 ## Contents
 - [Architecture](#architecture)
@@ -62,14 +59,13 @@ packages/contracts/
 
 ## Critical Patterns
 
-### MANDATORY: Use deploy.ts
+### MANDATORY: Use the contracts CLI
 
 **NEVER use direct forge commands for deployment:**
 
 ```bash
 # ✅ ALWAYS
-bun deploy:testnet
-bun script/deploy.ts core --network sepolia --broadcast
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # ❌ NEVER
 forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
@@ -94,10 +90,10 @@ This file defines **production EAS schemas** deployed on-chain. Modifying it:
 
 ```bash
 # Deploy contracts + schemas
-bun deploy:testnet
+bun run contracts -- deploy core --network sepolia --mode broadcast
 
-# Update schema name/description only (not fields)
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
+# Approved schema additions use standalone registration paths.
+# Bulk --update-schemas is retired and must not be used.
 ```
 
 ### UUPS Upgrades (MANDATORY)
@@ -174,6 +170,69 @@ try octantModule.onWorkApproved(garden, name) returns (address vault) {
 }
 ```
 
+### Stateful and Financial Change Matrix (MANDATORY when triggered)
+
+Before implementing or approving a financial state machine, mutable dependency, retry or grace
+window, cross-chain acknowledgment, asynchronous projection, or upgradeable storage change, write an
+explicit matrix. Use the axes that can change the result:
+
+`action × lifecycle state × actor/role overlap × payment rail × pause/pool state × time boundary × dependency generation`
+
+For every material row, record the expected effect or revert, accounting/reservation cleanup,
+immutable history that must survive, external calls, and the test or other proof. Include terminal
+states, cancellation, retry, expiry, duplicate delivery, self-dealing/dual-role actors, and the
+boundary immediately before and after a grace window when those axes apply. Stateless or purely
+mechanical changes do not need a ritual matrix.
+
+### Dependency Identity and Rotation
+
+- Before storing a dependency, validate facts available independently: nonzero/code checks, chain or
+  domain identity, and the exact interface surface the consumer relies on. Mutually referencing
+  contracts may use explicit staged wiring only while paused, accepting the documented unbound or
+  self-bound bootstrap state; require exact reciprocal configuration before activation or unpause.
+- Treat identity as more than an address. A route includes its peer, selector/domain, generation,
+  and any grace promise made to in-flight work.
+- Define the rotation policy before adding a setter. If live state cannot migrate safely, block
+  rotation while that state exists or freeze the dependency until deployment/reinitialization.
+- Test consecutive rotations and acknowledgments or retries from every still-valid generation; a
+  single previous-peer slot is insufficient when overlapping grace windows are permitted.
+
+### Accounting Completeness
+
+- Keep denomination or rail identity explicit when aggregating principal, reservations, repayments,
+  or outstanding balances. Do not add unlike units into one scalar total.
+- Test overlapping roles, including contributor=funder, beneficiary=source, owner=operator, and
+  caller=recipient where the model permits them.
+- On every terminal transition, clear active reverse indexes and reservations without erasing the
+  immutable historical record needed for audit or replay protection.
+
+### Validation Tooling Is Critical Code
+
+Deployment, upgrade, migration, storage-layout, size, release, and validation scripts can approve or
+mutate protected state. Cover unknown arguments, malformed inputs, path confinement, idempotency,
+atomic update behavior, partial failures, and accurate error summaries. Validate before writing
+baselines or artifacts; stage updates and publish them only after all checks pass.
+
+### Contract Size — EIP-170 (MANDATORY)
+
+Deployed bytecode is capped at 24,576 bytes on Arbitrum and every Ethereum-equivalent chain.
+**Foundry tests do NOT enforce this** — a green suite says nothing about deployability. The
+gate is `bun run check:sizes` (contracts package; CI runs it in the Lint And Build job): it
+builds the production profile and fails any deployable over the limit, warning above 90%.
+
+- `CommitmentPoolingModule` behavior lives in **deployed external libraries**
+  (`src/lib/CommitmentPooling/`, DELEGATECALLed; each has its own 24,576-byte budget). The module
+  side is a six-link shell chain in `src/modules/CommitmentPooling/` (Storage → Base → Admin →
+  Lifecycle → Operations → Extensions). New pooling selectors MUST land their bodies in a library, with
+  only a thin shell in the chain — the binding pattern rules (Env snapshot, storage-ref
+  threading, counter shells, raw-forwarded struct views, "no struct-of-mappings handles") are
+  in `.plans/active/commitment-pooling/contract-spec.md` §6.1 "Deployed-library architecture".
+- `OctantModule` sits at **90 bytes of margin** (production profile). Any edit to it will
+  trip the WARN band; plan a library extraction before growing it.
+- Measurement gotcha: `forge build <path> --skip test --skip script` can silently skip
+  emitting the named concrete target's artifact. Size measurements must build with no path
+  argument (the gate does this correctly).
+
 ### Gas Optimization
 
 ```solidity
@@ -211,20 +270,25 @@ for (uint256 i = 0; i < items.length; i++) { }
 ```solidity
 // Pattern: test[Contract]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorized() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
-// Prefixes
-test_           // Happy path
-testRevert_     // Failure cases
-testFuzz_       // Fuzz tests (random inputs)
-testInvariant_  // Invariant tests
-testE2E_        // Multi-contract flows
+// Categories
+testContract_scenario
+testFuzz_Contract_property
+testIntegration_Contract_scenario
+testUpgrade_Contract_scenario
+testE2E_Contract_scenario
+invariant_Contract_property
 ```
+
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category. Enforce this for newly added or renamed tests; existing legacy names are
+grandfathered until their behavior is materially edited.
 
 ### Fuzz Testing (MANDATORY for mainnet)
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
 
@@ -260,7 +324,7 @@ const WORK_SCHEMA_UID = deployment.schemas.workSchemaUID;
 forge script script/Deploy.s.sol --broadcast
 
 # ✅ Proper deployment
-bun deploy:testnet
+bun run contracts -- deploy core --network sepolia --mode simulate
 ```
 
 ### Never Skip Storage Gap
@@ -283,6 +347,12 @@ contract MyModule is UUPSUpgradeable {
 
 Before upgrading:
 - [ ] Storage gap present and correctly sized
+- [ ] Every first-party ERC-7201 namespace slot and ordered member layout is protected by a committed baseline
+- [ ] Vendored ERC-7201 namespaces are either baseline-protected or explicitly excluded with their
+      upstream ownership and invalidation rule documented. `octant.tokenized.strategy.storage` in
+      `packages/contracts/src/vendor/octant/core/TokenizedStrategy.sol` is excluded while that file
+      remains an unmodified upstream-vendored surface; any local edit to the vendor source requires
+      a first-party namespace baseline or an explicit upstream storage-compatibility review.
 - [ ] No storage variable reordering
 - [ ] No storage variable type changes
 - [ ] New variables added at end only
@@ -301,41 +371,51 @@ indexer addresses are blockers until fixed and re-verified.
 bun run test
 
 # Full build
-bun run build:full
+bun run --cwd packages/contracts build --mode full
 
 # Dry run
-bun script/deploy.ts core --network sepolia
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # Deploy
-bun script/deploy.ts core --network sepolia --broadcast
+bun run contracts -- deploy core --network sepolia --mode broadcast
 ```
 
-## Deploy CLI — subcommands, networks, gates
+## Contracts CLI — operations, networks, modes
 
-`bun script/deploy.ts <subcommand> --network <net> [--broadcast]`. Beyond the `core` deploy documented above:
+Use `bun run contracts -- help` from root or the contracts package. Both entrypoints use the same
+package-owned operation policy. Deployment, upgrade, migration, and repair require explicit
+`--network` and `--mode`; use command-specific help for supported targets and flags.
 
-| Subcommand | Purpose |
-|---|---|
-| `core` | Deploy core contracts (default) |
-| `garden <config>` | Deploy a garden from a config JSON |
-| `hats-tree` | Create/configure the Hats Protocol tree |
-| `status [network]` | Print on-chain deployment status |
+- `preflight`: compile/artifact checks without RPC.
+- `simulate`: RPC simulation without broadcasting.
+- `plan`: produce the operation's transaction-plan artifacts.
+- `broadcast`: execute transactions after release authorization.
+- `upload`: upload-only behavior where supported.
 
-Flags: `--broadcast` (send txs), `--update-schemas` (EAS schema metadata only), `--dry-run` (simulate vs live RPC), `--pure-simulation` (compile/preflight, no RPC), `--force` (skip cache).
+Use `--explain --json` to inspect resolution and safeguards without credentials or network access.
+Unsupported combinations fail before execution. The generated
+`docs/docs/builders/packages/contract-operations.mdx` reference and migration table derive from
+these definitions. Do not add network/mode combinations back as manifest aliases.
 
-Accepted `--network`: `localhost` (31337), `sepolia` (11155111), `arbitrum` (42161, prod), `celo` (42220, prod), `mainnet` (1, ENS only). Per-chain RPC via `{CHAIN}_RPC_URL` (e.g. `SEPOLIA_RPC_URL`); artifacts at `deployments/{chainId}-latest.json`.
+Production-readiness gates remain `bun run check --only contracts-verify` and the selector's required critical
+checks. Fork shard selection uses `bun run test:shard run <shard>` from the contracts package;
+environment loading, fork profiles, and block pinning remain runner-owned.
 
-Production-readiness gate (pre-broadcast, all chains): `bun run verify:contracts` (build → lint → tests → E2E → dry runs) or `bun run verify:contracts:fast` (skips E2E + dry runs). Fork tests: `bun run test:fork` (also `test:fork:protocol`, `test:fork:*:ci` shards) runs under `FOUNDRY_PROFILE=fork`, sources root `.env`, and requires the target chain's `{CHAIN}_RPC_URL`.
+## Upgrade CLI — UUPS
 
-## Upgrade CLI — upgrade.ts (UUPS)
+Use `bun run contracts -- upgrade <target> --network <network> --mode <mode>`. Do not use forced
+deployment as an upgrade or rollback, or invoke raw Foundry deployment commands.
 
-`bun script/upgrade.ts <target> --network <net>` is the only upgrade path — never `deploy.ts --force` as an upgrade or rollback command, never raw `forge script`.
+Sequence: compile-only `preflight`, reviewed `plan` artifacts with the required sender, then
+`broadcast` only after authorization and release gates. `simulate` performs RPC simulation.
+The aggregate `all` target excludes funds-adjacent GreenWill; use its explicit target and reviewed
+transaction plan. Operation policy retains required storage-layout and fork checks.
 
-Sequence: `--dry-run` (preflight) → `--tx-plan --sender <address>` (persisted, reviewable transaction plan) → `--broadcast` only after the plan, authorization, and release gate are approved.
-
-Named targets: `action-registry`, `garden-token`, `yield-resolver`, `gardens-module`, `signal-pool-yield-wiring`, `yield-gardens-wiring`, `octant-module`, `karma-gap-module`, `work-resolver`, `work-approval-resolver`, `assessment-resolver`, `deployment-registry`, `greenwill`, `all`. **`all` intentionally excludes the funds-adjacent `greenwill` target** — upgrade GreenWill only as its explicit target with its own reviewed tx-plan (root wrappers: `contracts:upgrade:greenwill:dry:arbitrum` / `contracts:upgrade:greenwill:arbitrum`).
-
-Arbitrum and Celo broadcasts enforce the **Sepolia deployment gate**; do not pass `--override-sepolia-gate` without release-owner approval. The reviewer-led manual path for a verified garden-proxy rollback is `Upgrade.s.sol`'s `upgradeGardenProxy` with the known previous implementation — it is not a reason to run raw Foundry commands. Release sequencing: `docs/docs/builders/deployments/releasing.mdx`.
+Arbitrum and Celo broadcasts enforce the Sepolia deployment gate. Do not use
+`--override-sepolia-gate` without release-owner approval. Release sessions use the existing release
+operator through the CLI and retain its allowlisted stages, exact-commit checks, transaction
+boundaries, nonce/receipt checks, and checkpoint/resume behavior. Release sequencing is covered in
+`CONTRIBUTING.md` under releases and hotfixes.
 
 ## Access Control (Hats Protocol)
 
@@ -357,7 +437,7 @@ Access is gated via Hats, checked with `IHats.isWearerOfHat` (see `registries/Po
 
 Read these docs pages when you need deployment context or protocol details:
 
-- Deployment runbook (3-chain CLI commands): `docs/docs/builders/operations.mdx`
+- Deployment runbook: `packages/contracts/deployments/README.md`
 - System architecture and contract relationships: `docs/docs/builders/architecture.mdx`
 - Cross-protocol entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
 - EAS integration reference: `docs/docs/builders/integrations/eas.mdx`

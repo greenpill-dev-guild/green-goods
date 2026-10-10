@@ -1,5 +1,9 @@
 /** Shared utilities for Ethereum address comparison and formatting. */
 
+import { ZERO_ADDRESS } from "./address-constants";
+
+export { ZERO_ADDRESS } from "./address-constants";
+
 /**
  * Compare two Ethereum addresses (case-insensitive).
  *
@@ -28,7 +32,7 @@ export function isUserAddress(
 
 /**
  * @example
- * isAddressInList(userAddress, garden.operators) // true/false
+ * isAddressInList(userAddress, garden.stewards) // true/false
  */
 export function isAddressInList(
   address: string | undefined | null,
@@ -68,9 +72,6 @@ export function isValidAddressFormat(address: string | undefined | null): boolea
   if (!address) return false;
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
-
-/** The Ethereum zero address constant. */
-export const ZERO_ADDRESS: `0x${string}` = "0x0000000000000000000000000000000000000000";
 
 export function isZeroAddress(address: string | undefined | null): boolean {
   if (!address) return true;

@@ -72,16 +72,14 @@ contract SepoliaPowerRegistryForkTest is ForkTestBase {
 
     function _registerGardenPowerSources() internal {
         NFTPowerSource[] memory sources = new NFTPowerSource[](3);
-        sources[0] =
-            NFTPowerSource({ token: HATS_PROTOCOL, nftType: NFTType.HAT, weight: 30_000, tokenId: 0, hatId: operatorHatId });
-        sources[1] =
-            NFTPowerSource({ token: HATS_PROTOCOL, nftType: NFTType.HAT, weight: 20_000, tokenId: 0, hatId: gardenerHatId });
+        sources[0] = NFTPowerSource({
+            token: HATS_PROTOCOL, nftType: NFTType.HAT, weight: 30_000, tokenId: 0, hatId: operatorHatId
+        });
+        sources[1] = NFTPowerSource({
+            token: HATS_PROTOCOL, nftType: NFTType.HAT, weight: 20_000, tokenId: 0, hatId: gardenerHatId
+        });
         sources[2] = NFTPowerSource({
-            token: HATS_PROTOCOL,
-            nftType: NFTType.HAT,
-            weight: 10_000,
-            tokenId: 0,
-            hatId: communityHatId
+            token: HATS_PROTOCOL, nftType: NFTType.HAT, weight: 10_000, tokenId: 0, hatId: communityHatId
         });
 
         vm.prank(gardensModuleCaller);

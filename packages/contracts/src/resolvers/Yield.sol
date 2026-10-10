@@ -817,7 +817,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
             0, // minReturnedTokens
             "Green Goods yield allocation",
             bytes("")
-        ) returns (uint256) {
+        ) returns (
+            uint256
+        ) {
             emit YieldToJuicebox(garden, asset, amount, juiceboxProjectId);
         } catch {
             // Reset dangling allowance from the failed JB payment
@@ -839,9 +841,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         SplitConfig memory config = gardenSplitConfig[garden];
         if (config.cookieJarBps + config.fractionsBps + config.juiceboxBps == 0) {
             return SplitConfig({
-                cookieJarBps: DEFAULT_COOKIE_JAR_BPS,
-                fractionsBps: DEFAULT_FRACTIONS_BPS,
-                juiceboxBps: DEFAULT_JUICEBOX_BPS
+                cookieJarBps: DEFAULT_COOKIE_JAR_BPS, fractionsBps: DEFAULT_FRACTIONS_BPS, juiceboxBps: DEFAULT_JUICEBOX_BPS
             });
         }
         return config;
@@ -863,9 +863,12 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     function _validateManualHypercertPool(address garden, address pool) internal view {
         if (pool.code.length == 0) revert InvalidPool(pool);
 
-        try ICVStrategy(pool).proposalCounter() returns (uint256) {
-            // Valid CVStrategy-compatible pool.
-        } catch {
+        try ICVStrategy(pool).proposalCounter() returns (
+            uint256
+        ) {
+        // Valid CVStrategy-compatible pool.
+        }
+        catch {
             revert InvalidPool(pool);
         }
 
@@ -888,10 +891,6 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         uint256 assetThreshold = assetYieldThresholds[asset];
         return assetThreshold > 0 ? assetThreshold : minYieldThreshold;
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // UUPS Upgrade
-    // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Authorizes an upgrade to a new implementation
     // solhint-disable-next-line no-empty-blocks

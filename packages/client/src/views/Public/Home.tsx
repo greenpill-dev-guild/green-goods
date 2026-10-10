@@ -1,17 +1,15 @@
-import { useApp, usePublicStats } from "@green-goods/shared";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
-  EditorialPrimaryButton,
   EditorialPrimaryLink,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
-import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
@@ -25,11 +23,10 @@ import { publicCuration } from "@/content/publicCuration";
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Funding Bridge → Get In Touch → Footer.
+ *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
-  const { isMobile } = useApp();
   const stats = usePublicStats();
 
   const counts = stats.data ?? {
@@ -39,31 +36,20 @@ export default function Home() {
     attestationCount: 0,
   };
 
-  // Mobile: lead with the app CTA so a phone visitor lands on the install
-  // path, then offer Explore as the secondary route. Desktop drops the
-  // secondary entirely — Explore Gardens is the only above-the-fold CTA.
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
     defaultMessage: "Explore Gardens",
   });
 
-  const heroActions = isMobile ? (
+  const heroActions = (
     <>
-      <PublicInstallAction>
-        {({ label, onClick, disabled, dataInstallAction }) => (
-          <EditorialPrimaryButton
-            onClick={onClick}
-            disabled={disabled}
-            data-install-action={dataInstallAction}
-          >
-            {label}
-          </EditorialPrimaryButton>
-        )}
-      </PublicInstallAction>
-      <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+      <EditorialPrimaryLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialPrimaryLink>
+      <EditorialGhostLink to="/fund" size="lg">
+        {formatMessage({ id: "public.home.hero.support", defaultMessage: "Support a Garden" })}
+      </EditorialGhostLink>
     </>
-  ) : (
-    <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
   );
 
   return (
@@ -77,17 +63,14 @@ export default function Home() {
           {
             id: "public.home.hero.title",
             defaultMessage:
-              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+              "<line>From <accent>good</accent></line> <line>intentions to</line> <line><accent>green</accent> outcomes</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-            noBreak: (chunks) => <span className="whitespace-nowrap">{chunks}</span>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste, turning everyday contributions into a trusted public record of how places grow healthier together.",
+            "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding. Explore what’s been done, meet the people doing it, and support what comes next.",
         })}
         actions={heroActions}
       />

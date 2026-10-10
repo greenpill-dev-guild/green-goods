@@ -10,7 +10,7 @@
 import { type Address, getAddress, isAddress } from "viem";
 import { CONSTANTS } from "@hypercerts-org/sdk";
 
-import { createPublicClientForChain } from "../../config";
+import { createPublicClientForChain } from "../../config/pimlico";
 
 /**
  * Type guard for network config response from deployment registry

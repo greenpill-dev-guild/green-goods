@@ -1,16 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
-import {
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  type Address,
-  type Garden as SharedGarden,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address, Garden as SharedGarden } from "@green-goods/shared/types/domain";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -23,6 +20,7 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import { POOL_STORY_SEEDS } from "./Pool/poolStoryFixtures";
 import {
   expectAdminShellDarkPalette,
   expectAllVisibleSelectorContrast,
@@ -83,15 +81,20 @@ const STORYBOOK_SECONDARY_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknow
   [queryKeys.conviction.strategies(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), []],
 ];
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
 
 const STORYBOOK_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   [
-    queryKeys.role.deploymentPermissions(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: true, isInAllowlist: true, canDeploy: true },
   ],
 ];
+
+// The shell reads its garden from the URL, so a story that shows the seeded
+// garden names that garden in its path. Without it the shell opens the first
+// garden by name, Botanic Commons, which the shell seeds leave empty.
+const SEEDED_GARDEN = `gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
 
 function gardenDecorators({
   garden = STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -113,10 +116,9 @@ function gardenDecorators({
 }
 
 export const Overview: Story = {
-  // Not in storybook-ci: the garden overview needs live indexer/vault + analytics data the
-  // clean-room CI browser can't reach, so the "Garden" heading / garden name never render
-  // offline. Kept for local/authenticated Storybook review.
-  args: { initialPath: "/garden/overview" },
+  // Not in storybook-ci: the play's last check looks for primary action links by a class the
+  // overview no longer uses, so it finds none. Kept for local Storybook review.
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
     await withTemporaryDocumentTheme("dark", async () => {
@@ -145,25 +147,30 @@ export const Overview: Story = {
 
 export const Activity: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/activity" },
+  args: { initialPath: `/garden/activity?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
 };
 
-// Members tab retired — "Manage members" now opens the roles flow directly
-// as its own route (views/Garden/ManageMembers.tsx) rather than a browsable
-// Garden workspace tab.
+// Members tab retired — "Manage Members" now opens ManageMembersDialog from
+// the community workspace rather than a browsable Garden workspace tab.
+
+// The steward's pool console on the Garden workspace's Promises tab (W7),
+// seeded through the registry keys the pool controller reads.
+export const Pool: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: `/garden/pool?${SEEDED_GARDEN}` },
+  decorators: gardenDecorators({ seeds: [...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS] }),
+};
 
 export const Settings: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/settings" },
+  args: { initialPath: `/garden/settings?${SEEDED_GARDEN}` },
   decorators: gardenDecorators(),
 };
 
 export const GardenSwitchRemainsInteractive: Story = {
-  // Not in storybook-ci: the garden-switch play needs live indexer/vault data the clean-room
-  // CI browser can't reach, so the garden name never renders offline. Kept for
-  // local/authenticated Storybook review.
-  args: { initialPath: "/garden/overview" },
+  // Not in storybook-ci. Kept for local Storybook review.
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators({ seeds: STORYBOOK_SECONDARY_GARDEN_SEEDS }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -267,7 +274,7 @@ export const CreateGardenRouteUnauthorized: Story = {
 
 export const EmptyDomains: Story = {
   tags: ["visual-harness", "storybook-ci"],
-  args: { initialPath: "/garden/overview" },
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
   decorators: gardenDecorators({
     garden: STORYBOOK_EMPTY_DOMAIN_GARDEN,
     seeds: STORYBOOK_EMPTY_DOMAIN_SEEDS,
@@ -280,12 +287,12 @@ export const EmptyDomains: Story = {
     await expect(
       await canvas.findAllByRole(
         "button",
-        { name: "Edit domains" },
+        { name: "Edit Domains" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toHaveLength(1);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "Edit domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("button", { name: "Edit Domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     );
     const page = within(canvasElement.ownerDocument.body);
     await expect(

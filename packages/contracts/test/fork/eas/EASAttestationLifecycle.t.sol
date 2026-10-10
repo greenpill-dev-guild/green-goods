@@ -44,7 +44,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         gardenAccount = _mintTestGarden("EAS Test Garden", 0x0F);
 
         // Grant roles
-        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenAccount, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(gardenAccount, forkEvaluator, IHatsModule.GardenRole.Evaluator);
 
@@ -231,7 +231,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     // Test 5: Work Approval (Non-Operator Reverts)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Work approval reverts when submitted by a gardener (not operator/evaluator)
+    /// @notice Work approval reverts when submitted by a gardener who is not an operator
     function test_fork_workApproval_revertsForNonOperator() public {
         if (!_tryChainFork("sepolia")) {
             return;

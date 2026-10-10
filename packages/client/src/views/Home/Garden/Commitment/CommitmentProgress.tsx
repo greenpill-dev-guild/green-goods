@@ -1,0 +1,161 @@
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import {
+  type CommitmentReadModel,
+  type CommitmentRequirementRecord,
+  isTerminalCommitmentState,
+} from "@green-goods/shared/commitment-pooling";
+import { RiLoader4Line } from "@remixicon/react";
+import { type ReactNode, useId, useMemo } from "react";
+import { useIntl } from "react-intl";
+
+export interface CommitmentProgressProps {
+  chainId: number;
+  commitment: CommitmentReadModel;
+  requirements: CommitmentRequirementRecord[];
+  /**
+   * Proof from this phone that is not on the promise yet: on its way, with
+   * what it carries in words, or still on the phone under the notice above.
+   */
+  onPhone?: { kind: "sending"; summary: string } | { kind: "local" } | null;
+  /** The proof itself, shown under the progress in the same section. */
+  children?: ReactNode;
+}
+
+/**
+ * Progress and proof: what has actually been done toward this promise, and the
+ * proof itself under it.
+ *
+ * Each requirement keeps its own row and its own units. Rows are never summed
+ * into one figure: two rows counting different things have no common total, and
+ * inventing one would report progress the garden never agreed to.
+ *
+ * Display is capped at what was required while the audited count stays intact,
+ * so an over-delivered row reads as complete rather than as more than complete.
+ */
+export function CommitmentProgress({
+  chainId,
+  commitment,
+  requirements,
+  onPhone = null,
+  children,
+}: CommitmentProgressProps) {
+  const { formatMessage } = useIntl();
+  const headingId = useId();
+  const heading = (
+    <h2 id={headingId} className="text-sm font-semibold leading-5 text-text-strong-950">
+      {formatMessage({ id: "app.commitment.progress.title" })}
+    </h2>
+  );
+  // Each row is a garden action, so it is named by the action registry rather
+  // than by its position. Position stays as the fallback for an action the
+  // registry cannot name, which is still a row somebody has to fulfil.
+  const { data: actions = [] } = useActions(chainId);
+  const titleByActionId = useMemo(
+    () => new Map(actions.map((action) => [action.id, action.title])),
+    [actions]
+  );
+  const hasProof = commitment.evidenceCount > 0;
+  // What this phone still holds, said once, under what is already on the promise.
+  const phoneLine =
+    onPhone?.kind === "sending" ? (
+      <p className="mt-2 flex items-center gap-2 text-sm text-text-sub-600" role="status">
+        <RiLoader4Line className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+        {formatMessage({ id: "app.commitment.progress.sending" }, { summary: onPhone.summary })}
+      </p>
+    ) : onPhone?.kind === "local" ? (
+      <p className="mt-2 text-sm text-text-sub-600">
+        {formatMessage({
+          id: hasProof ? "app.commitment.progress.localMore" : "app.commitment.progress.local",
+        })}
+      </p>
+    ) : null;
+  const rowLabel = (requirement: CommitmentRequirementRecord) =>
+    titleByActionId.get(`${chainId}-${requirement.actionUID.toString()}`) ??
+    formatMessage(
+      { id: "app.commitment.progress.row" },
+      { index: requirement.requirementIndex + 1 }
+    );
+
+  if (requirements.length === 0) {
+    // A service commitment names no garden actions, so proof is what moves it —
+    // but a settled record has stopped moving, so its copy just counts.
+    const settled = isTerminalCommitmentState(commitment.derivedState);
+    return (
+      <section
+        className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+        aria-labelledby={headingId}
+        data-component="CommitmentProgress"
+      >
+        {heading}
+        {/* Once proof is on the promise, the proof itself says so. */}
+        {hasProof || onPhone ? null : (
+          <p className="mt-2 text-sm text-text-sub-600">
+            {formatMessage(
+              {
+                id: settled
+                  ? "app.commitment.progress.proofOnlySettled"
+                  : "app.commitment.progress.proofOnly",
+              },
+              { count: 0 }
+            )}
+          </p>
+        )}
+        {children}
+        {phoneLine}
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+      aria-labelledby={headingId}
+      data-component="CommitmentProgress"
+    >
+      {heading}
+      <ul className="mt-3 space-y-3">
+        {requirements.map((requirement) => {
+          const done = Math.min(requirement.approvedCount, requirement.requiredCount);
+          const pct =
+            requirement.requiredCount > 0
+              ? Math.round((done / requirement.requiredCount) * 100)
+              : 0;
+          const label = rowLabel(requirement);
+          return (
+            <li key={requirement.id}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-text-sub-600" title={label}>
+                  {label}
+                </span>
+                <span className="shrink-0 text-text-strong-950">
+                  {formatMessage(
+                    { id: "app.commitment.progress.count" },
+                    { done, of: requirement.requiredCount }
+                  )}
+                </span>
+              </div>
+              <div
+                className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg-weak-50"
+                role="progressbar"
+                aria-label={label}
+                aria-valuenow={done}
+                aria-valuemin={0}
+                aria-valuemax={requirement.requiredCount}
+              >
+                <div
+                  className="h-full rounded-full bg-primary-action"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-xs text-text-soft-400">
+        {formatMessage({ id: "app.commitment.progress.note" })}
+      </p>
+      {children}
+      {phoneLine}
+    </section>
+  );
+}

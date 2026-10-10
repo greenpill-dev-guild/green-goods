@@ -36,3 +36,28 @@ non-zero guard following
 check that the configured address is present and not the zero-address sentinel
 before using it. `isGreenWillDeployed` itself guards `greenWill`; it is the
 pattern, not a guard for these three keys.
+
+## Deployment runbook
+
+Use the package-owned contracts CLI; never run raw `forge` deployment commands. The root
+environment supplies chain RPCs and keystore configuration. Run these examples from the repository root.
+
+```sh
+# Compile-only preflight, then target-chain simulation.
+bun run contracts -- deploy core --network sepolia --mode preflight
+bun run contracts -- deploy core --network sepolia --mode simulate
+
+# Broadcast only after release-owner approval.
+bun run contracts -- deploy core --network sepolia --mode broadcast
+bun run contracts -- verify --network sepolia
+```
+
+Use command-specific help for supported networks and modes. Legacy `deploy:celo` selected a
+schema-only path; it is not an equivalent core-deployment recipe. Consult the generated
+[operation reference](../../../docs/docs/builders/packages/contract-operations.mdx) before replacing
+historical commands.
+A deploy is not complete until its `*-latest.json` artifact is persisted, dependent indexer/config
+inputs are updated, and the matching post-deploy verifier passes.
+
+Approved immutable EAS schema additions use their standalone registration paths. Do not restore
+or use the retired bulk `--update-schemas` flow.

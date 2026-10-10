@@ -3,7 +3,7 @@
  *
  * Locks the homepage loop heading's intentional two-line composition.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, within } from "@testing-library/react";
@@ -12,8 +12,11 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
@@ -23,19 +26,19 @@ const messages: Record<string, string> = {
   "public.home.loop.assess": "Assess the place.",
   "public.home.loop.assessBody":
     "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land.",
-  "public.home.loop.fund": "Fund what grows.",
+  "public.home.loop.fund": "Support what comes next.",
   "public.home.loop.fundBody":
-    "Funders can Donate through Cookie Jars for direct support or Endow Garden Vaults designed so yield supports the Work over time.",
-  "public.home.loop.kicker": "§ 03: Regenerative Work Loop",
-  "public.home.loop.title": "Four steps. Repeated, <line2>season after season</line2>",
-  "public.home.loop.verify": "Verify impact.",
+    "Supporters can explore a Garden’s record, donate to its shared fund, or discuss longer-term support.",
+  "public.home.loop.kicker": "§ 03: How it works",
+  "public.home.loop.title": "Document. Review. <line2>Support what comes next.</line2>",
+  "public.home.loop.verify": "Review it locally.",
   "public.home.loop.verifyBody":
-    "Evaluators create Assessments that connect approved Work to evidence and impact across the Eight Forms of Capital.",
-  "public.home.loop.work": "Do the work.",
+    "Garden stewards review each submission. Approved work becomes public; assessments can describe the conditions and changes behind it.",
+  "public.home.loop.work": "Document the work.",
   "public.home.loop.workBody":
-    "Gardeners submit Work from the field with media, details, and metadata. Operators review those submissions before they become part of the public record.",
+    "Participants record what they did with photos, notes, and measurements. A public record helps others understand the work.",
   "public.home.loop.fieldGuideKicker": "Curious how the work gets planned?",
-  "public.home.loop.fieldGuide": "Browse the field guide of regenerative Actions",
+  "public.home.loop.fieldGuide": "Explore the types of work Gardens document",
 };
 
 function renderLoop() {
@@ -53,9 +56,9 @@ describe("PublicRecordLoop", () => {
     renderLoop();
 
     const heading = screen.getByRole("heading", {
-      name: "Four steps. Repeated, season after season",
+      name: "Document. Review. Support what comes next.",
     });
-    const secondLine = within(heading).getByText("season after season");
+    const secondLine = within(heading).getByText("Support what comes next.");
 
     expect(secondLine).toHaveClass("block");
   });
@@ -63,27 +66,17 @@ describe("PublicRecordLoop", () => {
   it("keeps the loop kicker compact on mobile", () => {
     renderLoop();
 
-    expect(screen.getByText("§ 03: Regenerative Work Loop")).toHaveClass(
+    expect(screen.getByText("§ 03: How it works")).toHaveClass(
       "whitespace-nowrap",
       "text-[10px]",
       "tracking-[0.08em]"
     );
   });
 
-  it("places step body copy under the title on small screens", () => {
-    renderLoop();
-
-    expect(
-      screen.getByText(
-        "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land."
-      )
-    ).toHaveClass("col-start-2", "md:col-start-auto");
-  });
-
   it("uses standard numbers for homepage loop steps", () => {
     renderLoop();
 
-    for (const numeral of ["1.", "2.", "3.", "4."]) {
+    for (const numeral of ["1.", "2.", "3."]) {
       expect(screen.getByText(numeral)).toBeInTheDocument();
     }
     for (const romanNumeral of ["i.", "ii.", "iii.", "iv."]) {
@@ -103,7 +96,7 @@ describe("PublicRecordLoop", () => {
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.querySelector("span[aria-hidden='true']"))
       .filter((node): node is HTMLElement => node !== null);
-    expect(headingArrows.length).toBe(4);
+    expect(headingArrows.length).toBe(3);
     for (const arrow of headingArrows) {
       expect(arrow.textContent).toBe("→");
       expect(arrow).toHaveClass("text-text-soft-400");
@@ -116,7 +109,7 @@ describe("PublicRecordLoop", () => {
 
     expect(screen.getByText("Curious how the work gets planned?")).toBeInTheDocument();
     const fieldGuideLink = screen.getByRole("link", {
-      name: /browse the field guide of regenerative actions/i,
+      name: /Explore the types of work Gardens document/i,
     });
     expect(fieldGuideLink).toHaveAttribute("href", "/actions");
   });

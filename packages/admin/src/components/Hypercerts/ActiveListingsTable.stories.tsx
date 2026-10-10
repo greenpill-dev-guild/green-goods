@@ -1,9 +1,7 @@
-import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  type RegisteredOrderView,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { daysAgo, daysFromNow } from "../../../../shared/.storybook/fixtures";

@@ -2,6 +2,15 @@ import { indexer, type Garden } from "envio";
 
 import { createDefaultGarden } from "./shared";
 
+function markKarmaDetailsPending(garden: Garden, timestamp: number): Garden {
+  return {
+    ...garden,
+    karmaDetailsState: "PENDING",
+    karmaDetailsReason: "garden_metadata_changed",
+    karmaDetailsUpdatedAt: timestamp,
+  };
+}
+
 // ============================================================================
 // GARDEN TOKEN EVENT HANDLERS
 // ============================================================================
@@ -22,9 +31,13 @@ indexer.contractRegister(
 // Handler for the GardenMinted event
 indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ event, context }) => {
   const gardenId = event.params.account;
+  const existingGarden =
+    (await context.Garden.get(gardenId)) ??
+    createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
 
-  // Role arrays are derived from HatsModule RoleGranted/RoleRevoked events.
+  // Preserve any earlier module/role projections if logs are delivered out of their usual order.
   const gardenEntity: Garden = {
+    ...existingGarden,
     id: gardenId,
     chainId: event.chainId,
     name: event.params.name,
@@ -33,16 +46,9 @@ indexer.onEvent({ contract: "GardenToken", event: "GardenMinted" }, async ({ eve
     bannerImage: event.params.bannerImage,
     openJoining: event.params.openJoining,
     initialized: true,
-    gardeners: [],
-    operators: [],
-    evaluators: [],
-    owners: [],
-    funders: [],
-    communities: [],
     tokenAddress: event.srcAddress,
     tokenID: event.params.tokenId,
     createdAt: event.block.timestamp,
-    gapProjectUID: undefined,
   };
   context.Garden.set(gardenEntity);
 });
@@ -61,10 +67,10 @@ indexer.onEvent({ contract: "GardenAccount", event: "NameUpdated" }, async ({ ev
     existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
   }
 
-  const updatedGarden: Garden = {
-    ...existingGarden,
-    name: event.params.newName,
-  };
+  const updatedGarden = markKarmaDetailsPending(
+    { ...existingGarden, name: event.params.newName },
+    event.block.timestamp
+  );
 
   context.Garden.set(updatedGarden);
 });
@@ -80,10 +86,10 @@ indexer.onEvent(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      description: event.params.newDescription,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, description: event.params.newDescription },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
   }
@@ -100,10 +106,10 @@ indexer.onEvent(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      location: event.params.newLocation,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, location: event.params.newLocation },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
   }
@@ -120,37 +126,12 @@ indexer.onEvent(
       existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
     }
 
-    const updatedGarden: Garden = {
-      ...existingGarden,
-      bannerImage: event.params.newBannerImage,
-    };
+    const updatedGarden = markKarmaDetailsPending(
+      { ...existingGarden, bannerImage: event.params.newBannerImage },
+      event.block.timestamp
+    );
 
     context.Garden.set(updatedGarden);
-  }
-);
-
-// Handler for the GAPProjectCreated event
-indexer.onEvent(
-  { contract: "GardenAccount", event: "GAPProjectCreated" },
-  async ({ event, context }) => {
-    const gardenId = event.params.gardenAddress;
-    const existingGarden = await context.Garden.get(gardenId);
-
-    if (existingGarden) {
-      // Update the garden with the Karma GAP project UID
-      const updatedGarden: Garden = {
-        ...existingGarden,
-        gapProjectUID: event.params.projectUID,
-      };
-
-      context.Garden.set(updatedGarden);
-
-      context.log.info(
-        `Updated Garden ${gardenId} with GAP project UID: ${event.params.projectUID}`
-      );
-    } else {
-      context.log.warn(`Garden ${gardenId} not found when processing GAPProjectCreated event`);
-    }
   }
 );
 

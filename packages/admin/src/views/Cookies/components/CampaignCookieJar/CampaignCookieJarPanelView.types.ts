@@ -1,4 +1,6 @@
-import type { Address, CampaignCookieJarCampaign, Garden } from "@green-goods/shared";
+import type { ReactNode } from "react";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
 
 export interface CampaignCookieJarPanelViewProps {
@@ -46,4 +48,6 @@ export interface CampaignCookieJarPanelViewProps {
   };
   selectedJarAddress: Address | null;
   syncJar: { jar?: { isOwner: boolean } | null };
+  /** An action for the list's header, such as Create Cookie Jar. */
+  headerAction?: ReactNode;
 }

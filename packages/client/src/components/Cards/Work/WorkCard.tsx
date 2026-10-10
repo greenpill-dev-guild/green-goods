@@ -1,42 +1,12 @@
-import {
-  formatAddress,
-  formatEnsNameForDisplay,
-  formatFileSize,
-  truncateAddress,
-  useEnsName,
-  useGreenGoodsEnsName,
-  type Work,
-  WorkCardComponent as SharedWorkCard,
-} from "@green-goods/shared";
+import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import React from "react";
 import { useIntl } from "react-intl";
-
-export interface WorkCardItem {
-  id: string;
-  type: "work" | "work_approval";
-  title: string;
-  description?: string;
-  gardenId: string;
-  gardenName?: string;
-  status: "approved" | "rejected" | "pending" | "syncing" | "uploading" | "sync_failed" | "offline";
-  createdAt: number;
-  lastAttempt?: number;
-  retryCount: number;
-  error?: string;
-  size: number;
-  images?: {
-    count: number;
-    totalSize: number;
-  };
-  mediaPreview?: string[];
-}
-
-export interface WorkCardProps {
-  work: WorkCardItem;
-  className?: string;
-  variant?: "full" | "minimal";
-  onClick?: () => void;
-}
+import { queuedWorkStatusMessage, readQueuedWorkState } from "./queuedWorkCopy";
 
 export interface MinimalWorkCardProps {
   work: Work;
@@ -45,17 +15,27 @@ export interface MinimalWorkCardProps {
   actionTitle?: string;
   showGardenInfo?: boolean;
   badges?: React.ReactNode[];
+  presentation?: WorkCardPresentation;
   style?: React.CSSProperties;
   confirmed?: boolean;
   /** Variant controls subtitle content: "compact" (default) shows time only, "detailed" shows gardener + time */
   variant?: "compact" | "detailed";
 }
 
-type MediaItem = string | { url: string } | { file: File } | File;
+export interface WorkCardPresentation {
+  statusLabel?: string;
+  statusTone?: WorkDisplayStatus;
+  contextLabel?: string;
+  supportingText?: string;
+}
 
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
-    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
+    untitledWork: formatMessage({
+      id: "app.workCard.untitledWork",
+      defaultMessage: "Untitled Work",
+    }),
+    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
     feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
       approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),
@@ -65,99 +45,12 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
       uploading: formatMessage({ id: "app.status.uploading", defaultMessage: "Uploading" }),
       sync_failed: formatMessage({
         id: "app.status.syncFailed",
-        defaultMessage: "Sync Failed",
+        defaultMessage: "Sync failed",
       }),
       offline: formatMessage({ id: "app.status.offline", defaultMessage: "Offline" }),
     },
   };
 }
-
-function useMediaPreview(media: Work["media"] | undefined): string[] | undefined {
-  const [preview, setPreview] = React.useState<string[] | undefined>(undefined);
-
-  React.useEffect(() => {
-    const createdUrls: string[] = [];
-    const urls = Array.isArray(media)
-      ? media.flatMap((item) => {
-          if (typeof item === "string") {
-            return [item];
-          }
-
-          if (item && typeof item === "object") {
-            if ("url" in item && typeof item.url === "string") {
-              return [item.url];
-            }
-
-            if ("file" in item && item.file instanceof File) {
-              const objectUrl = URL.createObjectURL(item.file);
-              createdUrls.push(objectUrl);
-              return [objectUrl];
-            }
-
-            if (item instanceof File) {
-              const objectUrl = URL.createObjectURL(item);
-              createdUrls.push(objectUrl);
-              return [objectUrl];
-            }
-          }
-
-          return [];
-        })
-      : [];
-
-    setPreview(urls.length > 0 ? urls : undefined);
-
-    return () => {
-      for (const url of createdUrls) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [media]);
-
-  return preview;
-}
-
-export const WorkCard: React.FC<WorkCardProps> = ({
-  work,
-  className,
-  variant = "full",
-  onClick,
-}) => {
-  const { formatMessage } = useIntl();
-  const labels = getWorkCardLabels(formatMessage);
-  const badges =
-    variant === "full" && work.size > 0
-      ? [
-          <span key="size" className="text-text-sub-600">
-            {formatFileSize(work.size)}
-          </span>,
-        ]
-      : undefined;
-
-  return (
-    <SharedWorkCard
-      className={className}
-      onClick={onClick}
-      variant={variant === "full" ? "auto" : "compact"}
-      work={{
-        id: work.id,
-        title: work.title,
-        status: work.status,
-        createdAt: work.createdAt,
-        mediaPreview: work.mediaPreview,
-        gardenName: work.gardenName || truncateAddress(work.gardenId),
-        error: work.error,
-        retryCount: work.retryCount,
-        imageCount: work.images?.count,
-      }}
-      showMediaCount={Boolean(work.images?.count)}
-      showErrorBadge={Boolean(work.error)}
-      showRetryBadge={work.retryCount > 0}
-      badges={badges}
-      labels={labels}
-    />
-  );
-};
 
 // Compact work card for list views
 export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
@@ -167,6 +60,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   actionTitle,
   showGardenInfo = false,
   badges,
+  presentation,
   confirmed = false,
   variant = "compact",
 }) => {
@@ -182,12 +76,16 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  const isOfflineWork = work.id.startsWith("0xoffline_");
-  const effectiveStatus = isOfflineWork ? "uploading" : work.status;
-  const mediaPreview = useMediaPreview(work.media as MediaItem[] | undefined);
+  const effectiveStatus = work.status;
+  // Work still on this device names where it stands instead of reading "Offline".
+  const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
+  if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
+  const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
-  const action = actionTitle || work.title;
+  // The action names the work when it is known. A generated name gives way to the work's own
+  // title, and the shared card drops timestamps and says untitled when nothing real is left.
+  const title = toWorkDisplayTitle(actionTitle, "") || work.title;
   const gardenerName = formatAddress(work.gardenerAddress, {
     ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
   });
@@ -201,7 +99,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       variant="compact"
       work={{
         id: work.id,
-        title: action,
+        title,
         status: effectiveStatus,
         createdAt: work.createdAt,
         mediaPreview,
@@ -214,11 +112,15 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       showMediaCount={mediaCount > 0}
       showFeedbackBadge={hasFeedback}
       badges={extraBadges}
+      statusLabel={presentation?.statusLabel}
+      statusTone={presentation?.statusTone}
+      contextLabel={presentation?.contextLabel}
+      supportingText={presentation?.supportingText}
       labels={labels}
     />
   );
 };
 
-export type { StatusBadgeProps } from "@green-goods/shared";
+export type { StatusBadgeProps } from "@green-goods/shared/components/StatusBadge";
 // Re-export StatusBadge from shared for convenience
-export { StatusBadge } from "@green-goods/shared";
+export { StatusBadge } from "@green-goods/shared/components/StatusBadge";

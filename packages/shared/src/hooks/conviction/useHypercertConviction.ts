@@ -4,7 +4,8 @@ import type { ConvictionWeight } from "../../types/conviction";
 import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { convictionKeys } from "../../config/query-keys/hypercert";
 
 interface UseHypercertConvictionOptions {
   enabled?: boolean;
@@ -19,7 +20,7 @@ export function useHypercertConviction(
   const normalizedPool = poolAddress ? normalizeAddress(poolAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.conviction.convictionWeights(normalizedPool ?? "", chainId),
+    queryKey: convictionKeys.convictionWeights(normalizedPool ?? "", chainId),
     queryFn: async (): Promise<ConvictionWeight[]> => {
       if (!normalizedPool) return [];
       return getConvictionWeightsFromSubgraph(normalizedPool, chainId);

@@ -10,24 +10,17 @@
  * These tests focus on route-level stability and are safe for CI.
  */
 
-import { expect, type Page, type Route, test } from "@playwright/test";
-import { mockSepoliaRpc } from "../helpers/mock-backend";
+import { expect, type Page, test } from "@playwright/test";
+import { mockClientBackend } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
 const MOCK_DEPLOYER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
-const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
+const MOCK_STEWARD_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
 const TEST_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef";
 const TEST_GARDEN_ID = "0x1234567890123456789012345678901234567890";
-const TEST_GARDEN_CONTEXT = `gardenAddress=${encodeURIComponent(TEST_GARDEN_ADDRESS)}`;
-
-const GRAPHQL_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "POST, OPTIONS",
-  "access-control-allow-headers": "content-type",
-  "content-type": "application/json",
-};
+const TEST_GARDEN_CONTEXT = `gardenId=${encodeURIComponent(TEST_GARDEN_ID)}`;
 
 const MOCK_GARDEN = {
   id: TEST_GARDEN_ID,
@@ -38,9 +31,10 @@ const MOCK_GARDEN = {
   description: "Fixture garden for admin production-flow route smoke",
   location: "Nairobi",
   bannerImage: "",
-  gardeners: [MOCK_OPERATOR_ADDRESS],
-  operators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
-  evaluators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  gardeners: [MOCK_STEWARD_ADDRESS],
+  // The indexer field keeps the deployed `operators` wire name.
+  operators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  evaluators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
   owners: [MOCK_DEPLOYER_ADDRESS],
   funders: [],
   communities: [],
@@ -48,117 +42,33 @@ const MOCK_GARDEN = {
   createdAt: 1710000000,
 };
 
-function getGraphQLQueryText(route: Route): string {
-  const body = route.request().postData();
-  if (!body) return "";
-
-  try {
-    const parsed = JSON.parse(body) as { query?: unknown; operationName?: unknown };
-    if (typeof parsed.query === "string") return parsed.query;
-    if (typeof parsed.operationName === "string") return parsed.operationName;
-  } catch {
-    return body;
-  }
-
-  return "";
-}
-
-async function setupAdminRouteBackend(page: Page) {
-  const handleIndexerRoute = async (route: Route) => {
-    if (route.request().method() === "OPTIONS") {
-      return route.fulfill({ status: 204, headers: GRAPHQL_HEADERS });
-    }
-
-    const query = getGraphQLQueryText(route);
-
-    if (query.includes("query GetOperatorGardens")) {
-      return route.fulfill({
-        status: 200,
-        headers: GRAPHQL_HEADERS,
-        body: JSON.stringify({
-          data: {
-            Garden: [{ id: MOCK_GARDEN.id, name: MOCK_GARDEN.name }],
-          },
-        }),
-      });
-    }
-
-    if (query.includes("query Gardens")) {
-      return route.fulfill({
-        status: 200,
-        headers: GRAPHQL_HEADERS,
-        body: JSON.stringify({
-          data: {
-            Garden: [MOCK_GARDEN],
-            GardenDomains: [{ garden: MOCK_GARDEN.id, domainMask: 1 }],
-          },
-        }),
-      });
-    }
-
-    if (query.includes("query Actions")) {
-      return route.fulfill({
-        status: 200,
-        headers: GRAPHQL_HEADERS,
-        body: JSON.stringify({ data: { Action: [] } }),
-      });
-    }
-
-    if (query.includes("query Gardeners")) {
-      return route.fulfill({
-        status: 200,
-        headers: GRAPHQL_HEADERS,
-        body: JSON.stringify({ data: { Gardener: [] } }),
-      });
-    }
-
-    return route.fulfill({
-      status: 200,
-      headers: GRAPHQL_HEADERS,
-      body: JSON.stringify({ data: {} }),
-    });
-  };
-
-  await page.route("**/api/graphql", handleIndexerRoute);
-  await page.route("**/v1/graphql", handleIndexerRoute);
-
-  await page.route("https://sepolia.easscan.org/graphql", async (route) => {
-    if (route.request().method() === "OPTIONS") {
-      return route.fulfill({ status: 204, headers: GRAPHQL_HEADERS });
-    }
-
-    return route.fulfill({
-      status: 200,
-      headers: GRAPHQL_HEADERS,
-      body: JSON.stringify({ data: { attestations: [] } }),
-    });
-  });
-
-  await mockSepoliaRpc(page);
-}
-
 async function setupAuthenticatedAdmin(page: Page) {
   const helper = new AdminTestHelper(page);
-  await setupAdminRouteBackend(page);
-
-  return helper;
+  const backend = await mockClientBackend(page, {
+    garden: MOCK_GARDEN,
+    required: ["indexer: Gardens"],
+  });
+  return Object.assign(helper, { backend });
 }
 
-async function expectNoCrashOnRoute(page: Page, helper: AdminTestHelper, route: string) {
+async function expectRouteContent(
+  page: Page,
+  helper: AdminTestHelper,
+  route: string,
+  heading: string
+) {
   await page.goto(helper.buildMockAuthPath(route, "deployer"), {
     waitUntil: "domcontentloaded",
     timeout: 45000,
   });
 
-  const hasAppError = await page
-    .locator('text="Unexpected Application Error"')
-    .isVisible({ timeout: 2000 })
-    .catch(() => false);
-
-  expect(hasAppError).toBe(false);
   expect(new URL(page.url()).origin).toBe(new URL(ADMIN_URL).origin);
-  await expect(page.locator("body")).toBeVisible();
-  await expect(page.locator("#root")).not.toBeEmpty({ timeout: 15000 });
+  // Assessment and certification render in modal dialogs, which correctly hide
+  // the background main landmark from the accessibility tree.
+  await expect(page.getByRole("heading", { name: heading, exact: true }).first()).toBeVisible({
+    timeout: 30000,
+  });
+  await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
 }
 
 test.describe("Admin Production Flows CI", () => {
@@ -169,15 +79,18 @@ test.describe("Admin Production Flows CI", () => {
     const helper = await setupAuthenticatedAdmin(page);
 
     const criticalRoutes = [
-      "/garden/create",
-      `/hub/assess/create?${TEST_GARDEN_CONTEXT}`,
-      `/community/treasury/vault?${TEST_GARDEN_CONTEXT}`,
-      `/hub/certify/create?${TEST_GARDEN_CONTEXT}`,
+      ["/garden/create", "Create Garden"],
+      [`/hub/assess/create?${TEST_GARDEN_CONTEXT}`, "Create Assessment"],
+      [`/community/endowment/vault?${TEST_GARDEN_CONTEXT}`, "Community"],
+      [`/hub/certify/create?${TEST_GARDEN_CONTEXT}`, "Create Hypercert"],
     ];
 
-    for (const route of criticalRoutes) {
+    for (const [route, heading] of criticalRoutes) {
       await test.step(`route: ${route}`, async () => {
-        await expectNoCrashOnRoute(page, helper, route);
+        await expectRouteContent(page, helper, route, heading);
+        if (route.includes("/vault")) {
+          await expect(page.getByText("No vault available yet", { exact: true })).toBeVisible();
+        }
         const currentUrl = new URL(page.url());
         const expectedUrl = new URL(route, ADMIN_URL);
         expect(currentUrl.pathname).toBe(expectedUrl.pathname);
@@ -186,5 +99,37 @@ test.describe("Admin Production Flows CI", () => {
         }
       });
     }
+    helper.backend.assertSatisfied();
+  });
+
+  test("create garden rejects an incomplete profile and lets the deployer correct and cancel it", async ({
+    page,
+  }) => {
+    const helper = await setupAuthenticatedAdmin(page);
+    await page.goto(helper.buildMockAuthPath("/garden/create", "deployer"));
+    await expect(page.getByRole("heading", { name: "Create Garden", exact: true })).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByRole("button", { name: "Deploy Garden", exact: true }).click();
+    await expect(page.getByText("Garden name is required", { exact: true })).toBeVisible();
+    await expect(page.getByText("Description is required", { exact: true })).toBeVisible();
+    // A deliberately short name keeps the generated slug invalid: this scenario proves
+    // local validation/cancel recovery and must never reach a wallet or a deployment.
+    await page.getByLabel("Garden name", { exact: false }).fill("CI");
+    await page.getByLabel("Description", { exact: false }).fill("A browser fixture garden");
+    await page.getByLabel("Location", { exact: false }).fill("Nairobi");
+    await expect(page.getByText("Garden name is required", { exact: true })).toBeHidden();
+    await expect(page.getByText("Description is required", { exact: true })).toBeHidden();
+    await test.info().attach("garden-validation-recovery", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    });
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page).toHaveURL(/\/garden(?:\?|$)/);
+    await expect(page.getByRole("heading", { name: "Create Garden", exact: true })).toBeHidden();
+    await expect(page.getByText(MOCK_GARDEN.name, { exact: true }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    helper.backend.assertSatisfied();
   });
 });

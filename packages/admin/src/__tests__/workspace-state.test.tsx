@@ -1,6 +1,6 @@
 /**
  * Workspace State Integration Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests URL sync + garden state persistence integration.
  * These test the integration between useGardenUrlSync and useGardenStateStore
@@ -40,80 +40,122 @@ const {
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-    }) => (
-      <div data-testid="navigation-bar">
-        <div data-testid="active-path">{activePath}</div>
-        <ul>
-          {slots
-            .filter((slot) => slot.visible)
-            .map((slot) => (
-              <li key={slot.id}>{slot.label}</li>
-            ))}
-        </ul>
-      </div>
-    ),
-    GardenChip: () => <div>Garden Chip</div>,
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-    }) => (
-      <div data-testid="top-context-bar">
-        <div data-testid="top-context-garden">{props.gardenChip}</div>
-      </div>
-    ),
-    useAdminStore: (selector: (state: any) => unknown) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: mockSetSelectedGarden,
-      }),
-    useAuth: () => ({
-      isAuthenticated: true,
-      eoaAddress: "0x1234567890123456789012345678901234567890",
-      isReady: true,
-      authMode: "wallet",
-      signOut: vi.fn(),
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+    activePath,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+  }) => (
+    <div data-testid="navigation-bar">
+      <div data-testid="active-path">{activePath}</div>
+      <ul>
+        {slots
+          .filter((slot) => slot.visible)
+          .map((slot) => (
+            <li key={slot.id}>{slot.label}</li>
+          ))}
+      </ul>
+    </div>
+  ),
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+  }) => (
+    <div data-testid="top-context-bar">
+      <div data-testid="top-context-garden">{props.gardenChip}</div>
+    </div>
+  ),
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: () => <div>Garden Chip</div>,
+}));
+
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x1234567890123456789012345678901234567890",
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+    isReady: true,
+    authMode: "wallet",
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
+  // (independent of useEligibleAdminGardens above) — unstubbed, it falls
+  // through to the real hook, which chains into useAdminGardenContext ->
+  // usePrimaryAddress -> wagmi's useAccount(), and this test has no
+  // WagmiProvider.
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: vi.fn(),
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
+      id: g.id,
+      name: g.name,
+      location: g.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => unknown) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: mockSetSelectedGarden,
     }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
-    // (independent of useEligibleAdminGardens above) — unstubbed, it falls
-    // through to the real hook, which chains into useAdminGardenContext ->
-    // usePrimaryAddress -> wagmi's useAccount(), and this test has no
-    // WagmiProvider.
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-      setSelectedGarden: vi.fn(),
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
-        id: g.id,
-        name: g.name,
-        location: g.location,
-      })),
-      handleSelectGarden: vi.fn(),
-    }),
-    useEffectiveToolbarPermissions: () => ({
-      showWork: true,
-      showGarden: true,
-      showCommunity: true,
-      showActions: true,
-      isLoading: false,
-    }),
-    useGardenUrlSync: mockUseGardenUrlSync,
-    useStaleGardenGuard: mockUseStaleGardenGuard,
-    useGardenStateStore: mockUseGardenStateStore,
-  };
-});
+  useStaleGardenGuard: mockUseStaleGardenGuard,
+}));
+
+vi.mock("@green-goods/shared/stores/useGardenStateStore", () => ({
+  useGardenStateStore: mockUseGardenStateStore,
+}));
+
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: () => ({
+    avatarUri: null,
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "fallback",
+  }),
+}));
 
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,

@@ -16,7 +16,7 @@
 
 import { useReadContract } from "wagmi";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
-import { AGGREGATOR_V3_ABI } from "../../utils/blockchain/abis";
+import { AGGREGATOR_V3_ABI } from "../../utils/blockchain/abis/aggregator-v3";
 import {
   getEthUsdFeedAddress,
   PRICE_FEED_STALE_THRESHOLD_S,

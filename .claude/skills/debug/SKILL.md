@@ -1,7 +1,7 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, qa_slice_fix when the user asks to pull in or work the QA slices/issues a QA session filed in Linear, default on general bug reports.
 argument-hint: "[error-description]"
 ---
 
@@ -9,7 +9,7 @@ argument-hint: "[error-description]"
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
+**References**: See `AGENTS.md` and the nearest package guide for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 ---
 
@@ -42,7 +42,7 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 
 Fires when any external party reports broken product behavior — regardless of phrasing, role, or
 channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hypercert team can't`,
-`Afolabi got an error`, `operator reports`, `someone is hitting`, `a user said`, forwarded support
+`Afolabi got an error`, `steward reports`, `someone is hitting`, `a user said`, forwarded support
 message, attached user screenshot, paraphrased complaint — they all engage this mode.
 
 - Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
@@ -50,22 +50,27 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - See the User-Facing Bug Triage Protocol in Part 1 — it gates the choice between UI Regression
   and Data/API/Contract protocols.
 
+### QA-slice signals → qa_slice_fix mode
+
+- "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
+  QA session slices", "did QA earlier — start on the findings"
+- The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
+  by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
+- Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
+  a feature build.
+
 ### Verification signals
 
 - "verify this works", "prove completion", "evidence this is done"
 - Focus: evidence-based checks after implementation
-
-### Legacy slash (deprecated)
-
-`/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
 
 ---
 
 ## Safety Rules
 
 - Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
-- Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
-- Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
+- Stay on the current branch and follow `AGENTS.md § Multi-Agent Repo Safety`; do not stash, branch,
+  or rewrite another session's work unless the user explicitly authorizes that Git action.
 - In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle
@@ -85,11 +90,13 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
 - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
 - Data/API/contract symptom: trace data flow backward from the failing output.
+- QA slices from Linear: run the **QA Slice Fix Protocol** — it wraps the protocols below with
+  the slice loop and the fix posture.
 
 ### User-Facing Bug Triage Protocol
 
 Fires for `user_bug_triage` mode. Use this as the gating frame whenever any external party
-(user, gardener, operator, customer, team member, partner) reports broken product behavior —
+(user, gardener, steward, customer, team member, partner) reports broken product behavior —
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 
@@ -125,6 +132,56 @@ protocols; this decides which one fits.
 9. **After fix, if the symptom→cause mapping is reusable**, persist it as a project memory
    (e.g., `project_<subsystem>_known_failures.md`) so the next session resolves it faster.
 
+### QA Slice Fix Protocol
+
+Fires for `qa_slice_fix` mode: working the slice sub-issues a QA call produced. One slice = one
+branch = one PR, and the posture is repair, not feature building.
+
+1. **List the slices.** Resolve the latest `QA session YYYY-MM-DD` parent on the Product team and
+   list its open sub-issues **and its related already-tracked Issues** in priority order. Only
+   `Todo`/`Backlog` items are available to take — a related Issue already `In Progress` or
+   `In Review` is someone's active work: show it as context, keep its state, never select it as
+   a slice. A sub-issue with no `package:*` label is not a slice either — the
+   `Product decisions from QA session YYYY-MM-DD` child is that case — so it is context for a design
+   call and never selected. Confirm which slice to take — or take the top available one when the user already
+   said to work through them.
+2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
+   grounding below and the branch go in step 5; a slice stopped before then (design call,
+   declined branch, unsuitable checkout) goes back to `Todo` with a comment saying why. Never
+   batch slices into one branch. Sanity-check its seeded priority — it derives from catalog
+   walk priority plus verdict, not judged severity; re-rank if the defect is plainly cosmetic
+   or plainly worse.
+3. **Ground per [`qa.md § Fix posture`](../../context/qa.md)**: history first (shipping PR, plan
+   hub, new vs. established), map the feature's modules/seams, hold the update-or-remove-over-add
+   default. A slice that turns out to need a new module or a design call goes back to the user
+   before any code.
+4. **Diagnose with the protocols below** — UI Regression or Data/API/Contract, chosen by symptom;
+   reproduce before fixing, as always.
+5. **Branch — only with the user's explicit go, once per slice.** One slice = one branch = one
+   PR, so every slice boundary gets its own ask: propose `fix/<work-description>` for THIS slice
+   off fresh `develop` — describing the work, never the session, date, or issue number
+   (`.claude/context/linear-routing-rules.md § Branch and PR naming`) — and proceed only on a yes. Never reuse the previous slice's
+   branch, and never create or switch branches without that answer (Safety Rules above;
+   `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout). A
+   standing "work through them all" covers taking slices, not branch actions. Traceability lives
+   in the PR's `Fixes PRD-NNN` line.
+6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
+   there.
+7. **Validate via the selector**: render `bun run check --plan -- --intent qa` for the
+   touched paths and run the returned plan, plus the slice's named validation command — never an
+   invented fixed suite (the selector owns criticality overrides and stop conditions).
+8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
+   slice per PR.
+9. **Hand back**: issue → `In Review` with the PR linked. Once the PR merges, run the closeout in
+   [`linear-routing-rules.md § After a merge`](../../context/linear-routing-rules.md#after-a-merge).
+   It reaches `Done` only when its Test IDs re-record as pass in the QA app (whoever recorded
+   the fail re-records).
+10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
+    open slice lands, close the parent against its `Done when` (every slice Done or explicitly
+    deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
+    line) — or say what still holds it open: an unruled decisions child or investigate line
+    keeps a parent open after its last slice lands.
+
 ### User-Observed UI Regression Protocol
 
 When the user describes what they can see or touch in the UI, do not start with providers,
@@ -141,7 +198,7 @@ queries, auth, or indexer hypotheses. First prove the rendered surface.
 5. **Check recent component history** with `git log --follow` or focused `git show` on the
    visible component and wrapper files before proposing a fix.
 6. **For shared-component layout bugs, check the Tailwind v4 shared JSX scanning gotcha**
-   in `CLAUDE.md` before chasing data-layer hypotheses.
+   in `packages/shared/AGENTS.md` before chasing data-layer hypotheses.
 7. **Separate rendered-but-unusable from missing data**. If text/data exists in the DOM but the
    control is collapsed, invisible, untappable, or lacks visual selected state, treat it as a
    component/CSS regression until browser or DOM evidence proves otherwise.
@@ -162,9 +219,26 @@ geometry. Start at the failing output and trace backward through the data path.
 4. **Verify environment truth first**: chain ID, deployment JSON, indexer config, schema UID,
    contract address, RPC URL, and package guide for the touched surface.
 5. **Use repo wrappers for contract/indexer checks**. Do not invoke Forge directly for build
-   or test commands; use the bun scripts in `CLAUDE.md` and the package guides.
+   or test commands; use the Bun scripts in `AGENTS.md` and the package guides.
 6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
    the data is present and the rendered control is still collapsed, invisible, or unusable.
+
+### Hard-Bug Feedback Loop Gate
+
+Use this gate when the symptom has no exact failing assertion or observable loop, spans multiple
+layers, or survives the first evidence-backed fix attempt. Before expanding the hypothesis set:
+
+1. Establish one **red-capable signal** that fails for the reported symptom rather than for an
+   unrelated setup problem: a targeted test, exact command, boundary probe, or real-surface interaction.
+2. Minimize the reproduction while preserving the failure. Remove unrelated setup and inputs, not the
+   boundary where the symptom occurs.
+3. Make the loop deterministic, fast enough to repeat, and runnable by the agent in the current
+   environment. Record the exact input and failing output.
+4. Change one variable, rerun the same loop, and reject any explanation the loop falsifies.
+
+This gate does not replace required real-surface proof. A mocked or lower-layer test cannot certify an
+authenticated UI, wallet, passkey, deployment, or production-only symptom. If no red-capable loop can
+be established, state that proof limit and do not claim the eventual change fixed the original symptom.
 
 ### Phase 2: Hypothesis Testing
 
@@ -180,16 +254,28 @@ Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex
 
 ## Part 3: Verification Before Completion
 
-CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun build`, `bun lint`, `npx tsc --noEmit` in the touched package.
+Follow [the validation pipeline](../../context/validation-pipeline.md) and root `AGENTS.md`:
+report fresh observed evidence, choose the owning package commands, and identify anything
+unverified. Do not substitute a guessed command for selected proof.
 
 ---
 
-## Part 4: Green Goods Reference
+## Part 4: Operational Evidence Map
 
-The by-domain command reference (offline sync, contracts, frontend devtools, indexer, build/type)
-and the end-to-end pipeline trace (IndexedDB → job queue → IPFS → contract → indexer → GraphQL
-cache) live in [health-diagnostics.md](./health-diagnostics.md) — load it when you need commands,
-not routing. Hook-location complaints: `bash .claude/scripts/validate-hook-location.sh`.
+Use the owning runtime source instead of a copied command or event inventory:
+
+- Development and service entrypoints: `scripts/README.md` and the nearest package README.
+- Package constraints and health boundaries: the nearest package `AGENTS.md`, supported by
+  [client](../../context/client.md), [shared](../../context/shared.md),
+  [indexer](../../context/indexer.md), [contracts](../../context/contracts.md), and
+  [agent](../../context/agent.md) context where the failure crosses package seams.
+- Offline pipeline: IndexedDB/job-queue implementation in Shared → upload module → contract receipt →
+  indexer event/schema → query cache. Start at the failing output and traverse only the implicated links.
+- Telemetry questions and privacy-safe outputs: `docs/routines/posthog-questions.md` and
+  `docs/routines/README.md`; PostHog measures impact and Sentry provides stack/release context.
+- Current events, health endpoints, and logger interfaces: their code and package exports.
+
+Hook-location complaints use `bash .claude/scripts/validate-hook-location.sh`.
 
 ### Common Debug Scenarios
 
@@ -220,28 +306,26 @@ After debugging provide:
 
 ### Verification
 - Commands executed and outcomes
-- Contract-touching fixes should also run: `bun run verify:contracts:fast`
+- Contract-touching fixes should also run: `bun run check --only contracts-verify-fast`
 
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
 
-## Reference Files
-
-- **[health-diagnostics.md](./health-diagnostics.md)** -- Domain command reference + end-to-end pipeline trace, service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
-- **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
-
 ## Linear Routing
 
-This skill is read-only on Linear while debugging. The shared routing core (team routing,
+This skill is read-only on Linear while debugging. The exceptions are the QA Slice Fix
+Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back), only on
+the slice being worked, and the merge closeout the routing rules authorize. The shared routing
+core (team routing,
 `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 
 Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
-- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
-- The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
+- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:build` (or `activity:maintenance` for hygiene) + relevant `package:*` + `protocol:*`.
+- The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
+  `docs/routines/README.md`.
 
 ## Related Skills
 

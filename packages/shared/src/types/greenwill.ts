@@ -10,12 +10,6 @@ export const GREENWILL_BADGE_IDS = {
   FIRST_SUPPORT: "0x6fc67c6755ce3ed4ebb1672f2ee106e26f5ba6e37f0f76c2b2541991212dcdc4",
 } as const satisfies Record<string, GreenWillBadgeId>;
 
-export const GREENWILL_BADGE_ORDER: readonly GreenWillBadgeSlug[] = [
-  "genesis",
-  "first-work",
-  "first-support",
-] as const;
-
 export interface GreenWillBadgeDefinition {
   id: string;
   chainId: number;

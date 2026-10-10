@@ -1,4 +1,7 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import type { DistributionMode } from "@green-goods/shared/lib/hypercerts/distribution";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { DistributionConfig } from "./DistributionConfig";
@@ -18,10 +21,10 @@ function DistributionConfigHarness({
   initialMode = "equal",
   initialAllowlist = EVEN_ALLOWLIST,
 }: {
-  initialMode?: "equal" | "count" | "value" | "custom";
+  initialMode?: DistributionMode;
   initialAllowlist?: AllowlistEntry[];
 }) {
-  const [mode, setMode] = useState<"equal" | "count" | "value" | "custom">(initialMode);
+  const [mode, setMode] = useState<DistributionMode>(initialMode);
   const [allowlist, setAllowlist] = useState<AllowlistEntry[]>(initialAllowlist);
   return (
     <DistributionConfig
@@ -68,7 +71,7 @@ export const CustomMode: Story = {
     initialMode: "custom",
     initialAllowlist: [
       entry("0x1111111111111111111111111111111111111111", 40_000_000n, "Lead"),
-      entry("0x2222222222222222222222222222222222222222", 35_000_000n, "Operator"),
+      entry("0x2222222222222222222222222222222222222222", 35_000_000n, "Steward"),
       entry("0x3333333333333333333333333333333333333333", 25_000_000n, "Contributor"),
     ],
   },

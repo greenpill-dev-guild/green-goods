@@ -30,3 +30,23 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Share a link from a user gesture, or copy it when native sharing is unavailable. */
+export async function shareLink(data: {
+  title: string;
+  text?: string;
+  url: string;
+}): Promise<void> {
+  if (typeof navigator !== "undefined" && navigator.share) {
+    try {
+      await navigator.share(data);
+      return;
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+    }
+  }
+
+  if (!(await copyToClipboard(data.url))) {
+    throw new Error("Could not copy the share link");
+  }
+}

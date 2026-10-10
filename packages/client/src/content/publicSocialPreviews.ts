@@ -66,11 +66,10 @@ export const publicSocialPreviews = {
     path: "/",
     title: "Green Goods",
     description:
-      "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste.",
-    cardTitle: "From good intentions to green outcomes.",
+      "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding.",
+    cardTitle: "From good intentions to green outcomes",
     cardTitleAccent: "good",
-    cardLede:
-      "Green Goods turns everyday contributions into a trusted public record of how places grow healthier together.",
+    cardLede: "Document community work, review it locally, and help fund what comes next.",
     heroImagePath: "/images/hero-home.webp",
     socialImagePath: "/social-home-hero.png",
     socialImageAlt: "Green Goods editorial homepage social preview",
@@ -79,17 +78,16 @@ export const publicSocialPreviews = {
     path: "/fund",
     title: "Fund | Green Goods",
     description:
-      "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons.",
-    cardTitle: "A small gesture, growing over many seasons.",
+      "Support community-led environmental work through donations or longer-term endowments.",
+    cardTitle: "A small gesture, growing over many seasons",
     cardTitleAccent: "growing",
-    cardTitleLines: ["A small gesture,", "growing over", "many seasons."],
+    cardTitleLines: ["A small gesture,", "growing over", "many seasons"],
     cardLede:
-      "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons. Every contribution lands with a Garden, not a platform.",
+      "Choose a Garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. Read its approved work before contributing.",
     cardLedeLines: [
-      "Donate to a Garden's immediate Work, or Endow a",
-      "Vault so yield supports the Garden over many",
-      "seasons. Every contribution lands with a Garden, not a",
-      "platform.",
+      "Choose a Garden whose work you want to support.",
+      "Donate to its shared fund, or explore a longer-term",
+      "endowment. Read its approved work before contributing.",
     ],
     heroImagePath: "/images/hero-fund.webp",
     socialImageAlt: "Green Goods Fund route social preview",
@@ -98,17 +96,16 @@ export const publicSocialPreviews = {
     path: "/impact",
     title: "Impact | Green Goods",
     description:
-      "See how Garden work becomes evidence through public records, assessments, and confirmed proof markers.",
-    cardTitle: "See how Garden work becomes evidence.",
+      "Explore work approved by Garden stewards and the assessments supporting its claims.",
+    cardTitle: "See how Garden work becomes evidence",
     cardTitleAccent: "evidence",
-    cardTitleLines: ["See how Garden", "work becomes", "evidence."],
+    cardTitleLines: ["See how Garden", "work becomes", "evidence"],
     cardLede:
-      "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
+      "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
     cardLedeLines: [
-      "Green Goods turns documented regenerative Work",
-      "into evidence the public can read. Assessments come",
-      "first, then Work, and when ready, an Impact Certificate",
-      "that ties every claim to its source.",
+      "See the work communities have done and the evidence",
+      "behind it. Local stewards review submissions, and",
+      "assessments help explain what changed.",
     ],
     heroImagePath: "/images/hero-impact.webp",
     socialImageAlt: "Green Goods Impact route social preview",
@@ -118,9 +115,9 @@ export const publicSocialPreviews = {
     title: "Actions | Green Goods",
     description:
       "Browse the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
-    cardTitle: "A field guide for regenerative work.",
+    cardTitle: "A field guide for regenerative work",
     cardTitleAccent: "regenerative work",
-    cardTitleLines: ["A field guide for", "regenerative", "work."],
+    cardTitleLines: ["A field guide for", "regenerative", "work"],
     cardLede:
       "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
     cardLedeLines: [
@@ -136,17 +133,17 @@ export const publicSocialPreviews = {
     path: "/gardens",
     title: "Gardens | Green Goods",
     description:
-      "Explore the Gardens growing a public record of regenerative work across real places and communities.",
-    cardTitle: "Explore the Gardens growing the public record.",
+      "Explore community-led projects working on land restoration, waste, education, and clean energy.",
+    cardTitle: "Explore the Gardens growing the public record",
     cardTitleAccent: "Gardens",
-    cardTitleLines: ["Explore the", "Gardens growing", "the public record."],
+    cardTitleLines: ["Explore the", "Gardens growing", "the public record"],
     cardLede:
-      "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Gardens with open membership welcome new gardeners through the app.",
+      "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
     cardLedeLines: [
-      "Each Garden is a real place where a community",
-      "documents regenerative work across solar,",
-      "agroforestry, education, and waste. Gardens with",
-      "open membership welcome new gardeners through the app.",
+      "Explore community-led projects working on land",
+      "restoration, waste, education, and clean energy.",
+      "Meet the people behind each Garden and discover",
+      "how to support their work.",
     ],
     heroImagePath: "/images/hero-garden.webp",
     socialImageAlt: "Green Goods Gardens route social preview",
@@ -156,9 +153,9 @@ export const publicSocialPreviews = {
     title: "Cookie Jars | Green Goods",
     description:
       "Shared cookie jars hold funds for seasonal work, event rewards, and Garden cohort budgets.",
-    cardTitle: "Shared cookie jars for seasonal campaign work.",
+    cardTitle: "Shared cookie jars for seasonal campaign work",
     cardTitleAccent: "cookie jars",
-    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work."],
+    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work"],
     cardLede:
       "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
     cardLedeLines: [

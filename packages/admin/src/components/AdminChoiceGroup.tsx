@@ -1,6 +1,6 @@
 import { RiCheckLine } from "@remixicon/react";
 import { type KeyboardEvent, type ReactNode, useCallback, useMemo, useRef } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 export interface AdminChoiceOption {
   value: string;
@@ -106,6 +106,7 @@ export function AdminChoiceGroup({
   );
 
   return (
+    // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the <button role="radio"> options
     <div
       data-component="AdminChoiceGroup"
       role="radiogroup"
@@ -162,7 +163,7 @@ export function AdminChoiceGroup({
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block truncate text-sm font-semibold leading-5",
+                  "block truncate body-sm font-semibold leading-5",
                   selected
                     ? "text-[rgb(var(--m3-on-secondary-container))]"
                     : "text-[rgb(var(--m3-on-surface))]"
@@ -174,7 +175,7 @@ export function AdminChoiceGroup({
               {option.description ? (
                 <span
                   className={cn(
-                    "mt-0.5 block line-clamp-2 text-xs leading-5",
+                    "mt-0.5 block line-clamp-2 body-xs leading-5",
                     selected
                       ? "text-[rgb(var(--m3-on-secondary-container)/0.78)]"
                       : "text-[rgb(var(--m3-on-surface-variant))]",

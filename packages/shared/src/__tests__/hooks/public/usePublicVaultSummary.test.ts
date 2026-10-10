@@ -1,12 +1,11 @@
 /**
  * usePublicVaultSummary Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 import type { Address } from "../../../types/domain";
 import type { YieldAllocation } from "../../../types/gardens-community";
@@ -80,18 +79,6 @@ function allocation(overrides: Partial<YieldAllocation>): YieldAllocation {
     timestamp: 1,
     txHash: "0xhash",
     ...overrides,
-  };
-}
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-    },
-  });
-
-  return function TestWrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
   };
 }
 
@@ -180,7 +167,7 @@ describe("usePublicVaultSummary", () => {
       isError: false,
     }));
 
-    const { result } = renderHook(() => usePublicVaultSummary(), { wrapper: createWrapper() });
+    const { result } = renderHookWithQueryClient(() => usePublicVaultSummary());
 
     await waitFor(() => expect(result.current.isAllocationLoading).toBe(false));
 
@@ -261,7 +248,7 @@ describe("usePublicVaultSummary", () => {
       isError: false,
     });
 
-    const { result } = renderHook(() => usePublicVaultSummary(), { wrapper: createWrapper() });
+    const { result } = renderHookWithQueryClient(() => usePublicVaultSummary());
 
     await waitFor(() => expect(result.current.isAllocationLoading).toBe(false));
 
@@ -303,7 +290,7 @@ describe("usePublicVaultSummary", () => {
       isError: true,
     });
 
-    const { result } = renderHook(() => usePublicVaultSummary(), { wrapper: createWrapper() });
+    const { result } = renderHookWithQueryClient(() => usePublicVaultSummary());
 
     await waitFor(() => expect(result.current.isAllocationLoading).toBe(false));
 
@@ -347,7 +334,7 @@ describe("usePublicVaultSummary", () => {
     });
     mockGetAllYieldAllocations.mockRejectedValue(new Error("indexer unavailable"));
 
-    const { result } = renderHook(() => usePublicVaultSummary(), { wrapper: createWrapper() });
+    const { result } = renderHookWithQueryClient(() => usePublicVaultSummary());
 
     await waitFor(() => expect(result.current.isAllocationError).toBe(true));
 

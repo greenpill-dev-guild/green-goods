@@ -8,7 +8,9 @@
  * Some type assertions are used to work around strict viem typing.
  */
 
+import { readFileSync } from "node:fs";
 import {
+  type Abi,
   encodeAbiParameters,
   getContract,
   type Log,
@@ -17,9 +19,14 @@ import {
   parseAbiParameters,
   type WalletClient,
 } from "viem";
-import GardenAccountABI from "../../packages/contracts/abis/GardenAccount.json";
-import GardenTokenABI from "../../packages/contracts/abis/GardenToken.json";
 import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
+
+function loadAbi(relativePath: string): Abi {
+  return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8")) as Abi;
+}
+
+const GardenAccountABI = loadAbi("../../packages/contracts/abis/GardenAccount.json");
+const GardenTokenABI = loadAbi("../../packages/contracts/abis/GardenToken.json");
 
 // Type helper for log with topics
 type LogWithTopics = Log & { topics: readonly `0x${string}`[] };
@@ -162,7 +169,7 @@ export interface CreateGardenParams {
   weightScheme?: 0 | 1 | 2;
   domainMask?: number;
   gardeners?: `0x${string}`[];
-  operators?: `0x${string}`[];
+  stewards?: `0x${string}`[];
 }
 
 /**
@@ -223,7 +230,7 @@ export interface WorkResult {
  */
 export interface ApproveWorkParams {
   gardenAddress: `0x${string}`;
-  operatorAccount: TestAccountWithSigner;
+  stewardAccount: TestAccountWithSigner;
   workUID: `0x${string}`;
   actionUID: bigint;
   approved: boolean;
@@ -242,66 +249,6 @@ export interface ApprovalResult {
 // ============================================================================
 // CONTRACT GETTERS
 // ============================================================================
-
-/**
- * Get the GardenToken contract instance
- */
-export function getGardenTokenContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.gardenToken,
-    abi: GardenTokenABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the ActionRegistry contract instance
- */
-export function getActionRegistryContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.actionRegistry,
-    abi: ActionRegistryABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get a GardenAccount contract instance
- */
-export function getGardenAccountContract(
-  gardenAddress: `0x${string}`,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the EAS contract instance
- */
-export function getEASContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.eas.address,
-    abi: EASABI,
-    client: walletClient ?? publicClient,
-  });
-}
 
 // ============================================================================
 // HIGH-LEVEL OPERATIONS
@@ -338,7 +285,7 @@ export async function createGarden(
       weightScheme: params.weightScheme ?? 0,
       domainMask: params.domainMask ?? 15,
       gardeners: params.gardeners ?? [],
-      operators: params.operators ?? [account.address],
+      stewards: params.stewards ?? [account.address],
     };
 
     const txHash = await context.walletClient.writeContract({
@@ -429,9 +376,9 @@ export async function isGardener(
 }
 
 /**
- * Check if an address is an operator
+ * Check if an address is a steward
  */
-export async function isOperator(
+export async function isSteward(
   context: AnvilForkContext,
   gardenAddress: `0x${string}`,
   address: `0x${string}`
@@ -439,6 +386,7 @@ export async function isOperator(
   const result = await context.publicClient.readContract({
     address: gardenAddress,
     abi: GardenAccountABI,
+    // Deployed access function name — the role reads as Steward everywhere else.
     functionName: "isOperator",
     args: [address],
   });
@@ -574,7 +522,7 @@ export async function approveWork(
   context: AnvilForkContext,
   params: ApproveWorkParams
 ): Promise<ApprovalResult> {
-  const account = params.operatorAccount;
+  const account = params.stewardAccount;
 
   await context.testClient.impersonateAccount({ address: account.address });
 
@@ -630,7 +578,7 @@ export async function approveWork(
 /**
  * Get the current block timestamp
  */
-export async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
+async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
   const block = await context.publicClient.getBlock();
   return block.timestamp;
 }

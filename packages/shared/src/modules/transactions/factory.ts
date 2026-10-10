@@ -7,6 +7,8 @@
  * @module modules/transactions/factory
  */
 
+import type { Address } from "../../types/domain";
+import type { SmartAccountClientResolver } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import type { Config } from "@wagmi/core";
 import type { TransactionSender } from "./types";
@@ -17,9 +19,11 @@ import { WalletSender } from "./wallet-sender";
 export interface TransactionSenderOptions {
   authMode: "passkey" | "embedded" | "wallet";
   smartAccountClient?: SmartAccountClient | null;
+  resolveSmartAccountClient?: SmartAccountClientResolver | null;
   wagmiConfig?: Config;
   writeContractAsync?: (params: {
     address: `0x${string}`;
+    account?: Address;
     abi: readonly unknown[];
     functionName: string;
     args: readonly unknown[];
@@ -52,16 +56,9 @@ export function createTransactionSender(options: TransactionSenderOptions): Tran
   switch (options.authMode) {
     case "passkey": {
       if (options.smartAccountClient?.account) {
-        return new PasskeySender(options.smartAccountClient);
-      }
-      // Passkey auth initializing but smartAccountClient not ready yet:
-      // fall back to WalletSender if wagmi deps are available, otherwise throw.
-      if (options.wagmiConfig && options.writeContractAsync) {
-        return new WalletSender(
-          options.wagmiConfig,
-          options.writeContractAsync,
-          options.erc7677ProxyUrl
-        );
+        return new PasskeySender(options.smartAccountClient, {
+          resolveSmartAccountClient: options.resolveSmartAccountClient,
+        });
       }
       throw new Error("smartAccountClient is required for passkey auth mode");
     }

@@ -1,0 +1,25 @@
+{
+  "editorial-CommitmentsSection-Record-light-768.png": {
+    "cardShadowInSection": false,
+    "heldBodyHeight": 1092
+  },
+  "editorial-CommitmentsSection-ReadError-light-768.png": {
+    "cardShadowInSection": false,
+    "heldBodyHeight": 160
+  },
+  "editorial-PublicCommitmentsBand-Live-light-768.png": {
+    "cardShadowInSection": false,
+    "heldBodyHeight": 560
+  },
+  "editorial-PublicCommitmentsBand-Unavailable-light-768.png": {
+    "cardShadowInSection": false,
+    "heldBodyHeight": 605
+  },
+  "editorial-PublicEvidencePipeline-Default-light-1280.png": {
+    "titles": ["Needs", "Commitment", "Work", "Learnings"],
+    "columnTopsLevel": true,
+    "chipTopsLevel": true,
+    "loopBelowAllColumns": true,
+    "loopFullWidth": true
+  }
+}

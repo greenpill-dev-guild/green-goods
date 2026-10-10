@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "../utils/styles/cn";
 import { RiArrowRightSLine } from "@remixicon/react";
 import type React from "react";
 import { Link } from "react-router-dom";

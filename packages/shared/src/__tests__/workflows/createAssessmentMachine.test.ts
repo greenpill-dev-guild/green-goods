@@ -15,7 +15,7 @@ import {
   type CreateAssessmentForm,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { flushPromises } from "../test-utils";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers
@@ -160,6 +160,20 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "START", params });
 
       expect(actor.getSnapshot().context.assessmentParams).toEqual(params);
+      actor.stop();
+    });
+
+    // A reporting period names whole days, each stored as its UTC midnight, so a
+    // period of one day has equal ends. The form accepts it, and the send must
+    // too, or Submit Assessment goes quiet.
+    it("accepts a reporting period of one day", () => {
+      const actor = createActor(createAssessmentMachine);
+      actor.start();
+      const day = Date.UTC(2026, 6, 27) / 1000;
+
+      actor.send({ type: "START", params: createValidParams({ startDate: day, endDate: day }) });
+
+      expect(actor.getSnapshot().value).toBe("ready");
       actor.stop();
     });
 

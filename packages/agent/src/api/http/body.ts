@@ -1,7 +1,7 @@
 import type { PublicApiError } from "@green-goods/shared/public-contracts";
 import { safeError } from "./responses";
 
-export const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
+const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
 
 export type BodyReadResult<T> =
   | { ok: true; value: T | undefined }
@@ -69,12 +69,12 @@ export async function readLimitedTextBody(
     return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
   }
 
-  const text = await request.text();
-  if (Buffer.byteLength(text, "utf8") > maxBytes) {
+  const bytes = request.body ? await readBodyWithLimit(request.body, maxBytes) : new Uint8Array();
+  if (!bytes) {
     return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
   }
 
-  return { ok: true, text };
+  return { ok: true, text: new TextDecoder().decode(bytes) };
 }
 
 export async function readLimitedJsonBody<T>(

@@ -1,7 +1,8 @@
 # Reputation & Badging
 
+**Status**: `IDEA — later portable six-badge expansion; no rollout date accepted`
 **Slug**: `reputation-badging`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Priority**: `p1`
 **Created**: `2026-04-17`
 
@@ -14,11 +15,13 @@ Season One already has an initial GreenWill badge surface for the three current 
 - Six later badge types deployed — **Verified Gardener, Active Contributor, Stewardship, Garden Operator, Community Builder, Impact Verified** — each anchored by an Unlock Protocol lock (ERC-721 keys) + `GreenGoodsBadge` EAS attestation.
 - Issuance is automatic via the Greenwill background service (groundwork issue #457) watching Green Goods data and granting keys + writing attestations.
 - Badges are **portable**: sibling projects recognize them via the shared EAS schema + Unlock locks without Green Goods-specific integration.
-- Active across **3+ pilot gardens** and demonstrated in at least one sibling project by **2026-06-30**.
+- Active across **3+ pilot gardens** and demonstrated in at least one sibling project after a new pilot scope and rollout date are accepted.
 
 ## Scope Notes
 
-- This plan is deferred backlog work. The near-term presentation scope is only to verify and present the existing three initial GreenWill badges.
+- This is a deferred idea. The near-term presentation scope is only to verify and present the existing three initial GreenWill badges.
+- Current availability is derived from deployment artifacts and indexer configuration. Do not
+  describe GreenWill as live on a chain while its configured address is zero.
 - In scope:
   - `packages/agent` (or new `packages/greenwill`) badge registry + per-badge evaluators + Greenwill issuer loop + Unlock client + EAS writer.
   - `packages/contracts/deployments/{chainId}-latest.json` — 6 Unlock lock addresses + 1 shared `GreenGoodsBadge` EAS schema UID.

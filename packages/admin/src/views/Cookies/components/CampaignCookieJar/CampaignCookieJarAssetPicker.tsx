@@ -1,7 +1,7 @@
-import {
-  type CampaignCookieJarPayoutAsset,
-  type CampaignCookieJarPayoutAssetId,
-} from "@green-goods/shared";
+import type {
+  CampaignCookieJarPayoutAsset,
+  CampaignCookieJarPayoutAssetId,
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -43,7 +43,7 @@ export function CampaignCookieJarAssetPicker({
               )}
             </span>
             <span className="mt-2 block break-all text-label-sm">
-              {asset.supported ? (
+              {asset.supported && asset.address ? (
                 <EnsAddressText address={asset.address} />
               ) : (
                 formatMessage(

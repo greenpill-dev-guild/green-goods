@@ -1,4 +1,6 @@
-import { type Address, type FunderLeaderboardEntry, formatTokenAmount } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { FunderRow } from "./FunderRow";
 
@@ -24,7 +26,7 @@ function GardenSupportersHarness({
 }: GardenSupportersHarnessProps) {
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+      <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
         <div className="h-5 w-40 rounded skeleton-shimmer" />
         <div className="mt-3 space-y-2">
           {[0, 1].map((i) => (
@@ -44,14 +46,16 @@ function GardenSupportersHarness({
   const maxYield = funders[0]?.totalYieldGenerated ?? 0n;
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-[var(--m3-elevation-1)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold text-text-strong">Garden supporters</h2>
-          <p className="text-sm text-text-sub">Ordered by yield generated for this garden.</p>
+          <h2 className="font-heading text-title-md font-semibold text-text-strong">
+            Garden supporters
+          </h2>
+          <p className="body-sm text-text-sub">Ordered by yield generated for this garden.</p>
         </div>
         {totalProtocolYield > 0n && (
-          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 text-xs font-semibold text-success-dark">
+          <span className="shrink-0 rounded-full bg-success-lighter px-2.5 py-1 body-xs font-semibold text-success-dark">
             {formatTokenAmount(totalProtocolYield)} generated
           </span>
         )}

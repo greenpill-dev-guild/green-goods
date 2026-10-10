@@ -1,12 +1,13 @@
 /**
  * useVaultDeposits Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x2222222222222222222222222222222222222222";
@@ -18,26 +19,22 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../modules/data/vaults", () => ({
   getVaultDeposits: (...args: unknown[]) => mockGetVaultDeposits(...args),
 }));
 
 import { useVaultDeposits } from "../../../hooks/vault/useVaultDeposits";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("useVaultDeposits", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("fetches all deposits for a garden", async () => {
@@ -56,8 +53,8 @@ describe("useVaultDeposits", () => {
     ];
     mockGetVaultDeposits.mockResolvedValue(mockDeposits);
 
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultDeposits(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -86,9 +83,12 @@ describe("useVaultDeposits", () => {
     ];
     mockGetVaultDeposits.mockResolvedValue(mockDeposits);
 
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { userAddress: TEST_USER }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultDeposits(TEST_GARDEN, { userAddress: TEST_USER }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -103,17 +103,20 @@ describe("useVaultDeposits", () => {
   it("returns empty array when no data yet", () => {
     mockGetVaultDeposits.mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultDeposits(TEST_GARDEN), {
+      queryClient,
     });
 
     expect(result.current.deposits).toEqual([]);
   });
 
   it("disables query when no garden address is provided", () => {
-    const { result } = renderHook(() => useVaultDeposits(undefined, { enabled: true }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultDeposits(undefined, { enabled: true }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetVaultDeposits).not.toHaveBeenCalled();
     expect(result.current.deposits).toEqual([]);
@@ -121,9 +124,12 @@ describe("useVaultDeposits", () => {
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { enabled: false }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultDeposits(TEST_GARDEN, { enabled: false }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetVaultDeposits).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe("idle");
@@ -134,9 +140,12 @@ describe("useVaultDeposits", () => {
     const mixedGarden = "0xABCDef1234567890ABCDef1234567890ABCDef12";
     const mixedUser = "0xFEDCba9876543210FEDCba9876543210FEDCba98";
 
-    const { result } = renderHook(() => useVaultDeposits(mixedGarden, { userAddress: mixedUser }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultDeposits(mixedGarden, { userAddress: mixedUser }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -150,9 +159,12 @@ describe("useVaultDeposits", () => {
   it("respects custom chainId option", async () => {
     mockGetVaultDeposits.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN, { chainId: 42161 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultDeposits(TEST_GARDEN, { chainId: 42161 }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -163,8 +175,8 @@ describe("useVaultDeposits", () => {
     const expectedError = new Error("Indexer unavailable");
     mockGetVaultDeposits.mockRejectedValue(expectedError);
 
-    const { result } = renderHook(() => useVaultDeposits(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultDeposits(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

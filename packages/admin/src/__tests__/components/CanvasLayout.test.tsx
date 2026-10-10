@@ -1,6 +1,6 @@
 /**
  * CanvasLayout Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type React from "react";
@@ -8,12 +8,20 @@ import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-d
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import { useSheetOrchestratorStore } from "@green-goods/shared";
+import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import type { EligibleAdminGardensResult } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
+import { useSheetOrchestratorStore } from "@green-goods/shared/stores/useSheetOrchestratorStore";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
   mockEnsureBaseLists,
+  mockCommitmentCompletionRefresh,
   mockSetUrlGarden,
   mockSetSelectedGarden,
   mockGardenChipProps,
@@ -27,6 +35,7 @@ const {
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockEnsureBaseLists: vi.fn(),
+  mockCommitmentCompletionRefresh: vi.fn(),
   mockSetUrlGarden: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
   mockGardenChipProps: vi.fn(),
@@ -50,211 +59,436 @@ const {
   },
   mockEligibleAdminGardens: {
     current: {
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [
+        {
+          id: "garden-1",
+          chainId: 1,
+          tokenAddress: "0x1111111111111111111111111111111111111111",
+          tokenID: 1n,
+          name: "Garden One",
+          description: "",
+          location: "Quito",
+          bannerImage: "",
+          gardeners: [],
+          stewards: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
+          assessments: [],
+          works: [],
+          createdAt: 0,
+        },
+      ],
+      resolvedDefaultGarden: {
+        id: "garden-1",
+        chainId: 1,
+        tokenAddress: "0x1111111111111111111111111111111111111111",
+        tokenID: 1n,
+        name: "Garden One",
+        description: "",
+        location: "Quito",
+        bannerImage: "",
+        gardeners: [],
+        stewards: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        assessments: [],
+        works: [],
+        createdAt: 0,
+      },
       persistedGardenId: null,
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
-    },
+      isError: false,
+      hasStaleBaseList: false,
+    } as EligibleAdminGardensResult,
   },
   mockAdminAccessState: {
     current: {
       status: "ready" as const,
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [
+        {
+          id: "garden-1",
+          chainId: 1,
+          tokenAddress: "0x1111111111111111111111111111111111111111",
+          tokenID: 1n,
+          name: "Garden One",
+          description: "",
+          location: "Quito",
+          bannerImage: "",
+          gardeners: [],
+          stewards: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
+          assessments: [],
+          works: [],
+          createdAt: 0,
+        },
+      ],
+      resolvedDefaultGarden: {
+        id: "garden-1",
+        chainId: 1,
+        tokenAddress: "0x1111111111111111111111111111111111111111",
+        tokenID: 1n,
+        name: "Garden One",
+        description: "",
+        location: "Quito",
+        bannerImage: "",
+        gardeners: [],
+        stewards: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        assessments: [],
+        works: [],
+        createdAt: 0,
+      },
       hasStaleBaseList: false,
-    },
+    } as AdminAccessState,
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+function createGardenFixture({
+  id = "garden-1",
+  name = "Garden One",
+  location = "Quito",
+  tokenAddress = "0x1111111111111111111111111111111111111111",
+}: {
+  id?: string;
+  name?: string;
+  location?: string;
+  tokenAddress?: Address;
+} = {}): Garden {
   return {
-    ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-      onNavigate,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-      onNavigate: (path: string) => void;
-    }) => {
-      mockNavigationBarProps({ slots, activePath, onNavigate });
-      return (
-        <div data-testid="navigation-bar">
-          <div data-testid="active-path">{activePath}</div>
-          <ul>
-            {slots
-              .filter((slot) => slot.visible)
-              .map((slot) => (
-                <li key={slot.id}>{slot.label}</li>
-              ))}
-          </ul>
-        </div>
-      );
-    },
-    GardenChip: (props: {
-      gardens: Array<{ id: string; name: string }>;
-      selectedGarden: { id: string; name: string } | null;
-      onSelectGarden: (garden: { id: string; name: string } | null) => void;
-      showCreateGardenAction?: boolean;
-    }) => {
-      mockGardenChipProps(props);
-      return (
-        <div>
-          <div>Garden Chip</div>
-          {props.gardens.map((garden) => (
-            <button key={garden.id} type="button" onClick={() => props.onSelectGarden(garden)}>
-              Select {garden.name}
-            </button>
-          ))}
-          <button type="button" onClick={() => props.onSelectGarden(null)}>
-            Select All Gardens
-          </button>
-        </div>
-      );
-    },
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenNotifications?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-    }) => {
-      mockAppBarProps(props);
-      return (
-        <div data-testid="top-context-bar">
-          <div data-testid="top-context-garden">{props.gardenChip}</div>
-          {props.onOpenSettings ? (
-            <button type="button" onClick={props.onOpenSettings}>
-              Open Settings
-            </button>
-          ) : null}
-          {props.onOpenNotifications ? (
-            <button type="button" onClick={props.onOpenNotifications}>
-              Open Notifications
-            </button>
-          ) : null}
-          {props.onOpenProfile ? (
-            <button type="button" onClick={props.onOpenProfile}>
-              Open Profile
-            </button>
-          ) : null}
-        </div>
-      );
-    },
-    useAdminStore: (
-      selector: (state: {
-        selectedGarden: null;
-        setSelectedGarden: typeof mockSetSelectedGarden;
-      }) => unknown
-    ) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: mockSetSelectedGarden,
-      }),
-    useAuth: () => mockAuthState.current,
-    NotificationPanel: ({
-      items = [],
-      sections = [],
-      scopeLabel,
-      isLoading = false,
-    }: {
-      items?: Array<{ id: string; title: string }>;
-      sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
-      scopeLabel?: string;
-      isLoading?: boolean;
-    }) => {
-      const allItems = [...items, ...sections.flatMap((section) => section.items)];
-      return (
-        <div
-          data-testid="notification-panel"
-          data-count={String(allItems.length)}
-          data-loading={String(isLoading)}
-        >
-          {scopeLabel ? <div>{scopeLabel}</div> : null}
-          {allItems.map((item) => (
-            <div key={item.id}>{item.title}</div>
-          ))}
-        </div>
-      );
-    },
-    formatRelativeTime: () => "5 minutes ago",
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-      setSelectedGarden: mockSetSelectedGarden,
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
-        id: garden.id,
-        name: garden.name,
-        location: garden.location,
-      })),
-      handleSelectGarden: vi.fn(),
-    }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    useEffectiveToolbarPermissions: () => ({
-      showWork: true,
-      showGarden: true,
-      showCommunity: true,
-      showActions: true,
-      isLoading: false,
-    }),
-    useGardenDetailData: (id?: string) => ({
-      garden: id ? { id: "garden-1", name: "Garden One", chainId: 10 } : undefined,
-      fetching: false,
-      error: null,
-      assessments: [],
-      fetchingAssessments: false,
-      assessmentsError: null,
-      roleMembers: {
-        owner: [],
-        operator: [],
-        evaluator: [],
-        gardener: [],
-        funder: [],
-        community: [],
-      },
-      gardenVaults: [],
-      vaultsLoading: false,
-      vaultNetDeposited: 0n,
-      allocations: [],
-      allocationsLoading: false,
-      works: [],
-      worksLoading: false,
-      hypercerts: [],
-      hypercertsLoading: false,
-    }),
-    useGardenDerivedState: ({
-      openSection,
-    }: {
-      openSection: (tab: "work", section: string) => void;
-    }) => ({
-      overviewAlerts: [
-        {
-          key: "work-critical",
-          severity: "critical",
-          label: "3 work submissions need review",
-          onAction: () => openSection("work", "queue"),
-        },
-      ],
-      activityEvents: [
-        {
-          id: "activity-1",
-          title: "Impact report minted",
-          description: "Hypercert created",
-          timestamp: Date.now(),
-          href: "/garden/impact/hypercerts/hc-1",
-        },
-      ],
-    }),
-    useGardenUrlSync: mockUseGardenUrlSync,
-    useStaleGardenGuard: mockUseStaleGardenGuard,
-    useAdminAccessState: () => mockAdminAccessState.current,
-    ensureBaseLists: mockEnsureBaseLists,
+    id,
+    chainId: 1,
+    tokenAddress,
+    tokenID: 1n,
+    name,
+    description: "",
+    location,
+    bannerImage: "",
+    gardeners: [],
+    stewards: [],
+    evaluators: [],
+    owners: [],
+    funders: [],
+    communities: [],
+    assessments: [],
+    works: [],
+    createdAt: 0,
   };
+}
+
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+    activePath,
+    onNavigate,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+    onNavigate: (path: string) => void;
+  }) => {
+    mockNavigationBarProps({ slots, activePath, onNavigate });
+    return (
+      <div data-testid="navigation-bar">
+        <div data-testid="active-path">{activePath}</div>
+        <ul>
+          {slots
+            .filter((slot) => slot.visible)
+            .map((slot) => (
+              <li key={slot.id}>{slot.label}</li>
+            ))}
+        </ul>
+      </div>
+    );
+  },
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenNotifications?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+    profileImageSrc?: string;
+  }) => {
+    mockAppBarProps(props);
+    return (
+      <div data-testid="top-context-bar">
+        <div data-testid="top-context-garden">{props.gardenChip}</div>
+        {props.onOpenSettings ? (
+          <button type="button" onClick={props.onOpenSettings}>
+            Open Settings
+          </button>
+        ) : null}
+        {props.onOpenNotifications ? (
+          <button type="button" onClick={props.onOpenNotifications}>
+            Open Notifications
+          </button>
+        ) : null}
+        {props.onOpenProfile ? (
+          <button type="button" onClick={props.onOpenProfile}>
+            Open Profile
+          </button>
+        ) : null}
+      </div>
+    );
+  },
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: (props: {
+    gardens: Array<{ id: string; name: string }>;
+    selectedGarden: { id: string; name: string } | null;
+    onSelectGarden: (garden: { id: string; name: string } | null) => void;
+    showCreateGardenAction?: boolean;
+  }) => {
+    mockGardenChipProps(props);
+    return (
+      <div>
+        <div>Garden Chip</div>
+        {props.gardens.map((garden) => (
+          <button key={garden.id} type="button" onClick={() => props.onSelectGarden(garden)}>
+            Select {garden.name}
+          </button>
+        ))}
+        <button type="button" onClick={() => props.onSelectGarden(null)}>
+          Select All Gardens
+        </button>
+      </div>
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Canvas/NotificationPanel", () => ({
+  NotificationPanel: ({
+    items = [],
+    sections = [],
+    scopeLabel,
+    isLoading = false,
+  }: {
+    items?: Array<{ id: string; title: string }>;
+    sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
+    scopeLabel?: string;
+    isLoading?: boolean;
+  }) => {
+    const allItems = [...items, ...sections.flatMap((section) => section.items)];
+    return (
+      <div
+        data-testid="notification-panel"
+        data-count={String(allItems.length)}
+        data-loading={String(isLoading)}
+      >
+        {scopeLabel ? <div>{scopeLabel}</div> : null}
+        {allItems.map((item) => (
+          <div key={item.id}>{item.title}</div>
+        ))}
+      </div>
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
+  useAdminAccessState: () => mockAdminAccessState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
+  useOffline: () => ({ isOnline: true }),
+}));
+
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockAuthState.current.eoaAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
+  useAdminLoginController: () => ({
+    mode: "entry",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
+    username: "",
+    setUsername: vi.fn(),
+    error: null,
+    isSigningIn: false,
+    canSignInByName: false,
+    hasStoredCredential: false,
+    storedUsername: null,
+    signInByName: vi.fn(),
+    signInWithStoredPasskey: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/prefetch", () => ({
+  ensureBaseLists: mockEnsureBaseLists,
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentCompletionRefresh", () => ({
+  useCommitmentCompletionRefresh: mockCommitmentCompletionRefresh,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+      id: garden.id,
+      name: garden.name,
+      location: garden.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
+  useGardenDerivedState: ({
+    openSection,
+  }: {
+    openSection: (tab: "work", section: string) => void;
+  }) => ({
+    overviewAlerts: [
+      {
+        key: "work-critical",
+        severity: "critical",
+        label: "3 work submissions need review",
+        onAction: () => openSection("work", "queue"),
+      },
+    ],
+    activityEvents: [
+      {
+        id: "activity-1",
+        title: "Impact report minted",
+        description: "Hypercert created",
+        timestamp: Date.now(),
+        href: "/garden/impact/hypercerts/hc-1",
+      },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
+  useGardenDetailData: (id?: string) => ({
+    garden: id ? { id: "garden-1", name: "Garden One", chainId: 10 } : undefined,
+    fetching: false,
+    error: null,
+    assessments: [],
+    fetchingAssessments: false,
+    assessmentsError: null,
+    roleMembers: {
+      owner: [],
+      steward: [],
+      evaluator: [],
+      gardener: [],
+      funder: [],
+      community: [],
+    },
+    gardenVaults: [],
+    vaultsLoading: false,
+    endowmentByAsset: [],
+    hasEndowment: false,
+    allocations: [],
+    allocationsLoading: false,
+    works: [],
+    worksLoading: false,
+    hypercerts: [],
+    hypercertsLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (
+    selector: (state: {
+      selectedGarden: null;
+      setSelectedGarden: typeof mockSetSelectedGarden;
+    }) => unknown
+  ) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: mockSetSelectedGarden,
+    }),
+  useStaleGardenGuard: mockUseStaleGardenGuard,
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/utils/relativeTime")>();
+  return { ...actual, formatRelativeTime: () => "5 minutes ago" };
 });
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+      id: garden.id,
+      name: garden.name,
+      location: garden.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
+  useResolvedProfileAvatar: () => ({
+    avatarUri: "https://cdn.example/avatar.webp",
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "app",
+  }),
+}));
 
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
@@ -281,6 +515,7 @@ vi.mock("@/components/Layout/PageTransition", async () => {
 
 vi.mock("@/components/Layout/AccountProfilePanel", () => ({
   AccountProfilePanel: () => <div>Profile Panel</div>,
+  AccountProfilePanelContainer: () => <div>Profile Panel</div>,
 }));
 
 vi.mock("@/components/Layout/AccountSettingsPanel", () => ({
@@ -314,12 +549,14 @@ describe("CanvasLayout", () => {
       signOut: vi.fn(),
     };
     mockEligibleAdminGardens.current = {
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [createGardenFixture()],
+      resolvedDefaultGarden: createGardenFixture(),
       persistedGardenId: null,
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: null,
@@ -387,7 +624,7 @@ describe("CanvasLayout", () => {
       await router.navigate("/hub/certify");
     });
     await act(async () => {
-      await router.navigate("/hub/history");
+      await router.navigate("/hub/confirm");
     });
 
     expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
@@ -417,24 +654,25 @@ describe("CanvasLayout", () => {
       expect.objectContaining({
         onOpenSearch: expect.any(Function),
         onOpenNotifications: expect.any(Function),
+        profileImageSrc: "https://cdn.example/avatar.webp",
       })
     );
   });
 
   it("switches gardens through the URL-aware selector", async () => {
     const user = userEvent.setup();
-    const gardenOne = {
+    const gardenOne = createGardenFixture({
       id: "garden-1",
       tokenAddress: "0x1111111111111111111111111111111111111111",
       name: "Garden One",
       location: "Quito",
-    };
-    const gardenTwo = {
+    });
+    const gardenTwo = createGardenFixture({
       id: "garden-2",
       tokenAddress: "0x2222222222222222222222222222222222222222",
       name: "Garden Two",
       location: "Lisbon",
-    };
+    });
     mockEligibleAdminGardens.current = {
       eligibleGardens: [gardenOne, gardenTwo],
       resolvedDefaultGarden: gardenOne,
@@ -442,6 +680,8 @@ describe("CanvasLayout", () => {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
 
     renderWithProviders(
@@ -577,6 +817,8 @@ describe("CanvasLayout", () => {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
 
     const user = userEvent.setup();
@@ -633,6 +875,19 @@ describe("CanvasLayout", () => {
     expect(main?.getAttribute("style")).toContain("padding-bottom");
   });
 
+  it("takes its side gutter and width cap from the shell tokens, never a fixed value", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    // The phone gutter reaches the page through these two tokens (index.css).
+    const main = document.getElementById("main-content");
+    expect(main?.style.paddingInline).toMatch(/^var\(--admin-main-inline-gutter,/);
+    expect(main?.style.maxWidth).toMatch(/^var\(--admin-main-max-width,/);
+  });
+
   it("renders a left-inspector config as a centered dialog", async () => {
     mockRouteLeftSheetConfig.current = {
       title: "Mobile inspector",
@@ -666,8 +921,8 @@ describe("CanvasShell access states", () => {
     vi.clearAllMocks();
     mockAdminAccessState.current = {
       status: "ready",
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [createGardenFixture()],
+      resolvedDefaultGarden: createGardenFixture(),
       hasStaleBaseList: false,
     };
   });
@@ -709,6 +964,15 @@ describe("CanvasShell access states", () => {
 
     expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
     expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("carries the refresh that follows a sent commitment act, because the admin has no queue provider", () => {
+    // The act is sent from a dialog that closes as soon as it lands, so anything
+    // mounted there is gone before the indexer catches up. The shell outlives it.
+    // What the refresh does is proven in shared's commitment-completion-refresh test.
+    renderCanvasShell("/hub/work");
+
+    expect(mockCommitmentCompletionRefresh).toHaveBeenCalled();
   });
 
   it("keeps CanvasLayout as the ready shell for direct canvas bookmarks", () => {

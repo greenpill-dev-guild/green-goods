@@ -26,12 +26,12 @@
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2",
-            "if": "Write(**/packages/*/.env*)",
+            "if": "Write|Edit(**/packages/*/.env*)",
             "statusMessage": "Checking env file location..."
           }
         ]
@@ -41,48 +41,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)bun test( |$)' && ! printf '%s' \"$CMD\" | grep -qE 'bun run test'; then echo 'BLOCKED: Use `bun run test` not `bun test` — bun test uses the built-in runner which ignores vitest config.' >&2; exit 2; fi",
-            "statusMessage": "Checking test runner..."
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/harness/command-policy.mjs\" claude",
+            "statusMessage": "Checking Green Goods command policy..."
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "mcp__.*__save_issue",
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qiE 'deploy.*mainnet|upgrade.*mainnet|vercel.*--prod'; then echo 'PRODUCTION DEPLOYMENT — Requires explicit user confirmation before proceeding'; fi",
-            "statusMessage": "Checking deployment target..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE 'git.*push.*--force.*(main|master)'; then echo 'BLOCKED: Never force push to main/master' >&2; exit 2; fi",
-            "statusMessage": "Checking git push..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
-            "statusMessage": "Pre-commit lint check..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(cat|head|tail|less|more|source|bat)\\s+(\\./)?\\.(env|env\\.[a-z]+)' || printf '%s' \"$CMD\" | grep -qE 'grep\\s+.*\\s+(\\./)?\\.(env|env\\.[a-z]+)'; then echo 'BLOCKED: Direct .env file access via Bash is not allowed. Secrets must not be read in Claude sessions.' >&2; exit 2; fi",
-            "statusMessage": "Checking .env access..."
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/lint-linear-issue.sh\"",
+            "statusMessage": "Checking Linear issue shape..."
           }
         ]
       },
@@ -107,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /status /audit /clean /qa-triage /doc-feedback' '  planning, debugging: describe the intent (no slash)' '  resume: /status --resume'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /clean /qa-triage /qa-session /doc-feedback' '  planning, debugging: describe the intent (no slash)'",
             "once": true
           }
         ]
@@ -150,13 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then npx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
-          },
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR/packages/shared\" && bunx tsc --noEmit 2>&1 | head -10; exit 0",
-            "if": "Edit|Write(**/packages/shared/src/**)",
-            "statusMessage": "Type-checking shared..."
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then bunx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
           },
           {
             "type": "command",
@@ -195,7 +159,9 @@
       }
     ]
   },
-  "worktree": { "baseRef": "head" },
+  "worktree": {
+    "baseRef": "head"
+  },
   "autoUpdatesChannel": "latest",
   "teammateMode": "in-process"
 }

@@ -16,7 +16,7 @@
     "**/__tests__/**"
   ],
   "rules": {
-    "react/rules-of-hooks": "warn",
+    "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",
     "react/react-in-jsx-scope": "off",
     "react/no-unescaped-entities": "warn",
@@ -32,6 +32,25 @@
         ]
       }
     ],
+    // Enforces the real labelling contract: every <label> resolves to a control.
+    // Currently zero violations, so this locks in correct behavior at no cost.
+    "jsx-a11y/label-has-associated-control": "error",
+    // The inverse rule cannot resolve label association in oxlint 1.66 — it
+    // checks only for accessible *children* of the control, ignoring both
+    // htmlFor/id and a wrapping <label>. It produced 45 warnings; every site
+    // audited was already correctly labelled (a <select> in an identical
+    // wrapping-label pattern goes unflagged purely because its <option>
+    // children are text). label-has-associated-control above covers the real
+    // ground; keeping this one only buries genuine findings.
+    "jsx-a11y/control-has-associated-label": "off",
+    // Stylistic: rewrites role="status" to <output>, role="dialog" to <dialog>,
+    // role="progressbar" to <progress>. The suggested tags are equivalent only
+    // because their implicit roles match what these elements already declare
+    // explicitly, so there is no assistive-technology gain — while <output> and
+    // <progress> carry different default display and styling, and <dialog>
+    // carries different behavior (top layer, showModal). 100 warnings, zero
+    // real defects, high rewrite risk on styled design-system surfaces.
+    "jsx-a11y/prefer-tag-over-role": "off",
     "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "off",
     "no-console": "warn",
@@ -53,6 +72,25 @@
       "files": ["packages/shared/src/modules/app/logger.ts"],
       "rules": {
         "no-console": "off"
+      }
+    },
+    {
+      "files": ["packages/contracts/script/**/*.{ts,mjs}"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["packages/admin/src/components/Layout/CommandPalette.tsx"],
+      "rules": {
+        // oxlint's implicit-role table maps a bare <input type="text"> to
+        // combobox, so it flags the explicit role="combobox" that the ARIA 1.2
+        // combobox pattern requires — while its own role-supports-aria-props
+        // maps the same element to textbox and then rejects aria-expanded.
+        // Per ARIA-in-HTML the implicit role without a `list` attribute is
+        // textbox: the explicit role is correct and required here, so the
+        // redundancy rule is the one that is wrong on this file.
+        "jsx-a11y/no-redundant-roles": "off"
       }
     }
   ],

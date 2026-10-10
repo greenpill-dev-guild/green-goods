@@ -1,6 +1,6 @@
 /**
  * usePrimaryAddress Hook + getPrimaryAddress Function Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests address resolution rules:
  * - passkey mode -> smartAccountAddress

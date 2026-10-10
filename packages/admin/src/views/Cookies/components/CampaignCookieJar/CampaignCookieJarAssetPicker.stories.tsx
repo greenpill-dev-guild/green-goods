@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { CampaignCookieJarAssetPicker } from "./CampaignCookieJarAssetPicker";
 import {
   campaignCookieJarCreateFormProps,
   campaignCookieJarStoryDecorators,
 } from "./CampaignCookieJar.stories.fixtures";
+import { CampaignCookieJarAssetPicker } from "./CampaignCookieJarAssetPicker";
 
 const meta: Meta<typeof CampaignCookieJarAssetPicker> = {
-  title: "Admin/Workspaces/Cookies/CampaignCookieJar/AssetPicker",
+  title: "Admin/Workflows/Community/Payouts/CampaignCookieJar/AssetPicker",
   component: CampaignCookieJarAssetPicker,
   tags: ["autodocs"],
   decorators: campaignCookieJarStoryDecorators,

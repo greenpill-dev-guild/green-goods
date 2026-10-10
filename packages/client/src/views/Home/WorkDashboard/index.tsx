@@ -1,50 +1,64 @@
+import { restoreDashboardScroll } from "@/components/Navigation/restoreDashboardScroll";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import {
-  type Address,
-  cn,
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
   DEFAULT_RETRY_COUNT,
-  fetchApprovalsByRecipients,
-  filterByTimeRange,
-  filterPendingNeedsReview,
-  hapticLight,
-  logger,
-  queryKeys,
   STALE_TIME_MEDIUM,
-  isUserAddress as sharedIsUserAddress,
-  type TimeFilter,
-  toastService,
-  useDrafts,
-  useFocusTrap,
-  useMyWorks,
-  useReviewerGardenIds,
-  useReviewerWorks,
-  useTimeout,
+} from "@green-goods/shared/config/query-keys/constants";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { fetchApprovalsByRecipients } from "@green-goods/shared/hooks/work/useAggregatedApprovals";
+import { useMyWorks } from "@green-goods/shared/hooks/work/useMyWorks";
+import { useNeedsReview } from "@green-goods/shared/hooks/work/useNeedsReview";
+import { useReviewerGardenIds } from "@green-goods/shared/hooks/work/useReviewerGardenIds";
+import { useWorkApprovals } from "@green-goods/shared/hooks/work/useWorkApprovals";
+import { useWorkUploads } from "@green-goods/shared/hooks/work/useWorkUploads";
+import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import {
   useUIStore,
-  useUser,
-  useWorkApprovals,
-  type Work,
+  type DashboardSnapshot,
+  type WorkDashboardCompletedFilter,
   type WorkDashboardPendingFilter,
   type WorkDashboardTab,
-} from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
+} from "@green-goods/shared/stores/useUIStore";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { isUserAddress as sharedIsUserAddress } from "@green-goods/shared/utils/blockchain/address";
+import { filterByTimeRange, type TimeFilter } from "@green-goods/shared/utils/time";
+import { RiCheckLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
-import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
+import type { StandardTab } from "@/components/Navigation";
+import { getPwaSheetCloseDelayMs } from "@/components/Pwa/sheetStyles";
 import { CompletedTab } from "./CompletedTab";
-import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
+import { buildUploadAction } from "./uploadActions";
+import { WorkDashboardShell } from "./WorkDashboardShell";
 import {
   approvalsToCompletedWorks,
   buildWorkMap,
-  combinePendingWork,
   extractWorkGardenIds,
   receivedApprovalsToWorks,
   resolveWorkNavigation,
-} from "./work-dashboard-utils";
+} from "./workDashboardUtils";
+
+/** Work that has not reached the chain yet: queued, sending, or failed to send. */
+function isOnThisDevice(work: Work): boolean {
+  return (
+    ["offline", "uploading", "syncing", "sync_failed"].includes(work.status) ||
+    work.id.startsWith("0xoffline_") ||
+    !work.id.startsWith("0x")
+  );
+}
+
+function oldestTime(...times: Array<number | undefined>): number | undefined {
+  const known = times.filter((time): time is number => typeof time === "number" && time > 0);
+  return known.length > 0 ? Math.min(...known) : undefined;
+}
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {
@@ -54,269 +68,317 @@ export interface WorkDashboardProps {
 
 export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose }) => {
   const intl = useIntl();
-  const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const { user } = useUser();
   const activeAddress = user?.id;
+  // The queue and the proof drafts are kept under the primary address.
+  const viewer = usePrimaryAddress();
 
   // Helper to check if an address matches the current user (wrapping shared util)
   const isUserAddress = (address: Address | undefined): boolean =>
     sharedIsUserAddress(address, activeAddress);
 
-  // Use the new hook for work approvals
+  // Your review history: works you approved or rejected, as the indexer reports them.
   const {
     completedApprovals,
     isLoading,
     hasError,
     errorMessage,
+    dataUpdatedAt: reviewHistoryUpdatedAt,
     refetch: refetchApprovals,
   } = useWorkApprovals(activeAddress || undefined);
+  const isOffline = !useOnlineStatus();
 
-  // Get draft count for badge
-  const { draftCount } = useDrafts();
+  // Pending's badge is Home's: everything still on this phone (D1).
+  const { count: onPhoneCount } = useYourWorkCount();
+
+  // Queued work and decisions go out together from the Pending header.
+  const uploads = useWorkUploads();
+  const uploadAction = buildUploadAction(
+    uploads,
+    {
+      onUpload: () => {
+        // useWorkUploads reports every outcome, a failure included.
+        uploads.upload().catch(() => undefined);
+      },
+      onPrepareNow: uploads.prepareNow,
+    },
+    intl.formatMessage
+  );
 
   // Timer for close animation (auto-cleared on unmount)
-  const { set: scheduleTimeout } = useTimeout();
+  const { set: scheduleTimeout, clear: clearCloseTimeout } = useTimeout();
 
   // State management — open to the tab/filter the caller requested (e.g. the arrival toast),
   // else defaults. Store presets are consumed once at mount; an already-open dashboard
   // intentionally ignores later store writes.
   const initialTab = useUIStore((s) => s.workDashboardInitialTab);
   const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
+  const returnState = useUIStore((s) => s.workDashboardReturnState);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
+  const closeCompletedRef = useRef(false);
   const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
     initialPendingFilter ?? "all"
   );
-  const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
-    "reviewedByYou"
+  const [completedFilter, setCompletedFilter] = useState<WorkDashboardCompletedFilter>(
+    returnState?.completedFilter ?? "all"
   );
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(returnState?.timeFilter ?? "month");
+  const restoredScrollRef = useRef(false);
 
-  // Ref for focus trap on the dialog panel
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    document.documentElement.classList.add("modal-open");
-    return () => {
-      document.documentElement.classList.remove("modal-open");
-    };
-  }, []);
-
-  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useFocusTrap(dialogRef);
-
-  // Use shared hooks for reviewer garden detection and works fetching
-  const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
-  const {
-    data: operatorWorks = [],
-    isLoading: isLoadingOperatorWorks,
-    isFetching: isFetchingOperatorWorks,
-    isError: isErrorOperatorWorks,
-    refetch: refetchOperatorWorks,
-  } = useReviewerWorks(reviewerGardenIds, activeAddress);
+  // Needs review reads each garden you review the way its Work tab does, so a review
+  // made on this device leaves the list at once — the same list the arrival toast counts.
+  const { reviewerGardenIds, isLoading: isLoadingReviewerGardens } =
+    useReviewerGardenIds(activeAddress);
+  const needsReview = useNeedsReview(reviewerGardenIds, activeAddress);
 
   // Include offline queued submissions so the Pending tab still reflects the
   // dashboard badge after the Recent/Uploading tab was removed.
   const {
     data: myWorks = [],
     isLoading: isLoadingMyWorks,
-    isFetching: isFetchingMyWorks,
     isError: isErrorMyWorks,
+    lastSuccessfulRefresh: myWorksUpdatedAt,
     refetch: refetchMyWorks,
   } = useMyWorks({ includeOffline: true });
-  // Which works have you already reviewed?
+
+  // Which works have you reviewed? The history, plus decisions made here that the
+  // indexer has not reported yet.
   const reviewedByYou = useMemo(
-    () => new Set((completedApprovals || []).map((a) => a.workUID)),
-    [completedApprovals]
-  );
-
-  // Fetch approvals covering ALL reviewers of the candidate works. New approvals use
-  // recipient = garden; historical bot approvals may use recipient = gardener, so the
-  // helper includes both garden ids and candidate gardeners.
-  const approvalRecipients = useMemo(
-    () => collectApprovalRecipientsForWorks(reviewerGardenIds, operatorWorks || []),
-    [reviewerGardenIds, operatorWorks]
-  );
-  const reviewExclusionQueryEnabled =
-    reviewerGardenIds.length > 0 && (operatorWorks || []).length > 0;
-  const {
-    data: reviewExclusionApprovals = [],
-    isLoading: isLoadingReviewExclusionApprovals,
-    isFetching: isFetchingReviewExclusionApprovals,
-    isError: isErrorReviewExclusionApprovals,
-    isSuccess: isSuccessReviewExclusionApprovals,
-    refetch: refetchReviewExclusionApprovals,
-  } = useQuery({
-    queryKey: queryKeys.approvals.forWorkReview(approvalRecipients),
-    queryFn: () => fetchApprovalsByRecipients(approvalRecipients),
-    enabled: reviewExclusionQueryEnabled,
-    staleTime: STALE_TIME_MEDIUM,
-    retry: DEFAULT_RETRY_COUNT,
-  });
-  const isReviewExclusionReady = !reviewExclusionQueryEnabled || isSuccessReviewExclusionApprovals;
-  const isWaitingForReviewExclusionApprovals =
-    reviewExclusionQueryEnabled && !isReviewExclusionReady && !isErrorReviewExclusionApprovals;
-
-  // Set of work IDs that have been approved/rejected by ANY operator
-  const alreadyReviewedByAnyone = useMemo(
     () =>
-      isReviewExclusionReady
-        ? collectApprovedWorkUIDs(reviewExclusionApprovals || [])
-        : new Set<string>(),
-    [isReviewExclusionReady, reviewExclusionApprovals]
+      new Set([
+        ...(completedApprovals || []).map((approval) => approval.workUID),
+        ...needsReview.decidedHere.map((work) => work.id),
+      ]),
+    [completedApprovals, needsReview.decidedHere]
   );
 
-  const operatorWorksById = useMemo(() => buildWorkMap(operatorWorks || []), [operatorWorks]);
+  const reviewWorksById = useMemo(() => buildWorkMap(needsReview.allWorks), [needsReview.allWorks]);
 
-  // Pending work needing your review (from gardens you operate): not reviewed by ANY
-  // operator and not your own submission — shared derivation, same as the arrival toast.
-  const pendingNeedsReview = useMemo(
-    () =>
-      isReviewExclusionReady
-        ? filterPendingNeedsReview(operatorWorks || [], alreadyReviewedByAnyone, activeAddress)
-        : [],
-    [operatorWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
+  const pendingNeedsReview = needsReview.works;
+  const queuedDecisions = needsReview.decidedHere.filter((work) =>
+    uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
   );
 
-  // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
-  const completedReviewedByYou: Work[] = useMemo(
-    () => approvalsToCompletedWorks(completedApprovals),
-    [completedApprovals]
-  );
+  // Reviewed by you: the history, plus decisions made here until the history has them.
+  const completedReviewedByYou: Work[] = useMemo(() => {
+    const history = approvalsToCompletedWorks(completedApprovals);
+    const inHistory = new Set(history.map((work) => work.id));
+    // A decision made on this device is recent, so it files under now for the time filter.
+    const decidedAt = Math.floor(Date.now() / 1000);
+    const decidedHere = needsReview.decidedHere
+      .filter((work) => !inHistory.has(work.id))
+      .map((work) => ({ ...work, createdAt: decidedAt }));
+    return [...decidedHere, ...history].filter(
+      (work) => !uploads.waitingDecisionWorkIds.has(work.id.toLowerCase())
+    );
+  }, [completedApprovals, needsReview.decidedHere, uploads.waitingDecisionWorkIds]);
 
   const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myWorks || []), [myWorks]);
   const myWorksById = useMemo(() => buildWorkMap(myWorks || []), [myWorks]);
+  const myApprovalsEnabled = !!activeAddress && myWorkGardenIds.length > 0;
 
   // Fetch approvals scoped to gardens where the user has submitted work.
   const {
-    data: allApprovals = [],
+    data: allApprovals,
     isLoading: isLoadingMyApprovals,
-    isFetching: isFetchingMyApprovals,
     isError: isErrorMyApprovals,
+    dataUpdatedAt: myApprovalsUpdatedAt,
     refetch: refetchMyApprovals,
   } = useQuery({
     queryKey: queryKeys.approvals.byMyWorkGardens(activeAddress, myWorkGardenIds),
     queryFn: () => fetchApprovalsByRecipients(myWorkGardenIds),
-    enabled: !!activeAddress && myWorkGardenIds.length > 0,
+    enabled: myApprovalsEnabled,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
 
-  // Build a set of the user's work IDs for efficient lookup
-  const myWorkIds = useMemo(() => new Set(myWorksById.keys()), [myWorksById]);
-
   // Filter approvals to only those for the user's works
   const myReceivedApprovals = useMemo(
-    () => (allApprovals || []).filter((a) => myWorkIds.has(a.workUID)),
-    [allApprovals, myWorkIds]
+    () => (allApprovals ?? []).filter((approval) => myWorksById.has(approval.workUID)),
+    [allApprovals, myWorksById]
   );
 
-  // Pending: your submissions across ALL gardens (online and awaiting review)
-  const approvedOrRejectedForMe = useMemo(
-    () => new Set((myReceivedApprovals || []).map((a) => a.workUID)),
+  const reviewedForMe = useMemo(
+    () => new Set(myReceivedApprovals.map((approval) => approval.workUID)),
     [myReceivedApprovals]
   );
 
-  const pendingMySubmissions: Work[] = (myWorks || [])
-    .filter((w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id))
-    .map((w) => ({ ...w, status: w.status ?? ("pending" as const) }));
-
-  const combinedPending = useMemo(
-    () => combinePendingWork(pendingNeedsReview, pendingMySubmissions),
-    [pendingNeedsReview, pendingMySubmissions]
-  );
-
-  const pendingWork =
-    pendingFilter === "needsReview"
-      ? pendingNeedsReview
-      : pendingFilter === "mySubmissions"
-        ? pendingMySubmissions
-        : combinedPending;
+  // Pending: your submissions still waiting. Work still on this device is waiting by
+  // definition; anything already on chain needs a successful review read first, so a
+  // failed read never shows a reviewed submission as pending.
+  const pendingMySubmissions: Work[] = (myWorks || []).filter((work) => {
+    if (!isUserAddress(work.gardenerAddress)) return false;
+    if (work.status === "approved" || work.status === "rejected") return false;
+    if (isOnThisDevice(work)) return true;
+    return allApprovals !== undefined && !reviewedForMe.has(work.id);
+  });
 
   const completedMyWorkReviewed: Work[] = useMemo(
-    () => receivedApprovalsToWorks(myReceivedApprovals || [], myWorksById),
+    () => receivedApprovalsToWorks(myReceivedApprovals, myWorksById),
     [myReceivedApprovals, myWorksById]
   );
 
-  const completedWork =
-    completedFilter === "reviewedByYou" ? completedReviewedByYou : completedMyWorkReviewed;
+  // All is both lists, newest first. A steward never reviews their own work, so
+  // the two do not overlap; the id check keeps that from ever showing a card twice.
+  const completedWork = useMemo(() => {
+    if (completedFilter === "reviewedByYou") return completedReviewedByYou;
+    if (completedFilter === "myWorkReviewed") return completedMyWorkReviewed;
+    const reviewedIds = new Set(completedReviewedByYou.map((work) => work.id));
+    return [
+      ...completedReviewedByYou,
+      ...completedMyWorkReviewed.filter((work) => !reviewedIds.has(work.id)),
+    ].sort((a, b) => b.createdAt - a.createdAt);
+  }, [completedFilter, completedReviewedByYou, completedMyWorkReviewed]);
 
-  // Apply time filtering using utility
-  const filteredPending = filterByTimeRange(pendingWork, timeFilter);
+  // Pending work stays listed however long it has waited; only history takes a time range.
   const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
+
+  useLayoutEffect(() => {
+    if (!returnState || restoredScrollRef.current) return;
+    const scroller = document.getElementById("work-dashboard-scroll");
+    if (!scroller) return;
+    if (
+      activeTab !== returnState.tab ||
+      pendingFilter !== returnState.pendingFilter ||
+      completedFilter !== returnState.completedFilter ||
+      timeFilter !== returnState.timeFilter
+    ) {
+      restoredScrollRef.current = true;
+      return;
+    }
+    return restoreDashboardScroll(
+      scroller,
+      () => scroller,
+      returnState.scrollTop,
+      () => {
+        restoredScrollRef.current = true;
+      }
+    );
+  }, [returnState, activeTab, pendingFilter, completedFilter, timeFilter]);
+
+  // Leaving for a row's own page remembers the tab, filter and scroll, so Back
+  // from that page can reopen Your Work where it was.
+  const leaveFor = (path: string, state?: Record<string, unknown>) => {
+    const snapshot: DashboardSnapshot = {
+      kind: "work",
+      tab: activeTab,
+      pendingFilter,
+      completedFilter,
+      timeFilter,
+      scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
+    };
+    dashboardNavigation.leave(snapshot, path, state);
+  };
 
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: Address }) => {
     try {
-      const nav = resolveWorkNavigation(work, operatorWorksById);
+      const nav = resolveWorkNavigation(work, reviewWorksById);
       if (!nav) return;
-
-      navigate(`/home/${nav.gardenId}/work/${nav.workId}`, {
-        state: { from: "dashboard", returnTo: "/home" },
-        viewTransition: true,
+      leaveFor(`/home/${nav.gardenId}/work/${nav.workId}`, {
+        from: "dashboard",
+        returnTo: "/home",
+        workStatus: "status" in work ? work.status : undefined,
       });
     } catch (err) {
       logger.error("Navigation error:", { error: err });
       toastService.error({
         title: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailed",
-          defaultMessage: "Couldn't open work",
+          defaultMessage: "Navigation failed",
         }),
         message: intl.formatMessage({
           id: "app.workDashboard.error.navigationFailedMessage",
-          defaultMessage: "Please try again.",
+          defaultMessage: "Could not navigate to the selected item",
         }),
         context: "workDashboard",
       });
     }
   };
 
-  // Combined refresh functions for each tab
-  const handleRefreshPending = () => {
-    hapticLight();
-    refetchOperatorWorks();
-    refetchMyWorks();
-    refetchApprovals();
-    refetchReviewExclusionApprovals();
+  // One Refresh re-reads everything the dashboard shows, from either tab. Only a
+  // refresh someone asked for reports failure; background reads stay quiet (D4-A).
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    const succeeded = (result: { status: string }) => result.status !== "error";
+    const outcomes = await Promise.all([
+      needsReview.refetch().catch(() => false),
+      refetchMyWorks()
+        .then(succeeded)
+        .catch(() => false),
+      refetchApprovals()
+        .then(succeeded)
+        .catch(() => false),
+      myApprovalsEnabled
+        ? refetchMyApprovals()
+            .then(succeeded)
+            .catch(() => false)
+        : true,
+    ]);
+    if (!mountedRef.current) return;
+    setIsRefreshing(false);
+    if (outcomes.includes(false)) {
+      toastService.error({
+        id: "work-dashboard-refresh",
+        message: intl.formatMessage({
+          id: "app.workDashboard.refreshFailed",
+          defaultMessage: "Couldn't refresh. Try again.",
+        }),
+        context: "workDashboard",
+        suppressLogging: true,
+      });
+    }
   };
 
-  const handleRefreshCompleted = () => {
-    hapticLight();
-    refetchApprovals();
-    refetchMyApprovals();
+  // Offline, the count line says when the oldest part of the list was saved.
+  const pendingSavedAt = oldestTime(needsReview.savedAt, myWorksUpdatedAt, myApprovalsUpdatedAt);
+  const completedSavedAt = oldestTime(reviewHistoryUpdatedAt, myApprovalsUpdatedAt);
+
+  // Loading and errors follow the source the active filter shows, and an error
+  // takes over a tab only when there is nothing to show.
+  const needsReviewState = {
+    isLoading: isLoadingReviewerGardens || needsReview.isLoading,
+    isError: needsReview.isError,
+  };
+  // My pending submissions and my reviewed work both come from my works joined to approvals.
+  const myWorkState = {
+    isLoading: isLoadingMyWorks || isLoadingMyApprovals,
+    isError: isErrorMyWorks || (isErrorMyApprovals && allApprovals === undefined),
   };
 
-  // Combined error states
-  const pendingQueryErrored =
-    hasError || isErrorOperatorWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
-  const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
-  const hasCompletedError = hasError || isErrorMyApprovals;
-
-  // Combined fetching states
-  const isFetchingPending =
-    isFetchingOperatorWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
-  const isLoadingPending =
-    (isLoading ||
-      isLoadingOperatorWorks ||
-      isLoadingMyWorks ||
-      isLoadingReviewExclusionApprovals ||
-      isWaitingForReviewExclusionApprovals) &&
-    filteredPending.length === 0;
-  const isFetchingCompleted = isFetchingMyApprovals;
+  const reviewHistoryState = { isLoading, isError: hasError };
+  const completedSources =
+    completedFilter === "reviewedByYou"
+      ? [reviewHistoryState]
+      : completedFilter === "myWorkReviewed"
+        ? [myWorkState]
+        : [reviewHistoryState, myWorkState];
+  const isLoadingCompleted =
+    completedSources.some((source) => source.isLoading) && filteredCompleted.length === 0;
+  const hasCompletedError =
+    completedSources.some((source) => source.isError) && filteredCompleted.length === 0;
+  // Only the review history carries its own error text; the other reads use the tab's default.
+  const completedErrorMessage = completedFilter === "reviewedByYou" ? errorMessage : undefined;
 
   const fmt = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
   const tabs: StandardTab[] = [
     {
-      id: "drafts",
-      icon: <RiDraftLine className="w-4 h-4" />,
-      label: fmt("app.workDashboard.tabs.drafts", "Draft"),
-      count: draftCount > 0 ? draftCount : undefined,
-    },
-    {
       id: "pending",
       icon: <RiTaskLine className="w-4 h-4" />,
       label: fmt("app.workDashboard.tabs.pending", "Pending"),
+      count: onPhoneCount > 0 ? onPhoneCount : undefined,
     },
     {
       id: "completed",
@@ -325,50 +387,78 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     },
   ];
 
+  const finishClose = useCallback(() => {
+    if (closeCompletedRef.current) return;
+    closeCompletedRef.current = true;
+    clearCloseTimeout();
+    dashboardNavigation.clear();
+    onClose?.();
+  }, [clearCloseTimeout, dashboardNavigation, onClose]);
+
   const handleClose = () => {
+    if (isClosing) return;
+    closeCompletedRef.current = false;
     setIsClosing(true);
-    scheduleTimeout(() => {
-      onClose?.();
-    }, getPwaDrawerCloseDelayMs());
+    scheduleTimeout(finishClose, getPwaSheetCloseDelayMs());
   };
+
+  useEffect(() => {
+    if (!isClosing) return;
+
+    const handlePageHide = () => finishClose();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") finishClose();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [finishClose, isClosing]);
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "drafts":
-        return <DraftsTab />;
       case "pending":
       default:
         return (
           <PendingTab
-            items={filteredPending}
-            isLoading={isLoadingPending}
-            isFetching={isFetchingPending}
-            hasError={hasPendingError}
-            errorMessage={errorMessage}
-            onWorkClick={handleWorkClick}
-            onRefresh={handleRefreshPending}
+            submissions={pendingMySubmissions}
+            isOnThisDevice={isOnThisDevice}
+            toReview={pendingNeedsReview}
+            decisions={queuedDecisions}
+            uploads={uploads}
+            viewer={viewer}
+            // Pending weighs each read against the filter in use and the rows it shows.
+            reads={{ needsReview: needsReviewState, myWork: myWorkState }}
+            isFetching={isRefreshing}
+            isOffline={isOffline}
+            savedAt={pendingSavedAt}
             pendingFilter={pendingFilter}
             onPendingFilterChange={setPendingFilter}
-            timeFilter={timeFilter}
-            onTimeFilterChange={setTimeFilter}
-            activeAddress={activeAddress}
-            reviewerGardenIds={reviewerGardenIds}
-            reviewedByYou={reviewedByYou}
-            isUserAddress={isUserAddress}
+            uploadAction={uploadAction}
+            onRefresh={handleRefresh}
+            onOpenWork={handleWorkClick}
+            onOpenPath={leaveFor}
           />
         );
       case "completed":
         return (
           <CompletedTab
             items={filteredCompleted}
-            isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
-            isFetching={isFetchingCompleted}
+            isLoading={isLoadingCompleted}
+            isFetching={isRefreshing}
             hasError={hasCompletedError}
-            errorMessage={errorMessage}
+            errorMessage={completedErrorMessage}
             onWorkClick={handleWorkClick}
-            onRefresh={handleRefreshCompleted}
+            onRefresh={handleRefresh}
+            isOffline={isOffline}
+            savedAt={completedSavedAt}
             completedFilter={completedFilter}
             onCompletedFilterChange={setCompletedFilter}
+            reviewedByYou={reviewedByYou}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
           />
@@ -377,86 +467,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   return (
-    <div
-      role="presentation"
-      className={cn(
-        pwaDrawerStyles.overlay,
-        isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
-      )}
-      data-testid="modal-drawer-overlay"
-      onClick={(e) => {
-        // Only close if clicking directly on backdrop, not from propagated events
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          handleClose();
-        }
-      }}
-      tabIndex={-1}
+    <WorkDashboardShell
+      className={className}
+      isClosing={isClosing}
+      onRequestClose={handleClose}
+      covered={dashboardNavigation.isDashboardCovered}
+      restored={Boolean(returnState)}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
     >
-      <div
-        ref={dialogRef}
-        className={cn(
-          pwaDrawerStyles.panel,
-          isClosing ? "modal-slide-exit" : "modal-slide-enter",
-          className
-        )}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-        }}
-        role="dialog"
-        aria-modal="true"
-        data-testid="modal-drawer"
-      >
-        {/* Header */}
-        <div className={pwaDrawerStyles.header}>
-          <div className="flex-1 min-w-0">
-            <h2 className="title-section truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.title",
-                defaultMessage: "Work Dashboard",
-              })}
-            </h2>
-            <p className="text-sm text-text-sub-600 truncate">
-              {intl.formatMessage({
-                id: "app.workDashboard.description",
-                defaultMessage: "Track work submissions and reviews",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={handleClose}
-              className={cn(
-                "min-h-11 min-w-11 flex items-center justify-center",
-                pwaDrawerStyles.closeButtonBase
-              )}
-              data-testid="modal-drawer-close"
-              aria-label={intl.formatMessage({
-                id: "app.workDashboard.closeModal",
-                defaultMessage: "Close modal",
-              })}
-            >
-              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
-            </button>
-          </div>
-        </div>
-
-        {/* Standardized Tabs */}
-        <StandardTabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
-          triggerClassName="text-xs"
-        />
-
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
-      </div>
-    </div>
+      {renderTabContent()}
+    </WorkDashboardShell>
   );
 };

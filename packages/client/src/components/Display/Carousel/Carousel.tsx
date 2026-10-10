@@ -1,9 +1,14 @@
 "use client";
 
-import { CarouselContext, type CarouselProps, cn, useCarousel } from "@green-goods/shared";
+import {
+  CarouselContext,
+  type CarouselProps,
+  useCarousel,
+} from "@green-goods/shared/hooks/app/useCarousel";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
-import { ImagePreviewDialog } from "@/components/Dialogs";
+import { ImagePreviewDialog } from "../ImagePreviewDialog";
 
 type CarouselApi = UseEmblaCarouselType[1];
 
@@ -165,19 +170,24 @@ const CarouselItem = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & { index?: number }
 >(({ className, index, children, onClick, ...props }, ref) => {
   const { orientation, enablePreview, openPreview } = useCarousel();
+  // The slide opens its photo's preview only when it knows which photo it holds.
+  const previewIndex = enablePreview && openPreview ? index : undefined;
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (enablePreview && openPreview && index !== undefined) {
-      openPreview(index);
-    }
+    if (previewIndex !== undefined) openPreview?.(previewIndex);
     onClick?.(e);
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focusable slide; Enter/Space opens the image preview
     <div
       ref={ref}
       role="group"
       aria-roledescription="slide"
+      // A photo that opens its preview is a press like any other (DL-041).
+      data-pressable={previewIndex !== undefined ? "media" : undefined}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- preview slides must be reachable or the Enter/Space handler below is unreachable
+      tabIndex={enablePreview ? 0 : undefined}
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full max-w-[90%]",
         orientation === "horizontal" ? "pl-4" : "pt-4",

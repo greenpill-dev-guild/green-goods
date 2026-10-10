@@ -1,14 +1,15 @@
+import { CAMPAIGN_DESCRIPTION_MAX_LENGTH } from "@green-goods/shared/utils/cookie-jar-campaign";
 import { RiExternalLinkLine, RiRefreshLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
+import { AdminTextArea } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
-import { FormField, Textarea } from "@green-goods/shared";
+import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
+import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 import { CampaignImageInput } from "./CampaignImageInput";
 import { GardenSelector } from "./GardenSelector";
 import { publicJarLink } from "./helpers";
-import { CampaignCookieJarPanelList } from "./CampaignCookieJarPanelList";
-import type { CampaignCookieJarPanelViewProps } from "./CampaignCookieJarPanelView.types";
 
 export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProps) {
   const {
@@ -50,14 +51,12 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
     syncDiff,
     selectedJarAddress,
     syncJar,
+    headerAction,
   } = props;
   return (
-    <div className="flex min-h-[calc(100dvh-16rem)] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       {!moduleConfigured ? (
-        <AdminCard
-          variant="outlined"
-          className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
-        >
+        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.factoryMissing",
             defaultMessage: "Cookie Jar factory discovery is not configured on this network yet.",
@@ -65,14 +64,11 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         </AdminCard>
       ) : null}
       {!isDeployer && !roleLoading ? (
-        <AdminCard
-          variant="outlined"
-          className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
-        >
+        <AdminCard variant="outlined" className="text-body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
-              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create and manage campaign cookie jars.",
+              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
           })}
         </AdminCard>
       ) : null}
@@ -86,6 +82,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         visibleCampaigns={visibleCampaigns}
         gardensByAddress={gardensByAddress}
         onSelectCampaign={setSelectedCampaign}
+        headerAction={headerAction}
       />
       <AdminDialog
         open={Boolean(selectedCampaign)}
@@ -102,7 +99,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         description={formatMessage({
           id: "cockpit.community.cookies.manageDescription",
           defaultMessage:
-            "Review the public link, update campaign metadata, and sync garden operator access.",
+            "Review the public link, update campaign metadata, and sync garden steward access.",
         })}
         size="lg"
         tone="community"
@@ -129,7 +126,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
             >
               {formatMessage({
                 id: "cockpit.community.cookies.sync",
-                defaultMessage: "Sync allowlist",
+                defaultMessage: "Sync Allowlist",
               })}
             </AdminButton>
           </>
@@ -137,45 +134,42 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
       >
         {selectedCampaign ? (
           <div className="space-y-5">
-            <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-3">
-              <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+            <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft p-3">
+              <p className="text-label-md text-text-strong">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarAddress",
                   defaultMessage: "Jar address",
                 })}
               </p>
-              <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+              <p className="mt-1 break-all text-body-sm text-text-sub">
                 <EnsAddressText address={selectedCampaign.address} />
               </p>
               <a
                 href={publicJarLink(selectedCampaign.address)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-1 text-label-md text-[rgb(var(--m3-primary))] underline-offset-4 hover:underline"
+                className="mt-2 inline-flex items-center gap-1 text-label-md text-primary-dark underline-offset-4 hover:underline"
               >
                 {formatMessage({
                   id: "cockpit.community.cookies.openPublicLink",
-                  defaultMessage: "Open public link",
+                  defaultMessage: "Open Public Link",
                 })}
                 <RiExternalLinkLine className="h-4 w-4" aria-hidden />
               </a>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <FormField
+              <AdminTextArea
+                id="campaign-cookie-jar-manage-description"
+                className="md:col-span-2"
                 label={formatMessage({
                   id: "cockpit.community.cookies.campaignDescription",
                   defaultMessage: "Campaign description",
                 })}
-                htmlFor="campaign-cookie-jar-manage-description"
-                className="md:col-span-2"
-              >
-                <Textarea
-                  id="campaign-cookie-jar-manage-description"
-                  surface="admin"
-                  value={syncCampaignDescription}
-                  onChange={(event) => setSyncCampaignDescription(event.target.value)}
-                />
-              </FormField>
+                value={syncCampaignDescription}
+                onChange={(event) => setSyncCampaignDescription(event.target.value)}
+                showCount
+                textareaProps={{ maxLength: CAMPAIGN_DESCRIPTION_MAX_LENGTH }}
+              />
               <CampaignImageInput
                 value={syncCampaignImage}
                 onChange={setSyncCampaignImage}
@@ -184,14 +178,14 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
                 disabled={syncAllowlist.isPending || updateMetadata.isPending}
                 source="campaign-cookie-jar-manage-image"
               />
-              <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-3">
-                <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+              <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white p-3">
+                <p className="text-label-md text-text-strong">
                   {formatMessage({
                     id: "cockpit.community.cookies.generatedCampaignLink",
                     defaultMessage: "Campaign page",
                   })}
                 </p>
-                <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                <p className="mt-1 break-all text-body-sm text-text-sub">
                   {selectedCampaignPublicUrl}
                 </p>
               </div>
@@ -205,20 +199,15 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               search={syncGardenSearch}
               setSearch={setSyncGardenSearch}
             />
-            <FormField
+            <AdminTextArea
+              id="campaign-cookie-jar-manage-extra-addresses"
               label={formatMessage({
                 id: "cockpit.community.cookies.extraAddresses",
                 defaultMessage: "Extra allowlist addresses",
               })}
-              htmlFor="campaign-cookie-jar-manage-extra-addresses"
-            >
-              <Textarea
-                id="campaign-cookie-jar-manage-extra-addresses"
-                surface="admin"
-                value={syncExtraAddresses}
-                onChange={(event) => setSyncExtraAddresses(event.target.value)}
-              />
-            </FormField>
+              value={syncExtraAddresses}
+              onChange={(event) => setSyncExtraAddresses(event.target.value)}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
               <DiffStat
                 label={formatMessage({
@@ -243,7 +232,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               />
             </div>
             {syncAggregation.invalidAddresses.length > 0 ? (
-              <p className="text-body-sm text-[rgb(var(--m3-error))]">
+              <p className="text-body-sm text-error-dark">
                 {formatMessage(
                   {
                     id: "cockpit.community.cookies.invalidExtras",
@@ -254,7 +243,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
               </p>
             ) : null}
             {selectedJarAddress && syncJar.jar && !syncJar.jar.isOwner ? (
-              <p className="text-body-sm text-[rgb(var(--m3-error))]">
+              <p className="text-body-sm text-error-dark">
                 {formatMessage({
                   id: "cockpit.community.cookies.jarOwnerRequired",
                   defaultMessage:
@@ -270,9 +259,9 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
 }
 function DiffStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] px-3 py-2">
-      <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">{label}</p>
-      <p className="mt-1 text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">{value}</p>
+    <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft px-3 py-2">
+      <p className="text-label-sm text-text-sub">{label}</p>
+      <p className="mt-1 text-title-md font-semibold text-text-strong">{value}</p>
     </div>
   );
 }

@@ -1,18 +1,19 @@
 import assert from "assert";
 import { encodeFunctionData } from "viem";
 import {
-  Addresses,
   CookieJarFactory,
   createTestIndexer,
   HatsModule,
   GardenAccount,
   HypercertMinter,
   serveJson,
+  indexedAddress,
   YieldSplitter,
 } from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 
-const CHAIN_ID = 42161;
-type HexAddress = `0x${string}`;
+const CHAIN_ID = CHAINS.arbitrum;
 const CREATE_COOKIE_JAR_ABI = [
   {
     type: "function",
@@ -82,35 +83,6 @@ const CREATE_COOKIE_JAR_ABI = [
   },
 ] as const;
 
-function addr(index: number): HexAddress {
-  return (Addresses.mockAddresses[index] ||
-    `0x${index.toString().padStart(40, "0")}`) as HexAddress;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: {
-    srcAddress?: string;
-    txHash?: string;
-    txInput?: string;
-    logIndex?: number;
-    blockNumber?: number;
-  } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp), input: opts.txInput },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
-
 function createCookieJarInput(metadata: string): string {
   const multiTokenConfig = {
     enabled: false,
@@ -158,7 +130,7 @@ function createCookieJarInput(metadata: string): string {
 describe("retained garden + role handlers", () => {
   it("creates a default garden on GardenAccount.NameUpdated", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.NameUpdated.createMockEvent({
       updater: addr(1),
@@ -179,26 +151,7 @@ describe("retained garden + role handlers", () => {
     const gardenAddress = addr(20);
     const operator = addr(21);
 
-    mockDb.Garden.set({
-      id: gardenAddress,
-      chainId: CHAIN_ID,
-      tokenAddress: addr(1),
-      tokenID: 1n,
-      name: "Garden",
-      description: "",
-      location: "",
-      bannerImage: "",
-      openJoining: false,
-      initialized: true,
-      gardeners: [],
-      operators: [],
-      evaluators: [],
-      owners: [],
-      funders: [],
-      communities: [],
-      createdAt: 1,
-      gapProjectUID: undefined,
-    });
+    mockDb = seedGarden(mockDb, gardenAddress, { name: "Garden", createdAt: 1 });
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
       garden: gardenAddress,
@@ -303,7 +256,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
         txInput: createCookieJarInput(metadata),
       }),
@@ -334,7 +286,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
       }),
     });
@@ -371,7 +322,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       metadata,
       mockEventData: mockEvent(CHAIN_ID, 41_000, {
-        srcAddress: addr(52),
         txHash: txHash(410),
       }),
     });
@@ -401,7 +351,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       metadata: JSON.stringify({ kind: "other", version: 1, slug: "test", title: "Test" }),
       mockEventData: mockEvent(CHAIN_ID, 42_000, {
-        srcAddress: addr(52),
         txHash: txHash(420),
       }),
     });

@@ -1,27 +1,32 @@
-import type { ActivityEvent, HubActionSummary, HubPipelineStage, Work } from "@green-goods/shared";
-import { HubAssessmentQueue } from "./HubAssessmentQueue";
-import { HubCertificationQueue } from "./HubCertificationQueue";
-import { HubHistoryQueue } from "./HubHistoryQueue";
+import type {
+  HubPipelineStage,
+  HubWorkScope,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import {
+  type HubActionSummary,
+  selectHubStageContent,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import { HubConfirmQueue } from "./HubConfirmQueue";
+import {
+  HubAssessmentList,
+  type HubAssessmentListItem,
+  HubHypercertList,
+  type HubHypercertListItem,
+} from "./HubRecordLists";
 import { HubWorkQueue } from "./HubWorkQueue";
-
-interface CertificationItem {
-  id: string;
-  title?: string | null;
-  description?: string | null;
-  assessmentType?: string | null;
-  createdAt: number;
-}
 
 interface HubStageContentProps {
   stage: HubPipelineStage;
-  pendingWorks: Work[];
-  assessmentQueue: Work[];
-  certificationQueue: CertificationItem[];
-  historyEvents: ActivityEvent[];
+  /** The Work tab's list for its current scope. */
+  works: Work[];
+  workScope: HubWorkScope;
+  assessments: HubAssessmentListItem[];
+  hypercerts: HubHypercertListItem[];
   worksLoading: boolean;
   fetchingAssessments: boolean;
   hypercertsLoading: boolean;
-  allocationsLoading: boolean;
   hasDataError: boolean;
   normalizedSearch: string;
   debouncedSearch: string;
@@ -29,24 +34,31 @@ interface HubStageContentProps {
   selectedGardenName?: string;
   selectedWorkId: string | undefined;
   selectedCertificationId: string | undefined;
-  selectedHistoryEventId: string | undefined;
-  canManage: boolean;
+  /** Where each create flow opens; omitted for a reader who cannot create that record. */
+  createAssessmentHref?: string;
+  createHypercertHref?: string;
+  /** The Confirm stage's queue (uiux-spec §6.9), read by the Hub controller. */
+  toConfirm: CommitmentsToConfirm;
+  chainId: number;
+  viewer?: Address;
+  selectedCommitmentId: string | undefined;
+  onOpenCommitment: (commitmentId: string) => void;
+  onCloseCommitment: () => void;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
-  onOpenHistoryEvent: (event: ActivityEvent) => void;
+  onOpenHypercert: (hypercertId: string) => void;
 }
 
 export function HubStageContent({
   stage,
-  pendingWorks,
-  assessmentQueue,
-  certificationQueue,
-  historyEvents,
+  works,
+  workScope,
+  assessments,
+  hypercerts,
   worksLoading,
   fetchingAssessments,
   hypercertsLoading,
-  allocationsLoading,
   hasDataError,
   normalizedSearch,
   debouncedSearch,
@@ -54,17 +66,26 @@ export function HubStageContent({
   selectedGardenName,
   selectedWorkId,
   selectedCertificationId,
-  selectedHistoryEventId,
-  canManage,
+  createAssessmentHref,
+  createHypercertHref,
+  toConfirm,
+  chainId,
+  viewer,
+  selectedCommitmentId,
+  onOpenCommitment,
+  onCloseCommitment,
   onOpenWorkDetail,
   onClearSearch,
   onOpenCertification,
-  onOpenHistoryEvent,
+  onOpenHypercert,
 }: HubStageContentProps) {
-  if (stage === "work") {
+  const content = selectHubStageContent(stage);
+
+  if (content === "work") {
     return (
       <HubWorkQueue
-        items={pendingWorks}
+        items={works}
+        scope={workScope}
         worksLoading={worksLoading}
         hasDataError={hasDataError}
         normalizedSearch={normalizedSearch}
@@ -78,45 +99,44 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "assess") {
+  if (content === "assess") {
     return (
-      <HubAssessmentQueue
-        items={assessmentQueue}
-        worksLoading={worksLoading}
+      <HubAssessmentList
+        items={assessments}
+        isLoading={fetchingAssessments}
         hasDataError={hasDataError}
-        actionsMap={actionsMap}
-        selectedGardenName={selectedGardenName}
-        selectedWorkId={selectedWorkId}
-        onOpenWorkDetail={onOpenWorkDetail}
+        searchQuery={normalizedSearch ? debouncedSearch : ""}
+        onClearSearch={onClearSearch}
+        createHref={createAssessmentHref}
+        selectedAssessmentId={selectedCertificationId}
+        onOpenAssessment={onOpenCertification}
       />
     );
   }
 
-  if (stage === "certify") {
+  if (content === "confirm") {
     return (
-      <HubCertificationQueue
-        items={certificationQueue}
-        fetchingAssessments={fetchingAssessments}
-        hypercertsLoading={hypercertsLoading}
-        hasDataError={hasDataError}
-        canManage={canManage}
-        selectedCertificationId={selectedCertificationId}
-        onOpenCertification={onOpenCertification}
+      <HubConfirmQueue
+        toConfirm={toConfirm}
+        chainId={chainId}
+        viewer={viewer}
+        normalizedSearch={normalizedSearch}
+        selectedCommitmentId={selectedCommitmentId}
+        onOpenCommitment={onOpenCommitment}
+        onCloseCommitment={onCloseCommitment}
       />
     );
   }
 
   return (
-    <HubHistoryQueue
-      items={historyEvents}
-      worksLoading={worksLoading}
-      fetchingAssessments={fetchingAssessments}
-      hypercertsLoading={hypercertsLoading}
-      allocationsLoading={allocationsLoading}
+    <HubHypercertList
+      items={hypercerts}
+      isLoading={hypercertsLoading}
       hasDataError={hasDataError}
-      selectedHistoryEventId={selectedHistoryEventId}
-      selectedWorkId={selectedWorkId}
-      onOpenHistoryEvent={onOpenHistoryEvent}
+      searchQuery={normalizedSearch ? debouncedSearch : ""}
+      onClearSearch={onClearSearch}
+      createHref={createHypercertHref}
+      onOpenHypercert={onOpenHypercert}
     />
   );
 }

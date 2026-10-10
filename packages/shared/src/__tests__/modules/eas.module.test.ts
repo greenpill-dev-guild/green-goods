@@ -6,21 +6,12 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock GraphQL client
 const mockQuery = vi.fn();
-vi.mock("../../modules/data/graphql-client", () => ({
-  createEasClient: vi.fn(() => ({
-    query: mockQuery,
-  })),
-  greenGoodsIndexer: {
-    query: vi.fn(),
-  },
-  GQLClient: vi.fn(),
-}));
 
 // Mock config (barrel and direct import path — eas.ts imports from config/blockchain)
 const mockEASConfig = {
   ASSESSMENT: { uid: "0xAssessmentSchemaUID" },
+  ASSESSMENT_V3: { uid: "0xAssessmentV3SchemaUID" },
   WORK: { uid: "0xWorkSchemaUID" },
   WORK_APPROVAL: { uid: "0xApprovalSchemaUID" },
 };
@@ -28,8 +19,13 @@ vi.mock("../../config", () => ({
   getEASConfig: vi.fn(() => mockEASConfig),
   DEFAULT_CHAIN_ID: 11155111,
 }));
-vi.mock("../../config/blockchain", () => ({
+vi.mock("../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../config/blockchain")>()),
   getEASConfig: vi.fn(() => mockEASConfig),
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -44,38 +40,193 @@ vi.mock("../../modules/data/graphql", () => ({
   easGraphQL: vi.fn((query) => query),
 }));
 
-import { getGardenAssessments, getWorkApprovals, getWorks } from "../../modules/data/eas";
+import { getEASConfig } from "../../config/blockchain";
+import {
+  getGardenAssessments,
+  getWorkApprovals,
+  getWorkApprovalsForWork,
+  getWorkListPage,
+  getWorks,
+  getWorksByGardener,
+  parseWorkApprovalAttestation,
+} from "../../modules/data/eas";
+import type { GraphQLReader } from "../../modules/data/graphql-client";
+import {
+  gardenAssessmentAttestation,
+  workApprovalAttestation,
+  workAttestation,
+} from "../fixtures/data/eas-attestations";
+
+const reader = { query: mockQuery } as GraphQLReader;
 
 describe("modules/data/eas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockQuery.mockReset();
   });
 
   describe("getGardenAssessments", () => {
-    it("returns parsed assessments on success", async () => {
-      const mockAttestations = [
-        {
-          id: "0xAssessment1",
-          attester: "0xAttester",
-          recipient: "0xGarden",
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "title", value: { value: "Test Assessment" } },
-            { name: "description", value: { value: "Test Description" } },
-            { name: "assessmentConfigCID", value: { value: "bafyConfigCID123" } },
-            { name: "domain", value: { value: { hex: "0x03" } } },
-            { name: "startDate", value: { value: { hex: "0x65B8D800" } } },
-            { name: "endDate", value: { value: { hex: "0x660D5800" } } },
-            { name: "location", value: { value: "Austin TX" } },
-          ]),
+    it.each([42161, 11155111])("reads every registered schema on chain %s", async (chainId) => {
+      const { getEASConfig: realConfig } =
+        await vi.importActual<typeof import("../../config/blockchain")>("../../config/blockchain");
+      const config = realConfig(chainId);
+      vi.mocked(getEASConfig).mockReturnValueOnce(config);
+      const expectedUIDs =
+        chainId === 42161
+          ? [config.ASSESSMENT_V3.uid, config.ASSESSMENT.uid]
+          : [config.ASSESSMENT.uid];
+      const v3 = {
+        ...gardenAssessmentAttestation,
+        id: "0xAssessmentV3",
+        decodedDataJson: JSON.stringify([
+          ...JSON.parse(gardenAssessmentAttestation.decodedDataJson),
+          { name: "assessmentKind", value: { value: 0 } },
+          { name: "cycleId", value: { value: 0 } },
+          { name: "baselineUID", value: { value: `0x${"00".repeat(32)}` } },
+        ]),
+      };
+      mockQuery.mockImplementationOnce(async (_query, { where }) => ({
+        data: {
+          attestations: [
+            ...(where.schemaId.in?.includes(config.ASSESSMENT.uid)
+              ? [gardenAssessmentAttestation]
+              : []),
+            ...(chainId === 42161 && where.schemaId.in?.includes(config.ASSESSMENT_V3.uid)
+              ? [v3]
+              : []),
+          ],
         },
-      ];
+      }));
+      const result = await getGardenAssessments(
+        gardenAssessmentAttestation.recipient,
+        chainId,
+        undefined,
+        reader
+      );
+      expect(mockQuery).toHaveBeenCalledExactlyOnceWith(
+        expect.anything(),
+        {
+          take: 100,
+          skip: 0,
+          where: {
+            schemaId: { in: expectedUIDs },
+            revoked: { equals: false },
+            recipient: { equals: gardenAssessmentAttestation.recipient },
+          },
+        },
+        "getGardenAssessments"
+      );
+      expect(result.map((row) => row.id)).toEqual(
+        chainId === 42161
+          ? [gardenAssessmentAttestation.id, v3.id]
+          : [gardenAssessmentAttestation.id]
+      );
+      expect(result.every((row) => row.title === "Test Assessment")).toBe(true);
+    });
 
+    it.each([100, 201])("reads all %i assessments across page boundaries", async (count) => {
+      const rows = Array.from({ length: count }, (_, index) => ({
+        ...gardenAssessmentAttestation,
+        id: `0x${index.toString(16).padStart(64, "0")}`,
+        schemaId: index < 100 ? mockEASConfig.ASSESSMENT.uid : mockEASConfig.ASSESSMENT_V3.uid,
+      }));
+      mockQuery.mockImplementation(async (query, { where, take = 100, skip = 0 }) => {
+        expect(query).toContain("orderBy: [{ id: asc }]");
+        const matching = rows.filter((row) => where.schemaId.in.includes(row.schemaId));
+        return { data: { attestations: matching.slice(skip, skip + take) } };
+      });
+      const result = await getGardenAssessments(undefined, 42161, undefined, reader);
+      expect(result.map((row) => row.id)).toEqual(rows.map((row) => row.id));
+      expect(mockQuery).toHaveBeenCalledTimes(Math.floor(count / 100) + 1);
+      for (const [index, call] of mockQuery.mock.calls.entries()) {
+        expect(call[1]).toEqual({
+          take: 100,
+          skip: index * 100,
+          where: {
+            schemaId: { in: [mockEASConfig.ASSESSMENT_V3.uid, mockEASConfig.ASSESSMENT.uid] },
+            revoked: { equals: false },
+          },
+        });
+      }
+    });
+
+    it("continues past a full page containing a malformed record", async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          data: {
+            attestations: [
+              { ...gardenAssessmentAttestation, decodedDataJson: "{" },
+              ...Array.from({ length: 99 }, (_, index) => ({
+                ...gardenAssessmentAttestation,
+                id: `page1-${index}`,
+              })),
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          data: { attestations: [{ ...gardenAssessmentAttestation, id: "page2" }] },
+        });
+      const result = await getGardenAssessments(undefined, 42161, undefined, reader);
+      expect(result).toHaveLength(100);
+      expect(result.at(-1)?.id).toBe("page2");
+    });
+
+    it.each([
+      "error",
+      "missing data",
+    ])("rejects a later-page %s instead of returning partial history", async (failure) => {
+      mockQuery
+        .mockResolvedValueOnce({
+          data: { attestations: Array.from({ length: 100 }, () => gardenAssessmentAttestation) },
+        })
+        .mockResolvedValueOnce(
+          failure === "error" ? { error: { message: "Page unavailable" } } : { data: {} }
+        );
+      await expect(getGardenAssessments(undefined, 42161, undefined, reader)).rejects.toThrow(
+        "Failed to fetch garden assessments"
+      );
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it.each(["zero", "duplicate"])("excludes a %s v2 UID while retaining v3", async (kind) => {
+      const config = getEASConfig(42161);
+      vi.mocked(getEASConfig).mockReturnValueOnce({
+        ...config,
+        ASSESSMENT: {
+          uid: kind === "zero" ? `0x${"00".repeat(32)}` : config.ASSESSMENT_V3.uid,
+          schema: "",
+        },
+      });
+      mockQuery.mockResolvedValueOnce({ data: { attestations: [] } });
+      await getGardenAssessments(undefined, 42161, undefined, reader);
+      expect(mockQuery.mock.calls[0][1].where.schemaId).toEqual({ in: [config.ASSESSMENT_V3.uid] });
+    });
+
+    it("skips queries when no schema is registered", async () => {
+      const config = getEASConfig(11155111);
+      vi.mocked(getEASConfig).mockReturnValueOnce({
+        ...config,
+        ASSESSMENT: { uid: `0x${"00".repeat(32)}`, schema: "" },
+        ASSESSMENT_V3: { uid: `0x${"00".repeat(32)}`, schema: "" },
+      });
+      await expect(getGardenAssessments(undefined, 11155111, undefined, reader)).resolves.toEqual(
+        []
+      );
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it("allows an explicit schema without including other versions", async () => {
+      mockQuery.mockResolvedValueOnce({ data: { attestations: [] } });
+      await getGardenAssessments(undefined, 42161, "0xExplicitSchema", reader);
+      expect(mockQuery.mock.calls[0][1].where.schemaId).toEqual({ in: ["0xExplicitSchema"] });
+    });
+
+    it("returns parsed assessments on success", async () => {
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [gardenAssessmentAttestation] },
       });
 
-      const result = await getGardenAssessments();
+      const result = await getGardenAssessments(undefined, undefined, undefined, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -86,7 +237,7 @@ describe("modules/data/eas", () => {
         error: { message: "Network error" },
       });
 
-      await expect(getGardenAssessments()).rejects.toThrow(
+      await expect(getGardenAssessments(undefined, undefined, undefined, reader)).rejects.toThrow(
         "Failed to fetch garden assessments: Network error"
       );
     });
@@ -96,7 +247,7 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getGardenAssessments();
+      const result = await getGardenAssessments(undefined, undefined, undefined, reader);
 
       expect(result).toEqual([]);
     });
@@ -105,25 +256,11 @@ describe("modules/data/eas", () => {
   describe("getWorks", () => {
     it("filters works by garden address", async () => {
       const gardenAddress = "0xGardenAddress";
-      const mockAttestations = [
-        {
-          id: "0xWork1",
-          attester: "0xGardener",
-          recipient: gardenAddress,
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "feedback", value: { value: "Great work" } },
-            { name: "media", value: { value: ["QmWorkImage"] } },
-            { name: "actionUID", value: { value: { hex: "0x1" } } },
-          ]),
-        },
-      ];
-
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [workAttestation] },
       });
 
-      const result = await getWorks(gardenAddress, 11155111);
+      const result = await getWorks(gardenAddress, 11155111, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -134,34 +271,123 @@ describe("modules/data/eas", () => {
         error: { message: "Query failed" },
       });
 
-      await expect(getWorks("0xGarden", 11155111)).rejects.toThrow(
+      await expect(getWorks("0xGarden", 11155111, reader)).rejects.toThrow(
         "Failed to fetch works: Query failed"
       );
+    });
+
+    it("rejects a response that omits the attestations field", async () => {
+      mockQuery.mockResolvedValue({ data: {} });
+
+      await expect(getWorks(undefined, 11155111, reader)).rejects.toThrow(
+        "Failed to fetch works: Invalid attestations response"
+      );
+    });
+
+    it("reads every work across stable 100-row pages", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        ...workAttestation,
+        id: `0x${index.toString(16).padStart(64, "0")}`,
+      }));
+      mockQuery.mockImplementation(async (_query, { take, skip }) => ({
+        data: { attestations: rows.slice(skip, skip + take) },
+      }));
+
+      const result = await getWorks(undefined, 11155111, reader);
+
+      expect(result.map((work) => work.id)).toEqual(rows.map((row) => row.id));
+      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery.mock.calls.map((call) => call[1])).toEqual([
+        expect.objectContaining({ take: 100, skip: 0 }),
+        expect.objectContaining({ take: 100, skip: 100 }),
+      ]);
+    });
+
+    it.each([
+      ["malformed JSON", "{"],
+      ["invalid decoded payload", JSON.stringify({ name: "title" })],
+    ])("skips %s without rejecting valid records", async (_label, decodedDataJson) => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [
+            { ...workAttestation, id: "0xMalformed", decodedDataJson },
+            workAttestation,
+          ],
+        },
+      });
+
+      await expect(getWorks(undefined, 11155111, reader)).resolves.toMatchObject([
+        { id: workAttestation.id },
+      ]);
+    });
+
+    it.each([
+      "",
+      "not-a-time",
+      "Infinity",
+    ])("skips invalid creation time %j without rejecting valid records", async (timeCreated) => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [{ ...workAttestation, id: "0xMalformed", timeCreated }, workAttestation],
+        },
+      });
+
+      await expect(getWorks(undefined, 11155111, reader)).resolves.toMatchObject([
+        { id: workAttestation.id },
+      ]);
+    });
+  });
+
+  describe("address filters", () => {
+    // EAS stores addresses checksummed and compares filters exactly, so a
+    // lowercase address reads zero rows instead of failing.
+    const stored = "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e";
+    const lowercase = stored.toLowerCase();
+
+    it.each([
+      ["getWorkListPage", () => getWorkListPage(lowercase, { chainId: 11155111 }, reader)],
+      ["getWorks", () => getWorks(lowercase, 11155111, reader)],
+      ["getGardenAssessments", () => getGardenAssessments(lowercase, 11155111, undefined, reader)],
+      ["getWorkApprovals", () => getWorkApprovals(lowercase, 11155111, reader)],
+    ])("%s asks for the recipient in the spelling EAS stores", async (_name, read) => {
+      mockQuery.mockResolvedValue({ data: { attestations: [] } });
+
+      await read();
+
+      expect(mockQuery.mock.calls[0][1].where.recipient).toEqual({ equals: stored });
+    });
+
+    it("spells every garden of a multi-garden read, and the gardener of an attester read", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [] } });
+
+      await getWorks([lowercase], 11155111, reader);
+      await getWorksByGardener(lowercase, 11155111, reader);
+
+      expect(mockQuery.mock.calls[0][1].where.recipient).toEqual({ in: [stored] });
+      expect(mockQuery.mock.calls[1][1].where.attester).toEqual({ equals: stored });
+    });
+  });
+
+  describe("getWorksByGardener", () => {
+    it("converts GraphQL string timestamps to numbers", async () => {
+      mockQuery.mockResolvedValue({
+        data: { attestations: [{ ...workAttestation, timeCreated: "1700000000" }] },
+      });
+
+      const [work] = await getWorksByGardener("0xGardener", 11155111, reader);
+
+      expect(work.createdAt).toBe(1_700_000_000);
+      expect(typeof work.createdAt).toBe("number");
     });
   });
 
   describe("getWorkApprovals", () => {
     it("fetches work approvals for a garden", async () => {
-      const mockAttestations = [
-        {
-          id: "0xApproval1",
-          attester: "0xOperator",
-          recipient: "0xGardener",
-          time: 1700000000,
-          decodedDataJson: JSON.stringify([
-            { name: "workUID", value: { value: "0xWork1" } },
-            { name: "approved", value: { value: true } },
-            { name: "feedback", value: { value: "Approved!" } },
-            { name: "actionUID", value: { value: { hex: "0x1" } } },
-          ]),
-        },
-      ];
-
       mockQuery.mockResolvedValue({
-        data: { attestations: mockAttestations },
+        data: { attestations: [workApprovalAttestation] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 11155111);
+      const result = await getWorkApprovals("0xGarden", 11155111, reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -172,9 +398,67 @@ describe("modules/data/eas", () => {
         data: { attestations: [] },
       });
 
-      const result = await getWorkApprovals("0xGarden", 11155111);
+      const result = await getWorkApprovals("0xGarden", 11155111, reader);
 
       expect(result).toEqual([]);
+    });
+
+    it("skips attestations with invalid GraphQL addresses", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          attestations: [{ ...workApprovalAttestation, recipient: "not-an-address" }],
+        },
+      });
+
+      await expect(getWorkApprovals(undefined, 11155111, reader)).resolves.toEqual([]);
+    });
+
+    it("rejects invalid creation times in direct approval parsing", () => {
+      expect(() =>
+        parseWorkApprovalAttestation({
+          ...workApprovalAttestation,
+          timeCreated: "not-a-time",
+        })
+      ).toThrow("EAS attestation has an invalid creation time");
+    });
+  });
+
+  describe("getWorkApprovalsForWork", () => {
+    it("bounds the production query by exact Work content without a recipient filter", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+
+      const result = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(result).toHaveLength(1);
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        {
+          where: {
+            schemaId: { equals: mockEASConfig.WORK_APPROVAL.uid },
+            decodedDataJson: { contains: "0xWork1" },
+            revoked: { equals: false },
+          },
+        },
+        "getWorkApprovalsForWork"
+      );
+      expect(mockQuery.mock.calls[0][1].where).not.toHaveProperty("recipient");
+    });
+
+    it("exact-filters false-positive decoded-content candidates", async () => {
+      mockQuery.mockResolvedValue({ data: { attestations: [workApprovalAttestation] } });
+      await expect(getWorkApprovalsForWork("0xWork", 11155111, reader)).resolves.toEqual([]);
+    });
+
+    it("preserves a mismatched historical recipient for the classifier to reject", async () => {
+      const historical = {
+        ...workApprovalAttestation,
+        recipient: "0x9999999999999999999999999999999999999999",
+      };
+      mockQuery.mockResolvedValue({ data: { attestations: [historical] } });
+
+      const [approval] = await getWorkApprovalsForWork("0xWork1", 11155111, reader);
+
+      expect(approval.gardenerAddress).toBe("0x9999999999999999999999999999999999999999");
     });
   });
 });

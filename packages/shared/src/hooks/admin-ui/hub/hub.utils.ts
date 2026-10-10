@@ -1,36 +1,35 @@
 import {
   RiAddLine,
-  RiCheckboxCircleLine,
   RiCheckLine,
   RiFileList3Line,
   RiMedalLine,
+  RiShakeHandsLine,
 } from "@remixicon/react";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import {
   type AdminHubRouteContext,
+  type AdminHubWorkScope,
   adminRoutes,
-  type MetaStripItem,
-  type useGardenDerivedState,
-} from "@green-goods/shared";
-import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+} from "../../../utils/navigation/admin-routes";
+import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type HubPipelineStage = "work" | "assess" | "certify" | "history";
+export type HubPipelineStage = "work" | "assess" | "certify" | "confirm";
 export type SortDirection = "newest" | "oldest";
+export type HubWorkScope = AdminHubWorkScope;
 export type ActivityEvent = ReturnType<typeof useGardenDerivedState>["activityEvents"][number];
 export {
   CERTIFICATION_CONTENT_ID_PREFIX,
-  HISTORY_CONTENT_ID_PREFIX,
   isRouteSheetContentId,
   parseCertificationContentId,
-  parseHistoryContentId,
   parseWorkDetailContentId,
   SUBMIT_WORK_CONTENT_ID,
   toCertificationContentId,
-  toHistoryContentId,
   toWorkDetailContentId,
   WORK_DETAIL_CONTENT_ID_PREFIX,
 } from "../navigation/sheetRegistry";
@@ -41,59 +40,41 @@ export {
 
 export const HUB_STAGE_RAIL_ID = "hub-stage";
 
-export const HUB_META_PILL_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-1 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]";
-export const HUB_CERTIFY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
-export const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
-
 // ============================================================================
 // Header Stats — Hub
 // ============================================================================
 
 export interface HubHeaderStatsInput {
   hasSelectedGarden: boolean;
-  overdueCount: number;
-  waitingCount: number;
+  /** Pending work submitted a week ago or earlier, before any search narrows the queue. */
+  waitingOverWeekCount: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 
 /**
  * Inline MetaStrip items for the Hub header. The stage tab rail already shows
- * queue *depth* per stage, so the header complements it with queue *aging* —
- * the pending work an operator should triage first — rather than re-stating the
- * same per-stage counts. Returns [] before a garden is selected so the slot
- * stays clean on the selection gate. Stat shape (2 items): overdue (pending
- * work older than 72h) · waiting (older than 24h). Both are unfiltered (search
- * never narrows them), so they stay stable while results filter.
+ * queue depth per stage, so the header adds how long work has waited: one
+ * plain-ink count of work waiting over a week. Age is metadata, never an alarm
+ * (DL-044), so the count takes no critical tone. Returns [] before a garden is
+ * selected so the slot stays clean on the selection gate.
  */
 export function buildHubHeaderStats({
   hasSelectedGarden,
-  overdueCount,
-  waitingCount,
+  waitingOverWeekCount,
   formatMessage,
 }: HubHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
   return [
     {
-      id: "overdue",
-      value: String(overdueCount),
+      id: "waiting-over-week",
+      value: String(waitingOverWeekCount),
       label: formatMessage({
-        id: "cockpit.hub.stats.overdue",
-        defaultMessage: "overdue",
-      }),
-    },
-    {
-      id: "waiting",
-      value: String(waitingCount),
-      label: formatMessage({
-        id: "cockpit.hub.stats.waiting",
-        defaultMessage: "waiting",
+        id: "cockpit.hub.stats.waitingOverWeek",
+        defaultMessage: "waiting over a week",
       }),
     },
   ];
@@ -106,7 +87,7 @@ export function buildHubHeaderStats({
 export function resolvePipelineStageFromPath(pathname: string): HubPipelineStage {
   if (pathname.startsWith("/hub/assess")) return "assess";
   if (pathname.startsWith("/hub/certify")) return "certify";
-  if (pathname.startsWith("/hub/history")) return "history";
+  if (pathname.startsWith("/hub/confirm")) return "confirm";
   return "work";
 }
 
@@ -114,10 +95,18 @@ export function parseSortDirection(value: string | null): SortDirection {
   return value === "oldest" ? "oldest" : "newest";
 }
 
+export function parseWorkScope(value: string | null | undefined): HubWorkScope {
+  return value === "approved" ? "approved" : "pending";
+}
+
 // ============================================================================
 // Stage Config
 // ============================================================================
 
+// Two queues, then two kinds of record: work to review, promises to confirm,
+// then the garden's assessments and its hypercerts (DL-082). The stage ids and
+// their /hub routes predate the Assessments and Hypercerts labels and keep
+// their names.
 export const PIPELINE_STAGE_CONFIG = [
   {
     id: "work" as const,
@@ -126,22 +115,24 @@ export const PIPELINE_STAGE_CONFIG = [
     icon: RiCheckLine,
   },
   {
+    // Promises waiting on the steward's confirmation (uiux-spec §6.9), second
+    // on the rail (PRD-1045).
+    id: "confirm" as const,
+    labelId: "cockpit.hub.tab.confirm",
+    defaultMessage: "Confirm",
+    icon: RiShakeHandsLine,
+  },
+  {
     id: "assess" as const,
     labelId: "cockpit.hub.tab.assess",
-    defaultMessage: "Assess",
+    defaultMessage: "Assessments",
     icon: RiFileList3Line,
   },
   {
     id: "certify" as const,
     labelId: "cockpit.hub.tab.certify",
-    defaultMessage: "Certify",
+    defaultMessage: "Hypercerts",
     icon: RiMedalLine,
-  },
-  {
-    id: "history" as const,
-    labelId: "cockpit.hub.tab.history",
-    defaultMessage: "History",
-    icon: RiCheckboxCircleLine,
   },
 ] as const;
 
@@ -156,49 +147,26 @@ type FormatMessage = (
 
 const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: { id: "cockpit.hub.tab.work", defaultMessage: "Work" },
-  assess: { id: "cockpit.hub.tab.assess", defaultMessage: "Assess" },
-  certify: { id: "cockpit.hub.tab.certify", defaultMessage: "Certify" },
-  history: { id: "cockpit.hub.tab.history", defaultMessage: "History" },
-};
-
-// Stage descriptions never name the garden — the AppBar's GardenChip already
-// declares which garden the operator is in. Re-stating it here would double the
-// chrome and steal a row of vertical space (see Rule 17).
-const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
-  work: {
-    id: "cockpit.hub.description",
-    defaultMessage: "Review and triage pending submissions.",
-  },
-  assess: {
-    id: "cockpit.hub.assess.placeholder.description",
-    defaultMessage: "Approved work appears here for assessment packaging and handoff.",
-  },
-  certify: {
-    id: "cockpit.hub.certify.placeholder.description",
-    defaultMessage: "Certification bundles stay inside Hub until they are ready for minting.",
-  },
-  history: {
-    id: "cockpit.hub.history.description",
-    defaultMessage: "Audit the recent work, impact, and community decisions in this pipeline.",
-  },
+  assess: { id: "cockpit.hub.tab.assess", defaultMessage: "Assessments" },
+  certify: { id: "cockpit.hub.tab.certify", defaultMessage: "Hypercerts" },
+  confirm: { id: "cockpit.hub.tab.confirm", defaultMessage: "Confirm" },
 };
 
 const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: { id: "cockpit.hub.search.placeholder", defaultMessage: "Search submissions" },
-  assess: { id: "cockpit.hub.search.assessPlaceholder", defaultMessage: "Search approved work" },
+  assess: { id: "cockpit.hub.search.assessPlaceholder", defaultMessage: "Search assessments" },
   certify: {
     id: "cockpit.hub.search.certifyPlaceholder",
-    defaultMessage: "Search certification bundles",
+    defaultMessage: "Search hypercerts",
   },
-  history: { id: "cockpit.hub.search.historyPlaceholder", defaultMessage: "Search audit trail" },
+  confirm: {
+    id: "cockpit.hub.search.confirmPlaceholder",
+    defaultMessage: "Search commitments to confirm",
+  },
 };
 
 export function getStageTitle(stage: HubPipelineStage, formatMessage: FormatMessage): string {
   return formatMessage(STAGE_LABELS[stage]);
-}
-
-export function getStageDescription(stage: HubPipelineStage, formatMessage: FormatMessage): string {
-  return formatMessage(STAGE_DESCRIPTIONS[stage]);
 }
 
 export function getSearchPlaceholder(
@@ -233,13 +201,14 @@ export function resolveOpenSectionRoute(
 // ============================================================================
 //
 // Stable trio: the same creation actions render on every stage, in the same
-// order, so button positions never shift as the operator moves between tabs.
-// Submit work is the fixed primary across Work, Assess, Certify, and History;
-// the assessment and hypercert actions stay secondary so emphasis no longer
-// follows the active stage.
+// order, so button positions never shift as the steward moves between tabs.
+// The Hub is a review surface, so all three render outlined and none
+// out-shouts the queue (DL-043). Submit Work stays the declared primary on
+// every stage (Create Assessment for evaluator-only viewers): it still sorts
+// rightmost and fills the FAB.
 
 export function buildHubViewActions(
-  stage: HubPipelineStage,
+  _stage: HubPipelineStage,
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,
@@ -252,7 +221,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
-      variant: "primary",
+      variant: "secondary",
       visible: canManage,
       primary: true,
     },
@@ -262,7 +231,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
       onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
-      variant: canManage ? "secondary" : "primary",
+      variant: "secondary",
       visible: canReview,
       primary: !canManage,
     },

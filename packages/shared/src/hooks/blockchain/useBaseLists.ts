@@ -1,20 +1,23 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { withoutHiddenGardens } from "../../config/garden-visibility";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
+import { withKnownCapitals } from "../../modules/data/indexer-capitals";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
-import { queryKeys } from "../../config/query-keys";
+import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
+import { gardenersKeys } from "../../config/query-keys/identity";
 
 /**
  * Factory function for creating base list hooks with consistent caching behavior.
  * Reduces code duplication across action, garden, and gardener list hooks.
  *
  * NOTE: We intentionally do NOT use `initialData` with `queryClient.getQueryData()`.
- * The admin app uses PersistQueryClientProvider which hydrates the cache asynchronously.
+ * The admin app uses QueryPersistenceProvider which restores the cache asynchronously.
  * Reading from cache during the isRestoring phase returns undefined (cache is empty),
  * which creates a false "pending" → "success with []" transition that propagates
  * downstream and disables dependent queries (e.g. usePlatformStats).
- * PersistQueryClientProvider handles cache restoration — no manual seeding needed.
+ * QueryPersistenceProvider handles cache restoration — no manual seeding needed.
  *
  * @param getQueryKey - Function to get the query key
  * @param fetchFn - Function to fetch the data
@@ -27,6 +30,8 @@ function createBaseListHook<T>(
     staleTime?: number;
     gcTime?: number;
     networkMode?: "online" | "always" | "offlineFirst";
+    /** Applied to fetched and restored data alike; keep it stable (module scope). */
+    select?: (data: T[]) => T[];
   }
 ): (chainId?: number) => UseQueryResult<T[], Error> {
   return function useBaseList(chainId: number = DEFAULT_CHAIN_ID) {
@@ -34,31 +39,31 @@ function createBaseListHook<T>(
 
     return useQuery({
       queryKey,
-      queryFn: fetchFn,
+      queryFn: () => fetchFn(),
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
-      placeholderData: (previousData) => previousData ?? [],
+      placeholderData: (previousData) => previousData,
       ...(options?.networkMode && { networkMode: options.networkMode }),
+      ...(options?.select && { select: options.select }),
     });
   };
 }
 
 /** Fetches and caches the catalog of actions for the active chain. */
 export const useActions = createBaseListHook<Action>(
-  (chainId) => queryKeys.actions.byChain(chainId),
+  (chainId) => actionsKeys.byChain(chainId),
   getActions,
-  { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists }
+  // A cache an older build wrote can hold the indexer's capital names.
+  { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists, select: withKnownCapitals }
 );
 
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */
 export const useGardens = createBaseListHook<Garden>(
-  (chainId) => queryKeys.gardens.byChain(chainId),
+  (chainId) => gardensKeys.byChain(chainId),
   getGardens,
-  { networkMode: "offlineFirst" }
+  // A cache an older build wrote can hold a garden since curated out of every surface.
+  { networkMode: "offlineFirst", select: withoutHiddenGardens }
 );
 
-/** Loads gardener profiles for operator dashboards. */
-export const useGardeners = createBaseListHook<GardenerCard>(
-  () => queryKeys.gardeners.all,
-  getGardeners
-);
+/** Loads gardener profiles for steward dashboards. */
+export const useGardeners = createBaseListHook<GardenerCard>(() => gardenersKeys.all, getGardeners);

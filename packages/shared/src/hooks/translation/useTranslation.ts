@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
-import { browserTranslator } from "../../modules/translation/browser-translator";
-import { AppContext } from "../../providers/App";
+import { browserTranslator, type Translator } from "../../modules/translation/browser-translator";
 
 type TranslatableValue =
   | string
@@ -13,13 +13,15 @@ type TranslatableValue =
 
 export function useTranslation<T extends TranslatableValue>(
   content: T,
-  sourceLang = "en"
+  sourceLang = "en",
+  { translator = browserTranslator }: { translator?: Translator } = {}
 ): {
   translated: T;
   isTranslating: boolean;
   isSupported: boolean;
 } {
-  const { locale } = useContext(AppContext);
+  // The language on screen, so translated content changes with the page copy.
+  const { locale } = useIntl();
   const [translated, setTranslated] = useState<T>(content);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -34,7 +36,7 @@ export function useTranslation<T extends TranslatableValue>(
       };
     }
 
-    if (!browserTranslator.isSupported) {
+    if (!translator.isSupported) {
       logger.debug("[Translation] Skipping - browser API not supported", { locale });
       setTranslated(content);
       return () => {
@@ -56,7 +58,7 @@ export function useTranslation<T extends TranslatableValue>(
       logger.debug("[Translation] Translating content", { locale });
 
       try {
-        const result = await translateValue(content, locale, sourceLang);
+        const result = await translateValue(content, locale, sourceLang, translator);
         if (!isMounted) return;
         setTranslated(result as T);
         logger.debug("[Translation] Content translated", { locale });
@@ -76,12 +78,12 @@ export function useTranslation<T extends TranslatableValue>(
     return () => {
       isMounted = false;
     };
-  }, [content, locale, sourceLang]);
+  }, [content, locale, sourceLang, translator]);
 
   return {
     translated,
     isTranslating,
-    isSupported: browserTranslator.isSupported,
+    isSupported: translator.isSupported,
   };
 }
 
@@ -92,6 +94,7 @@ async function translateValue(
   value: unknown,
   targetLang: string,
   sourceLang: string,
+  translator: Translator,
   path: string[] = []
 ): Promise<unknown> {
   // String - translate directly
@@ -100,7 +103,7 @@ async function translateValue(
     if (key && NON_TRANSLATABLE_OBJECT_KEYS.has(key)) {
       return value;
     }
-    const result = await browserTranslator.translate(value, targetLang, sourceLang);
+    const result = await translator.translate(value, targetLang, sourceLang);
     return result || value; // Fallback to original if translation fails
   }
 
@@ -108,7 +111,7 @@ async function translateValue(
   if (Array.isArray(value)) {
     return Promise.all(
       value.map((item, index) =>
-        translateValue(item, targetLang, sourceLang, [...path, `${index}`])
+        translateValue(item, targetLang, sourceLang, translator, [...path, `${index}`])
       )
     );
   }
@@ -117,7 +120,7 @@ async function translateValue(
   if (typeof value === "object" && value !== null) {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
-      result[key] = await translateValue(val, targetLang, sourceLang, [...path, key]);
+      result[key] = await translateValue(val, targetLang, sourceLang, translator, [...path, key]);
     }
     return result;
   }

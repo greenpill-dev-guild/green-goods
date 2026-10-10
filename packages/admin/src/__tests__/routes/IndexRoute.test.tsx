@@ -1,6 +1,6 @@
 /**
  * IndexRoute Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * IndexRoute replaces the old CanvasLayout home-state ladder. It must
  * render exactly one of:
@@ -15,6 +15,9 @@ import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   mockAuthState: {
@@ -40,45 +43,72 @@ const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    AppBar: (props: { gardenChip: React.ReactNode }) => (
-      <div data-testid="top-context-bar">{props.gardenChip}</div>
-    ),
-    MainSheet: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="main-sheet">{children}</div>
-    ),
-    useAuth: () => mockAuthState.current,
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    useAdminAccessState: () => {
-      const auth = mockAuthState.current;
-      const eligible = mockEligibleAdminGardens.current;
-      if (!auth.isReady || (auth.isAuthenticated && !eligible.isLoaded)) {
-        return { status: "checking" };
-      }
-      if (auth.authMode === "embedded") {
-        return { status: "embedded-wallet", signOut: auth.signOut };
-      }
-      if (!auth.isAuthenticated || !auth.eoaAddress) {
-        return { status: "disconnected" };
-      }
-      if (eligible.eligibleGardens.length > 0) {
-        return {
-          status: "ready",
-          eligibleGardens: eligible.eligibleGardens,
-          resolvedDefaultGarden: eligible.resolvedDefaultGarden,
-          hasStaleBaseList: eligible.hasStaleBaseList,
-        };
-      }
-      if (eligible.isError) {
-        return { status: "indexer-error" };
-      }
-      return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
-    },
-  };
-});
+vi.mock("@/components/Shell", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/Shell")>()),
+  AppBar: (props: { gardenChip: React.ReactNode }) => (
+    <div data-testid="top-context-bar">{props.gardenChip}</div>
+  ),
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
+  useAdminAccessState: () => {
+    const auth = mockAuthState.current;
+    const eligible = mockEligibleAdminGardens.current;
+    if (!auth.isReady || (auth.isAuthenticated && !eligible.isLoaded)) {
+      return { status: "checking" };
+    }
+    if (auth.authMode === "embedded") {
+      return { status: "embedded-wallet", signOut: auth.signOut };
+    }
+    if (!auth.isAuthenticated || !auth.eoaAddress) {
+      return { status: "disconnected" };
+    }
+    if (eligible.eligibleGardens.length > 0) {
+      return {
+        status: "ready",
+        eligibleGardens: eligible.eligibleGardens,
+        resolvedDefaultGarden: eligible.resolvedDefaultGarden,
+        hasStaleBaseList: eligible.hasStaleBaseList,
+      };
+    }
+    if (eligible.isError) {
+      return { status: "indexer-error" };
+    }
+    return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockAuthState.current.eoaAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
+  useAdminLoginController: () => ({
+    mode: "entry",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
+    username: "",
+    setUsername: vi.fn(),
+    error: null,
+    isSigningIn: false,
+    canSignInByName: false,
+    hasStoredCredential: false,
+    storedUsername: null,
+    signInByName: vi.fn(),
+    signInWithStoredPasskey: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -125,7 +155,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
   });
 
@@ -141,7 +171,7 @@ describe("IndexRoute", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Opening your workspace…" })).toBeInTheDocument();
   });
 
   it("renders the wallet-required shell for embedded auth", () => {
@@ -219,8 +249,8 @@ describe("IndexRoute", () => {
   });
 
   it("redirects to the hub when role-confirmed gardens land via the stale-base-list cross-check", () => {
-    // Simulates the operator/no-garden symptom: useGardens returned [] but
-    // useRole proved an operator garden, so useEligibleAdminGardens injected
+    // Simulates the steward/no-garden symptom: useGardens returned [] but
+    // useRole proved a steward garden, so useEligibleAdminGardens injected
     // a stub. IndexRoute must redirect to the hub instead of the no-access shell.
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,
