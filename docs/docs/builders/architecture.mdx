@@ -78,8 +78,8 @@ goes through the contracts.
 
 ## The ideas that carry the protocol
 
-The contract layer is small on purpose. Five ideas do most of the work, and once you hold them
-you can predict how the rest of the system behaves.
+The contract layer is small on purpose. Six ideas do most of the work, and once you hold them you
+can predict how the rest of the system behaves.
 
 ### A garden is an account
 
@@ -108,6 +108,28 @@ and stewards approve work. Roles stack, so a steward can also do what evaluators
 and the owner can do all of it. Because hats are on-chain tokens, the resolvers above can check
 them directly, and because they're a tree, a garden's whole authority structure is inspectable at
 once.
+
+### Capital forms around verified work
+
+Verified work is what money organizes around here, and the protocol gives a garden several ways
+to let it. An endowment through an [Octant](./integrations/octant) vault keeps a funder's deposit
+intact and sends the yield to the garden's work. A
+[commitment pool](/community/steward-guide/commitment-pooling) lets neighbours make promises to
+each other, an offer or a request of work, under a charter: each commitment names one accountable
+lead, is confirmed by someone other than the person who made it, and is accounted for in a
+non-transferable register rather than a token anyone can trade. Settled support then splits into
+what the garden keeps and what its contributors are paid, through a payout plan that is frozen
+before anything is dispatched; when that payout happens in G$ on Celo, the settlement lane only
+carries the instruction and never holds the money. [Cookie jars](./integrations/cookie-jar) cover
+small, capped allowances, and [hypercerts](./integrations/hypercerts) turn a season of approved
+work into an impact claim a funder can hold a fraction of. The common thread is the record: every
+flow starts from attested work and ends in state a funder can inspect, which is what lets capital
+form around contribution without a treasury anyone has to trust.
+
+<figure className="gg-figure">
+  <img src="/img/builders/admin-garden-promises.webp" alt="The admin cockpit's Garden workspace on the Promises tab: a season with its commitments and a campaign, offers and requests waiting for review, and the pool's status with its per-person commitment limit" loading="lazy" width="2000" height="1250" />
+  <figcaption>A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register.</figcaption>
+</figure>
 
 ### Capabilities are modules a garden opts into
 

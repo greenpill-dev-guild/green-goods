@@ -118,6 +118,11 @@ confirm is a real production transaction, so don't confirm one while you're expl
    and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
    [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
 
+   <figure className="gg-figure">
+     <img src="/img/builders/admin-hub-work.webp" alt="The admin cockpit's Hub: the garden chip in the app bar, the Work tab listing approved submissions as cards, and the Hub, Garden, Community navigation dock" loading="lazy" width="2000" height="1250" />
+     <figcaption>The admin cockpit's Hub, the first screen a steward lands on. Mock auth shows it for a test steward's garden.</figcaption>
+   </figure>
+
 6. Confirm the services respond. The launcher runs this smoke check itself once the services are
    up; rerun it by hand whenever you want. It submits no transactions:
 
@@ -251,7 +256,7 @@ uploads, or transactions work; each of those needs its own credentials and its o
 - **You need to stop or reset.** `Ctrl-C` stops the services a launcher started. `bun run dev -- stop`
   stops a detached launcher (it needs the same owner identity the launcher started with), and
   `bun run dev:clean` clears stale local state; its `--dry-run` flag shows what it would remove.
-- **Anything else.** [Ask us on Telegram or Discord](./how-to-contribute#join-the-guild) if the
+- **Anything else.** [Ask us on Telegram or Discord](./how-to-contribute#stay-in-touch) if the
   health output doesn't get you unstuck.
 
 ## Next steps

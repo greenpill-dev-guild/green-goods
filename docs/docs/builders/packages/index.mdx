@@ -27,10 +27,10 @@ with a map of its `src` folders, its commands, and the conventions that actually
 | [`contracts`](/builders/packages/contracts) | The Solidity protocol: garden accounts, authorization, attestation schemas and resolvers, deployment artifacts | Arbitrum One and the other [recorded networks](/builders/reference/deployments) | Protocol behavior, authorization, attestation schemas, deployments |
 | [`indexer`](/builders/packages/indexer) | Envio handlers that project contract events into GraphQL read models | Envio's hosted service | Event-derived read models or GraphQL shapes |
 | [`shared`](/builders/packages/shared) | Cross-app hooks, providers, stores, protocol modules, domain types, translations, UI foundations | Inside every app bundle | A hook, provider, store, shared UI primitive, or translation |
-| [`client`](/builders/packages/client) | The public website and the installed, offline-first PWA | [greengoods.app](https://greengoods.app) | The public website or the installed PWA |
-| [`admin`](/builders/packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) | The steward cockpit |
 | [`agent`](/builders/packages/agent) | Messaging bots and the public HTTP API | A hosted service | Bots, webhooks, or the public HTTP API |
 | [`qa`](/builders/packages/qa) | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) | The QA checklist app |
+| [`admin`](/builders/packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) | The steward cockpit |
+| [`client`](/builders/packages/client) | The public website and the installed, offline-first PWA | [greengoods.app](https://greengoods.app) | The public website or the installed PWA |
 
 Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
 emit the events the indexer projects into read models, shared wraps both for the apps, and nothing

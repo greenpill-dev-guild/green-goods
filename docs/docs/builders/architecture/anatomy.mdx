@@ -4,7 +4,7 @@ sidebar_label: Anatomy of a Work Submission
 slug: /builders/architecture/anatomy
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts
@@ -84,9 +84,13 @@ Two read paths pick the work up, deliberately separate:
 
 ## 5. Review
 
-A steward opens the [admin cockpit](../packages/admin)'s Garden workspace and sees the submission
-with its evidence. Review is a human judgment; the protocol's job was getting the evidence here
-intact.
+A steward opens the [admin cockpit](../packages/admin)'s Hub and sees the submission with its
+evidence. Review is a human judgment; the protocol's job was getting the evidence here intact.
+
+<figure className="gg-figure">
+  <img src="/img/builders/admin-hub-work.webp" alt="The admin cockpit's Hub on the Work tab: submissions shown as cards with their status and when they were submitted, above the Hub, Garden, Community navigation dock" loading="lazy" width="2000" height="1250" />
+  <figcaption>The Hub's Work tab, where submissions wait for a steward and approved ones stay on record.</figcaption>
+</figure>
 
 ## 6. Approve
 
@@ -106,6 +110,11 @@ with feedback, plus the syncing states the queue adds on top. The UI rule from t
 [Architecture page](../architecture#where-data-lives) applies here: unconfirmed work is never
 shown as protocol truth.
 
+<figure className="gg-figure" style={{maxWidth: '360px'}}>
+  <img src="/img/builders/client-work-dashboard.webp" alt="The PWA's Your Work sheet on the Pending tab: an Upload all button and queued items, one marked Can't upload because its action ended and one marked To upload" loading="lazy" width="780" height="1688" />
+  <figcaption>Your Work in the PWA: every item carries its queue state until the chain has confirmed it.</figcaption>
+</figure>
+
 ## 8. Onward
 
 Approved work is what everything downstream builds on: it feeds the garden's
@@ -114,9 +123,10 @@ Approved work is what everything downstream builds on: it feeds the garden's
 [vaults](../integrations/octant) and [jars](../integrations/cookie-jar). The community docs'
 [How It Works](/community/how-it-works) tells this same story in product language.
 
-<img src="/img/builders/gpdg-graphic-green-goods-impact-value-cycle.webp" alt="The Green Goods impact value cycle: work is captured, verified, certified, and funded, and funding flows back into more work" style={{maxWidth: '520px', width: '100%', borderRadius: '12px'}} />
-
-<p className="gg-shot-caption">The full cycle this page traced one lap of.</p>
+<figure className="gg-figure">
+  <img src="/img/builders/gpdg-graphic-green-goods-impact-value-cycle.webp" alt="The Green Goods impact value cycle: work is captured, verified, certified, and funded, and funding flows back into more work" loading="lazy" width="1120" height="1584" />
+  <figcaption>The full cycle this page traced one lap of.</figcaption>
+</figure>
 
 ## Next steps
 
