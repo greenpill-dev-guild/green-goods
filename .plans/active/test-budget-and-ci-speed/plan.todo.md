@@ -1,12 +1,18 @@
 # Test budget and CI feedback plan
 
 **Feature Slug**: `test-budget-and-ci-speed`
-**Stage**: active
-**Status**: Velocity follow-through (slices 0–13, D1–D5), the resolution of Astra's review (D6–D8) and two gate fixes pushed to `origin/develop` (`d7cf681ec..fca76d585`); every workflow for each pushed head is green, steps 3 and 5 are closed, and scorecard snapshots 07 and 08 are published. The snapshot 08 follow-up (D10, through `23a8d1ffb`), D11 (Admin happy-dom and the MSW removal) and D12 (Client happy-dom) are on `origin/develop`, as are the push gate's dated-report routing (`57916fed7`) and D13 (the test lease)
+**Stage**: `active`
+**Status**: `ACTIVE — Software Factory locally implemented through batch 5; live observations and snapshot 09 pending`
 **Created**: 2026-09-19
-**Last Updated**: 2026-09-29
+**Last Updated**: `2026-10-06`
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
+
+## Status reconciliation (2026-10-06)
+
+The latest source record is [batch 5](handoffs/software-factory-batch-5.md), which supersedes the opening fourth-batch summary. SF05–SF08 and SF12 have recorded local acceptance; SF10 still requires an actual Claude Desktop Code observation and SF13 retains four ordinary-task categories plus the routine-dispatch observation. These handoffs record local acceptance. This status PR does not certify CI for the owning implementation range.
+
+Snapshot 09 was scheduled for October 5 and remains unchecked in this hub as of October 6. Confirm whether its external scorecard exists before measuring again; if absent, record the actual next measurement date rather than treating the scheduled date as completion. D14's release prerequisite and the human-controlled restart, cleanup and dependency steps remain intact.
 
 ## Current execution truth (2026-09-28)
 
@@ -93,6 +99,7 @@ Three recent published Shared runs have both shards green. They provide observat
 | D11 (2026-09-29): happy-dom for Admin, and remove MSW | Decided by Afo | Admin's DOM project moves to happy-dom, already a root dev dependency, with the same bar as D2; the unused MSW server, its Shared export and the root `msw` pin go, which changes the lockfile |
 | D12 (2026-09-29): happy-dom for Client | Decided by Afo | Client, the last package on jsdom, moves to happy-dom with the same bar as D2 and D11; happy-dom is already a root dev dependency |
 | D13 (2026-09-29): harden the test lease and record why a worktree gate skipped it | Decided by Afo (options B and C) | A local `CI=true` run takes the lease, and a leased run waits for Vitest runs that hold none. Catching old worktree branches up with `develop` (option A) stays with each branch's owner |
+| D14 (2026-09-29): record the post-release plan in this hub and start it after the 2.0.0 release | Decided by Afo | A review of scorecard version 22 found four items still open, two closed items the page still shows as open and two open items with no row. The ten-row plan is in § After the release, with the evidence in `reports/2026-09-29-post-release-plan.md`; the restart, the worktree removal and the setup-debt row need Afo, Dependabot #948 needs dependency approval, and the Linear sync needs authorization |
 
 ## Ordered work
 
@@ -189,21 +196,215 @@ record the answer (D13). Evidence in [its report](reports/2026-09-29-test-lease-
 | [x] | A local `CI=true` run takes the lease; only a GitHub runner skips it (`e0046ac17`) | Report § Fixes |
 | [x] | A leased run waits up to five minutes for Vitest runs that hold no lease, naming them, then starts on half the machine (`09ada5970`) | Report § Fixes |
 
+## After the release (planned 2026-09-29)
+
+Afo asked for a review of the Velocity Scorecard (version 22) and a plan for what it still lists as
+open, then chose to record the plan here and start it after the 2.0.0 release (D14). The
+[post-release plan report](reports/2026-09-29-post-release-plan.md) holds the evidence, read on
+September 29 at `22592595d`, including the worktree lists; this table is the checklist. Snapshot 09
+goes first because its reading decides row 7. Rows marked *call* need Afo before anyone builds them.
+
+| Done | Order | Work | Who | Proof |
+|---|---|---|---|---|
+| [ ] | 1 | Snapshot 09 on October 5: fill the fourteen pending CI fields on snapshots 07 and 08 from the September 28 to October 5 window; job medians for Admin · Test, Client · Test, both Shared shards, Storybook and Admin Playwright, divided by the test-body bucket; recheck the Actions cache total, the prune's cadence and the lease bound | a session | Snapshot 09 published; no `pending` field left on 07 or 08 |
+| [ ] | 2 | Restart the laptop, then the worker test: on an idle machine, four full Shared runs at the default worker count and four at `VITEST_MAX_WORKERS=5`, recording Vitest `Duration` and the `tests` bucket; size the lease's worker cap from the result | Afo restarts (*call*); a session measures | The fourth run within 20% of the first at one of the two counts |
+| [ ] | 3 | Worktree cleanup: `git worktree prune` for the three dead registrations; remove the 26 merged, idle worktrees the report lists, after a fresh `lsof` check; the four branches with unmerged work merge `develop` from their owning sessions, `feature/agent-reporting-core` first | Afo authorizes (*call*); a session and the branch owners | `git merge-base --is-ancestor d1bc5d86e <head>` holds for every worktree left |
+| [ ] | 4 | Scorecard version 23: mark the order-flaky test closed and CodeQL holding, give the contracts row its new reason, replace the worktree line with the report's split, add rows for the setup debt and for Storybook and Admin Playwright | a session | The page matches the report |
+| [ ] | 5 | Dependabot #948 (js-yaml in `packages/contracts`): regenerate `bun.lock` on its branch or close it and bump by hand within the release-age gate. It cannot prove the production-tree cache, because `bun.lock` is one of the cache key's inputs | needs approval as a dependency change | PR green and merged, or closed with the bump landed |
+| [ ] | 6 | Contracts pull-request path: read the Unit Tests log of the next contracts pull request that changes none of the cache key's inputs | waits for such a PR | `Cache restored` for `foundry-release-production-*` |
+| [ ] | 7 | After snapshot 09: if Storybook or Admin Playwright lead the gate, measure them next; if the Shared shards lead, stop optimising the gate | decide after 09 | Job p50 of the leader |
+| [ ] | 8 | Setup debt (183 `toHaveClass` assertions, 152 heavy-mock files): leave for the December re-measure unless a batch rides along with feature work; no new rule | Afo (*call*) | Counts in December |
+| [ ] | 9 | `linear-sync` for PRD-835 (architecture hub) | needs Linear write authorization | Hub and Linear agree |
+| [ ] | 10 | December: redraw the 36-file sample and rerun the nineteen faults | a session | A new snapshot |
+
+## Agentic development follow-up (proposed 2026-10-04)
+
+The user requested a comparison of the independent Fable and Astra/Codex audits and a
+comprehensive update plan. The
+[reconciled report](reports/2026-10-04-software-factory-comparison.md) records the verified
+findings, corrections, candidate designs, and evidence limits. This section is the canonical
+checklist for that proposal. The authorization updates below track the selected slices; completed historical slices stay closed.
+
+**Authorization update (2026-10-04):** Afo selected SF01–SF04 with “Go ahead and implement
+the first batch.” This authorizes these four local slices to start now, superseding D14's timing
+for this batch only. SF05–SF13 and unrelated post-release work remain unselected. No dependency
+installation, Git publication, Linear write, or browser-policy change is included. The start-gate
+manifest is parent-only and proposes creating a Linear parent; external sync remains deferred
+under the existing local-only scope.
+
+**Implementation checkpoint:** SF01, SF02 and SF04 meet their local acceptance checks. SF03 is
+implemented but remains open: final Admin readiness checks fail, including in an original-source
+control. The [batch handoff](handoffs/software-factory-batch-1.md) records all passes, failures
+and the remaining qualification work. No full Admin-green or merge-readiness claim is made.
+
+**Second-batch authorization:** Afo selected the next batch. Following the report's independent
+constraint sequence, SF10–SF11 are selected for local implementation now. SF03 remains open;
+SF05–SF09 and SF12–SF13 remain unselected. This batch diagnoses worktree hook chains without
+repairing other checkouts, and repairs only a reproduced Address type boundary with consumer
+probes. No dependency installation, branch change, publication or external write is included.
+
+**Historical second-batch checkpoint:** The local SF10 diagnostics and disposable Git/Husky dispatch proof
+pass; live agent hook loading remains pending in the architecture hub's existing pilot. SF11
+adds a passing Client guard and traces the Admin widening. The Admin repair awaits explicit
+approval to declare `abitype@1.2.3` and fix the seven exposed caller boundaries. Both rows stay
+open for their remaining acceptance criteria. See the [second-batch handoff](handoffs/software-factory-batch-2.md).
+
+**Selected first scope:** SF01–SF04. They improve existing evidence before adding more
+automation. SF10–SF11 can follow as separately bounded constraint work. SF05–SF08 expand proof
+only after its baseline is trustworthy. SF09 and SF12 depend on observed operator cost;
+SF13 evaluates the result and the already-configured outer-loop handoff.
+
+**Third-batch authorization:** Afo explicitly approved dependency changes and continuation.
+Finish SF11 with exact `abitype@1.2.3`, one Admin registration, real consumer guards, and the seven
+exposed caller boundaries. Then implement SF09's reporting checkpoint in the existing local
+validation runner. The observed sandbox blocks, test-lease waits, and readiness failures supply
+its concrete cases. Preserve first failures, distinguish lease/capability blocks from failed tests,
+and report selected scope and unfinished proof. PR-text export is a later checkpoint; no retries,
+policy weakening, publication, or external writes are included. SF05–SF08 stay behind their
+existing qualification prerequisites; live hook loading remains with the architecture pilot.
+
+**Third-batch checkpoint:** SF11 and the selected SF09 reporting checkpoint meet local acceptance.
+The 15-check QA plan passes, followed by focused validation of the final fixture adjustment.
+SF11 adds only Admin's exact ABIType dependency; Shared's package exports are unchanged.
+The [third-batch handoff](handoffs/software-factory-batch-3.md) records scope, failures, final
+checks and evidence limits. Checkmarks mean local acceptance, not a commit or publication.
+SF03 remains open after an isolated Admin browser run with one pass and one readiness failure.
+SF10's live pilot and SF05–SF08/SF12–SF13 remain outstanding.
+
+**Fourth-batch authorization:** Afo selected the next batch: qualify SF03's Admin browser
+journeys and complete the available SF10 live hook-loading observations. Diagnose the actual
+rendered readiness failure before changing runtime or test code. Keep zero-retry proof and
+existing outcome assertions. Codex session evidence belongs in the existing architecture
+pilot; Claude Desktop Code evidence requires that actual session. Publication and the later
+SF07/SF08 exploration rollout remain separate checkpoints.
+
+**Fourth-batch checkpoint:** SF03 meets local acceptance: full Admin browser project 12 passed,
+one declared fork-only skip, zero retries. A smoke fixture now shares its garden identity across
+indexer and RPC responses. The earlier hydration-loader timeout did not recur and is not claimed
+fixed. SF10 has actual Codex session/edit-hook observations; Claude Desktop Code is still pending.
+The [fourth-batch handoff](handoffs/software-factory-batch-4.md) preserves the exact RED/GREEN
+commands, scope and limits. No runtime, dependency, hook or CI configuration changed this batch.
+
+**Remaining-work authorization:** Afo selected all remaining local Software Factory implementation.
+Proceed serially through SF05–SF08 and SF12, retaining the existing reporting for SF09.
+Dependency changes remain authorized if needed. SF10 and SF13 require actual session/task
+observations; do not manufacture them. No publication, branch change, or external write is included.
+
+**Implementation boundaries:** Reuse the existing E2E runner, Playwright configuration and strict
+backend fixtures. The passkey spec owns a real virtual-authenticator ceremony with a deterministic
+server rejection; it cannot certify a production identity provider. The PWA case uses an anonymous
+production login shell, preserving production auth restrictions. The work-review pilot owns seeded
+read/recovery actions, with no signing or dispatch. These capabilities are missing from the current
+permissive passkey spec, development-worker proof and fixed work-review examples respectively.
+Only locally qualified scenarios enter the validation policy. Owner-local CLI guards address
+observed empty/scoped/retried proof and replay mistakes; no application rules are changed.
+
+**Remaining-work checkpoint:** SF05–SF08 and SF12 meet local acceptance. Seven selected QA
+checks passed, including 378 tooling tests, 333 fixture tests and four Chromium browser scenarios
+with zero skips/retries. The final selector/runner suite passed 115 tests; final fixture and style
+checks passed after the profile/routing closeout. Qualified checks are wired into the existing
+Client browser job, with matching workflow triggers and required-workflow selection. The
+[fifth-batch handoff](handoffs/software-factory-batch-5.md) records failures, final source identity,
+commands, fork assessment and proof limits. SF10 and SF13 remain open for actual Claude Desktop,
+ordinary-task and live-dispatch evidence. Current-head GitHub CI remains unrun for these local changes.
+
+### Workstream A — Make a passing check meaningful
+
+| Done | ID | Bounded change and likely owning files | Depends on | Acceptance evidence |
+|---|---|---|---|---|
+| [x] | SF01 | Align local smoke/verification startup with the CI test profile. Reuse `scripts/dev/test-e2e.js`, `playwright.config.ts`, and `scripts/dev/command-runners.test.mjs`; change `scripts/dev/stack.js` only if a narrow explicit profile is needed. Preserve normal live-development defaults and ownership cleanup. | Selected; start-now exception to D14 | RED reproduces test-profile replacement by development/42161. GREEN uses the same intended chain/fixtures locally and in CI, rejects mismatched existing servers, and stops only its owned processes. |
+| [x] | SF02 | Make `tests/helpers/mock-backend.ts` reject unsupported requests and validate scenario arguments. Extend its owning fixture tests and `tests/helpers/test-utils.ts` only where callers need request accounting. Keep legitimate empty results explicit. | SF01 for rendered proof | Unsupported GraphQL operation, wrong RPC method/selector/address, and missing required request fail with useful traces. Existing supported smoke and offline scenarios pass. |
+| [x] | SF03 | Strengthen approval and admin journey outcomes in `tests/specs/client.work-approval.ci.spec.ts` and `tests/specs/admin.production-flows.ci.spec.ts`, using the shared fixtures. One subject per checkpoint: approval first, then the selected admin flow. Keep independently useful smoke coverage. | SF02 | A shell-only response, disabled dispatch, unexpected request, and endless loader fail. Assert the selected result and visible recovery from injected rejection; retain the stronger offline-queue test. |
+| [x] | SF04 | Extend the existing required-job map in `scripts/quality/ci-gate.mjs` and its tests to the Client/Admin browser jobs. Read their current workflow job names before editing; do not add a second aggregate gate. | Can follow scope selection independently | Missing, skipped, cancelled, and failed required jobs fail; both successful jobs pass. Existing terminal-workflow and current-head behavior remains intact. |
+
+### Workstream B — Extend active verification with reproducible evidence
+
+| Done | ID | Bounded change and likely owning files | Depends on | Acceptance evidence |
+|---|---|---|---|---|
+| [x] | SF05 | Qualify the passkey browser scenario in `tests/specs/client.passkey.spec.ts`, its helpers, and `tests/mocks/pimlico-handlers.ts` before promoting the project. Separately assess `tests/specs/client.fork.spec.ts` for faithful browser/chain/indexer wiring; do not attach the entire fork suite to every critical edit. | SF01–SF03; capability inventory | Remaining on login, missing expected input, unfinished registration, and silent auth fallback fail. One registration/session-restoration or rejection outcome completes with a virtual authenticator. Record which real-wallet/device claims this cannot prove. Fork gaps get a separate selected checkpoint before execution. |
+| [x] | SF06 | Add a bounded production-PWA-preview case using the existing browser lifecycle, `playwright.config.ts`, `tests/specs/client.offline-sync.ci.spec.ts`, and a direct runner fixture. Design authentication without enabling a production bypass. Add CI wiring as a separate checkpoint after local proof. | SF01 and explicit preview-auth design | Production app shell reloads offline after controlled installation; removing navigation cache fails. Test worker update/recovery where the selected change warrants it. Record clean-room and installed/authenticated proof separately. |
+| [x] | SF07 | Pilot bounded role/data/viewport interaction through the existing browser CLI and scenario helpers. A proposed browser subcommand may be added; it is not an existing runnable interface. Start with one data-rich journey and one recovery variant, reusing route-proof error/overflow checks and current mock-role identifiers. | SF02–SF03; one scenario selected | Seed and action log replay the same failure; fresh context/reset prevents cross-case contamination; required outcome asserts completion. Unknown network operations and out-of-scope navigation fail. No blind click-all or real-wallet signing. |
+| [x] | SF08 | Register only qualified proof in `scripts/data/validation-policy.json` and `scripts/quality/select-validation.mjs`, with its direct tests. Connect scenario artifacts to existing runner evidence, adding `scripts/dev/ci-local.js` changes only when necessary. Keep each registration independently reviewable. | The relevant SF05/SF06/SF07 proof; measured cost | Relevant changed paths select the check, unrelated edits do not; critical overrides survive. Missing capability is BLOCKED, missing/failed required scenario is not a pass, and source/fixture/profile/toolchain drift invalidates reuse. |
+
+SF07 exploration runs only against an owned disposable profile. Route actions must be allowlisted
+for the scenario; effects use strict substitutes or an explicitly selected local fork with
+disposable accounts. A proposed pilot budget is at most two exploration/repair attempts within
+five minutes after startup, adjusted from measurement. Repair still requires implementation
+scope. Deterministic replay becomes ordinary regression proof; stochastic exploration never
+silently turns a failure into green. A dedicated accessibility package or property-test library
+requires separate dependency approval. Use the installed stack for initial proof where faithful.
+
+### Workstream C — Reduce repeated operating judgment
+
+| Done | ID | Bounded change and likely owning files | Depends on | Acceptance evidence |
+|---|---|---|---|---|
+| [x] | SF09 | Extend `scripts/dev/ci-local.js` and its owning tests with concise outcome diagnostics derived from observed evidence. Reporting is locally complete; optional PR validation text remains deferred. Capture bounded load/lease context without secrets. Start with reporting; do not add automatic retries or broad regeneration. | Representative failures and actual workflow needs | Deterministic failure, budget exhaustion, capability block, cancellation, and suspected contention remain distinct. Output preserves the first failure, exact scope, pending proof, and an actionable next command. Focused proof never claims an unrun full gate. |
+| [ ] | SF10 | Extend `scripts/dev/doctor.js` and its existing shared helpers/tests to diagnose missing effective worktree hook chains and point to the owning setup path. Complete live hook-loading evidence in the architecture hub's existing pilot. Setup repair, if selected, is a separate checkpoint. | Scope selection; coordinate current worktree owners | Fixture matrix covers relative/absolute paths, missing dispatcher or target, inactive checkout, and differing branch tooling. A selected disposable worktree proves dispatch end-to-end. Doctor performs no install, Git-config edit, cleanup, or broad retargeting. |
+| [x] | SF11 | Establish source-controlled negative Address type probes for Client/Admin using the owning typecheck/test entrypoints, then trace and repair the augmentation or package boundary causing widening. Choose at most one owning declaration/config plus its consumer probes per checkpoint. | Scope selection; current compiler baseline | Non-hex string assignment fails under each actual project graph; valid address use passes. Preserve runtime validation and public type compatibility. Record unrelated baseline diagnostics; do not hide them with assertions or broad suppressions. |
+| [x] | SF12 | Mine a small authorized sample of repeated interventions; choose at most three reproduced failure classes. Add each guard or property check beside its owner, and link the superseded guidance only after proof. Candidate areas: message IDs, provider composition, codec round-trips, time boundaries, and indexed access in a bounded leaf. | Evidence sampling; separate selection per rule/property | Each rule has an offending and valid case; each property has an explicit invariant and deterministic replay/seed where needed. Demonstrate reduced repeated work. No memory deletion quotas, blanket regex bans, blanket compiler flip, or dependency install. |
+| [ ] | SF13 | Evaluate the selected changes in five ordinary authorized tasks and verify the existing routine-to-Codex handoff operationally when access/authorization is available. Reuse the architecture pilot and existing scorecard; record only missing measurements here. | Implemented selected slices; read access or separate dispatch authorization | Report intervention categories, replay success, missed regressions, and comparable p50/p90 costs. Verify configured delegation through an actual linked outcome before proposing another dispatcher. Decide adoption from evidence, not elapsed calendar time. |
+
+### Execution and test strategy
+
+Keep each checkpoint to one failure class and about three or four owning files. Split any slice
+that exceeds one session or combines fixture repair, runner integration, and workflow rollout.
+Do not parallelize edits to the selector, runner, or shared browser fixtures. Implementation
+starts only after scope selection, the applicable release gate, fresh ownership checks, and the
+plan skill's normal start procedure; this request did not authorize Linear writes.
+
+Before each selected implementation, read the nearest guide, the testing contract, the relevant
+runtime callers, and the selector's `selectedBy` reasons. Record a failing behavioral proof first
+for confirmed defects; preserve a passing control. Use direct fixture tests for tooling and
+rendered proof for browser assertions. Qualification of one proof class never certifies another.
+
+Use repository commands after rendering the actual plan:
+
+```sh
+bun run check --plan -- --intent qa
+# Run the selected subject's direct test/observable proof.
+# For the matching established CI browser projects, when their prerequisites are ready:
+PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci
+PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci
+```
+
+Contracts continue through Bun wrappers, and new checks retain the full selected critical
+override. A coherent cross-package checkpoint uses the existing Quick Gate. A later authorized
+push uses the push intent; live current-head CI is still required for merge readiness.
+
+Artifacts record the source fingerprint (including dirty inputs), scenario/fixture version,
+profile, browser engine/session class, attempted/completed cases, failures/skips, commands,
+exit status, and private artifact paths. Only exact passing evidence may be reused. The receipt
+store must not become a source of implicit authorization for edits, retries, publication, or merge.
+
+### Scope decisions and deferred recommendations
+
+The [proposal constraints](spec.md#agentic-development-proposal-2026-10-04) and
+[acceptance matrix](eval.md#agentic-development-proposal-2026-10-04) govern this follow-up.
+Keep advisory completion hooks and current authenticated-browser policy. Reconsider either only
+through an explicit policy decision backed by the pilot. Keep native sandbox/permission posture.
+
+Do not implement Fable's suggested worktree deletion inside `dev:clean`, mass memory reduction,
+automatic post-edit regeneration, universal retry-on-load, or receipts-in-commit-trailers as proof
+of trustworthy execution. Fresh scope-specific artifact generation and dry-run codemods can be
+proposed once repeated demand and a durable caller are demonstrated. Existing contract fork
+push lanes remain; a scheduled fork campaign is optional, separate work, not a missing baseline.
+
 ## Current handoff
 
 The snapshot 08 follow-up reached `develop` at `23a8d1ffb`, and D11 in `9703b5402` and
 `1c6948d50`, D12 in `46be0573a`, and D13 in `e0046ac17` and `09ada5970`, which reached `origin`
-inside another session's push at `58d442042`. Next:
+inside another session's push at `58d442042`. On September 29 Afo reviewed the scorecard's open
+items and chose to park the rest until after the 2.0.0 release (D14): the checklist is in
+§ After the release and the evidence in the
+[post-release plan report](reports/2026-09-29-post-release-plan.md). Next, in order:
 
-- the worktree branches from before the lease (option A): each owner merges `develop`, starting
-  with `feature/agent-reporting-core`, and Afo decides which finished worktrees to prune;
-
-- the CodeQL prune's hourly schedule (`37 * * * *`) fires about every seven hours (02:42, 10:06
-  and 16:36 UTC on September 29); its push trigger runs on each `develop` push and passes, so a
-  database saved after a push's prune waits for the next one. Check it again with snapshot 09;
-- the seven-day CI window from 2026-09-28 (snapshot 09, Oct 5), for the job medians, the CI Gate
-  median and the red rates that snapshots 07 and 08 leave pending; Admin · Test runs happy-dom
-  from D11's push on, and Client · Test from D12's;
+- snapshot 09 on 2026-10-05: the seven-day CI window from 2026-09-28, which fills the fourteen
+  fields snapshots 07 and 08 leave pending; Admin · Test runs happy-dom from D11's push on and
+  Client · Test from D12's, so the window also shows whether they dropped on the runner. Recheck
+  the CodeQL prune there: its hourly schedule (`37 * * * *`) fired at 02:42, 10:06 and 16:36 UTC
+  on September 29 and 00:43 UTC on September 30, and its push trigger runs on each `develop` push;
+- the laptop restart and worker test, then the worktree cleanup, both Afo's calls; the report
+  lists the 26 removable worktrees and the four branches whose owners merge `develop`;
 - `linear-sync` for PRD-835 (architecture hub), in a pass that may write to Linear.
 
 The earlier instructions below are historical.

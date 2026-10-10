@@ -2,6 +2,8 @@ import { Alert } from "@green-goods/shared/components/Alert";
 import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
 import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
+import { useState } from "react";
+import { AdminConfirmDialog } from "../AdminDialog";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";
 
@@ -68,8 +70,23 @@ export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprov
 
 function ApprovalGateInner({ children }: { children: React.ReactNode }) {
   const { formatMessage } = useIntl();
-  const { approvals, isFullyApproved, isLoading, grantApprovals, isGranting, error } =
-    useMarketplaceApprovals();
+  const {
+    approvals,
+    isFullyApproved,
+    isLoading,
+    grantApprovals,
+    isGranting,
+    isPending,
+    checkPending,
+    isChecking,
+    confirmWalletCancellation,
+    isClearing,
+    pendingStep,
+    pendingReference,
+    error,
+  } = useMarketplaceApprovals();
+
+  const [reviewCancellation, setReviewCancellation] = useState(false);
 
   if (isLoading) {
     return (
@@ -133,12 +150,66 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             />
           </div>
 
+          {isPending && (
+            <p role="status" className="mt-3 body-xs text-text-soft">
+              {formatMessage({ id: "app.account.transactionPending" })}
+            </p>
+          )}
+          {isPending && (
+            <AdminButton
+              type="button"
+              onClick={checkPending}
+              disabled={isChecking}
+              loading={isChecking}
+              className="mt-4"
+            >
+              {formatMessage({ id: "app.admin.work.submit.checkConfirmation" })}
+            </AdminButton>
+          )}
+
+          {isPending && (
+            <AdminButton
+              type="button"
+              disabled={isChecking || isClearing}
+              onClick={() => setReviewCancellation(true)}
+              className="mt-4"
+            >
+              {formatMessage({ id: "app.account.reviewCancellation" })}
+            </AdminButton>
+          )}
+          <AdminConfirmDialog
+            isOpen={reviewCancellation}
+            onClose={() => setReviewCancellation(false)}
+            onConfirm={async () => {
+              await confirmWalletCancellation(true);
+              setReviewCancellation(false);
+            }}
+            onError={() => setReviewCancellation(false)}
+            isLoading={isClearing}
+            title={formatMessage({ id: "app.account.confirmCancellationTitle" })}
+            description={formatMessage({ id: "app.account.confirmCancellationDescription" })}
+            confirmLabel={formatMessage({ id: "app.account.confirmCancellation" })}
+            target={
+              <span>
+                {formatMessage({
+                  id:
+                    pendingStep === "exchangeApproved"
+                      ? "app.marketplace.grantExchange"
+                      : "app.marketplace.approveTransfer",
+                })}
+                {pendingReference && (
+                  <code className="ml-2 break-all body-xs">{pendingReference}</code>
+                )}
+              </span>
+            }
+            variant="warning"
+          />
           {error && <p className="mt-3 body-xs text-error-base">{error.message}</p>}
 
           <AdminButton
             type="button"
             onClick={() => grantApprovals()}
-            disabled={isGranting}
+            disabled={isGranting || isPending}
             loading={isGranting}
             leadingIcon={<RiShieldCheckLine className="h-4 w-4" />}
             className="mt-4"

@@ -1,9 +1,13 @@
 # Conviction Data Integrity Plan
 
 **Feature Slug**: `conviction-data-integrity`  
-**Stage**: `backlog`  
-**Status**: `BACKLOG — re-audit required before activation`  
-**Last Updated**: `2026-07-19`
+**Stage**: `backlog`
+**Status**: `BACKLOG — current-code re-audit required before activation`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+Keep the coherent conviction read-model outcome. The historical configuration/count/threshold examples remain hypotheses to reproduce against current consumers and contract/indexer boundaries. Re-audit and scope-lock the remaining defects before implementation; no current runtime defect or fresh contract proof is asserted here.
 
 ## Sequence
 

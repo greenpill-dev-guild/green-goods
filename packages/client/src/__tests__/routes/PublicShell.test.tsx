@@ -21,6 +21,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+  REPORTING_SUPPORT_CONTACT: "greengoods.app",
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -134,7 +135,11 @@ function renderShellWithRoute(initialRoute: string, priorEntries: string[] = [])
               { element: createElement(PublicShell) },
               createElement(Route, { path: "fund", element: createElement(FundContent) }),
               createElement(Route, { path: "gardens", element: createElement(GardensContent) }),
-              createElement(Route, { path: "vaults", element: createElement(VaultsContent) })
+              createElement(Route, { path: "vaults", element: createElement(VaultsContent) }),
+              createElement(Route, {
+                path: "agent/reporting/:requestId",
+                element: createElement("div", { "data-testid": "ceremony-content" }),
+              })
             )
           )
         )
@@ -280,6 +285,28 @@ describe("PublicShell", () => {
 
     expect(screen.getByTestId("fund-content")).toBeInTheDocument();
     expect(window.scrollY).toBe(720);
+  });
+
+  it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", () => {
+    const { container } = renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
+
+    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
+    expect(document.querySelector('header[data-variant="focused"]')).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByText("Install App")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-site="website"]')).toBeNull();
+
+    // Account and Help opens in place and keeps the permissions page and a person reachable.
+    fireEvent.click(screen.getByRole("button", { name: "Account and Help" }));
+    expect(screen.getByRole("link", { name: /Manage Permissions/ })).toHaveAttribute(
+      "href",
+      "/agent/reporting/permissions"
+    );
+    expect(screen.getByRole("link", { name: /greengoods\.app/ })).toHaveAttribute(
+      "href",
+      "https://greengoods.app"
+    );
+    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

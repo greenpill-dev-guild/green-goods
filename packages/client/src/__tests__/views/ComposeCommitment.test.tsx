@@ -24,6 +24,8 @@ const mockUseCycles = vi.fn();
 const mockUseActions = vi.fn();
 const mockEnqueue = vi.fn();
 const mockUseCommitment = vi.fn();
+/** Whether placing asks the reader's own wallet to send, as a wallet sign-in does. */
+const mockSendsFromTap = vi.fn(() => false);
 
 // Live now: the rail hides actions outside their window, because Work is
 // refused there and a commitment kept by such an action could never be kept.
@@ -89,6 +91,7 @@ vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => 
     enqueue: mockEnqueue,
     isPending: false,
     error: null,
+    sendsFromTap: mockSendsFromTap(),
     viewer: VIEWER,
   }),
 }));
@@ -153,6 +156,7 @@ describe("ComposeCommitment", () => {
     window.localStorage.clear();
     useCommitmentComposerDraftStore.setState({ drafts: {} });
     mockUseOffline.mockReturnValue({ isOnline: true });
+    mockSendsFromTap.mockReturnValue(false);
     mockUsePools.mockReturnValue({
       pools: [{ poolId: 7n, openSeasonCycleId: null, state: "OPEN", poolType: "GARDEN" }],
     });
@@ -497,6 +501,25 @@ describe("ComposeCommitment", () => {
     await walkServiceToReview(user);
 
     expect(screen.getByText(/will wait on your phone/i)).toBeInTheDocument();
+  });
+
+  it("tells a wallet reader that placing asks their wallet, and never that it sends itself", async () => {
+    const user = userEvent.setup();
+    mockSendsFromTap.mockReturnValue(true);
+    mockUseOffline.mockReturnValue({ isOnline: false });
+    render("offer");
+    await walkServiceToReview(user);
+
+    expect(screen.getByText(/asks your wallet to send the promise/i)).toBeInTheDocument();
+    expect(screen.getByText(/until you are back to send it/i)).toBeInTheDocument();
+    expect(screen.queryByText(/It sends when connected/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/send itself/i)).not.toBeInTheDocument();
+
+    await place(user, "Make This Offer");
+    expect(
+      await screen.findByText(/Send it from Promises when you are back online/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/sends itself/i)).not.toBeInTheDocument();
   });
 
   it("refuses to place into a garden with no pool", async () => {

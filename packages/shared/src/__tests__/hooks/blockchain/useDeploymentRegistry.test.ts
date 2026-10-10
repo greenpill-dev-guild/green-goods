@@ -28,6 +28,7 @@ vi.mock("viem", () => ({
 
 // Track auth state for testing
 let mockAuthContext = {
+  authMode: "wallet" as "wallet" | "passkey" | null,
   isReady: true,
   isAuthenticated: true,
   walletAddress: MOCK_ADDRESSES.deployer as string | null,
@@ -36,6 +37,7 @@ let mockAuthContext = {
 
 vi.mock("../../../providers/Auth", () => ({
   useAuthContext: () => mockAuthContext,
+  useOptionalAuthContext: () => mockAuthContext,
 }));
 
 // Track wagmi state for testing
@@ -110,6 +112,7 @@ describe("useDeploymentRegistry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthContext = {
+      authMode: "wallet",
       isReady: true,
       isAuthenticated: true,
       walletAddress: MOCK_ADDRESSES.deployer,
@@ -264,44 +267,44 @@ describe("useDeploymentRegistry", () => {
   // Address priority
   // ------------------------------------------
 
-  describe("address priority", () => {
-    it("prefers wagmi address when available", async () => {
-      mockWagmiAccount = { address: MOCK_ADDRESSES.deployer, isConnected: true };
+  describe("primary account permissions", () => {
+    it.each([
+      undefined,
+      MOCK_ADDRESSES.deployer,
+    ])("checks the passkey account with companion wallet %s", async (address) => {
+      mockWagmiAccount = { address, isConnected: Boolean(address) };
       mockAuthContext = {
         ...mockAuthContext,
-        walletAddress: MOCK_ADDRESSES.steward,
+        authMode: "passkey",
+        smartAccountAddress: MOCK_ADDRESSES.steward,
       };
-
-      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
-
-      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Should be owner because wagmi address matches
-      expect(result.current.isOwner).toBe(true);
-    });
-
-    it("falls back to auth walletAddress when wagmi is disconnected", async () => {
-      mockWagmiAccount = { address: undefined, isConnected: false };
-      mockAuthContext = {
-        isReady: true,
-        isAuthenticated: true,
-        walletAddress: MOCK_ADDRESSES.steward,
-        smartAccountAddress: null,
-      };
-
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.steward).mockResolvedValueOnce(false);
-
       const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
+      await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.isOwner).toBe(true);
+      expect(mockReadContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          functionName: "isInAllowlist",
+          args: [MOCK_ADDRESSES.steward.toLowerCase()],
+        })
+      );
+    });
+    it("does not borrow a companion wallet's deployer role", async () => {
+      mockAuthContext = {
+        ...mockAuthContext,
+        authMode: "passkey",
+        smartAccountAddress: MOCK_ADDRESSES.steward,
+      };
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.canDeploy).toBe(false);
+    });
+    it("does not use a connected wallet while signed out", async () => {
+      mockAuthContext = { ...mockAuthContext, authMode: null, isAuthenticated: false };
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
+      expect(result.current.canDeploy).toBe(false);
+      expect(mockReadContract).not.toHaveBeenCalled();
     });
   });
 

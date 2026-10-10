@@ -98,6 +98,11 @@ function nextRow(row: SeedRowProgress, event: SeedRowEvent): SeedRowProgress {
     case "report": {
       const { report } = event;
       switch (report.stage) {
+        case "admitted":
+          // Queued is the row's starting point; the send says more.
+          return row;
+        case "declined":
+          return { ...row, status: "not-sent" };
         case "wallet":
           return { ...row, status: "wallet" };
         case "confirming":

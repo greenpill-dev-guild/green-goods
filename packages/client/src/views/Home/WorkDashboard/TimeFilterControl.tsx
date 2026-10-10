@@ -17,7 +17,7 @@ export function TimeFilterControl<T extends string>({
         id: "app.workDashboard.timeFilter.label",
         defaultMessage: "Time period",
       })}
-      controlSize="sm"
+      controlSize="compact"
       density="condensed"
       className="w-auto min-w-16 max-w-48 field-sizing-content"
       value={value}

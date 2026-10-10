@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // --- Mocks ---
 
 const mockUseApp = vi.fn();
-const mockUsePendingWorksCount = vi.fn();
+const mockUseYourWorkCount = vi.fn();
 const mockUseUIStore = vi.fn();
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -35,8 +35,8 @@ vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
 }));
 
-vi.mock("@green-goods/shared/hooks/work/usePendingWorksCount", () => ({
-  usePendingWorksCount: () => mockUsePendingWorksCount(),
+vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
+  useYourWorkCount: () => mockUseYourWorkCount(),
 }));
 
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
@@ -120,7 +120,7 @@ function renderSiteHeader(initialRoute = "/gardens") {
 describe("Display mode — AppBar visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePendingWorksCount.mockReturnValue({ data: 0 });
+    mockUseYourWorkCount.mockReturnValue({ count: 0 });
     // Default: no sheets open
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
       selector({ openSheetCount: 0 })
@@ -181,6 +181,16 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
   });
 
+  it("standalone PWA: a garden's own page hides the bottom nav, since it owns its chrome", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    const nav = screen.getByTestId("authenticated-nav");
+    expect(nav.className).toMatch(/translate-y-full/);
+    // Off screen is out of reach: no tab stops or screen-reader links.
+    expect(nav).toHaveAttribute("inert");
+  });
+
   it("standalone PWA: any open sheet or dialog hides the bottom nav (DL-015)", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
     mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
@@ -196,6 +206,8 @@ describe("Display mode — AppBar visibility", () => {
 
     renderAppBar("/home/profile");
 
+    expect(screen.getByTestId("authenticated-nav").className).not.toMatch(/translate-y-full/);
+    expect(screen.getByTestId("authenticated-nav")).not.toHaveAttribute("inert");
     expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
     expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
   });

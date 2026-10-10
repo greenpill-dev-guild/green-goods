@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { resetRetiredWorkDraft } from "../../modules/work/draft-lifecycle";
 import { logger } from "../../modules/app/logger";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 
@@ -18,6 +19,14 @@ export function useWorkDraftRetirement({
   schedule: (callback: () => void, delay: number) => void;
   navigate: () => void;
 }) {
+  const departure = useRef<{ scope: string | null; epoch: number } | null>(null);
+  useEffect(
+    () => () => {
+      if (departure.current)
+        resetRetiredWorkDraft(departure.current.scope, departure.current.epoch);
+    },
+    []
+  );
   const latestNavigation = useRef(navigate);
   latestNavigation.current = navigate;
   useEffect(() => {
@@ -32,8 +41,8 @@ export function useWorkDraftRetirement({
           const current = useWorkFlowStore.getState();
           if (cancelled || current.draftScope !== scope || current.draftEpoch !== generation)
             return;
+          departure.current = { scope, epoch: generation };
           latestNavigation.current();
-          current.setSubmissionCompleted(false);
         }, 0);
       })
       .catch((error) => logger.error("Failed to retire work draft", { error }));

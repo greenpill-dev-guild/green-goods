@@ -14,8 +14,8 @@ export const GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH = 500;
 export const GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH = 500;
 
 export type GardenJoinRequestState = "pending" | "welcomed" | "declined";
-export type GardenJoinRequestKind = "garden_membership";
-export type GardenJoinRequestedVia = "garden_detail";
+export type GardenJoinRequestKind = "garden_membership" | "steward_access";
+export type GardenJoinRequestedVia = "garden_detail" | "admin_access" | "account_profile";
 export type GardenJoinProofAction =
   | "create"
   | "read_self"
@@ -32,6 +32,7 @@ export type GardenJoinRequestApiErrorCode =
   | "request_not_found"
   | "request_not_saved"
   | "already_member"
+  | "already_steward"
   | "open_joining_enabled"
   | "idempotency_conflict"
   | "resolution_conflict"
@@ -50,6 +51,8 @@ export type GardenJoinProofEnvelope = {
   gardenAddress: Address;
   accountAddress: Address;
   action: GardenJoinProofAction;
+  /** Omitted on legacy membership proofs; present kinds are part of the signed message. */
+  kind?: GardenJoinRequestKind;
   nonce: `0x${string}`;
   issuedAt: number;
   expiresAt: number;
@@ -59,6 +62,8 @@ export type GardenJoinProofEnvelope = {
   expectedRevision?: number;
   factory?: Address;
   factoryData?: `0x${string}`;
+  /** Explicit, signed permission for own status reads until this proof expires. */
+  readSelf?: { audience: string; content: CreateGardenJoinRequestInput };
 };
 
 export type GardenJoinProofContent = {
@@ -71,6 +76,7 @@ export type GardenJoinProofContent = {
 };
 
 export type CreateGardenJoinRequestInput = {
+  kind?: GardenJoinRequestKind;
   displayName: string;
   note?: string | null;
   requestedVia: GardenJoinRequestedVia;
@@ -114,6 +120,8 @@ export type GardenJoinRequestQueueResponse = {
 export type GardenJoinRequestAvailabilityResponse = {
   ok: true;
   enabled: boolean;
+  /** Older services omit this field and support garden_membership only. */
+  supportedKinds?: GardenJoinRequestKind[];
 };
 
 export type GardenJoinValidationResult<T> =
@@ -159,6 +167,13 @@ export function validateCreateGardenJoinRequest(
   if (!candidate || typeof candidate !== "object") {
     return { ok: false, error: error("Invalid request body.") };
   }
+  if (
+    candidate.kind !== undefined &&
+    candidate.kind !== "garden_membership" &&
+    candidate.kind !== "steward_access"
+  ) {
+    return { ok: false, error: error("Invalid request kind.", "kind") };
+  }
   const displayName = normalizeDisplayName(candidate.displayName);
   if (!displayName) {
     return {
@@ -179,12 +194,19 @@ export function validateCreateGardenJoinRequest(
       ),
     };
   }
-  if (candidate.requestedVia !== "garden_detail") {
+  const kind = candidate.kind ?? "garden_membership";
+  if (
+    !candidate.requestedVia ||
+    (kind === "garden_membership"
+      ? candidate.requestedVia !== "garden_detail"
+      : candidate.requestedVia !== "admin_access" && candidate.requestedVia !== "account_profile")
+  ) {
     return { ok: false, error: error("Invalid request source.", "requestedVia") };
   }
   return {
     ok: true,
     value: {
+      ...(candidate.kind ? { kind: candidate.kind } : {}),
       displayName,
       ...(note ? { note } : {}),
       requestedVia: candidate.requestedVia,

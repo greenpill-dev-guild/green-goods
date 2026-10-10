@@ -166,12 +166,18 @@ describe("marketplace/approvals", () => {
       const result = await buildApprovalTransactions(TEST_OPERATOR, CHAIN_ID);
 
       expect(result.grantExchange).toBeDefined();
-      expect(result.grantExchange?.to).toBe("0x2222222222222222222222222222222222222222");
-      expect(result.grantExchange?.data).toMatch(/^0x/);
+      expect(result.grantExchange?.address).toBe("0x2222222222222222222222222222222222222222");
+      expect(result.grantExchange).toMatchObject({
+        functionName: "grantApprovals",
+        args: [["0x1111111111111111111111111111111111111111"]],
+      });
 
       expect(result.approveMinter).toBeDefined();
-      expect(result.approveMinter?.to).toBe("0x4444444444444444444444444444444444444444");
-      expect(result.approveMinter?.data).toMatch(/^0x/);
+      expect(result.approveMinter?.address).toBe("0x4444444444444444444444444444444444444444");
+      expect(result.approveMinter).toMatchObject({
+        functionName: "setApprovalForAll",
+        args: ["0x2222222222222222222222222222222222222222", true],
+      });
     });
 
     it("omits grantExchange when already approved", async () => {

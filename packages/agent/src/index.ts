@@ -8,6 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
+import { dirname } from "node:path";
 import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { resolveAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
@@ -19,6 +20,7 @@ import {
   createVoiceProcessor,
   registerSlashCommands,
 } from "./platforms/telegram";
+import { createTelegramReporting, telegramRealm } from "./platforms/telegram-reporting";
 import { initAI, isAIModelLoaded } from "./services/ai";
 import {
   initAgentAnalytics,
@@ -32,7 +34,7 @@ import {
   readVaultShareBalanceOnChain,
 } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
-import { resolveAgentRpcUrl } from "./services/agent-rpc";
+import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import {
   createSqliteProfileAvatarStore,
@@ -47,12 +49,20 @@ import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
 import { createResendSubscriptionClient } from "./services/subscriptions";
+import { startReporting } from "./runtime/reporting-startup";
 import { createShutdownHandler } from "./runtime/shutdown";
 import {
   createGardenJoinRequestCipher,
   createSqliteGardenJoinRequestStore,
 } from "./services/garden-join-requests";
 import { createGardenJoinRequestChainReader } from "./services/garden-join-requests-chain";
+import { createGardenJoinRequestSignatureVerifier } from "./services/garden-join-requests-verifier";
+import { createPasskeyDirectory } from "./services/passkey-directory";
+import {
+  createHostedPasskeyNameCheck,
+  createSqlitePasskeyDirectoryStore,
+} from "./services/passkey-directory-adapters";
+import { PASSKEY_RP_ID, PASSKEY_RP_NAME } from "@green-goods/shared/public-contracts";
 
 // ============================================================================
 // INITIALIZATION
@@ -91,7 +101,22 @@ async function main(): Promise<void> {
 
   // Initialize services
   initDB(config.dbPath);
-  initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
+  const agentRpc = resolveAgentRpc(config.chainId);
+  // Only the host is logged: a configured address can carry a provider key in its path.
+  const rpcLog = {
+    chainId: config.chainId,
+    host: rpcHost(agentRpc.url),
+    source: agentRpc.source,
+  };
+  if (agentRpc.source === "public") {
+    logger.warn(
+      rpcLog,
+      "No RPC address or Alchemy key is set for this chain; using its public endpoint, which is rate limited"
+    );
+  } else {
+    logger.info(rpcLog, "Chain reads go through the configured RPC");
+  }
+  initBlockchain(config.chain, agentRpc.url);
   const ai = initAI();
   const subscriptionClient = createResendSubscriptionClient({
     apiKey: config.resendApiKey,
@@ -107,10 +132,36 @@ async function main(): Promise<void> {
   const gardenJoinRequestStore = joinRequestCipher
     ? createSqliteGardenJoinRequestStore(joinRequestCipher)
     : undefined;
-  const agentRpcUrl = resolveAgentRpcUrl(config.chainId);
+  const agentRpcUrl = agentRpc.url;
+
+  const trustedProxy = {
+    hops: config.trustedProxyHops,
+    cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+  };
+  // Agent reporting stays off without its keys and an available chat channel. It starts before the
+  // bot so that the bot can hand it private chats while its Telegram channel is on.
+  const reporting = startReporting({
+    env: process.env,
+    chain: config.chain,
+    chainId: config.chainId,
+    rpcUrl: agentRpcUrl,
+    isProduction: config.isProduction,
+    dataDir: dirname(config.dbPath),
+    trustedProxy,
+  });
+  const reportingRealm = telegramRealm(config.telegramToken);
+  const telegramReporting =
+    reporting?.channels.has("telegram") && reportingRealm
+      ? createTelegramReporting(reporting.core, reportingRealm)
+      : undefined;
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
-  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
+  const bot = createTelegramBot(
+    { token: config.telegramToken },
+    handleMessage,
+    groupCapture,
+    telegramReporting
+  );
 
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
   const photoProcessor = createPhotoProcessor(bot);
@@ -120,7 +171,7 @@ async function main(): Promise<void> {
   if (config.telegramRuntimeDisabled) {
     logger.info("Telegram runtime disabled; starting local HTTP API only");
   } else {
-    await registerSlashCommands(bot).catch((err) => {
+    await registerSlashCommands(bot, Boolean(telegramReporting)).catch((err) => {
       logger.warn({ err }, "Failed to register slash commands; continuing");
     });
   }
@@ -152,6 +203,17 @@ async function main(): Promise<void> {
     }),
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
+    passkeyDirectory: createPasskeyDirectory({
+      store: createSqlitePasskeyDirectoryStore(),
+      relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
+      hostedNameTaken: config.passkeyHostedDirectoryUrl
+        ? createHostedPasskeyNameCheck({
+            rpcUrl: config.passkeyHostedDirectoryUrl,
+            origin: `https://${PASSKEY_RP_ID}`,
+          })
+        : undefined,
+      allowLocalDevelopment: config.isDevelopment,
+    }),
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled
@@ -161,7 +223,7 @@ async function main(): Promise<void> {
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),
-          gardenJoinRequestSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+          gardenJoinRequestSignatureVerifier: createGardenJoinRequestSignatureVerifier({
             chain: config.chain,
             rpcUrl: agentRpcUrl,
           }),
@@ -170,10 +232,8 @@ async function main(): Promise<void> {
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),
-    trustedProxy: {
-      hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
-    },
+    trustedProxy,
+    ...(reporting ? { messaging: reporting.messaging } : {}),
     uploadSigning: {
       pinataJwt: config.pinataJwt,
       pinataUploadsApiBaseUrl: config.pinataUploadsApiBaseUrl,
@@ -234,11 +294,6 @@ async function main(): Promise<void> {
       await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
       return c.json({ ok: true });
     });
-  } else {
-    // Polling mode for Telegram
-    await bot.launch(() => {
-      logger.info("✅ Agent Telegram bot running in polling mode");
-    });
   }
 
   await startServer(server, { port: config.port, host: config.host });
@@ -268,6 +323,7 @@ async function main(): Promise<void> {
       closeDB,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
+      ...(reporting ? [() => reporting.stop()] : []),
     ],
     exit: (code) => process.exit(code),
     logger,
@@ -287,6 +343,18 @@ async function main(): Promise<void> {
     logger.error({ reason, promise }, "Unhandled rejection");
     captureAgentException(reason, { source: "process.unhandledRejection", surface: "runtime" });
   });
+
+  if (!config.telegramRuntimeDisabled && config.mode === "polling") {
+    // Telegraf's polling launch settles only when polling stops, so it starts after the server
+    // and must not be awaited; a failure stops the Agent, as a failed start did before.
+    bot
+      .launch(() => logger.info("✅ Agent Telegram bot running in polling mode"))
+      .catch((error: unknown) => {
+        logger.fatal({ err: error }, "Telegram polling stopped");
+        captureAgentException(error, { source: "telegram.polling", surface: "runtime" });
+        void shutdown("telegramPolling", 1);
+      });
+  }
 }
 
 main().catch((error) => {

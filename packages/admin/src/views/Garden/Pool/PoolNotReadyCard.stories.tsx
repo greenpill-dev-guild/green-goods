@@ -10,7 +10,7 @@ const meta: Meta<typeof PoolNotReadyCard> = {
     docs: {
       description: {
         component:
-          "The pool tab before the pool takes commitments: what setting up gives the garden, and Set Up Commitments. Offline the act waits and says why beneath it.",
+          "The Promises tab before the pool takes commitments: what setting up gives the garden, and Set Up Commitments. Offline the act waits and says why beneath it.",
       },
     },
   },

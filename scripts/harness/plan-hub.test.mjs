@@ -796,6 +796,139 @@ test("terminal implementation lanes and their active parent move to In Review", 
     );
   }));
 
+// Existing mirrors can be Done/Canceled or research In Progress while local lanes
+// remain uncertified. Preserved mirrors must emit no mutable issue fields.
+for (const stage of ["ideas", "backlog", "active"]) {
+  test(`linear-sync preserves existing parent records for reconciled ${stage} hubs`, () =>
+    withFixture((root) => {
+      assert.equal(runPlanHub(root, ["scaffold", "preserved-parent", "--stage", stage]).status, 0);
+      const status = readStatus(root, stage, "preserved-parent");
+      status.linear = {
+        parentIssue: "RESR-9",
+        laneSyncMode: "parent_only",
+        stateSyncMode: "preserve_existing",
+      };
+      if (stage === "ideas") status.workflow.resolution = "cancelled";
+      writeStatus(root, stage, "preserved-parent", status);
+      const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-parent", "--json"]);
+      assert.equal(result.status, 0, result.stderr);
+      const manifest = JSON.parse(result.stdout);
+      assert.deepEqual(manifest.parent, { action: "preserve", issue: "RESR-9" });
+      assert.equal(manifest.stateSyncMode, "preserve_existing");
+      assert.match(manifest.warnings.join("\n"), /existing Linear records/);
+    }));
+}
+
+test("linear-sync preserves existing canonical and execution records but initializes new issues", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "preserved-lanes", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "preserved-lanes");
+    status.linear = {
+      parentIssue: "PRD-650",
+      laneSyncMode: "lane_issues",
+      stateSyncMode: "preserve_existing",
+      lanes: { qa_pass_1: { issue: "PRD-729" } },
+    };
+    status.lanes.qa_pass_1.manual_blocked = true;
+    status.lanes.qa_pass_1.blocked_reason = "Historical proof reconciliation remains.";
+    status.execution_sub_lanes = {
+      retained_source: {
+        machine_lane: "state_api",
+        owner: "codex",
+        status: "blocked",
+        blocked_reason: "Source delivered; receipt reconciliation remains.",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: "PRD-700", parentIssue: "PRD-650" },
+      },
+      fresh_work: {
+        machine_lane: "ui",
+        owner: "claude",
+        status: "todo",
+        branch: null,
+        depends_on: [],
+        handoff: "handoffs/claude-ui.md",
+        linear: { sync: true, issue: null, parentIssue: "PRD-650" },
+      },
+    };
+    writeStatus(root, "active", "preserved-lanes", status);
+    const result = runPlanHub(root, ["linear-sync", "--feature", "preserved-lanes", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    const preserved = [manifest.parent, ...manifest.lanes].filter((record) => record.action === "preserve");
+    assert.deepEqual(preserved, [
+      { action: "preserve", issue: "PRD-650" },
+      { action: "preserve", issue: "PRD-700", lane: "retained_source" },
+      { action: "preserve", issue: "PRD-729", lane: "qa_pass_1" },
+    ]);
+    assert.equal([manifest.parent, ...manifest.lanes].some((record) => record.action === "update"), false);
+    const created = manifest.lanes.find((record) => record.lane === "fresh_work");
+    assert.equal(created.action, "create");
+    assert.equal(created.state, "Todo");
+    assert.equal(created.title, "Fresh Work for Preserved Lanes");
+    assert.match(created.description, /handoffs\/claude-ui\.md/);
+    assert.equal(created.parentId, "PRD-650");
+  }));
+
+// Preservation verifies all recorded mirrors even when dispatch selection excludes
+// inactive, terminal, aggregate or sync-disabled lanes. It creates no missing mirror.
+for (const stage of ["ideas", "backlog", "active"]) {
+  for (const laneSyncMode of ["parent_only", "lane_issues"]) {
+    test(`linear-sync includes all recorded mirrors for ${stage} ${laneSyncMode} preservation`, () =>
+      withFixture((root) => {
+        assert.equal(runPlanHub(root, ["scaffold", "all-mirrors", "--stage", stage]).status, 0);
+        const status = readStatus(root, stage, "all-mirrors");
+        const canonical = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
+        status.linear = {
+          parentIssue: "PRD-780",
+          laneSyncMode,
+          stateSyncMode: "preserve_existing",
+          lanes: Object.fromEntries(canonical.map((lane, i) => [lane, { issue: `PRD-${785 + i}` }])),
+        };
+        for (const [i, lane] of canonical.entries()) {
+          status.lanes[lane].status = ["n/a", "skipped", "todo", "passed", "completed"][i];
+        }
+        status.execution_sub_lanes = Object.fromEntries([false, true].map((sync, i) => [
+          `historical_${i}`,
+          {
+            machine_lane: "state_api", owner: "codex", status: "n/a", branch: null,
+            depends_on: [], handoff: "handoffs/codex-state-api.md",
+            linear: { sync, issue: `PRD-${790 + i}`, parentIssue: "PRD-780" },
+          },
+        ]));
+        writeStatus(root, stage, "all-mirrors", status);
+        mkdirSync(join(root, ".plans", stage, "all-mirrors", "handoffs"), { recursive: true });
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_1");
+        writeValidationReceipt(root, stage, "all-mirrors", "qa_pass_2");
+        const result = runPlanHub(root, ["linear-sync", "--feature", "all-mirrors", "--json"]);
+        assert.equal(result.status, 0, result.stderr);
+        const manifest = JSON.parse(result.stdout);
+        assert.deepEqual(manifest.parent, { action: "preserve", issue: "PRD-780" });
+        assert.deepEqual(
+          manifest.lanes.map((r) => [r.lane, r.issue]).sort(),
+          [...canonical.map((lane, i) => [lane, `PRD-${785 + i}`]),
+            ["historical_0", "PRD-790"], ["historical_1", "PRD-791"]].sort(),
+        );
+        for (const record of manifest.lanes) {
+          assert.equal(record.action, "preserve");
+          assert.deepEqual(Object.keys(record).sort(), ["action", "issue", "lane"]);
+        }
+      }));
+  }
+}
+
+test("linear-sync rejects an unknown state sync mode", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "invalid-state-mode", "--stage", "ideas"]).status, 0);
+    const status = readStatus(root, "ideas", "invalid-state-mode");
+    status.linear = { parentIssue: "RESR-71", stateSyncMode: "force_done" };
+    writeStatus(root, "ideas", "invalid-state-mode", status);
+    const result = runPlanHub(root, ["linear-sync", "--feature", "invalid-state-mode", "--json"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear.stateSyncMode/);
+  }));
+
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "active"]).status, 0);

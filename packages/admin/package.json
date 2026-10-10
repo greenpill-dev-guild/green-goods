@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/admin",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -22,7 +22,7 @@
     "@radix-ui/react-dialog": "1.1.19",
     "@radix-ui/react-select": "2.3.3",
     "@remixicon/react": "4.9.0",
-    "@reown/appkit": "1.8.23",
+    "@reown/appkit": "1.8.24",
     "@sentry/react": "10.70.0",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/react-query": "5.101.4",
@@ -39,7 +39,7 @@
     "recharts": "3.9.2",
     "tailwind-merge": "3.6.0",
     "tailwind-variants": "3.3.1",
-    "viem": "2.55.0",
+    "viem": "2.55.13",
     "wagmi": "^2.19.5",
     "xstate": "5.32.4",
     "zod": "4.4.3",
@@ -52,6 +52,7 @@
     "@storybook/react": "10.4.6",
     "@types/babel__core": "7.20.5",
     "@vitejs/plugin-react": "6.0.5",
+    "abitype": "1.2.3",
     "babel-plugin-react-compiler": "^1.0.0",
     "storybook": "10.4.6",
     "tailwindcss": "4.3.3",

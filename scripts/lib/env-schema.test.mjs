@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { assertEnvParity, assertSentryDsnResolvable } from "./env-parity.mjs";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "./env-parity.mjs";
 import {
   parseSchemaText,
   readEnvironment,
@@ -106,6 +110,43 @@ test("enforces annotated keys for production and only warns for preview", () => 
   }
 });
 
+test("rejects missing or empty authentication keys on beta but allows local builds", () => {
+  const root = mkdtempSync(join(tmpdir(), "env-auth-parity-"));
+  const schemaPath = join(root, "env.schema");
+  const keys = ["VITE_PIMLICO_API_KEY", "VITE_WALLETCONNECT_PROJECT_ID"];
+  writeFileSync(
+    schemaPath,
+    keys.map((key) => `${key}= # @required-in production-admin`).join("\n")
+  );
+  try {
+    for (const key of keys) {
+      for (const value of [undefined, ""]) {
+        const authEnv = Object.fromEntries(keys.map((name) => [name, "configured"]));
+        authEnv[key] = value;
+        assert.throws(
+          () => assertEnvParity({
+            app: "admin",
+            env: { ...authEnv, VERCEL: "1", VERCEL_ENV: "preview" },
+            schemaPath,
+          }),
+          new RegExp(`authentication keys are incomplete \\(${key}\\)`)
+        );
+      }
+    }
+    assert.doesNotThrow(() => assertEnvParity({ app: "admin", env: {}, schemaPath }));
+    assert.doesNotThrow(() => assertEnvParity({
+      app: "admin",
+      env: {
+        VERCEL: "1", VERCEL_ENV: "preview",
+        VITE_PIMLICO_API_KEY: "configured", VITE_WALLETCONNECT_PROJECT_ID: "configured",
+      },
+      schemaPath,
+    }));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("fails soft for an unreadable schema outside production Vercel", () => {
   const warnings = [];
 
@@ -131,4 +172,22 @@ test("rejects an unreadable schema in a production Vercel build", () => {
       }),
     /Refusing to ship a production build without schema validation/
   );
+});
+
+test("drops Vercel's VITE_-prefixed copies and keeps what the build and the app read", () => {
+  const env = {
+    VITE_VERCEL_GIT_COMMIT_MESSAGE: "fix: a commit message nobody in the browser needs",
+    VITE_VERCEL_TARGET_ENV: "staging",
+    VERCEL_GIT_COMMIT_SHA: "0123abc",
+    VERCEL_TARGET_ENV: "staging",
+    VITE_CHAIN_ID: "11155111",
+  };
+
+  dropVercelFrameworkVariables(env);
+
+  assert.deepEqual(env, {
+    VERCEL_GIT_COMMIT_SHA: "0123abc",
+    VERCEL_TARGET_ENV: "staging",
+    VITE_CHAIN_ID: "11155111",
+  });
 });

@@ -10,6 +10,7 @@ import type {
   PasskeySessionAdapter,
 } from "../../workflows/auth-passkey-adapters";
 import { createAuthServices } from "../../workflows/authServices";
+import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 
 const CHAIN_ID = 11155111;
 const USER = "testuser";
@@ -22,6 +23,14 @@ const CREDENTIAL: P256Credential = {
 };
 const SERVER_CREDENTIAL = { id: "deadbeef", publicKey: "0xabcd" as Hex };
 const AUTH_RESPONSE = { id: CREDENTIAL.id, type: "public-key" } as PublicKeyCredential;
+/** The site the app runs on in these tests, as the hosted server would name its passkeys. */
+const SITE_HOST = "beta.greengoods.app";
+/** What the directory holds for a name: the browser's own credential ID and the shared domain. */
+const DIRECTORY_CREDENTIAL = {
+  id: CREDENTIAL.id,
+  publicKey: "0xd1ec" as Hex,
+  rpId: "greengoods.app",
+};
 
 async function invoke<T>(logic: AnyActorLogic, input: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -46,6 +55,7 @@ function createHarness() {
     userName: string | null;
     expectedAddress: Hex | null;
     serverEnabled: boolean;
+    directoryEnabled: boolean;
   } = {
     signedOut: false,
     authMode: null,
@@ -54,6 +64,7 @@ function createHarness() {
     userName: null,
     expectedAddress: null,
     serverEnabled: false,
+    directoryEnabled: false,
   };
 
   const sessionSpies = {
@@ -121,6 +132,20 @@ function createHarness() {
       userName: USER,
     }),
   };
+  // The Green Goods passkey directory: one domain for every site, and no sign-in endpoints.
+  const directory = {
+    getCredentials: vi.fn().mockResolvedValue([]),
+    startRegistration: vi.fn().mockResolvedValue({
+      challenge: new Uint8Array([1]),
+      rp: { id: DIRECTORY_CREDENTIAL.rpId },
+    }),
+    verifyRegistration: vi.fn().mockResolvedValue({
+      success: true,
+      id: DIRECTORY_CREDENTIAL.id,
+      publicKey: DIRECTORY_CREDENTIAL.publicKey,
+      userName: USER,
+    }),
+  };
   const calls = {
     buildRecoveryContext: vi.fn((userName: string) => ({
       userName: userName.trim().replace(/^@/, "").toLowerCase(),
@@ -128,6 +153,7 @@ function createHarness() {
     createLocalPasskey: vi.fn().mockResolvedValue(CREDENTIAL),
     createWebAuthnCredential: vi.fn().mockResolvedValue(CREDENTIAL),
     getWebAuthnCredential: vi.fn().mockResolvedValue(AUTH_RESPONSE),
+    verifyAssertion: vi.fn().mockResolvedValue(true),
     buildSmartAccount: vi.fn().mockResolvedValue({
       client: { account: { address: ADDRESS } } as unknown as SmartAccountClient,
       address: ADDRESS,
@@ -139,10 +165,14 @@ function createHarness() {
     isServerEnabled: () => state.serverEnabled,
     buildRecoveryContext: calls.buildRecoveryContext,
     createServerClient: () => server as unknown as PasskeyServerClientAdapter,
+    createDirectoryClient: () =>
+      state.directoryEnabled ? (directory as unknown as PasskeyServerClientAdapter) : null,
     createLocalPasskey: (userName) => calls.createLocalPasskey(userName),
     createWebAuthnCredential: (options) => calls.createWebAuthnCredential(options),
     getWebAuthnCredential: (options) => calls.getWebAuthnCredential(options),
+    verifyAssertion: (input) => calls.verifyAssertion(input),
     getRpId: () => "localhost",
+    getSiteRpId: () => SITE_HOST,
     randomChallenge: () => new Uint8Array([1, 2, 3]),
     buildSmartAccount: (credential, chainId, rpId, knownAddress) =>
       knownAddress
@@ -154,6 +184,7 @@ function createHarness() {
     sessionSpies,
     telemetry,
     server,
+    directory,
     calls,
     services: createAuthServices(adapters),
   };
@@ -308,20 +339,59 @@ describe("createAuthServices", () => {
       expect(harness.server.startRegistration).not.toHaveBeenCalled();
       expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
     });
+
+    it("counts a refused sign-up by what the server said, not by the name that was typed", async () => {
+      harness.state.serverEnabled = true;
+      // The refusal quotes the request, so the typed name sits in the error's text.
+      for (const [userName, refusal, reason] of [
+        ["cancel-ana", "That name is already registered.", "recovery_context_taken"],
+        ["network-ana", "Passkey verification failed.", "verification_failed"],
+      ] as const) {
+        harness.server.startRegistration.mockRejectedValue(
+          await passkeyServerRefusal({ userName, message: refusal })
+        );
+
+        await expect(
+          invoke(harness.services.registerPasskey, { userName, chainId: CHAIN_ID })
+        ).rejects.toThrow(refusal);
+        expect(harness.telemetry.registerFailed).toHaveBeenLastCalledWith(
+          expect.objectContaining({ reason })
+        );
+      }
+    });
   });
 
   describe("authenticatePasskey", () => {
-    it("authenticates through the local cache and preserves the stored username", async () => {
+    it("signs in without a requested name through the cache and preserves the stored username", async () => {
       harness.state.credential = CREDENTIAL;
       harness.state.userName = "stored-user";
 
       await expect(
         invoke(harness.services.authenticatePasskey, {
-          userName: "mistyped-name",
+          userName: null,
           chainId: CHAIN_ID,
         })
       ).resolves.toMatchObject({ userName: "stored-user", smartAccountAddress: ADDRESS });
       expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens no prompt and makes no account when this device remembers no passkey", async () => {
+      const attempt = invoke(harness.services.authenticatePasskey, {
+        userName: "",
+        chainId: CHAIN_ID,
+      });
+
+      // No name was given, so the refusal is about the device and blames no username.
+      await expect(attempt).rejects.toMatchObject({
+        name: "PasskeyNotFoundError",
+        scope: "device",
+      });
+      expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.calls.createLocalPasskey).not.toHaveBeenCalled();
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "local_cache", reason: "credential_not_found" })
+      );
     });
 
     it("keeps sign-out durable when the local ceremony is dismissed", async () => {
@@ -330,7 +400,7 @@ describe("createAuthServices", () => {
       harness.calls.getWebAuthnCredential.mockResolvedValue(null);
 
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName: null, chainId: CHAIN_ID })
       ).rejects.toThrow("cancelled");
       expect(harness.sessionSpies.clearSignedOut).not.toHaveBeenCalled();
       expect(harness.state.signedOut).toBe(true);
@@ -382,18 +452,55 @@ describe("createAuthServices", () => {
       ).toEqual([0xde, 0xad, 0xbe, 0xef]);
     });
 
-    it("falls back once to a named local credential when the server has no match", async () => {
+    it.each([
+      USER,
+      " @TESTUSER ",
+    ])("recovers the matching cached name %s when the server has no match", async (userName) => {
       harness.state.serverEnabled = true;
       harness.state.credential = CREDENTIAL;
       harness.state.userName = USER;
 
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName, chainId: CHAIN_ID })
       ).resolves.toMatchObject({ credential: CREDENTIAL, userName: USER });
       expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
       expect(harness.telemetry.loginSucceeded).toHaveBeenCalledWith(
         expect.objectContaining({ source: "local_cache", reason: "legacy_fallback" })
       );
+    });
+
+    it.each([
+      "missing",
+      "unreachable",
+      "local-only",
+    ] as const)("never substitutes a cached account when another name is %s", async (lookup) => {
+      harness.state.serverEnabled = lookup !== "local-only";
+      harness.state.directoryEnabled = lookup !== "local-only";
+      harness.state.credential = CREDENTIAL;
+      harness.state.userName = USER;
+      harness.state.expectedAddress = ADDRESS;
+      harness.state.signedOut = true;
+      if (lookup === "unreachable") {
+        const failure = new Error("HTTP request failed");
+        failure.name = "HttpRequestError";
+        harness.directory.getCredentials.mockRejectedValue(failure);
+        harness.server.getCredentials.mockRejectedValue(failure);
+      }
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, {
+          userName: "another-name",
+          chainId: CHAIN_ID,
+        })
+      ).rejects.toMatchObject(
+        lookup === "unreachable"
+          ? { name: "PasskeyServerLookupError" }
+          : { name: "PasskeyNotFoundError", scope: "name" }
+      );
+      expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+      expect(harness.state.signedOut).toBe(true);
     });
 
     it("falls back to local cache after a server lookup transport failure", async () => {
@@ -517,7 +624,7 @@ describe("createAuthServices", () => {
     it("pins the browser ID after a legacy cached hex ceremony without changing identity", async () => {
       harness.state.credential = { ...CREDENTIAL, id: SERVER_CREDENTIAL.id };
       await expect(
-        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+        invoke(harness.services.authenticatePasskey, { userName: null, chainId: CHAIN_ID })
       ).resolves.toMatchObject({
         credential: { id: SERVER_CREDENTIAL.id, signingId: CREDENTIAL.id },
       });
@@ -533,5 +640,136 @@ describe("createAuthServices", () => {
       ).rejects.toThrow("did not match the expected account address");
       expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
     });
+  });
+
+  describe("with the passkey directory", () => {
+    beforeEach(() => {
+      harness.state.serverEnabled = true;
+      harness.state.directoryEnabled = true;
+    });
+
+    it("signs a new account up under the domain every site shares", async () => {
+      await expect(
+        invoke(harness.services.registerPasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: { id: DIRECTORY_CREDENTIAL.id, publicKey: DIRECTORY_CREDENTIAL.publicKey },
+        userName: USER,
+      });
+
+      expect(harness.directory.verifyRegistration).toHaveBeenCalledWith({
+        credential: CREDENTIAL,
+        context: { userName: USER },
+      });
+      expect(harness.server.startRegistration).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setRpId).toHaveBeenCalledWith(DIRECTORY_CREDENTIAL.rpId);
+      expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ id: DIRECTORY_CREDENTIAL.id }),
+        CHAIN_ID,
+        DIRECTORY_CREDENTIAL.rpId
+      );
+    });
+
+    it("signs in under the passkey's own domain and checks the device against the directory's key", async () => {
+      harness.directory.getCredentials.mockResolvedValue([DIRECTORY_CREDENTIAL]);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: { id: DIRECTORY_CREDENTIAL.id, publicKey: DIRECTORY_CREDENTIAL.publicKey },
+        smartAccountAddress: ADDRESS,
+        userName: USER,
+      });
+
+      const request = harness.calls.getWebAuthnCredential.mock.calls[0]?.[0] as {
+        publicKey?: { rpId?: string };
+      };
+      expect(request.publicKey?.rpId).toBe(DIRECTORY_CREDENTIAL.rpId);
+      expect(harness.calls.verifyAssertion).toHaveBeenCalledWith({
+        response: AUTH_RESPONSE,
+        publicKey: DIRECTORY_CREDENTIAL.publicKey,
+        challenge: new Uint8Array([1, 2, 3]),
+        rpId: DIRECTORY_CREDENTIAL.rpId,
+      });
+      expect(harness.server.startAuthentication).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setRpId).toHaveBeenCalledWith(DIRECTORY_CREDENTIAL.rpId);
+    });
+
+    it("opens no account when the device's passkey does not match the directory's key", async () => {
+      harness.directory.getCredentials.mockResolvedValue([DIRECTORY_CREDENTIAL]);
+      harness.calls.verifyAssertion.mockResolvedValue(false);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("authentication failed");
+
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+      expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: "verification_failed" })
+      );
+    });
+
+    it("switches from an older account this site remembers, but holds the same passkey to its address", async () => {
+      harness.directory.getCredentials.mockResolvedValue([DIRECTORY_CREDENTIAL]);
+      harness.state.credential = CREDENTIAL;
+      harness.state.expectedAddress = OTHER_ADDRESS;
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ smartAccountAddress: ADDRESS });
+      expect(harness.sessionSpies.setAddress).toHaveBeenLastCalledWith(ADDRESS);
+
+      // The same key, remembered without its point prefix, is still the same passkey.
+      harness.directory.getCredentials.mockResolvedValue([
+        { ...DIRECTORY_CREDENTIAL, publicKey: `0x04${"ab".repeat(64)}` },
+      ]);
+      harness.state.credential = { ...CREDENTIAL, publicKey: `0x${"AB".repeat(64)}` };
+      harness.state.expectedAddress = OTHER_ADDRESS;
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("did not match the expected account address");
+    });
+
+    it("leaves an account made before the directory on the hosted server", async () => {
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: { id: SERVER_CREDENTIAL.id } });
+
+      expect(harness.directory.getCredentials).toHaveBeenCalledWith({
+        context: { userName: USER },
+      });
+      expect(harness.server.verifyAuthentication).toHaveBeenCalledTimes(1);
+      expect(harness.calls.verifyAssertion).not.toHaveBeenCalled();
+    });
+
+    it("reports a directory outage only when the hosted server does not hold the name either", async () => {
+      const outage = new Error("HTTP request failed");
+      outage.name = "HttpRequestError";
+      harness.directory.getCredentials.mockRejectedValue(outage);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).rejects.toThrow("Passkey server lookup failed");
+      expect(harness.telemetry.loginFailed).toHaveBeenLastCalledWith(
+        expect.objectContaining({ reason: "server_unavailable" })
+      );
+
+      harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: { id: SERVER_CREDENTIAL.id } });
+    });
+  });
+
+  it("restores a hosted-server session saved without its domain under this site's hostname", async () => {
+    harness.state.serverEnabled = true;
+    harness.state.credential = CREDENTIAL;
+
+    await invoke(harness.services.restoreSession, { chainId: CHAIN_ID });
+
+    expect(harness.calls.buildSmartAccount).toHaveBeenCalledWith(CREDENTIAL, CHAIN_ID, SITE_HOST);
   });
 });

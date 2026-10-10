@@ -313,6 +313,28 @@ describe("local-status-overlay", () => {
       expect(feedback).toEqual({ rejected: "Wrong site", "approved-quietly": undefined });
     });
 
+    it("lists a just-sent work once: kept under its attestation id until the read returns it, never beside it", () => {
+      const sent = overlay({ id: "0xwork", status: undefined });
+      // What earlier builds saved for the same send: a row no read can ever replace.
+      const legacy = overlay({ id: `optimistic-0x${"ab".repeat(32)}`, status: undefined });
+      const resolve = (remote: EASWorkListRow[]) =>
+        resolveGardenWorkRows({
+          remote,
+          saved: [legacy, sent],
+          overlay: [legacy, sent],
+          now: NOW,
+        });
+
+      // The indexer has not caught up: the steward still sees the work they sent.
+      const waiting = resolve([]);
+      expect(waiting.rows.map((work) => [work.id, work.status])).toEqual([["0xwork", "pending"]]);
+      expect([...waiting.retainedIds]).toEqual(["0xwork"]);
+
+      const indexed = resolve([{ ...row("0xwork", null), media: ["cid"] }]);
+      expect(indexed.rows.map((work) => [work.id, work.media])).toEqual([["0xwork", ["cid"]]]);
+      expect(indexed.retainedIds.size).toBe(0);
+    });
+
     it("shows only saved rows before the first read, and skips work that exists only on this device", () => {
       const { rows, unknownIds } = resolveGardenWorkRows({
         remote: undefined,

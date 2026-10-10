@@ -2,7 +2,8 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -121,6 +122,26 @@ function isTestPath(path) {
   return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
 }
 
+// A test directory also holds what no runner can execute: helpers, fixtures, setup and notes.
+// Only a test file can be a focused run. Handing a runner anything else finds no tests, which
+// Vitest reports as a failure.
+function isRunnableTestPath(path) {
+  return (
+    isTestPath(path) &&
+    (/(^|[/.])(test|spec)\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".t.sol"))
+  );
+}
+
+// Notes kept beside tests change no test's outcome, so they select no test run.
+function isTestNotesPath(path) {
+  return isTestPath(path) && /\.mdx?$/i.test(path);
+}
+
+// A changed test, helper or fixture can change what its suite reports.
+function affectsTests(path) {
+  return isTestPath(path) && !isTestNotesPath(path);
+}
+
 function isStorybookConfigPath(path) {
   return path.includes("/.storybook/");
 }
@@ -173,11 +194,13 @@ function classifyChangedPath(path) {
   return "other";
 }
 
+// A changed helper or fixture is no focus, so its suite runs whole unless the author names the
+// test that exercises it or changed one alongside it.
 function inferChangedTestPaths(paths, deletedPaths = []) {
   const deleted = new Set(deletedPaths);
   const inferred = {};
   for (const path of paths) {
-    if (!isTestPath(path) || deleted.has(path)) continue;
+    if (!isRunnableTestPath(path) || deleted.has(path)) continue;
     const surface = owningSurface(path);
     if (!surface || surface === "docs") continue;
     const prefix = `packages/${surface}/`;
@@ -319,7 +342,7 @@ function addValidationOnlyChecks(select, surface, paths, { includeTypecheck = tr
   if (includeTypecheck && testTypechecks[surface]) {
     select(testTypechecks[surface], `validation-only:${surface}:types`);
   }
-  if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
+  if (paths.some(affectsTests)) select(`${surface}-test`, `validation-only:${surface}:tests`);
   if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
   if (paths.some(isStorybookConfigPath)) {
     select("storybook-build", `validation-only:${surface}:storybook-config`);
@@ -381,12 +404,20 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPa
     if (needsOwnerCompileProof(changedPaths, surface)) continue;
     missing.add(surface);
   }
-  // A deleted package test leaves its suite with nothing to focus on. Only the author can name the
-  // test that still proves the same failure, so ask for it, unless the whole suite costs no more
-  // than a focused run would. Docs tests have no focused mode and always run whole.
-  for (const path of deletedPaths) {
+  // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
+  // or fixture, which no runner can execute. Only the author can name the test that still proves
+  // the same failure, or that exercises the helper, so ask for it, unless the whole suite costs no
+  // more than a focused run would. Docs tests have no focused mode and always run whole.
+  const deleted = new Set(deletedPaths);
+  const unfocusable = [
+    ...deletedPaths.filter(affectsTests),
+    ...changedPaths.filter(
+      (path) => affectsTests(path) && !isRunnableTestPath(path) && !deleted.has(path),
+    ),
+  ];
+  for (const path of unfocusable) {
     const surface = owningSurface(path);
-    if (!isTestPath(path) || !surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    if (!surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
     const suite = policy.checks.find((check) => check.id === `${surface}-test`);
     if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
@@ -819,7 +850,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     command =
       check.id === "contracts-test"
         ? focusedPaths.map((path) => `bun run test --suite solidity --profile match ${path}`).join(" && ")
-        : `${check.command} ${focusedPaths.join(" ")}`;
+        : `${check.command}${check.id === "indexer-test" ? " --scope handlers" : ""} ${focusedPaths.join(" ")}`;
   }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
@@ -1113,11 +1144,11 @@ function lines(value) {
   return value.split(/\r?\n/).filter(Boolean);
 }
 
-function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch, untrackedPaths) {
+function workingCopyFingerprint(cwd, committedRange, stagedPatch, unstagedPatch, untrackedPaths) {
   const hash = createHash("sha256");
-  hash.update("validation-working-copy-v1\0");
+  hash.update("validation-working-copy-v2\0");
   for (const [label, patch] of [
-    ["committed", committedPatch],
+    ["committed", committedRange],
     ["staged", stagedPatch],
     ["unstaged", unstagedPatch],
   ]) {
@@ -1142,19 +1173,39 @@ function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch,
 
 const LIVE_PR_BASE_INTENTS = new Set(["push", "ship", "merge", "readiness", "release"]);
 
+// A release promotion carries develop's already-judged history into main. Judging it against
+// main would re-flag every file changed since the last release, so it compares against develop,
+// the base every change met on its way in. The workflows set the same rule for their own
+// diff-aware steps.
+function promotionAwareBase(baseRefName, headRefName) {
+  if (baseRefName === "main" && String(headRefName ?? "").startsWith("release/")) {
+    return "origin/develop";
+  }
+  return `origin/${baseRefName}`;
+}
+
 export function resolveComparisonBase(options = {}, dependencies = {}) {
   if (options.base) return options.base;
 
   const environment = dependencies.environment ?? process.env;
-  if (environment.GITHUB_BASE_REF) return `origin/${environment.GITHUB_BASE_REF}`;
+  if (environment.GITHUB_BASE_REF) {
+    return promotionAwareBase(environment.GITHUB_BASE_REF, environment.GITHUB_HEAD_REF);
+  }
   if (!LIVE_PR_BASE_INTENTS.has(options.intent)) return "origin/develop";
 
   const execute = dependencies.execFileSync ?? execFileSync;
   try {
-    const baseRefName = String(
+    const [baseRefName, headRefName] = String(
       execute(
         "gh",
-        ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"],
+        [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ],
         {
           cwd: dependencies.cwd ?? projectRoot,
           encoding: "utf8",
@@ -1163,8 +1214,10 @@ export function resolveComparisonBase(options = {}, dependencies = {}) {
           env: { ...environment, GH_PROMPT_DISABLED: "1" },
         },
       ),
-    ).trim();
-    if (baseRefName) return `origin/${baseRefName}`;
+    )
+      .trim()
+      .split("\t");
+    if (baseRefName) return promotionAwareBase(baseRefName, headRefName);
   } catch {
     // No live PR, no GitHub CLI, or no authenticated access: use the repository default base.
   }
@@ -1197,8 +1250,10 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     throw new Error("Lane checkpoint requires explicit changed paths");
   }
   const pathspec = laneCheckpoint ? ["--", ...explicitPaths] : [];
-  const committedPatch = gitRawOutput(
-    ["diff", "--binary", `${resolvedBase}...${resolvedHead}`, ...pathspec],
+  // Blob hashes identify the committed range exactly without materializing its patch: a
+  // develop-to-main promotion diff exceeds the git output buffer and died with ENOBUFS.
+  const committedRange = gitOutput(
+    ["diff", "--raw", "--no-abbrev", "--no-renames", `${resolvedBase}...${resolvedHead}`, ...pathspec],
     cwd,
   );
   const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
@@ -1238,7 +1293,7 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     mutationPaths: resolveMutationPaths(changedPaths, { cwd }),
     workingCopyFingerprint: workingCopyFingerprint(
       cwd,
-      committedPatch,
+      committedRange,
       stagedPatch,
       unstagedPatch,
       fingerprintUntrackedPaths,
@@ -1270,10 +1325,22 @@ export function detectCliToolchain(options = {}) {
   };
 }
 
+export function inspectPlaywrightChromium(cwd = projectRoot) {
+  try {
+    const require = createRequire(resolve(cwd, 'package.json'));
+    const executable = require('@playwright/test').chromium.executablePath();
+    const stat = statSync(executable);
+    return { available: stat.isFile(), fingerprint: `${require('@playwright/test/package.json').version}:${stat.size}:${stat.mtimeMs}` };
+  } catch {
+    return { available: false, fingerprint: null };
+  }
+}
+
 export function detectCliCapabilities(options = {}) {
   const inspect = options.inspectPinnedSubmodules ?? inspectPinnedSubmodules;
   return {
     contractSubmodules: inspect({ cwd: options.cwd ?? projectRoot }).ready,
+    playwrightChromium: inspectPlaywrightChromium(options.cwd).available,
   };
 }
 

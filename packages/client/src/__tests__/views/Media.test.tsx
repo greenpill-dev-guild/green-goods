@@ -207,6 +207,8 @@ const messages = {
   "app.garden.upload.title": "Upload Media",
   "app.garden.submit.tab.media.instruction": "Please take a clear photo",
   "app.garden.upload.progress": "{current} of {required} photos uploaded",
+  "app.garden.upload.mediaRule.needed":
+    "{current} of {required, plural, one {# photo} other {# photos}}",
   "app.garden.upload.maxAllowed": "max {max}",
   "app.garden.upload.cta": "Add Photos",
   "app.garden.upload.remove": "Remove",
@@ -382,8 +384,8 @@ describe("WorkMedia", () => {
       />
     );
 
-    // Should show progress indicator via badge
-    expect(screen.getByTestId("badge")).toBeInTheDocument();
+    // The rule pill says how far the photos are from what the action asks.
+    expect(screen.getByText("0 of 2 photos")).toHaveAttribute("role", "status");
   });
 
   it("exposes gallery click handler via ref", () => {

@@ -1,5 +1,4 @@
 import type { Step } from "../../../components/Form/StepIndicator";
-import { toastService } from "../../../components/Toast/toast.service";
 import {
   trackAdminActionCreateFailed,
   trackAdminActionCreateStarted,
@@ -16,6 +15,7 @@ import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import type { CreateActionFormData } from "../../action/useActionForm";
 import { useActionOperations } from "../../action/useActionOperations";
 import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
+import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -35,17 +35,30 @@ import {
   serializeCreateActionDraft,
 } from "./actionDrafts";
 
+/** Where the Review's send stands: nothing sent yet, under way, landed, or failed. */
+type CreateActionSend = "idle" | "sending" | "sent" | "failed";
+
 export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
-  const { registerAction, isLoading } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
+  const { registerAction, isLoading, assertReady } = useActionOperations(
+    CREATE_ACTION_DEFAULT_CHAIN_ID
+  );
   const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const actionCreateGardenAddress = createActionContracts.gardenToken;
   const [currentStep, setCurrentStep] = useState(0);
   const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
   const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
   const restoredDraftRef = useRef(false);
+  // The send covers the uploads as well as the registration, so the Review
+  // holds still from the first press, not only while the wallet is asked.
+  const [send, setSend] = useState<CreateActionSend>("idle");
+  const [sendError, setSendError] = useState<unknown>(null);
+  // Validation runs before onSubmit, so two quick presses can both reach it
+  // before the state above re-renders; this lock is set synchronously.
+  const sendLockRef = useRef(false);
+  const txError = useTxErrorMessages(sendError);
 
   const domainOptions = [
     {
@@ -164,17 +177,17 @@ export function useCreateActionController() {
   }, [currentStep, form, setDraftFormState]);
 
   const onSubmit = async (data: CreateActionFormData) => {
+    // One send at a time, and none once the action exists.
+    if (sendLockRef.current) return;
+    sendLockRef.current = true;
+    setSend("sending");
+    setSendError(null);
     let mutationStarted = false;
     const actionSlug = data.slug.trim().toLowerCase();
     const actionDomain = data.domain as Domain;
 
     try {
-      toastService.loading({
-        title: formatMessage({
-          id: "app.admin.actions.create.uploadingMedia",
-          defaultMessage: "Uploading media to IPFS...",
-        }),
-      });
+      await assertReady();
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );
@@ -192,8 +205,6 @@ export function useCreateActionController() {
         type: "application/json",
       });
       const instructionsUpload = await uploadFileToIPFS(instructionsFile);
-
-      toastService.dismiss();
 
       const telemetryBase = {
         gardenAddress: actionCreateGardenAddress,
@@ -236,9 +247,12 @@ export function useCreateActionController() {
         txHash: result.hash ?? "",
       });
 
+      // The flow stays on its Review once the action exists (DL-080): nothing
+      // navigates and nothing asks to discard. The draft goes at once, so a
+      // reload cannot register the same action twice.
       clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
       clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
-      navigate(actionsListHref);
+      setSend("sent");
     } catch (error) {
       logger.error("Failed to create action", {
         source: "CreateAction.onSubmit",
@@ -259,22 +273,25 @@ export function useCreateActionController() {
         });
       }
 
-      toastService.error({
-        title: formatMessage({
-          id: "app.admin.actions.create.errorTitle",
-          defaultMessage: "Failed to create action",
-        }),
-        context: formatMessage({
-          id: "app.admin.actions.create.errorContext",
-          defaultMessage: "action creation",
-        }),
-        error,
-      });
+      // The Review's status row says what happened; Try Again sends the
+      // answers as they stand.
+      setSendError(error);
+      setSend("failed");
+      sendLockRef.current = false;
     }
   };
 
   const handleCancel = () => {
     navigate(actionsListHref);
+  };
+
+  // The draft left with the send, so a new action starts from empty answers.
+  const handleCreateAnother = () => {
+    sendLockRef.current = false;
+    form.reset(createActionDefaultValues());
+    setSend("idle");
+    setSendError(null);
+    setCurrentStep(0);
   };
 
   // Discard clears the persisted draft (media + form state) before leaving, so a
@@ -286,18 +303,27 @@ export function useCreateActionController() {
     navigate(actionsListHref);
   };
 
+  const isSent = send === "sent";
+
   return {
     currentStep,
     domainOptions,
+    errorMessage: txError.message,
+    errorTitle: txError.title,
     form,
     goToStep: stepValidation.handleStepClick,
     handleBack: stepValidation.handleBack,
     handleCancel,
+    handleCreateAnother,
     handleDiscard,
     handleNext: stepValidation.handleNext,
-    isDirty: form.formState.isDirty,
-    isLoading,
+    hasError: send === "failed",
+    // A registered action is not in progress, so closing its done state never asks.
+    isDirty: form.formState.isDirty && !isSent,
+    isSending: send === "sending" || isLoading,
+    isSent,
     onSubmit,
     stepConfigs,
+    txErrorView: txError.view,
   };
 }

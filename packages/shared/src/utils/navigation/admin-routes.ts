@@ -16,6 +16,8 @@ export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
+/** The Work tab's scope: work waiting for review, or work already approved. */
+export type AdminHubWorkScope = "pending" | "approved";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
 
@@ -24,6 +26,8 @@ export interface AdminHubRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   sort?: AdminHubSort;
+  /** Pending is the default and stays out of the URL; only "approved" is written. */
+  scope?: AdminHubWorkScope;
 }
 
 export interface AdminGardenRouteContext {
@@ -87,6 +91,7 @@ function buildHubContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
+    scope: context.scope === "approved" ? "approved" : undefined,
   };
 }
 
@@ -159,9 +164,9 @@ export const adminRoutes = {
   hubAssessCreate(context?: AdminHubRouteContext) {
     return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));
   },
-  hubCertifyDetail(assessmentId: string, context?: AdminHubRouteContext) {
+  hubAssessDetail(assessmentId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(
-      `/hub/certify/${encodeSegment(assessmentId)}`,
+      `/hub/assess/${encodeSegment(assessmentId)}`,
       buildHubContextSearch(context)
     );
   },
@@ -206,12 +211,19 @@ export const adminRoutes = {
       from: options?.from,
     });
   },
-  /** One commitment, opened in the pool tab's inspector (§6.7). */
-  gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {
-    return buildAdminHref(
-      `/garden/pool/${encodeSegment(commitmentId)}`,
-      buildGardenContextSearch(context)
-    );
+  /**
+   * One commitment, opened in the pool tab's inspector (§6.7); `focus: "waiting"`
+   * opens it at its waiting list, as a Waiting for approval row does (PRD-1025 D4).
+   */
+  gardenPoolCommitment(
+    commitmentId: string,
+    context?: AdminGardenRouteContext,
+    options?: { focus?: "waiting" }
+  ) {
+    return buildAdminHref(`/garden/pool/${encodeSegment(commitmentId)}`, {
+      ...buildGardenContextSearch(context),
+      focus: options?.focus,
+    });
   },
   gardenCreate() {
     return "/garden/create";

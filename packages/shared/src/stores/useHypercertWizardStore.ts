@@ -22,6 +22,10 @@ import {
   updateHypercertMetadataTransition,
 } from "./transitions/hypercert-wizard";
 
+// The admin's metadata step shows its date-range error from the same rule Next
+// waits on, and this module is the wizard's declared path.
+export { selectHypercertTimeframeOrder } from "./transitions/hypercert-wizard";
+
 /**
  * Session storage key for minting state persistence.
  * Allows recovery of in-progress mints after page refresh.

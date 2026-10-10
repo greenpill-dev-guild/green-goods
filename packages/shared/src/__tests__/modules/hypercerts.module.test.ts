@@ -192,6 +192,49 @@ describe("filterAttestationsByAssessment", () => {
     expect(result[0]).toMatchObject({ createdAt: 1706000000, domain: "solar" });
   });
 
+  // Create Assessment stores each end of a period as UTC midnight of the day the
+  // author picked, so the stored end is the first instant of the period's last day.
+  it("keeps work created on the period's first and last days and none from the days around them", () => {
+    const at = (iso: string) => Date.parse(iso) / 1000;
+    const assessment = createMockEASAssessment({
+      startDate: at("2026-07-01T00:00:00Z"),
+      endDate: at("2026-09-30T00:00:00Z"),
+    });
+    const attestations = [
+      createMockAttestation({ title: "the day before", createdAt: at("2026-06-30T23:59:59Z") }),
+      createMockAttestation({ title: "first minute", createdAt: at("2026-07-01T00:00:00Z") }),
+      createMockAttestation({ title: "last afternoon", createdAt: at("2026-09-30T15:30:00Z") }),
+      createMockAttestation({ title: "last second", createdAt: at("2026-09-30T23:59:59Z") }),
+      createMockAttestation({ title: "the day after", createdAt: at("2026-10-01T00:00:00Z") }),
+    ];
+
+    const kept = filterAttestationsByAssessment(attestations, assessment).map((a) => a.title);
+
+    expect(kept).toEqual(["first minute", "last afternoon", "last second"]);
+  });
+
+  // A period reads as whole UTC days wherever it is shown, so the day shown as
+  // its end is counted whole even when the stored instant is not midnight.
+  it("counts the whole UTC day of an end that is not stored at midnight", () => {
+    const at = (iso: string) => Date.parse(iso) / 1000;
+    const assessment = createMockEASAssessment({
+      startDate: at("2026-07-01T09:00:00Z"),
+      endDate: at("2026-09-30T10:00:00Z"),
+    });
+    const attestations = [
+      createMockAttestation({
+        title: "before the start time",
+        createdAt: at("2026-07-01T03:00:00Z"),
+      }),
+      createMockAttestation({ title: "after the end time", createdAt: at("2026-09-30T18:00:00Z") }),
+      createMockAttestation({ title: "the day after", createdAt: at("2026-10-01T00:00:00Z") }),
+    ];
+
+    const kept = filterAttestationsByAssessment(attestations, assessment).map((a) => a.title);
+
+    expect(kept).toEqual(["before the start time", "after the end time"]);
+  });
+
   it("returns empty array when no attestations match", () => {
     const attestations = [createMockAttestation({ createdAt: 1700000000, domain: "waste" })];
     const assessment = createMockAssessment({ domain: Domain.SOLAR });

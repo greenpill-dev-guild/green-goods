@@ -1,4 +1,4 @@
-import { usePendingWorksCount } from "@green-goods/shared/hooks/work/usePendingWorksCount";
+import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -14,29 +14,19 @@ import {
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwaRouting";
+import { APP_ROUTES, isImmersiveAppRoute } from "@/config/pwaRouting";
 
 export const AppBar = () => {
   const { pathname } = useLocation();
-  const isGarden =
-    pathname === APP_ROUTES.garden ||
-    pathname.startsWith(`${APP_ROUTES.garden}/`) ||
-    pathname === LEGACY_APP_ROUTES.garden ||
-    pathname.startsWith(`${LEGACY_APP_ROUTES.garden}/`);
-  const isWorkDetail = pathname.includes("/work/");
-  // A commitment's detail and composer carry their own fixed action bar, and
-  // the nav underneath it would sit exactly where the thumb lands.
-  const isCommitmentRoute = pathname.includes("/commitments/");
   const intl = useIntl();
-  const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { count: pendingCount } = useYourWorkCount();
   const { isPwaPresentation } = useApp();
 
   // Every sheet and dialog registers itself while open, so the bar steps aside
   // for all of them without a hand-maintained list (DL-015).
   const isAnySheetOpen = useUIStore((s) => s.openSheetCount > 0);
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
-  const shouldHideBar =
-    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnySheetOpen;
+  const shouldHideBar = !isPwaPresentation || isImmersiveAppRoute(pathname) || isAnySheetOpen;
 
   const tabs: {
     path: string;
@@ -69,11 +59,13 @@ export const AppBar = () => {
       data-testid="authenticated-nav"
       className={cn(
         // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
-        // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
+        // Hide AppBar on routes that own their chrome (Submit Work, a garden's pages) or when any sheet is open.
         // vt-app-bar keeps it above the page cross-fade when switching tabs.
         "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
         shouldHideBar ? "translate-y-full" : "translate-y-0"
       )}
+      // Off screen is out of reach too: no tab stops or screen-reader links.
+      inert={shouldHideBar}
     >
       {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
         const isHome = path === APP_ROUTES.home;
@@ -95,7 +87,7 @@ export const AppBar = () => {
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "flex flex-col items-center",
-              isActive && "active tab-active text-primary focus:outline-hidden",
+              isActive && "active tab-active text-primary-on-surface focus:outline-hidden",
               !isActive && "text-text-soft-400"
             )}
           >
@@ -112,7 +104,7 @@ export const AppBar = () => {
                 </span>
               )}
             </div>
-            <p className={cn("text-sm", isActive && "text-primary")}>{title}</p>
+            <p className="text-sm">{title}</p>
           </Link>
         );
       })}

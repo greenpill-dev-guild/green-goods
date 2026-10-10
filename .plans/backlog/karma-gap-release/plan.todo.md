@@ -2,9 +2,13 @@
 
 **Feature Slug**: `karma-gap-release`
 **Stage**: `backlog`
-**Status**: `BACKLOG: waiting on a legacy GardenAccount compatibility design; the repair itself is merged (PR #775)`
+**Status**: `BLOCKED — legacy GardenAccount compatibility design required`
 **Created**: `2026-09-10`
-**Last Updated**: `2026-09-10`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+The repair shipped in PR #775; this hub owns release only. Existing Arbitrum GardenAccounts require a reviewed compatibility path before the Karma/GardenToken release. Keep the pinned inventory, seeded historical linkage, canary and authenticated proof gates. The age review supplies no new deployment facts and authorizes no upgrade.
 
 ## Decision Log
 

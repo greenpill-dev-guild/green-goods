@@ -17,7 +17,16 @@ import { normalizeAddress } from "../../utils/blockchain/address";
 interface UseGreenWillBadgesOptions {
   chainId?: number;
   enabled?: boolean;
+  /**
+   * Badges a sent claim is waiting on, such as a Safe proposal still gathering
+   * signatures. Nothing announces when it executes, so ownership is read again
+   * every 30 seconds until each of them is owned.
+   */
+  awaitBadgeIds?: readonly string[];
 }
+
+/** How often ownership is read again while a claim awaits execution. */
+const AWAITED_CLAIM_REFRESH_MS = 30_000;
 
 export function useGreenWillBadges(owner?: string, options: UseGreenWillBadgesOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
@@ -32,11 +41,23 @@ export function useGreenWillBadges(owner?: string, options: UseGreenWillBadgesOp
     staleTime: STALE_TIME_MEDIUM,
   });
 
+  const awaitBadgeIds = options.awaitBadgeIds ?? [];
   const ownershipQuery = useQuery({
     queryKey: greenWillKeys.ownership(normalizedOwner, chainId),
     queryFn: () => getGreenWillBadgesByOwner(normalizedOwner, chainId),
     enabled: ownershipEnabled,
     staleTime: STALE_TIME_MEDIUM,
+    refetchInterval: (query) => {
+      if (awaitBadgeIds.length === 0) return false;
+      const owned = new Set(
+        ((query.state.data as GreenWillBadgeOwnership[] | undefined) ?? []).map((ownership) =>
+          ownership.badgeId.toLowerCase()
+        )
+      );
+      return awaitBadgeIds.some((badgeId) => !owned.has(badgeId.toLowerCase()))
+        ? AWAITED_CLAIM_REFRESH_MS
+        : false;
+    },
   });
 
   const badgeDefinitions = definitionsQuery.data as GreenWillBadgeDefinition[] | undefined;

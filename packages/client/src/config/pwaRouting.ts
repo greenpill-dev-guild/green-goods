@@ -23,6 +23,27 @@ export const LEGACY_APP_ROUTES = {
   profile: "/profile",
 } as const;
 
+/** The /home children that are tabs or the login rather than a garden's id. */
+const HOME_TAB_SEGMENTS: ReadonlySet<string> = new Set(
+  [APP_ROUTES.login, APP_ROUTES.garden, APP_ROUTES.profile].map((route) =>
+    route.slice(APP_ROUTES.home.length + 1)
+  )
+);
+
+/**
+ * Whether a route owns its chrome, so the bottom AppBar never shows there: the
+ * work submission flow, and a garden's pages (`/home/:id/**`), whose banner
+ * carries back and whose work, promise and proof pages carry their own fixed
+ * bars exactly where the nav would sit.
+ */
+export function isImmersiveAppRoute(pathname: string): boolean {
+  const isWithin = (route: string) => pathname === route || pathname.startsWith(`${route}/`);
+  if (isWithin(APP_ROUTES.garden) || isWithin(LEGACY_APP_ROUTES.garden)) return true;
+  if (!pathname.startsWith(`${APP_ROUTES.home}/`)) return false;
+  const segment = pathname.slice(APP_ROUTES.home.length + 1).split("/")[0];
+  return segment !== "" && !HOME_TAB_SEGMENTS.has(segment);
+}
+
 export const PUBLIC_PWA_ORIGIN = "https://www.greengoods.app";
 
 export function createPwaLaunchUrl(origin: string): string {

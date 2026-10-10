@@ -5,6 +5,8 @@ import { useJobQueue } from "../../../providers/JobQueue";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
+import { useGardenMembership } from "../../roles/useGardenMembership";
 import { useHasRole } from "../../roles/useHasRole";
 import {
   type CommitmentPoolRecord,
@@ -18,7 +20,7 @@ import {
 } from "../../../commitment-pooling";
 
 export type GardenPoolDirection = "all" | "OFFER" | "REQUEST";
-export type GardenPoolLiveness = "live" | "settled";
+export type GardenPoolLiveness = "live" | "settled" | "all";
 
 const NON_PARTICIPATING_STATES = new Set(["NOT_READY", "READY", "CLOSED", "COMPOSTED"]);
 
@@ -28,8 +30,9 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const isOnline = useOnlineStatus();
   const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
   const [direction, setDirection] = useState<GardenPoolDirection>("all");
-  // The daily list defaults to the living; the settled fold behind a scope
-  // chip so kept/withdrawn/lapsed rows never interleave open offers.
+  // The daily list defaults to the living; the settled are the history, one
+  // Status choice away, so kept/withdrawn/lapsed rows never interleave open
+  // offers unless the reader asks for All.
   const [liveness, setLiveness] = useState<GardenPoolLiveness>("live");
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
 
@@ -61,9 +64,17 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   );
   const stewardsPool = stewardRole.hasRole;
   const ownsPool = ownerRole.hasRole;
+  // Any role in the garden: the contract's own test for starting a promise in a
+  // garden's pool. Unknown while it reads or when the read fails, which draws no +.
+  const membership = useGardenMembership(
+    pool.garden as Address,
+    (viewer ?? undefined) as Address | undefined,
+    chainId
+  );
   const queue = useCommitmentQueueState(viewer as Address | null);
   const { pendingCreates, refresh: refreshQueue } = queue;
   const { retryAndSend } = useJobQueue();
+  const { sendsFromTap } = useCommitmentJobs({ chainId });
   const commitments = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -74,6 +85,17 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     () => pendingCreates.filter((entry) => entry.poolId === pool.poolId.toString()),
     [pendingCreates, pool.poolId]
   );
+  // A creation still on this phone is a live promise to be, of its own kind: it
+  // follows Status and Kind like every row, and belongs to no season yet.
+  const shownCreations = useMemo(
+    () =>
+      liveness === "settled"
+        ? []
+        : ownCreations.filter(
+            (creation) => direction === "all" || creation.direction === direction
+          ),
+    [direction, liveness, ownCreations]
+  );
   const { rows, settledCount } = useMemo(() => {
     const inDirection =
       direction === "all"
@@ -83,9 +105,11 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
       isSettledCommitmentState(commitment.derivedState)
     );
     const scoped =
-      liveness === "settled"
-        ? settledInDirection
-        : inDirection.filter((commitment) => !isSettledCommitmentState(commitment.derivedState));
+      liveness === "all"
+        ? inDirection
+        : liveness === "settled"
+          ? settledInDirection
+          : inDirection.filter((commitment) => !isSettledCommitmentState(commitment.derivedState));
     return {
       settledCount: settledInDirection.length,
       rows: scoped.map((commitment) => {
@@ -129,6 +153,8 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
   const poolState = pool.state ?? "UNKNOWN";
   return {
     chainId,
+    /** Who is reading, so their own copies stay out of a group row. */
+    viewer: (viewer ?? null) as Address | null,
     isOnline,
     cycles,
     selectedCycleId: activeCycleId,
@@ -139,14 +165,24 @@ export function useGardenPoolController(pool: CommitmentPoolRecord) {
     setLiveness,
     settledCount,
     busyJobId,
+    /** Every creation on this phone for the pool, whatever the filters. */
     ownCreations,
+    /** The creations the list shows under the chosen Status and Kind. */
+    shownCreations,
+    /** A queued creation goes only when the reader sends it (a wallet sign-in). */
+    sendsFromTap,
     rows,
     titleOf: (metadataCID: string | null | undefined) =>
       metadataCID ? (byCID.get(metadataCID)?.title ?? null) : null,
     commitments,
     poolState,
     isParticipating: !NON_PARTICIPATING_STATES.has(poolState),
-    canCreate: poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
+    // Creation needs an open pool and, in a garden's pool, a member: the contract
+    // refuses anyone else. The protocol pool takes only its host garden's stewards
+    // (CreationChecksLib.resolveCreator) until members' offers there are decided.
+    canCreate:
+      poolState === "OPEN" &&
+      (pool.poolType === "PROTOCOL" ? stewardsPool || ownsPool : membership.isMember === true),
     // Whether the reader stewards the pool's garden. Null until both role reads
     // answer, and while either failed, so no copy assumes an answer it lacks.
     stewardsPool:

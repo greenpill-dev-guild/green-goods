@@ -15,9 +15,9 @@ import type {
   Domain,
   WorkApprovalDraft,
   WorkDraft,
-  WorkMetadata,
   WorkUploadCheckpoint,
 } from "../../types/domain";
+import { buildWorkMetadataPayload } from "./work-metadata";
 
 /**
  * Maps MIME types to file extensions.
@@ -79,6 +79,8 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  /** The published content, available for a receipt-confirmed local preview. */
+  onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
   checkpoint?: WorkUploadCheckpoint;
   onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Stable submission identity. New submissions always supply it. */
@@ -344,48 +346,23 @@ export async function encodeWorkData(
 
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
-    const isV2 =
-      options.domain !== null && options.domain !== undefined && options.actionSlug !== undefined;
-
-    const metadataPayload: WorkMetadata | Record<string, unknown> = isV2
-      ? {
-          schemaVersion: "work_metadata_v2" as const,
-          domain: options.domain!,
-          actionSlug: options.actionSlug!,
-          timeSpentMinutes: data.timeSpentMinutes ?? 0,
-          details: Object.fromEntries(
-            Object.entries(data.details ?? {}).filter(([key]) => key !== "_location")
-          ),
-          ...(roundWorkLocation(data.location)
-            ? { location: roundWorkLocation(data.location) }
-            : {}),
-          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
-          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
-          clientWorkId:
-            options.clientWorkId ??
-            ((data as unknown as Record<string, unknown>).clientWorkId as string),
-          submittedAt: checkpoint.submittedAt,
-        }
-      : {
-          // Legacy v1 format for backward compatibility during transition
-          details: Object.fromEntries(
-            Object.entries(data.details ?? {}).filter(([key]) => key !== "_location")
-          ),
-          ...(roundWorkLocation(data.location)
-            ? { location: roundWorkLocation(data.location) }
-            : {}),
-          timeSpentMinutes: data.timeSpentMinutes,
-          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
-          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
-          ...(options.clientWorkId ? { clientWorkId: options.clientWorkId } : {}),
-        };
-
-    Object.assign(metadataPayload, {
+    const { payload: metadataPayload, version: metadataType } = buildWorkMetadataPayload({
       title: data.title,
       feedback: data.feedback,
       actionUID: data.actionUID,
+      timeSpentMinutes: data.timeSpentMinutes,
+      details: data.details,
+      location: roundWorkLocation(data.location),
+      tags: data.tags,
+      audioNoteCids,
       submittedAt: checkpoint.submittedAt,
       attachments: media.map((cid, index) => ({ cid, type: data.media[index].type })),
+      clientWorkId: options.clientWorkId,
+      draftClientWorkId: (data as unknown as Record<string, unknown>).clientWorkId as
+        | string
+        | undefined,
+      domain: options.domain,
+      actionSlug: options.actionSlug,
     });
     const metadataHash = await hashWorkBytes(
       new TextEncoder().encode(JSON.stringify(metadataPayload)).buffer
@@ -397,7 +374,7 @@ export async function encodeWorkData(
             source: "encodeWorkData",
             gardenAddress: options.gardenAddress,
             authMode: options.authMode,
-            metadataType: isV2 ? "work_metadata_v2" : "work_metadata",
+            metadataType,
           });
     checkpoint.metadata = { contentHash: metadataHash, cid: metadata.cid };
     await persistCheckpoint();
@@ -425,6 +402,9 @@ export async function encodeWorkData(
       { name: "media", value: media, type: "string[]" },
     ]) as `0x${string}`;
 
+    checkpoint.published = { data: encodedData, metadata: metadataPayload, media };
+    await persistCheckpoint();
+    options.onEncoded?.({ metadata: metadataPayload, media });
     return encodedData;
   } catch (error) {
     failedFiles++;

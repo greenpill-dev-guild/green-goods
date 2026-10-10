@@ -51,6 +51,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
         {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
         {type: 'doc', id: 'reference/product-history', label: 'Product History'},
+        {type: 'doc', id: 'reference/brand', label: 'Brand kit'},
         {type: 'doc', id: 'reference/design-research', label: 'Design Rationale'},
         {type: 'doc', id: 'reference/credits', label: 'Credits'},
       ],
@@ -59,6 +60,7 @@ const sidebars: SidebarsConfig = {
 
   buildersSidebar: [
     {type: 'doc', id: 'builders/getting-started', label: 'Getting Started'},
+    {type: 'link', label: 'Brand kit', href: '/brand'},
     {type: 'doc', id: 'builders/how-to-contribute', label: 'How To Contribute'},
     {type: 'doc', id: 'builders/env-management', label: 'Environment Management'},
     {type: 'doc', id: 'builders/ethereum-alignment', label: 'Ethereum Alignment'},

@@ -30,7 +30,7 @@ bun run browser e2e --preset ui
 | `admin.smoke.spec.ts` | 9 | Auth, dashboard, pages |
 | `client.auth.spec.ts` | 11 | Complete auth flows |
 | `client.offline-sync.spec.ts` | 13 | Offline functionality |
-| `client.work-approval.spec.ts` | 9 | Operator flows |
+| `client.work-approval.spec.ts` | 9 | Steward flows |
 | `client.work-submission.spec.ts` | 11 | Work submission |
 
 ## Passkey Testing (Android/Chromium)

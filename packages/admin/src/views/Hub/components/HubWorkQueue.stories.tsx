@@ -54,11 +54,12 @@ const meta: Meta<typeof HubWorkQueue> = {
     docs: {
       description: {
         component:
-          "Hub Work-stage queue. Pending work across all gardens in scope. Search clears via `onClearSearch`.",
+          "The Hub's Work tab list for one scope: work waiting for review, or work already approved. The scope decides the empty state. Search clears via `onClearSearch`.",
       },
     },
   },
   args: {
+    scope: "pending",
     actionsMap: ACTIONS_MAP,
     selectedWorkId: undefined,
     selectedGardenName: "Rio Rainforest Lab",
@@ -108,6 +109,30 @@ export const Loading: Story = {
 
 export const AllCaughtUp: Story = {
   args: {
+    items: [],
+    worksLoading: false,
+    hasDataError: false,
+  },
+};
+
+/** The Approved scope is the same list, holding the work a steward has approved. */
+export const ApprovedScope: Story = {
+  args: {
+    scope: "approved",
+    items: PENDING_WORK.map((item) => ({ ...item, status: "approved" as const })),
+    worksLoading: false,
+    hasDataError: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText("Approved")).toHaveLength(PENDING_WORK.length);
+    await expect(canvas.queryByText("Pending")).toBeNull();
+  },
+};
+
+export const NoApprovedWork: Story = {
+  args: {
+    scope: "approved",
     items: [],
     worksLoading: false,
     hasDataError: false,

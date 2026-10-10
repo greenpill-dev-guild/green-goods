@@ -174,7 +174,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             <div
               aria-hidden="true"
               className={cn(
-                "absolute inset-0 rounded-2xl border-[3px] border-primary opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
+                "absolute inset-0 rounded-2xl border-[3px] border-primary-on-surface opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />
@@ -185,7 +185,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                 isMinimalSelection
                   ? "min-w-0 truncate text-label-md font-semibold transition-colors"
                   : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
-                selected && "text-primary"
+                selected && "text-primary-on-surface"
               )}
               title={garden.name}
             >
@@ -199,7 +199,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   variant="outline"
                   tint="none"
                   className="border-0 p-0 text-xs font-medium leading-tight"
-                  leadingIcon={<RiGroupFill className="h-4 w-4 text-primary" />}
+                  leadingIcon={<RiGroupFill className="h-4 w-4 text-primary-on-surface" />}
                 >
                   {membersCount} {labels.members}
                 </Badge>
@@ -209,7 +209,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                     variant="outline"
                     tint="none"
                     className="border-0 p-0 text-xs font-medium leading-tight"
-                    leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary" />}
+                    leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary-on-surface" />}
                   >
                     {stewardCount} {labels.stewards}
                   </Badge>
@@ -221,7 +221,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                     tint="none"
                     className="border-0 p-0 text-xs font-medium leading-tight"
                   >
-                    <RiMapPinFill className="h-4 w-4 text-primary" />
+                    <RiMapPinFill className="h-4 w-4 text-primary-on-surface" />
                     <span className="max-w-[12rem] truncate" title={garden.location}>
                       {garden.location}
                     </span>
@@ -234,7 +234,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             {showStewards && stewardCount > 0 && (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-sub-600">
-                  <RiMapPinUserFill className="h-3.5 w-3.5 text-primary" />
+                  <RiMapPinUserFill className="h-3.5 w-3.5 text-primary-on-surface" />
                   <span>{labels.stewardHeading}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">

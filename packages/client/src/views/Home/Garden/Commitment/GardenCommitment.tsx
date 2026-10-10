@@ -1,18 +1,23 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { Address } from "@green-goods/shared/types/domain";
 import { writeWorkLinkIntent } from "@green-goods/shared/commitment-pooling";
 import { useGardenCommitmentController } from "@green-goods/shared/hooks/client-ui/commitment/useGardenCommitmentController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { describeProofContents } from "@/components/Features/Commitments";
 import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { commitmentActForKind } from "./commitmentActions";
 import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
 import { CommitmentEvidence } from "./CommitmentEvidence";
+import { CommitmentHistory } from "./CommitmentHistory";
 import { CommitmentIdentity } from "./CommitmentIdentity";
+import { CommitmentPlace } from "./CommitmentPlace";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
@@ -20,6 +25,7 @@ import { ConfirmSheet } from "./ConfirmSheet";
 import { FailedActAlert } from "./FailedActAlert";
 import { JoinToAct, MembershipCheckFailed } from "./JoinToAct";
 import { LinkWorkSheet } from "./LinkWorkSheet";
+import { PromiseGroupNote } from "./PromiseGroupNote";
 import { QueuedActNotice } from "./QueuedActRow";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawSheet } from "./WithdrawSheet";
@@ -43,6 +49,7 @@ export function GardenCommitment() {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const location = useLocation();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
@@ -61,10 +68,13 @@ export function GardenCommitment() {
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number | null } | true | null
   >(null);
-  const back = () =>
-    location.state?.proofDirectEntry
-      ? navigate("../..", { relative: "path", replace: true })
-      : navigate(-1);
+  // Opened from Your Work, Back reopens it where it was, as a work's page does.
+  const back = () => {
+    if (dashboardNavigation.back()) return;
+    if (location.state?.proofDirectEntry)
+      return navigate("../..", { relative: "path", replace: true });
+    navigate(-1);
+  };
 
   if (controller.status !== "ready") {
     if (controller.status === "error") {
@@ -83,7 +93,15 @@ export function GardenCommitment() {
   }
 
   const { commitment, contributors, requirements } = controller.detail;
-  const act = commitmentActForKind(controller.actKind);
+  const requiredWorkApproved =
+    requirements.length > 0 && requirements.every((row) => row.approvedCount >= row.requiredCount);
+  const selectedAct = commitmentActForKind(controller.actKind);
+  // Linking the required work advances Garden Work promises; proof stays available.
+  const workIsPrimary =
+    selectedAct?.kind === "addProof" && controller.linkable && !requiredWorkApproved;
+  const act = workIsPrimary
+    ? { kind: "linkWork" as const, labelId: "app.commitment.act.linkWork" }
+    : selectedAct;
   // A signed-in reader who does not belong to the garden gets no act; the card
   // under the status band says how to join instead. Nothing shows while
   // membership is still being read, or while an act is already on its way.
@@ -98,13 +116,47 @@ export function GardenCommitment() {
     commitment,
     seat: controller.seat,
     actKind: controller.actKind,
+    hasLinkedWork: controller.detail.workAttributions.some((row) => row.linked),
+    requiredWorkApproved,
   });
   const isPending = controller.isQueueing || controller.isSending;
+  // Proof still on this phone and not being sent: the notice above says what
+  // it waits for; the progress and the history say it is not on the promise yet.
+  const proofJob =
+    controller.queue.pendingAct?.kind === "evidence" ? controller.queue.pendingAct : null;
+  const failedProof =
+    controller.queue.failedJob?.kind === "evidence" ? controller.queue.failedJob : null;
+  const proofOnPhone = controller.queue.proofSending
+    ? null
+    : failedProof
+      ? { text: formatMessage({ id: "app.commitment.history.local.failed" }), at: failedProof.at }
+      : proofJob
+        ? {
+            text: formatMessage({
+              id:
+                proofJob.waitingReason === "send-intent-expired"
+                  ? "app.commitment.history.local.cancelled"
+                  : proofJob.waitingReason === "awaiting-confirmation"
+                    ? "app.commitment.history.local.checking"
+                    : "app.commitment.history.local.saved",
+            }),
+            at: proofJob.createdAt,
+          }
+        : null;
   const units = commitment.unitLabel
     ? formatCommitmentUnits(intl, commitment.targetUnits, commitment.unitLabel)
     : null;
   const heading =
     controller.metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
+  // The stewards of the promise's own garden, so whoever confirms it carries the
+  // role. The page holds the route garden's record, which is the pool's garden
+  // unless the promise sits in another garden's pool.
+  const poolGarden = controller.pool?.garden;
+  const gardenRecord = controller.roles.garden;
+  const stewards =
+    poolGarden && gardenRecord && gardenRecord.id.toLowerCase() === poolGarden.toLowerCase()
+      ? gardenRecord.stewards
+      : [];
   const openWorkSubmission = (requirementIndex: number, actionUID: number | bigint) => {
     const parsedActionUID = Number(actionUID);
     if (!controller.routeGarden || !controller.workGarden || !Number.isSafeInteger(parsedActionUID))
@@ -120,7 +172,7 @@ export function GardenCommitment() {
       returnTo,
     });
     setLinkOpen(null);
-    navigate(`/home/garden?${params.toString()}`);
+    dashboardNavigation.forward(`/home/garden?${params.toString()}`);
   };
 
   const claim = (context: ClaimContext) => {
@@ -146,8 +198,14 @@ export function GardenCommitment() {
       case "confirm":
         setConfirmOpen(true);
         return;
+      case "linkWork":
+        setLinkOpen(true);
+        return;
       case "addProof":
-        navigate("proof", { relative: "path", state: { proofOrigin: location.pathname } });
+        dashboardNavigation.forward("proof", {
+          relative: "path",
+          state: { proofOrigin: location.pathname },
+        });
         return;
       case "offerAgain":
       case "askAgain": {
@@ -158,7 +216,7 @@ export function GardenCommitment() {
         const poolGarden = controller.pool?.garden;
         if (!poolGarden) return;
         const door = act.kind === "askAgain" ? "request" : "offer";
-        navigate(
+        dashboardNavigation.forward(
           `/home/${poolGarden}/commitments/new?direction=${door}&from=${commitment.commitmentId.toString()}`
         );
       }
@@ -170,6 +228,13 @@ export function GardenCommitment() {
       <CommitmentDetailShell
         onBack={back}
         title={heading}
+        subtitle={
+          <CommitmentPlace
+            chainId={controller.chainId}
+            commitment={commitment}
+            garden={controller.pool?.garden ?? (controller.routeGarden as Address | undefined)}
+          />
+        }
         bar={
           act ? (
             <CommitmentActionBar
@@ -180,8 +245,15 @@ export function GardenCommitment() {
                 controller.queue.isUnavailable ? "app.commitments.queueUnreadable" : null
               }
               secondary={
-                controller.linkable && act.kind === "addProof"
-                  ? { labelId: "app.commitment.act.linkWork", onRun: () => setLinkOpen(true) }
+                workIsPrimary
+                  ? {
+                      labelId: "app.commitment.act.addProof",
+                      onRun: () =>
+                        dashboardNavigation.forward("proof", {
+                          relative: "path",
+                          state: { proofOrigin: location.pathname },
+                        }),
+                    }
                   : null
               }
               onRun={runAct}
@@ -196,7 +268,7 @@ export function GardenCommitment() {
           ) : null
         }
       >
-        {controller.queue.sendFailed ? (
+        {controller.queue.proofSending ? null : controller.queue.sendFailed ? (
           <FailedActAlert
             failed={controller.queue.failedJob}
             onChanged={controller.queue.refresh}
@@ -206,6 +278,7 @@ export function GardenCommitment() {
             key={controller.queue.pendingAct.jobId}
             act={controller.queue.pendingAct}
             inFlight={isPending}
+            sendsFromTap={controller.queue.sendsFromTap}
             onChanged={controller.queue.refresh}
           />
         ) : null}
@@ -217,6 +290,14 @@ export function GardenCommitment() {
           metadata={controller.metadata}
           units={units}
           joinable={controller.joinable}
+          viewer={controller.viewer}
+          stewards={stewards}
+        />
+        <PromiseGroupNote
+          chainId={controller.chainId}
+          commitment={commitment}
+          metadata={controller.metadata}
+          viewer={controller.viewer}
         />
         {showJoinToAct ? (
           <JoinToAct garden={controller.membership.garden} isOnline={controller.isOnline} />
@@ -264,11 +345,25 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           commitment={commitment}
           requirements={requirements}
-        />
-        <CommitmentEvidence
-          attributions={controller.detail.evidenceAttributions}
-          recordedCount={commitment.evidenceCount}
-        />
+          onPhone={
+            controller.queue.proofOnItsWay
+              ? {
+                  kind: "sending",
+                  summary:
+                    describeProofContents(intl, controller.queue.proofOnItsWay, {
+                      words: "alone",
+                    }) ?? "",
+                }
+              : proofOnPhone
+                ? { kind: "local" }
+                : null
+          }
+        >
+          <CommitmentEvidence
+            attributions={controller.detail.evidenceAttributions}
+            recordedCount={commitment.evidenceCount}
+          />
+        </CommitmentProgress>
         <CommitmentWork
           commitment={commitment}
           requirements={requirements}
@@ -283,8 +378,16 @@ export function GardenCommitment() {
             !controller.queue.hasPendingJob &&
             !controller.queue.isUnavailable
           }
-          onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
+          onOpenWork={(workUID) =>
+            dashboardNavigation.forward(`../../work/${workUID}`, { relative: "path" })
+          }
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
+        />
+        <CommitmentHistory
+          chainId={controller.chainId}
+          commitment={commitment}
+          viewer={controller.viewer}
+          localLine={proofOnPhone}
         />
       </CommitmentDetailShell>
 

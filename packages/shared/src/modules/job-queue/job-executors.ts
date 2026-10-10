@@ -10,6 +10,7 @@ import { jobQueueDB } from "./db";
 import { hasRecordedSend, recordsSends } from "./queue-policy";
 import { type Hex } from "viem";
 import {
+  commitmentJobPrerequisite,
   executeCommitmentJob,
   toCommitmentJob,
   type CommitmentCreationPayload,
@@ -157,6 +158,14 @@ export async function executeCommitmentQueueJob(
   if (recordsSends(job.kind) && (hasRecordedSend(job) || retainedWorkBroadcastReference(jobId))) {
     return settleActSend(jobId, job, chainId, sender, store, chainReads, deps);
   }
+  // Add and Send's second act goes after its proof: sent first, it would settle
+  // the team before the proof and its credit were on the record. A proof that
+  // landed has left the queue; one that was discarded took this send with it.
+  const proofJobId = commitmentJobPrerequisite(job.kind, job.payload);
+  if (proofJobId && job.kind !== "workLink") {
+    const proof = await store.getJob(proofJobId);
+    if (proof && !proof.synced) return { status: "waiting", reason: "proof-not-landed" };
+  }
   const publishEvidence = deps.publishEvidence ?? publishPendingEvidence;
   const published =
     job.kind === "evidence"
@@ -180,6 +189,7 @@ export async function executeCommitmentQueueJob(
         if (source && !source.synced && source.attempts >= 5) {
           return { status: "identity-conflict", reason: "source-work-terminal" };
         }
+        if (source && !source.synced) return { status: "waiting", reason: "work-not-indexed" };
       }
       const resolution = await (deps.resolveWorkIdentity ?? resolveDeferredWorkIdentity)({
         clientWorkId: payload.clientWorkId,
@@ -216,6 +226,9 @@ export async function executeCommitmentQueueJob(
         const built = buildCommitmentContractCall(kind, payload);
         const call = {
           address: target,
+          // The job's owner signs it. Named here, a single send and a bundle of
+          // these are both held to that address, whoever is connected by then.
+          account: job.userAddress as Address,
           abi: CommitmentPoolingModuleABI,
           functionName: built.functionName,
           args: built.args,

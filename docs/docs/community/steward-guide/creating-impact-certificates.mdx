@@ -15,6 +15,7 @@ next_steps: "/community/steward-guide/"
 persona_context: "Stewards turning a defensible assessment and approval trail into an impact certificate."
 source_of_truth:
   - packages/admin/src/views/Hub/CreateHypercert.tsx
+  - packages/admin/src/views/Hub/components/HubRecordLists.tsx
   - packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx
   - packages/admin/src/components/Hypercerts/Steps/AttestationSelector.tsx
   - packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx
@@ -52,7 +53,7 @@ Owners and stewards can mint. Evaluators and funders can inspect the evidence, b
 - The selected work belongs together as one defensible claim.
 - Contributor wallet addresses are ready.
 - You know how certificate units should be shared among contributors. This is the certificate allocation, not a separate splits contract.
-- The Certify flow is available in admin for this garden.
+- **Create Hypercert** is available in admin for this garden.
 
 :::tip
 Do not include weak or unrelated work just to make the certificate look more impressive. It is better to mint a smaller certificate with a cleaner evidence trail.
@@ -60,15 +61,15 @@ Do not include weak or unrelated work just to make the certificate look more imp
 
 ## Step-by-step flow
 
-Start from the admin **Hub** workspace. The certification surface is labelled **Certify**, and the mint action opens the **Create Hypercert** form for the selected garden.
+Start from the admin **Hub** workspace. Its **Hypercerts** tab lists the hypercerts the garden has minted, and **Create Hypercert** opens the form for the selected garden.
 
 <img src="/img/screenshots/admin-garden-impact.png" alt="Current admin impact surface with assessments and certificate context" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 <StepFlow
   steps={[
     {
-      title: "Open the Certify workspace",
-      detail: "Open Hub, switch to Certify, select the garden, and start the Create Hypercert or Mint Hypercert flow.",
+      title: "Open Create Hypercert",
+      detail: "Select the garden, open Hub, and press Create Hypercert. You can also open an assessment from the Assessments tab and press Create Hypercert on its record.",
     },
     {
       title: "Select approved work",
@@ -95,15 +96,16 @@ Start from the admin **Hub** workspace. The certification surface is labelled **
 - Admin opens the certificate detail page.
 - The detail page shows the expected title, description, work scope, evidence count, minted date, and total units.
 - If indexing is still catching up, the page shows a syncing state instead of a missing certificate.
+- Once indexed, the certificate is listed in the Hub's **Hypercerts** tab.
 
 ## If something goes wrong
 
-- **No garden selected.** Pick the garden in admin, then reopen the Certify workspace.
+- **No garden selected.** Pick the garden in admin, then reopen **Create Hypercert**.
 - **No permission.** Ask the garden owner to add you as an owner or steward.
 - **No approved work.** Return to [Review and Approve Work](./reviewing-work) and clear the relevant submissions first.
 - **Assessment filter hides expected work.** Check the assessment domain and reporting window. The work may belong in a different assessment or certificate.
 - **Distribution validation fails.** Recheck contributor addresses and unit totals before trying to mint.
-- **Certify flow is unavailable.** Contact the platform team or use the Telegram support link in the docs footer.
+- **Create Hypercert is unavailable.** Contact the platform team or use the Telegram support link in the docs footer.
 - **Mint transaction fails.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
 
 ## After minting

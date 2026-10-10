@@ -24,6 +24,7 @@ import {
   dockerEnvironment,
   commandVersion,
   inspectPersonalSkills,
+  inspectWorktreeHooks,
   inspectPinnedNode,
   inspectPinnedSubmodules,
   majorVersion,
@@ -579,7 +580,7 @@ function checkEnv() {
     add(
       "pass",
       "Hosted production indexer selected by stack overlay",
-      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql",
+      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/e6edffd/v1/graphql",
       "",
       { check: "env:indexer-url" }
     );
@@ -884,6 +885,7 @@ function printText() {
 checkPlatform();
 checkTools();
 results.push(...inspectPersonalSkills());
+results.push(...inspectWorktreeHooks({ cwd: projectRoot }));
 const dependencies = dependencyReadiness(projectRoot);
 add(dependencies.ready ? "pass" : "fail", dependencies.ready ? "Workspace dependencies are ready" : "Workspace dependencies are missing or incomplete",
   dependencies.missing.join(", "), dependencies.ready ? "" : "Run setup with the appropriate profile after authorizing dependency installation.", { check: "dependencies" });

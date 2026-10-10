@@ -13,6 +13,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { toastService } from "../components/toast";
 import {
   retryQueuedCommitmentJob,
   useCommitmentJobs,
@@ -20,6 +21,7 @@ import {
 import type { JobExecution, JobQueueHandle } from "../modules/job-queue/ports";
 import { createJobQueue } from "../modules/job-queue/queue";
 import type { Address } from "../types/domain";
+import type { Job } from "../types/job-queue";
 import { renderHookWithProviders } from "./test-utils/render-helpers";
 import {
   createInMemoryJobQueueStore,
@@ -33,7 +35,7 @@ const TX = `0x${"12".repeat(32)}` as const;
 const harness = vi.hoisted(() => ({
   queue: null as unknown as JobQueueHandle,
   sender: {
-    authMode: "wallet" as const,
+    authMode: "wallet" as "wallet" | "passkey",
     sendContractCall: () => Promise.reject(new Error("unused")),
   },
 }));
@@ -57,17 +59,25 @@ vi.mock("../hooks/blockchain/useTransactionSender", () => ({
 }));
 
 const confirm = { act: "confirm", commitmentId: 9n, gardenAddress: GARDEN } as const;
+// The failure toast, as the person reads it (the test wrapper's catalog is English).
+const toastError = vi.spyOn(toastService, "error").mockImplementation(() => "toast");
 
-function setUp(execute: (...args: unknown[]) => Promise<JobExecution>) {
+function setUp(
+  execute: (...args: unknown[]) => Promise<JobExecution>,
+  options: Parameters<typeof useCommitmentJobs>[0] = {}
+) {
   const store = createInMemoryJobQueueStore();
   const executors = { execute: vi.fn(execute) };
   harness.queue = createJobQueue(createJobQueueDependencies({ store, executors }));
-  const jobs = renderHookWithProviders(() => useCommitmentJobs()).result;
+  const jobs = renderHookWithProviders(() => useCommitmentJobs(options)).result;
   return { store, executors, jobs };
 }
 
 describe("useCommitmentJobs over the real queue, signed in with a wallet", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    harness.sender.authMode = "wallet";
+  });
 
   it("sends the act from the tap and leaves nothing behind", async () => {
     const { store, executors, jobs } = setUp(async () => ({ status: "complete", txHash: TX }));
@@ -131,6 +141,29 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
   });
 
+  it("keeps a declined proof on the phone with its identity, for the person to send or discard", async () => {
+    const { store, jobs } = setUp(async () => {
+      throw new Error("User rejected the request");
+    });
+
+    await expect(
+      jobs.current.enqueue({
+        act: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [VIEWER],
+          gardenAddress: GARDEN,
+          note: "Posts replaced",
+        },
+      })
+    ).resolves.toEqual(expect.any(String));
+
+    const [kept] = await store.getJobs({ userAddress: VIEWER });
+    expect(kept?.kind).toBe("evidence");
+    expect(kept?.payload).toMatchObject({ clientEvidenceId: "proof-1", note: "Posts replaced" });
+  });
+
   it("keeps an act the queue is holding, one it judged final, and one that may have been sent", async () => {
     const waiting = setUp(async () => ({ status: "waiting", reason: "membership-unavailable" }));
     await expect(waiting.jobs.current.enqueue(confirm)).resolves.toEqual(expect.any(String));
@@ -148,6 +181,107 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
     });
     await expect(ambiguous.jobs.current.enqueue(confirm)).rejects.toThrow(/timed out/);
     expect(await ambiguous.store.getJobs({ userAddress: VIEWER })).toHaveLength(1);
+  });
+
+  describe("pressing the form's button again after a send that failed", () => {
+    // As the composer builds it on every press: the deadline counts from the press,
+    // and the words ride the job with no CID yet.
+    const creation = (overrides: Record<string, unknown> = {}) =>
+      ({
+        act: "create",
+        payload: {
+          clientCommitmentId: "draft-1",
+          gardenAddress: GARDEN,
+          targetUnits: 10n,
+          dueDate: 2_000_000_000n,
+          metadataCID: "",
+          metadata: { version: 1, title: "Ten hours of weeding" },
+          ...overrides,
+        } as never,
+      }) as const;
+    // What the chain guard throws when the person declines the wallet's network switch.
+    const declinedSwitch =
+      "Network switch rejected. Approve the wallet prompt to switch to Arbitrum One before continuing.";
+
+    /** A first press whose send fails after the executor has published the words. */
+    function failingFirstSend() {
+      let pass = 0;
+      return setUp(async (_jobId, job) => {
+        pass += 1;
+        if (pass === 1) {
+          ((job as Job).payload as { metadataCID: string }).metadataCID = "bafy-published";
+          throw new Error(declinedSwitch);
+        }
+        return pass === 2 ? { status: "submitted", txHash: TX } : { status: "complete" };
+      });
+    }
+
+    it("sends the creation already queued, and files no second one", async () => {
+      const { store, executors, jobs } = failingFirstSend();
+
+      // A declined network switch is not a declined signature: the act stays queued.
+      await expect(jobs.current.enqueue(creation())).rejects.toThrow(/Network switch rejected/);
+      const [queued] = await store.getJobs({ userAddress: VIEWER });
+      expect(queued?.lastError).toBe(declinedSwitch);
+      expect(toastError).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: "Wallet on another network",
+          message:
+            "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again.",
+        })
+      );
+
+      // Ninety seconds later the same answers build a later deadline and no CID.
+      await expect(jobs.current.enqueue(creation({ dueDate: 2_000_000_090n }))).resolves.toBe(
+        queued?.id
+      );
+
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual([
+        queued?.id,
+        queued?.id,
+        queued?.id,
+      ]);
+      expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+    });
+
+    it("refuses a press whose answers changed, and leaves the queued creation to send or discard", async () => {
+      const { store, executors, jobs } = failingFirstSend();
+      await expect(jobs.current.enqueue(creation())).rejects.toThrow(/Network switch rejected/);
+
+      await expect(
+        jobs.current.enqueue(creation({ dueDate: 2_000_000_090n, targetUnits: 12n }))
+      ).rejects.toThrow(/offline_job_identity_conflict/);
+      expect(toastError).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          title: "An earlier version is waiting",
+          message: expect.stringMatching(/earlier version .* still on this phone/),
+        })
+      );
+
+      // Nothing was sent, overwritten or added: the earlier version is still the one queued.
+      expect(executors.execute).toHaveBeenCalledTimes(1);
+      const kept = await store.getJobs({ userAddress: VIEWER });
+      expect(kept).toHaveLength(1);
+      expect(kept[0]?.payload).toMatchObject({ targetUnits: 10n, dueDate: 2_000_000_000n });
+      await expect(harness.queue.discardJob(kept[0]?.id ?? "")).resolves.toBe(true);
+    });
+
+    it("keeps one creation however many presses fail, each on a fresh run of tries", async () => {
+      const { store, jobs } = setUp(async () => {
+        throw new Error(declinedSwitch);
+      });
+
+      // One press more than the tries the queue allows a job before it gives up on it.
+      for (let press = 0; press < 6; press += 1) {
+        await expect(
+          jobs.current.enqueue(creation({ dueDate: 2_000_000_000n + BigInt(press) }))
+        ).rejects.toThrow(/Network switch rejected/);
+      }
+
+      const kept = await store.getJobs({ userAddress: VIEWER });
+      expect(kept).toHaveLength(1);
+      expect(kept[0]?.attempts).toBe(1);
+    });
   });
 
   it("Try Again settles a kept creation, and a declined retry keeps the row it came from", async () => {
@@ -171,5 +305,43 @@ describe("useCommitmentJobs over the real queue, signed in with a wallet", () =>
 
     await retryQueuedCommitmentJob(jobId, harness.sender as never);
     expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+  });
+  it("settles an Admin passkey creation from its tap, without a background flush", async () => {
+    harness.sender.authMode = "passkey";
+    let pass = 0;
+    const { store, executors, jobs } = setUp(
+      async () => (++pass === 1 ? { status: "submitted", txHash: TX } : { status: "complete" }),
+      { execution: "foreground" }
+    );
+    await jobs.current.enqueue({
+      act: "create",
+      payload: { clientCommitmentId: "passkey-draft", gardenAddress: GARDEN } as never,
+    });
+    expect(executors.execute).toHaveBeenCalledTimes(2);
+    expect(await store.getJobs({ userAddress: VIEWER })).toEqual([]);
+  });
+  it("preserves a declined Admin passkey proof for explicit retry", async () => {
+    harness.sender.authMode = "passkey";
+    const { store, jobs } = setUp(
+      async () => {
+        throw new Error("User rejected the request");
+      },
+      { execution: "foreground" }
+    );
+    await jobs.current.enqueue({
+      act: "evidence",
+      payload: {
+        clientEvidenceId: "passkey-proof",
+        commitmentId: 9n,
+        creditedContributors: [VIEWER],
+        gardenAddress: GARDEN,
+        note: "Proof retained",
+      },
+    });
+    const [kept] = await store.getJobs({ userAddress: VIEWER });
+    expect(kept?.payload).toMatchObject({
+      clientEvidenceId: "passkey-proof",
+      note: "Proof retained",
+    });
   });
 });

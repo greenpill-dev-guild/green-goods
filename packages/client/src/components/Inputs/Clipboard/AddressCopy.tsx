@@ -75,10 +75,10 @@ export function AddressCopy({
         )}
       >
         <span className="flex items-center gap-2 text-sm text-text-strong-950">
-          {icon ? <span className="text-primary">{icon}</span> : null}
+          {icon ? <span className="text-primary-on-surface">{icon}</span> : null}
           <span className="font-mono text-xs sm:text-sm">{displayValue}</span>
         </span>
-        <span className="flex items-center gap-1 text-xs font-medium text-primary">
+        <span className="flex items-center gap-1 text-xs font-medium text-primary-on-surface">
           {copied ? <RiCheckLine className="h-4 w-4" /> : <RiFileCopyLine className="h-4 w-4" />}
           <span>
             {copied

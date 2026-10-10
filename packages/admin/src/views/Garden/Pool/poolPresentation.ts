@@ -297,7 +297,10 @@ export function otherPoolGardenLabel(row: {
   return row.poolGardenName || shortAddress(row.poolGarden);
 }
 
-/** Unix seconds → the locale's short date, or the fallback when absent. */
+/**
+ * Unix seconds → the locale's short date, with the year only when it isn't
+ * this one (PRD-1025 D3), or the fallback when absent.
+ */
 export function formatUnixDate(
   value: bigint | number | null | undefined,
   locale: string,
@@ -306,8 +309,49 @@ export function formatUnixDate(
   if (value === null || value === undefined) return fallback;
   const seconds = Number(value);
   if (!Number.isFinite(seconds) || seconds <= 0) return fallback;
-  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
-    new Date(seconds * 1000)
+  const date = new Date(seconds * 1000);
+  const thisYear = date.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(thisYear ? {} : { year: "numeric" as const }),
+  }).format(date);
+}
+
+const WEI_PER_G = 10n ** 18n;
+
+/** Cents as dollars, the way the steward's locale writes money. */
+export function formatUsd(cents: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(
+    Number(cents) / 100
+  );
+}
+
+/**
+ * Dollars for a summary figure read at today's rate: whole dollars from $100,
+ * where cents would claim a precision the rate doesn't have, cents below.
+ */
+export function formatUsdSummary(cents: bigint, locale: string): string {
+  const digits = cents >= 10_000n ? 0 : 2;
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(Number(cents) / 100);
+}
+
+/** A G$ amount in whole G$, grouped the way the steward's locale groups numbers. */
+export function formatGoodDollars(wei: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
+    Number(wei / WEI_PER_G)
+  );
+}
+
+/** A G$ amount shortened the way the locale shortens numbers (12.4M), for a figure beside dollars. */
+export function formatGoodDollarsCompact(wei: bigint, locale: string): string {
+  return new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }).format(
+    Number(wei / WEI_PER_G)
   );
 }
 

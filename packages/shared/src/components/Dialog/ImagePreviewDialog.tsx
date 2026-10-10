@@ -8,15 +8,9 @@ import {
   RiZoomInLine,
   RiZoomOutLine,
 } from "@remixicon/react";
-import React, {
-  type TouchEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type WheelEvent,
-} from "react";
+import React, { type TouchEvent, useCallback, useEffect, useState, type WheelEvent } from "react";
 import { useSheetPresence } from "../../hooks/ui/useSheetPresence";
+import { useOpenerFocus } from "../../hooks/utils/useOpenerFocus";
 import { cn } from "../../utils/styles/cn";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
 import { IconButton } from "../IconButton";
@@ -31,6 +25,8 @@ export interface ImagePreviewDialogProps {
   initialIndex?: number;
   className?: string;
   labels?: Partial<ImagePreviewDialogLabels>;
+  /** The name each image downloads under, by index. The default is the URL's last segment. */
+  filenames?: string[];
   /**
    * Control chrome. `app` (default) is the installed-PWA dialect: the shared
    * `IconButton` circles (the surface's md size: 44px in the app, the cockpit's
@@ -98,12 +94,15 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   initialIndex = 0,
   className,
   labels,
+  filenames,
   variant = "app",
 }) => {
   const resolvedLabels = { ...defaultLabels, ...labels };
   // Count the preview as a sheet only when it renders: open with no images
   // returns null below, and a phantom count would keep the AppBar hidden.
   useSheetPresence(isOpen && images.length > 0);
+  // It is opened by state, with no Radix trigger to hand focus back to.
+  useOpenerFocus(isOpen && images.length > 0);
   // The editorial variant carries no utilities of its own. Its chrome is
   // dressed from `[data-variant="editorial"]` rules in the client's
   // editorial.css, beside the editorial tokens that only the client defines.
@@ -114,8 +113,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
-  const imageRef = useRef<HTMLDivElement>(null);
 
   // Touch pinch-to-zoom state
   const [touchState, setTouchState] = useState<{
@@ -215,7 +212,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         }
       })();
       const lastSegment = urlPath.split("/").filter(Boolean).pop() || "download-image";
-      link.download = lastSegment;
+      link.download = filenames?.[currentIndex] || lastSegment;
       link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();
@@ -316,7 +313,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
           data-component="ImagePreviewDialog"
           data-slot="overlay"
           data-variant={variant}
-          className={cn("fixed inset-0 z-overlay", className)}
+          // On the content's layer, not the scrim layer below it: the viewer mounts after the
+          // dialog or sheet that opened it, so at equal layers it covers that surface.
+          className={cn("fixed inset-0 z-modal", className)}
           style={editorial ? undefined : { backgroundColor: "var(--color-scrim-obscure)" }}
           data-testid="image-preview-dialog"
         />
@@ -409,7 +408,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             {/* Image Container */}
             {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- pan/zoom gesture surface; zoom, nav and close are real buttons in the toolbar */}
             <div
-              ref={imageRef}
               role="application"
               data-slot="frame"
               className="relative flex w-full items-center justify-center overflow-hidden"

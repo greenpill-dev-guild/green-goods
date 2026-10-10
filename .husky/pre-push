@@ -32,4 +32,12 @@ fi
 # Run the gate through the repo's Node wrapper so a Bun or wrong-Node shell still reaches real
 # Node. The gate then re-execs itself under the exact pinned Node, because a plan that reads
 # "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
-node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+# Optional whitespace-separated surface:path entries select direct proof, just as --test-path
+# does for a manual gate. Disable glob expansion and keep every entry a separate argument.
+set --
+set -f
+for test_path in ${GREEN_GOODS_PUSH_TEST_PATHS:-}; do
+  set -- "$@" --test-path "$test_path"
+done
+set +f
+node scripts/dev/node-cli.js scripts/dev/ci-local.js --intent push --reuse-passing-receipts "$@"

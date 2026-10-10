@@ -10,7 +10,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -23,6 +23,11 @@ const { mockUseApp, mockUseInstallGuidance, mockUsePublicInstallHandler, mockIns
     mockUsePublicInstallHandler: vi.fn(),
     mockInstallHandler: vi.fn(),
   }));
+
+const mockUseMediaQuery = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: mockUseMediaQuery,
+}));
 
 vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
@@ -87,6 +92,7 @@ function renderHeader(initialRoute = "/gardens") {
 describe("SiteHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseMediaQuery.mockReturnValue(false);
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
@@ -234,6 +240,8 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
+    expect(document.documentElement).toHaveClass("modal-open");
+    expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Connect Wallet")).toBeNull();
@@ -245,6 +253,41 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.documentElement).not.toHaveClass("modal-open");
+  });
+
+  it("moves keyboard focus into the drawer and returns it to the trigger on Escape", async () => {
+    renderHeader();
+    const trigger = screen.getByRole("button", { name: /open menu/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const drawer = screen.getByRole("dialog", { name: "Open Menu" });
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("closes from a navigation link even when its route is already active", () => {
+    renderHeader("/gardens");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Gardens" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("dismisses the modal and focuses visible wayfinding when switching to desktop", async () => {
+    const view = renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    mockUseMediaQuery.mockReturnValue(true);
+    view.rerender(
+      <MemoryRouter initialEntries={["/gardens"]}>
+        <IntlProvider locale="en" messages={messages}>
+          <SiteHeader />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("link", { name: "Green Goods" })).toHaveFocus());
   });
 
   it("renders transparent on home (`/`) so the header floats over the hero image", () => {

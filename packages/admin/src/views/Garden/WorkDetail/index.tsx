@@ -8,7 +8,7 @@ import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -278,6 +278,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
 
 export default function WorkDetail() {
   const { workId } = useParams<{ workId: string }>();
+  const { search } = useLocation();
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const displayAction = resolved.action
@@ -289,8 +290,10 @@ export default function WorkDetail() {
   const localizedWorkTitle = workTitle
     ? localizeCanonicalActionTitle(workTitle, formatMessage)
     : undefined;
-  const hubContext =
-    typeof window === "undefined" ? undefined : parseHubContext(window.location.search);
+  // The Hub's filters come from the router, which says when they change. Read from
+  // window.location while rendering they name no reactive value, so the compiled app would keep
+  // the first work's filters for as long as this view stays mounted.
+  const hubContext = parseHubContext(search);
 
   const baseHeaderProps = {
     backLink: {

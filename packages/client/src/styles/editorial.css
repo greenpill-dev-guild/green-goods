@@ -2,8 +2,10 @@
  * Editorial tokens — browser dialect only.
  *
  * Adds editorial-specific surfaces (proof-band linen, walnut Get-In-Touch)
- * on top of the shared Warm Earth role tokens. Imported only by
- * packages/client/src/index.css; admin and the installed PWA never see these.
+ * on top of the shared Warm Earth role tokens. Imported by
+ * packages/client/src/index.css, and by Storybook's stylesheet
+ * (packages/shared/.storybook/storybook.css) so public stories paint as the
+ * site does; the admin app and the installed PWA never load these.
  *
  * The action domain palette (solar / agro / education / waste) lives in
  * packages/shared/src/styles/theme.css now, so admin work filters and the

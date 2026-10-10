@@ -8,18 +8,21 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
 import { queryInvalidation } from "../config/query-keys/invalidation";
-import { queueKeys } from "../config/query-keys/misc";
+import { draftsKeys, queueKeys } from "../config/query-keys/misc";
 import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
 import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
 import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
 import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
 import { jobQueue } from "../modules/job-queue/default-instance";
 import type { JobQueueHandle } from "../modules/job-queue/ports";
+import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { logger } from "../modules/app/logger";
+import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
 import { connectivityStore } from "../stores/connectivity";
 import type {
   ApprovalJobPayload,
+  Job,
   QueueEvent,
   QueueStats,
   WorkJobPayload,
@@ -151,6 +154,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
   useEffect(() => {
     const abortController = new AbortController();
 
+    const rereadDrafts = () => queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+    // Work sent from Your Work has no composer to retire the draft it left. Removed or kept
+    // for its changes, the drafts are read again; a draft its own Submit holds is left alone.
+    const retireDraft = (job: Job) => {
+      void deleteDraftOfQueuedWork(job, "retire")
+        .then((outcome) => {
+          if (outcome) void rereadDrafts();
+        })
+        .catch((error: unknown) => {
+          logger.warn("[JobQueueProvider] Could not remove the draft of sent work", { error });
+        });
+    };
+
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
@@ -181,6 +197,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         invalidateKeys(
           queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        retireDraft(event.job);
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
@@ -216,7 +233,10 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       if (!event.job) return;
 
       if (event.job.kind === "work") {
-        queueToasts.jobFailed("work", event.error);
+        // A discard is the person's own act, which its screen confirms: not a failed sync.
+        // The discard removed the work's draft before the work, so the drafts are read again.
+        if (event.error === JOB_DISCARDED) void rereadDrafts();
+        else queueToasts.jobFailed("work", event.error);
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
@@ -245,6 +265,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         invalidateKeys(
           queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        // Queued work is listed as queued; its draft stops being a second item.
+        void rereadDrafts();
       }
 
       // Update global counts
@@ -385,10 +407,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         try {
           await queue.retryJob(jobId);
           // The person asked for this one job, so nothing else in the queue is sent.
-          const result = await queue.processJob(jobId, {
-            transactionSender: sender ?? null,
-            explicit: true,
-          });
+          const context = { transactionSender: sender ?? null, explicit: true };
+          let result = await queue.processJob(jobId, context);
+          // A creation's first pass only submits it; a second reads the new
+          // commitment back and completes the job. A wallet has no background
+          // flush to make that pass, so it is made here, in the same tap.
+          if (!result.success && result.skipped && result.txHash) {
+            result = await queue.processJob(jobId, context);
+          }
           await refreshStats();
           if (result.success) {
             if (result.skipped) queueToasts.queueClear();

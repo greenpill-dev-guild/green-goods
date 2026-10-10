@@ -12,6 +12,9 @@ colors:
   tertiary-action: "#1A7544"
   tertiary-action-hover: "#16643B"
   on-tertiary-action: "#FFFFFF"
+  tertiary-dark: "#C2F5DA"
+  tertiary-dark-hover: "#84EBB4"
+  on-tertiary-dark: "#0C0A09"
   amber: "#D97706"
   sky: "#3B82F6"
   neutral: "#FAF8F5"
@@ -101,6 +104,17 @@ components:
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     rounded: "{rounded.lg}"
+  button-primary-pwa-dark:
+    backgroundColor: "{colors.tertiary-dark}"
+    textColor: "{colors.on-tertiary-dark}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.lg}"
+  button-primary-pwa-dark-hover:
+    backgroundColor: "{colors.tertiary-dark-hover}"
+    textColor: "{colors.on-tertiary-dark}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.lg}"
   button-primary-website:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
@@ -138,9 +152,11 @@ components:
 
 This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
 
-Any green fill that carries text, a number, or a glyph uses the darker `tertiary-action` role with white `on-tertiary-action`: filled CTAs, count badges, step markers, selected chips, and pills. White on `tertiary-action` measures 5.72:1; white on bright `tertiary` is 2.36:1, and dark `on-tertiary` on it reads muddy at 4.64:1 (DL-017).
+Green fills that carry text, a number, or a glyph use a contrast-safe action pair: filled CTAs, count badges, step markers, selected chips, and pills. Light mode uses `tertiary-action` with white `on-tertiary-action` (5.72:1; DL-017). In the dark PWA, `tertiary-dark` pale mint pairs with near-black `on-tertiary-dark` ink (16.34:1; DL-088). White text never sits on mint or bright `tertiary` fills.
 
-The brighter `tertiary` garden green stays on text-free accents: icons, active nav, dots, progress lines, soft highlights, and low-volume brand accents.
+The brighter `tertiary` garden green remains available for soft highlights and low-volume brand decoration. In the installed PWA, green labels, icons, navigation indicators, selection borders, switches and native selection controls share the theme-aware `--primary-on-surface` role (DL-086; PRD-1150).
+
+Green foregrounds and selection marks on a PWA surface use `--primary-on-surface`: `tertiary-action` in light (5.72:1 on white) and `tertiary-dark` mint in dark (12.55:1 on the highest dark surface). Filled controls use the theme-aware `--primary-action` / `--primary-action-foreground` pair; dark hover uses `tertiary-dark-hover`. The mint palette is scoped to the PWA and its Storybook app surface; public and admin palettes remain independent. Domain and status colors retain their own meaning. A red fill that carries white text uses `--error-action` (red-700, 5.26:1 in both themes) (DL-053).
 
 ---
 

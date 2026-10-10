@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminFilterChip> = {
     docs: {
       description: {
         component:
-          "M3 filter chip with 32dp height, outlined unselected state, selected secondary-container fill, optional leading icon, and selected checkmark.",
+          "M3 filter chip with 32dp height, outlined unselected state and selected secondary-container fill. Selection shows by fill alone, with no check mark, so a chip keeps its width when chosen; an optional leading icon shows in both states.",
       },
     },
   },

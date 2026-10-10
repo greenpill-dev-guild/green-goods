@@ -4,6 +4,12 @@ export interface ApproximateWorkLocation {
 }
 
 export interface WorkUploadCheckpoint {
+  /** Exact published bytes and previews, retained across receipt recovery. No local URLs. */
+  published?: {
+    data: `0x${string}`;
+    metadata: Record<string, unknown>;
+    media: string[];
+  };
   broadcast?: import("../modules/transactions/types").BroadcastReference;
   /** Durable signing intent. A missing hash after interruption must not authorize another send. */
   broadcastPending?: boolean;

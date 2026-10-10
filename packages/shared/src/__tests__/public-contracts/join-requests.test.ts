@@ -24,6 +24,113 @@ const proof = {
 };
 
 describe("garden join request public contract", () => {
+  it("preserves the exact legacy membership signing bytes when kind is omitted", () => {
+    expect(
+      buildGardenJoinProofMessage(proof, { displayName: "Maya", requestedVia: "garden_detail" })
+    ).toBe(
+      [
+        "Green Goods Garden Join Request",
+        "Version: 1",
+        "Chain ID: 11155111",
+        `Garden: ${garden}`,
+        `Account: ${account}`,
+        "Action: create",
+        `Nonce: 0x${"ab".repeat(32)}`,
+        "Issued at: 1800000000",
+        "Expires at: 1800000300",
+        "Display name: Maya",
+        "Requested via: garden_detail",
+      ].join("\n")
+    );
+  });
+
+  it.each([
+    "create",
+    "read_self",
+    "list",
+    "welcome",
+    "decline",
+    "withdraw",
+  ] as const)("binds the requested steward role on a %s signature", (action) => {
+    const stewardProof = { ...proof, action, kind: "steward_access" as const };
+    const message = buildGardenJoinProofMessage(stewardProof);
+    expect(message).toContain("Kind: steward_access");
+    expect(message).toContain("Requested role: Steward (Operator)");
+    expect(buildGardenJoinProofMessage({ ...stewardProof, kind: "garden_membership" })).not.toBe(
+      message
+    );
+  });
+
+  it.each([
+    "admin_access",
+    "account_profile",
+  ] as const)("accepts a steward request from %s", (requestedVia) => {
+    expect(
+      validateCreateGardenJoinRequest({
+        kind: "steward_access",
+        displayName: "  Maya  ",
+        requestedVia,
+      })
+    ).toEqual({
+      ok: true,
+      value: { kind: "steward_access", displayName: "Maya", requestedVia },
+    });
+  });
+
+  it("rejects unsupported kinds and sources outside their request context", () => {
+    for (const input of [
+      { kind: "owner_access", requestedVia: "garden_detail" },
+      { kind: "garden_membership", requestedVia: "admin_access" },
+      { kind: "steward_access", requestedVia: "garden_detail" },
+    ]) {
+      expect(validateCreateGardenJoinRequest({ ...input, displayName: "Maya" })).toMatchObject({
+        ok: false,
+      });
+    }
+  });
+
+  it("rejects a status recovery grant for a different role than the signed envelope", () => {
+    const content = { displayName: "Maya", kind: "steward_access", requestedVia: "admin_access" };
+    const grant = {
+      ...proof,
+      kind: "garden_membership",
+      readSelf: { audience: "https://greengoods.app", content },
+    };
+    expect(validateGardenJoinProofEnvelope(grant, { nowSeconds: issuedAt })).toMatchObject({
+      ok: false,
+    });
+    expect(
+      validateGardenJoinProofEnvelope(
+        { ...grant, kind: "steward_access" },
+        { nowSeconds: issuedAt }
+      )
+    ).toMatchObject({
+      ok: true,
+      value: { kind: "steward_access", readSelf: { content } },
+    });
+  });
+
+  it("rejects unknown proof kinds and a legacy proof presented as a steward authorization", () => {
+    expect(
+      validateGardenJoinProofEnvelope({ ...proof, kind: "owner_access" }, { nowSeconds: issuedAt })
+    ).toMatchObject({ ok: false });
+    expect(
+      validateGardenJoinProofEnvelope(proof, {
+        nowSeconds: issuedAt,
+        expectedKind: "steward_access",
+      })
+    ).toMatchObject({
+      ok: false,
+      error: { fieldErrors: { kind: expect.any(String) } },
+    });
+    expect(
+      validateGardenJoinProofEnvelope(proof, {
+        nowSeconds: issuedAt,
+        expectedKind: "garden_membership",
+      })
+    ).toMatchObject({ ok: true });
+  });
+
   it("validates a required display name and optional note", () => {
     expect(
       validateCreateGardenJoinRequest({
@@ -75,6 +182,58 @@ describe("garden join request public contract", () => {
     const authorization = encodeGardenJoinAuthorization(proof);
     expect(authorization.startsWith("GG-JoinProof ")).toBe(true);
     expect(decodeGardenJoinAuthorization(authorization)).toEqual(proof);
+  });
+
+  it("signs an explicit audience and bounded normalized content for status recovery", () => {
+    const grant = {
+      ...proof,
+      readSelf: {
+        audience: "https://greengoods.app",
+        content: { displayName: "Maya", requestedVia: "garden_detail" as const },
+      },
+    };
+    const message = buildGardenJoinProofMessage(grant, {
+      displayName: "Maya",
+      note: null,
+      requestedVia: "garden_detail",
+    });
+    expect(buildGardenJoinProofMessage(grant)).toBe(message);
+    expect(message).toContain("Also authorize: read own join-request status until proof expiry");
+    expect(message).toContain("Audience: https://greengoods.app");
+    expect(validateGardenJoinProofEnvelope(grant, { nowSeconds: issuedAt })).toMatchObject({
+      ok: true,
+      value: { readSelf: grant.readSelf },
+    });
+    expect(
+      buildGardenJoinProofMessage(
+        { ...grant, readSelf: undefined },
+        { displayName: "Maya", note: null, requestedVia: "garden_detail" }
+      )
+    ).not.toBe(message);
+  });
+  it("rejects malformed, unsafe and non-create read grants", () => {
+    const content = { displayName: "Maya", requestedVia: "garden_detail" };
+    for (const readSelf of [
+      null,
+      {},
+      { audience: "https://greengoods.app/path", content },
+      { audience: "http://remote.example", content },
+      { audience: "https://greengoods.app", content: { ...content, note: "x".repeat(501) } },
+    ]) {
+      expect(
+        validateGardenJoinProofEnvelope({ ...proof, readSelf }, { nowSeconds: issuedAt })
+      ).toMatchObject({ ok: false });
+    }
+    expect(
+      validateGardenJoinProofEnvelope(
+        {
+          ...proof,
+          action: "read_self",
+          readSelf: { audience: "https://greengoods.app", content },
+        },
+        { nowSeconds: issuedAt }
+      )
+    ).toMatchObject({ ok: false });
   });
 
   it("rejects expired, overlong, and action-mismatched proofs", () => {

@@ -144,7 +144,9 @@ button.garden-stat-row:hover {
    * page ground, so this frame is transparent — route header, tab rail, and
    * card grids sit directly on the canvas and its tone wash. Cards (white,
    * elevation level 1) provide the raised surfaces. Padding follows the 1a
-   * Hub spec: 12px top, 32px sides at desktop (16px mobile / 24px tablet).
+   * Hub spec: 12px top, 32px sides at desktop and 24px on a tablet. Below
+   * 600px the frame adds no side padding: the shell's phone gutter
+   * (--admin-main-inline-gutter-mobile in index.css) is the one inset there.
    */
   .canvas-route-card {
     background: transparent;
@@ -152,7 +154,7 @@ button.garden-stat-row:hover {
     -webkit-backdrop-filter: none;
     border-radius: var(--admin-radius-lg);
     min-block-size: var(--admin-main-content-min-height, 100%);
-    padding: 0.75rem 1rem 1.5rem;
+    padding: 0.75rem 0 1.5rem;
     box-shadow: none;
   }
 

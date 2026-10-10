@@ -23,6 +23,9 @@ type JoinRequests = ReturnType<typeof useGardenJoinRequests>;
 function joinRequests(overrides: Partial<JoinRequests> = {}): JoinRequests {
   return {
     accountAddress: ACCOUNT,
+    scopeKey: "storybook-join",
+    outcomeUnknown: false,
+    canRefreshStatus: false,
     request: null,
     hasCheckedStatus: false,
     queue: [],
@@ -183,7 +186,7 @@ export const NotSaved: Story = {
       "This attempt did not save a request. Please try again."
     );
     await expect(sheet.getByRole("button", { name: "Send Request" })).toBeEnabled();
-    await expect(sheet.getByText(/sign a message to verify your account/)).toBeVisible();
+    await expect(sheet.getByText(/Confirm with your wallet or passkey/)).toBeVisible();
   },
 };
 
@@ -232,6 +235,39 @@ export const Pending: Story = {
     await expect(sheet.getByText("Request awaiting review")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeVisible();
     await expect(sheet.queryByRole("button", { name: "Send Request" })).not.toBeInTheDocument();
+    await userEvent.click(sheet.getByRole("button", { name: "Check Request Status" }));
+    await expect(await sheet.findByText("Checked just now.")).toBeVisible();
+  },
+};
+
+export const WithdrawalFailedAfterRefresh: Story = {
+  beforeEach: () => {
+    const state = joinRequests({
+      hasCheckedStatus: true,
+      canRefreshStatus: true,
+      request: selfRequest(),
+      mutationState: { ...IDLE },
+    });
+    state.withdrawRequest = fn(async () => {
+      const error = new GardenJoinRequestTransportError("Unavailable", 503, "provider_unavailable");
+      state.mutationState.error = error;
+      throw error;
+    });
+    return withJoinRequests(state)();
+  },
+  play: async () => {
+    const sheet = await openSheet();
+    await expect(
+      mocked(useGardenJoinRequests).mock.results[0].value.checkStatus
+    ).toHaveBeenCalledWith({
+      allowSignature: false,
+    });
+    await userEvent.click(sheet.getByRole("button", { name: "Withdraw Request" }));
+    await expect(await sheet.findByRole("alert")).toHaveTextContent(
+      "Garden join requests are unavailable right now. Please try again later."
+    );
+    await expect(sheet.getByRole("button", { name: "Withdraw Request" })).toBeEnabled();
+    await expect(sheet.queryByText(/Your request was withdrawn/)).not.toBeInTheDocument();
   },
 };
 

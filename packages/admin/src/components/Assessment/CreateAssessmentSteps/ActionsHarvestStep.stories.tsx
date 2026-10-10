@@ -155,3 +155,24 @@ export const WithValidationErrors: Story = {
     ),
   ],
 };
+
+/**
+ * The one order the step refuses: a last day before the first. A period names
+ * whole days, so one that starts and ends on the same day is valid.
+ */
+export const PeriodOutOfOrder: Story = {
+  args: {
+    showValidation: true,
+  },
+  decorators: [
+    (Story) => (
+      <WithSeededClient actions={MOCK_ACTIONS}>
+        <WithAssessmentStore
+          seed={{ reportingPeriodStart: "2026-07-28", reportingPeriodEnd: "2026-07-27" }}
+        >
+          <Story />
+        </WithAssessmentStore>
+      </WithSeededClient>
+    ),
+  ],
+};

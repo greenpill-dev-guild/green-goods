@@ -102,6 +102,17 @@ describe("route folding", () => {
     expect(hubRouteBlock).toContain('path: "assess"');
     expect(hubRouteBlock).toContain('path: "certify/create"');
     expect(hubRouteBlock).toContain('path: "certify"');
+    // An assessment's record opens under the Assessments tab (DL-082); its old
+    // address under Certify redirects there rather than mounting the Hub.
+    const assessBlock =
+      hubRouteBlock.match(
+        /path:\s*"assess",[\s\S]*?(?=\n\s*\{\s*path:\s*"certify\/create")/
+      )?.[0] ?? "";
+    expect(assessBlock).toContain('path: ":assessmentId"');
+    expect(assessBlock).toMatch(/path: ":assessmentId",\s*lazy: hubView/);
+    expect(hubRouteBlock).toMatch(
+      /path: ":assessmentId",\s*element: <AssessmentRecordRedirect \/>/
+    );
     // The retired History stage keeps redirect stubs, never a hubView mount.
     expect(hubRouteBlock).toContain('path: "history"');
     expect(hubRouteBlock).toContain('path: ":historyEventId"');
@@ -149,13 +160,14 @@ describe("route folding", () => {
     expect(canvasLayout).toContain("NotificationPanel");
   });
 
-  it("Hub canonical builders preserve only garden and sort context", () => {
+  it("Hub canonical builders preserve only garden, sort and Work scope context", () => {
     const adminRoutesSource = readSource(sharedAdminRoutesPath);
     const contextBlock =
       adminRoutesSource.match(/export interface AdminHubRouteContext \{([\s\S]*?)\n\}/)?.[1] ?? "";
 
     expect(contextBlock).toContain("gardenAddress?: Address | string;");
     expect(contextBlock).toContain("sort?: AdminHubSort;");
+    expect(contextBlock).toContain("scope?: AdminHubWorkScope;");
     expect(contextBlock).not.toContain("item?: string;");
     expect(adminRoutesSource).toContain("hubMode(mode: AdminHubMode");
     expect(adminRoutesSource).toContain("return this.hubWork(context);");
@@ -171,8 +183,11 @@ describe("route folding", () => {
     expect(adminRoutesSource).toContain(
       'return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));'
     );
-    // The retired History stage keeps no route helpers.
+    expect(adminRoutesSource).toContain("`/hub/assess/${encodeSegment(assessmentId)}`");
+    // The retired History stage keeps no route helpers, and an assessment's
+    // record no longer has one under Certify.
     expect(adminRoutesSource).not.toContain("hubHistoryDetail");
+    expect(adminRoutesSource).not.toContain("hubCertifyDetail");
   });
 
   it("router has no top-level /endowments path (folded into /community)", () => {

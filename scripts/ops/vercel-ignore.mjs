@@ -98,6 +98,8 @@ export const SITES = {
       "packages/client/DESIGN.pwa.md",
       "docs/DESIGN.md",
       "docs/static/img/green-goods-logo.png",
+      "packages/client/public/icon.png",
+      "packages/client/public/images/",
       "scripts/design/build-story-gallery.mjs",
     ],
     never: [TESTS],

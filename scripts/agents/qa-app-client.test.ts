@@ -1780,7 +1780,7 @@ describe("QA app client races", () => {
       ],
       { cwd: repoRoot, stdio: "inherit", timeout: JSDOM_SUBPROCESS_TIMEOUT_MS },
     );
-  });
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
 
   it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
     execFileSync(

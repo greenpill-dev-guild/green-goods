@@ -117,7 +117,17 @@ describe("NavigationBar", () => {
           slots={slots}
           activePath="/hub"
           onNavigate={vi.fn()}
-          fab={{ icon: () => null, label: "Hub", actions: [], onAction: vi.fn() }}
+          fab={{
+            actions: [
+              {
+                id: "submit-work",
+                icon: () => null,
+                label: "Submit Work",
+                labelId: "cockpit.hub.action.submitWork",
+              },
+            ],
+            onAction: vi.fn(),
+          }}
         />
       </IntlProvider>
     );

@@ -1,3 +1,5 @@
+import { createEffect, S } from "envio";
+
 import { DEFAULT_IPFS_GATEWAY } from "./constants";
 import type { FetchJsonContext } from "./types";
 
@@ -7,6 +9,44 @@ export function resolveIpfsUri(uri: string): string {
   }
   return uri;
 }
+
+export function isCacheableIpfsUri(uri: string): boolean {
+  if (!uri.startsWith("ipfs://")) return false;
+  const [cid = "", ...path] = uri.slice("ipfs://".length).split("/");
+  // Keep gateway options, encoded paths, and traversal on the uncached path.
+  if (path.some((part) => !/^[\w.~-]*$/.test(part) || part === "." || part === "..")) {
+    return false;
+  }
+
+  // Canonical base32 CIDv1: dag-pb/raw, SHA-256, 32-byte digest. Other CID
+  // encodings still work through fetchJson, without persistent caching.
+  if (/^b(?:afybei|afkrei)[a-h][a-z2-7]{50}[aeimquy4]$/.test(cid)) return true;
+  if (!/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid)) return false;
+
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let decoded = 0n;
+  for (const character of cid) {
+    decoded = decoded * 58n + BigInt(alphabet.indexOf(character));
+  }
+  // CIDv0 is exactly a SHA-256 multihash: 0x12, 0x20, then 32 digest bytes.
+  return decoded >> 256n === 0x1220n;
+}
+
+export const hypercertMetadataEffect = createEffect(
+  {
+    name: "HypercertMetadata",
+    input: S.string,
+    output: S.string,
+    rateLimit: false,
+    cache: true,
+    crossChain: true,
+  },
+  async ({ input, context }) => {
+    const metadata = await fetchJson(input, { log: context.log });
+    context.cache = metadata !== null && isCacheableIpfsUri(input);
+    return JSON.stringify(metadata);
+  }
+);
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -24,11 +64,21 @@ export function getStringArray(value: unknown): string[] | undefined {
 
 export async function fetchJson(
   uri: string,
-  fetchContext?: FetchJsonContext,
+  fetchContext?: FetchJsonContext | Pick<FetchJsonContext, "log">,
   timeoutMs = 10_000,
   maxAttempts = 3,
   retryDelayMs = 250
 ): Promise<unknown | null> {
+  // Effects already carry the calling event's logger context.
+  const eventContext =
+    fetchContext && "eventType" in fetchContext
+      ? {
+          eventType: fetchContext.eventType,
+          chainId: fetchContext.chainId,
+          blockNumber: fetchContext.blockNumber,
+          correlationId: fetchContext.txHash,
+        }
+      : {};
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -43,10 +93,7 @@ export async function fetchJson(
         response.status >= 500;
       if (fetchContext) {
         fetchContext.log.warn("Metadata fetch returned non-OK status", {
-          eventType: fetchContext.eventType,
-          chainId: fetchContext.chainId,
-          blockNumber: fetchContext.blockNumber,
-          correlationId: fetchContext.txHash,
+          ...eventContext,
           uri,
           status: response.status,
           attempt,
@@ -57,10 +104,7 @@ export async function fetchJson(
     } catch (error) {
       if (fetchContext) {
         fetchContext.log.warn("Metadata fetch failed", {
-          eventType: fetchContext.eventType,
-          chainId: fetchContext.chainId,
-          blockNumber: fetchContext.blockNumber,
-          correlationId: fetchContext.txHash,
+          ...eventContext,
           uri,
           attempt,
           maxAttempts,

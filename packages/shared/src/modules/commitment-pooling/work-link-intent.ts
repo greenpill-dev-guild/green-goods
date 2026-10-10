@@ -1,5 +1,8 @@
 import { isAddress, type Address } from "viem";
 
+import type { DraftWorkLink } from "../../types/job-queue";
+import type { WorkLinkJobPayload } from "./job-types";
+
 export interface WorkLinkIntent {
   commitmentId: bigint;
   requirementIndex: number;
@@ -10,7 +13,70 @@ export interface WorkLinkIntent {
   returnTo: string;
 }
 
-export type WorkLinkChoice = WorkLinkIntent;
+/** Read-only choice details; they do not participate in link identity or URL persistence. */
+export interface WorkLinkChoice extends WorkLinkIntent {
+  approvedCount?: number;
+  requiredCount?: number;
+  dueDate?: bigint | null;
+}
+
+/** One operation identity shared by admission, the wizard and queue recovery. */
+export function dependentWorkLinkPayload(
+  clientWorkId: string,
+  target: Pick<WorkLinkIntent, "commitmentId" | "requirementIndex" | "garden">,
+  sourceWorkJobId?: string
+): Omit<Extract<WorkLinkJobPayload, { clientWorkId: string }>, "operationKey"> {
+  return {
+    clientOperationId: `work-link:${clientWorkId}:${target.commitmentId}:${target.requirementIndex}`,
+    commitmentId: target.commitmentId,
+    clientWorkId,
+    ...(sourceWorkJobId ? { sourceWorkJobId } : {}),
+    requirementIndex: target.requirementIndex,
+    gardenAddress: target.garden,
+  };
+}
+
+/** The same requirement of the same promise, for the same action in the same garden. */
+export function sameWorkLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
+  return (
+    left.commitmentId === right.commitmentId &&
+    left.requirementIndex === right.requirementIndex &&
+    left.actionUID === right.actionUID &&
+    left.garden.toLowerCase() === right.garden.toLowerCase()
+  );
+}
+
+/** The link as a work draft keeps it. */
+export function toDraftWorkLink(intent: WorkLinkIntent): DraftWorkLink {
+  // A live choice may carry progress and dates; only the intent belongs in a draft.
+  return {
+    commitmentId: intent.commitmentId.toString(),
+    requirementIndex: intent.requirementIndex,
+    actionUID: intent.actionUID,
+    garden: intent.garden,
+    commitmentTitle: intent.commitmentTitle,
+    requirementLabel: intent.requirementLabel,
+    returnTo: intent.returnTo,
+  };
+}
+
+/**
+ * A draft's kept link, read back through the page's own parser so a stored
+ * link gets no shortcut past it; null when it no longer reads as one.
+ */
+export function fromDraftWorkLink(link: DraftWorkLink): WorkLinkIntent | null {
+  return parseWorkLinkIntent(
+    new URLSearchParams({
+      [PARAMS.commitmentId]: String(link.commitmentId),
+      [PARAMS.requirementIndex]: String(link.requirementIndex),
+      [PARAMS.actionUID]: String(link.actionUID),
+      [PARAMS.garden]: String(link.garden),
+      [PARAMS.commitmentTitle]: String(link.commitmentTitle),
+      [PARAMS.requirementLabel]: String(link.requirementLabel),
+      [PARAMS.returnTo]: String(link.returnTo),
+    })
+  );
+}
 
 /** Extracts the route garden only from the canonical commitment detail route. */
 export function workLinkReturnGarden(intent: WorkLinkIntent): Address | null {

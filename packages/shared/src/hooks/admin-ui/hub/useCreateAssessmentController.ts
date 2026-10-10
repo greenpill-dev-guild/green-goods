@@ -1,6 +1,9 @@
 import type { Step } from "../../../components/Form/StepIndicator";
 import { toastService } from "../../../components/Toast/toast.service";
-import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentStore";
+import {
+  type CreateAssessmentFormState,
+  useCreateAssessmentStore,
+} from "../../../stores/useCreateAssessmentStore";
 import {
   type Address,
   Domain,
@@ -21,11 +24,11 @@ import { useGardenDomains } from "../../garden/useGardenDomains";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
 import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useIntl } from "react-intl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MessageDescriptor, useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
-import { useAccount } from "wagmi";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useShallow } from "zustand/react/shallow";
 import { selectAssessmentDirtyState } from "../../../stores/transitions/create-assessment";
 
@@ -65,6 +68,17 @@ function useCreateAssessmentStepConfigs(): Step[] {
         defaultMessage: "Select actions and reporting period",
       }),
     },
+    {
+      id: "review",
+      title: formatMessage({
+        id: "app.admin.assessment.create.stepReview.title",
+        defaultMessage: "Review",
+      }),
+      description: formatMessage({
+        id: "app.admin.assessment.create.stepReview.description",
+        defaultMessage: "Check everything before submitting",
+      }),
+    },
   ];
 }
 
@@ -101,7 +115,7 @@ export function useCreateAssessmentController() {
   const { formatMessage } = intl;
   const stepConfigs = useCreateAssessmentStepConfigs();
   const navigate = useNavigate();
-  const { address } = useAccount();
+  const address = usePrimaryAddress();
   const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
@@ -145,13 +159,14 @@ export function useCreateAssessmentController() {
     state,
     startCreation,
     submitCreation,
-    retry,
     reset: resetWorkflow,
-    canRetry,
     draft,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
+  const isSubmitting = state.matches("submitting");
+  const hasError = state.matches("error");
+  const isSent = state.matches("success");
 
   useEffect(() => {
     resetValidationForm(form);
@@ -271,6 +286,9 @@ export function useCreateAssessmentController() {
   useEffect(() => {
     if (prevFormRef.current === form) return;
     prevFormRef.current = form;
+    // A sent assessment leaves the store empty. That is not an edit to back up,
+    // and a copy saved now would read as a draft the send failed to clear.
+    if (isSent) return;
 
     const payload = toAssessmentPayload(form);
     if (!payload) return;
@@ -302,42 +320,35 @@ export function useCreateAssessmentController() {
     }, 600);
 
     return () => clearTimeout(timeoutId);
-  }, [form, toAssessmentPayload, saveDraft, draftKey, formatMessage]);
+  }, [form, isSent, toAssessmentPayload, saveDraft, draftKey, formatMessage]);
 
-  const isSubmitting = state.matches("submitting");
-  const hasError = state.matches("error");
-  const isSuccess = state.matches("success");
   // The pure projection makes the close contract explicit and keeps the
   // default placeholder outcome from counting as steward input.
-  const { isDirty, isPristine } = useMemo(
-    () => selectAssessmentDirtyState({ currentStep, form, isSubmitting, isSuccess }),
-    [currentStep, form, isSubmitting, isSuccess]
+  const { isDirty } = useMemo(
+    () => selectAssessmentDirtyState({ currentStep, form, isSubmitting, isSuccess: isSent }),
+    [currentStep, form, isSubmitting, isSent]
   );
   const txError = useTxErrorMessages(state.context.error);
 
-  useEffect(() => {
-    if (isSuccess) {
-      toastService.success({
-        title: formatMessage({
-          id: "app.assessment.submitted",
-          defaultMessage: "Assessment submitted",
-        }),
-        message: formatMessage({
-          id: "app.assessment.submittedMessage",
-          defaultMessage: "Your assessment has been recorded on-chain",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
-      resetStore();
-      navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" }));
-    }
-  }, [formatMessage, gardenRouteContext, isSuccess, navigate, resetStore]);
+  // The answers the latest send carried. A sent assessment leaves the store at
+  // once, so the Review reads them from here while it shows the done state.
+  const [submittedForm, setSubmittedForm] = useState<CreateAssessmentFormState | null>(null);
 
-  const handleCancel = () => {
-    // Return to the Hub the flow was launched from (parity with Submit Work),
-    // not the garden impact view — closing a Hub create-flow must not jump tabs.
-    navigate(adminRoutes.hub(gardenRouteContext));
+  // The flow stays on its Review once the send lands (DL-080): nothing
+  // navigates and nothing asks to discard. The sent draft leaves the store, and
+  // the browser's saved copy with it, so a reload cannot send the same answers
+  // twice.
+  useEffect(() => {
+    if (isSent) resetStore();
+  }, [isSent, resetStore]);
+
+  const handleClose = () => {
+    // A sent assessment closes onto the Hub tab that lists it. Any other close
+    // returns to the Hub the flow was launched from: closing a Hub create flow
+    // must not jump workspaces.
+    navigate(
+      isSent ? adminRoutes.hubAssess(gardenRouteContext) : adminRoutes.hub(gardenRouteContext)
+    );
   };
 
   // Wired to useDirtyClose's onDiscard (parity with useWizardData's
@@ -350,19 +361,30 @@ export function useCreateAssessmentController() {
     void clearDraft();
   };
 
-  const showIncompleteForm = () =>
+  // The store is already empty once an assessment is sent, so clearing the
+  // finished send is all a new one needs.
+  const handleCreateAnother = () => {
+    setSubmittedForm(null);
+    resetWorkflow();
+  };
+
+  /** Says why Submit sent nothing. Every refusal here comes before the wallet is asked. */
+  const refuseSubmit = (title: MessageDescriptor, message: MessageDescriptor) =>
     toastService.error({
-      title: formatMessage({
-        id: "app.assessment.incompleteForm",
-        defaultMessage: "Incomplete form",
-      }),
-      message: formatMessage({
-        id: "app.assessment.incompleteFormMessage",
-        defaultMessage: "Check the highlighted fields and try again.",
-      }),
+      title: formatMessage(title),
+      message: formatMessage(message),
       context: "assessment submission",
       suppressLogging: true,
     });
+
+  const showIncompleteForm = () =>
+    refuseSubmit(
+      { id: "app.assessment.incompleteForm", defaultMessage: "Incomplete form" },
+      {
+        id: "app.assessment.incompleteFormMessage",
+        defaultMessage: "Check the highlighted fields and try again.",
+      }
+    );
 
   const handleSubmit = async () => {
     // The domain step clears a domain this garden does not document, or one
@@ -392,97 +414,83 @@ export function useCreateAssessmentController() {
     // Which domain an assessment may carry is the garden's to say, so Submit
     // waits while its domains load or after their read failed.
     if (normalizedGardenDomainMask === undefined) {
-      toastService.error({
-        title: formatMessage({
-          id: "app.assessment.domainsUnavailable",
-          defaultMessage: "Couldn't check the domain",
-        }),
-        message: formatMessage({
+      refuseSubmit(
+        { id: "app.assessment.domainsUnavailable", defaultMessage: "Couldn't check the domain" },
+        {
           id: "app.assessment.domainsUnavailableMessage",
           defaultMessage: "This garden's domains have not loaded yet. Try again in a moment.",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
+        }
+      );
       return;
     }
 
     if (!address) {
-      toastService.error({
-        title: formatMessage({
-          id: "app.assessment.walletRequired",
-          defaultMessage: "Wallet required",
-        }),
-        message: formatMessage({
-          id: "app.assessment.walletRequiredMessage",
-          defaultMessage: "Please connect your wallet before submitting an assessment.",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
+      refuseSubmit(
+        { id: "app.assessment.accountRequired", defaultMessage: "Sign in required" },
+        {
+          id: "app.assessment.accountRequiredMessage",
+          defaultMessage: "Sign in to your account before submitting an assessment.",
+        }
+      );
       return;
     }
 
     const payload = buildWorkflowPayload(form);
     if (!payload) {
-      toastService.error({
-        title: formatMessage({
-          id: "app.assessment.selectGarden",
-          defaultMessage: "Select a Garden",
-        }),
-        message: formatMessage({
+      refuseSubmit(
+        { id: "app.assessment.selectGarden", defaultMessage: "Select a Garden" },
+        {
           id: "app.assessment.selectGardenMessage",
           defaultMessage: "Choose a garden to link this assessment.",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
+        }
+      );
       return;
     }
 
+    // A failed send keeps the answers it was given, and the machine's own retry
+    // would send those again. Clearing it first sends the answers as they stand.
+    if (hasError) resetWorkflow();
     const started = startCreation(payload);
     if (!started) {
-      toastService.error({
-        title: formatMessage({
+      refuseSubmit(
+        {
           id: "app.assessment.couldNotSubmit",
           defaultMessage: "We could not submit the assessment",
-        }),
-        message: formatMessage({
+        },
+        {
           id: "app.assessment.submissionFailedMessage",
           defaultMessage: "Something went wrong. Please try again.",
-        }),
-        context: "assessment submission",
-        suppressLogging: true,
-      });
+        }
+      );
       return;
     }
 
+    setSubmittedForm(form);
     submitCreation();
   };
 
   return {
-    canRetry,
     canReview,
-    currentStep,
+    // The Review stays up through the done state, after the store let the draft go.
+    currentStep: isSent ? stepConfigs.length - 1 : currentStep,
     goToStep,
     errorMessage: txError.message,
     errorTitle: txError.title,
     garden,
-    gardenRouteContext,
-    hubContext: gardenRouteContext,
     handleBack: stepValidation.handleBack,
-    handleCancel,
+    handleClose,
+    handleCreateAnother,
     handleDiscard,
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
     isDirty,
-    isPristine,
+    isSent,
     isSubmitting,
     normalizedGardenDomainMask,
-    resetWorkflow,
-    retry,
+    reviewForm: isSent && submittedForm ? submittedForm : form,
     showValidation: stepValidation.showValidation,
+    validationAttempt: stepValidation.validationAttempt,
     stepConfigs,
     txErrorView: txError.view,
   };

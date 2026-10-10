@@ -77,7 +77,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         if (end < start) {
           return formatMessage({
             id: "app.admin.assessment.actionsHarvest.endAfterStart",
-            defaultMessage: "End date must be after start date",
+            defaultMessage: "End date can't be before start date",
           });
         }
         return null;

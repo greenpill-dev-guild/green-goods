@@ -10,6 +10,8 @@ const mockUseActions = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockSetSelectedGarden = vi.fn();
 const mockNavigate = vi.fn();
+// What the router says the address's query is. It changes while the view stays mounted.
+let mockSearch = "";
 const mockUseRouteBackedLeftSheetConfig = vi.fn();
 const mockTrackWorkApprovalPresentationFailed = vi.fn();
 let capturedReviewSuccess: ((approved: boolean) => void) | undefined;
@@ -69,7 +71,10 @@ vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
     }),
 }));
 
-vi.mock("@green-goods/shared/types/domain", () => ({
+// The assessment record the sheet descriptor can open reads the real Domain
+// enum, so only Confidence is replaced.
+vi.mock("@green-goods/shared/types/domain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/types/domain")>()),
   Confidence: {
     LOW: "LOW",
     MEDIUM: "MEDIUM",
@@ -91,15 +96,6 @@ vi.mock("@green-goods/shared/utils/action/translations", () => ({
   localizeAction: (action: unknown) => action,
 }));
 
-vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
-  adminRoutes: {
-    hub: (search?: Record<string, string>) => {
-      const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/hub?${query}` : "/hub";
-    },
-  },
-}));
-
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
@@ -107,6 +103,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 vi.mock("react-router-dom", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement("a", { href: to }, children),
+  useLocation: () => ({ search: mockSearch }),
   useNavigate: () => mockNavigate,
   useParams: () => ({ workId: "0xWork" }),
 }));
@@ -116,10 +113,19 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({
-  PageHeader: ({ title, description }: { title: string; description?: string }) =>
+  PageHeader: ({
+    title,
+    description,
+    backLink,
+  }: {
+    title: string;
+    description?: string;
+    backLink?: { to: string; label?: string };
+  }) =>
     React.createElement(
       "div",
       { "data-testid": "page-header" },
+      backLink ? React.createElement("a", { href: backLink.to }, backLink.label) : null,
       React.createElement("h1", null, title),
       description ? React.createElement("p", null, description) : null
     ),
@@ -310,6 +316,26 @@ describe("WorkDetail view", () => {
     });
   });
 
+  it("leads back to the Hub as it was filtered, following the router from one work to the next", () => {
+    // The real route builder: the way back is the Hub's work list with the garden and the order.
+    mockSearch = "?gardenId=0xGarden&sort=oldest";
+    const view = renderWithIntl();
+    const back = () => screen.getByRole("link", { name: "Hub" }).getAttribute("href");
+    expect(back()).toBe("/hub/work?gardenId=0xGarden&sort=oldest");
+
+    // Another work opens in the same view from a Hub filtered another way, with no page load.
+    mockSearch = "?gardenId=0xOther&sort=newest";
+    view.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(WorkDetail),
+      })
+    );
+    expect(back()).toBe("/hub/work?gardenId=0xOther&sort=newest");
+    mockSearch = "";
+  });
+
   it("blocks the review panel for expired actions and shows a warning", () => {
     mockUseActions.mockReturnValue({
       data: [
@@ -497,6 +523,7 @@ describe("WorkDetail view", () => {
         selectedCertification: undefined,
         isResolvingSelection: false,
         canManage: true,
+        chainId: 11155111,
         hubContext: { gardenId: "0xGarden", sort: "newest" },
         closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
         onNavigateToBase,
@@ -511,6 +538,40 @@ describe("WorkDetail view", () => {
 
     expect(onBeforeClose).toHaveBeenCalledTimes(1);
     expect(onNavigateToBase).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the inspector descriptor when the route closes with retained work", () => {
+    const props = {
+      routeSheetContentId: "work-detail:0xWork",
+      routeWorkId: "0xWork",
+      routeCertificationId: undefined,
+      activeWorkDetailId: "0xWork",
+      selectedWork: mockUseWorks().works[0],
+      selectedCertification: undefined,
+      isResolvingSelection: false,
+      canManage: true,
+      chainId: 11155111,
+      hubContext: { gardenId: "0xGarden", sort: "newest" as const },
+      closeTo: "/hub/work?gardenId=0xGarden&sort=newest",
+      onNavigateToBase: vi.fn(),
+      onBeforeClose: vi.fn(),
+    };
+    const rendered = renderWithIntl("en", React.createElement(HubSheetDescriptor, props));
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).not.toBeNull();
+
+    rendered.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(HubSheetDescriptor, {
+          ...props,
+          routeWorkId: undefined,
+          routeSheetContentId: null,
+        }),
+      })
+    );
+
+    expect(mockUseRouteBackedLeftSheetConfig.mock.calls.at(-1)?.[0]).toBeNull();
   });
 
   it("records a privacy-safe presentation failure separately after transaction success", () => {

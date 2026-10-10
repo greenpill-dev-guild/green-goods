@@ -87,6 +87,9 @@
 
 ## Batch Report Template
 
+Include the shared [task/phase record](../../context/task-handoffs.md) in batch and lane handoffs.
+Keep validation receipts with their existing proof; the record links them for measurement.
+
 ```markdown
 ## Batch [N] Complete
 

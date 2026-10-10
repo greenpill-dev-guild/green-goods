@@ -1,6 +1,6 @@
 {
   "name": "green-goods",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "type": "module",
   "private": true,
   "keywords": [
@@ -51,13 +51,13 @@
     "react-dom": "19.2.8",
     "protobufjs": "7.6.1",
     "basic-ftp": "5.3.1",
-    "hono": "4.13.5",
+    "hono": "4.13.7",
     "rollup": "4.59.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
     "node-forge": "1.4.0",
     "serve-handler": "6.1.7",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "shell-quote": "1.10.0",
     "socket.io-parser": "4.2.6",
     "svgo": "3.3.3",
@@ -65,7 +65,7 @@
     "vite": "8.2.1",
     "websocket-driver": "0.7.5",
     "ethers": "6.17.0",
-    "viem": "2.55.0"
+    "viem": "2.55.13"
   },
   "resolutions": {
     "uint8arrays": "^5.1.0"
@@ -78,7 +78,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "uint8arrays": "^5.1.1",
-    "viem": "2.55.0"
+    "viem": "2.55.13"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

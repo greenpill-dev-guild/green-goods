@@ -102,7 +102,7 @@ describe("AdminTabRail", () => {
           tabs={[
             { id: "members", label: "Miembros" },
             { id: "coordination", label: "Coordinación" },
-            { id: "endowment", label: "Dotación" },
+            { id: "endowment", label: "Provisión" },
             { id: "payouts", label: "Pagos" },
           ]}
         />

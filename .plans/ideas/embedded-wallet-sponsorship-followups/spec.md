@@ -1,5 +1,7 @@
 # Embedded Wallet Sponsorship Follow-Ups Spec
 
+This scope is canceled. [The closeout record](plan.todo.md#closeout-2026-10-06) owns the disposition; the older material below is historical and does not authorize implementation or QA dispatch.
+
 ## Summary
 
 This hub narrows the remaining follow-up work after embedded auth landed in code. It focuses on three gaps: a truthful sponsorship path for embedded and compatible wallet users, a clear deferred-signing/offline policy for embedded auth, and login/auth UX that explains address continuity without implying that passkey, embedded, and wallet identities are interchangeable.

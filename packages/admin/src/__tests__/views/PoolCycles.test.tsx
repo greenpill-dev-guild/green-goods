@@ -64,7 +64,7 @@ function controller(cycleRows: CommitmentCycleRecord[]): PoolConsoleController {
   };
 }
 
-/** The card and its dialogs, wired the way the pool tab wires them. */
+/** The card and its dialogs, wired the way the Promises tab wires them. */
 function Harness({ pool }: { pool: PoolConsoleController }) {
   const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null);
   const noop = () => undefined;

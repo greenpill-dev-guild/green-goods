@@ -1,7 +1,8 @@
 # Yield-to-Impact Codification
 
+**Stage**: `ideas`
 **Slug**: `yield-to-impact-codification`
-**Status**: `IDEA / MAY EXPLORATION`
+**Status**: `IDEA — measurement proposal; funder-language research is a separate boundary`
 **Created**: `2026-04-25`
 **Priority**: `p2` (outcome-shaping work; not a polish blocker but high strategic value)
 **Branch**: `feature/yield-to-impact-codification` (when implementation begins)

@@ -2,7 +2,8 @@
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
@@ -13,9 +14,12 @@ vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   configureConnectivityProbe: () => () => {},
 }));
 
-const { ADDRESS } = vi.hoisted(() => ({ ADDRESS: "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01" }));
+const { ADDRESS, identity } = vi.hoisted(() => ({
+  ADDRESS: "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01",
+  identity: { address: "0xAbCdEf0123456789aBcDeF0123456789AbCdEf01" },
+}));
 vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => ADDRESS,
+  usePrimaryAddress: () => identity.address,
 }));
 
 vi.mock("@green-goods/shared/providers/JobQueue", () => ({
@@ -36,6 +40,11 @@ vi.mock("@/components/Communication/Offline/InstallNudge", () => ({
 
 vi.mock("@/components/Communication/PwaBadgeCoordinator", () => ({
   PwaBadgeCoordinator: () => null,
+}));
+
+// The shell aligns a phone wallet's network through wagmi; this shell has no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
 }));
 
 vi.mock("@/components/Layout/AppBar", () => ({
@@ -59,17 +68,102 @@ function HomeRoute() {
 }
 
 function GardenRoute() {
-  return <Link to="/home">Finish submission</Link>;
+  const dashboard = useDashboardNavigation();
+  return <button onClick={() => dashboard.openWork()}>Finish submission</button>;
 }
 
 function WorkDetailRoute() {
   return <Link to="/home">Back home</Link>;
 }
 
+const workSnapshot = {
+  kind: "work" as const,
+  tab: "completed" as const,
+  pendingFilter: "needsReview" as const,
+  completedFilter: "reviewedByYou" as const,
+  timeFilter: "week" as const,
+  scrollTop: 288,
+};
+function DashboardHomeRoute() {
+  const dashboard = useDashboardNavigation();
+  return (
+    <>
+      <button onClick={() => dashboard.leave(workSnapshot, "/home/garden-1/work/work-1")}>
+        Inspect work
+      </button>
+      <button
+        onClick={() =>
+          dashboard.leave(
+            { kind: "commitments", tab: "to-confirm", direction: "REQUEST", scrollTop: 144 },
+            "/home/garden-1/work/work-1"
+          )
+        }
+      >
+        Inspect promise
+      </button>
+      <button
+        onClick={() => {
+          dashboard.clear();
+          useUIStore.getState().closeWorkDashboard();
+        }}
+      >
+        Close dashboard
+      </button>
+      <Link to="/home/profile">Profile</Link>
+    </>
+  );
+}
+function DashboardDetailRoute() {
+  const dashboard = useDashboardNavigation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <p>Inspected item</p>
+      <button
+        onClick={() => {
+          if (!dashboard.back()) navigate("/home");
+        }}
+      >
+        On-screen Back
+      </button>
+      <button onClick={() => dashboard.forward("/home/garden-1/work/work-1/proof")}>
+        Open nested proof
+      </button>
+      <button onClick={() => dashboard.returnTo("/home/garden-1/work/work-1")}>Finish proof</button>
+      <Link to="/home">Unrelated Home</Link>
+    </>
+  );
+}
+function DeviceHistory() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button onClick={() => navigate(-1)}>Device Back</button>
+      <button onClick={() => navigate(1)}>Device Forward</button>
+    </>
+  );
+}
+function DashboardJourney() {
+  return (
+    <MemoryRouter initialEntries={["/home"]}>
+      <DeviceHistory />
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="home" element={<DashboardHomeRoute />} />
+          <Route path="home/profile" element={<Link to="/home">Unrelated Home</Link>} />
+          <Route path="home/garden-1/work/work-1" element={<DashboardDetailRoute />} />
+          <Route path="home/garden-1/work/work-1/proof" element={<DashboardDetailRoute />} />
+        </Route>
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe("AppShell", () => {
   beforeEach(() => {
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-    useUIStore.getState().closeWorkDashboard();
+    useUIStore.getState().resetForAccountChange();
+    identity.address = ADDRESS;
     document.documentElement.classList.remove("modal-open");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,
@@ -84,6 +178,89 @@ describe("AppShell", () => {
     useUIStore.getState().closeWorkDashboard();
     document.documentElement.classList.remove("modal-open");
     sessionStorage.clear();
+  });
+
+  it.each([
+    "On-screen Back",
+    "Device Back",
+  ])("restores the source dashboard through %s", (action) => {
+    render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: true,
+      workDashboardInitialTab: "completed",
+      workDashboardInitialPendingFilter: "needsReview",
+      workDashboardReturnState: workSnapshot,
+    });
+  });
+
+  it("keeps Forward and Back on the same source entry", () => {
+    render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    fireEvent.click(screen.getByRole("button", { name: "On-screen Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Device Forward" }));
+    expect(screen.getByText("Inspected item")).toBeInTheDocument();
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Device Back" }));
+    expect(useUIStore.getState().workDashboardReturnState).toEqual(workSnapshot);
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);
+  });
+
+  it.each([
+    "On-screen Back",
+    "Device Back",
+    "Finish proof",
+  ])("preserves the commitments origin across a nested return via %s", (action) => {
+    render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect promise" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open nested proof" }));
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(useUIStore.getState().isCommitmentsSheetOpen).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "On-screen Back" }));
+    expect(useUIStore.getState()).toMatchObject({
+      isWorkDashboardOpen: false,
+      isCommitmentsSheetOpen: true,
+      commitmentsSheetReturnState: { tab: "to-confirm", direction: "REQUEST", scrollTop: 144 },
+    });
+  });
+
+  it("does not reopen a dismissed dashboard when returning from another route", () => {
+    render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    fireEvent.click(screen.getByRole("button", { name: "Device Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close dashboard" }));
+    fireEvent.click(screen.getByRole("link", { name: "Profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Device Back" }));
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
+    // A new icon-open starts clean; its next departure establishes a new return snapshot.
+    act(() => useUIStore.getState().openWorkDashboard());
+    expect(useUIStore.getState().workDashboardReturnState).toBeUndefined();
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    fireEvent.click(screen.getByRole("button", { name: "On-screen Back" }));
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);
+  });
+
+  it("opens an unrelated Home visit without the previous dashboard", () => {
+    render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    fireEvent.click(screen.getByRole("link", { name: "Unrelated Home" }));
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
+  });
+
+  it("invalidates old history after an account switch, even when that account returns", () => {
+    const view = render(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect work" }));
+    identity.address = "0x2222222222222222222222222222222222222222";
+    act(() => useUIStore.getState().resetForAccountChange());
+    view.rerender(<DashboardJourney />);
+    fireEvent.click(screen.getByRole("button", { name: "Device Back" }));
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
+    identity.address = ADDRESS;
+    act(() => useUIStore.getState().resetForAccountChange());
+    view.rerender(<DashboardJourney />);
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
   });
 
   it.each([
@@ -178,7 +355,7 @@ describe("AppShell", () => {
     );
 
     act(() => useUIStore.getState().openWorkDashboard());
-    fireEvent.click(screen.getByRole("link", { name: "Finish submission" }));
+    fireEvent.click(screen.getByRole("button", { name: "Finish submission" }));
 
     expect(screen.getByRole("link", { name: "Open work" })).toBeInTheDocument();
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);

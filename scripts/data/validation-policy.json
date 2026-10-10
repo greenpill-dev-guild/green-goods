@@ -404,6 +404,7 @@
         "packages/shared/src/modules/offline-content/",
         "packages/shared/src/modules/profile-avatar/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
         "packages/shared/src/hooks/offline/",
         "packages/shared/src/hooks/profile/",
         "packages/shared/src/hooks/app/useOffline",
@@ -552,6 +553,10 @@
         "packages/admin/vitest.config.ts",
         "packages/agent/package.json",
         "packages/agent/src/api/funding/routes.ts",
+        "packages/agent/src/api/http/public.ts",
+        "packages/agent/src/api/public-protection.ts",
+        "packages/agent/src/api/routes/passkey-directory.ts",
+        "packages/agent/src/api/routes/public-commitment-impact.ts",
         "packages/agent/src/api/routes/public-garden-impact.ts",
         "packages/agent/src/api/routes/subscribe.ts",
         "packages/agent/src/api/routes/upload-sign.ts",
@@ -636,6 +641,76 @@
       "exact": [
         "scripts/quality/check-immutable-plan-reports.mjs",
         "scripts/lib/git-guardrails.mjs"
+      ]
+    },
+    {
+      "check": "browser-passkey",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.passkey.spec.ts",
+        "tests/specs/client.reporting-account.passkey.spec.ts",
+        "tests/helpers/reporting-ceremony.ts",
+        "packages/agent/src/__tests__/reporting/driver/server.ts",
+        "packages/shared/src/config/passkeyServer.ts"
+      ],
+      "prefixes": [
+        "packages/shared/src/workflows/auth",
+        "packages/shared/src/providers/Auth",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
+        "packages/client/src/views/Login/"
+      ]
+    },
+    {
+      "check": "browser-pwa-preview",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.pwa-preview.spec.ts",
+        "packages/client/vite.config.ts",
+        "packages/client/src/main.tsx"
+      ],
+      "prefixes": ["packages/client/src/sw/", "packages/client/vite/"]
+    },
+    {
+      "check": "fork-fixtures-test",
+      "runInQa": true,
+      "exact": ["playwright.config.ts", "tests/helpers/mock-backend.ts"],
+      "prefixes": ["tests/fixtures/"]
+    },
+    {
+      "check": "browser-work-exploration",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.exploration.spec.ts",
+        "tests/fixtures/work-exploration.ts",
+        "tests/fixtures/work-exploration.test.ts",
+        "tests/helpers/mock-backend.ts",
+        "packages/shared/src/modules/work/work-list.ts",
+        "packages/shared/src/hooks/work/useWorks.ts",
+        "packages/shared/src/hooks/work/useWorkMetadata.ts"
+      ],
+      "prefixes": [
+        "packages/client/src/views/Home/Garden/Work",
+        "packages/shared/src/hooks/client-ui/work/"
       ]
     }
   ],
@@ -1072,7 +1147,9 @@
       "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
       "manual": true,
-      "attestation": { "engines": ["authenticated Brave"] }
+      "attestation": {
+        "engines": ["authenticated Brave"]
+      }
     },
     {
       "id": "story-quality",
@@ -1366,6 +1443,36 @@
       "budgetSeconds": 60,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
+    },
+    {
+      "id": "browser-passkey",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable. On the chat link's Account step a newcomer and a returning account each reach Sign to Continue, and a refused name or a closed prompt leaves no passkey and no account.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 130,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-pwa-preview",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-pwa-preview/results.json bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json --output=.cache/validation/browser-pwa-preview/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "Fresh production shell reloads offline; deleting its navigation cache defeats the same reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 100,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-work-exploration",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-work-exploration/results.json bun run browser e2e --preset explore --seed 17 -- --workers=1 --reporter=line,json --output=.cache/validation/browser-work-exploration/artifacts",
+      "risk": "Read and recovery wiring can silently lose a work record across roles or viewports.",
+      "expectedSignal": "Both seeded work inspection and outage-recovery cases display the same synthetic record before and after reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
     }
   ],
   "criticalOverrides": [
@@ -1394,6 +1501,7 @@
         "packages/shared/src/hooks/action/useActionOperations.ts",
         "packages/shared/src/hooks/admin-ui/actions/useActionEditorController.ts",
         "packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts",
+        "packages/shared/src/hooks/admin-ui/auth/useAdminLoginController.ts",
         "packages/shared/src/hooks/admin-ui/community/useCommunityWorkspaceController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts",
         "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
@@ -1403,22 +1511,37 @@
         "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
         "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
         "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
+        "packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useAddToGroup.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentDialogController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useEditReward.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useFinishCreating.ts",
         "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",
         "packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts",
         "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
         "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
         "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingCeremony.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingPermissions.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingRecovery.ts",
+        "packages/shared/src/hooks/agent-reporting/useCeremonyAccount.ts",
+        "packages/shared/src/hooks/agent-reporting/useGrantInstallation.ts",
         "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
         "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
         "packages/shared/src/hooks/blockchain/useSendToken.ts",
         "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+        "packages/shared/src/hooks/blockchain/useWalletNetworkAlignment.ts",
         "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
         "packages/shared/src/hooks/client-ui/commitment/useCommitmentComposerController.ts",
         "packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/usePendingProof.ts",
         "packages/shared/src/hooks/client-ui/commitment/useProofComposerController.ts",
         "packages/shared/src/hooks/client-ui/pool/useGardenPoolController.ts",
+        "packages/shared/src/hooks/client-ui/pool/useGroupTakeUp.ts",
+        "packages/shared/src/hooks/client-ui/pool/usePromiseGroupController.ts",
+        "packages/shared/src/hooks/client-ui/profile/useUsernameController.ts",
         "packages/shared/src/hooks/client-ui/work/useCommunityGardenOnramp.ts",
         "packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts",
         "packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts",
@@ -1468,17 +1591,36 @@
         "packages/shared/src/hooks/yield/useAllocateYield.ts",
         "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
         "packages/shared/src/modules/action/action-operation-command.ts",
+        "packages/shared/src/modules/agent-reporting/browser-grant-activation.ts",
+        "packages/shared/src/modules/agent-reporting/ceremony-send.ts",
+        "packages/shared/src/modules/agent-reporting/garden-join.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-activation.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-executor.ts",
+        "packages/shared/src/modules/agent-reporting/owner-validator.ts",
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
+        "packages/shared/src/modules/commitment-pooling/creation-send.ts",
+        "packages/shared/src/modules/commitment-pooling/reward-edit.ts",
         "packages/shared/src/modules/garden/create-garden-command.ts",
         "packages/shared/src/modules/garden/join-garden-command.ts",
         "packages/shared/src/modules/marketplace/client.ts",
         "packages/shared/src/modules/marketplace/signing.ts",
+        "packages/shared/src/modules/transactions/bundling-sender.ts",
         "packages/shared/src/modules/transactions/chain-guard.ts",
         "packages/shared/src/modules/transactions/embedded-sender.ts",
         "packages/shared/src/modules/transactions/factory.ts",
         "packages/shared/src/modules/transactions/passkey-sender.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
         "packages/shared/src/providers/AuthGate.tsx"
+      ],
+      "risk": "critical",
+      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+    },
+    {
+      "id": "reporting-permission-payloads",
+      "note": "These data-only builders define the owner's Kernel permission install and independent revoke calls. Their authorization payloads are critical even though they do not themselves invoke a signing or sending primitive.",
+      "exact": [
+        "packages/shared/src/modules/agent-reporting/kernel-permissions.ts",
+        "packages/shared/src/modules/agent-reporting/permission-management.ts"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
@@ -1562,6 +1704,7 @@
     "members": [
       "sendTransaction",
       "sendUserOperation",
+      "signUserOperation",
       "writeContract",
       "writeContractAsync",
       "signMessage",
@@ -1662,7 +1805,12 @@
         "scripts/dev/package-commands.mjs",
         ".github/actions/setup-playwright/action.yml",
         "scripts/quality/check-staged-modules.mjs",
-        "scripts/quality/check-staged-modules.test.mjs"
+        "scripts/quality/check-staged-modules.test.mjs",
+        "scripts/dev/browser.js",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/node-cli.js",
+        "scripts/lib/command-runner.mjs",
+        "scripts/lib/dev-shared.js"
       ],
       "prefixes": [
         "packages/client/",
@@ -1694,6 +1842,7 @@
         "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
         "docs/docs/builders/testing/storybook.mdx",
+        "docs/src/css/custom.css",
         "scripts/data/banned-vocabulary.json",
         "packages/admin/AGENTS.md",
         "packages/admin/DESIGN.md",
@@ -1701,13 +1850,15 @@
         "packages/shared/package.json",
         "packages/shared/vitest.storybook.config.ts",
         "scripts/data/design-token-usage-baseline.tsv",
+        "scripts/quality/check-docs-design-parity.mjs",
         "scripts/quality/check-story-coverage.ts",
         "scripts/quality/check-story-quality.ts",
         "vercel.json",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/design.yml",
         "packages/shared/src/hooks/app/useTheme.ts",
-        ".github/actions/setup-playwright/action.yml"
+        ".github/actions/setup-playwright/action.yml",
+        "scripts/dev/playwright-setup.test.mjs"
       ],
       "prefixes": [
         ".claude/skills/design/",

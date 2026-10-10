@@ -5,6 +5,7 @@ import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import {
+  useGardenJoinRequestActivity,
   useGardenJoinRequestAvailability,
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
@@ -12,15 +13,13 @@ import {
   GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH,
   GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH,
 } from "@green-goods/shared/public-contracts/join-requests";
-import {
-  gardenJoinRequestErrorMessage,
-  GardenJoinRequestTransportError,
-} from "@green-goods/shared/modules/garden-join-requests";
+import { GardenJoinRequestTransportError } from "@green-goods/shared/modules/garden-join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
 import { chosenPasskeyUsername } from "@green-goods/shared/utils/app/text";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
-import { SheetHeading } from "@green-goods/shared/components/Dialog/SheetHeading";
-import { useId, useState } from "react";
+import { RiCloseCircleLine, RiRefreshLine, RiSendPlaneLine } from "@remixicon/react";
+import { GardenJoinRequestStatus } from "./GardenJoinRequestStatus";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
@@ -31,11 +30,39 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [note, setNote] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string>();
+  const [successMessage, setSuccessMessage] = useState<{
+    kind: "sent" | "checked" | "withdrawn";
+    text: string;
+  }>();
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const [feedbackRevision, setFeedbackRevision] = useState(0);
   const [outcomeUnknown, setOutcomeUnknown] = useState(false);
   const [ignoreMutationError, setIgnoreMutationError] = useState(false);
   const isAvailable = useGardenJoinRequestAvailability();
   const join = useGardenJoinRequests(gardenAddress);
+  const feedback = useGardenJoinRequestActivity(join.scopeKey);
+  const busy =
+    Boolean(feedback.activity) || join.mutationState.isLoading || join.statusState.isLoading;
+  const currentScope = useRef(join.scopeKey);
+  currentScope.current = join.scopeKey;
+  const [feedbackScope, setFeedbackScope] = useState(join.scopeKey);
+  if (feedbackScope !== join.scopeKey) {
+    setFeedbackScope(join.scopeKey);
+    setFeedbackRevision(0);
+    setDisplayName("");
+    setNote("");
+    setSuccessMessage(undefined);
+    setOutcomeUnknown(false);
+    setIgnoreMutationError(false);
+  }
+  // Explicit actions bring their result into the sheet viewport, even after
+  // scrolling the form. Silent on-open reconciliation leaves reading position alone.
+  useLayoutEffect(() => {
+    if (open && feedbackRevision > 0) {
+      feedbackRef.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    }
+  }, [open, feedbackRevision]);
+  const uncertain = outcomeUnknown || join.outcomeUnknown;
   // An account that already has a name requests under it: its Green Goods name,
   // then its ENS name, then the username it chose for its passkey. Only an
   // account that is just an address is asked what to be called.
@@ -57,72 +84,165 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
   const requestName = (accountName ?? displayName)
     .trim()
     .slice(0, GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH);
-  const error = outcomeUnknown
+  const error = uncertain
     ? join.statusState.error
     : ((ignoreMutationError ? null : join.mutationState.error) ?? join.statusState.error);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSuccessMessage(undefined);
+    setFeedbackRevision((value) => value + 1);
     setOutcomeUnknown(false);
     setIgnoreMutationError(false);
+    const scope = join.scopeKey;
     try {
-      await join.submitRequest({
-        displayName: requestName,
-        note: note || undefined,
-        requestedVia: "garden_detail",
-      });
-      setSuccessMessage(
-        formatMessage({
-          id: "app.garden.joinRequest.sent",
-          defaultMessage: "Your request was sent to the garden stewards.",
+      const completed = await feedback.run("sending", () =>
+        join.submitRequest({
+          displayName: requestName,
+          note: note || undefined,
+          requestedVia: "garden_detail",
         })
       );
+      if (currentScope.current !== scope || !completed?.value) return;
+      setSuccessMessage({
+        kind: "sent",
+        text: formatMessage({
+          id: "app.garden.joinRequest.sent",
+          defaultMessage: "Your request was sent to the garden stewards.",
+        }),
+      });
     } catch (caught) {
-      if (caught instanceof GardenJoinRequestTransportError && caught.outcomeUnknown) {
+      if (
+        currentScope.current === scope &&
+        caught instanceof GardenJoinRequestTransportError &&
+        caught.outcomeUnknown
+      ) {
         setOutcomeUnknown(true);
+      }
+    } finally {
+      if (currentScope.current === scope) setFeedbackRevision((value) => value + 1);
+    }
+  }
+
+  async function checkStatus(allowSignature = true) {
+    const scope = join.scopeKey;
+    if (allowSignature) {
+      setSuccessMessage(undefined);
+      setFeedbackRevision((value) => value + 1);
+    }
+    try {
+      if (allowSignature) {
+        const completed = await feedback.run("checking", () =>
+          join.checkStatus({ allowSignature })
+        );
+        if (!completed) return;
+      } else {
+        await join.checkStatus({ allowSignature });
+      }
+      if (currentScope.current !== scope) return;
+      setOutcomeUnknown(false);
+      setIgnoreMutationError(true);
+      if (allowSignature) {
+        setSuccessMessage({
+          kind: "checked",
+          text: formatMessage({
+            id: "app.garden.joinRequest.statusChecked",
+            defaultMessage: "Checked just now.",
+          }),
+        });
+      }
+    } catch {
+      // The persistent status error remains visible and a retry stays blocked.
+    } finally {
+      if (allowSignature && currentScope.current === scope) {
+        setFeedbackRevision((value) => value + 1);
       }
     }
   }
 
-  async function checkStatus() {
-    try {
-      await join.checkStatus();
-      setOutcomeUnknown(false);
-      setIgnoreMutationError(true);
-    } catch {
-      // The persistent status error remains visible and a retry stays blocked.
-    }
-  }
-
   async function withdraw() {
+    const scope = join.scopeKey;
     setSuccessMessage(undefined);
-    await join
-      .withdrawRequest()
-      .then(() =>
-        setSuccessMessage(
-          formatMessage({
-            id: "app.garden.joinRequest.withdrawn",
-            defaultMessage: "Your request was withdrawn.",
-          })
-        )
-      )
-      .catch(() => undefined);
+    setIgnoreMutationError(false);
+    setFeedbackRevision((value) => value + 1);
+    try {
+      const completed = await feedback.run("withdrawing", () => join.withdrawRequest());
+      if (!completed?.value || currentScope.current !== scope) return;
+      setSuccessMessage({
+        kind: "withdrawn",
+        text: formatMessage({
+          id: "app.garden.joinRequest.withdrawn",
+          defaultMessage:
+            "Your request was withdrawn. You can send a new one whenever you’re ready.",
+        }),
+      });
+    } catch {
+      // The data hook retains the failure and the request for recovery.
+    } finally {
+      if (currentScope.current === scope) setFeedbackRevision((value) => value + 1);
+    }
   }
 
   if (!isAvailable) return null;
 
   // The dialog's actions follow the request state and sit in the pinned bar (DL-016).
+  const actionLabels = {
+    send: formatMessage({
+      id: "app.garden.joinRequest.send",
+      defaultMessage: "Send Request",
+    }),
+    check: formatMessage({
+      id: "app.garden.joinRequest.checkStatus",
+      defaultMessage: "Check Request Status",
+    }),
+    withdraw: formatMessage({
+      id: "app.garden.joinRequest.withdraw",
+      defaultMessage: "Withdraw Request",
+    }),
+  };
+  // Reserve the largest action label so changing request state cannot move the buttons.
+  function actionLabel(idle: string, pending: string, loading: boolean) {
+    return (
+      <span className="grid">
+        {Object.values(actionLabels).map((label) => (
+          <span key={label} aria-hidden="true" className="invisible col-start-1 row-start-1">
+            {label}
+          </span>
+        ))}
+        <span className="col-start-1 row-start-1">{loading ? pending : idle}</span>
+      </span>
+    );
+  }
   const requestState = join.request?.state;
   const actions: SheetActionsProps =
     requestState === "pending"
       ? {
+          primary: {
+            label: actionLabel(
+              actionLabels.check,
+              formatMessage({
+                id: "app.garden.joinRequest.checkingAction",
+                defaultMessage: "Checking…",
+              }),
+              feedback.activity === "checking" || join.statusState.isLoading
+            ),
+            icon: <RiRefreshLine aria-hidden="true" className="size-4" />,
+            loading: feedback.activity === "checking" || join.statusState.isLoading,
+            disabled: busy,
+            onClick: () => void checkStatus(),
+          },
           secondary: {
-            label: formatMessage({
-              id: "app.garden.joinRequest.withdraw",
-              defaultMessage: "Withdraw Request",
-            }),
-            loading: join.mutationState.isLoading,
+            label: actionLabel(
+              actionLabels.withdraw,
+              formatMessage({
+                id: "app.garden.joinRequest.withdrawingAction",
+                defaultMessage: "Withdrawing…",
+              }),
+              feedback.activity === "withdrawing"
+            ),
+            icon: <RiCloseCircleLine aria-hidden="true" className="size-4" />,
+            loading: feedback.activity === "withdrawing" || join.mutationState.isLoading,
+            disabled: busy,
             onClick: () => void withdraw(),
           },
         }
@@ -141,30 +261,48 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           }
         : {
             primary: {
-              label: formatMessage({
-                id: "app.garden.joinRequest.send",
-                defaultMessage: "Send Request",
-              }),
+              label: actionLabel(
+                actionLabels.send,
+                formatMessage({
+                  id: "app.garden.joinRequest.sendingAction",
+                  defaultMessage: "Sending…",
+                }),
+                feedback.activity === "sending"
+              ),
+              icon: <RiSendPlaneLine aria-hidden="true" className="size-4" />,
               type: "submit",
               form: formId,
-              loading: join.mutationState.isLoading,
-              disabled:
-                !requestName || isResolvingName || outcomeUnknown || join.statusState.isLoading,
+              loading: feedback.activity === "sending" || join.mutationState.isLoading,
+              disabled: !requestName || isResolvingName || uncertain || busy,
             },
             secondary: {
-              label: formatMessage({
-                id: "app.garden.joinRequest.checkStatus",
-                defaultMessage: "Check Request Status",
-              }),
-              loading: join.statusState.isLoading,
-              disabled: join.mutationState.isLoading,
+              label: actionLabel(
+                actionLabels.check,
+                formatMessage({
+                  id: "app.garden.joinRequest.checkingAction",
+                  defaultMessage: "Checking…",
+                }),
+                feedback.activity === "checking" || join.statusState.isLoading
+              ),
+              icon: <RiRefreshLine aria-hidden="true" className="size-4" />,
+              loading: feedback.activity === "checking" || join.statusState.isLoading,
+              disabled: busy,
               onClick: () => void checkStatus(),
             },
           };
 
   return (
     <>
-      <Button type="button" size="compact" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        size="compact"
+        onClick={() => {
+          setSuccessMessage(undefined);
+          setFeedbackRevision(0);
+          setOpen(true);
+          if (join.canRefreshStatus) void checkStatus(false);
+        }}
+      >
         {formatMessage({
           id: "app.garden.joinRequest.action",
           defaultMessage: "Request to Join",
@@ -178,58 +316,34 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
           defaultMessage: "Request to Join This Garden",
         })}
         description={formatMessage({
-          id: "app.garden.joinRequest.description",
-          defaultMessage: "Introduce yourself. A steward will review your request.",
+          id: "app.garden.joinRequest.overview",
+          defaultMessage: "Follow your request to join this garden.",
         })}
         size="lg"
-        sheetSize="tall"
+        sheetSize="full"
+        bodyClassName="sm:h-[30rem]"
         actions={actions}
       >
         <div className="space-y-4">
-          {join.request?.state === "pending" ? (
-            <section className="space-y-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 p-4">
-              <SheetHeading>
-                {formatMessage({
-                  id: "app.garden.joinRequest.pendingTitle",
-                  defaultMessage: "Request awaiting review",
-                })}
-              </SheetHeading>
-              <p className="text-sm text-text-sub-600">
-                {formatMessage({
-                  id: "app.garden.joinRequest.pendingDescription",
-                  defaultMessage: "A steward can welcome or decline your request.",
-                })}
-              </p>
-            </section>
-          ) : join.request?.state === "welcomed" ? (
-            <section className="space-y-3 rounded-[var(--radius-lg)] bg-success-lighter p-4">
-              <SheetHeading>
-                {formatMessage({
-                  id: "app.garden.joinRequest.welcomedTitle",
-                  defaultMessage: "Welcome to the garden",
-                })}
-              </SheetHeading>
-              <p className="text-sm text-text-sub-600">
-                {formatMessage({
-                  id: "app.garden.joinRequest.welcomedDescription",
-                  defaultMessage:
-                    "Your membership is active. You can now claim a Green Goods username from your profile.",
-                })}
-              </p>
-            </section>
-          ) : (
+          <div ref={feedbackRef}>
+            <GardenJoinRequestStatus
+              activity={
+                feedback.activity ??
+                (join.statusState.isLoading
+                  ? "checking"
+                  : join.mutationState.isLoading
+                    ? "updating"
+                    : null)
+              }
+              request={join.request}
+              uncertain={uncertain}
+              error={error}
+              receipt={successMessage}
+              hasCheckedStatus={join.hasCheckedStatus}
+            />
+          </div>
+          {join.request?.state !== "pending" && join.request?.state !== "welcomed" ? (
             <form id={formId} className="space-y-4" onSubmit={submit}>
-              {join.request?.state === "declined" ? (
-                <div className="rounded-[var(--radius-lg)] bg-warning-lighter p-3 text-sm text-warning-dark">
-                  <p className="font-semibold">
-                    {formatMessage({
-                      id: "app.garden.joinRequest.declinedTitle",
-                      defaultMessage: "This request was declined",
-                    })}
-                  </p>
-                  {join.request.reason ? <p className="mt-1">{join.request.reason}</p> : null}
-                </div>
-              ) : null}
               {accountName ? (
                 <p className="text-sm text-text-sub-600">
                   {formatMessage(
@@ -249,6 +363,7 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                     })}
                   </span>
                   <TextInput
+                    disabled={busy}
                     required
                     maxLength={GARDEN_JOIN_REQUEST_DISPLAY_NAME_MAX_LENGTH}
                     value={displayName}
@@ -264,62 +379,21 @@ export function GardenJoinRequestDialog({ gardenAddress }: { gardenAddress: Addr
                   })}
                 </span>
                 <Textarea
+                  disabled={busy}
                   maxLength={GARDEN_JOIN_REQUEST_NOTE_MAX_LENGTH}
-                  rows={4}
+                  rows={3}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                 />
               </label>
             </form>
-          )}
-          {/* Results sit under the form: above it, each one pushed the fields down. */}
+          ) : null}
           {!join.request ? (
             <p className="text-sm text-text-sub-600">
               {formatMessage({
                 id: "app.garden.joinRequest.signingExplanation",
                 defaultMessage:
-                  "Sending a request or checking its status asks you to sign a message to verify your account. This does not send a transaction or cost a fee.",
-              })}
-            </p>
-          ) : null}
-          <div aria-live="polite" className="space-y-3">
-            {successMessage ? (
-              <p className="rounded-[var(--radius-md)] bg-success-lighter p-3 text-sm text-success-dark">
-                {successMessage}
-              </p>
-            ) : null}
-            {outcomeUnknown ? (
-              <p
-                role="alert"
-                className="rounded-[var(--radius-md)] bg-warning-lighter p-3 text-sm text-warning-dark"
-              >
-                {formatMessage({
-                  id: "app.garden.joinRequest.outcomeUnknown",
-                  defaultMessage:
-                    "We could not confirm whether your request was saved. Check its status before trying again.",
-                })}
-              </p>
-            ) : null}
-            {error ? (
-              <p
-                role="alert"
-                className="rounded-[var(--radius-md)] bg-error-lighter p-3 text-sm text-error-dark"
-              >
-                {formatMessage(gardenJoinRequestErrorMessage(error))}
-              </p>
-            ) : null}
-          </div>
-
-          {join.hasCheckedStatus &&
-          !join.request &&
-          !outcomeUnknown &&
-          !join.mutationState.isLoading &&
-          !join.statusState.isLoading &&
-          !join.statusState.error ? (
-            <p className="text-sm text-text-sub-600" aria-live="polite">
-              {formatMessage({
-                id: "app.garden.joinRequest.none",
-                defaultMessage: "You do not have a request for this garden yet.",
+                  "Confirm with your wallet or passkey to send your request and check for updates. There’s no fee.",
               })}
             </p>
           ) : null}

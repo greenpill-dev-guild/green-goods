@@ -363,12 +363,25 @@ async function registerServiceWorker(
   }
 }
 
+/** The keys `registerServiceWorkerFromEnv` reads, each by name, so Vite inlines only these. */
+function readServiceWorkerEnv(): ServiceWorkerEnv {
+  return {
+    DEV: import.meta.env.DEV,
+    PROD: import.meta.env.PROD,
+    STORYBOOK: import.meta.env.STORYBOOK,
+    VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+  };
+}
+
 export async function registerServiceWorkerFromEnv(
-  env: ServiceWorkerEnv = import.meta.env,
+  providedEnv?: ServiceWorkerEnv,
   registrationConfig: ServiceWorkerRegistrationConfig = {}
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
+  // Read past the guard: outside a browser `import.meta.env` may not exist, and a default
+  // parameter would read its keys before the guard could return.
+  const env = providedEnv ?? readServiceWorkerEnv();
   const enableDevServiceWorker = env.VITE_ENABLE_SW_DEV === "true";
   const isStorybook = Boolean(env.STORYBOOK);
   if (isStorybook) return false;

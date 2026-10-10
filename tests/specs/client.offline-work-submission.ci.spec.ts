@@ -10,6 +10,17 @@
  */
 
 import { expect, test } from "@playwright/test";
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  parseAbi,
+  parseAbiParameters,
+  zeroHash,
+} from "viem";
+import deployment from "../../packages/contracts/deployments/11155111-latest.json" with {
+  type: "json",
+};
+import { MOCK_CLIENT_ACTION, MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
 import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
@@ -17,6 +28,40 @@ const ONE_PIXEL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mNk+M/wHwAF/gL+ZSkdJwAAAABJRU5ErkJggg==",
   "base64"
 );
+// The reconnect prepares this exact work but may never send a transaction.
+// This independent ABI encoding checks the application's preparation payload.
+const dummyCid = "QmSimulationDummyHashForValidation000000000000";
+const workPreparationRead = {
+  name: "offline work preparation",
+  to: deployment.eas.address,
+  from: MOCK_CLIENT_GARDEN.gardeners[0],
+  data: encodeFunctionData({
+    abi: parseAbi([
+      "function attest((bytes32 schema, (address recipient, uint64 expirationTime, bool revocable, bytes32 refUID, bytes data, uint256 value) data) request) payable returns (bytes32)",
+    ]),
+    functionName: "attest",
+    args: [
+      {
+        schema: deployment.schemas.workSchemaUID as `0x${string}`,
+        data: {
+          recipient: MOCK_CLIENT_GARDEN.id as `0x${string}`,
+          expirationTime: 0n,
+          revocable: false,
+          refUID: zeroHash,
+          value: 0n,
+          data: encodeAbiParameters(parseAbiParameters(deployment.schemas.workSchema), [
+            1n,
+            MOCK_CLIENT_ACTION.title,
+            "",
+            dummyCid,
+            [dummyCid],
+          ]),
+        },
+      },
+    ],
+  }),
+  result: zeroHash,
+};
 const OFFLINE_STATUS = { name: "App is in offline mode" };
 
 async function attachScreenshot(page: import("@playwright/test").Page, name: string) {
@@ -30,7 +75,10 @@ test.describe("Offline Work Submission CI Tests", () => {
     page,
     context,
   }) => {
-    const helper = await setupAuthenticatedClient(page);
+    const helper = await setupAuthenticatedClient(page, "user", {
+      rpcReads: [workPreparationRead],
+      required: ["rpc: offline work preparation"],
+    });
 
     // Load the signed-in shell online first. Production precaches these route
     // modules in the offline shell; the Vite dev server can only serve them on
@@ -105,10 +153,12 @@ test.describe("Offline Work Submission CI Tests", () => {
     const dashboard = page.getByRole("dialog");
     await expect(dashboard).toBeVisible({ timeout: 15000 });
     // Exactly one queued submission. Offline the header line reads "Offline · {time}"
-    // once any read has been saved, so count the work itself rather than the header.
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toBeVisible();
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    // once any read has been saved, so count the Pending rows waiting to upload instead,
+    // each with its pill and the line saying what happens once connected.
+    const queued = dashboard.locator('[data-component="PendingCard"][data-kind="upload"]');
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
+    await expect(queued).toContainText("Uploads when you're connected");
     // The dashboard is a modal sheet: while it is open the page, the offline bar
     // included, is hidden from assistive tech, so look for the bar itself.
     await expect(
@@ -138,11 +188,12 @@ test.describe("Offline Work Submission CI Tests", () => {
     await expect(page.getByRole("link", { name: /Home/ })).toContainText("1");
     await yourWork.click();
     await expect(dashboard).toBeVisible({ timeout: 15000 });
-    await expect(dashboard.getByText("You submitted")).toHaveCount(1, { timeout: 15000 });
-    await expect(dashboard.getByText("To upload", { exact: true })).toBeVisible();
+    await expect(queued).toHaveCount(1, { timeout: 15000 });
+    await expect(queued.getByText("To upload", { exact: true })).toBeVisible();
     // Background preparation starts once the connection is confirmed. The fixture has
     // no media-upload service, so the work remains queued with the preparation action.
     await expect(page.getByTestId("upload-all")).toHaveText("Upload all");
     await attachScreenshot(page, "reconnect-review-uploads");
+    helper.backend.assertSatisfied();
   });
 });

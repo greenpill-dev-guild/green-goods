@@ -58,7 +58,11 @@ export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps
       aria-labelledby={`account-tab-${activeTab}`}
       className={cn("flex flex-col gap-4", className)}
     >
-      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanelContainer />}
+      {activeTab === "settings" ? (
+        <AccountSettingsPanel layout="page" />
+      ) : (
+        <AccountProfilePanelContainer layout="page" />
+      )}
     </div>
   );
 }

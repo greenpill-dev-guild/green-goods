@@ -26,6 +26,7 @@ import {
 import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import {
   ERC20_ALLOWANCE_ABI,
+  ERC20_BALANCE_ABI,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
 } from "../../utils/blockchain/abis/erc20";
@@ -36,16 +37,6 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useCookieJarFactoryAddress } from "./useCookieJarFactoryAddress";
-
-const ERC20_BALANCE_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
 
 const BASE_FIELD_COUNT = 13;
 const JAR_OWNER_ROLE =
@@ -384,7 +375,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
       let jarAddress: Address | undefined;
       if (isCanonicalTxHash(hash)) {
         try {
-          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash });
+          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
           const logs = parseEventLogs({
             abi: COOKIE_JAR_FACTORY_ABI,
             eventName: "JarCreated",
@@ -470,6 +461,7 @@ export function useCampaignCookieJarDeposit(options: CookieJarMutationOptions = 
           abi: ERC20_BALANCE_ABI,
           functionName: "balanceOf",
           args: [primaryAddress as Address],
+          chainId,
         });
         const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
         if (balance < params.amount) {
@@ -491,6 +483,7 @@ export function useCampaignCookieJarDeposit(options: CookieJarMutationOptions = 
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
           args: [primaryAddress as Address, params.jarAddress],
+          chainId,
         });
         allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
       } catch {

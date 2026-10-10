@@ -1,12 +1,13 @@
 import { configureConnectivityProbe } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useWalletNetworkAlignment } from "@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment";
 import { useDocumentScrollLockLifecycle } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
 import { logger } from "@green-goods/shared/modules/app/logger";
 import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
 import { WorkProvider } from "@green-goods/shared/providers/Work";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useDashboardRestoration } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication/Offline/OfflineIndicator";
 import { InstallNudge } from "@/components/Communication/Offline/InstallNudge";
@@ -63,9 +64,9 @@ function DeferredEnsClaimReminder() {
 export default function AppShell() {
   const { pathname } = useLocation();
   useEffect(() => configureConnectivityProbe("/connectivity-check.txt"), []);
-  const closeWorkDashboard = useUIStore((state) => state.closeWorkDashboard);
-  const previousPathnameRef = useRef(pathname);
+  useDashboardRestoration();
   const primaryAddress = usePrimaryAddress();
+  useWalletNetworkAlignment();
 
   useDocumentScrollLockLifecycle(pathname);
 
@@ -78,19 +79,10 @@ export default function AppShell() {
     }
   }, [pathname, primaryAddress]);
 
-  // Route transitions reset the app scroller; submission returns preserve dashboard state.
+  // The visited history entry owns dashboard restoration. Route changes only reset the page.
   useLayoutEffect(() => {
-    const previousPathname = previousPathnameRef.current;
-    const isSubmissionReturn =
-      previousPathname === APP_ROUTES.garden && pathname.replace(/\/$/, "") === APP_ROUTES.home;
-
-    // Preserve the documented Garden completion flow, which opens the
-    // dashboard before returning Home. Every other route transition clears
-    // stale dashboard state.
-    if (!isSubmissionReturn) closeWorkDashboard();
     scrollAppToTop();
-    previousPathnameRef.current = pathname;
-  }, [closeWorkDashboard, pathname]);
+  }, [pathname]);
 
   return (
     <JobQueueProvider>

@@ -11,18 +11,16 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentExpireDialog } from "./CommitmentExpireDialog";
+import { PoolGroupRow } from "./PoolGroupRow";
 import { GardenPoolTarget } from "./PoolTarget";
 import {
   type PoolCommitmentFocus,
+  type PoolCommitmentGroup,
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import {
-  commitmentStateChip,
-  directionEdgeClass,
-  directionLabel,
-  formatUnixDate,
-} from "./poolPresentation";
+import { commitmentStateChip, directionEdgeClass, directionLabel } from "./poolPresentation";
+import { dueDateText } from "./poolTime";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
 
@@ -33,6 +31,8 @@ export interface PoolCommitmentsCardProps {
   focus: PoolCommitmentFocus;
   onFocusChange: (focus: PoolCommitmentFocus) => void;
   onOpenCommitment: (commitment: CommitmentReadModel) => void;
+  /** Open a group of copies made together in its inspector. */
+  onOpenGroup: (group: PoolCommitmentGroup) => void;
   onSeed: () => void;
   canSeed: boolean;
   /** Workspace tone for the expire confirmation this card can open. */
@@ -40,14 +40,22 @@ export interface PoolCommitmentsCardProps {
 }
 
 /**
+ * Offers and Requests, the card's title since DL-077.
  * One commitments card for the whole pool (uiux-spec §6.2 section 3, 2026-07-18
  * addendum): search, the Open · Confirmed · Past chips, a Past due chip for
  * the live rows the chain would let anyone expire, a Needs recovery chip for
  * those and the disputed ones, and rows that open in the left inspector. The row information contract: kind · lifecycle · at most one
  * attention chip; meta = who · how much · when. Creations still queued on this
  * device render above the indexed rows so a seeded commitment shows up before
- * the indexer has it.
+ * the indexer has it. Copies made together are one group row (PRD-1022 D3),
+ * and a group's copies still queued fold into it as "didn't send" with Finish
+ * Creating, rather than as queued rows of their own.
  */
+/** A group past its deadline can't be finished; one with none never lapses. */
+function isPastDeadline(dueDate: bigint | null | undefined, now: number): boolean {
+  return Boolean(dueDate) && Number(dueDate) * 1000 <= now;
+}
+
 export function PoolCommitmentsCard({
   console: pool,
   scope,
@@ -55,12 +63,15 @@ export function PoolCommitmentsCard({
   focus,
   onFocusChange,
   onOpenCommitment,
+  onOpenGroup,
   onSeed,
   canSeed,
   tone,
 }: PoolCommitmentsCardProps) {
-  const { formatMessage, locale } = useIntl();
-  const { model, titles, pendingCreates, isOnline, isActing, acts } = pool;
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const now = Date.now();
+  const { model, titles, isOnline, isActing, acts } = pool;
   const [search, setSearch] = useState("");
   const [expireTarget, setExpireTarget] = useState<CommitmentReadModel | null>(null);
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
@@ -84,7 +95,31 @@ export function PoolCommitmentsCard({
       { id: commitment.commitmentId.toString() }
     );
 
-  const rows = selectPoolCommitmentRows({ model, scope, focus, search, titleOf });
+  const rows = selectPoolCommitmentRows({
+    model,
+    commitments: pool.commitments,
+    metadataByCID: titles,
+    scope,
+    focus,
+    search,
+    titleOf,
+  });
+  // A group's queued copies are counted on its row, so they leave the queued
+  // list, while it can still finish them. Past its deadline they stay listed on
+  // their own, where Discard clears them.
+  const shownGroups = new Set(
+    rows.flatMap((entry) =>
+      entry.kind === "group" && !isPastDeadline(entry.children[0]?.dueDate, now)
+        ? [entry.displayGroupId]
+        : []
+    )
+  );
+  const foldedJobs = new Set(
+    [...pool.queuedGroupCopies]
+      .filter(([groupId]) => shownGroups.has(groupId))
+      .flatMap(([, jobIds]) => jobIds)
+  );
+  const pendingCreates = pool.pendingCreates.filter((row) => !foldedJobs.has(row.jobId));
 
   const actDisabled = !isOnline || isActing;
   const total = model.groups.open.length + model.groups.confirmed.length + model.groups.past.length;
@@ -101,8 +136,8 @@ export function PoolCommitmentsCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.garden.pool.commitments.title",
-              defaultMessage: "Commitments",
+              id: "cockpit.garden.pool.promises.title",
+              defaultMessage: "Offers and Requests",
             })}
           </AdminCardTitle>
           <AdminButton
@@ -114,8 +149,8 @@ export function PoolCommitmentsCard({
             disabled={!canSeed}
           >
             {formatMessage({
-              id: "cockpit.garden.pool.act.seed",
-              defaultMessage: "Seed Commitment",
+              id: "cockpit.garden.pool.act.seedPromises",
+              defaultMessage: "Seed Promises",
             })}
           </AdminButton>
         </div>
@@ -124,8 +159,8 @@ export function PoolCommitmentsCard({
           search={search}
           onSearchChange={setSearch}
           placeholder={formatMessage({
-            id: "cockpit.garden.pool.commitments.search",
-            defaultMessage: "Search commitments",
+            id: "cockpit.garden.pool.promises.search",
+            defaultMessage: "Search promises",
           })}
         >
           <div
@@ -250,7 +285,12 @@ export function PoolCommitmentsCard({
                     type="button"
                     variant="outlined"
                     size="sm"
-                    disabled={!isOnline || busyJobId !== null}
+                    disabled={
+                      !isOnline ||
+                      busyJobId !== null ||
+                      (!row.hasRecordedSend &&
+                        isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now))
+                    }
                     loading={busyJobId === row.jobId}
                     onClick={() => void runQueued(row.jobId, acts.retryQueued)}
                   >
@@ -267,6 +307,16 @@ export function PoolCommitmentsCard({
                   </AdminButton>
                 </span>
                 <div className="basis-full">
+                  {!row.hasRecordedSend &&
+                  isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
+                    <p className="body-xs text-text-soft">
+                      {formatMessage({
+                        id: "cockpit.garden.pool.add.expired",
+                        defaultMessage:
+                          "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+                      })}
+                    </p>
+                  ) : null}
                   <ActPhaseLine
                     phase={pool.queuedPhase(row.jobId)}
                     chainId={pool.chainId}
@@ -312,7 +362,26 @@ export function PoolCommitmentsCard({
           </p>
         ) : (
           <ul className="divide-y divide-stroke-soft">
-            {rows.map((commitment) => {
+            {rows.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <PoolGroupRow
+                    key={entry.key}
+                    group={entry}
+                    title={titleOf(entry.children[0] as CommitmentReadModel)}
+                    unsent={
+                      shownGroups.has(entry.displayGroupId)
+                        ? (pool.queuedGroupCopies.get(entry.displayGroupId)?.length ?? 0)
+                        : 0
+                    }
+                    finishing={pool.finishingGroupId === entry.displayGroupId}
+                    finishDisabled={!isOnline || pool.finishingGroupId !== null}
+                    onOpen={() => onOpenGroup(entry)}
+                    onFinish={() => void acts.finishCreating(entry.displayGroupId)}
+                  />
+                );
+              }
+              const commitment = entry.record;
               const chip = commitmentStateChip(commitment, formatMessage);
               const title = titleOf(commitment);
               const isDue = dueIds.has(commitment.id);
@@ -321,7 +390,7 @@ export function PoolCommitmentsCard({
               const due = commitment.dueDate
                 ? formatMessage(
                     { id: "cockpit.garden.pool.row.due", defaultMessage: "due {date}" },
-                    { date: formatUnixDate(commitment.dueDate, locale, "—") }
+                    { date: dueDateText(intl, Number(commitment.dueDate) * 1000, now) }
                   )
                 : "";
               return (
@@ -330,9 +399,11 @@ export function PoolCommitmentsCard({
                   className={`flex flex-wrap items-center justify-between gap-2 py-2 ps-3 ${directionEdgeClass(commitment.direction)}`}
                   data-testid={`pool-commitment-${commitment.commitmentId.toString()}`}
                 >
+                  {/* As in the group row: a 240px basis, so Expire Now… wraps
+                      under the text on a narrow card. */}
                   <button
                     type="button"
-                    className="m3-state-layer flex min-w-0 flex-1 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
+                    className="m3-state-layer flex min-w-0 grow basis-60 items-center gap-3 rounded-[var(--m3-shape-sm)] py-1 text-left [--state-layer-color:var(--text-strong-950)]"
                     onClick={() => onOpenCommitment(commitment)}
                   >
                     <span className="min-w-0 flex-1">
@@ -371,6 +442,7 @@ export function PoolCommitmentsCard({
                       type="button"
                       variant="outlined"
                       size="sm"
+                      className="ms-auto"
                       onClick={() => setExpireTarget(commitment)}
                       disabled={actDisabled}
                     >

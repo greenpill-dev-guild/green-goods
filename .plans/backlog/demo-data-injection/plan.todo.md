@@ -2,12 +2,16 @@
 
 **Feature Slug**: `demo-data-injection`
 **Stage**: `backlog`
-**Status**: `BACKLOG`
+**Status**: `BACKLOG — reassess remaining fixture gaps before dispatch`
 **Created**: `2026-08-23T02:07:14.633Z`
-**Last Updated**: `2026-08-23T02:07:14.633Z`
+**Last Updated**: `2026-10-06`
 
 Deferred behind the module optimization and test work. Nothing here is claimed by automation while
 the hub sits in `backlog`. The seam map in `spec.md` is the reference for every rung below.
+
+## Status reconciliation (2026-10-06)
+
+The current working copy has seeded browser exploration and strict backend fixtures under `tests/fixtures/work-exploration.ts` and `tests/helpers/mock-backend.ts`, owned by the active test-budget hub. They do not prove a populated commitment season across all three live local surfaces. Reuse that work, reproduce the remaining full-app gap, then select the smallest missing rung; do not implement all four historical rungs by default.
 
 ## Decision Log
 

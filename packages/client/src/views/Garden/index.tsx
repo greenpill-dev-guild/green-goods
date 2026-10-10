@@ -1,34 +1,31 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { DraftStatus } from "./DraftStatus";
 import { useWorkSubmissionFlowController } from "@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController";
 import { WorkTab } from "@green-goods/shared/stores/workFlowTypes";
 import type { Address } from "@green-goods/shared/types/domain";
-import {
-  RiArrowRightSLine,
-  RiCameraFill,
-  RiErrorWarningLine,
-  RiHammerFill,
-  RiImageFill,
-  RiMicLine,
-  RiPlantFill,
-  RiRefreshLine,
-  RiStopFill,
-} from "@remixicon/react";
-import React from "react";
+import { RiErrorWarningLine, RiHammerFill, RiPlantFill, RiRefreshLine } from "@remixicon/react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@green-goods/shared/components/Button";
-import { IconButton } from "@green-goods/shared/components/IconButton";
 import { ActionCardSkeleton, FormInfo, GardenCardSkeleton } from "@/components/Cards";
 import { FormProgress } from "@/components/Communication";
+import { PinnedPromiseCard } from "@/components/Features/Commitments";
 import { DraftSheet } from "@/components/Sheets";
-import { WorkViewSkeleton } from "@/components/Features/Work";
+import {
+  FlowBar,
+  FlowBarNote,
+  FlowForward,
+  MediaTools,
+  WorkViewSkeleton,
+} from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { trackWorkMediaJourneyEvent } from "@/config/mediaAnalytics";
 import { APP_ROUTES } from "@/config/pwaRouting";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { WorkForSheet } from "./WorkForSheet";
 
 const trackControllerMediaEvent = (
   event: "work_media_preview_failed" | "work_media_removed" | "work_broken_media_removed",
@@ -169,15 +166,22 @@ const Work: React.FC = () => {
     commitmentId: choice.commitmentId,
     requirementIndex: choice.requirementIndex,
     title: choice.commitmentTitle,
+    approvedCount: choice.approvedCount,
+    requiredCount: choice.requiredCount,
+    dueDate: choice.dueDate,
+    actionTitle: actions.find((action) => action.id === `${DEFAULT_CHAIN_ID}-${choice.actionUID}`)
+      ?.title,
   }));
-  const commitmentSelection = linkIntent
-    ? {
-        key: linkChoiceKey(linkIntent),
-        commitmentId: linkIntent.commitmentId,
-        requirementIndex: linkIntent.requirementIndex,
-        title: linkIntent.commitmentTitle,
-      }
-    : null;
+  // Once a promise is chosen at Start, every later step names it after its
+  // heading (D16, O9); the card opens the promise, which can unlink the work.
+  const [promiseOpen, setPromiseOpen] = useState(false);
+  const pinned = linkIntent ? (
+    <PinnedPromiseCard
+      kind="work"
+      title={linkIntent.commitmentTitle}
+      onOpen={() => setPromiseOpen(true)}
+    />
+  ) : null;
 
   const currentTab = {
     [WorkTab.Intro]: {
@@ -196,45 +200,18 @@ const Work: React.FC = () => {
         defaultMessage: "Details",
       }),
       customSecondary: (
-        <>
-          <IconButton
-            onClick={() => {
-              if (mediaClickRef.current) mediaClickRef.current();
-              else document.getElementById("work-media-upload")?.click();
-            }}
-            aria-label={intl.formatMessage({ id: "app.proof.media.gallery" })}
-            emphasis="secondary"
-            size="lg"
-            icon={<RiImageFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
-          />
-          <IconButton
-            onClick={() => {
-              if (cameraClickRef.current) cameraClickRef.current();
-              else document.getElementById("work-media-camera")?.click();
-            }}
-            aria-label={intl.formatMessage({ id: "app.proof.media.camera" })}
-            emphasis="secondary"
-            size="lg"
-            icon={<RiCameraFill className={pwaStatusStyles.primary.icon} aria-hidden="true" />}
-          />
-          <IconButton
-            onClick={toggleAudioRecording}
-            aria-label={intl.formatMessage({
-              id: isRecording ? "app.proof.media.stopRecording" : "app.proof.media.record",
-            })}
-            aria-pressed={isRecording}
-            emphasis={isRecording ? "primary" : "secondary"}
-            tone={isRecording ? "danger" : "default"}
-            size="lg"
-            icon={
-              isRecording ? (
-                <RiStopFill aria-hidden="true" />
-              ) : (
-                <RiMicLine className={pwaStatusStyles.primary.icon} aria-hidden="true" />
-              )
-            }
-          />
-        </>
+        <MediaTools
+          onGallery={() => {
+            if (mediaClickRef.current) mediaClickRef.current();
+            else document.getElementById("work-media-upload")?.click();
+          }}
+          onCamera={() => {
+            if (cameraClickRef.current) cameraClickRef.current();
+            else document.getElementById("work-media-camera")?.click();
+          }}
+          onToggleRecording={toggleAudioRecording}
+          isRecording={isRecording}
+        />
       ),
       backButton: () => changeTab(WorkTab.Intro),
     },
@@ -334,11 +311,13 @@ const Work: React.FC = () => {
             actionUID={actionUID}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
+            pinned={pinned}
           />
         );
       case WorkTab.Details:
         return (
           <WorkDetails
+            pinned={pinned}
             config={detailsConfig}
             inputs={detailInputs}
             register={register}
@@ -366,8 +345,7 @@ const Work: React.FC = () => {
             onRemoveBrokenMedia={removeBrokenMedia}
             heicStateOf={heicStateOf}
             onRetryHeicConversion={retryHeicConversion}
-            commitmentSelection={commitmentSelection}
-            onClearCommitment={clearLinkIntent}
+            pinned={pinned}
           />
         );
     }
@@ -375,12 +353,24 @@ const Work: React.FC = () => {
 
   return (
     <>
+      {linkIntent ? (
+        <WorkForSheet
+          open={promiseOpen}
+          onClose={() => setPromiseOpen(false)}
+          intent={linkIntent}
+          onUnlink={() => {
+            setPromiseOpen(false);
+            clearLinkIntent();
+          }}
+        />
+      ) : null}
       <DraftSheet
         isOpen={draft.showDraftSheet}
         onContinue={draft.handleContinueDraft}
         onClose={draft.close}
         legacyRecovery={draft.legacyRecovery}
         onStartFresh={draft.startFresh}
+        onManage={draft.manage}
         imageCount={images.length}
       />
       <TopNav onBackClick={currentTab.backButton} overlay>
@@ -390,7 +380,12 @@ const Work: React.FC = () => {
               ? 5
               : Object.values(WorkTab).indexOf(activeTab) + 1
           }
-          steps={Object.values(WorkTab).slice(0, 4)}
+          steps={[
+            intl.formatMessage({ id: "app.work.step.start" }),
+            intl.formatMessage({ id: "app.work.step.media" }),
+            intl.formatMessage({ id: "app.work.step.details" }),
+            intl.formatMessage({ id: "app.work.step.review" }),
+          ]}
         />
       </TopNav>
       <form
@@ -410,84 +405,77 @@ const Work: React.FC = () => {
           <DraftStatus draft={draft} submissionCompleted={submissionCompleted} />
           {renderTabContent()}
         </div>
-        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden">
-          <div className="flex flex-col gap-2 w-full padded">
-            {queueStatusMessage ? (
-              <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
-                {queueStatusMessage}
-              </p>
-            ) : null}
-            {isQueueingDependentLink ? (
-              <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
-                {intl.formatMessage({
-                  id: "app.garden.commitment.linkScheduling",
-                  defaultMessage: "Work submitted. Queueing its commitment link…",
-                })}
-              </p>
-            ) : null}
-            {linkSchedulingSucceeded ? (
-              <p className="text-xs text-success-dark px-1" role="status" aria-live="polite">
-                {linkSchedulingWorkSent
-                  ? intl.formatMessage({
-                      id: "app.garden.commitment.linkScheduled",
-                      defaultMessage: "Work submitted. Its commitment link is queued.",
-                    })
-                  : intl.formatMessage({
-                      id: "app.garden.commitment.linkSavedQueued",
-                      defaultMessage: "Work saved on this device. Its commitment link is queued.",
-                    })}
-              </p>
-            ) : null}
-            {hasPendingLinkRecovery && linkSchedulingError ? (
-              <div
-                className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark"
-                role="alert"
-              >
-                <span className="flex items-center gap-2">
-                  <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <FlowBar
+          status={
+            <>
+              {queueStatusMessage ? <FlowBarNote>{queueStatusMessage}</FlowBarNote> : null}
+              {isQueueingDependentLink ? (
+                <FlowBarNote>
+                  {intl.formatMessage({
+                    id: "app.garden.commitment.linkScheduling",
+                    defaultMessage: "Work submitted. Queueing its link to the promise…",
+                  })}
+                </FlowBarNote>
+              ) : null}
+              {linkSchedulingSucceeded ? (
+                <FlowBarNote tone="success">
                   {linkSchedulingWorkSent
                     ? intl.formatMessage({
-                        id: "app.garden.commitment.linkSchedulingError",
-                        defaultMessage:
-                          "Your work was submitted, but its commitment link could not be queued.",
+                        id: "app.garden.commitment.linkScheduled",
+                        defaultMessage: "Work submitted. Its link to the promise is queued.",
                       })
                     : intl.formatMessage({
-                        id: "app.garden.commitment.linkSavedQueueError",
+                        id: "app.garden.commitment.linkSavedQueued",
                         defaultMessage:
-                          "Your work is saved on this device, but its commitment link could not be queued.",
+                          "Work saved on this device. Its link to the promise is queued.",
                       })}
-                </span>
-                <Button
-                  type="button"
-                  emphasis="tertiary"
-                  size="compact"
-                  onClick={() => void retryLinkOnly()}
-                  loading={isSchedulingDependentLink}
-                  leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
-                  className="shrink-0"
+                </FlowBarNote>
+              ) : null}
+              {hasPendingLinkRecovery && linkSchedulingError ? (
+                <div
+                  className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark"
+                  role="alert"
                 >
-                  {intl.formatMessage({
-                    id: "app.garden.commitment.retryLink",
-                    defaultMessage: "Retry Link",
-                  })}
-                </Button>
-              </div>
-            ) : null}
-            <div className="flex flex-row gap-4 w-full">
-              {currentTab.customSecondary}
-              <Button
-                onClick={currentTab.primary}
-                disabled={!canProceed || isSchedulingDependentLink || hasPendingLinkRecovery}
-                className="w-full"
-                size="lg"
-                type="button"
-                trailingIcon={<RiArrowRightSLine className="h-5 w-5" aria-hidden="true" />}
-              >
-                {currentTab.primaryLabel}
-              </Button>
-            </div>
-          </div>
-        </div>
+                  <span className="flex items-center gap-2">
+                    <RiErrorWarningLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {linkSchedulingWorkSent
+                      ? intl.formatMessage({
+                          id: "app.garden.commitment.linkSchedulingError",
+                          defaultMessage:
+                            "Your work was submitted, but its link to the promise could not be queued.",
+                        })
+                      : intl.formatMessage({
+                          id: "app.garden.commitment.linkSavedQueueError",
+                          defaultMessage:
+                            "Your work is saved on this device, but its link to the promise could not be queued.",
+                        })}
+                  </span>
+                  <Button
+                    type="button"
+                    emphasis="tertiary"
+                    size="compact"
+                    onClick={() => void retryLinkOnly()}
+                    loading={isSchedulingDependentLink}
+                    leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+                    className="shrink-0"
+                  >
+                    {intl.formatMessage({
+                      id: "app.garden.commitment.retryLink",
+                      defaultMessage: "Retry Link",
+                    })}
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          }
+          tools={currentTab.customSecondary}
+        >
+          <FlowForward
+            label={currentTab.primaryLabel}
+            onClick={currentTab.primary}
+            disabled={!canProceed || isSchedulingDependentLink || hasPendingLinkRecovery}
+          />
+        </FlowBar>
       </form>
     </>
   );

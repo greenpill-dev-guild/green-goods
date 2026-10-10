@@ -1,3 +1,5 @@
+import { redactSentryString, sanitizeSentryContext } from "../modules/app/sentry-redaction";
+
 type DebugContext = Record<string, unknown> | undefined;
 
 export const DEBUG_ENABLED = import.meta.env.VITE_DEBUG_MODE === "true";
@@ -38,5 +40,5 @@ export function debugError(message: string, error?: unknown, context?: DebugCont
         }
       : { ...context, error };
 
-  print("error", message, errorContext);
+  print("error", redactSentryString(message), sanitizeSentryContext(errorContext));
 }

@@ -24,7 +24,8 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
  * - Floating label that animates between resting (body-md) and floating (body-sm)
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
  * - Leading and trailing icon slots (20dp, on-surface-variant)
- * - Supporting text / error message below with aria-describedby linkage
+ * - Supporting text / error message below with aria-describedby linkage, on a
+ *   line that is always reserved, so a message never moves the form (D10)
  * - Opt-in character counter at the end of that row, toward the control's maxLength,
  *   with an error past it
  * - forwardRef compatible — wraps the native control for react-hook-form register()
@@ -252,37 +253,36 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       </label>
     );
 
-    // Supporting text at the start of the row, the counter at its end (M3).
-    const supporting =
-      supportingText || counter ? (
-        <div className="mt-1 flex gap-4 px-4 text-body-sm">
-          {supportingText ? (
-            <p
-              id={supportingId}
-              role={error || (limitError && edited) ? "alert" : undefined}
-              className={cn(
-                hasError
-                  ? "text-[rgb(var(--m3-error))]"
-                  : "text-[rgb(var(--m3-on-surface-variant))]",
-                disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
-              )}
-            >
-              {supportingText}
-            </p>
-          ) : null}
-          {counter ? (
-            <CharacterCounter
-              id={counter.id}
-              count={length}
-              max={counter.max}
-              error={hasError}
-              disabled={disabled}
-              edited={edited}
-              bytes={countBytes}
-            />
-          ) : null}
-        </div>
-      ) : null;
+    // Supporting text at the start of the row, the counter at its end (M3). The
+    // row is always one 16px line (`/4` pins the text to it; `text-body-sm` alone
+    // inherits 18px), so an error never moves anything below the field (PRD-1022 D10).
+    const supporting = (
+      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 text-body-sm/4">
+        {supportingText ? (
+          <p
+            id={supportingId}
+            role={error || (limitError && edited) ? "alert" : undefined}
+            className={cn(
+              hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
+              disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
+            )}
+          >
+            {supportingText}
+          </p>
+        ) : null}
+        {counter ? (
+          <CharacterCounter
+            id={counter.id}
+            count={length}
+            max={counter.max}
+            error={hasError}
+            disabled={disabled}
+            edited={edited}
+            bytes={countBytes}
+          />
+        ) : null}
+      </div>
+    );
 
     // -------------------------------------------------------------------------
     // Filled variant

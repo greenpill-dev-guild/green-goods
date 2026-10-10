@@ -8,6 +8,8 @@ interface WorkDashboardShellProps {
   /** True once the close animation has started: the sheet plays its exit pose. */
   isClosing: boolean;
   onRequestClose: () => void;
+  covered?: boolean;
+  restored?: boolean;
   tabs: StandardTab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
@@ -26,6 +28,8 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
   className,
   isClosing,
   onRequestClose,
+  covered = false,
+  restored = false,
   tabs,
   activeTab,
   onTabChange,
@@ -37,6 +41,9 @@ export const WorkDashboardShell: React.FC<WorkDashboardShellProps> = ({
     <PwaSheet
       open={!isClosing}
       onClose={onRequestClose}
+      covered={covered}
+      entryMotion={restored ? "instant" : "slide"}
+      viewTransitionName="work-dashboard"
       size="full"
       title={intl.formatMessage({
         id: "app.workDashboard.title",

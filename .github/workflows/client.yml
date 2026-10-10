@@ -6,6 +6,11 @@ on:
     paths:
       - "package.json"
       - "scripts/dev/package-commands.mjs"
+      - "scripts/dev/browser.js"
+      - "scripts/dev/test-e2e.js"
+      - "scripts/dev/node-cli.js"
+      - "scripts/lib/command-runner.mjs"
+      - "scripts/lib/dev-shared.js"
       - "bun.lock"
       - "biome.json"
       - "env.schema"
@@ -40,6 +45,11 @@ on:
     paths:
       - "package.json"
       - "scripts/dev/package-commands.mjs"
+      - "scripts/dev/browser.js"
+      - "scripts/dev/test-e2e.js"
+      - "scripts/dev/node-cli.js"
+      - "scripts/lib/command-runner.mjs"
+      - "scripts/lib/dev-shared.js"
       - "bun.lock"
       - "biome.json"
       - "env.schema"
@@ -125,7 +135,7 @@ jobs:
 
       - name: Check source structure
         env:
-          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
       - name: Check test quality
@@ -230,6 +240,19 @@ jobs:
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
+
+      - name: Run qualified browser proof
+        run: |
+          PLAYWRIGHT_JSON_OUTPUT_FILE=tests/test-results/passkey/results.json bun run browser e2e --preset passkey -- --output=tests/test-results/passkey/artifacts
+          PLAYWRIGHT_JSON_OUTPUT_FILE=tests/test-results/explore/results.json bun run browser e2e --preset explore --seed 17 -- --output=tests/test-results/explore/artifacts
+          PLAYWRIGHT_JSON_OUTPUT_FILE=tests/test-results/pwa-preview/results.json bun run browser e2e --preset pwa-preview -- --output=tests/test-results/pwa-preview/artifacts
+        env:
+          VITE_CHAIN_ID: "11155111"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: "http://localhost:3006/v1/graphql"
+          VITE_PINATA_GATEWAY_URL: "https://greengoods.mypinata.cloud"
+          VITE_PINATA_API_URL: "https://api.pinata.cloud"
 
       - name: Report skipped Playwright tests
         if: always()

@@ -1,11 +1,17 @@
 import type { PublicSurfaceState as PublicSurfaceStateValue } from "@green-goods/shared/public";
 import type { ReactNode } from "react";
 import { FormattedMessage } from "react-intl";
+import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
 export interface PublicSurfaceStateProps {
   state: PublicSurfaceStateValue;
   loading: ReactNode;
-  error: ReactNode;
+  /** Asks the read again from the standard unavailable state. */
+  onRetry?: () => void;
+  /** The surface's own sentence in the standard unavailable state. */
+  errorMessage?: ReactNode;
+  /** Replaces the standard unavailable state, for a surface whose failure is drawn elsewhere. */
+  error?: ReactNode;
   empty: ReactNode;
   children: ReactNode;
   container?: "div" | "dd";
@@ -15,6 +21,8 @@ export interface PublicSurfaceStateProps {
 export function PublicSurfaceState({
   state,
   loading,
+  onRetry,
+  errorMessage,
   error,
   empty,
   children,
@@ -34,7 +42,11 @@ export function PublicSurfaceState({
   if (state === "error") {
     return (
       <Container role="alert" data-public-surface-state={state}>
-        {error}
+        {error === undefined ? (
+          <PublicReadUnavailable className="mt-12" message={errorMessage} onRetry={onRetry} />
+        ) : (
+          error
+        )}
       </Container>
     );
   }

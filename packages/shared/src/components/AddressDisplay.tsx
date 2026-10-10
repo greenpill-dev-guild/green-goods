@@ -21,6 +21,8 @@ export interface AddressDisplayProps {
    * a button), where nested buttons would be invalid HTML.
    */
   interactive?: boolean;
+  /** A role label for public readers when a name has not been published. */
+  fallbackLabel?: string;
 }
 
 export function AddressDisplay({
@@ -28,6 +30,7 @@ export function AddressDisplay({
   className,
   showCopyButton = true,
   interactive = true,
+  fallbackLabel,
 }: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
@@ -35,10 +38,13 @@ export function AddressDisplay({
   const { data: ensName } = useEnsName(address);
   const { data: protocolName } = useGreenGoodsEnsName(address);
   const preferredName = protocolName || ensName;
-  const display = formatAddress(address, {
-    ensName: preferredName,
-    variant: preferredName ? "default" : "card",
-  });
+  const display =
+    !preferredName && fallbackLabel
+      ? fallbackLabel
+      : formatAddress(address, {
+          ensName: preferredName,
+          variant: preferredName ? "default" : "card",
+        });
 
   // Auto-cleanup timer via useTimeout (Rule 1)
   const { set: scheduleCopyReset } = useTimeout();

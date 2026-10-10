@@ -106,7 +106,9 @@ export const IdentityStates: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("river.greengoods.eth")).toBeVisible();
+    // A Green Goods name reads as the username alone.
+    await expect(canvas.getByText("river")).toBeVisible();
+    await expect(canvas.queryByText("river.greengoods.eth")).toBeNull();
     await expect(canvas.getByText("ordinary.eth")).toBeVisible();
     // The row renders its label, the colon and the date as separate text nodes of one span.
     await expect(canvas.getByText("Gardener since: Unknown")).toBeVisible();

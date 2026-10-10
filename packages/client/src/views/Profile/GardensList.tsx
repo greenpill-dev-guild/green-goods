@@ -96,7 +96,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
               >
                 <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-primary">
+                  <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                     <RiPlantLine className="w-4" />
                   </div>
                 </Avatar>

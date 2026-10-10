@@ -2,7 +2,11 @@
 
 import { selectExpectedWorkflows } from "./select-validation.mjs";
 
-const requiredJobs = new Map([["Shared", ["Test (1/2)", "Test (2/2)"]]]);
+const requiredJobs = new Map([
+  ["Shared", ["Test (1/2)", "Test (2/2)"]],
+  ["Client", ["Playwright Client CI"]],
+  ["Admin", ["Playwright Admin CI"]],
+]);
 
 export function expectedWorkflowNames(files) {
   return selectExpectedWorkflows({ changedPaths: files, intent: "merge", ci: true });

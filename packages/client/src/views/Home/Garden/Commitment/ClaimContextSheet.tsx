@@ -30,6 +30,8 @@ export interface ClaimContextSheetProps {
   /** Steward-reviewed claims ask; open ones take up. The sheet names which. */
   approvalGated: boolean;
   isPending: boolean;
+  /** The primary act's words when another step follows the choice; the take-up act by default. */
+  continueLabel?: string;
   onContinue: (context: ClaimContext) => void;
 }
 
@@ -51,6 +53,7 @@ export function ClaimContextSheet({
   stewardedGardens,
   approvalGated,
   isPending,
+  continueLabel,
   onContinue,
 }: ClaimContextSheetProps) {
   const { formatMessage } = useIntl();
@@ -92,9 +95,11 @@ export function ClaimContextSheet({
       sheetSize="half"
       actions={{
         primary: {
-          label: formatMessage({
-            id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
-          }),
+          label:
+            continueLabel ??
+            formatMessage({
+              id: approvalGated ? "app.commitment.act.askToTakeUp" : "app.commitment.act.takeUp",
+            }),
           disabled: !context,
           loading: isPending,
           onClick: () => context && onContinue(context),
@@ -182,7 +187,7 @@ function Option({
         name="claim-context"
         checked={checked}
         onChange={onChange}
-        className="mt-1 accent-[var(--color-primary)]"
+        className="mt-1 accent-[var(--color-primary-on-surface)]"
       />
       <label htmlFor={id} className="min-w-0 cursor-pointer">
         <span className="block text-sm font-medium text-text-strong-950">{title}</span>

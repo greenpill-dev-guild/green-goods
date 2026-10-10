@@ -57,7 +57,8 @@ export interface CreateAssessmentStore {
   reset: () => void;
 }
 
-const TOTAL_STEPS = 3;
+// Domain & Context, Challenge & Goals, Actions & Reporting Period, then the Review that sends.
+const TOTAL_STEPS = 4;
 
 function createEmptyAssessmentForm(): CreateAssessmentFormState {
   const defaults = createDefaultAssessmentForm();

@@ -5,10 +5,13 @@
  * Covers form inputs, validation, suggested values, and accessibility.
  */
 
+import enMessages from "@green-goods/shared/i18n/en.json";
+import { useHypercertWizardStore } from "@green-goods/shared/stores/useHypercertWizardStore";
 import type { HypercertDraft } from "@green-goods/shared/types/hypercerts";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, useState } from "react";
+import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 
@@ -17,43 +20,55 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/components/DatePicker/DatePicker", () => ({
-  // Mock DatePicker as a simple input for testing
-  DatePicker: ({
-    id,
-    label,
-    value,
-    onChange,
-    error,
-    required,
-  }: {
-    id: string;
-    label: React.ReactNode;
-    value: number | null | undefined;
-    onChange: (value: number | null) => void;
-    error?: string;
-    required?: boolean;
-    placeholder?: string;
-    minDate?: number | null;
-  }) =>
-    createElement("div", { "data-testid": `datepicker-${id}` }, [
-      createElement("label", { key: "label", htmlFor: id }, label),
-      createElement("input", {
-        key: "input",
-        id,
-        type: "date",
-        value: value ? new Date(value * 1000).toISOString().split("T")[0] : "",
-        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          const date = e.target.value
-            ? Math.floor(new Date(e.target.value).getTime() / 1000)
-            : null;
-          onChange(date);
-        },
-        "aria-required": required,
-      }),
-      error && createElement("span", { key: "error", className: "error" }, error),
-    ]),
-}));
+vi.mock("@green-goods/shared/components/DatePicker/DatePicker", () => {
+  // The stand-in keeps the contract of the real picker: it shows the local
+  // calendar day of the value it is given, and hands back local midnight of the
+  // day picked.
+  const localDay = (seconds: number | null | undefined) => {
+    if (!seconds) return "";
+    const date = new Date(seconds * 1000);
+    const pad = (part: number) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+  return {
+    DatePicker: ({
+      id,
+      label,
+      value,
+      onChange,
+      error,
+      required,
+      minDate,
+    }: {
+      id: string;
+      label: React.ReactNode;
+      value: number | null | undefined;
+      onChange: (value: number | null) => void;
+      error?: string;
+      required?: boolean;
+      placeholder?: string;
+      minDate?: number | null;
+    }) =>
+      createElement("div", { "data-testid": `datepicker-${id}` }, [
+        createElement("label", { key: "label", htmlFor: id }, label),
+        createElement("input", {
+          key: "input",
+          id,
+          type: "date",
+          value: localDay(value),
+          min: localDay(minDate) || undefined,
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+            const [year, month, day] = e.target.value.split("-").map(Number);
+            onChange(
+              e.target.value ? Math.floor(new Date(year, month - 1, day).getTime() / 1000) : null
+            );
+          },
+          "aria-required": required,
+        }),
+        error && createElement("span", { key: "error", className: "error" }, error),
+      ]),
+  };
+});
 
 vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
   FormInput: ({
@@ -174,6 +189,27 @@ function MetadataEditorHarness({
     suggestedWorkScopes: [],
     suggestedStart: null,
     suggestedEnd: null,
+  });
+}
+
+/** The step as the wizard runs it: its periods read from, and written to, the wizard's own store. */
+function StoreBackedEditor({
+  suggestedStart,
+  suggestedEnd,
+}: {
+  suggestedStart: number;
+  suggestedEnd: number;
+}) {
+  const workTimeframeStart = useHypercertWizardStore((state) => state.workTimeframeStart);
+  const workTimeframeEnd = useHypercertWizardStore((state) => state.workTimeframeEnd);
+  const updateMetadata = useHypercertWizardStore((state) => state.updateMetadata);
+
+  return createElement(MetadataEditor, {
+    draft: createMockDraft({ workTimeframeStart, workTimeframeEnd }),
+    onUpdate: updateMetadata,
+    suggestedWorkScopes: [],
+    suggestedStart,
+    suggestedEnd,
   });
 }
 
@@ -558,6 +594,8 @@ describe("components/Hypercerts/MetadataEditor", () => {
       render(
         createElement(MetadataEditor, {
           ...defaultProps,
+          suggestedStart: null,
+          suggestedEnd: null,
           draft: createMockDraft({
             workTimeframeStart: now,
             workTimeframeEnd: now - 86400, // End before start
@@ -567,6 +605,126 @@ describe("components/Hypercerts/MetadataEditor", () => {
 
       // Error should be shown - look for the specific date range error message
       expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
+      // The check-marked line confirms a time frame, so it does not show for this one.
+      expect(screen.queryByText(/→/)).not.toBeInTheDocument();
+    });
+  });
+
+  // A time frame end is a calendar day, kept as UTC midnight: an assessment
+  // prefills it that way, and the minted metadata names its UTC day. The step
+  // has to show and store that same day whatever zone the steward is in.
+  describe("time frames as UTC days", () => {
+    const march1 = Date.UTC(2026, 2, 1) / 1000;
+    const august26 = Date.UTC(2026, 7, 26) / 1000;
+    const dayIn = (id: string) => (document.getElementById(id) as HTMLInputElement).value;
+
+    it("names the stored days to a steward west of UTC", () => {
+      render(
+        createElement(
+          IntlProvider,
+          { locale: "en", timeZone: "America/Sao_Paulo", messages: enMessages },
+          createElement(MetadataEditor, {
+            ...defaultProps,
+            draft: createMockDraft({ workTimeframeStart: march1, workTimeframeEnd: august26 }),
+            suggestedStart: march1,
+            suggestedEnd: august26,
+          })
+        )
+      );
+
+      // Once as the suggestion and once as the current selection.
+      expect(screen.getAllByText("Mar 1, 2026 → Aug 26, 2026")).toHaveLength(2);
+    });
+
+    // An assessment can prefill an end no calendar holds: the attestation keeps
+    // each end as a uint256. The formatter fails on one, so the step shows no day.
+    it("shows no day for a time frame end beyond any calendar", () => {
+      render(
+        createElement(MetadataEditor, {
+          ...defaultProps,
+          draft: createMockDraft({ workTimeframeStart: march1, workTimeframeEnd: 1.158e77 }),
+        })
+      );
+
+      expect(screen.getByText("Mar 1, 2026 → —")).toBeInTheDocument();
+      expect(dayIn("hypercert-work-end")).toBe("");
+    });
+
+    it("shows each stored day in its picker and holds the end to the start day", () => {
+      render(
+        createElement(MetadataEditor, {
+          ...defaultProps,
+          draft: createMockDraft({
+            workTimeframeStart: march1,
+            workTimeframeEnd: august26,
+            impactTimeframeStart: march1,
+            impactTimeframeEnd: august26,
+          }),
+        })
+      );
+
+      expect(dayIn("hypercert-work-start")).toBe("2026-03-01");
+      expect(dayIn("hypercert-work-end")).toBe("2026-08-26");
+      expect(dayIn("hypercert-impact-start")).toBe("2026-03-01");
+      expect(dayIn("hypercert-impact-end")).toBe("2026-08-26");
+      expect(document.getElementById("hypercert-work-end")).toHaveAttribute("min", "2026-03-01");
+      expect(document.getElementById("hypercert-impact-end")).toHaveAttribute("min", "2026-03-01");
+    });
+
+    // "Use suggested dates" hands over the moments the work was created and
+    // approved. Kept as moments, 22:15 on 25 March is later than the midnight
+    // stored for an end picked on 25 March, and the step called that end too early.
+    it("accepts an end on the suggested start's own day", async () => {
+      const user = userEvent.setup();
+      useHypercertWizardStore.getState().reset();
+
+      render(
+        createElement(StoreBackedEditor, {
+          suggestedStart: Date.UTC(2026, 2, 25, 22, 15, 8) / 1000,
+          suggestedEnd: Date.UTC(2026, 7, 26, 9, 37, 49) / 1000,
+        })
+      );
+      await user.click(screen.getByText(/use suggested/i));
+      fireEvent.change(document.getElementById("hypercert-work-end") as HTMLInputElement, {
+        target: { value: "2026-03-25" },
+      });
+
+      expect(dayIn("hypercert-work-start")).toBe("2026-03-25");
+      expect(dayIn("hypercert-work-end")).toBe("2026-03-25");
+      expect(screen.queryByText(/start date must be before/i)).not.toBeInTheDocument();
+    });
+
+    // With no start of its own the impact period begins with the work, as its
+    // picker shows and the minted metadata writes.
+    it("flags an impact end before the work start the impact period begins from", () => {
+      render(
+        createElement(MetadataEditor, {
+          ...defaultProps,
+          draft: createMockDraft({
+            workTimeframeStart: august26,
+            workTimeframeEnd: august26,
+            impactTimeframeEnd: march1,
+          }),
+        })
+      );
+
+      expect(screen.getByText(/start date must be before/i)).toBeInTheDocument();
+    });
+
+    it.each([
+      ["hypercert-work-start", "workTimeframeStart"],
+      ["hypercert-work-end", "workTimeframeEnd"],
+      ["hypercert-impact-start", "impactTimeframeStart"],
+      ["hypercert-impact-end", "impactTimeframeEnd"],
+    ])("stores UTC midnight of the day picked in %s", (id, field) => {
+      const onUpdate = vi.fn();
+      render(createElement(MetadataEditor, { ...defaultProps, onUpdate }));
+
+      fireEvent.change(document.getElementById(id) as HTMLInputElement, {
+        target: { value: "2026-09-30" },
+      });
+
+      expect(onUpdate).toHaveBeenLastCalledWith({ [field]: Date.UTC(2026, 8, 30) / 1000 });
     });
   });
 

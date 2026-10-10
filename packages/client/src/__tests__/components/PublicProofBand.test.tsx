@@ -27,21 +27,23 @@ import { PublicProofBand } from "../../components/Public/PublicProofBand";
 
 const messages: Record<string, string> = {
   "public.home.proof.kicker": "§ 02: Living Public Record",
-  "public.home.proof.title": "Quantifiable restoration.",
+  "public.home.proof.title": "The public record so far.",
   "public.home.proof.body":
-    "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
+    "These counts show documented activity across the Gardens listed here. Steward approval confirms a work submission was reviewed; environmental outcomes need their own measurements and assessments.",
   "public.home.proof.cta": "View Public Evidence",
   "public.home.proof.emptyKicker": "Reading the record",
   "public.home.proof.empty":
     "The first records will appear here as Gardens publish their work, season by season.",
-  "public.home.proof.gardens": "Gardens tended",
-  "public.home.proof.gardensNote": "Active places under continuous documentation.",
-  "public.home.proof.contributors": "Hands at work",
-  "public.home.proof.contributorsNote": "Gardeners with a role in at least one Garden.",
-  "public.home.proof.works": "Entries logged",
-  "public.home.proof.worksNote": "Panel checks, soil cores, workshop notes.",
+  "public.home.proof.gardens": "Gardens with approved work",
+  "public.home.proof.gardensNote": "At least one steward-approved submission. No recency cutoff.",
+  "public.home.proof.contributors": "Garden members",
+  "public.home.proof.contributorsNote":
+    "Gardeners and stewards in listed Gardens, with each account counted once.",
+  "public.home.proof.works": "Approved submissions",
+  "public.home.proof.worksNote": "Work documented by participants and reviewed by Garden stewards.",
   "public.home.proof.assessments": "Assessments recorded",
-  "public.home.proof.assessmentsNote": "Season baselines each Garden sets before the work begins.",
+  "public.home.proof.assessmentsNote":
+    "Records describing starting conditions, evidence standards, or progress.",
   "public.impact.proof.unavailable": "Not available right now",
 };
 
@@ -74,24 +76,24 @@ describe("PublicProofBand", () => {
       )
     ).toBeInTheDocument();
     // None of the four-marker labels should be rendered when the band is empty.
-    expect(screen.queryByText("Gardens tended")).toBeNull();
-    expect(screen.queryByText("Hands at work")).toBeNull();
-    expect(screen.queryByText("Entries logged")).toBeNull();
+    expect(screen.queryByText("Gardens with approved work")).toBeNull();
+    expect(screen.queryByText("Garden members")).toBeNull();
+    expect(screen.queryByText("Approved submissions")).toBeNull();
     expect(screen.queryByText("Assessments recorded")).toBeNull();
   });
 
   it("shows the four markers when any count is non-zero", () => {
     renderBand({ gardens: 13, contributors: 0, works: 0, assessments: 0 });
-    expect(screen.getByText("Gardens tended")).toBeInTheDocument();
-    expect(screen.getByText("Hands at work")).toBeInTheDocument();
-    expect(screen.getByText("Entries logged")).toBeInTheDocument();
+    expect(screen.getByText("Gardens with approved work")).toBeInTheDocument();
+    expect(screen.getByText("Garden members")).toBeInTheDocument();
+    expect(screen.getByText("Approved submissions")).toBeInTheDocument();
     expect(screen.getByText("Assessments recorded")).toBeInTheDocument();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
   });
 
   it("dashes out a count that could not be read instead of publishing zero", () => {
     renderBand({ gardens: 13, contributors: 40, works: null, assessments: 2 });
-    expect(screen.getByText("Entries logged")).toBeInTheDocument();
+    expect(screen.getByText("Approved submissions")).toBeInTheDocument();
     expect(screen.getByText("Not available right now")).toBeInTheDocument();
     expect(screen.queryByText("0")).toBeNull();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
@@ -105,7 +107,7 @@ describe("PublicProofBand", () => {
       assessments: 0,
       isLoading: true,
     });
-    expect(screen.getByText("Gardens tended")).toBeInTheDocument();
+    expect(screen.getByText("Gardens with approved work")).toBeInTheDocument();
     expect(screen.queryByText(/first records will appear here/)).toBeNull();
     expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(4);
     expect(screen.queryByText("...")).not.toBeInTheDocument();

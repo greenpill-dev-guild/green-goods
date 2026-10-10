@@ -6,6 +6,7 @@ import {
   type GardenJoinProofContent,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiErrorCode,
+  type GardenJoinRequestKind,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/public-contracts";
 import type { Context } from "hono";
@@ -18,6 +19,7 @@ const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
 export type GardenJoinRequestRouteContext = ApiRouteContext & {
   store?: GardenJoinRequestStore;
+  budget?: ReturnType<typeof import("./garden-join-request-budget").createGardenJoinRequestBudget>;
 };
 
 export function prepareGardenJoinRequest(c: Context, ctx: GardenJoinRequestRouteContext) {
@@ -42,7 +44,8 @@ export async function authenticateGardenJoinRequest(
   c: Context,
   ctx: GardenJoinRequestRouteContext,
   expectedAction: GardenJoinProofAction,
-  content: GardenJoinProofContent = {}
+  content: GardenJoinProofContent = {},
+  expectedKind?: GardenJoinRequestKind
 ): Promise<{ ok: true; proof: GardenJoinProofEnvelope } | { ok: false; response: Response }> {
   const chainId = ctx.deps.gardenJoinRequestChainId;
   const verifier = ctx.deps.gardenJoinRequestSignatureVerifier;
@@ -52,20 +55,70 @@ export async function authenticateGardenJoinRequest(
       response: gardenJoinRequestsUnavailable(c, ctx, expectedAction === "create"),
     };
   }
-  const validation = validateGardenJoinProofEnvelope(
-    decodeGardenJoinAuthorization(c.req.header("authorization")),
-    {
-      nowSeconds: Math.floor((ctx.deps.now?.() ?? Date.now()) / 1000),
-      expectedAction,
-      allowedChainIds: [chainId],
-    }
-  );
+  const envelope = decodeGardenJoinAuthorization(c.req.header("authorization"));
+  const grantsRead =
+    expectedAction === "read_self" &&
+    envelope !== null &&
+    typeof envelope === "object" &&
+    "action" in envelope &&
+    envelope.action === "create" &&
+    "readSelf" in envelope;
+  const validation = validateGardenJoinProofEnvelope(envelope, {
+    nowSeconds: Math.floor((ctx.deps.now?.() ?? Date.now()) / 1000),
+    expectedAction: grantsRead ? "create" : expectedAction,
+    allowedChainIds: [chainId],
+    ...(expectedKind ? { expectedKind } : {}),
+  });
   if (!validation.ok) {
     const status = validation.error.errorCode === "signature_expired" ? 401 : 400;
     return {
       ok: false,
       response: publicBrowserCorsResponse(c, ctx.deps, validation.error, status),
     };
+  }
+  const queryKind = c.req.query("kind");
+  if (queryKind !== undefined && queryKind !== (validation.value.kind ?? "garden_membership")) {
+    return {
+      ok: false,
+      response: gardenJoinRequestFailure(
+        c,
+        ctx,
+        "invalid_request",
+        "The signed request kind does not match this request.",
+        400
+      ),
+    };
+  }
+  if (validation.value.readSelf && validation.value.readSelf.audience !== c.req.header("origin")) {
+    return {
+      ok: false,
+      response: gardenJoinRequestFailure(
+        c,
+        ctx,
+        "signature_invalid",
+        "The status authorization audience does not match.",
+        401
+      ),
+    };
+  }
+  if (expectedAction === "create" && validation.value.readSelf) {
+    const signed = validation.value.readSelf.content;
+    if (
+      signed.displayName !== content.displayName ||
+      (signed.note ?? null) !== (content.note ?? null) ||
+      signed.requestedVia !== content.requestedVia
+    ) {
+      return {
+        ok: false,
+        response: gardenJoinRequestFailure(
+          c,
+          ctx,
+          "invalid_request",
+          "The signed introduction does not match this request.",
+          400
+        ),
+      };
+    }
   }
   const garden = normalizeAddress(c.req.param("garden"));
   if (!garden || validation.value.gardenAddress !== garden) {
@@ -82,13 +135,15 @@ export async function authenticateGardenJoinRequest(
   }
   const { signature, factory, factoryData, ...messageProof } = validation.value;
   try {
-    const verified = await verifier({
-      chainId: validation.value.chainId,
-      address: validation.value.accountAddress,
-      message: buildGardenJoinProofMessage(messageProof, content),
-      signature,
-      ...(factory && factoryData ? { factory, factoryData } : {}),
-    });
+    const verify = () =>
+      verifier({
+        chainId: validation.value.chainId,
+        address: validation.value.accountAddress,
+        message: buildGardenJoinProofMessage(messageProof, content),
+        signature,
+        ...(factory && factoryData ? { factory, factoryData } : {}),
+      });
+    const verified = ctx.budget ? await ctx.budget.run(verify) : await verify();
     if (!verified) {
       return {
         ok: false,

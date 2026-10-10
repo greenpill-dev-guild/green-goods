@@ -10,10 +10,11 @@ const mocks = vi.hoisted(() => ({
   commitments: [] as ReturnType<typeof commitmentFixture>[],
   cycles: [] as Array<{ cycleId: bigint; state: string }>,
   commitmentsInput: null as { cycleId?: bigint } | null,
-  pendingCreates: [] as Array<{ jobId: string; poolId: string }>,
+  pendingCreates: [] as Array<{ jobId: string; poolId: string; direction: "OFFER" | "REQUEST" }>,
   metadata: new Map<string, { title: string }>(),
   hasRole: false,
   roleRead: { isLoading: false, error: null as Error | null },
+  isMember: true as boolean | null,
   isOnline: true,
   refresh: vi.fn(),
   flush: vi.fn(),
@@ -31,6 +32,17 @@ vi.mock("../../../hooks/app/useOnlineStatus", () => ({
 }));
 vi.mock("../../../hooks/roles/useHasRole", () => ({
   useHasRole: () => ({ hasRole: mocks.hasRole, ...mocks.roleRead }),
+}));
+vi.mock("../../../hooks/roles/useGardenMembership", () => ({
+  useGardenMembership: () => ({
+    isMember: mocks.isMember,
+    isLoading: mocks.isMember === null,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+vi.mock("../../../hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({ sendsFromTap: false }),
 }));
 vi.mock("../../../providers/JobQueue", () => ({
   useJobQueue: () => ({ flush: mocks.flush, retryAndSend: mocks.retryAndSend }),
@@ -67,12 +79,13 @@ describe("useGardenPoolController", () => {
     ];
     mocks.cycles = [{ cycleId: 8n, state: "OPEN" }];
     mocks.pendingCreates = [
-      { jobId: "job-7", poolId: "7" },
-      { jobId: "job-9", poolId: "9" },
+      { jobId: "job-7", poolId: "7", direction: "OFFER" },
+      { jobId: "job-9", poolId: "9", direction: "OFFER" },
     ];
     mocks.metadata = new Map([["request-cid", { title: "Water the orchard" }]]);
     mocks.hasRole = false;
     mocks.roleRead = { isLoading: false, error: null };
+    mocks.isMember = true;
     mocks.isOnline = true;
     mocks.flush.mockResolvedValue(undefined);
     mocks.retryAndSend.mockResolvedValue(undefined);
@@ -85,13 +98,23 @@ describe("useGardenPoolController", () => {
     const { result } = renderHookWithProviders(() => useGardenPoolController(targetPool));
 
     expect(result.current.rows).toHaveLength(2);
-    expect(result.current.ownCreations).toEqual([{ jobId: "job-7", poolId: "7" }]);
+    expect(result.current.ownCreations).toEqual([
+      { jobId: "job-7", poolId: "7", direction: "OFFER" },
+    ]);
+    expect(result.current.shownCreations).toEqual(result.current.ownCreations);
     expect(result.current.titleOf("request-cid")).toBe("Water the orchard");
     expect(result.current.cycles).toEqual([{ cycleId: 8n, state: "OPEN" }]);
     expect(result.current.canCreate).toBe(true);
 
     act(() => result.current.setDirection("REQUEST"));
     expect(result.current.rows.map((row) => row.commitment.direction)).toEqual(["REQUEST"]);
+    // A creation on this phone follows the filters too, and is never settled.
+    expect(result.current.shownCreations).toEqual([]);
+    act(() => result.current.setDirection("OFFER"));
+    expect(result.current.shownCreations).toHaveLength(1);
+    act(() => result.current.setLiveness("settled"));
+    expect(result.current.shownCreations).toEqual([]);
+    expect(result.current.ownCreations).toHaveLength(1);
   });
 
   it("leaves cancelled seasons out of the rail, as the public page does", () => {
@@ -139,6 +162,40 @@ describe("useGardenPoolController", () => {
     expect(result.current.busyJobId).toBeNull();
   });
 
+  it("shows live, settled or all promises, as Status asks", () => {
+    mocks.commitments = [
+      commitmentFixture({ commitmentId: 1n, derivedState: "ACTIVE" }),
+      commitmentFixture({ commitmentId: 2n, derivedState: "FULFILLED" }),
+      commitmentFixture({ commitmentId: 3n, derivedState: "CANCELLED" }),
+    ];
+    const { result } = renderHookWithProviders(() =>
+      useGardenPoolController(poolFixture({ poolId: 7n, state: "OPEN" }))
+    );
+    const ids = () => result.current.rows.map((row) => row.commitment.commitmentId);
+
+    expect(ids()).toEqual([1n]);
+    act(() => result.current.setLiveness("settled"));
+    expect(ids()).toEqual([2n, 3n]);
+    act(() => result.current.setLiveness("all"));
+    expect(ids()).toEqual([1n, 2n, 3n]);
+  });
+
+  it("offers creation in a garden's pool only to its members", () => {
+    const gardenPool = poolFixture({ state: "OPEN", poolType: "GARDEN" });
+    const { result, rerender } = renderHookWithProviders(() => useGardenPoolController(gardenPool));
+    expect(result.current.canCreate).toBe(true);
+
+    // A visitor joins from the garden header; the tab draws no + for them.
+    mocks.isMember = false;
+    rerender();
+    expect(result.current.canCreate).toBe(false);
+
+    // Membership that is still reading, or could not be read, draws no + either.
+    mocks.isMember = null;
+    rerender();
+    expect(result.current.canCreate).toBe(false);
+  });
+
   it("closes creation for lifecycle and protocol permission gates", () => {
     const { result, rerender } = renderHookWithProviders(
       ({ targetPool }) => useGardenPoolController(targetPool),
@@ -151,6 +208,7 @@ describe("useGardenPoolController", () => {
     expect(result.current.isParticipating).toBe(false);
     expect(result.current.canCreate).toBe(false);
 
+    // Membership alone does not open the protocol pool: its stewards start promises.
     rerender({ targetPool: poolFixture({ state: "OPEN", poolType: "PROTOCOL" }) });
     expect(result.current.isParticipating).toBe(true);
     expect(result.current.canCreate).toBe(false);

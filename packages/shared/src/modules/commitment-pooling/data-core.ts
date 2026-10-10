@@ -196,6 +196,17 @@ export function mapCycle(row: RawRow): CommitmentCycleRecord {
   };
 }
 
+/** Creation emits no ConsiderationDeclared event when there is no reward. */
+export function indexedConsiderationRail(row: RawRow): CommitmentReadModel["considerationRail"] {
+  return row.creationSeen === true &&
+    row.considerationRail === null &&
+    row.considerationAmount === null &&
+    row.considerationSource === null &&
+    row.considerationToken === null
+    ? "NONE"
+    : (row.considerationRail as CommitmentReadModel["considerationRail"]);
+}
+
 export function mapCommitment(row: RawRow): CommitmentReadModel {
   const onchainState = String(row.state ?? "UNKNOWN") as CommitmentReadModel["onchainState"];
   const mapped: CommitmentReadModel = {
@@ -220,7 +231,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     counterCommitmentId: optionalInteger(row.counterCommitmentId),
     declaredUnitValue: optionalInteger(row.declaredUnitValue),
     declaredValueBasis: string(row.declaredValueBasis),
-    considerationRail: row.considerationRail as CommitmentReadModel["considerationRail"],
+    considerationRail: indexedConsiderationRail(row),
     considerationPaid: row.considerationPaid === true,
     considerationAmount: optionalInteger(row.considerationAmount),
     considerationSource: address(row.considerationSource),
@@ -234,6 +245,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],
+    claimType: (row.claimType ?? null) as CommitmentReadModel["claimType"],
     dueDate: optionalInteger(row.dueDate),
     requiresAssessment: typeof row.requiresAssessment === "boolean" ? row.requiresAssessment : null,
     assessmentUID: string(row.assessmentUID),

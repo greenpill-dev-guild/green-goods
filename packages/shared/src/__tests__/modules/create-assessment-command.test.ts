@@ -1,6 +1,20 @@
 /** @vitest-environment happy-dom */
 
 import { describe, expect, it, vi } from "vitest";
+import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, zeroHash } from "viem";
+import { sepolia } from "viem/chains";
+import { createFakeSmartAccountClient } from "../test-utils/transaction-fakes";
+import { PasskeySender } from "../../modules/transactions/passkey-sender";
+import { EASABI } from "../../utils/blockchain/contracts";
+import type { TransactionSender } from "../../modules/transactions/types";
+
+const mocks = vi.hoisted(() => ({ readyWalletClient: vi.fn(), getReceipt: vi.fn() }));
+
+vi.mock("../../utils/blockchain/contracts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/blockchain/contracts")>()),
+  createClients: () => ({ publicClient: { waitForTransactionReceipt: mocks.getReceipt } }),
+}));
+
 import {
   createDefaultCreateAssessmentPorts,
   createAssessment,
@@ -136,7 +150,13 @@ describe("createAssessment", () => {
     const { getEASConfig } = await import("../../config/blockchain");
     const config = getEASConfig(chainId);
     const defaultPorts = createDefaultCreateAssessmentPorts({
-      walletClient: {} as Parameters<typeof createDefaultCreateAssessmentPorts>[0]["walletClient"],
+      account: "0x3333333333333333333333333333333333333333",
+      transactionSender: {
+        authMode: "wallet",
+        supportsBatching: false,
+        supportsSponsorship: false,
+        sendContractCall: vi.fn(),
+      },
       reportEvidenceFailures: vi.fn(),
       reportMetricsFailure: vi.fn(),
     });
@@ -193,5 +213,153 @@ describe("resolveAssessmentDomain", () => {
     ["domain-4", null],
   ])("maps %s to %s", (assessmentType, expected) => {
     expect(resolveAssessmentDomain(assessmentType)).toBe(expected);
+  });
+});
+
+describe("the passkey assessment sender", () => {
+  const ACCOUNT = "0x7777777777777777777777777777777777777777" as const;
+  const EAS = "0x2222222222222222222222222222222222222222" as const;
+  const SCHEMA = `0x${"44".repeat(32)}` as const;
+  const HASH = `0x${"66".repeat(32)}` as const;
+  function fixture(
+    logOverrides: {
+      address?: string;
+      recipient?: string;
+      attester?: string;
+      schemaUID?: string;
+      uid?: string;
+    } = {},
+    passkeySenderOverride?: TransactionSender,
+    authMode: "wallet" | "passkey" = "passkey"
+  ) {
+    const assertOwnership = vi.fn(async () => undefined);
+    const sendContractCall = vi.fn(async () => ({ hash: HASH, sponsored: true }));
+    const transactionSender: TransactionSender = {
+      authMode,
+      supportsBatching: false,
+      supportsSponsorship: true,
+      assertOwnership,
+      sendContractCall,
+    };
+    const log = {
+      address: logOverrides.address ?? EAS,
+      topics: encodeEventTopics({
+        abi: EASABI,
+        eventName: "Attested",
+        args: {
+          recipient: logOverrides.recipient ?? gardenId,
+          attester: logOverrides.attester ?? ACCOUNT,
+          schemaUID: logOverrides.schemaUID ?? SCHEMA,
+        },
+      }),
+      data: encodeAbiParameters(
+        [{ type: "bytes32" }],
+        [(logOverrides.uid ?? attestationUid) as `0x${string}`]
+      ),
+    };
+    mocks.getReceipt.mockReset().mockResolvedValue({ status: "success", logs: [log] });
+    const dependencies = createDefaultCreateAssessmentPorts({
+      account: ACCOUNT,
+      transactionSender: passkeySenderOverride ?? transactionSender,
+      reportEvidenceFailures: vi.fn(),
+      reportMetricsFailure: vi.fn(),
+    });
+    const send = async () => {
+      await dependencies.sender.ensureChain(11155111);
+      await dependencies.sender.connect(EAS);
+      return dependencies.sender.attest({ schemaUid: SCHEMA, gardenId, encodedData: "0x1234" });
+    };
+    return { send, assertOwnership, sendContractCall };
+  }
+  it.each([
+    "wallet",
+    "passkey",
+  ] as const)("sends EAS through the %s account and returns its confirmed attestation UID", async (authMode) => {
+    const f = fixture({}, undefined, authMode);
+    await expect(f.send()).resolves.toBe(attestationUid);
+    expect(f.sendContractCall).toHaveBeenCalledWith(
+      {
+        address: EAS,
+        account: ACCOUNT,
+        chainId: 11155111,
+        abi: EASABI,
+        functionName: "attest",
+        args: [
+          {
+            schema: SCHEMA,
+            data: {
+              recipient: gardenId,
+              expirationTime: 0n,
+              revocable: false,
+              refUID: zeroHash,
+              data: "0x1234",
+              value: 0n,
+            },
+          },
+        ],
+      },
+      expect.objectContaining({ assertOwnership: expect.any(Function) })
+    );
+    expect(mocks.getReceipt).toHaveBeenCalledWith({ hash: HASH, timeout: 120_000 });
+    expect(f.assertOwnership).toHaveBeenCalledWith(ACCOUNT, 11155111);
+  });
+  it("encodes the EAS call through the real PasskeySender and confirmed UserOperation path", async () => {
+    const client = createFakeSmartAccountClient({
+      accountAddress: ACCOUNT,
+      chain: sepolia,
+      result: HASH,
+    });
+    const sender = new PasskeySender(client, {
+      resolveSmartAccountClient: async () => client,
+      assertWriteSafety: async () => {},
+    });
+    await expect(fixture({}, sender).send()).resolves.toBe(attestationUid);
+    const request = client.sendUserOperation.mock.calls[0][0] as {
+      calls: { to: `0x${string}`; data: `0x${string}` }[];
+    };
+    const call = request.calls[0];
+    expect(call.to).toBe(EAS);
+    const decoded = decodeFunctionData({ abi: EASABI, data: call.data });
+    expect(decoded.functionName).toBe("attest");
+    expect(decoded.args?.[0]).toMatchObject({
+      schema: SCHEMA,
+      data: { recipient: gardenId, refUID: zeroHash, data: "0x1234" },
+    });
+    expect(client.waitForUserOperationReceipt).toHaveBeenCalled();
+  });
+  it.each([
+    { address: ACCOUNT },
+    { recipient: ACCOUNT },
+    { attester: gardenId },
+    { schemaUID: zeroHash },
+    { uid: zeroHash },
+  ])("refuses a receipt from another contract/account/garden/schema or an empty UID: %j", async (override) => {
+    await expect(fixture(override).send()).rejects.toThrow("no matching attestation");
+  });
+  it("refuses a reverted receipt", async () => {
+    const f = fixture();
+    mocks.getReceipt.mockResolvedValue({ status: "reverted", logs: [] });
+    await expect(f.send()).rejects.toThrow("reverted");
+  });
+  it("does not expose the RPC request or claim the confirmed transaction failed when its receipt is unavailable", async () => {
+    const f = fixture();
+    mocks.getReceipt.mockRejectedValueOnce(new Error("RPC request details"));
+    await expect(f.send()).rejects.toThrow("assessment-confirmation-unavailable");
+    expect(f.sendContractCall).toHaveBeenCalledOnce();
+  });
+  it("checks session ownership again immediately before sending after uploads", async () => {
+    const f = fixture();
+    f.assertOwnership
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("submission-ownership-changed"));
+    await expect(f.send()).rejects.toThrow("submission-ownership-changed");
+    expect(f.sendContractCall).not.toHaveBeenCalled();
+  });
+  it("propagates a dismissed passkey prompt without reading or claiming a receipt", async () => {
+    const f = fixture();
+    f.sendContractCall.mockRejectedValueOnce(new Error("Passkey prompt cancelled"));
+    await expect(f.send()).rejects.toThrow("cancelled");
+    expect(mocks.getReceipt).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser"
 import { useIntl } from "react-intl";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
+import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
@@ -229,8 +230,9 @@ function usePublicRouteScrollReset() {
  * local webp files, and the browser cache dedupes the current view's image.
  * Skipped under Save-Data.
  */
-function useWarmPublicHeroImages() {
+function useWarmPublicHeroImages(enabled: boolean) {
   useEffect(() => {
+    if (!enabled) return;
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
       .connection;
     if (connection?.saveData) return;
@@ -246,8 +248,11 @@ function useWarmPublicHeroImages() {
       image.decoding = "async";
       image.src = src;
     }
-  }, []);
+  }, [enabled]);
 }
+
+/** Chat reporting ceremony pages use the focused shell instead of the editorial one. */
+const FOCUSED_SHELL_PREFIX = "/agent/reporting/";
 
 /**
  * PublicShell — layout wrapper for public routes (no auth required).
@@ -256,8 +261,9 @@ function useWarmPublicHeroImages() {
  * Used for the public-facing website experience (browser mode).
  */
 export default function PublicShell() {
+  const focused = useLocation().pathname.startsWith(FOCUSED_SHELL_PREFIX);
   usePublicRouteScrollReset();
-  useWarmPublicHeroImages();
+  useWarmPublicHeroImages(!focused);
   const { formatMessage } = useIntl();
   const fallbackPositionRef = useRef<PublicScrollPosition | null>(null);
   useEffect(() => {
@@ -277,6 +283,15 @@ export default function PublicShell() {
     });
     return () => cancelAnimationFrame(frame);
   }, [formatMessage]);
+
+  // Reporting ceremony pages are transactional: no editorial chrome, and app buttons.
+  if (focused) {
+    return (
+      <FocusedShell>
+        <Outlet />
+      </FocusedShell>
+    );
+  }
 
   return (
     // data-site gives shared buttons the website corner and weight (DL-026), including in

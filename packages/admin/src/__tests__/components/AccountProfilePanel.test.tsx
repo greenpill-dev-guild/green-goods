@@ -55,7 +55,7 @@ function createController(
     authMethodLabel: "Wallet",
     avatarFallback: "0X",
     eligibleGardens: [gardenOne, gardenTwo],
-    eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
+    primaryAddress: "0x9999999999999999999999999999999999999999" as Address,
     headline: "0x9999...9999",
     roleLabel: "steward",
     selectedGardenChoiceId: gardenOne.id,
@@ -91,5 +91,22 @@ describe("AccountProfilePanel", () => {
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
 
     expect(controller.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the sheet's side inset in the side sheet and drops it on the Profile route", () => {
+    const { container, rerender } = render(<AccountProfilePanel controller={createController()} />);
+    const body = () => container.querySelector<HTMLElement>('[data-component="SheetBody"]');
+
+    expect(body()?.style.padding).toBe("20px 16px");
+    expect(body()?.style.overflowX).toBe("hidden");
+
+    rerender(<AccountProfilePanel controller={createController()} layout="page" />);
+
+    // The shell's phone gutter is the one side inset there; only block padding stays.
+    expect(body()?.style.padding).toBe("");
+    expect(body()).toHaveClass("py-5");
+    // Flush with the gutter, a clipping body would cut a focus ring off at its edge.
+    expect(body()?.style.overflowX).toBe("visible");
+    expect(body()?.style.overflowY).toBe("visible");
   });
 });

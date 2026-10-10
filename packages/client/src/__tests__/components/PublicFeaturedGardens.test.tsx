@@ -43,6 +43,7 @@ vi.mock("@/components/Display", () => ({
     }),
 }));
 
+import { publicCuration } from "../../content/publicCuration";
 import { PublicFeaturedGardens } from "../../components/Public/PublicFeaturedGardens";
 
 const messages: Record<string, string> = {
@@ -50,6 +51,8 @@ const messages: Record<string, string> = {
   "public.home.featured.title": "Tended places, openly recorded.",
   "public.home.featured.cta": "Browse All Gardens",
   "public.home.featured.empty": "Featured Gardens will appear here as they come online.",
+  "public.surface.error": "This public record is temporarily unavailable. Please try again.",
+  "public.surface.retry": "Try Again",
   "public.gardens.gardeners": "{count} gardeners",
   "public.gardens.works": "{count} entries",
 };
@@ -77,7 +80,7 @@ function makeGarden({
     description: "A test garden",
     lastActivityAt,
     actionCount: 5,
-    contributorCount: 3,
+    gardenerCount: 3,
     stewards: [],
     evaluators: [],
   };
@@ -118,6 +121,23 @@ describe("PublicFeaturedGardens", () => {
 
     const grid = screen.getByTestId("public-featured-grid");
     expect(grid.querySelectorAll("a").length).toBe(4);
+  });
+
+  it("keeps the four editorial selections in order even when a banner fails", () => {
+    const names = ["TAS HUB", "GreenSofa", "Vida Verde", "Rifai Sicilia"];
+    const selected = publicCuration.featuredGardens.map((id, index) =>
+      makeGarden({ id: id.toLowerCase(), name: names[index] })
+    );
+    mockUsePublicGardens.mockReturnValue({
+      data: [makeGarden({ id: "0xextra", lastActivityAt: 9_999_999_999 }), ...selected.reverse()],
+      isLoading: false,
+    });
+    renderSection();
+    fireEvent.error(screen.getByAltText("TAS HUB"));
+    const labels = Array.from(screen.getByTestId("public-featured-grid").querySelectorAll("a")).map(
+      (node) => node.getAttribute("aria-label")
+    );
+    expect(labels).toEqual(names);
   });
 
   it("uses natural masonry columns without artificial stagger offsets", () => {
@@ -259,6 +279,26 @@ describe("PublicFeaturedGardens", () => {
     expect(
       screen.getByText("Featured Gardens will appear here as they come online.")
     ).toBeInTheDocument();
+  });
+
+  it("says a failed read is unavailable, not empty, and offers the read again", () => {
+    const refetch = vi.fn();
+    mockUsePublicGardens.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+
+    renderSection();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This public record is temporarily unavailable. Please try again."
+    );
+    expect(screen.queryByText("Featured Gardens will appear here as they come online.")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("renders four loading skeletons while data is loading", () => {

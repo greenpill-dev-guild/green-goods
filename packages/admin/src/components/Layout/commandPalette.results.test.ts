@@ -24,7 +24,20 @@ const eligibleGarden = {
   name: "Chakra Farm",
   location: "Quito",
   tokenAddress: "0x0000000000000000000000000000000000000aaa",
-} as Garden;
+  chainId: 11155111,
+  tokenID: 1n,
+  description: "Command palette garden fixture",
+  bannerImage: "",
+  createdAt: 0,
+  gardeners: [],
+  stewards: [],
+  evaluators: [],
+  owners: [],
+  funders: [],
+  communities: [],
+  assessments: [],
+  works: [],
+} satisfies Garden;
 
 function assessment(id: string, gardenAddress: string, title: string): GardenAssessment {
   return {

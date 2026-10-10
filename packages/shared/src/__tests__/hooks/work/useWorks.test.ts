@@ -20,6 +20,9 @@ const TEST_PRIMARY_ADDRESS = "0x1111111111111111111111111111111111111111";
 
 // ── Mock data ───────────────────────────────────────────────────────────────
 const mockGetWorkListPage = vi.fn();
+vi.mock("../../../modules/job-queue/work-completions", () => ({
+  retireWorkCompletionSnapshots: vi.fn(async () => {}),
+}));
 const mockGetWorkApprovalsForWorks = vi.fn();
 const mockGetJobs = vi.fn();
 const mockGetImagesForJob = vi.fn();
@@ -56,6 +59,12 @@ vi.mock("../../../modules/job-queue/default-instance", () => ({
 
 vi.mock("../../../modules/job-queue/db", () => ({
   jobQueueDB: {
+    observeWorkCompletions: () => ({
+      subscribe: (observer: { next: (rows: never[]) => void }) => {
+        queueMicrotask(() => observer.next([]));
+        return { unsubscribe() {} };
+      },
+    }),
     getImagesForJob: (...args: unknown[]) => mockGetImagesForJob(...args),
   },
 }));
@@ -163,6 +172,39 @@ describe("hooks/work/useWorks", () => {
     expect(mockGetWorkListPage).toHaveBeenCalledWith(TEST_GARDEN, {
       chainId: TEST_CHAIN_ID,
       take: 51,
+    });
+  });
+
+  // A screen that keeps a row in state from an effect, as the work detail does,
+  // re-renders forever if each render hands it a new copy of the same row.
+  it("hands back the same list and rows on a re-render when nothing changed", async () => {
+    mockGetWorkListPage.mockResolvedValue([
+      {
+        id: "work-1",
+        title: "Test Work",
+        actionUID: 1,
+        gardenerAddress: "0xgardener",
+        gardenAddress: TEST_GARDEN,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: 1000,
+        status: "pending" as const,
+      },
+    ]);
+    const { result, rerender } = renderHookWithProviders(() => useWorks(TEST_GARDEN), {
+      queryClient,
+    });
+    await waitFor(() => expect(result.current.works).toHaveLength(1));
+
+    // Once the read and its saved copy settle, a render with no new data
+    // returns what the last one did.
+    await waitFor(() => {
+      const settled = result.current.works;
+      rerender();
+      expect(result.current.works).toHaveLength(1);
+      expect(result.current.works[0]).toBe(settled[0]);
+      expect(result.current.works).toBe(settled);
     });
   });
 
@@ -489,6 +531,33 @@ describe("hooks/work/useWorks", () => {
     await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.works).toEqual([{ ...staleReviewed, status: "pending" }]);
+  });
+
+  it("lists a steward's sent work once, and stops saving the placeholder an earlier build left", async () => {
+    const indexed = {
+      id: "0xwork",
+      title: "Planting",
+      actionUID: 1,
+      gardenerAddress: "0x1",
+      gardenAddress: TEST_GARDEN,
+      feedback: "",
+      metadata: "bafy-metadata",
+      media: ["cid"],
+      createdAt: 1001,
+    };
+    const merged = ["works", "merged", TEST_GARDEN, TEST_CHAIN_ID];
+    const saved = () =>
+      queryClient.getQueryData<Array<{ id: string }>>(merged)?.map((work) => work.id);
+    queryClient.setQueryData(merged, [
+      { ...indexed, id: `optimistic-0x${"ab".repeat(32)}`, metadata: "{}", media: [] },
+    ]);
+    mockGetWorkListPage.mockResolvedValue([indexed]);
+
+    const { result } = renderHookWithProviders(() => useWorks(TEST_GARDEN), { queryClient });
+
+    await waitFor(() => expect(result.current.works.map((work) => work.id)).toEqual(["0xwork"]));
+    // The admin restores this saved list on reload, so the placeholder leaves it too.
+    await waitFor(() => expect(saved()).toEqual(["0xwork"]));
   });
 
   it("returns offlineCount 0 in online-only mode", async () => {

@@ -210,6 +210,8 @@ describe("presentation-mode route guards", () => {
       "/vaults",
       "/actions",
       "/cookies",
+      "/agent/reporting/abcdefghijklmnop",
+      "/agent/reporting/recover/abcdefghijklmnop",
     ]) {
       expect(
         requireWebsitePresentationLoader(loaderArgs(`https://www.greengoods.app${path}`))

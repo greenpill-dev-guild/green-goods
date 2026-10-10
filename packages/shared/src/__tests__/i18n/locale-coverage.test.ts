@@ -94,8 +94,6 @@ const sourceMessageTriggerTokens = [
   ...descriptorIdPropNames,
 ];
 const allowedIdenticalLocalizedKeys = new Set([
-  // The account identifier intentionally uses the same compact abbreviation in en/es/pt.
-  "app.account.id",
   "app.admin.nav.cookieJars",
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
@@ -104,22 +102,19 @@ const allowedIdenticalLocalizedKeys = new Set([
   // its accessible name uses the translated full domain name.
   "app.gardenIntro.domain.agroShort",
   "cockpit.community.stats.pools",
+  // An amount beside the G$ symbol has no words to translate.
+  "cockpit.garden.pool.reward.inGoodDollars",
   "public.fund.vaults.vaultCount",
-  // Vault checkout reuses the product term "Endowment" untranslated, matching the
-  // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace
-  // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
-  "public.vaults.cardEndow.positionHolder",
-  "public.vaults.cardEndow.status.deposit",
   // Portuguese keeps "Offline" as the product uses it elsewhere ("Offline · Salvo {when}"),
-  // and the dashboard's compact line drops "Saved" in every language, English included.
-  "app.workDashboard.offlineSaved",
+  // and the compact line Your Work and a garden's Promises share drops "Saved" in every
+  // language, English included.
+  "app.offline.savedAt",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",
   "0x...",
   "Admin",
   "APR",
-  "Card Endow",
   "Cookie Jar",
   "Cookie Jars",
   "Cookies",
@@ -129,8 +124,6 @@ const allowedIdenticalProductValues = new Set([
   "EAS",
   "Email",
   "ENS",
-  "Endow",
-  "Endowments",
   "ETH",
   "Feedback",
   "GitHub",

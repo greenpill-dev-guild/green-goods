@@ -202,6 +202,22 @@ describe("public WebMCP tools", () => {
     });
   });
 
+  it("never describes a chat reporting ceremony page", () => {
+    for (const pathname of [
+      "/agent/reporting/abcdefghijklmnop",
+      "/agent/reporting/recover/abcdefghijklmnop",
+      "/agent/reporting/permissions",
+    ]) {
+      const describeTool = getTool("green_goods_describe_public_page", [
+        ...createPublicWebMcpTools({ pageLocation: { pathname, assign: vi.fn() } }),
+      ]);
+      expect(describeTool.execute({})).toMatchObject({ status: "not_available" });
+    }
+    expect(readRouteEnum(getTool("green_goods_navigate_public_route"))).not.toContainEqual(
+      expect.stringContaining("/agent/")
+    );
+  });
+
   it("navigates only to approved public routes", () => {
     const assign = vi.fn<(route: string) => void>();
     const navigateTool = getTool("green_goods_navigate_public_route", [

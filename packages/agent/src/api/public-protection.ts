@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { isIP } from "node:net";
+import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
+import { getPath } from "hono/utils/url";
 
 export type PublicRouteClass =
   | "subscribe"
@@ -7,6 +9,7 @@ export type PublicRouteClass =
   | "funding_proof"
   | "receipt_read"
   | "garden_impact_read"
+  | "commitment_impact_read"
   | "upload_sign"
   | "profile_avatar_read"
   | "profile_avatar_batch_read"
@@ -21,8 +24,14 @@ export type PublicRouteClass =
   | "join_request_create_garden"
   | "join_request_read"
   | "join_request_resolve"
+  | "passkey_registration"
+  | "passkey_lookup"
   | "webhook_pre"
-  | "webhook_post";
+  | "webhook_post"
+  | "messaging_bootstrap"
+  | "messaging_proof"
+  | "messaging_read"
+  | "messaging_mutation";
 
 export interface TrustedProxyConfig {
   hops?: number;
@@ -54,6 +63,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   garden_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  commitment_impact_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   // Member lists fetch photos in batches; a separate budget keeps them from locking out the editor.
@@ -69,8 +79,16 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   join_request_create_garden: { limit: 50, windowMs: 24 * 60 * 60 * 1000 },
   join_request_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   join_request_resolve: { limit: 30, windowMs: 10 * 60 * 1000 },
+  // A sign-up is two calls, and an onboarding session can put a whole group behind one address.
+  passkey_registration: { limit: 120, windowMs: 10 * 60 * 1000 },
+  passkey_lookup: { limit: 240, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
+  // Agent reporting ceremonies: link openers and proofs are per IP; reads and commands per session.
+  messaging_bootstrap: { limit: 30, windowMs: 10 * 60 * 1000 },
+  messaging_proof: { limit: 20, windowMs: 10 * 60 * 1000 },
+  messaging_read: { limit: 240, windowMs: 10 * 60 * 1000 },
+  messaging_mutation: { limit: 60, windowMs: 10 * 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
 
 const requestPeerIps = new WeakMap<Request, string>();
@@ -286,7 +304,11 @@ function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
   if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
+  // Directory RPCs and their preflight use only the configured list. Other public APIs retain
+  // their preview exception; sharing an RP domain never approves a site for the directory.
+  const isPasskeyDirectory = getPath(request) === PUBLIC_AGENT_ROUTES.passkeyDirectory;
   return (
-    origin !== "none" && (allowedOrigins.has(origin) || isGreenGoodsVercelPreviewOrigin(origin))
+    origin !== "none" &&
+    (allowedOrigins.has(origin) || (!isPasskeyDirectory && isGreenGoodsVercelPreviewOrigin(origin)))
   );
 }

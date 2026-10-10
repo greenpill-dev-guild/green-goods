@@ -9,7 +9,7 @@
  *
  * Every count covers the gardens the website lists, the same set the archive
  * shows, and entries count approved work only. Hands at work are the
- * gardeners of those gardens, each address once.
+ * gardeners and stewards of those gardens, each address once.
  *
  * No auth path. Every source is best-effort, so one outage doesn't blank the
  * page: gardens and assessments settle side by side, then the listed gardens'
@@ -41,13 +41,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import {
+  filterGardensWithApprovedWork,
+  isGardenPubliclyVisible,
+} from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
+import { publicGardenHelpers } from "./usePublicGardens";
 
 /** Each count is `null` when it could not be established; see the file header. */
 export interface PublicStats {
@@ -96,12 +100,6 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
       // Same predicate the archive and the evidence ledger use, so no headline
       // count can include a garden a visitor cannot browse, or its people and records.
       const visibleGardens = gardensResult.value.filter(isGardenPubliclyVisible);
-      const listed = new Set(visibleGardens.map((garden) => garden.id.toLowerCase()));
-      const inListedGarden = (gardenAddress: string) => listed.has(gardenAddress.toLowerCase());
-      const gardeners = new Set(
-        visibleGardens.flatMap((garden) => garden.gardeners.map((address) => address.toLowerCase()))
-      );
-
       // The listed gardens' approved work, through the read the page's other
       // aggregates share. A read that fails or comes back partial is unknown.
       const approved = await fetchListedApprovedWorks(
@@ -109,11 +107,24 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
         visibleGardens.map((garden) => garden.id),
         chainId
       );
+      // Every count now depends on establishing which gardens have approved work.
+      if (approved.partial) {
+        return {
+          gardenCount: null,
+          contributorCount: null,
+          fieldNoteCount: null,
+          attestationCount: null,
+        };
+      }
+      const listedGardens = filterGardensWithApprovedWork(visibleGardens, approved.works);
+      const listed = new Set(listedGardens.map((garden) => garden.id.toLowerCase()));
+      const inListedGarden = (gardenAddress: string) => listed.has(gardenAddress.toLowerCase());
+      const gardeners = new Set(listedGardens.flatMap(publicGardenHelpers.gardenerAddresses));
 
       return {
-        gardenCount: visibleGardens.length,
+        gardenCount: listedGardens.length,
         contributorCount: gardeners.size,
-        fieldNoteCount: approved.partial ? null : approved.works.length,
+        fieldNoteCount: approved.works.filter((work) => inListedGarden(work.gardenAddress)).length,
         attestationCount:
           assessmentsResult.status === "fulfilled"
             ? assessmentsResult.value.filter((assessment) =>

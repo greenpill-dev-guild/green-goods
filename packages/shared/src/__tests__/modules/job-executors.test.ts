@@ -15,7 +15,7 @@ import {
 } from "../../modules/commitment-pooling/jobs";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { createCommitmentChainReads } from "../../modules/job-queue/commitment-chain-reads";
-import { CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
+import { EASABI, CommitmentPoolingModuleABI } from "../../utils/blockchain/contracts";
 import { executeApprovalJob } from "../../modules/job-queue/approval-executor";
 import { executeCommitmentQueueJob } from "../../modules/job-queue/job-executors";
 import { executeWorkJob } from "../../modules/job-queue/work-executor";
@@ -258,6 +258,11 @@ describe("work and approval job executors", () => {
       11155111
     );
     expect(sender.sendContractCall).toHaveBeenCalledOnce();
+    // The sender's chain guard moves the wallet to the network the call names.
+    expect(sender.sendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "attest", chainId: 11155111 }),
+      expect.anything()
+    );
   });
 
   it("uses optional work defaults without inventing tags, audio, or details", async () => {
@@ -333,6 +338,26 @@ describe("work and approval job executors", () => {
 });
 
 describe("commitment queue executor", () => {
+  it("refuses a fresh expired group creation at the queue send boundary", async () => {
+    const sender = createMockTransactionSender();
+    const queued = job(
+      "commitment",
+      commitmentPayload({
+        dueDate: 1n,
+        metadata: { version: 1, title: "Compost", displayGroup: { version: 1, id: "group-1" } },
+      })
+    );
+
+    await expect(
+      executeCommitmentQueueJob(queued.id, queued, 42161, sender, {
+        demoActive: () => false,
+        reads: reads(),
+        store: store(),
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "group-deadline-passed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
   it("never reaches reads or sends while demo pooling is active", async () => {
     const chainReads = reads();
     const sender = createMockTransactionSender();
@@ -351,6 +376,31 @@ describe("commitment queue executor", () => {
       )
     ).resolves.toEqual({ status: "waiting", reason: "demo-mode" });
 
+    expect(chainReads.hasMembership).not.toHaveBeenCalled();
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("holds Add and Send's send while its proof is still queued", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("evidence", { commitmentId: 1n }));
+    const chainReads = reads();
+    const sender = createMockTransactionSender();
+    const send = job("confirmation", {
+      action: "submit",
+      commitmentId: 1n,
+      gardenAddress: GARDEN,
+      afterEvidenceJobId: "job-evidence",
+    });
+
+    await expect(
+      executeCommitmentQueueJob("job-confirmation", send, 42161, sender, {
+        demoActive: () => false,
+        reads: chainReads,
+        store: queueStore,
+      })
+    ).resolves.toEqual({ status: "waiting", reason: "proof-not-landed" });
+
+    expect(queueStore.getJob).toHaveBeenCalledWith("job-evidence");
     expect(chainReads.hasMembership).not.toHaveBeenCalled();
     expect(sender.sendContractCall).not.toHaveBeenCalled();
   });
@@ -515,8 +565,10 @@ describe("commitment queue executor", () => {
     ).resolves.toEqual({ status: "complete", txHash: MOCK_TX_HASH });
 
     expect(publishEvidence).toHaveBeenCalledOnce();
+    // The call names the job's owner, so a sender holds the send, or a bundle
+    // of them, to that address and not to whoever is connected by then.
     expect(sender.sendContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "attachEvidence" }),
+      expect.objectContaining({ functionName: "attachEvidence", account: USER }),
       expect.anything()
     );
   });
@@ -667,6 +719,37 @@ describe("commitment queue executor", () => {
       expect.objectContaining({ functionName: "linkWork", args: [1n, HASH, 0, HASH] }),
       expect.anything()
     );
+  });
+
+  it("does not send an admitted dependent link while its cancelled Work still waits", async () => {
+    const queueStore = store();
+    queueStore.getJob.mockResolvedValue(job("work", {}, { meta: { requiresExplicitSend: true } }));
+    const sender = createMockTransactionSender();
+    const resolver = vi.fn().mockResolvedValue({ status: "resolved", workUID: HASH });
+    await expect(
+      executeCommitmentQueueJob(
+        "job-work-link",
+        job("workLink", {
+          clientOperationId: "operation",
+          commitmentId: 1n,
+          clientWorkId: "client-work-1",
+          sourceWorkJobId: "job-work",
+          requirementIndex: 0,
+          operationKey: HASH,
+          gardenAddress: GARDEN,
+        }),
+        42161,
+        sender,
+        {
+          demoActive: () => false,
+          reads: reads(),
+          store: queueStore,
+          resolveWorkIdentity: resolver,
+        }
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "work-not-indexed" });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(resolver).not.toHaveBeenCalled();
   });
 
   it("throws retryable metadata failures so the ordinary retry budget applies", async () => {
@@ -2314,5 +2397,98 @@ describe("work and decisions keep the send rules commitment acts follow", () => 
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("confirmed queued work recovery", () => {
+  const uid = `0x${"a9".repeat(32)}` as const;
+  const published = {
+    data: "0x1234" as const,
+    metadata: { title: "Planting", clientWorkId: "confirmed-recovery" },
+    media: ["uploaded-photo"],
+  };
+  const receiptLog = {
+    address: EAS_CONFIG.EAS.address,
+    data: encodeAbiParameters([{ type: "bytes32" }], [uid]),
+    topics: encodeEventTopics({
+      abi: EASABI,
+      eventName: "Attested",
+      args: { recipient: GARDEN, attester: USER, schemaUID: EAS_CONFIG.WORK.uid },
+    }),
+  } as import("viem").Log;
+  async function admitted() {
+    const clientWorkId = crypto.randomUUID();
+    const id = await jobQueueDB.addJob({
+      kind: "work",
+      userAddress: USER,
+      chainId: 11155111,
+      payload: {
+        clientWorkId,
+        title: "Planting",
+        gardenAddress: GARDEN,
+        actionUID: 1,
+        feedback: "Done",
+        media: [new File(["photo"], "photo.jpg", { type: "image/jpeg" })],
+        uploadCheckpoint: {
+          submittedAt: "2026-10-06",
+          files: {},
+          published: { ...published, metadata: { ...published.metadata, clientWorkId } },
+          broadcast: { kind: "transaction", hash: HASH },
+          transactionHash: HASH,
+        },
+      },
+    });
+    return (await jobQueueDB.getJob(id)) as Job<WorkJobPayload>;
+  }
+  it("recovers the exact card and stores it before deleting the completed job", async () => {
+    const queued = await admitted();
+    const sender = createMockTransactionSender();
+    await executeWorkJob(queued.id, queued, 11155111, sender, {
+      easConfig: EAS_CONFIG,
+      reconcile: async () => "confirmed",
+      confirmedReads: {
+        receipt: async () => ({ status: "success", logs: [receiptLog] }),
+        attestation: async () => ({
+          uid,
+          schema: EAS_CONFIG.WORK.uid as `0x${string}`,
+          recipient: GARDEN,
+          attester: USER,
+          data: published.data,
+          time: 1800000000n,
+        }),
+      },
+    });
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    await jobQueueDB.storeClientWorkIdMapping(queued.payload.clientWorkId!, HASH, queued.id);
+    await jobQueueDB.deleteJob(queued.id);
+    const completion = await jobQueueDB.getWorkCompletion(
+      USER,
+      11155111,
+      queued.payload.clientWorkId!
+    );
+    expect(completion?.work).toMatchObject({ id: uid, media: published.media, status: "pending" });
+    expect(await jobQueueDB.getImagesForJob(queued.id)).toEqual([]);
+  });
+  it("retains the queue and original photo after a failed proof read, without another send", async () => {
+    const queued = await admitted();
+    const sender = createMockTransactionSender();
+    await expect(
+      executeWorkJob(queued.id, queued, 11155111, sender, {
+        easConfig: EAS_CONFIG,
+        reconcile: async () => "confirmed",
+        confirmedReads: {
+          receipt: async () => ({ status: "success", logs: [receiptLog] }),
+          attestation: async () => {
+            throw new Error("RPC unavailable");
+          },
+        },
+      })
+    ).rejects.toBeInstanceOf(AwaitingWorkConfirmation);
+    expect(sender.sendContractCall).not.toHaveBeenCalled();
+    expect(await jobQueueDB.getImagesForJob(queued.id)).toHaveLength(1);
+    expect(
+      await jobQueueDB.getWorkCompletion(USER, 11155111, queued.payload.clientWorkId!)
+    ).toBeUndefined();
+    await jobQueueDB.deleteJob(queued.id);
   });
 });

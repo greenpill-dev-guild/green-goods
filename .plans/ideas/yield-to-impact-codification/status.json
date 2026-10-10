@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-07-19T21:55:22.435Z",
-    "updated_at": "2026-07-19T21:55:22.435Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,7 +37,8 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-10-06 reconciliation: [RESR-8](https://linear.app/greenpill-dev-guild/issue/RESR-8) is Backlog and produces defensible funder-facing language, not hooks, indexer fields, curves or Hypercert schema implementation. This retained idea describes the broader measurement proposal and depends on a stable dimension model. Link the narrower research rather than claiming it owns or approves this whole build. The May/June scheduling is historical."
   ],
   "lanes": {
     "ui": {
@@ -141,6 +142,14 @@
       "status": "legacy_idea_standardized",
       "branch": null,
       "note": "Migrated the legacy idea into a discoverable standard hub without promoting it to backlog."
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "[RESR-8](https://linear.app/greenpill-dev-guild/issue/RESR-8) is Backlog and produces defensible funder-facing language, not hooks, indexer fields, curves or Hypercert schema implementation. This retained idea describes the broader measurement proposal and depends on a stable dimension model. Link the narrower research rather than claiming it owns or approves this whole build. The May/June scheduling is historical."
     }
   ]
 }

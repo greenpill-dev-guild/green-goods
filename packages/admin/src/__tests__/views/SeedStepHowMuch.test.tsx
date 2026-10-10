@@ -74,6 +74,7 @@ function Harness({
         actions={availableActions}
         chainId={42161}
         now={Date.now()}
+        cap={3}
       />
       <button
         type="button"
@@ -95,6 +96,18 @@ function Harness({
 }
 
 describe("SeedStepHowMuch", () => {
+  it("explains missing actions and associates a blank action error with its control", async () => {
+    renderWithProviders(<Harness unitLabel="hours" />);
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    expect(await screen.findByText("Add at least one action")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Action")).toHaveAttribute("aria-invalid", "true")
+    );
+    expect(screen.getByLabelText("Action")).toHaveAccessibleDescription("Choose an action");
+  });
+
   it("uses the real composer validation for a service's unit, amount and due date", async () => {
     renderWithProviders(<Harness kind="SERVICE" />);
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
@@ -106,7 +119,7 @@ describe("SeedStepHowMuch", () => {
     expect(screen.getByTestId("validation-result")).toHaveTextContent("invalid");
 
     fireEvent.change(screen.getByLabelText(/^unit/i), { target: { value: "plots" } });
-    fireEvent.change(screen.getByLabelText(/^target/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^amount/i), { target: { value: "4" } });
     fireEvent.change(screen.getByLabelText(/^due in/i), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
     await waitFor(() => expect(screen.getByTestId("validation-result")).toHaveTextContent("valid"));
@@ -118,7 +131,7 @@ describe("SeedStepHowMuch", () => {
     fireEvent.click(screen.getByRole("button", { name: "rides" }));
     expect(screen.getByLabelText(/^unit/i)).toHaveValue("rides");
     fireEvent.click(screen.getByRole("button", { name: "6" }));
-    expect(screen.getByLabelText(/^target/i)).toHaveValue("6");
+    expect(screen.getByLabelText(/^amount/i)).toHaveValue("6");
     fireEvent.click(screen.getByRole("button", { name: "14 days" }));
     expect(screen.getByLabelText(/^due in/i)).toHaveValue("14");
   });
@@ -129,7 +142,7 @@ describe("SeedStepHowMuch", () => {
     expect(screen.getByText("Counted in hours")).toBeInTheDocument();
     expect(screen.queryByLabelText(/^unit/i)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "12" }));
-    expect(screen.getByLabelText(/^target/i)).toHaveValue("12");
+    expect(screen.getByLabelText(/^amount/i)).toHaveValue("12");
     fireEvent.change(screen.getByLabelText(/^due in/i), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
     await waitFor(() =>

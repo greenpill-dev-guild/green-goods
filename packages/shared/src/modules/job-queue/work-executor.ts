@@ -25,6 +25,7 @@ import {
   AwaitingWorkConfirmation,
   forgetWorkBroadcast,
   reconcileWorkTransaction,
+  readConfirmedWork,
   retainedWorkBroadcast,
   retainedWorkBroadcastReference,
   WorkTransactionReverted,
@@ -45,6 +46,7 @@ type SimulateWork = typeof import("../work/simulate").simulateWorkSubmission;
 
 export interface WorkJobExecutorDeps {
   reconcile?: typeof reconcileWorkTransaction;
+  confirmedReads?: Parameters<typeof readConfirmedWork>[3];
   images?: (jobId: string) => ReturnType<typeof jobQueueDB.getImagesForJob>;
   convertMedia?: typeof convertQueuedHeicMedia;
   resolveTitle?: (job: Job<WorkJobPayload>, chainId: number) => Promise<string>;
@@ -78,6 +80,17 @@ export async function executeWorkJob(
     if (knownHash) return knownHash;
   }
   const payload = job.payload;
+  const complete = async (hash: Hex): Promise<Hex> => {
+    const work = await readConfirmedWork(job, hash, chainId, {
+      easConfig: deps.easConfig,
+      ...deps.confirmedReads,
+    });
+    if (work) {
+      payload.confirmedWork = work;
+      await jobQueueDB.updateJob(job);
+    }
+    return hash;
+  };
   const reads = deps.reads ?? createSendChainReads({ chainId });
   const store = { updateJob: (updated: Job) => jobQueueDB.updateJob(updated) };
   const settleStranded =
@@ -123,13 +136,13 @@ export async function executeWorkJob(
       throw new WorkTransactionReverted(previousHash);
     }
     forgetWorkBroadcast(jobId);
-    return transactionHash!;
+    return complete(transactionHash!);
   }
   if (checkpoint?.broadcastPending) {
     // The answer to the send was lost; the gardener's attestations settle it.
     const landed = await settleStranded(job, chainId, "0x");
     forgetWorkBroadcast(jobId);
-    return landed;
+    return complete(landed);
   }
   await sender.assertOwnership?.(job.userAddress, chainId);
   // A photo picked before the decoder could load is still HEIC. It becomes a
@@ -219,7 +232,7 @@ export async function executeWorkJob(
         throw new AwaitingWorkConfirmation(result.hash);
       }
       forgetWorkBroadcast(jobId);
-      return result.hash;
+      return complete(result.hash);
     case "reverted":
       await markReverted();
       throw new WorkTransactionReverted(result.error.hash);

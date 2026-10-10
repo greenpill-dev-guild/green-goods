@@ -119,6 +119,90 @@ function commitmentPayload(
   };
 }
 
+describe("display-group creation deadline", () => {
+  it.each([
+    { label: "just before", reconciledAt: 1_999, expected: "sent" },
+    { label: "exactly at", reconciledAt: 2_000, expected: "waiting" },
+    { label: "after", reconciledAt: 2_001, expected: "waiting" },
+  ])("checks $label the deadline after fresh identity and membership reads", async (test) => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+    try {
+      const deps = dependencies({
+        hasMembership: vi.fn().mockImplementation(async () => {
+          clock.mockReturnValue(test.reconciledAt * 1000);
+          return true;
+        }),
+      });
+      const result = await executeCommitmentJob(
+        {
+          id: "copy",
+          kind: "commitment",
+          payload: commitmentPayload({
+            dueDate: 2_000n,
+            metadata: {
+              version: 1,
+              title: "Survey",
+              displayGroup: { version: 1, id: "group-00000001" },
+            },
+          }),
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      );
+      expect(result.status).toBe(test.expected);
+      if (test.expected === "waiting") {
+        expect(result).toEqual({ status: "waiting", reason: "group-deadline-passed" });
+        expect(deps.send).not.toHaveBeenCalled();
+      } else expect(deps.send).toHaveBeenCalledOnce();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("blocks a fresh expired child but preserves legacy creation and broadcast recovery", async () => {
+    const payload = commitmentPayload({
+      dueDate: 1n,
+      metadata: { version: 1, title: "Survey", displayGroup: { version: 1, id: "group-00000001" } },
+    });
+    const job: CommitmentJob<"commitment"> = {
+      id: "copy",
+      kind: "commitment",
+      payload,
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    };
+    const deps = dependencies();
+    await expect(executeCommitmentJob(job, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "group-deadline-passed",
+    });
+    expect(deps.send).not.toHaveBeenCalled();
+    await expect(
+      executeCommitmentJob({ ...job, submittedTxHash: ZERO_HASH }, deps)
+    ).resolves.toEqual({ status: "waiting", reason: "pending-first-send" });
+    expect(deps.send).not.toHaveBeenCalled();
+    const recovered = dependencies({
+      readCommitmentId: vi.fn().mockResolvedValue(77n),
+      readCommitment: vi.fn().mockResolvedValue({
+        poolId: payload.poolId,
+        creator: HOLDER,
+        creationPayloadHash: hashCommitmentCreationPayload(payload),
+      }),
+    });
+    await expect(executeCommitmentJob(job, recovered)).resolves.toEqual({
+      status: "recovered",
+      entityId: 77n,
+    });
+    expect(recovered.send).not.toHaveBeenCalled();
+    await expect(
+      executeCommitmentJob({ ...job, payload: { ...payload, metadata: undefined } }, deps)
+    ).resolves.toMatchObject({ status: "sent" });
+  });
+});
+
 describe("commitment offline job vocabulary", () => {
   it("contains the six frozen kinds and no online settlement/transfer kind", () => {
     expect(COMMITMENT_JOB_KINDS).toEqual([
@@ -644,6 +728,67 @@ describe("queue identity for acts that name a commitment", () => {
     await expect(
       jobQueue.addJob("commitment", { ...payload, targetUnits: 11n }, HOLDER, meta)
     ).rejects.toThrow(/offline_job_identity_conflict/);
+  });
+
+  describe("a creation placed again", () => {
+    // As the composer builds it: the words ride the job, and the CID is still empty.
+    const composed = (overrides: Partial<CommitmentCreationPayload> = {}) =>
+      commitmentPayload({
+        creationRequestKey: ZERO_HASH,
+        metadataCID: "",
+        metadata: { version: 1, title: "Ten hours of weeding" },
+        ...overrides,
+      });
+
+    /** The first press, after a send that failed once the executor had published the words. */
+    async function queueFailedFirstPress() {
+      const first = await jobQueue.addJob("commitment", composed(), HOLDER, meta);
+      const stored = (await jobQueueDB.getJob(first))!;
+      await jobQueueDB.updateJob({
+        ...stored,
+        attempts: 1,
+        lastError: "Network switch rejected.",
+        payload: { ...(stored.payload as object), metadataCID: "bafy-published" },
+      });
+      return first;
+    }
+
+    it("is the queued job, sent as it was queued, when only the clock and the published words differ", async () => {
+      const first = await queueFailedFirstPress();
+
+      // Ninety seconds later the same answers build a later deadline and no CID.
+      const again = await jobQueue.addJob(
+        "commitment",
+        composed({ dueDate: 2_000_000_090n }),
+        HOLDER,
+        meta
+      );
+
+      expect(again).toBe(first);
+      const queued = await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "commitment" });
+      expect(queued).toHaveLength(1);
+      expect(queued[0]?.payload).toMatchObject({
+        dueDate: 2_000_000_000n,
+        metadataCID: "bafy-published",
+      });
+    });
+
+    it.each([
+      ["an answer changed", { dueDate: 2_000_000_090n, targetUnits: 11n }],
+      ["the words changed", { metadata: { version: 1, title: "Twelve hours of weeding" } }],
+      ["the deadline moved by a day", { dueDate: 2_000_086_400n }],
+      ["the deadline moved earlier", { dueDate: 1_999_999_999n }],
+    ] as const)("is refused when %s, and the queued job is left as it was", async (_case, change) => {
+      const first = await queueFailedFirstPress();
+
+      await expect(jobQueue.addJob("commitment", composed(change), HOLDER, meta)).rejects.toThrow(
+        /offline_job_identity_conflict/
+      );
+
+      const queued = await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "commitment" });
+      expect(queued.map((job) => job.id)).toEqual([first]);
+      expect(queued[0]?.payload).toMatchObject({ dueDate: 2_000_000_000n, targetUnits: 10n });
+    });
   });
 
   it("refuses the same claim under a different garden rather than quietly taking the second", async () => {

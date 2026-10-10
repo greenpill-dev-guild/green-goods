@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared/public-contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDB, getDB, initDB } from "../services/db";
+import { initSchema } from "../services/db/schema";
 import {
   createGardenJoinRequestCipher,
   createSqliteGardenJoinRequestStore,
@@ -15,7 +16,9 @@ import {
 } from "../services/garden-join-requests";
 import type { SavedOfferCipher } from "../services/saved-offers";
 import { createSavedOfferCipher } from "../services/saved-offers";
+import { createSqlitePasskeyDirectoryStore } from "../services/passkey-directory-adapters";
 import { gardenJoinRequestStoreContract } from "./test-utils/garden-join-request-contract";
+import { passkeyDirectoryStoreContract } from "./test-utils/passkey-directory-store-contract";
 
 let databaseDirectory: string;
 let databasePath: string;
@@ -55,7 +58,7 @@ describe("agent storage with real bun:sqlite", () => {
         "users",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 7 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 8 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -67,6 +70,62 @@ describe("agent storage with real bun:sqlite", () => {
         )
         .run("orphan", "missing-message", 0, "photo", "file-id", Date.now())
     ).toThrow(/FOREIGN KEY constraint failed/i);
+  });
+
+  it("migrates legacy request uniqueness without changing encrypted rows or revisions", () => {
+    const sqlite = new Database(":memory:");
+    try {
+      initSchema(sqlite);
+      sqlite.exec(`
+        DROP INDEX idx_garden_join_requests_active;
+        CREATE UNIQUE INDEX idx_garden_join_requests_active
+          ON garden_join_requests(gardenAddress, accountAddressKey) WHERE state = 'pending';
+        PRAGMA user_version = 7;
+      `);
+      sqlite
+        .query(`INSERT INTO garden_join_requests
+        (id, gardenAddress, accountAddressKey, ciphertext, nonce, kind, state, requestedVia,
+         requestedAt, expiresAt, resolvedAt, updatedAt, revision)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, NULL, ?, ?)`)
+        .run(
+          "legacy",
+          "garden",
+          "account-digest",
+          "encrypted-personal-fields",
+          "nonce",
+          "garden_membership",
+          "garden_detail",
+          "2026-08-27T12:00:00.000Z",
+          "2026-09-26T12:00:00.000Z",
+          "2026-08-27T12:00:00.000Z",
+          3
+        );
+      const before = sqlite.query("SELECT * FROM garden_join_requests WHERE id = 'legacy'").get();
+      initSchema(sqlite);
+      initSchema(sqlite);
+      expect(sqlite.query("SELECT * FROM garden_join_requests WHERE id = 'legacy'").get()).toEqual(
+        before
+      );
+      expect(
+        sqlite.query("PRAGMA index_info(idx_garden_join_requests_active)").all()
+      ).toMatchObject([{ name: "gardenAddress" }, { name: "accountAddressKey" }, { name: "kind" }]);
+      sqlite.exec(`INSERT INTO garden_join_requests
+        SELECT 'steward', gardenAddress, accountAddressKey, ciphertext, nonce, 'steward_access',
+          state, 'admin_access', requestedAt, expiresAt, resolvedAt, updatedAt, revision
+          FROM garden_join_requests WHERE id = 'legacy'`);
+      expect(() =>
+        sqlite.exec(`INSERT INTO garden_join_requests
+        SELECT 'duplicate', gardenAddress, accountAddressKey, ciphertext, nonce, kind,
+          state, requestedVia, requestedAt, expiresAt, resolvedAt, updatedAt, revision
+          FROM garden_join_requests WHERE id = 'steward'`)
+      ).toThrow(/UNIQUE constraint failed/i);
+      expect(sqlite.query("SELECT COUNT(*) AS count FROM garden_join_requests").get()).toEqual({
+        count: 2,
+      });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 8 });
+    } finally {
+      sqlite.close();
+    }
   });
 
   it("persists join-request personal fields only as ciphertext", async () => {
@@ -362,3 +421,7 @@ gardenJoinRequestStoreContract("SQLite garden join request store", () => {
       ).map(({ nonce }) => nonce),
   };
 });
+
+passkeyDirectoryStoreContract("SQLite passkey directory store", () =>
+  createSqlitePasskeyDirectoryStore()
+);

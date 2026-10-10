@@ -33,7 +33,7 @@ const mockGardens = [
     description: "A solar-powered community garden in downtown Austin",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 2,
     lastActivityAt: 1710000000,
     stewards: [GARDENER],
@@ -84,7 +84,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", () => ({
         stewards: [GARDENER],
       },
       fieldNotes: [],
-      contributors: [],
+      gardenerCount: 1,
       assessmentCount: 0,
       totalFieldNotes: 0,
       partialData: false,
@@ -184,8 +184,8 @@ const messages: Record<string, string> = {
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
-  "public.gardenDetail.stats.entries": "Entries",
-  "public.gardenDetail.stats.handsAtWork": "Hands at work",
+  "public.gardenDetail.stats.entries": "Approved work",
+  "public.gardenDetail.stats.handsAtWork": "Garden members",
   "public.gardenDetail.stats.assessments": "Assessments",
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
@@ -195,14 +195,17 @@ const messages: Record<string, string> = {
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
-  "public.gardenDetail.notes.heading": "Latest field notes",
-  "public.gardenDetail.notes.helper": "What gardeners have logged.",
+  "public.gardenDetail.notes.heading": "Recent approved work",
+  "public.gardenDetail.notes.helper":
+    "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
   "public.gardenDetail.notes.empty": "No field notes yet.",
   "public.gardenDetail.certificates.heading": "Impact Certificates",
-  "public.gardenDetail.certificates.helper": "Bundles of approved Work.",
+  "public.gardenDetail.certificates.helper":
+    "Shareable records bringing together approved work and the assessments supporting its claims.",
   "public.gardenDetail.certificates.empty": "No Impact Certificates yet.",
   "public.gardenDetail.stewards.heading": "Stewards",
-  "public.gardenDetail.stewards.helper": "Trusted coordinators.",
+  "public.gardenDetail.stewards.helper":
+    "The local coordinators who review submissions and care for this Garden.",
   "public.gardenDetail.stewards.empty": "No stewards are listed for this Garden yet.",
 };
 
@@ -230,9 +233,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
 
     const expected = [
       ["public-garden-description-title", "About this garden"],
-      ["public-garden-detail-notes", "Latest field notes"],
-      ["public-garden-detail-commitments", "This Garden is preparing its pool"],
-      ["public-garden-detail-certificates", "Impact Certificates"],
+      ["public-garden-detail-notes", "Recent approved work"],
       ["public-garden-detail-stewards", "Stewards"],
     ] as const;
 
@@ -247,23 +248,17 @@ describe("GardenDetail section semantics (P3-4)", () => {
     // The sections appear at h2 level and do not collide with the page h1,
     // which carries the Garden name.
     const h2Texts = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent ?? "");
-    expect(h2Texts).toEqual([
-      "About this garden",
-      "Latest field notes",
-      "This Garden is preparing its pool",
-      "Impact Certificates",
-      "Stewards",
-    ]);
+    expect(h2Texts).toEqual(["About this garden", "Recent approved work", "Stewards"]);
   });
 
-  it("keeps every section present when the Garden has no content for it", () => {
+  it("keeps the current work record and omits empty future sections", () => {
     const { container } = renderView();
 
-    // Ordinals stay stable between Gardens: § 02 commitments renders its
-    // pre-launch state rather than disappearing, so it has a defined
-    // neighbour on both sides regardless of what this Garden has published.
-    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(5);
+    // Current work and coordinator sections remain labelled, while
+    // confirmed empty future sections are omitted.
+    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(3);
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
-    expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
+    expect(screen.queryByText("No Impact Certificates yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("This Garden is preparing its pool")).not.toBeInTheDocument();
   });
 });

@@ -33,7 +33,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
-  useUser: (() => ({ primaryAddress: VIEWER })) as UserModule["useUser"],
+  useUser: () =>
+    ({ primaryAddress: VIEWER }) satisfies Pick<
+      ReturnType<UserModule["useUser"]>,
+      "primaryAddress"
+    >,
 }));
 
 vi.mock(
@@ -188,7 +192,7 @@ describe("CommunityPools", () => {
     expect(screen.getByTestId("protocol-pool")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-funding-operations")).toBeInTheDocument();
     expect(screen.getByTestId("protocol-confirm-queue")).toBeInTheDocument();
-    // The protocol pool's console is that garden's own Pool tab, not embedded here.
+    // The protocol pool's console is that garden's own Promises tab, not embedded here.
     expect(screen.getByTestId("current-garden-pool")).toBeInTheDocument();
   });
 

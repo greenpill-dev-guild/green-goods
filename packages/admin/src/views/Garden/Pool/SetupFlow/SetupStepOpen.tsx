@@ -255,7 +255,7 @@ export function SetupStepOpen({
           {formatMessage({
             id: "cockpit.garden.pool.setup.keepOpen",
             defaultMessage:
-              "Keep this open until every change is done. If you leave, what is done stays done, and you can finish from the pool tab.",
+              "Keep this open until every change is done. If you leave, what is done stays done, and you can finish from the Promises tab.",
           })}
         </p>
       ) : null}

@@ -96,7 +96,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
-  "public.impact.heroTitle": "See how Garden work becomes evidence.",
+  "public.impact.heroTitle": "See how Garden work becomes evidence",
   "public.impact.heroLede":
     "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
   "public.impact.totalAssessments": "Assessments",
@@ -162,8 +162,8 @@ describe("ImpactPage", () => {
   it("renders confirmed proof markers from usePublicStats", () => {
     renderView();
     expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gardens with approved work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Approved submissions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("30")).toBeInTheDocument();
