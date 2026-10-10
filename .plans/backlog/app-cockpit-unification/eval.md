@@ -84,5 +84,24 @@ Checked on 2026-10-10 against the files in this hub:
   no script error and no horizontal overflow, and the card surface, border and shadow changed with
   F7 and F13 as intended. That is a check of the mock, not rendered proof of either application.
 
+## Lab layout check
+
+Checked on 2026-10-10 after the lab's layout changed to three frames above a controls dock. Each
+run opened the file in headless Chromium (Playwright):
+
+- Twelve window sizes from 390×844 to 2560×1300, in both arrangements and all three stages, 26
+  cases in all. In every case wider than a phone the frames shared one scale, stayed clear of each
+  other and of the controls, and every control sat inside the window without scrolling the dock. The
+  rail scrolls only in a window shorter than 800px. At 1440×900 all three frames draw at 66%; the
+  layout this replaces drew the phones at 62% and the desktop at 45%, with 21 of its 51 controls
+  below the fold of the rail.
+- The sixteen control states again, at 1680×900: no script error, no horizontal overflow, and the
+  card surface, border and shadow still answer F7 and F13. The cockpit's dark card computed to
+  `#201913` with a 6% ring today and to `#2A231C` with an 8% ring one step up, as the specification
+  states.
+- The dock stayed inside the window at seven scroll positions. Fit to window, the option hints, the
+  presets, both arrangements, a reload, keyboard use and a phone-width window behaved as described
+  in the [artifacts README](artifacts/README.md).
+
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.

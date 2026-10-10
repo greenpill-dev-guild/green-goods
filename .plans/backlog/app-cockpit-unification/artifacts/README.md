@@ -9,17 +9,23 @@ Two things live here: an interactive mock for choosing between the options in
 it needs no build and no server. The two typefaces load from Google Fonts and fall back to system
 fonts offline.
 
-The stage shows the installed app as a 390px phone beside the cockpit at 1280px. The Stage control
-switches to two phones or to all three frames. Every frame scales to fit the window.
+The stage shows three frames side by side at one scale: the installed app as a 390px phone, the
+cockpit as a 390px phone, and the cockpit at 1280px. The controls sit in a dock under the frames.
+The dock stays pinned to the bottom of the window, and the frames size themselves to the room above
+it, so every control is in view while you look at the frames. The dock's last line gives the scale
+in use and describes the option under the pointer. Fit to window scrolls the lab into place. A
+phone-width window stacks the frames and folds the dock behind a Controls button.
 
 | Control | What it switches |
 |---|---|
-| Preset | Today, Recommended, or Everything shared: sets every fork at once. |
+| Preset | Today, Recommended, or All shared: sets every fork at once. |
 | App screen | Home, Garden (Promises tab), Your Work, Submit Work (Details step), Profile. |
-| Cockpit screen | Hub, Garden, Community (Members), Create Assessment, Profile. The desktop frame follows it: the flow opens as the centered dialog and Profile as the right side sheet. |
+| Cockpit screen | Hub, Garden, Community (Members), Create Assessment, Profile. Both cockpit frames follow it. On the desktop frame the flow opens as the centered dialog and Profile as the right side sheet. |
 | Sheet | Opens a bottom sheet on the phones and a dialog on the desktop frame. |
 | Theme | Light or dark for the frames. |
-| F1 to F13, Workspace tone | One group per decision in the specification. A dot marks the recommended option. |
+| Show | All three frames, the app phone with the cockpit desktop, or the two phones. |
+| Controls | Below keeps the dock under the frames. Side moves it to a rail beside them, which leaves the full height to the frames and suits the two-phone view. The rail needs a window at least 1072px wide and scrolls in one shorter than 800px. |
+| F1 to F13, Workspace tone | One control per decision in the specification, in number order. Each starts with Today, and a dot marks the recommended option. F13 only shows in the dark theme, so picking one of its options switches Theme to Dark. |
 
 **It is a mock, not the product.** Each screen is hand-built HTML drawn with the token values and
 type sizes read from the component sources named in the specification. It shows direction and
@@ -27,7 +33,7 @@ proportion. It proves nothing about the shipped interface, and no option in it i
 before and after pair of the real components has been reviewed (see [eval.md](../eval.md)). Sample
 names, gardens and addresses are invented.
 
-The choices persist in the browser's local storage under `gg-lab-state-v4`. The block between the
+The choices persist in the browser's local storage under `gg-lab-state-v5`. The block between the
 `lab:start` and `lab:end` comments is the lab itself; the rest of the file is the page chrome that
 lets it stand alone.
 

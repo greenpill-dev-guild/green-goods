@@ -9,7 +9,7 @@
      system fonts offline. See README.md in this folder for what the controls mean and what is a mock. -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Page chrome for the standalone lab: the tokens the sidebar reads, in light and dark.
+/* Page chrome for the standalone lab: the tokens the controls read, in light and dark.
    The lab's own styles follow in the blocks between the two lab markers below. */
 :root {
   --bg: #FAF8F5;
@@ -48,42 +48,90 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 <div class="wrap">
 <!-- lab:start -->
 <style>
-/* ===== Design lab v4: sidebar controls + a viewport-fitted stage with replica surfaces ===== */
+/* ===== Design lab v6: three frames side by side at one scale, with the controls in a dock that stays in view ===== */
+/* The shell is as wide as the window. In its default arrangement the frames sit above a compact
+   controls dock that sticks to the bottom of the window, so every control stays visible while you
+   look at the frames. The script sizes the frames to the room left above the dock. The dock can move
+   to a rail beside the frames, which suits the two-frame stages. */
 .lab { margin-top: 48px; }
 .lab .lab-h { font-family: var(--font-display); font-size: 26px; line-height: 1.2; font-weight: 700; color: var(--fg-strong); margin: 0 0 8px; border: 0; padding: 0; }
-.lab-shell { --labw: min(100vw - 32px, 1760px); width: var(--labw); margin-left: calc(50% - var(--labw) / 2); display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 16px; height: calc(100dvh - 28px); min-height: 520px; margin-top: 14px; }
-.lab-side { overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 12px; display: grid; gap: 6px; align-content: start; min-height: 0; scrollbar-width: thin; }
-.lab-side .clabel { font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
-.lab-side .ctl { display: grid; gap: 4px; }
-.lab-side .seg { display: flex; flex-wrap: wrap; gap: 4px; }
-.lab-side button { font: inherit; font-size: 11.5px; font-weight: 500; line-height: 15px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--fg); cursor: pointer; text-align: left; }
-.lab-side button:hover { border-color: var(--muted); }
-.lab-side button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.lab-side button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.lab-side button.recd::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 1px; }
-.lab-side button.on.recd::after { background: var(--accent-ink); }
-.lab-side .presets button { font-weight: 600; }
-.lab-side .shead { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
-.lab-side .readout { font-family: var(--font-mono); font-size: 11px; line-height: 1.5; color: var(--muted); margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; }
-.lab-side .readout b { color: var(--fg); font-weight: 600; }
-.lab-side .views { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
-.lab-side .views label { display: grid; gap: 3px; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); min-width: 0; }
-.lab-side .views select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 8px; min-width: 0; width: 100%; }
-.lab-side .views select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.lab-side details { font-size: 12px; color: var(--muted); }
-.lab-side details summary { cursor: pointer; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
-.lab-stage { position: relative; min-width: 0; min-height: 0; display: flex; gap: 20px; align-items: flex-start; justify-content: center; }
-.lab-stage .col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lab-shell { --labw: min(100vw - 32px, 2140px); width: var(--labw); margin-left: calc(50% - var(--labw) / 2); margin-top: 14px; display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 8px; }
+.lab-stage { position: relative; min-width: 0; display: flex; gap: 20px; align-items: flex-start; justify-content: center; }
+.lab-stage .col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .lab-stage .col[hidden] { display: none !important; }
-.lab-stage .frame-label { font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-stage .frame-label { font-family: var(--font-display); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lab-stage .frame-label span { color: var(--fg); text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--font-body); }
 .fitwrap { position: relative; overflow: hidden; }
-.lab-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
-@media (max-width: 860px) {
-  .lab-shell { grid-template-columns: 1fr; height: auto; min-height: 0; --labw: 100%; margin-left: 0; }
-  .lab-side { max-height: 46vh; }
-  .lab-stage { flex-wrap: wrap; }
+/* the controls: a dock under the frames by default */
+.lab-panel { order: 2; position: sticky; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 20; min-width: 0; background: var(--card); border: 1px solid var(--line-strong); border-radius: 14px; padding: 8px 12px 7px; box-shadow: 0 10px 28px rgba(20, 14, 8, 0.10); font-family: var(--font-body); font-size: 12px; line-height: 16px; color: var(--fg); }
+.lab-panel .prows { display: grid; gap: 7px; min-width: 0; }
+.lab-panel .prow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 7px 16px; min-width: 0; }
+.lab-panel .prow.knobs { border-top: 1px solid var(--line); padding-top: 7px; }
+.lab-panel .ctl { display: grid; gap: 3px; min-width: 0; justify-items: start; }
+.lab-panel .clabel { font-family: var(--font-display); font-size: 11px; line-height: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.lab-panel .clabel b { font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+.lab-panel .clabel i { font-style: normal; font-weight: 500; }
+.lab-panel .seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--bg); max-width: 100%; }
+.lab-panel .seg button { font: inherit; font-size: 11.5px; font-weight: 500; line-height: 18px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
+.lab-panel .seg button:hover { background: var(--accent-soft); }
+.lab-panel .seg button:focus-visible, .lab-panel select:focus-visible, .lab-panel .lnk:focus-visible, .lab-panel .ptoggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lab-panel .seg button.on { background: var(--accent); color: var(--accent-ink); }
+.lab-panel .seg button.recd::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--mark); margin-left: 5px; vertical-align: 2px; }
+.lab-panel .seg button.on.recd::after { background: var(--accent-ink); }
+.lab-panel .seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+.lab-panel .seg button:disabled:hover { background: transparent; }
+.lab-panel .ctl.idle .seg { opacity: 0.6; }
+.lab-panel select { font: inherit; font-size: 11.5px; line-height: 18px; height: 24px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 9px; padding: 0 6px; min-width: 0; max-width: 100%; }
+.lab-panel .phint { display: flex; align-items: baseline; gap: 14px; min-width: 0; font-size: 11.5px; line-height: 16px; color: var(--muted); }
+.lab-panel .phint .ptext { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-panel .phint .ptext b { color: var(--fg); font-weight: 600; }
+.lab-panel .phint .pzoom { flex: 0 0 auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lab-panel .lnk { flex: 0 0 auto; font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.lab-panel .ptoggle { display: none; }
+/* the same controls as a rail beside the frames */
+.lab-shell[data-dock="side"] { display: grid; grid-template-columns: 288px minmax(0, 1fr); gap: 16px; align-items: start; }
+.lab-shell[data-dock="side"] .lab-stage { grid-column: 2; grid-row: 1; }
+.lab-shell[data-dock="side"] .lab-panel { grid-column: 1; grid-row: 1; top: 8px; bottom: auto; max-height: calc(100dvh - 16px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; box-shadow: none; }
+.lab-shell[data-dock="side"] .lab-panel .prows { gap: 5px; }
+.lab-shell[data-dock="side"] .lab-panel .prow { gap: 4px 10px; }
+.lab-shell[data-dock="side"] .lab-panel .prow.knobs { padding-top: 5px; }
+.lab-shell[data-dock="side"] .lab-panel .ctl { gap: 1px; }
+.lab-shell[data-dock="side"] .lab-panel label.ctl { flex: 1 1 110px; justify-items: stretch; }
+.lab-shell[data-dock="side"] .lab-panel label.ctl select { width: 100%; }
+.lab-shell[data-dock="side"] .lab-panel .seg button { line-height: 17px; }
+.lab-shell[data-dock="side"] .lab-panel select { height: 23px; }
+.lab-shell[data-dock="side"] .lab-panel .phint { flex-wrap: wrap; gap: 2px 12px; }
+.lab-shell[data-dock="side"] .lab-panel .phint .ptext { display: none; }
+@media (max-height: 850px) {
+  /* a short window: squeeze the rail a little so every control still shows without scrolling it */
+  .lab-shell[data-dock="side"] .lab-panel { padding-block: 6px 5px; }
+  .lab-shell[data-dock="side"] .lab-panel .prow { gap: 3px 10px; }
+  .lab-shell[data-dock="side"] .lab-panel .clabel { font-size: 10.5px; line-height: 12px; }
+  .lab-shell[data-dock="side"] .lab-panel .seg button { line-height: 16px; }
+  .lab-shell[data-dock="side"] .lab-panel select { height: 22px; }
 }
+@media (pointer: coarse) {
+  /* a touch screen: taller options in either arrangement, and a select that does not make iOS zoom */
+  .lab-shell[data-dock] .lab-panel .seg button { line-height: 28px; padding: 0 10px; font-size: 12.5px; }
+  .lab-shell[data-dock] .lab-panel select { height: 34px; font-size: 16px; }
+}
+/* a phone-width window: the frames stack and the dock folds away behind a button */
+.lab-shell.narrow .lab-stage { flex-direction: column; align-items: center; gap: 16px; }
+.lab-shell.narrow .lab-panel { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); max-height: 52dvh; overflow: auto; overscroll-behavior: contain; padding: 6px 10px; }
+.lab-shell.narrow .lab-panel .ptoggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 32px; color: var(--fg); background: transparent; border: 0; padding: 0 2px; cursor: pointer; }
+.lab-shell.narrow .lab-panel .ptoggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.lab-shell.narrow .lab-panel.collapsed .ptoggle::after { transform: translateY(2px) rotate(225deg); }
+.lab-shell.narrow .lab-panel.collapsed .prows { display: none; }
+.lab-shell.narrow .lab-panel .seg { flex-wrap: wrap; }
+.lab-shell.narrow .lab-panel .seg button { line-height: 28px; font-size: 13px; padding: 0 10px; }
+.lab-shell.narrow .lab-panel select { height: 34px; font-size: 16px; }
+.lab-shell.narrow .lab-panel .phint { flex-wrap: wrap; gap: 2px 12px; }
+.lab-shell.narrow .lab-panel .phint .ptext { flex-basis: 100%; white-space: normal; }
+.lab-tokens { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.lab-tokens summary { cursor: pointer; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
+.lab-tokens .readout { font-family: var(--font-mono); font-size: 11px; line-height: 1.5; margin-top: 6px; max-width: 120ch; }
+.lab-tokens .readout b { color: var(--fg); font-weight: 600; }
+.lab-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 
 /* ----- frame base ----- */
 .lab .frame { position: relative; overflow: hidden; width: calc(var(--fw) * 1px); height: calc(var(--fh) * 1px); background: var(--canvas); color: var(--ink); font-family: var(--font); font-size: var(--body); line-height: 1.4; text-align: left; border-radius: 30px; border: 1px solid rgba(0,0,0,0.18); box-shadow: 0 24px 60px rgba(20, 14, 8, 0.18); transform-origin: top left; -webkit-font-smoothing: antialiased; }
@@ -535,39 +583,39 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 </svg>
 <section class="lab" id="lab">
   <div class="eyebrow">Try the choices</div>
-  <div class="lab-h">Switch each fork and watch both surfaces</div>
-  <p>Hand-built replicas of the shipped compositions, drawn with the real token values from <code>theme.css</code>, <code>index.css</code> and <code>admin-m3-tokens.css</code>, and with the shipped type sizes: the app's 16px row title, 12px status pill and 12px tabs; the cockpit's 14px card title, 11px status chip and 12px meta. Mocks for judging direction, not the components themselves; the Storybook captures in this folder's README are the real thing. The stage opens with the app phone beside the cockpit desktop; switch to two phones or all three. A dot marks the recommended option.</p>
-  <div class="lab-shell">
-    <div class="lab-side" id="labPanel">
-      <div class="ctl presets"><div class="clabel">Preset</div><div class="seg"><button type="button" data-preset="today">Today</button><button type="button" data-preset="rec">Recommended</button><button type="button" data-preset="max">Everything shared</button></div></div>
-      <div class="views">
-        <label>App screen<select data-key="appScreen"><option value="home">Home</option><option value="garden">Garden</option><option value="work">Your Work</option><option value="submit">Submit Work</option><option value="profile">Profile</option></select></label>
-        <label>Cockpit screen<select data-key="cockScreen"><option value="hub">Hub</option><option value="garden">Garden</option><option value="members">Community</option><option value="assess">Create Assessment</option><option value="profile">Profile</option></select></label>
-        <label>Stage<select data-key="stage"><option value="appdesk">App + cockpit desktop</option><option value="phones">Two phones</option><option value="all">All three</option></select></label>
-        <label>Sheet<select data-key="sheetOpen"><option value="off">Closed</option><option value="on">Open on both</option></select></label>
-        <label>Theme<select data-key="theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <div class="lab-h">Switch each fork and watch all three screens</div>
+  <p>Hand-built mocks of the shipped screens, drawn with the real token values from <code>theme.css</code>, <code>index.css</code> and <code>admin-m3-tokens.css</code> and with the shipped type sizes. Mocks for judging direction, not the components themselves; the Storybook captures in this folder's README are the real thing.</p>
+  <div class="lab-shell" id="labShell" data-dock="below">
+    <div class="lab-panel" id="labPanel">
+      <button type="button" class="ptoggle" id="labToggle" aria-expanded="true" aria-controls="labRows">Controls</button>
+      <div class="prows" id="labRows">
+        <div class="prow view">
+          <div class="ctl"><div class="clabel">Preset</div><div class="seg" role="group" aria-label="Preset"><button type="button" data-preset="today" data-d="Every fork as shipped today.">Today</button><button type="button" data-preset="rec" data-d="Every fork at its recommended option.">Recommended</button><button type="button" data-preset="max" data-d="Everything shared: every fork at its most shared option.">All shared</button></div></div>
+          <label class="ctl"><span class="clabel">App screen</span><select data-key="appScreen"><option value="home">Home</option><option value="garden">Garden</option><option value="work">Your Work</option><option value="submit">Submit Work</option><option value="profile">Profile</option></select></label>
+          <label class="ctl"><span class="clabel">Cockpit screen</span><select data-key="cockScreen"><option value="hub">Hub</option><option value="garden">Garden</option><option value="members">Community</option><option value="assess">Create Assessment</option><option value="profile">Profile</option></select></label>
+          <div class="ctl" data-key="sheetOpen"><div class="clabel">Sheet</div><div class="seg" role="group" aria-label="Sheet"><button type="button" data-v="off" data-d="No sheet or dialog open.">Closed</button><button type="button" data-v="on" data-d="Opens a bottom sheet on both phones and a dialog on the desktop.">Open</button></div></div>
+          <div class="ctl" data-key="theme"><div class="clabel">Theme</div><div class="seg" role="group" aria-label="Theme"><button type="button" data-v="light" data-d="Light theme in every frame.">Light</button><button type="button" data-v="dark" data-d="Dark theme in every frame.">Dark</button></div></div>
+          <div class="ctl" data-key="stage"><div class="clabel">Show</div><div class="seg" role="group" aria-label="Show"><button type="button" data-v="all" data-d="The app phone, the cockpit phone and the cockpit desktop, side by side at one scale.">All three</button><button type="button" data-v="appdesk" data-d="The app phone beside the cockpit desktop.">App + desktop</button><button type="button" data-v="phones" data-d="The app phone beside the cockpit phone, for a closer look.">Two phones</button></div></div>
+          <div class="ctl" data-key="dock"><div class="clabel">Controls</div><div class="seg" role="group" aria-label="Controls"><button type="button" data-v="below" data-d="Controls in a dock under the frames. Leaves the full width to the frames, so all three are largest here.">Below</button><button type="button" data-v="side" data-d="Controls in a rail beside the frames. Leaves the full height to the frames, so two phones are largest here.">Side</button></div></div>
+        </div>
+        <div class="prow knobs">
+          <div class="ctl" data-key="font"><div class="clabel"><b>F1</b> Typeface</div><div class="seg" role="group" aria-label="F1 Typeface"><button type="button" data-v="split" data-d="Inter in the app, Plus Jakarta Sans in the cockpit.">Today</button><button type="button" data-v="pjs" class="recd" data-d="Plus Jakarta Sans on both surfaces.">Jakarta</button><button type="button" data-v="inter" data-d="Inter on both surfaces.">Inter</button></div></div>
+          <div class="ctl" data-key="ground"><div class="clabel"><b>F2</b> Ground</div><div class="seg" role="group" aria-label="F2 Ground"><button type="button" data-v="split" data-d="White canvas in the app; linen canvas with white cards in the cockpit.">Today</button><button type="button" data-v="linen" class="recd" data-d="Linen canvas and white cards on both, with one warm dark ladder.">Linen</button><button type="button" data-v="white" data-d="White canvas on both.">White</button></div></div>
+          <div class="ctl" data-key="controls"><div class="clabel"><b>F3</b> Buttons and fields</div><div class="seg" role="group" aria-label="F3 Buttons and fields"><button type="button" data-v="today" data-d="App: 16px corners, weight 400, outlined fields. Cockpit: pills, weight 500, filled fields.">Today</button><button type="button" data-v="rec" class="recd" data-d="Each surface keeps its corner; weight 500, a control-grade outline and outlined fields on both.">Per surface</button><button type="button" data-v="c16" data-d="16px corners everywhere.">16px</button><button type="button" data-v="pill" data-d="Pills everywhere.">Pills</button></div></div>
+          <div class="ctl" data-key="chips"><div class="clabel"><b>F4</b> Chips</div><div class="seg" role="group" aria-label="F4 Chips"><button type="button" data-v="today" data-d="Capsule chips in the app, 8px chips in the cockpit.">Today</button><button type="button" data-v="capsule" class="recd" data-d="Capsules on both.">Capsules</button><button type="button" data-v="square" data-d="8px corners on both.">8px</button></div></div>
+          <div class="ctl" data-key="sheet"><div class="clabel"><b>F5</b> Phone sheets</div><div class="seg" role="group" aria-label="F5 Sheets on phones"><button type="button" data-v="today" data-d="App: white sheet with a grip and an 18px title. Cockpit: warm grey sheet, 22px title, no grip. Set Sheet to Open to see it.">Today</button><button type="button" data-v="rec" class="recd" data-d="One sheet surface and header on both: white, a grip, an 18px title. Set Sheet to Open to see it.">One</button></div></div>
+          <div class="ctl" data-key="nav"><div class="clabel"><b>F6</b> Bottom bar</div><div class="seg" role="group" aria-label="F6 Bottom bar active state"><button type="button" data-v="today" data-d="App: a filled icon and a green label. Cockpit: a tone pill behind the icon.">Today</button><button type="button" data-v="pill" class="recd" data-d="A pill behind the active icon on both.">Pill</button><button type="button" data-v="filled" data-d="A filled icon on both.">Filled</button></div></div>
+          <div class="ctl" data-key="cards"><div class="clabel"><b>F7</b> Cards and rows</div><div class="seg" role="group" aria-label="F7 Cards and rows"><button type="button" data-v="today" data-d="App: bordered 24px cards and 16px work rows. Cockpit: elevated 12px cards.">Today</button><button type="button" data-v="rec" class="recd" data-d="One card surface and one row anatomy; each surface keeps its corner.">Shared</button><button type="button" data-v="app" data-d="The app's cards everywhere.">App</button><button type="button" data-v="cockpit" data-d="The cockpit's cards everywhere.">Cockpit</button></div></div>
+          <div class="ctl" data-key="tabs"><div class="clabel"><b>F8</b> Tabs</div><div class="seg" role="group" aria-label="F8 Tabs"><button type="button" data-v="today" data-d="App: tinted tabs of equal width. Cockpit: an underline rail, each tab as wide as its label.">Today</button><button type="button" data-v="app" class="recd" data-d="The app's tinted tabs on both, equal width.">App tabs</button><button type="button" data-v="rail" data-d="The cockpit's underline rail on both.">Rail</button></div></div>
+          <div class="ctl" data-key="filter"><div class="clabel"><b>F9</b> Filter control</div><div class="seg" role="group" aria-label="F9 Filter control"><button type="button" data-v="today" data-d="App: a round filter button with a count. Cockpit: inline filter chips.">Today</button><button type="button" data-v="app" class="recd" data-d="The app's filter button with a count on both.">Button</button><button type="button" data-v="cockpit" data-d="Inline filter chips on both.">Chips</button></div></div>
+          <div class="ctl" data-key="badge"><div class="clabel"><b>F10</b> Count badge</div><div class="seg" role="group" aria-label="F10 Count badge"><button type="button" data-v="today" data-d="Four styles in the app (bar, launcher, filter, tab) and a grey chip on the cockpit's tabs.">Today</button><button type="button" data-v="one" class="recd" data-d="One badge everywhere: 16px, 11px semibold, a ring only where it sits on an icon.">One</button><button type="button" data-v="launcher" data-d="The launcher badge everywhere: 18px, 12px semibold.">Launcher</button></div></div>
+          <div class="ctl" data-key="list"><div class="clabel"><b>F11</b> List spacing</div><div class="seg" role="group" aria-label="F11 List spacing"><button type="button" data-v="today" data-d="12px between the app's rows, 14px between the cockpit's cards.">Today</button><button type="button" data-v="gap8" data-d="8px between rows on both.">8px</button><button type="button" data-v="gap12" class="recd" data-d="12px between rows on both.">12px</button><button type="button" data-v="divided" data-d="One card with divided rows on phones.">Divided</button></div></div>
+          <div class="ctl" data-key="deskcard"><div class="clabel"><b>F12</b> Desktop card</div><div class="seg" role="group" aria-label="F12 Desktop work card"><button type="button" data-v="tall" data-d="Tall work card with the mosaic on top, three per row at 1280.">Today</button><button type="button" data-v="wide" class="recd" data-d="Wide work card with the mosaic on the left, two per row.">Wide</button></div></div>
+          <div class="ctl" data-key="darkcards" id="ctlDark"><div class="clabel"><b>F13</b> Dark cards <i>· dark theme</i></div><div class="seg" role="group" aria-label="F13 Dark cards"><button type="button" data-v="today" data-d="The cockpit's dark card sits six lightness points above its canvas, with a 6% ring.">Today</button><button type="button" data-v="step" class="recd" data-d="The card one ladder step lighter.">Lighter</button><button type="button" data-v="outline" data-d="A hairline on today's card.">Hairline</button><button type="button" data-v="both" data-d="One step lighter and a hairline.">Both</button></div></div>
+          <div class="ctl" data-key="tone"><div class="clabel">Workspace tone</div><div class="seg" role="group" aria-label="Workspace tone"><button type="button" data-v="today" class="recd" data-d="A tone per cockpit workspace: blue Hub, green Garden, amber Community.">Today</button><button type="button" data-v="green" data-d="One green on every cockpit workspace.">One green</button></div></div>
+        </div>
+        <div class="phint"><span class="ptext" id="labHint">A dot marks the recommended option. Point at an option to read what it does.</span><span class="pzoom" id="labZoom"></span><button type="button" class="lnk" id="labFit" title="Scrolls the lab so the frames and the controls fill the window.">Fit to window</button></div>
       </div>
-      <div class="shead">Type and ground</div>
-      <div class="ctl" data-key="font"><div class="clabel">F1 Typeface</div><div class="seg"><button type="button" data-v="split">Split (today)</button><button type="button" data-v="pjs" class="recd">Plus Jakarta Sans</button><button type="button" data-v="inter">Inter</button></div></div>
-      <div class="ctl" data-key="ground"><div class="clabel">F2 Ground</div><div class="seg"><button type="button" data-v="split">Split (today)</button><button type="button" data-v="linen" class="recd">Linen, one dark ladder</button><button type="button" data-v="white">White</button></div></div>
-      <div class="shead">Controls</div>
-      <div class="ctl" data-key="controls"><div class="clabel">F3 Buttons and fields</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">Corner per surface, rest unified</button><button type="button" data-v="c16">16px everywhere</button><button type="button" data-v="pill">Pills everywhere</button></div></div>
-      <div class="ctl" data-key="chips"><div class="clabel">F4 Chips</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="capsule" class="recd">Capsules on both</button><button type="button" data-v="square">8px on both</button></div></div>
-      <div class="ctl" data-key="tabs"><div class="clabel">F8 Tabs</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="app" class="recd">App tabs on both, equal width</button><button type="button" data-v="rail">Cockpit rail on both</button></div></div>
-      <div class="ctl" data-key="filter"><div class="clabel">F9 Filter control</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="app" class="recd">App filter button on both</button><button type="button" data-v="cockpit">Inline chips on both</button></div></div>
-      <div class="ctl" data-key="badge"><div class="clabel">F10 Count badge</div><div class="seg"><button type="button" data-v="today">Today, four styles</button><button type="button" data-v="one" class="recd">One badge: 16px, 11px semibold</button><button type="button" data-v="launcher">The launcher badge everywhere</button></div></div>
-      <div class="shead">Cards and lists</div>
-      <div class="ctl" data-key="cards"><div class="clabel">F7 Cards and rows</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">One surface and row anatomy, corner per surface</button><button type="button" data-v="app">App cards everywhere</button><button type="button" data-v="cockpit">Cockpit cards everywhere</button></div></div>
-      <div class="ctl" data-key="list"><div class="clabel">F11 List spacing</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="gap8">8px gap on both</button><button type="button" data-v="gap12" class="recd">12px gap on both</button><button type="button" data-v="divided">One divided card</button></div></div>
-      <div class="ctl" data-key="deskcard"><div class="clabel">F12 Desktop work card</div><div class="seg"><button type="button" data-v="tall">Tall, mosaic on top (today)</button><button type="button" data-v="wide" class="recd">Wide, mosaic on the left</button></div></div>
-      <div class="shead">Phone chrome</div>
-      <div class="ctl" data-key="sheet"><div class="clabel">F5 Sheets on phones</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">One surface and header</button></div></div>
-      <div class="ctl" data-key="nav"><div class="clabel">F6 Bottom bar active state</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="pill" class="recd">Pill on both</button><button type="button" data-v="filled">Filled icon on both</button></div></div>
-      <div class="shead">Dark mode</div>
-      <div class="ctl" data-key="darkcards"><div class="clabel">F13 Dark cards (set Theme to Dark)</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="step" class="recd">Card one step lighter</button><button type="button" data-v="outline">Hairline on today's card</button><button type="button" data-v="both">Lighter and hairline</button></div></div>
-      <div class="ctl" data-key="tone"><div class="clabel">Workspace tone (cockpit)</div><div class="seg"><button type="button" data-v="today" class="recd">A tone per workspace</button><button type="button" data-v="green">One green</button></div></div>
-      <div class="shead" style="border-top:0;padding-top:4px"></div>
-      <details><summary>Tokens in effect</summary><div class="readout" id="readout" style="margin-top:6px"></div></details>
     </div>
 
     <div class="lab-stage" id="stage">
@@ -781,6 +829,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
       </div>
     </div>
   </div>
+  <details class="lab-tokens"><summary>Tokens in effect</summary><div class="readout" id="readout"></div></details>
+  <p class="lab-note">The app phone, the cockpit phone and the cockpit desktop share one scale, shown at the right of the dock, so a label is the same size in each. Show narrows the stage to two frames for a closer look. Controls moves the dock to a rail on the side, which leaves the full height to the frames. The type sizes are the shipped ones: the app's 16px row title, 12px status pill and 12px tabs; the cockpit's 14px card title, 11px status chip and 12px meta.</p>
   <p class="lab-note">Density stays a dial: the app keeps 16px body text, 44 and 48px controls and a 48px hit area; the cockpit keeps 14px, 32 and 40px controls and a 44px hit area. The app hides its bar on garden pages and inside flows, as the real app does. Your Work is drawn as the full-height sheet it is in the app; the cockpit's Create Assessment is the flow dialog, full height on a phone and centered on desktop; Profile on desktop is the right side sheet.</p>
 </section>
 <style>
@@ -795,15 +845,25 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 (function () {
   var PJS = '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif';
   var INTER = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-  var DEFAULT = { font: 'split', ground: 'split', controls: 'today', chips: 'today', tabs: 'today', filter: 'today', badge: 'today', sheet: 'today', nav: 'today', cards: 'today', list: 'today', deskcard: 'tall', darkcards: 'today', tone: 'today', theme: 'light', stage: 'appdesk', appScreen: 'work', cockScreen: 'hub', sheetOpen: 'off' };
+  var DEFAULT = { font: 'split', ground: 'split', controls: 'today', chips: 'today', tabs: 'today', filter: 'today', badge: 'today', sheet: 'today', nav: 'today', cards: 'today', list: 'today', deskcard: 'tall', darkcards: 'today', tone: 'today', theme: 'light', stage: 'all', dock: 'below', appScreen: 'work', cockScreen: 'hub', sheetOpen: 'off' };
   var PRESETS = {
     today: { font: 'split', ground: 'split', controls: 'today', chips: 'today', tabs: 'today', filter: 'today', badge: 'today', sheet: 'today', nav: 'today', cards: 'today', list: 'today', deskcard: 'tall', darkcards: 'today', tone: 'today' },
     rec: { font: 'pjs', ground: 'linen', controls: 'rec', chips: 'capsule', tabs: 'app', filter: 'app', badge: 'one', sheet: 'rec', nav: 'pill', cards: 'rec', list: 'gap12', deskcard: 'wide', darkcards: 'step', tone: 'today' },
     max: { font: 'pjs', ground: 'linen', controls: 'c16', chips: 'capsule', tabs: 'app', filter: 'app', badge: 'one', sheet: 'rec', nav: 'pill', cards: 'app', list: 'gap12', deskcard: 'wide', darkcards: 'both', tone: 'green' }
   };
+  var STORE = 'gg-lab-state-v5';
   var state = Object.assign({}, DEFAULT);
-  try { var saved = JSON.parse(localStorage.getItem('gg-lab-state-v4') || 'null'); if (saved && typeof saved === 'object') state = Object.assign({}, DEFAULT, saved); } catch (e) {}
-  if (state.badge === 'tab') state.badge = 'launcher'; // an option renamed after the first v4 publish
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (!saved) {
+      // First visit to this layout: keep the fork choices made in the previous one, and let the stage and the dock start from the new defaults.
+      saved = JSON.parse(localStorage.getItem('gg-lab-state-v4') || 'null');
+      if (saved && typeof saved === 'object') { delete saved.stage; delete saved.dock; if (saved.badge === 'tab') saved.badge = 'launcher'; }
+    }
+    if (saved && typeof saved === 'object') state = Object.assign({}, DEFAULT, saved);
+  } catch (e) {}
+  if (state.stage !== 'appdesk' && state.stage !== 'phones') state.stage = 'all';
+  if (state.dock !== 'side') state.dock = 'below';
 
   var TONES = {
     light: {
@@ -973,6 +1033,9 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 
   var frameApp = document.getElementById('frameApp'), frameCock = document.getElementById('frameCock'), frameDesk = document.getElementById('frameDesk');
   var colApp = document.getElementById('colApp'), colCock = document.getElementById('colCock'), colDesk = document.getElementById('colDesk');
+  var shell = document.getElementById('labShell'), stageEl = document.getElementById('stage'), panel = document.getElementById('labPanel');
+  var hintEl = document.getElementById('labHint'), zoomEl = document.getElementById('labZoom'), toggleEl = document.getElementById('labToggle');
+  var HINT0 = hintEl.textContent;
   function describe(t, surface) {
     var sheet = t.sheetStyle === 'app' ? 'white 16px grip' : 'warm grey';
     return '<b>' + surface + '</b> ' + t.fontName + ' · canvas ' + t.canvas + ' · card ' + t.card + ' ' + t.cardR + ' ' + t.cardSurface + ' · work item ' + t.wi + ' · list gap ' + t.listGap + ' · button ' + (t.btnR === '999px' ? 'pill' : t.btnR) + '/' + t.btnW + ' · outline ' + t.outline + ' · chips ' + (t.chipR === '999px' ? 'capsule' : t.chipR) + ' · tabs ' + t.tabs + (t.tabsEqual ? ' equal' : '') + ' · filter ' + t.filter + ' · badge ' + t.bTab.fs + '/' + t.bTab.w + ' · fields ' + t.fields + ' · nav ' + t.nav + ' · sheet ' + sheet + (surface === 'cockpit' ? ' · tone ' + t.toneName : '');
@@ -996,64 +1059,110 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
     document.getElementById('deskLabel').textContent = td.fontName + (state.deskcard === 'wide' ? ' · wide cards' : '');
     document.getElementById('readout').innerHTML = describe(ta, 'app') + '<br><br>' + describe(tc, 'cockpit');
     colCock.hidden = state.stage === 'appdesk'; colDesk.hidden = state.stage === 'phones';
-    var panel = document.getElementById('labPanel');
     panel.querySelectorAll('div[data-key]').forEach(function (g) {
       var key = g.getAttribute('data-key');
-      g.querySelectorAll('button[data-v]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === state[key]); });
+      g.querySelectorAll('button[data-v]').forEach(function (b) { var on = b.getAttribute('data-v') === state[key]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     });
     panel.querySelectorAll('select[data-key]').forEach(function (sel) { if (sel.value !== state[sel.getAttribute('data-key')]) sel.value = state[sel.getAttribute('data-key')]; });
     panel.querySelectorAll('button[data-preset]').forEach(function (b) {
       var p = PRESETS[b.getAttribute('data-preset')], on = true;
       for (var k in p) if (state[k] !== p[k]) on = false;
-      b.classList.toggle('on', on);
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    try { localStorage.setItem('gg-lab-state-v4', JSON.stringify(state)); } catch (e) {}
+    document.getElementById('ctlDark').classList.toggle('idle', state.theme !== 'dark'); // F13 only shows in the dark theme
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
     fit();
   }
-  document.getElementById('labPanel').addEventListener('click', function (ev) {
-    var b = ev.target.closest('button'); if (!b) return;
+  function reducedMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  // Scroll the lab so its top meets the top of the window; the frames are already sized to the room above the dock.
+  function alignShell(smooth) { shell.scrollIntoView({ block: 'start', behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' }); }
+  function setCollapsed(on) { panel.classList.toggle('collapsed', on); toggleEl.setAttribute('aria-expanded', on ? 'false' : 'true'); }
+  panel.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b || b.disabled) return;
+    if (b.id === 'labFit') { alignShell(true); return; }
+    if (b.id === 'labToggle') { setCollapsed(!panel.classList.contains('collapsed')); fit(); return; }
     if (b.hasAttribute('data-preset')) { Object.assign(state, PRESETS[b.getAttribute('data-preset')]); render(); return; }
     var g = b.closest('div[data-key]'); if (!g) return;
-    state[g.getAttribute('data-key')] = b.getAttribute('data-v'); render();
+    var key = g.getAttribute('data-key');
+    state[key] = b.getAttribute('data-v');
+    if (key === 'darkcards') state.theme = 'dark'; // choosing a dark-card option shows it
+    render();
+    if (key === 'dock') alignShell(false); // the dock just moved; keep the lab in place under the pointer's window
   });
-  document.getElementById('labPanel').addEventListener('change', function (ev) {
+  panel.addEventListener('change', function (ev) {
     var sel = ev.target.closest('select[data-key]'); if (!sel) return;
     state[sel.getAttribute('data-key')] = sel.value; render();
   });
+  // One line under the controls says what the option under the pointer (or the keyboard focus) does.
+  function showHint(b) {
+    hintEl.textContent = '';
+    if (!b) { hintEl.textContent = HINT0; return; }
+    var cell = b.closest('.ctl'), lab = cell && cell.querySelector('.clabel'), head = document.createElement('b');
+    head.textContent = (lab ? lab.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + b.textContent.trim();
+    hintEl.appendChild(head); hintEl.appendChild(document.createTextNode(' ' + b.getAttribute('data-d') + (cell && cell.classList.contains('idle') ? ' Picking it switches Theme to Dark.' : '')));
+  }
+  panel.addEventListener('pointerover', function (ev) { var b = ev.target.closest('button[data-d]'); if (b) showHint(b); });
+  panel.addEventListener('focusin', function (ev) { var b = ev.target.closest('button[data-d]'); showHint(b || null); });
+  panel.addEventListener('pointerleave', function () { showHint(null); });
+
+  var COLS = { app: [colApp, 390, 800], cock: [colCock, 390, 800], desk: [colDesk, 1280, 720] };
+  var GAP = 20;      // between frames, matches the stage's gap
+  var CAPTION = 24;  // the caption row above a frame (16px line + 6px gap) and the 2px the wrapper adds
+  var TOP = 8;       // the air above the lab when it fills the window (its scroll margin)
   function place(col, fw, fh, s) {
     var wrap = col.querySelector('.fitwrap'), f = wrap.firstElementChild;
     f.style.transform = 'scale(' + s + ')';
     wrap.style.width = Math.round(fw * s) + 'px'; wrap.style.height = Math.round(fh * s + 2) + 'px';
     col.style.width = Math.round(fw * s) + 'px';
   }
+  var seenNarrow = false, arrangement = '';
+  // Mark the arrangement that is in effect (a narrow window falls back to the dock under the frames) and say why Side is off.
+  function syncDock(dock, canSide, narrow) {
+    var cell = panel.querySelector('div[data-key="dock"]');
+    cell.querySelectorAll('button[data-v]').forEach(function (b) {
+      var v = b.getAttribute('data-v'), on = v === dock;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (v === 'side') b.disabled = !canSide;
+    });
+    if (canSide) cell.removeAttribute('title'); else cell.title = 'The rail needs a wider window.';
+    var now = dock + (narrow ? ' narrow' : '');
+    if (now === arrangement) return;
+    arrangement = now;
+    // The rail has no room for the hint line, so there each option carries its description as a tooltip instead.
+    panel.querySelectorAll('button[data-d]').forEach(function (b) { if (dock === 'side') b.title = b.getAttribute('data-d'); else b.removeAttribute('title'); });
+  }
   function fit() {
-    var stage = document.getElementById('stage');
-    var W = stage.clientWidth, H = stage.clientHeight, gap = 20, labelH = 34;
-    var narrow = window.matchMedia('(max-width: 860px)').matches;
+    var shellW = shell.clientWidth, narrow = shellW < 720, canSide = shellW >= 1040;
+    var dock = (state.dock === 'side' && canSide) ? 'side' : 'below';
+    if (shell.getAttribute('data-dock') !== dock) shell.setAttribute('data-dock', dock);
+    shell.classList.toggle('narrow', narrow);
+    syncDock(dock, canSide, narrow);
+    var W = stageEl.clientWidth;
     if (narrow) {
+      // A phone-width window cannot hold three frames in a row: stack them, each fitted to the width, and fold the dock away once.
+      if (!seenNarrow) { seenNarrow = true; setCollapsed(true); }
       var sn = Math.min(1, W / 390);
       place(colApp, 390, 800, sn); place(colCock, 390, 800, sn); place(colDesk, 1280, 720, Math.min(1, W / 1280));
+      zoomEl.textContent = 'Phones at ' + Math.round(sn * 100) + '%';
       return;
     }
-    var availH = Math.max(320, H - labelH);
-    var sp = Math.min(1, availH / 800), sd = Math.min(1, availH / 720);
-    if (state.stage === 'phones') {
-      var s2 = Math.min(sp, (W - gap) / 780);
-      place(colApp, 390, 800, s2); place(colCock, 390, 800, s2);
-    } else if (state.stage === 'appdesk') {
-      var sdk = Math.min(sd, (W - gap - 390 * sp) / 1280);
-      if (sdk < 0.5) { sdk = Math.min(sd, 0.5); sp = Math.min(sp, (W - gap - 1280 * sdk) / 390); }
-      place(colApp, 390, 800, sp); place(colDesk, 1280, 720, sdk);
-    } else {
-      var sdk2 = Math.min(sd, (W - 2 * gap - 780 * sp) / 1280);
-      if (sdk2 < 0.45) { sdk2 = Math.min(sd, 0.45); sp = Math.min(sp, (W - 2 * gap - 1280 * sdk2) / 780); }
-      place(colApp, 390, 800, sp); place(colCock, 390, 800, sp); place(colDesk, 1280, 720, sdk2);
-    }
+    // One scale for every frame on the stage, so a 14px label is the same size in each. It is the smaller of
+    // what the width allows and what the height left above the dock allows, and never above full size.
+    var shown = state.stage === 'phones' ? ['app', 'cock'] : (state.stage === 'appdesk' ? ['app', 'desk'] : ['app', 'cock', 'desk']);
+    var natW = 0; shown.forEach(function (k) { natW += COLS[k][1]; });
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var under = dock === 'below' ? (parseFloat(getComputedStyle(panel).bottom) || 8) + panel.offsetHeight + 10 : 8; // the dock, its offset from the window's edge and the gap above it
+    var roomH = vh - TOP - CAPTION - under;
+    var s = Math.min(1, (W - (shown.length - 1) * GAP) / natW, Math.max(roomH / 800, 0.4));
+    s = Math.floor(s * 1000) / 1000;
+    shown.forEach(function (k) { place(COLS[k][0], COLS[k][1], COLS[k][2], s); });
+    zoomEl.textContent = 'Frames at ' + Math.round(s * 100) + '%';
   }
   window.addEventListener('resize', fit);
   render();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   setTimeout(fit, 50);
+  if (window.ResizeObserver) { var raf = 0; new ResizeObserver(function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); }).observe(panel); }
 })();
 </script>
 <!-- lab:end -->
