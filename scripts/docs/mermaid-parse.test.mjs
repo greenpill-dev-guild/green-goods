@@ -13,6 +13,9 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 // Mermaid parses in the browser, so a bad generated diagram only shows up as a "Try again" box on
 // the published page. This loads the docs site's own mermaid under a jsdom window and parses every
 // generated block the way the page would.
+// TEST-QUALITY: allow-small-test-file - one case walks every generated diagram in a single mermaid
+// session because loading mermaid under jsdom is slow and its parser keeps global state, so
+// splitting the walk into one case per page would repeat the setup without adding a check.
 async function loadMermaid() {
   let JSDOM;
   try {
@@ -42,12 +45,10 @@ function mermaidBlocks(markdown) {
   return [...markdown.matchAll(/```mermaid\n([\s\S]*?)```/g)].map((match) => match[1]);
 }
 
-test("every generated diagram parses with the docs site's mermaid", async (t) => {
+test("every generated diagram parses with the docs site's mermaid", async () => {
   const mermaid = await loadMermaid();
-  if (!mermaid) {
-    t.skip("mermaid or jsdom is not resolvable from this checkout; install docs dependencies to run this check");
-    return;
-  }
+  // A checkout without the docs dependencies cannot prove the diagrams; say so instead of passing.
+  if (!mermaid) throw new Error("mermaid or jsdom is not resolvable from this checkout; run bun install so the docs workspace is present");
   const ontology = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
   const machinesById = new Map(ontology.state_machines.map((machine) => [machine.id, machine]));
   const projections = createProjections(REPO_ROOT).filter((item) => item.output.endsWith(".mdx"));

@@ -21,6 +21,11 @@ describe("design token page data", () => {
     for (const [key, value] of Object.entries(tokens.colors)) assert.match(value, HEX, key);
   });
 
+  test("every pairing puts text on a different color than its fill", () => {
+    for (const pairing of PAIRINGS) assert.notEqual(pairing.fg, pairing.bg, pairing.label);
+    assert.equal(new Set(PAIRINGS.map((pairing) => pairing.label)).size, PAIRINGS.length);
+  });
+
   test("the projection carries the type, radius, and spacing scales with brand fonts mapped", () => {
     assert.equal(Object.keys(tokens.rounded).length, 7);
     assert.equal(Object.keys(tokens.spacing).length, 3);
