@@ -21,7 +21,10 @@ export interface EmptyStateProps {
    * page, `h2` directly under a page heading, as on the public reporting pages.
    */
   titleAs?: "h1" | "h2" | "h3";
-  /** Lets the page name itself by the state's title. */
+  /**
+   * Lets the page name itself by the state's title. A title the page names itself by can also be
+   * given focus by the page, though never by the Tab key.
+   */
   headingId?: string;
 }
 
@@ -66,7 +69,11 @@ export function EmptyState({
         <span className="flex items-center justify-center [&>svg]:h-6 [&>svg]:w-6">{icon}</span>
       </div>
       <div className="mt-3 max-w-sm">
-        <Title id={headingId} className="text-sm font-semibold text-text-strong-950">
+        <Title
+          id={headingId}
+          tabIndex={headingId ? -1 : undefined}
+          className="text-sm font-semibold text-text-strong-950 scroll-mt-24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+        >
           {title}
         </Title>
         {description ? (

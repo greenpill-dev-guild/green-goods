@@ -5,6 +5,7 @@ import { RiUserLine } from "@remixicon/react";
 import {
   createContext,
   type ReactNode,
+  type SyntheticEvent,
   useContext,
   useEffect,
   useMemo,
@@ -28,17 +29,57 @@ interface FocusedShellSlots {
 
 const Slots = createContext<FocusedShellSlots | null>(null);
 
+/** What a person presses or tabs to on a page. Its words and layout are not among them. */
+const CONTROLS = "button, a[href], input, select, textarea, summary, [tabindex]";
+
 /**
  * The focused shell for reporting ceremony pages: the top bar, then the page. The bar and its
  * Account and Help sheet are on screen before the page's code loads; the page then reaches into
  * them, drawing its steps in the bar's middle and its account in the sheet, so each piece is said
  * by the part of the page that knows it.
+ *
+ * The shell also keeps focus on the page. A step is taken by pressing a control that the next
+ * step replaces, and focus then falls back to the document: the next Tab starts again from the
+ * top bar, and a screen reader says nothing of the step that just arrived. So when the control a
+ * person last used is gone and nothing else holds focus, the page's title takes it. A page that
+ * changes by itself, as on first load or when a send settles, replaces no control anyone was on,
+ * and a dialog or the account sheet holds focus of its own, so neither is touched.
  */
 export function FocusedShell({ children }: { children: ReactNode }) {
   const [middle, setMiddle] = useState<HTMLElement | null>(null);
   const [account, setAccount] = useState<HTMLElement | null>(null);
   const [page, setPage] = useState<{ signedIn: boolean } | null>(null);
   const slots = useMemo(() => ({ middle, account, setPage }), [middle, account]);
+  const mainRef = useRef<HTMLElement>(null);
+  const lastUsed = useRef<Element | null>(null);
+  // Pressed as well as focused: some browsers leave focus where it was when a button is tapped.
+  const noteControl = (event: SyntheticEvent) => {
+    const control = event.target instanceof Element ? event.target.closest(CONTROLS) : null;
+    if (control) lastUsed.current = control;
+  };
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const observer = new MutationObserver(() => {
+      const used = lastUsed.current;
+      if (!used || used.isConnected) return;
+      const active = document.activeElement;
+      if (active && active !== document.body) {
+        // The person is somewhere else by now, in a dialog or on the top bar.
+        lastUsed.current = null;
+        return;
+      }
+      const title = main.querySelector<HTMLElement>("h1[tabindex]");
+      // Until the next step is drawn there is no title to go to.
+      if (!title) return;
+      lastUsed.current = null;
+      title.focus();
+    });
+    observer.observe(main, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-bg-white-0">
       <FocusedSiteHeader
@@ -48,7 +89,14 @@ export function FocusedShell({ children }: { children: ReactNode }) {
         pageSaysAccount={page !== null}
       />
       <Slots.Provider value={slots}>
-        <main className="flex-1">{children}</main>
+        <main
+          ref={mainRef}
+          className="flex-1"
+          onClickCapture={noteControl}
+          onFocusCapture={noteControl}
+        >
+          {children}
+        </main>
       </Slots.Provider>
     </div>
   );
