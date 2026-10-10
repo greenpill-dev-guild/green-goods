@@ -301,3 +301,35 @@ renders all 13 skills.
   check and the nine docs test files as focus; the PR body records the result.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge) plus
   the items left on purpose in the status note above.
+
+## Validation Receipt — Develop merge and Codex round (2026-10-10)
+
+- **Scope**: merge develop (`8c57a9d56`, 43 commits) and address the 19 unresolved Codex threads
+  from QA rounds 1 and 2; decisions 32 to 34. Commits `5d68e7eaf` (merge), `409f3e25a` (hook),
+  `fd152d851` (docs and generators); pushed head `fd152d851`.
+- **Merge**: conflicts only in `docs/docs/builders/packages/commands.mdx` and
+  `docs/docs/builders/quality/test-cases.mdx`; both regenerated from the merged sources with
+  `node scripts/docs/generate.mjs`, then `node scripts/quality/check-ontology.mjs --generate`.
+- **Thread ledger**: 19 unresolved at classification (all Codex P2, opened against `08fcea646`
+  through `39c1554ac`); 18 ACTIONABLE and fixed, 1 STALE at the live head (the design-page corner,
+  fixed by `500082846` before the thread was opened); none ambiguous or declined. Review bodies: the
+  four Codex summaries (informational); conversation comments: bot summaries, Afo's brand-kit note
+  and the `@coderabbitai review` trigger (informational). 91 threads, 95 reviews, 7 comments; every
+  connection read to completion.
+- **Exact commands and results** (merged tree): `node --test` over the generator, ontology,
+  docs-script, selector, mermaid-parse, routing and search-index suites → 249/249 after the merge;
+  the five suites the fixes touch (generator, hook parity, developer guides, audit, twins) → 111/111;
+  `node scripts/docs/generate.mjs --check` → 16 current; `node scripts/quality/check-ontology.mjs`
+  → all guards; `node docs/scripts/docs-audit.mjs --ci` → exit 0; docs `bun run build` → 70 routes,
+  search index covers 70.
+- **Rendered proof**: none this round (prose, frontmatter, generated tables and a hook change; the
+  build is the proof the MDX renders).
+- **Validated paths**: `.husky/pre-push`, `scripts/quality/workflow-performance-parity.test.mjs`,
+  `scripts/docs/{renderers,generator-core}.mjs` and their test, thirteen builder pages, the
+  regenerated Contract operations page.
+- **Worktree identity**: `git status --porcelain` → empty after each commit.
+- **Push gate**: run on the pushed head through this branch's own pre-push hook with the ontology
+  check and the nine docs test files as focus; the PR body records the result.
+- **GitHub writes**: one reply and a resolution on each of the 19 threads, authorized by Afo's
+  request to address and resolve the valid comments.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).

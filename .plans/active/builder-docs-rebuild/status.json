@@ -225,6 +225,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Review-pass fixes (decisions 28 to 31): named contracts on the deployments page, guild framing off the community track, root DesignMD corner rule aligned with DL-029, current community captures, visuals for EAS, Shared and Passkeys. Commits 461515da2 and 500082846; receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T12:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Develop merged (5d68e7eaf), pre-push hook refuses --base (409f3e25a), 19 Codex threads addressed and resolved (fd152d851); decisions 32 to 34; pushed head fd152d851. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

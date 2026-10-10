@@ -40,6 +40,9 @@
 | 29 | Root `DESIGN.md`'s quick reference follows DL-029 and DL-038 for button corners (16px in the installed app, 12px while pressed, square on the public website) and the Design page says the same (2026-10-10) | The root file still carried DL-026's values a day after DL-029 replaced them; the docs follow the code and the decision log |
 | 30 | Community guide captures are refreshed only where a current Storybook story exists (Create Garden, Create Action, the Garden overview, the Submit Work media and review steps, Your Work offline and pending, the Hub Hypercerts tab); Reviewing Work keeps its two old captures until the Hub work stories mount a seeded garden; no Hats tree or arbiscan visual (2026-10-10) | A stale screenshot beats a wrong one: the Hub work-detail story renders Work not found, the hats app draws tree 92 too small headlessly, and arbiscan sits behind a bot check |
 | 31 | Deployments & Addresses labels every contract by name through a renderer label map with a words fallback; artifact keys appear only in the zero-address line (2026-10-10) | Raw keys such as `accountProxy` and `unifiedPowerRegistry` read as code, not as a reference page |
+| 32 | Develop merged into the branch a fourth time on 2026-10-10 (`5d68e7eaf`, develop `8c57a9d56`, 43 commits), by merge again; the two generated-page conflicts were resolved by regenerating on the merged tree | Same reasoning as decisions 8 and 14; generated pages are never hand-merged |
+| 33 | The pre-push hook forwards only `--check` and `--test-path` from `GG_PUSH_GATE_ARGS`; `--base` is refused (2026-10-10, Codex) | `--base HEAD` handed the gate an empty diff and an empty check list, so the hook could pass without validating the push; focus through test paths covers the budget case instead |
+| 34 | Integration and architecture prose claims only what the contracts enforce, and names the application rule separately where the wizard adds one (2026-10-10, Codex round on Octant, Hypercerts, Karma, Unlock, the capital-formation gate) | A builder reading the docs as a contract reference must not be sent to entrypoints or guarantees that do not exist on-chain |
 
 ## Requirements Coverage
 
@@ -158,6 +161,10 @@ root DesignMD corner rule, current community captures, visuals for EAS, Shared a
 admin navigation claim softened); decisions 28 to 31. Left on purpose: the Command inventory
 order, Lido and FTC in the matrix, moving the seven principles off the Design page, seeding the
 Hub work stories (shared package), and the footer and License copyright lines.
+
+Status (2026-10-10, merge and Codex round): develop merged (`5d68e7eaf`), the hook hardened
+(`409f3e25a`), and the 19 Codex threads from rounds 1 and 2 addressed in `fd152d851` (decisions 32
+to 34); every thread carries a reply naming its commit and is resolved. Pushed head `fd152d851`.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
