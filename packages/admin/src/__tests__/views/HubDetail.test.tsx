@@ -10,6 +10,8 @@ const mockUseActions = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockSetSelectedGarden = vi.fn();
 const mockNavigate = vi.fn();
+// What the router says the address's query is. It changes while the view stays mounted.
+let mockSearch = "";
 const mockUseRouteBackedLeftSheetConfig = vi.fn();
 const mockTrackWorkApprovalPresentationFailed = vi.fn();
 let capturedReviewSuccess: ((approved: boolean) => void) | undefined;
@@ -110,6 +112,7 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
 vi.mock("react-router-dom", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement("a", { href: to }, children),
+  useLocation: () => ({ search: mockSearch }),
   useNavigate: () => mockNavigate,
   useParams: () => ({ workId: "0xWork" }),
 }));
@@ -119,10 +122,19 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({
-  PageHeader: ({ title, description }: { title: string; description?: string }) =>
+  PageHeader: ({
+    title,
+    description,
+    backLink,
+  }: {
+    title: string;
+    description?: string;
+    backLink?: { to: string; label?: string };
+  }) =>
     React.createElement(
       "div",
       { "data-testid": "page-header" },
+      backLink ? React.createElement("a", { href: backLink.to }, backLink.label) : null,
       React.createElement("h1", null, title),
       description ? React.createElement("p", null, description) : null
     ),
@@ -311,6 +323,26 @@ describe("WorkDetail view", () => {
       isStewardOfGarden: () => true,
       isOwnerOfGarden: () => false,
     });
+  });
+
+  it("leads back to the Hub as it was filtered, following the router from one work to the next", () => {
+    mockSearch = "?gardenId=0xGarden&view=assess&sort=oldest";
+    const view = renderWithIntl();
+    const back = () => screen.getByRole("link", { name: "Hub" }).getAttribute("href");
+    expect(back()).toBe("/hub?gardenId=0xGarden&view=assess&sort=oldest");
+
+    // Another work opens in the same view with other filters, and no page load in between.
+    mockSearch = "?view=certify";
+    view.rerender(
+      React.createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: React.createElement(WorkDetail),
+      })
+    );
+    expect(back()).toContain("view=certify");
+    expect(back()).not.toContain("0xGarden");
+    mockSearch = "";
   });
 
   it("blocks the review panel for expired actions and shows a warning", () => {
