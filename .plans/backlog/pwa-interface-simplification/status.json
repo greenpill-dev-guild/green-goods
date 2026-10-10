@@ -10,21 +10,25 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-06T05:46:26Z"
+    "updated_at": "2026-10-09T19:29:59Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "hackathon": "../cosmo-local-credit-interop/hackathon-discussion.md"
   },
   "linear": {
-    "parentIssue": null,
-    "project": null,
+    "parentIssue": "RESR-93",
+    "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
-    "lanes": {}
+    "lastSyncedAt": "2026-10-09T19:29:59Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing",
+    "projectId": "3343b772-4705-4e3a-8415-f28d5a78045d"
   },
   "taxonomy": {
     "initiative": "design-system",
@@ -34,7 +38,9 @@
     "depends_on_features": []
   },
   "notes": [
-    "User authorized creation of this planning hub only. Design acceptance and implementation scope remain open; no application, Linear, deployment, or transaction work is authorized.",
+    "2026-10-09: RESR-93 moved into Cosmo-Local Integration for hackathon coordination; the separate PWA scope and design acceptance gate remain unchanged. No execution lane was dispatched.",
+    "2026-10-09: Linear readback verified the project split, new gap issues and affected ownership/dependencies. lastSyncedAt records this bounded planning sync only; historical lane evidence and unrelated external source documents were not recertified.",
+    "The 2026-10-09 user request extends planning authorization to hackathon discussion and Linear visibility through RESR-93, superseding the earlier no-Linear boundary. Design acceptance and implementation scope remain open; no application, deployment, or transaction work is authorized.",
     "Confirmed direction: garden-scoped Home; recent activity, unfinished work, then participation; selective previews; one-tap existing sheets; familiar bottom navigation; garden context carried into submission.",
     "Compact journal, management placement, and personal-sheet filtering remain recommendations, not accepted design specifications.",
     "Existing Community, Commitment Pooling, Credit, CLC, and Steward Cockpit hubs retain their own decisions and execution state.",
@@ -150,6 +156,30 @@
       "note": "Recorded confirmed product direction, open design decisions, source boundaries, conditional delivery steps, and pending evaluation. No implementation dispatched.",
       "timestamp": "2026-10-06T05:42:17Z",
       "branch": null
+    },
+    {
+      "timestamp": "2026-10-09T09:58:17.035Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-09T10:00:46.226Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-09T19:23:18Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "codex/cosmo-local-planning",
+      "note": "2026-10-09: RESR-93 moved into Cosmo-Local Integration for hackathon coordination; the separate PWA scope and design acceptance gate remain unchanged. No execution lane was dispatched."
     }
   ]
 }

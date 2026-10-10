@@ -1,5 +1,10 @@
 # PWA Interface Simplification Plan
 
+**2026-10-09 tracking amendment:** the user requested hackathon planning and Linear visibility.
+The [joint discussion](../cosmo-local-credit-interop/hackathon-discussion.md) records the relation to
+CLC and the pitch. Linear visibility is now authorized; design and implementation gates below
+remain pending. This supersedes earlier statements that this hub creates no Linear record.
+
 **Feature Slug:** `pwa-interface-simplification`
 **Stage:** backlog
 **Status:** DESIGN REVIEW — no implementation authorized

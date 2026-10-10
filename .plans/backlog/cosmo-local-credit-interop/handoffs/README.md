@@ -1,7 +1,9 @@
 # Handoffs
 
-Empty by design. No lane is dispatched and no implementation is authorized.
+[Claude Fable: research and pitch](claude-fable-research-pitch.md) is the authorized continuation
+prompt for research and draft marketing materials. It does not dispatch runtime implementation.
 
-A handoff is written when a slice from [`../plan.todo.md`](../plan.todo.md) is scope-locked and
-explicitly dispatched by Afo. Slice 0 (due diligence and the Grassroots Economics conversation)
-blocks every later slice.
+Implementation handoffs are intentionally absent while the lanes remain blocked. Their reserved
+paths in the status record are not runnable instructions. Write a bounded handoff only after its
+current slice is accepted and explicitly dispatched; use the reconciled [plan](../plan.todo.md),
+not the superseded August sequence. RESR-74's completed research remains dated evidence.
