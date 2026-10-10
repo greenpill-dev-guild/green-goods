@@ -153,9 +153,17 @@ function mediaOf(message: Message): InboundMediaReference | null {
 export function createTelegramTransport(telegram: Telegram): OutboundTransport {
   return {
     async send(request) {
-      const { choices = [], copy, link, text } = request.message;
+      const { choices = [], copy, link, records = [], text } = request.message;
       const linkButton = link && isPublicHttps(link.url) ? link : null;
-      const body = link && !linkButton ? `${text}\n\n${link.label}: ${link.url}` : text;
+      const recordButtons = records.filter((record) => isPublicHttps(record.url));
+      const written = [
+        ...(link && !linkButton ? [link] : []),
+        ...records.filter((record) => !recordButtons.includes(record)),
+      ];
+      const body =
+        written.length > 0
+          ? `${text}\n\n${written.map((entry) => `${entry.label}: ${entry.url}`).join("\n")}`
+          : text;
       const keyboard: ReportingButton[][] = choices.map((choice) => [
         { text: choice.label, callback_data: choice.id },
       ]);
@@ -166,6 +174,8 @@ export function createTelegramTransport(telegram: Telegram): OutboundTransport {
         if (linkButton.copyLabel && linkButton.url.length <= 256)
           keyboard.push([{ text: linkButton.copyLabel, copy_text: { text: linkButton.url } }]);
       }
+      // One record to a row, in the order the core gave them, so the first is the one that leads.
+      for (const record of recordButtons) keyboard.push([{ text: record.label, url: record.url }]);
       if (copy && copy.text.length <= 256)
         keyboard.push([{ text: copy.label, copy_text: { text: copy.text } }]);
       const parts = splitText(body);

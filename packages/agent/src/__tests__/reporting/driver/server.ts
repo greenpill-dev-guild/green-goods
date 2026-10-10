@@ -136,6 +136,7 @@ export async function startDriver(
         text: sent.message.text,
         choices: sent.message.choices ?? [],
         link: sent.message.link ?? null,
+        records: sent.message.records ?? [],
       }))
     );
   });

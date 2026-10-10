@@ -233,8 +233,11 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "A assinatura foi recusada, então nada foi publicado. Aqui está seu relato de novo; confirme quando quiser.",
   "publish.reverted":
     "A publicação falhou na blockchain. Seu relato está guardado; confira e confirme de novo para tentar outra vez.",
-  "publish.viewReport": "Ver seu relato",
-  "publish.published": "Seu relato foi publicado ✅\nTrabalho: {uid}\nTransação: {tx}",
+  "publish.confirmed":
+    "A transação está confirmada. Estou verificando os detalhes da atestação e envio o link quando tiver. Você não precisa assinar nem enviar nada de novo.",
+  "publish.viewAttestation": "Ver atestação",
+  "publish.viewTransaction": "Ver transação",
+  "publish.published": "Seu relato foi publicado ✅",
   "grant.active":
     "Os relatos pelo chat estão ativos para {garden} até {until}. Ainda vou pedir que você confirme cada relato.",
   "grant.unavailable":
@@ -261,7 +264,7 @@ export const PT_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Sua conta não é responsável por {garden}, então você não pode revisar este trabalho.",
   "review.notOperator":
     "Sua conta não é responsável por nenhuma horta, então não há trabalhos para você revisar.",
-  "review.recorded": "Sua revisão foi registrada ✅\nTransação: {tx}",
+  "review.recorded": "Sua revisão foi registrada ✅",
   "review.viewWork": "Ver o trabalho",
   "account.wallet": "carteira",
   "account.passkey": "chave de acesso",
