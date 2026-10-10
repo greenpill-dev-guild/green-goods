@@ -281,6 +281,23 @@ ${hook}
       ...gateArgs.split(" ").filter(Boolean),
     ]);
   }
+  // Only the focus flags pass through: a value that would change what the gate runs stops the
+  // push before the gate starts, so an exported variable cannot downgrade validation.
+  for (const gateArgs of ["--plan", "--only-lint", "--skip-docs", "--check", "--base --check ontology", "--check ontology --plan"]) {
+    const result = spawnSync("sh", ["-c", `
+git() { :; }
+bun() { :; }
+node() { printf '%s\\n' "$@"; }
+${hook}
+`], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GREEN_GOODS_PUSH_TEST_PATHS: "", GG_PUSH_GATE_ARGS: gateArgs },
+    });
+    assert.equal(result.status, 1, gateArgs);
+    assert.match(result.stderr, /GG_PUSH_GATE_ARGS/, gateArgs);
+    assert.doesNotMatch(result.stdout, /ci-local\.js/, `the gate must not run for ${gateArgs}`);
+  }
 });
 
 test("local hooks keep commit light and reuse the focused push contract", () => {
