@@ -6,7 +6,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
 import { gardenScope } from "../gardens";
-import type { PromptOption, PromptRecord } from "../prompts";
+import { type PromptRecord, typedChoice } from "../prompts";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
@@ -48,16 +48,6 @@ function presentedKeys(prompt: PromptRecord): string[] {
   return prompt.options
     .filter((option) => !option.value.startsWith("page:"))
     .map((option) => option.value);
-}
-
-/** The choice typed words pick: the one at that number, or the one whose label they spell out. */
-function typedChoice(prompt: PromptRecord, text: string | null): PromptOption | undefined {
-  const typed = text?.trim().toLowerCase();
-  if (!typed) return undefined;
-  return (
-    prompt.options[Number(typed) - 1] ??
-    prompt.options.find((choice) => choice.label.toLowerCase() === typed)
-  );
 }
 
 /** What the open question is asking for, in a sentence, before its choices are shown again. */
@@ -322,7 +312,7 @@ export function handleReportAnswer(
       break;
     }
     case "edit_field": {
-      const field = option?.value ?? presentedKeys(prompt)[Number(text) - 1];
+      const field = picked?.value;
       if (!field) return offChoice(writer, plan, external, () => askEditMenu(writer, draft));
       return askEditField(writer, draft, field, external.catalog);
     }

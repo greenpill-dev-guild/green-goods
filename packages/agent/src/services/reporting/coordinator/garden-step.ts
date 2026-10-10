@@ -3,7 +3,7 @@ import { createLogger } from "../../logger";
 import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { type GardenScope, gardenScope, gardensIn, type ReportingGarden } from "../gardens";
-import type { PromptOption, PromptRecord } from "../prompts";
+import { type PromptOption, type PromptRecord, typedChoice } from "../prompts";
 import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
 import { accountLink } from "./account-link";
@@ -130,9 +130,11 @@ function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): 
       switch (plan.command.kind) {
         case "pair":
         case "connect":
-        case "garden":
         case "join":
           return true;
+        // GARDEN asks its question only of a report; without one it says there is none.
+        case "garden":
+          return ctx.draft !== null;
         // START welcomes an idle chat with its account's gardens; otherwise it lists the commands.
         case "start":
           return !ctx.draft && !ctx.review;
@@ -144,8 +146,12 @@ function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): 
       }
     case "answer": {
       const { kind } = plan.prompt;
-      // The garden question, and the edit menu that can open it.
-      if (kind === "select_garden" || kind === "edit_field") return true;
+      if (kind === "select_garden") return true;
+      // The edit menu opens the garden question from its Garden entry alone.
+      if (kind === "edit_field")
+        return (
+          modelReads || (plan.option ?? typedChoice(plan.prompt, plan.text))?.value === "garden"
+        );
       return REPORT_QUESTIONS.has(kind) && (gardenless || modelReads);
     }
     case "message":

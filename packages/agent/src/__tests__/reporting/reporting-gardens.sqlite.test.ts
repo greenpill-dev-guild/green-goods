@@ -108,10 +108,13 @@ describe("a linked account's reporting gardens", () => {
     const askSteward = `Your account ${ada} can report to the gardens it's in. To add one, ask a steward of that garden to add this account. It can take a few minutes to show here once they do.\n1. Show my gardens`;
     expect(await harness.say(ADA, "JOIN")).toEqual([askSteward]);
     joins(adaAccount, TAS);
-    // On a numbered list, a choice typed out in its own words is picked like any other.
+    // On a numbered list, a choice typed out in its own words is picked like any other. Neither
+    // of these two has anything to do with a garden's activities, so none are read.
+    const activityReads = harness.catalog.calls;
     expect(await harness.say(ADA, "show my gardens")).toEqual([OWN_GARDENS]);
     expect(await harness.say(ADA, "Join another garden")).toEqual([askSteward]);
     expect(await harness.press(ADA, "Show my gardens")).toEqual([OWN_GARDENS]);
+    expect(harness.catalog.calls).toBe(activityReads);
     // Another garden has its own activities, so the activity is asked again.
     expect(await harness.say(ADA, "1")).toEqual([TAS_ACTIVITIES]);
   });
@@ -145,6 +148,23 @@ describe("a linked account's reporting gardens", () => {
     expect((await harness.say(ADA, "Aiyeloja Family Garden"))[0]).toContain(
       "Which activity in Aiyeloja Family Garden"
     );
+  });
+
+  it("takes GARDEN and JOIN as a choice where the open question shows that very word", async () => {
+    const HORTA: ReportingGarden = { ...KENYA, key: "horta", label: "Horta" };
+    harness = new Harness({ gardens: [TAS, HORTA] });
+    harness.catalog.actions.set(HORTA.key, harness.catalog.actions.get(TAS.key) ?? []);
+    joins(adaAccount, TAS, HORTA);
+    await linked();
+    const gardens =
+      "Which of your gardens is this report for?\n1. TAS\n2. Horta\n3. Join another garden";
+    expect(await harness.say(ADA, STORY)).toEqual([gardens]);
+    // "Horta" is a word for GARDEN. Typed at a list that names a garden so, it is that garden.
+    expect((await harness.say(ADA, "horta"))[0]).toContain("Which activity in Horta");
+    // Anywhere else it is still the command, and the edit menu's own Garden entry can be typed.
+    expect(await harness.say(ADA, "HORTA")).toEqual([gardens]);
+    await harness.say(ADA, "EDIT");
+    expect(await harness.say(ADA, "Garden")).toEqual([gardens]);
   });
 
   it("says it cannot load an account's gardens, and never reads that as an account with none", async () => {
@@ -297,6 +317,9 @@ describe("a linked account's reporting gardens", () => {
     // that has become, and neither does Confirm.
     harness.clock.advance(60_000);
     const reads = harness.gardens.reads;
+    await harness.say(ADA, "EDIT");
+    await harness.press(ADA, "Title");
+    await harness.say(ADA, "Baobabs by the fence");
     await harness.press(ADA, "Tree planting");
     await harness.say(ADA, "12");
     await harness.say(ADA, "2");

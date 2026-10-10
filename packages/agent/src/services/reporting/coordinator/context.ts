@@ -8,7 +8,13 @@ import {
   bindingForSubject,
   type ParticipantBinding,
 } from "../participants";
-import { matchReply, openPrompt, type PromptOption, type PromptRecord } from "../prompts";
+import {
+  choiceLabelled,
+  matchReply,
+  openPrompt,
+  type PromptOption,
+  type PromptRecord,
+} from "../prompts";
 import { openReviewFor, type ReviewRecord } from "../reviews";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaReference, InboundMessageEvent } from "../transport";
@@ -63,6 +69,19 @@ const TEXT_ANSWER_PROMPTS = new Set([
   "review_feedback",
 ]);
 
+/**
+ * The command typed words stand for. GARDEN and JOIN are everyday words, and a garden, an activity
+ * or a choice may be named with one. Typed where the open question shows that very label, such a
+ * word picks the choice. Every other command word keeps its meaning wherever it is typed, so STOP,
+ * DELETE and CONFIRM can never be taken for an answer.
+ */
+function typedCommand(text: string | undefined, prompt: PromptRecord | null): ChatCommand | null {
+  const command = parseCommand(text);
+  if (command?.kind !== "garden" && command?.kind !== "join") return command;
+  const answers = prompt !== null && TEXT_ANSWER_PROMPTS.has(prompt.kind);
+  return answers && choiceLabelled(prompt, text) ? null : command;
+}
+
 export function loadTurnContext(core: ReportingCore, event: InboxEventRow): TurnContext | null {
   const message = readInboxPayload<InboundMessageEvent>(core, event);
   if (!message || !event.conversation_id || !event.channel_subject_id) return null;
@@ -77,7 +96,8 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
       draftUnavailable = true;
     }
   }
-  const parsed = parseCommand(message.text) ?? replyCommand(message.replyId);
+  const prompt = openPrompt(core, event.conversation_id);
+  const parsed = typedCommand(message.text, prompt) ?? replyCommand(message.replyId);
   const bareCode = message.text?.trim();
   // Only a chat with its own live, verified browser challenge treats six digits as a code.
   // pairFromChat still compares the hash and counts every wrong attempt.
@@ -114,7 +134,7 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
     binding,
     processingConsent: activeConsentId(core, event.channel_subject_id, "processing") !== null,
     locale: binding?.locale ?? message.locale ?? "en",
-    prompt: openPrompt(core, event.conversation_id),
+    prompt,
     draft,
     draftUnavailable,
     review: binding ? openReviewFor(core, binding.participantId, event.conversation_id) : null,

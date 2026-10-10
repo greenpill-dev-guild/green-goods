@@ -177,15 +177,17 @@ async function gatherExternal(
   const scope = gardenScope(core.gardens, account);
   let garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has
-  // still to choose one, which a changed garden asks of it again, and for any answer.
+  // still to choose one, which a changed garden asks of it again, and for any answer but one to
+  // the garden question. That one needs them only for a garden it names, which is a change; its
+  // other choices show how to join or which gardens there are.
   const draft = ctx.draft;
   const choosing =
     !draft ||
     outstandingRequirements(draft.content, draft.snapshot).some((need) => need.kind === "action");
   // A report that is about to name another garden has to choose its activity again.
   const changing = garden?.address !== draft?.content.garden?.address;
-  const needsCatalog =
-    garden !== null && reportPlan && (choosing || plan.kind === "answer" || changing);
+  const answersOther = plan.kind === "answer" && plan.prompt.kind !== "select_garden";
+  const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
   if (forModel) {
