@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface MetaStripItem {
   id?: string;
@@ -24,12 +24,15 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
   if (items.length === 0) return null;
 
   if (density === "inline") {
+    // Cockpit M3 1a status line: 12px with 0.3px tracking, plain 400 labels;
+    // only the counts carry weight (600), in strong ink. Counts are metadata,
+    // never alarms (DL-044), so they take no status colour.
     return (
       <div
         data-component="MetaStrip"
         data-density="inline"
         className={cn(
-          "flex flex-wrap items-center gap-x-2 gap-y-1 text-label-sm font-medium text-text-sub",
+          "flex flex-wrap items-center gap-x-4 gap-y-1 text-label-md font-normal tracking-[0.3px] text-text-sub",
           className
         )}
       >
@@ -42,7 +45,7 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
             ) : null}
             <span className="inline-flex items-center gap-1">
               {item.value ? (
-                <span className="font-semibold text-text-strong tabular-nums">{item.value}</span>
+                <span className="font-semibold tabular-nums text-text-strong">{item.value}</span>
               ) : null}
               <span>{item.label}</span>
             </span>

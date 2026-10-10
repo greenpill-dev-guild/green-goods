@@ -14,11 +14,33 @@ on:
       - ".npmrc"
       - "pnpm-workspace.yaml"
       - ".yarnrc.yml"
+      - ".mise.toml"
       - ".github/workflows/**"
+      - ".github/actions/setup-js/action.yml"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "ONBOARDING.md"
       - ".codex/**"
       - ".claude/**"
+      - ".plans/**"
+      - "docs/routines/**"
+      - "scripts/quality/**"
+      - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   push:
     branches: [main, develop]
     paths:
@@ -33,44 +55,135 @@ on:
       - ".npmrc"
       - "pnpm-workspace.yaml"
       - ".yarnrc.yml"
+      - ".mise.toml"
       - ".github/workflows/**"
+      - ".github/actions/setup-js/action.yml"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "ONBOARDING.md"
       - ".codex/**"
       - ".claude/**"
+      - ".plans/**"
+      - "docs/routines/**"
+      - "scripts/quality/**"
+      - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  # Inlined rather than calling greenpill-dev-guild/.github's reusable workflow.
-  # The org policy requiring full-length SHA pins applies transitively, and that
-  # reusable workflow still uses `actions/checkout@v4` internally — so pinning
-  # the *reference* to it is not enough and the job is refused before it starts.
-  # develop hit the same wall and inlined it; this mirrors that, keeping the job
-  # id `audit` so the CI Gate required-check name is unchanged.
-  #
-  # Behaviour is identical to the previous `with:` block: mode=ci,
-  # fail-on-warning=false, consumer repo audited at its root.
+  changes:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      format: ${{ steps.classify.outputs.format }}
+      guidance: ${{ steps.classify.outputs.guidance }}
+      supply: ${{ steps.classify.outputs.supply }}
+      parity: ${{ steps.classify.outputs.parity }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Classify changed paths
+        id: classify
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          changed_file="$RUNNER_TEMP/supply-chain-changed-paths.txt"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            node scripts/quality/classify-supply-chain-changes.mjs \
+              --workflow-dispatch \
+              --github-output "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-list --max-parents=0 "$HEAD_SHA")"
+          fi
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$changed_file"
+          node scripts/quality/classify-supply-chain-changes.mjs \
+            --changed-file "$changed_file" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Summarize test and source changes
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/quality/summarize-test-churn.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --summary "$GITHUB_STEP_SUMMARY"
+
+  format:
+    name: Repository formatting
+    needs: changes
+    if: needs.changes.outputs.format == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Check repository formatting
+        run: bun run format --check
+
   audit:
+    name: Supply-chain guardrails
+    needs: changes
+    if: needs.changes.outputs.supply == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout consumer repo
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: consumer
           fetch-depth: 1
           persist-credentials: false
 
       - name: Checkout guardrail source
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: greenpill-dev-guild/.github
           ref: 5d33cf1e11c0ed1fae08edd65a09ec390f2aca3b
           path: _guild-defaults
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
 
       - name: Run supply-chain guardrails audit
         shell: bash
@@ -80,3 +193,78 @@ jobs:
             --mode=ci \
             --fail-on-warning=false \
             "$GITHUB_WORKSPACE/consumer"
+
+  guidance:
+    name: Guidance integrity
+    needs: changes
+    if: needs.changes.outputs.guidance == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Check Codex guidance parity
+        run: node scripts/quality/check-codex-docs.js
+
+      - name: Check guidance links and retired references
+        env:
+          GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only guidance-links
+
+      - name: Check critical skill behavior contracts
+        run: bun run check --only skill-behavior
+
+      - name: Check immutable dated plan reports
+        env:
+          PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only immutable-plan-reports
+
+      - name: Check the QA Test ID lifecycle is append-only
+        env:
+          QA_LEDGER_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check --only qa-id-ledger
+
+      - name: Run guidance guardrail tests
+        run: node --test scripts/harness/agent-hooks.test.mjs scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs
+
+      - name: Check test quality
+        run: bun run check --only test-quality
+
+      - name: Validate plan hubs
+        run: node scripts/harness/plan-hub.mjs validate
+
+      - name: Run plan-hub tests
+        run: node --test scripts/harness/plan-hub.test.mjs
+
+  parity:
+    name: Workflow performance parity
+    needs: changes
+    if: needs.changes.outputs.parity == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      # The aggregate-script cases drive the real root test and build scripts,
+      # which are bun scripts, so this job needs the bun binary. Dependencies
+      # are not needed: those cases run against a temporary fixture workspace.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.4.2"
+
+      - name: Run workflow performance parity tests
+        run: node --test scripts/quality/workflow-performance-parity.test.mjs scripts/quality/summarize-test-churn.test.mjs

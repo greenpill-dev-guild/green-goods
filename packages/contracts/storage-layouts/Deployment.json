@@ -1,0 +1,252 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "networks",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_mapping(t_uint256,t_struct(NetworkConfig)_storage)"
+    },
+    {
+      "label": "_allowlist",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_struct(AddressSet)_storage"
+    },
+    {
+      "label": "pendingOwner",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_address"
+    },
+    {
+      "label": "emergencyPaused",
+      "offset": 20,
+      "slot": "104",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_array(t_uint256)46_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_bytes32)dyn_storage": {
+      "base": "t_bytes32",
+      "encoding": "dynamic_array",
+      "label": "bytes32[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)46_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[46]",
+      "numberOfBytes": "1472"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_mapping(t_bytes32,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_uint256,t_struct(NetworkConfig)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct Deployment.NetworkConfig)",
+      "numberOfBytes": "32",
+      "value": "t_struct(NetworkConfig)_storage"
+    },
+    "t_struct(AddressSet)_storage": {
+      "encoding": "inplace",
+      "label": "struct EnumerableSetUpgradeable.AddressSet",
+      "members": [
+        {
+          "label": "_inner",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_struct(Set)_storage"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_struct(NetworkConfig)_storage": {
+      "encoding": "inplace",
+      "label": "struct Deployment.NetworkConfig",
+      "members": [
+        {
+          "label": "eas",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "easSchemaRegistry",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "communityToken",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "actionRegistry",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "label": "gardenToken",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "label": "workResolver",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_address"
+        },
+        {
+          "label": "workApprovalResolver",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_address"
+        },
+        {
+          "label": "assessmentResolver",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_address"
+        },
+        {
+          "label": "integrationRouter",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_address"
+        },
+        {
+          "label": "hatsAccessControl",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_address"
+        },
+        {
+          "label": "octantFactory",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_address"
+        },
+        {
+          "label": "unlockFactory",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_address"
+        },
+        {
+          "label": "hypercerts",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_address"
+        },
+        {
+          "label": "greenWill",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_address"
+        }
+      ],
+      "numberOfBytes": "448"
+    },
+    "t_struct(Set)_storage": {
+      "encoding": "inplace",
+      "label": "struct EnumerableSetUpgradeable.Set",
+      "members": [
+        {
+          "label": "_values",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_array(t_bytes32)dyn_storage"
+        },
+        {
+          "label": "_indexes",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_mapping(t_bytes32,t_uint256)"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

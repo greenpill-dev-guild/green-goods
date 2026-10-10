@@ -1,10 +1,12 @@
-import { cn } from "@green-goods/shared";
+import { scrollAppToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import React from "react";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 export interface StandardTab {
   id: string;
   label: string;
+  accessibleLabel?: string;
   icon?: React.ReactNode;
   count?: number;
   disabled?: boolean;
@@ -14,6 +16,8 @@ export interface StandardTabsProps {
   tabs: StandardTab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  /** Accessible name for the rail, e.g. "Garden sections". */
+  ariaLabel?: string;
   className?: string;
   triggerClassName?: string;
   variant?: "default" | "compact";
@@ -25,6 +29,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
   tabs,
   activeTab,
   onTabChange,
+  ariaLabel,
   className,
   triggerClassName,
   variant = "default",
@@ -59,23 +64,26 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
       nearest.scrollTop = 0;
       return;
     }
-    // 3) Fallback to main app scroll container or window
-    const appScroll = document.getElementById("app-scroll");
-    if (appScroll) {
-      appScroll.scrollTop = 0;
-      return;
-    }
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "auto" });
-    }
+    // 3) Fall back to the page scroller.
+    scrollAppToTop();
   }
 
   return (
-    <div className={cn("flex border-b border-border flex-shrink-0 bg-bg-white-0", className)}>
+    // The light accessible-selection path (not a half-adopted tablist): a named
+    // group whose active button carries aria-current, so AT hears which
+    // section is open without demanding the full roving-tabindex tab pattern.
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className={cn("flex border-b border-border flex-shrink-0 bg-bg-white-0", className)}
+    >
       {tabs.map((tab) => (
         <button
           type="button"
+          data-pressable="tab"
           key={tab.id}
+          aria-label={tab.accessibleLabel}
+          aria-current={activeTab === tab.id || undefined}
           onClick={(event) => {
             if (tab.disabled) return;
             scrollContainerToTop(event.currentTarget as HTMLElement);
@@ -95,13 +103,24 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           data-testid={`tab-${tab.id}`}
         >
           {tab.icon && (
-            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+            // The label, icon and indicator use the same theme-aware interactive foreground.
+            <span
+              className={cn(
+                "flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4",
+                activeTab === tab.id && pwaStatusStyles.primary.icon
+              )}
+            >
               {tab.icon}
             </span>
           )}
 
-          {/* Label */}
-          <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
+          {/* Label — allowed to wrap to two lines at narrow widths: es/pt
+              labels ("Compromisos", "Jardineros/as") must never clip glyphs.
+              hyphens-auto so a single long word breaks with a hyphen, not a
+              bare mid-word split. */}
+          <span className="line-clamp-2 min-w-0 break-words text-center hyphens-auto">
+            {tab.label}
+          </span>
 
           {/* Count badge */}
           {tab.count !== undefined && tab.count > 0 && (
@@ -121,7 +140,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
               {isLoading ? (
                 <div className="w-full h-full bg-bg-soft-200">
                   <div
-                    className={cn("h-full", pwaStatusStyles.information.progress)}
+                    className={cn("h-full", pwaStatusStyles.primary.progress)}
                     style={{
                       animationName: "standardTabLoading",
                       animationDuration: "var(--spring-effects-slow-duration)",

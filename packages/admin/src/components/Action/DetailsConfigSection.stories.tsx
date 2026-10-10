@@ -1,4 +1,4 @@
-import type { ActionInstructionConfig } from "@green-goods/shared";
+import type { ActionInstructionConfig } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { DetailsConfigSection } from "./DetailsConfigSection";

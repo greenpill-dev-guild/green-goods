@@ -1,6 +1,8 @@
-import type { CreateActionFormData } from "@green-goods/shared";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
+import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 
 interface DomainOption {
   value: number;
@@ -10,9 +12,16 @@ interface DomainOption {
 interface ReviewStepProps {
   form: UseFormReturn<CreateActionFormData>;
   domainOptions: DomainOption[];
+  /** Where the send stands, in the one row that changes while it works. */
+  status: FlowSendStatus;
 }
 
-export function ReviewStep({ form, domainOptions }: ReviewStepProps) {
+/**
+ * Step 4: Review. What the action will register, under one status row that
+ * keeps its height through ready, sending, sent and failed (DL-072, DL-080).
+ * The footer's primary sends from here, and the row says how it went.
+ */
+export function ReviewStep({ form, domainOptions, status }: ReviewStepProps) {
   const { formatMessage } = useIntl();
   const data = form.getValues();
   const selectedDomainLabel =
@@ -20,6 +29,12 @@ export function ReviewStep({ form, domainOptions }: ReviewStepProps) {
 
   return (
     <div className="space-y-4">
+      <FlowStatusRow
+        tone={status.tone}
+        busy={status.busy}
+        title={status.title}
+        description={status.description}
+      />
       <div>
         <h3 className="font-semibold text-text-strong">
           {formatMessage({

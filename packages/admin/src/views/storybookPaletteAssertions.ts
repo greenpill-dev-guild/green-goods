@@ -145,7 +145,7 @@ export async function withTemporaryDocumentTheme(
   }
 }
 
-export function expectElementContrast(
+function expectElementContrast(
   element: HTMLElement,
   { label, minRatio = 4.5 }: { label: string; minRatio?: number }
 ) {

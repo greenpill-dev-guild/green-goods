@@ -1,3 +1,4 @@
+import { createIntl } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   addDuration,
@@ -6,7 +7,7 @@ import {
   formatDate,
   formatDateTime,
   formatDuration,
-  formatRelativeTime,
+  formatReportingPeriod,
   fromDateTimeLocalValue,
   getCurrentTimezone,
   getDurationMs,
@@ -19,6 +20,7 @@ import {
   toSafeDate,
   toSafeInstant,
 } from "../../utils/time";
+import { formatRelativeTime } from "../../utils/relativeTime";
 
 describe("Time Utilities", () => {
   const NOW = 1704067200000; // 2024-01-01 00:00:00 UTC
@@ -397,5 +399,56 @@ describe("Time Utilities", () => {
       expect(typeof tz).toBe("string");
       expect(tz.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("formatReportingPeriod", () => {
+  // A reader west of UTC, set on the formatter so no case depends on the zone
+  // of the machine running it.
+  const reader = (locale: string) =>
+    createIntl({ locale, timeZone: "America/Sao_Paulo", messages: {} });
+
+  // Create Assessment stores each end of the period as UTC midnight of the day
+  // the author picked.
+  const JUL_1_2026 = Date.UTC(2026, 6, 1) / 1000;
+  const SEP_30_2026 = Date.UTC(2026, 8, 30) / 1000;
+
+  // Read in the reader's own zone, the period would say 30 June to 29 September.
+  it.each([
+    { locale: "en", picked: /^Jul 1\s–\sSep 30, 2026$/u },
+    { locale: "es", picked: /^1 jul\.?\s–\s30 sept?\.? 2026$/u },
+    { locale: "pt", picked: /^1 de jul\.?\s–\s30 de set\.? de 2026$/u },
+  ])("reads the period as the days the author picked, for a $locale reader west of UTC", ({
+    locale,
+    picked,
+  }) => {
+    expect(formatReportingPeriod(reader(locale), JUL_1_2026, SEP_30_2026)).toMatch(picked);
+  });
+
+  it("accepts the period in milliseconds as well as seconds", () => {
+    expect(formatReportingPeriod(reader("en"), JUL_1_2026 * 1000, SEP_30_2026 * 1000)).toMatch(
+      /^Jul 1\s–\sSep 30, 2026$/u
+    );
+  });
+
+  it.each([
+    { label: "no start", start: null, end: SEP_30_2026 },
+    { label: "no end", start: JUL_1_2026, end: undefined },
+    { label: "a zero start", start: 0, end: SEP_30_2026 },
+  ])("reads a period with $label as not set", ({ start, end }) => {
+    expect(formatReportingPeriod(reader("en"), start, end)).toBeNull();
+  });
+
+  // The attestation holds each end as a uint256, far wider than a date. Handed
+  // one a calendar cannot hold, the range formatter fails: it prints the raw
+  // number, or throws where intl errors are set to throw.
+  it.each([
+    { label: "both ends", start: 1.157e77, end: 1.158e77 },
+    { label: "the end", start: JUL_1_2026, end: 1.158e77 },
+  ])("reads a period with $label beyond any calendar as not set", ({ start, end }) => {
+    const formatDateTimeRange = vi.fn();
+
+    expect(formatReportingPeriod({ formatDateTimeRange }, start, end)).toBeNull();
+    expect(formatDateTimeRange).not.toHaveBeenCalled();
   });
 });

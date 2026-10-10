@@ -1,538 +1,388 @@
-/**
- * useDraftResume Hook Tests
- * @vitest-environment jsdom
- *
- * Tests the draft resume hook including URL-based resumption with AbortController,
- * meaningful draft detection for dialog display, continue/start-fresh handlers,
- * and error handling.
- */
-
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+/** @vitest-environment happy-dom */
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
-
-// ============================================
-// Mocks
-// ============================================
-
-const mockResumeDraft = vi.fn();
-const mockClearActiveDraft = vi.fn();
-let mockActiveDraftId: string | null = null;
-
+import { useDraftResume } from "../../../hooks/work/useDraftResume";
+import { writeWorkLinkIntent } from "../../../modules/commitment-pooling/work-link-intent";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+const mocks = vi.hoisted(() => ({
+  resume: vi.fn(),
+  clear: vi.fn(),
+  active: vi.fn(),
+  legacy: vi.fn(),
+  removeLegacy: vi.fn(),
+  save: vi.fn(),
+  draft: vi.fn(),
+  release: vi.fn(),
+  atLimit: vi.fn(),
+  marker: undefined as unknown,
+  user: "0x1111111111111111111111111111111111111111" as string | null,
+}));
 vi.mock("../../../hooks/work/useDrafts", () => ({
-  useDrafts: () => ({
-    activeDraftId: mockActiveDraftId,
-    resumeDraft: mockResumeDraft,
-    clearActiveDraft: mockClearActiveDraft,
-  }),
+  useDrafts: () => ({ resumeDraft: mocks.resume, clearActiveDraft: mocks.clear }),
 }));
-
-vi.mock("../../../modules/app/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-}));
-
-vi.mock("../../../modules/app/error-tracking", () => ({
-  trackStorageError: vi.fn(),
-}));
-
 vi.mock("../../../hooks/auth/useUser", () => ({
-  useUser: () => ({ primaryAddress: MOCK_ADDRESSES.user }),
+  useUser: () => ({ primaryAddress: mocks.user }),
 }));
-
-vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
-  useCurrentChain: () => 11155111,
-}));
-
-vi.mock("../../../utils/errors/mutation-error-handler", () => ({
-  createDraftErrorHandler: () => vi.fn(),
-}));
-
+vi.mock("../../../hooks/blockchain/useChainConfig", () => ({ useCurrentChain: () => 11155111 }));
 vi.mock("../../../modules/job-queue/draft-db", () => ({
   draftDB: {
+    getActiveDraft: mocks.active,
+    getDraft: mocks.draft,
+    saveSnapshot: mocks.save,
+    releaseActiveDraft: mocks.release,
+    isAtDraftLimit: mocks.atLimit,
     getDraftsForUser: vi.fn().mockResolvedValue([]),
-    getImagesForDraft: vi.fn().mockResolvedValue([]),
-    createDraft: vi.fn(),
-    updateDraft: vi.fn(),
-    getDraft: vi.fn(),
-    deleteDraft: vi.fn(),
-    addImageToDraft: vi.fn(),
-    removeImageFromDraft: vi.fn(),
-    setImagesForDraft: vi.fn(),
   },
-  computeFirstIncompleteStep: vi.fn(() => "intro"),
 }));
+vi.mock("idb-keyval", () => ({
+  get: (key: string) =>
+    key === "work_images_draft" ? mocks.legacy() : Promise.resolve(mocks.marker),
+  set: async (_key: string, marker: unknown) => {
+    mocks.marker = marker;
+  },
+  delMany: async (keys: string[]) => {
+    await mocks.removeLegacy(keys);
+    mocks.marker = undefined;
+  },
+}));
+const options = () => ({
+  searchParams: new URLSearchParams(),
+  setSearchParams: vi.fn(),
+  restoreForm: vi.fn(),
+});
+beforeEach(() => {
+  mocks.marker = undefined;
+  mocks.user = "0x1111111111111111111111111111111111111111";
+  useWorkFlowStore.getState().reset();
+  useWorkFlowStore.setState({ draftScope: null, draftHydrated: false });
+  mocks.resume.mockReset().mockResolvedValue("intro");
+  mocks.clear.mockReset().mockResolvedValue(undefined);
+  mocks.active.mockReset().mockResolvedValue(null);
+  mocks.draft.mockReset().mockResolvedValue(undefined);
+  mocks.release.mockReset().mockResolvedValue(undefined);
+  mocks.atLimit.mockReset().mockResolvedValue(false);
+  mocks.legacy.mockReset().mockResolvedValue(undefined);
+  mocks.removeLegacy.mockReset().mockResolvedValue(undefined);
+  mocks.save
+    .mockReset()
+    .mockImplementation(
+      async (userAddress, chainId, id, data, _files, _audio, _current, missing) => ({
+        userAddress,
+        chainId,
+        id,
+        ...data,
+        missingAttachments: missing,
+      })
+    );
+});
+describe("draft hydration and recovery", () => {
+  it("restores the account's active draft before enabling autosave", async () => {
+    mocks.active.mockResolvedValue("saved-id");
+    const { result } = renderHook(() => useDraftResume(options()));
+    expect(useWorkFlowStore.getState().draftHydrated).toBe(false);
+    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
+    expect(mocks.resume).toHaveBeenCalledWith(
+      "saved-id",
+      expect.objectContaining({ restoreForm: expect.any(Function) })
+    );
+    expect(useWorkFlowStore.getState().draftHydrated).toBe(true);
+    // Saving stays off until the prompt is answered, by Continue Draft or by closing it.
+    expect(useWorkFlowStore.getState().draftChoicePending).toBe(true);
+    await act(async () => {
+      await result.current.handleContinueDraft();
+    });
+    expect(useWorkFlowStore.getState().draftChoicePending).toBe(false);
+  });
+  it("retains an explicit URL and blocks writes when restoration fails", async () => {
+    mocks.resume.mockRejectedValue(new Error("unreadable-media"));
+    const input = { ...options(), searchParams: new URLSearchParams("draftId=broken") };
+    renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(useWorkFlowStore.getState().draftSaveState).toBe("failed"));
+    expect(input.setSearchParams).not.toHaveBeenCalled();
+    expect(useWorkFlowStore.getState().draftHydrated).toBe(false);
+  });
+  it("does not import unscoped legacy photos without an explicit choice", async () => {
+    mocks.legacy.mockResolvedValue([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(mocks.removeLegacy).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    expect(mocks.removeLegacy).toHaveBeenCalledWith([
+      "work_images_draft",
+      "work_images_draft_recovery",
+    ]);
+  });
+  it("preserves legacy data when a photo is unreadable", async () => {
+    const file = new File(["photo"], "photo.jpg", { type: "image/jpeg" });
+    file.arrayBuffer = async () => {
+      throw new DOMException("revoked", "NotReadableError");
+    };
+    mocks.legacy.mockResolvedValue([file]);
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    await act(async () => {
+      await result.current.handleContinueDraft();
+    });
+    expect(mocks.removeLegacy).not.toHaveBeenCalled();
+    expect(mocks.save.mock.calls[0][7]).toEqual([
+      expect.objectContaining({ name: "photo.jpg", kind: "media" }),
+    ]);
+  });
+  it("keeps the visible draft and the prompt when the draft can't be set aside", async () => {
+    mocks.active.mockResolvedValue("saved-id");
+    mocks.release.mockRejectedValue(new Error("quota"));
+    mocks.resume.mockImplementation(async () => {
+      useWorkFlowStore.setState({ activeDraftId: "saved-id", feedback: "saved work" });
+      return "intro";
+    });
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.showDraftSheet).toBe(true));
+    await act(async () => {
+      await expect(result.current.handleStartFresh()).rejects.toThrow("quota");
+    });
+    expect(result.current.showDraftSheet).toBe(true);
+    expect(useWorkFlowStore.getState()).toMatchObject({
+      activeDraftId: "saved-id",
+      feedback: "saved work",
+      draftDeleting: false,
+      draftChoicePending: true,
+    });
+    expect(mocks.release).toHaveBeenCalledWith(mocks.user, 11155111, "saved-id");
+    expect(mocks.clear).not.toHaveBeenCalled();
+  });
+  it("still discards recovered photos when the person starts fresh mid-recovery", async () => {
+    mocks.legacy.mockResolvedValue([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
+    mocks.removeLegacy.mockRejectedValueOnce(new Error("cleanup failed"));
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
+    });
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    await act(async () => {
+      await expect(result.current.handleContinueDraft()).rejects.toThrow("cleanup failed");
+    });
+    await act(async () => {
+      await result.current.handleStartFresh();
+    });
+    expect(mocks.clear).toHaveBeenCalledOnce();
+    expect(mocks.release).not.toHaveBeenCalled();
+    expect(mocks.atLimit).not.toHaveBeenCalled();
+  });
+  it("clears the visible form on logout before another account can hydrate", async () => {
+    const input = options();
+    const { rerender } = renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(useWorkFlowStore.getState().draftHydrated).toBe(true));
+    act(() => useWorkFlowStore.setState({ feedback: "private work", activeDraftId: "private" }));
+    mocks.user = null;
+    rerender();
+    await waitFor(() => expect(useWorkFlowStore.getState().activeDraftId).toBeNull());
+    expect(useWorkFlowStore.getState().feedback).toBe("");
+    expect(input.restoreForm).toHaveBeenCalledWith({ feedback: "" });
+  });
+  it("reuses the recovery ID when cleanup fails after a committed recovery", async () => {
+    mocks.legacy.mockResolvedValue([new File(["photo"], "photo.jpg", { type: "image/jpeg" })]);
+    mocks.removeLegacy
+      .mockRejectedValueOnce(new Error("cleanup failed"))
+      .mockResolvedValue(undefined);
+    const { result } = renderHook(() => useDraftResume(options()));
+    await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+    await act(async () => {
+      await expect(result.current.handleContinueDraft()).rejects.toThrow("cleanup failed");
+    });
+    await act(async () => {
+      await result.current.handleContinueDraft();
+    });
+    expect(mocks.save.mock.calls[0][2]).toBe(mocks.save.mock.calls[1][2]);
+  });
+});
 
-import { useDraftResume } from "../../../hooks/work/useDraftResume";
-
-// ============================================
-// Test helpers
-// ============================================
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+it("one unreadable legacy photo must not block readable recovery", async () => {
+  const good = new File(["photo"], "good.jpg", { type: "image/jpeg" });
+  const bad = new File(["photo"], "bad.jpg", { type: "image/jpeg" });
+  bad.arrayBuffer = async () => {
+    throw new DOMException("revoked", "NotReadableError");
   };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
+  mocks.legacy.mockResolvedValue([good, bad]);
+  const { result } = renderHook(() => useDraftResume(options()));
+  await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+  await act(async () => {
+    await result.current.handleContinueDraft().catch(() => undefined);
   });
-}
+  expect(mocks.save).toHaveBeenCalled();
+});
 
-function createDefaultFormState() {
-  return {
-    images: [] as File[],
-    gardenAddress: null as string | null,
-    actionUID: null as number | null,
-    feedback: "",
-    plantSelection: [] as string[],
-    plantCount: null as number | null,
+it("resumes the canonical recovery after cleanup failure without re-importing removed or replaced entries", async () => {
+  const file = new File(["photo"], "old.jpg", { type: "image/jpeg" });
+  mocks.legacy.mockResolvedValue([file]);
+  mocks.removeLegacy.mockRejectedValueOnce(new Error("cleanup failed"));
+  const first = renderHook(() => useDraftResume(options()));
+  await waitFor(() => expect(first.result.current.legacyRecovery).toBe(true));
+  await act(async () => {
+    await expect(first.result.current.handleContinueDraft()).rejects.toThrow("cleanup failed");
+  });
+  const saved = await mocks.save.mock.results[0].value;
+  mocks.draft.mockResolvedValue(saved);
+  // The original handle is now unreadable; its entry may have been removed/replaced in the draft.
+  file.arrayBuffer = vi.fn().mockRejectedValue(new Error("revoked"));
+  first.unmount();
+  useWorkFlowStore.setState({ draftHydrated: false });
+  const second = renderHook(() => useDraftResume(options()));
+  await waitFor(() => expect(second.result.current.legacyRecovery).toBe(true));
+  await act(async () => {
+    await second.result.current.handleContinueDraft();
+  });
+  expect(mocks.save).toHaveBeenCalledTimes(1);
+  expect(file.arrayBuffer).not.toHaveBeenCalled();
+  expect(mocks.resume).toHaveBeenLastCalledWith(saved.id, expect.anything());
+});
+
+it.each([
+  "quota",
+  "draft-limit",
+])("keeps legacy data and stable entry identities after %s failure", async (failure) => {
+  mocks.legacy.mockResolvedValue([new File(["photo"], "proof.jpg", { type: "image/jpeg" })]);
+  mocks.save.mockRejectedValue(new Error(failure));
+  const { result } = renderHook(() => useDraftResume(options()));
+  await waitFor(() => expect(result.current.legacyRecovery).toBe(true));
+  await act(async () => {
+    await expect(result.current.handleContinueDraft()).rejects.toThrow(failure);
+  });
+  const marker = mocks.marker;
+  await act(async () => {
+    await expect(result.current.handleContinueDraft()).rejects.toThrow(failure);
+  });
+  expect(mocks.marker).toBe(marker);
+  expect(mocks.save.mock.calls[0][2]).toBe(mocks.save.mock.calls[1][2]);
+  expect(mocks.removeLegacy).not.toHaveBeenCalled();
+});
+
+describe("the promise a draft was for", () => {
+  const GARDEN = "0x5eed000000000000000000000000000000000001" as const;
+  const kept = {
+    commitmentId: "12",
+    requirementIndex: 0,
+    actionUID: 5,
+    garden: GARDEN,
+    commitmentTitle: "Transplant 36 seedlings into the east beds",
+    requirementLabel: "Seedling Transplant · 36 plants",
+    returnTo: `/home/${GARDEN}/commitments/12`,
   };
-}
 
-// ============================================
-// Tests
-// ============================================
+  it("comes back into the page when the draft resumes", async () => {
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
+    });
+    const input = { ...options(), searchParams: new URLSearchParams("draftId=draft-1") };
+    renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(input.setSearchParams).toHaveBeenCalled());
 
-describe("useDraftResume", () => {
-  let queryClient: QueryClient;
-  let mockSetSearchParams: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    queryClient = createQueryClient();
-    mockActiveDraftId = null;
-    mockResumeDraft.mockResolvedValue("Intro");
-    mockClearActiveDraft.mockResolvedValue(undefined);
-    mockSetSearchParams = vi.fn();
+    const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(params.get("draftId")).toBeNull();
+    expect(params.get("linkCommitmentId")).toBe("12");
+    expect(params.get("linkCommitmentTitle")).toBe(kept.commitmentTitle);
+    // Autosave was already on, and the draft's own promise stays saved meanwhile.
+    expect(useWorkFlowStore.getState().draftLinkCleared).toBe(false);
   });
 
-  // ------------------------------------------
-  // Initial state
-  // ------------------------------------------
-
-  describe("initial state", () => {
-    it("starts with dialog hidden", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(false);
-    });
-
-    it("exposes clearActiveDraft", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.clearActiveDraft).toBeDefined();
-    });
-  });
-
-  // ------------------------------------------
-  // URL-based draft resumption
-  // ------------------------------------------
-
-  describe("URL-based draft resumption", () => {
-    it("resumes draft from draftId URL parameter", async () => {
-      const searchParams = new URLSearchParams("draftId=url-draft-123");
-
-      renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams,
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await waitFor(() => {
-        expect(mockResumeDraft).toHaveBeenCalledWith(
-          "url-draft-123",
-          expect.objectContaining({ signal: expect.any(AbortSignal) })
-        );
+  describe("with the draft still loaded from an earlier visit", () => {
+    const stillLoaded = (draftLinkCleared: boolean) => {
+      useWorkFlowStore.setState({
+        draftScope: "0x1111111111111111111111111111111111111111:11155111",
+        draftHydrated: true,
+        activeDraftId: "draft-1",
+        draftLinkCleared,
       });
-    });
-
-    it("clears draftId from URL after successful resume", async () => {
-      const searchParams = new URLSearchParams("draftId=url-draft-123");
-
-      renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams,
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await waitFor(() => {
-        expect(mockSetSearchParams).toHaveBeenCalledWith(expect.any(URLSearchParams), {
-          replace: true,
-        });
+      mocks.draft.mockResolvedValue({
+        id: "draft-1",
+        userAddress: mocks.user,
+        chainId: 11155111,
+        gardenAddress: GARDEN,
+        actionUID: 5,
+        linkIntent: kept,
       });
+    };
 
-      // Verify the draftId was removed from the params
-      const calledParams = mockSetSearchParams.mock.calls[0][0];
-      expect(calledParams.has("draftId")).toBe(false);
+    it("puts the draft's promise back into the page without reloading the draft", async () => {
+      stillLoaded(false);
+      const input = options();
+      renderHook(() => useDraftResume(input));
+
+      await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledOnce());
+      const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+      expect(params.get("linkCommitmentId")).toBe("12");
+      expect(mocks.resume).not.toHaveBeenCalled();
     });
 
-    it("clears draftId from URL on resume error", async () => {
-      mockResumeDraft.mockRejectedValue(new Error("Draft corrupted"));
+    it("leaves a promise the person removed off the page", async () => {
+      stillLoaded(true);
+      const input = options();
+      renderHook(() => useDraftResume(input));
 
-      const searchParams = new URLSearchParams("draftId=bad-draft");
-
-      renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams,
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await waitFor(() => {
-        expect(mockSetSearchParams).toHaveBeenCalled();
-      });
-    });
-
-    it("does not resume when no draftId in URL", async () => {
-      const searchParams = new URLSearchParams();
-
-      renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams,
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      // Give it time to potentially fire
-      await new Promise((r) => setTimeout(r, 50));
-
-      expect(mockResumeDraft).not.toHaveBeenCalled();
-    });
-
-    it("only resumes once (idempotent)", async () => {
-      const searchParams = new URLSearchParams("draftId=url-draft-123");
-
-      const { rerender } = renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams,
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await waitFor(() => {
-        expect(mockResumeDraft).toHaveBeenCalledTimes(1);
-      });
-
-      // Re-render should not trigger another resume
-      rerender();
-
-      expect(mockResumeDraft).toHaveBeenCalledTimes(1);
+      await act(async () => undefined);
+      expect(mocks.draft).not.toHaveBeenCalled();
+      expect(input.setSearchParams).not.toHaveBeenCalled();
     });
   });
 
-  // ------------------------------------------
-  // Meaningful draft dialog detection
-  // ------------------------------------------
-
-  describe("meaningful draft dialog", () => {
-    it("shows dialog when form has images and user is on intro tab", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(true);
+  it("gives way to a promise the page was opened for", async () => {
+    mocks.active.mockResolvedValue("draft-1");
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
     });
-
-    it("shows dialog when form has selections + form input", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              gardenAddress: MOCK_ADDRESSES.garden,
-              actionUID: 1,
-              feedback: "Some feedback",
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(true);
+    const page = writeWorkLinkIntent(new URLSearchParams(), {
+      ...kept,
+      commitmentId: 9n,
+      commitmentTitle: "Repair the north fence panel",
+      returnTo: `/home/${GARDEN}/commitments/9`,
     });
-
-    it("does not show dialog when only selections exist (no form input)", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              gardenAddress: MOCK_ADDRESSES.garden,
-              actionUID: 1,
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(false);
+    const input = { ...options(), searchParams: page };
+    mocks.resume.mockImplementation(async (id: string) => {
+      useWorkFlowStore.setState({ activeDraftId: id });
+      return "intro";
     });
+    const { result } = renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(result.current.isResumingFromUrl).toBe(false));
 
-    it("does not show dialog when not on intro tab", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: false,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(false);
-    });
-
-    it("does not show dialog when resuming from URL", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams("draftId=resume-draft"),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(false);
-    });
-
-    it("shows dialog when feedback + garden/action are present", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              gardenAddress: MOCK_ADDRESSES.garden,
-              actionUID: 1,
-              feedback: "Some work notes",
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(true);
-    });
+    expect(result.current.showDraftSheet).toBe(false);
+    expect(mocks.resume).not.toHaveBeenCalled();
+    expect(mocks.release).toHaveBeenCalledWith(mocks.user, 11155111, "draft-1");
+    expect(useWorkFlowStore.getState().activeDraftId).toBeNull();
+    expect(input.setSearchParams).not.toHaveBeenCalled();
   });
 
-  // ------------------------------------------
-  // handleContinueDraft
-  // ------------------------------------------
-
-  describe("handleContinueDraft", () => {
-    it("hides dialog when continuing with draft", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(true);
-
-      act(() => {
-        result.current.handleContinueDraft();
-      });
-
-      expect(result.current.showDraftDialog).toBe(false);
+  it("leaves with the old draft when the person starts fresh", async () => {
+    mocks.active.mockResolvedValue("draft-1");
+    mocks.draft.mockResolvedValue({
+      id: "draft-1",
+      userAddress: mocks.user,
+      chainId: 11155111,
+      gardenAddress: GARDEN,
+      actionUID: 5,
+      linkIntent: kept,
     });
-  });
+    const input = options();
+    const { result } = renderHook(() => useDraftResume(input));
+    await waitFor(() => expect(input.setSearchParams).toHaveBeenCalledTimes(1));
 
-  // ------------------------------------------
-  // handleStartFresh
-  // ------------------------------------------
-
-  describe("handleStartFresh", () => {
-    it("hides dialog and clears active draft", async () => {
-      mockActiveDraftId = "draft-to-clear";
-
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      expect(result.current.showDraftDialog).toBe(true);
-
-      await act(async () => {
-        await result.current.handleStartFresh();
-      });
-
-      expect(result.current.showDraftDialog).toBe(false);
-      expect(mockClearActiveDraft).toHaveBeenCalled();
+    await act(async () => {
+      await result.current.handleStartFresh();
     });
-
-    it("does not call clearActiveDraft when no active draft", async () => {
-      mockActiveDraftId = null;
-
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      await act(async () => {
-        await result.current.handleStartFresh();
-      });
-
-      expect(mockClearActiveDraft).not.toHaveBeenCalled();
-    });
-
-    it("handles clearActiveDraft errors gracefully", async () => {
-      mockActiveDraftId = "draft-error";
-      mockClearActiveDraft.mockRejectedValue(new Error("DB error"));
-
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: {
-              ...createDefaultFormState(),
-              images: [createMockFile()],
-            },
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      // Should not throw
-      await act(async () => {
-        await result.current.handleStartFresh();
-      });
-
-      // Dialog should still be hidden despite the error
-      expect(result.current.showDraftDialog).toBe(false);
-    });
-  });
-
-  // ------------------------------------------
-  // setShowDraftDialog
-  // ------------------------------------------
-
-  describe("setShowDraftDialog", () => {
-    it("allows manual control of dialog visibility", () => {
-      const { result } = renderHook(
-        () =>
-          useDraftResume({
-            formState: createDefaultFormState(),
-            isOnIntroTab: true,
-            searchParams: new URLSearchParams(),
-            setSearchParams: mockSetSearchParams,
-          }),
-        { wrapper: createWrapper(queryClient) }
-      );
-
-      act(() => {
-        result.current.setShowDraftDialog(true);
-      });
-
-      expect(result.current.showDraftDialog).toBe(true);
-
-      act(() => {
-        result.current.setShowDraftDialog(false);
-      });
-
-      expect(result.current.showDraftDialog).toBe(false);
-    });
+    const params = input.setSearchParams.mock.lastCall?.[0] as URLSearchParams;
+    expect(input.setSearchParams).toHaveBeenCalledTimes(2);
+    expect(params.get("linkCommitmentId")).toBeNull();
   });
 });

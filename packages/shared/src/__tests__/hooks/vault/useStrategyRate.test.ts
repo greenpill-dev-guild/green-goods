@@ -1,6 +1,6 @@
 /**
  * useStrategyRate Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Validates the Aave V3 APY fetching pipeline:
  * - Chain support detection (unsupported flag)
@@ -21,6 +21,10 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 42161,
 }));
 

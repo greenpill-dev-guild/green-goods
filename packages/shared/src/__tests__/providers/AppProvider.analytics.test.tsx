@@ -1,26 +1,29 @@
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppProvider } from "../../providers/App";
 
-const posthogProviderMock = vi.hoisted(() =>
-  vi.fn(({ children }: { children: ReactNode }) => <>{children}</>)
-);
+const initializePostHogMock = vi.hoisted(() => vi.fn());
 
-vi.mock("posthog-js/react", () => ({
-  PostHogProvider: posthogProviderMock,
+vi.mock("../../modules/app/posthog-browser", () => ({
+  initializePostHog: initializePostHogMock,
 }));
 
 describe("AppProvider PostHog key selection", () => {
   beforeEach(() => {
-    posthogProviderMock.mockClear();
+    initializePostHogMock.mockClear();
+    Object.defineProperty(document, "readyState", { configurable: true, value: "complete" });
+    window.requestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
+      callback({ didTimeout: false, timeRemaining: () => 50 });
+      return 1;
+    });
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    Reflect.deleteProperty(window, "requestIdleCallback");
   });
 
-  it("uses the default VITE_POSTHOG_KEY fallback by default", () => {
+  it("loads the browser transport after idle with the default key", async () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "client-project-key");
 
     render(
@@ -30,15 +33,10 @@ describe("AppProvider PostHog key selection", () => {
     );
 
     expect(screen.getByText("content")).toBeInTheDocument();
-    expect(posthogProviderMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "client-project-key",
-      }),
-      undefined
-    );
+    await waitFor(() => expect(initializePostHogMock).toHaveBeenCalledWith("client-project-key"));
   });
 
-  it("can disable default fallback so Admin never routes into the App project", () => {
+  it("can disable default fallback so Admin never routes into the App project", async () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "client-project-key");
 
     render(
@@ -48,6 +46,7 @@ describe("AppProvider PostHog key selection", () => {
     );
 
     expect(screen.getByText("admin content")).toBeInTheDocument();
-    expect(posthogProviderMock).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(initializePostHogMock).not.toHaveBeenCalled();
   });
 });

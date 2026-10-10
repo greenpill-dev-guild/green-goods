@@ -111,6 +111,6 @@ contract SepoliaGardenAccountMembershipForkTest is ForkTestBase {
         config.weightScheme = IGardensModule.WeightScheme.Linear;
         config.domainMask = 0x01;
         config.gardeners = new address[](0);
-        config.operators = new address[](0);
+        config.stewards = new address[](0);
     }
 }

@@ -45,7 +45,7 @@ export async function handleApprove(
     };
   }
 
-  if (user.role !== "operator") {
+  if (user.role !== "steward") {
     return {
       response: {
         text: agentMessage(message.locale, "approve.permission"),

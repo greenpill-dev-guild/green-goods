@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const REPO_ROOT = process.cwd();
 const DESIGN_PATH = join(REPO_ROOT, "docs/DESIGN.md");
@@ -23,7 +23,7 @@ const CSS_PATH = join(REPO_ROOT, "docs/src/css/custom.css");
 
 const LIGHT_BINDINGS = [
   { cssVar: "--docs-role-gardener", source: "roleAccents.gardener" },
-  { cssVar: "--docs-role-operator", source: "roleAccents.operator" },
+  { cssVar: "--docs-role-steward", source: "roleAccents.steward" },
   { cssVar: "--docs-role-assessment", source: "roleAccents.assessment" },
   { cssVar: "--docs-role-funder", source: "roleAccents.funder" },
   { cssVar: "--docs-role-builder", source: "roleAccents.builder" },
@@ -44,7 +44,7 @@ function readFrontMatter(path) {
   if (!match) {
     throw new Error(`Missing YAML front matter in ${path}`);
   }
-  return yaml.load(match[1]);
+  return yaml.load(match[1], { schema: yaml.YAML11_SCHEMA });
 }
 
 function pluck(record, dottedPath) {

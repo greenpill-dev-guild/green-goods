@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
-import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
+import { communityKeys } from "../../config/query-keys/identity";
 import { getGardenPoolsFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
 import type { GardenSignalPool } from "../../types/gardens-community";
-import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { annotateGardenSignalPools } from "../../utils/blockchain/garden-yield-wiring";
@@ -51,7 +52,7 @@ export function useGardenPools(gardenAddress?: Address, options: UseGardenPoolsO
   const communityAddress = options.communityAddress;
 
   const query = useQuery({
-    queryKey: queryKeys.community.pools(normalizedGarden ?? "", chainId),
+    queryKey: communityKeys.pools(normalizedGarden ?? "", chainId),
     queryFn: async (): Promise<GardenSignalPool[]> => {
       if (!normalizedGarden) return [];
       const garden = normalizedGarden as Address;

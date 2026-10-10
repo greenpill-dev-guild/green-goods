@@ -11,7 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import { type Address, isAddress } from "viem";
 import { resolveEnsAvatar } from "../../utils/blockchain/ens";
 import { cacheAvatar, getCachedAvatar } from "../../utils/storage/avatar-cache";
-import { queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { ensKeys } from "../../config/query-keys/identity";
 import type { UseEnsQueryOptions, UseEnsQueryResult } from "./useEnsQuery";
 
 /**
@@ -40,7 +41,7 @@ export function useEnsAvatar(
   const enabled = options.enabled ?? Boolean(normalized && isAddress(normalized));
 
   return useQuery({
-    queryKey: queryKeys.ens.avatar(normalized ?? ""),
+    queryKey: ensKeys.avatar(normalized ?? ""),
     queryFn: async () => {
       if (!normalized) return null;
 

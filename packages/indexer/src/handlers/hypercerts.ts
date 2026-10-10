@@ -1,17 +1,16 @@
-import { HypercertMinter, HypercertStatus } from "../../generated";
+import { indexer, type Enum, type Hypercert, type HypercertClaim } from "envio";
 
-import type {
-  Hypercert,
-  HypercertClaim,
-  HypercertMinter_ClaimStored_handlerArgs,
-  HypercertMinter_TransferSingle_handlerArgs,
-} from "../../generated/src/Types.gen";
+type HypercertStatus = Enum<"HypercertStatus">;
 
 import {
   createDefaultHypercert,
   fetchJson,
   getTxHash,
+  hypercertMetadataEffect,
+  indexCommitmentHypercert,
+  isCacheableIpfsUri,
   parseHypercertMetadata,
+  poolingEntityId,
   ZERO_ADDRESS,
 } from "./shared";
 
@@ -20,9 +19,14 @@ import {
 // ============================================================================
 
 // Handler for HypercertMinter TransferSingle event (detects mints)
-// This fires for all ERC1155 transfers, we filter for mints (from = zero address)
-HypercertMinter.TransferSingle.handler(
-  async ({ event, context }: HypercertMinter_TransferSingle_handlerArgs<void>) => {
+// Fetch only mints; ordinary transfers and burns do not change these projections.
+indexer.onEvent(
+  {
+    contract: "HypercertMinter",
+    event: "TransferSingle",
+    where: { params: { from: ZERO_ADDRESS } },
+  },
+  async ({ event, context }) => {
     // Only process mints (from zero address)
     if (event.params.from.toLowerCase() !== ZERO_ADDRESS) {
       return;
@@ -128,8 +132,9 @@ HypercertMinter.TransferSingle.handler(
 );
 
 // Handler for HypercertMinter ClaimStored event (stores metadata URI)
-HypercertMinter.ClaimStored.handler(
-  async ({ event, context }: HypercertMinter_ClaimStored_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "HypercertMinter", event: "ClaimStored" },
+  async ({ event, context }) => {
     const tokenId = event.params.claimID;
     const hypercertId = `${event.chainId}-${tokenId.toString()}`;
     const timestamp = event.block.timestamp;
@@ -139,21 +144,60 @@ HypercertMinter.ClaimStored.handler(
     const baseHypercert =
       existingHypercert ?? createDefaultHypercert(hypercertId, event.chainId, tokenId, timestamp);
 
-    const metadata = await fetchJson(event.params.uri, {
+    const fetchContext = {
       eventType: "ClaimStored",
       chainId: event.chainId,
       blockNumber: event.block.number,
       txHash: getTxHash(event.transaction),
       log: context.log,
-    });
+    };
+    const cacheable = isCacheableIpfsUri(event.params.uri);
+    let metadata: unknown = cacheable
+      ? JSON.parse(await context.effect(hypercertMetadataEffect, event.params.uri))
+      : await fetchJson(event.params.uri, fetchContext);
+    // Envio memoizes even uncached null outputs within a batch. Preserve the
+    // processing-time retry when the preload exhausted its attempts.
+    if (cacheable && metadata === null && !context.isPreload) {
+      metadata = await fetchJson(event.params.uri, fetchContext);
+    }
+    if (metadata === null) {
+      const existingCommitmentBundle = baseHypercert.bundleKind === "COMMITMENT";
+      context.Hypercert.set({
+        ...baseHypercert,
+        metadataUri: event.params.uri,
+        totalUnits: event.params.totalUnits,
+        bundleKind: existingCommitmentBundle ? "COMMITMENT" : "WORK_LEGACY",
+        metadataReconciliationRequired: true,
+        commitmentIds: existingCommitmentBundle ? baseHypercert.commitmentIds : [],
+        commitmentEntityIds: existingCommitmentBundle ? baseHypercert.commitmentEntityIds : [],
+        needUIDs: existingCommitmentBundle ? baseHypercert.needUIDs : [],
+        updatedAt: timestamp,
+      });
+      context.log.warn("Hypercert metadata requires reconciliation", {
+        hypercertId,
+        uri: event.params.uri,
+        chainId: event.chainId,
+        blockNumber: event.block.number,
+        correlationId: getTxHash(event.transaction),
+      });
+      return;
+    }
 
-    const parsedMetadata = metadata ? parseHypercertMetadata(metadata) : {};
+    const parsedMetadata = parseHypercertMetadata(metadata);
     const parsedAttestationUIDs = parsedMetadata.attestationUIDs;
+    const bundleKind = parsedMetadata.bundleKind ?? "WORK_LEGACY";
+    const commitmentIds = bundleKind === "COMMITMENT" ? (parsedMetadata.commitmentIds ?? []) : [];
+    const needUIDs = bundleKind === "COMMITMENT" ? (parsedMetadata.needUIDs ?? []) : [];
 
     const updatedHypercert: Hypercert = {
       ...baseHypercert,
       metadataUri: event.params.uri,
       totalUnits: event.params.totalUnits,
+      bundleKind,
+      metadataReconciliationRequired: false,
+      commitmentIds,
+      commitmentEntityIds: commitmentIds.map((id) => poolingEntityId(event.chainId, id)),
+      needUIDs,
       updatedAt: timestamp,
       ...(parsedMetadata.gardenId ? { garden: parsedMetadata.gardenId } : {}),
       ...(parsedAttestationUIDs
@@ -165,6 +209,9 @@ HypercertMinter.ClaimStored.handler(
     };
 
     context.Hypercert.set(updatedHypercert);
+    if (bundleKind === "COMMITMENT") {
+      await indexCommitmentHypercert(context, updatedHypercert, timestamp);
+    }
 
     context.log.info("Hypercert claim stored", {
       hypercertId,

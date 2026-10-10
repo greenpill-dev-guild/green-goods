@@ -1,6 +1,6 @@
 name: CI Gate
 
-# Single required-status aggregator for branch protection (June maturation, PRD-563 §0.2).
+# Single required-status aggregator for branch protection.
 #
 # Why this exists: the per-package workflows (client / admin / shared / agent /
 # contracts / indexer / design / docs / supply-chain) are path-filtered, so each
@@ -8,27 +8,29 @@ name: CI Gate
 # branch-protection required checks directly — an unrelated PR would block
 # forever on a check that never reports.
 #
-# This gate always runs (no path filter) and verifies that every CI check which
-# DID run on the PR succeeded. Point the branch ruleset's required_status_checks
-# at the single "CI Gate" check. Checks that never appear (their workflow was not
-# triggered for this PR) are simply not required.
+# This gate derives the workflows expected from the PR's changed files, then
+# fails as soon as a registered expected workflow completes without success. It
+# otherwise waits for every expected workflow run to register and report
+# success. A missing workflow is a failure, so trigger drift and workflow-name
+# typos cannot silently weaken branch protection.
 #
-# Approach: after a short grace period (so triggered workflows register their
-# check-runs), poll the PR head SHA's check-runs until every *present* required
-# check has completed, then fail if any concluded as anything other than
-# success / skipped / neutral. Fails closed on API error.
+# Maintenance: workflow selection lives in scripts/data/validation-policy.json
+# and is rendered by scripts/quality/select-validation.mjs. Standard-library
+# selector, local-runner, and polling fixtures run before the live gate.
 #
-# Maintenance: keep REQUIRED below in sync with the per-package workflow job
-# `name:` values. Adding a name that some PRs never trigger is safe (absent =
-# not required); a typo just means that check is never enforced.
+# Base branches are deliberately unfiltered: stacked pull requests target
+# another feature branch as their base, and a base filter here (and in the
+# per-package workflows) used to leave stacked layers with no CI at all —
+# required checks then showed blocked forever. Push triggers keep their
+# main/develop filters; PR-triggered CI runs for every layer of a stack.
 
 on:
   pull_request:
-    branches: [main, develop]
 
 permissions:
+  actions: read
   contents: read
-  checks: read
+  pull-requests: read
 
 concurrency:
   group: ci-gate-${{ github.ref }}
@@ -40,57 +42,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Verify all triggered CI checks pass
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+
+      - name: Test validation selection, architecture rules, polling, and deploy gating
+        run: node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs scripts/ops/vercel-ignore.test.mjs scripts/quality/check-commit-identity.test.mjs scripts/ops/prune-codeql-caches.test.mjs
+
+      # Every pull request passes through this gate, whatever it touches, so this is the one place
+      # that sees a commit made under a leaked test identity from any machine. The commits come
+      # from the API because this job checks out at depth 1.
+      - name: Check commit identities
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/quality/check-commit-identity.mjs --pull-request
+
+      - name: Check package and source architecture rules
+        run: node scripts/quality/check-react-patterns.js
+
+      - name: Verify all expected CI workflows pass
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-
-          # CI check (job) names this gate enforces. A name absent on the PR head
-          # SHA = its path-filtered workflow did not trigger = not required here.
-          REQUIRED='["Test","Lint And Build","Lint And Typecheck","Lint Typecheck And Build","Detect Shared Impact","Unit Tests","Test Realism Audit","Playwright Client CI","Playwright Admin CI","Design Guardrails","Storybook","Build Docs","audit"]'
-
-          echo "Grace period (45s) so triggered workflows register their check-runs..."
-          sleep 45
-
-          # Match on the base job name: GitHub appends " / <workflow>" to some
-          # check-run names (e.g. "audit / Supply-chain guardrails"), so strip it.
-          for attempt in $(seq 1 75); do
-            runs="$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs" \
-              --jq '.check_runs[] | {name, status, conclusion}')"
-
-            pending="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
-              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null) | select(.status != "completed")]')"
-            pending_count="$(printf '%s' "${pending}" | jq 'length')"
-
-            if [ "${pending_count}" -gt 0 ]; then
-              echo "Attempt ${attempt}: waiting on ${pending_count} required check(s)..."
-              printf '%s' "${pending}" | jq -r '.[] | "  - \(.name) [\(.status)]"'
-              sleep 20
-              continue
-            fi
-
-            present="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
-              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null)]')"
-            present_count="$(printf '%s' "${present}" | jq 'length')"
-            bad="$(printf '%s' "${present}" | jq \
-              '[.[] | select(.conclusion as $c | ($c != "success" and $c != "skipped" and $c != "neutral"))]')"
-            bad_count="$(printf '%s' "${bad}" | jq 'length')"
-
-            echo "All ${present_count} required check(s) present have completed:"
-            printf '%s' "${present}" | jq -r '.[] | "  - \(.name): \(.conclusion)"'
-
-            if [ "${bad_count}" -gt 0 ]; then
-              echo "::error::CI Gate failed - required checks did not pass:"
-              printf '%s' "${bad}" | jq -r '.[] | "  x \(.name): \(.conclusion)"'
-              exit 1
-            fi
-
-            echo "CI Gate passed - every triggered required check succeeded."
-            exit 0
-          done
-
-          echo "::error::CI Gate timed out waiting for required checks to complete."
-          exit 1
+        run: node scripts/quality/ci-gate.mjs

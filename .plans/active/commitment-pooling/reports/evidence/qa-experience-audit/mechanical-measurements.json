@@ -1,0 +1,1507 @@
+{
+  "touchTargets": [
+    {
+      "story": "PoolStatusCard/Open",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 191,
+          "h": 32,
+          "text": "Review live commitments",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 83,
+          "h": 32,
+          "text": "Edit pool",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 77,
+          "h": 32,
+          "text": "Pause…",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "PoolCommitmentsCard/Open",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 167,
+          "h": 32,
+          "text": "Seed commitment",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 188,
+          "h": 38,
+          "text": "Search commitments",
+          "comp": "AdminSearchToolbar",
+          "tag": "input"
+        },
+        {
+          "w": 66,
+          "h": 32,
+          "text": "Open",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 128,
+          "h": 32,
+          "text": "Confirmed",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 58,
+          "h": 32,
+          "text": "Past",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 114,
+          "h": 32,
+          "text": "Past due (1)",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "PoolCyclesCard/OpenSeason",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 126,
+          "h": 32,
+          "text": "Start campaign",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "GardenPoolTab/Open",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 126,
+          "h": 32,
+          "text": "Start campaign",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 86,
+          "h": 32,
+          "text": "Decline…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 72,
+          "h": 32,
+          "text": "Accept",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 86,
+          "h": 32,
+          "text": "Decline…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 72,
+          "h": 32,
+          "text": "Accept",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 167,
+          "h": 32,
+          "text": "Seed commitment",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 348,
+          "h": 38,
+          "text": "Search commitments",
+          "comp": "AdminSearchToolbar",
+          "tag": "input"
+        },
+        {
+          "w": 90,
+          "h": 32,
+          "text": "Open",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 104,
+          "h": 32,
+          "text": "Confirmed",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 58,
+          "h": 32,
+          "text": "Past",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 114,
+          "h": 32,
+          "text": "Past due (1)",
+          "comp": "AdminFilterChip",
+          "tag": "button"
+        },
+        {
+          "w": 97,
+          "h": 32,
+          "text": "Expire now",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 191,
+          "h": 32,
+          "text": "Review live commitments",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 83,
+          "h": 32,
+          "text": "Edit pool",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 77,
+          "h": 32,
+          "text": "Pause…",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "HubConfirmQueue/Queue",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 520,
+          "h": 40,
+          "text": "Commitment 80x1111…1111 · Rio Rainforest",
+          "comp": "HubConfirmQueue",
+          "tag": "button"
+        },
+        {
+          "w": 85,
+          "h": 32,
+          "text": "Not yet…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 78,
+          "h": 32,
+          "text": "Confirm",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 473,
+          "h": 40,
+          "text": "Commitment 90x1111…1111 · Rio Rainforest",
+          "comp": "HubConfirmQueue",
+          "tag": "button"
+        },
+        {
+          "w": 85,
+          "h": 32,
+          "text": "Not yet…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 90,
+          "h": 32,
+          "text": "Confirm…",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "CommunityPools/Protocol",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 133,
+          "h": 42,
+          "text": "Protocol pool",
+          "comp": "AdminTabRail",
+          "tag": "button"
+        },
+        {
+          "w": 120,
+          "h": 42,
+          "text": "This garden",
+          "comp": "AdminTabRail",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "CommitmentDialogPanel/Detail",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 166,
+          "h": 19,
+          "text": "Decorators documentation",
+          "comp": null,
+          "tag": "a"
+        },
+        {
+          "w": 59,
+          "h": 19,
+          "text": "Webpack",
+          "comp": null,
+          "tag": "a"
+        },
+        {
+          "w": 25,
+          "h": 19,
+          "text": "Vite",
+          "comp": null,
+          "tag": "a"
+        },
+        {
+          "w": 239,
+          "h": 19,
+          "text": "Environment Variables documentation",
+          "comp": null,
+          "tag": "a"
+        }
+      ]
+    },
+    {
+      "story": "PoolSetupFlow/FirstRun",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 40,
+          "h": 40,
+          "text": "Close",
+          "comp": "AdminDialog",
+          "tag": "button"
+        },
+        {
+          "w": 105,
+          "h": 40,
+          "text": "Cancel",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 87,
+          "h": 40,
+          "text": "Next",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "SeedCommitmentDialog/What",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 40,
+          "h": 40,
+          "text": "Close",
+          "comp": "AdminDialog",
+          "tag": "button"
+        },
+        {
+          "w": 720,
+          "h": 36,
+          "text": "Season · Season 12Campaign · Campaign 13",
+          "comp": "SheetBody",
+          "tag": "select"
+        },
+        {
+          "w": 105,
+          "h": 40,
+          "text": "Cancel",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 87,
+          "h": 40,
+          "text": "Next",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "PoolClaimsCard/Waiting",
+      "surface": "admin",
+      "small": [
+        {
+          "w": 86,
+          "h": 32,
+          "text": "Decline…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 72,
+          "h": 32,
+          "text": "Accept",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 86,
+          "h": 32,
+          "text": "Decline…",
+          "comp": "AdminButton",
+          "tag": "button"
+        },
+        {
+          "w": 72,
+          "h": 32,
+          "text": "Accept",
+          "comp": "AdminButton",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "CommitmentRow/ProviderNeedsYou",
+      "surface": "client",
+      "small": []
+    },
+    {
+      "story": "ConfirmSheet/AskSupport",
+      "surface": "client",
+      "small": [
+        {
+          "w": 36,
+          "h": 36,
+          "text": "Close",
+          "comp": "DialogShell",
+          "tag": "button"
+        },
+        {
+          "w": 84,
+          "h": 20,
+          "text": "0x22...222",
+          "comp": "ConfirmSummary",
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "ProofComposer/MediaEmpty",
+      "surface": "client",
+      "small": [
+        {
+          "w": 1,
+          "h": 1,
+          "text": "Skip to content",
+          "comp": null,
+          "tag": "a"
+        },
+        {
+          "w": 32,
+          "h": 32,
+          "text": "Go back",
+          "comp": null,
+          "tag": "button"
+        }
+      ]
+    },
+    {
+      "story": "CycleRail/SeasonAndCampaign",
+      "surface": "client",
+      "small": []
+    }
+  ],
+  "radius": [
+    {
+      "story": "PoolStatusCard/Open",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "PoolStatusCard",
+              "w": 352
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "PoolStatusCard",
+              "w": 123
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 191
+            },
+            {
+              "comp": "AdminButton",
+              "w": 83
+            },
+            {
+              "comp": "AdminButton",
+              "w": 77
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "PoolCommitmentsCard/Open",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "PoolCommitmentsCard",
+              "w": 640
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 167
+            },
+            {
+              "comp": "AdminSearchToolbar",
+              "w": 215
+            }
+          ]
+        },
+        {
+          "radius": "8px",
+          "els": [
+            {
+              "comp": "AdminFilterChip",
+              "w": 66
+            },
+            {
+              "comp": "AdminFilterChip",
+              "w": 128
+            },
+            {
+              "comp": "AdminFilterChip",
+              "w": 58
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "PoolCommitmentsCard",
+              "w": 68
+            },
+            {
+              "comp": "PoolCommitmentsCard",
+              "w": 64
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "PoolCyclesCard/OpenSeason",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "PoolCyclesCard",
+              "w": 640
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "PoolCyclesCard",
+              "w": 82
+            },
+            {
+              "comp": "PoolCyclesCard",
+              "w": 69
+            },
+            {
+              "comp": "PoolCyclesCard",
+              "w": 100
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 126
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "GardenPoolTab/Open",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "PoolSummaryRow",
+              "w": 261
+            },
+            {
+              "comp": "PoolSummaryRow",
+              "w": 261
+            },
+            {
+              "comp": "PoolSummaryRow",
+              "w": 261
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "PoolCyclesCard",
+              "w": 82
+            },
+            {
+              "comp": "PoolCyclesCard",
+              "w": 69
+            },
+            {
+              "comp": "PoolCyclesCard",
+              "w": 100
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 126
+            },
+            {
+              "comp": "AdminButton",
+              "w": 86
+            },
+            {
+              "comp": "AdminButton",
+              "w": 72
+            }
+          ]
+        },
+        {
+          "radius": "8px",
+          "els": [
+            {
+              "comp": "AdminFilterChip",
+              "w": 90
+            },
+            {
+              "comp": "AdminFilterChip",
+              "w": 104
+            },
+            {
+              "comp": "AdminFilterChip",
+              "w": 58
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "HubConfirmQueue/Queue",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "HubConfirmQueue",
+              "w": 640
+            },
+            {
+              "comp": "HubConfirmQueue",
+              "w": 640
+            }
+          ]
+        },
+        {
+          "radius": "8px",
+          "els": [
+            {
+              "comp": "HubConfirmQueue",
+              "w": 520
+            },
+            {
+              "comp": "HubConfirmQueue",
+              "w": 473
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "HubConfirmQueue",
+              "w": 88
+            },
+            {
+              "comp": "HubConfirmQueue",
+              "w": 135
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 85
+            },
+            {
+              "comp": "AdminButton",
+              "w": 78
+            },
+            {
+              "comp": "AdminButton",
+              "w": 85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "CommunityPools/Protocol",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "GardenPoolTab",
+              "w": 1216
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "CommitmentDialogPanel/Detail",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "6px",
+          "els": [
+            {
+              "comp": "sb-errordisplay_main",
+              "w": 1200
+            }
+          ]
+        },
+        {
+          "radius": "4px",
+          "els": [
+            {
+              "comp": "sb-errordisplay_code",
+              "w": 1150
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "PoolSetupFlow/FirstRun",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "AdminDialog",
+              "w": 40
+            }
+          ]
+        },
+        {
+          "radius": "8px",
+          "els": [
+            {
+              "comp": "SheetBody",
+              "w": 720
+            },
+            {
+              "comp": "AdminTextField",
+              "w": 720
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 105
+            },
+            {
+              "comp": "AdminButton",
+              "w": 87
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "SeedCommitmentDialog/What",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "AdminDialog",
+              "w": 40
+            }
+          ]
+        },
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "AdminChoiceGroup",
+              "w": 720
+            },
+            {
+              "comp": "AdminChoiceGroup",
+              "w": 720
+            },
+            {
+              "comp": "AdminChoiceGroup",
+              "w": 720
+            }
+          ]
+        },
+        {
+          "radius": "8px",
+          "els": [
+            {
+              "comp": "SheetBody",
+              "w": 720
+            },
+            {
+              "comp": "AdminTextField",
+              "w": 720
+            },
+            {
+              "comp": "SheetBody",
+              "w": 720
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 105
+            },
+            {
+              "comp": "AdminButton",
+              "w": 87
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "story": "PoolClaimsCard/Waiting",
+      "surface": "admin",
+      "radii": [
+        {
+          "radius": "12px",
+          "els": [
+            {
+              "comp": "PoolClaimsCard",
+              "w": 640
+            }
+          ]
+        },
+        {
+          "radius": "3.35544e+07px",
+          "els": [
+            {
+              "comp": "PoolClaimsCard",
+              "w": 88
+            },
+            {
+              "comp": "PoolClaimsCard",
+              "w": 83
+            },
+            {
+              "comp": "PoolClaimsCard",
+              "w": 88
+            }
+          ]
+        },
+        {
+          "radius": "9999px",
+          "els": [
+            {
+              "comp": "AdminButton",
+              "w": 86
+            },
+            {
+              "comp": "AdminButton",
+              "w": 72
+            },
+            {
+              "comp": "AdminButton",
+              "w": 86
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "shadows": [
+    {
+      "story": "PoolStatusCard/Open",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "PoolStatusCard"
+        }
+      ]
+    },
+    {
+      "story": "PoolCommitmentsCard/Open",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "PoolCommitmentsCard"
+        },
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(26, 117, 68) 0px 0px 0px 2px, rgba",
+          "comp": "AdminFilterChip"
+        }
+      ]
+    },
+    {
+      "story": "PoolCyclesCard/OpenSeason",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "PoolCyclesCard"
+        }
+      ]
+    },
+    {
+      "story": "GardenPoolTab/Open",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "PoolCyclesCard"
+        }
+      ]
+    },
+    {
+      "story": "HubConfirmQueue/Queue",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "HubConfirmQueue"
+        }
+      ]
+    },
+    {
+      "story": "CommunityPools/Protocol",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "GardenPoolTab"
+        }
+      ]
+    },
+    {
+      "story": "CommitmentDialogPanel/Detail",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0.1) 0px 0px 64px 0px",
+          "comp": "sb-errordisplay_main"
+        }
+      ]
+    },
+    {
+      "story": "PoolSetupFlow/FirstRun",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(26, 117, 68) 0px 0px 0px 2px inset",
+          "comp": "SheetBody"
+        },
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "AdminButton"
+        }
+      ]
+    },
+    {
+      "story": "SeedCommitmentDialog/What",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(26, 117, 68) 0px 0px 0px 2px, rgba",
+          "comp": "AdminDialog"
+        },
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgb(245, 245, 244) 0px 0px 0px 1px ins",
+          "comp": "SheetBody"
+        },
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "AdminButton"
+        }
+      ]
+    },
+    {
+      "story": "PoolClaimsCard/Waiting",
+      "surface": "admin",
+      "shadows": [
+        {
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba",
+          "comp": "PoolClaimsCard"
+        }
+      ]
+    }
+  ],
+  "sharedButton": [],
+  "errorAssoc": [
+    {
+      "story": "SetupStepCycle/DatesOutOfOrder",
+      "fields": [
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_0_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_1_"
+        },
+        {
+          "invalid": "true",
+          "describedby": "_r_2_-supporting",
+          "label": "_r_2_"
+        }
+      ]
+    },
+    {
+      "story": "AllocationEditor/InvalidSum",
+      "fields": [
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_0_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_1_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_2_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_3_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_4_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_5_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_6_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_7_"
+        }
+      ]
+    },
+    {
+      "story": "SeedStepWhat/MissingTitle",
+      "fields": [
+        {
+          "invalid": null,
+          "describedby": null,
+          "label": "seed-what-cycle"
+        },
+        {
+          "invalid": "true",
+          "describedby": "_r_0_-supporting",
+          "label": "_r_0_"
+        },
+        {
+          "invalid": null,
+          "describedby": null,
+          "label": "seed-what"
+        }
+      ]
+    },
+    {
+      "story": "SeedStepHowMuch/MissingUnit",
+      "fields": [
+        {
+          "invalid": "true",
+          "describedby": "_r_0_-supporting",
+          "label": "_r_0_"
+        },
+        {
+          "invalid": "true",
+          "describedby": "_r_1_-supporting",
+          "label": "_r_1_"
+        },
+        {
+          "invalid": "false",
+          "describedby": null,
+          "label": "_r_2_"
+        }
+      ]
+    }
+  ],
+  "tabRail": [
+    {
+      "story": "Workspaces/Garden(Pool)",
+      "width": 465,
+      "scrollWidth": 397,
+      "clientWidth": 393,
+      "overflow": 4,
+      "activeInView": true,
+      "activeText": "Pool"
+    },
+    {
+      "story": "Workspaces/Garden(Pool)",
+      "width": 375,
+      "scrollWidth": 397,
+      "clientWidth": 303,
+      "overflow": 94,
+      "activeInView": true,
+      "activeText": "Pool"
+    },
+    {
+      "story": "Workspaces/Hub(Confirm)",
+      "width": 465,
+      "scrollWidth": 440,
+      "clientWidth": 393,
+      "overflow": 47,
+      "activeInView": true,
+      "activeText": "Confirm"
+    },
+    {
+      "story": "Workspaces/Hub(Confirm)",
+      "width": 375,
+      "scrollWidth": 440,
+      "clientWidth": 303,
+      "overflow": 137,
+      "activeInView": true,
+      "activeText": "Confirm"
+    }
+  ],
+  "darkProbe": [
+    {
+      "story": "PoolStatusCard/Open",
+      "surface": "admin",
+      "theme": "light",
+      "dataTheme": "light",
+      "bodyBg": "rgb(255, 255, 255)",
+      "m3Surface": "255 255 255",
+      "m3OnSurface": "12 10 9",
+      "surfBg": "rgb(255, 255, 255)"
+    },
+    {
+      "story": "PoolStatusCard/Open",
+      "surface": "admin",
+      "theme": "dark",
+      "dataTheme": "dark",
+      "bodyBg": "rgb(12, 10, 9)",
+      "m3Surface": "17 12 8",
+      "m3OnSurface": "250 250 249",
+      "surfBg": "rgb(12, 10, 9)"
+    },
+    {
+      "story": "HubConfirmQueue/Queue",
+      "surface": "admin",
+      "theme": "light",
+      "dataTheme": "light",
+      "bodyBg": "rgb(255, 255, 255)",
+      "m3Surface": "255 255 255",
+      "m3OnSurface": "12 10 9",
+      "surfBg": "rgb(255, 255, 255)"
+    },
+    {
+      "story": "HubConfirmQueue/Queue",
+      "surface": "admin",
+      "theme": "dark",
+      "dataTheme": "dark",
+      "bodyBg": "rgb(12, 10, 9)",
+      "m3Surface": "17 12 8",
+      "m3OnSurface": "250 250 249",
+      "surfBg": "rgb(12, 10, 9)"
+    },
+    {
+      "story": "CommitmentsSection/Record",
+      "surface": "editorial",
+      "theme": "light",
+      "dataTheme": "light",
+      "bodyBg": "rgb(255, 255, 255)",
+      "m3Surface": "255 255 255",
+      "m3OnSurface": "12 10 9",
+      "surfBg": "rgb(255, 255, 255)"
+    },
+    {
+      "story": "CommitmentsSection/Record",
+      "surface": "editorial",
+      "theme": "dark",
+      "dataTheme": "dark",
+      "bodyBg": "rgb(12, 10, 9)",
+      "m3Surface": "17 12 8",
+      "m3OnSurface": "250 250 249",
+      "surfBg": "rgb(12, 10, 9)"
+    },
+    {
+      "story": "CommitmentRow/ProviderNeedsYou",
+      "surface": "client",
+      "theme": "light",
+      "dataTheme": "light",
+      "bodyBg": "rgb(255, 255, 255)",
+      "m3Surface": "255 255 255",
+      "m3OnSurface": "12 10 9",
+      "surfBg": "rgb(255, 255, 255)"
+    },
+    {
+      "story": "CommitmentRow/ProviderNeedsYou",
+      "surface": "client",
+      "theme": "dark",
+      "dataTheme": "dark",
+      "bodyBg": "rgb(12, 10, 9)",
+      "m3Surface": "17 12 8",
+      "m3OnSurface": "250 250 249",
+      "surfBg": "rgb(12, 10, 9)"
+    }
+  ],
+  "localeOverflow": [
+    {
+      "screen": "pooltab",
+      "locale": "es",
+      "docOverflow": 0,
+      "clipped": [
+        {
+          "text": "Compromisos",
+          "clip": 32,
+          "ellipsis": true
+        },
+        {
+          "text": "Jardineros",
+          "clip": 13,
+          "ellipsis": true
+        },
+        {
+          "text": "Energy & Uptime Check",
+          "clip": 87,
+          "ellipsis": true
+        },
+        {
+          "text": "Sorting & Breakdown",
+          "clip": 67,
+          "ellipsis": true
+        },
+        {
+          "text": "Workshop Delivered",
+          "clip": 61,
+          "ellipsis": true
+        },
+        {
+          "text": "Maintenance Activity",
+          "clip": 68,
+          "ellipsis": true
+        },
+        {
+          "text": "Survival Check",
+          "clip": 23,
+          "ellipsis": true
+        },
+        {
+          "text": "Planting Event",
+          "clip": 17,
+          "ellipsis": true
+        },
+        {
+          "text": "Compost/Upcycle Batch",
+          "clip": 91,
+          "ellipsis": true
+        },
+        {
+          "text": "Publish Session & Open Roster",
+          "clip": 138,
+          "ellipsis": true
+        },
+        {
+          "text": "Node Operation Log",
+          "clip": 60,
+          "ellipsis": true
+        },
+        {
+          "text": "Energy & Uptime Check",
+          "clip": 87,
+          "ellipsis": true
+        }
+      ]
+    },
+    {
+      "screen": "commitment-1006",
+      "locale": "es",
+      "docOverflow": 0,
+      "clipped": []
+    },
+    {
+      "screen": "composer-offer",
+      "locale": "es",
+      "docOverflow": 0,
+      "clipped": [
+        {
+          "text": "Siguiente",
+          "clip": 8,
+          "ellipsis": false
+        }
+      ]
+    },
+    {
+      "screen": "pooltab",
+      "locale": "pt",
+      "docOverflow": 0,
+      "clipped": [
+        {
+          "text": "Compromissos",
+          "clip": 38,
+          "ellipsis": true
+        },
+        {
+          "text": "Jardineiros",
+          "clip": 16,
+          "ellipsis": true
+        },
+        {
+          "text": "Energy & Uptime Check",
+          "clip": 84,
+          "ellipsis": true
+        },
+        {
+          "text": "Sorting & Breakdown",
+          "clip": 64,
+          "ellipsis": true
+        },
+        {
+          "text": "Workshop Delivered",
+          "clip": 58,
+          "ellipsis": true
+        },
+        {
+          "text": "Maintenance Activity",
+          "clip": 65,
+          "ellipsis": true
+        },
+        {
+          "text": "Survival Check",
+          "clip": 20,
+          "ellipsis": true
+        },
+        {
+          "text": "Planting Event",
+          "clip": 14,
+          "ellipsis": true
+        },
+        {
+          "text": "Compost/Upcycle Batch",
+          "clip": 88,
+          "ellipsis": true
+        },
+        {
+          "text": "Publish Session & Open Roster",
+          "clip": 135,
+          "ellipsis": true
+        },
+        {
+          "text": "Node Operation Log",
+          "clip": 57,
+          "ellipsis": true
+        },
+        {
+          "text": "Energy & Uptime Check",
+          "clip": 84,
+          "ellipsis": true
+        }
+      ]
+    },
+    {
+      "screen": "commitment-1006",
+      "locale": "pt",
+      "docOverflow": 0,
+      "clipped": []
+    },
+    {
+      "screen": "composer-offer",
+      "locale": "pt",
+      "docOverflow": 0,
+      "clipped": [
+        {
+          "text": "Próximo",
+          "clip": 8,
+          "ellipsis": false
+        }
+      ]
+    }
+  ],
+  "consoleErrors": [
+    {
+      "screen": "pooltab-es",
+      "errors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin"
+      ]
+    },
+    {
+      "screen": "pooltab-pt",
+      "errors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin"
+      ]
+    },
+    {
+      "screen": "garden",
+      "errors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin"
+      ]
+    },
+    {
+      "screen": "editorial-impact",
+      "errors": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin"
+      ]
+    }
+  ],
+  "titleTruncation": [
+    {
+      "story": "CommitmentRow/ProviderNeedsYou",
+      "width": 320,
+      "docOverflow": 0,
+      "clipped": []
+    },
+    {
+      "story": "CommitmentRow/Named",
+      "width": 320,
+      "docOverflow": 0,
+      "clipped": [
+        {
+          "text": "Compost delivery to the beds",
+          "clip": 40,
+          "ellipsis": true
+        }
+      ]
+    },
+    {
+      "story": "CommitmentRow/QuantityGrammar",
+      "width": 320,
+      "docOverflow": 0,
+      "clipped": []
+    }
+  ]
+}

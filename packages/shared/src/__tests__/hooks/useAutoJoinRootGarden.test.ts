@@ -4,9 +4,8 @@
  * Tests for auto-joining root garden on first login.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock wagmi
@@ -56,6 +55,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Mock utilities
 vi.mock("../../utils/blockchain/contracts", () => ({
   GardenAccountABI: [
@@ -96,7 +99,13 @@ vi.mock("../../components/toast", () => ({
 
 import { readContract } from "@wagmi/core";
 import { checkMembership, useAutoJoinRootGarden } from "../../hooks/garden/useAutoJoinRootGarden";
-import { createMockGarden, createMockSmartAccountClient, MOCK_ADDRESSES } from "../test-utils";
+import {
+  createMockGarden,
+  createMockSmartAccountClient,
+  MOCK_ADDRESSES,
+} from "../test-utils/mock-factories";
+import { createTestQueryClient } from "../test-utils/query-client";
+import { renderHookWithQueryClient } from "../test-utils/query-client-render";
 
 describe("hooks/garden/useAutoJoinRootGarden", () => {
   let queryClient: QueryClient;
@@ -118,18 +127,8 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
     };
   })();
 
-  const createWrapper = () => {
-    return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
     localStorageMock.clear();
 
@@ -155,7 +154,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
           id: "root-garden",
           tokenID: BigInt(0),
           gardeners: [],
-          operators: [],
+          stewards: [],
         }),
       ],
       isLoading: false,
@@ -198,25 +197,19 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
 
   describe("hook initialization", () => {
     it("returns rootGardenAddress from config", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       expect(result.current.rootGardenAddress).toBe("0xRootGarden123456789012345678901234567890");
     });
 
     it("provides joinGarden function", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       expect(typeof result.current.joinGarden).toBe("function");
     });
 
     it("provides dismissPrompt function", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       expect(typeof result.current.dismissPrompt).toBe("function");
     });
@@ -234,9 +227,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       await act(async () => {
         await result.current.joinGarden();
@@ -258,9 +249,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       // Should not throw - AlreadyGardener is handled gracefully
       await act(async () => {
@@ -284,9 +273,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
         eoa: null,
       });
 
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       await act(async () => {
         await result.current.joinGarden();
@@ -301,9 +288,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
 
   describe("Loading states", () => {
     it("starts with isLoading false when not pending", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       // isLoading is derived from internal state and isPending
       // Initially should be false when no operation is in progress
@@ -313,9 +298,7 @@ describe("hooks/garden/useAutoJoinRootGarden", () => {
 
   describe("dismissPrompt", () => {
     it("sets localStorage flag with correct key", () => {
-      const { result } = renderHook(() => useAutoJoinRootGarden(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useAutoJoinRootGarden(), { queryClient });
 
       act(() => {
         result.current.dismissPrompt();

@@ -1,21 +1,15 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / steward / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, qa_slice_fix when the user asks to pull in or work the QA slices/issues a QA session filed in Linear, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.1.2"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Debug Skill
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.
 
-**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for complex investigation, `cracked-coder` for fixes.
+**References**: See `AGENTS.md` and the nearest package guide for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 ---
 
@@ -48,7 +42,7 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 
 Fires when any external party reports broken product behavior — regardless of phrasing, role, or
 channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hypercert team can't`,
-`Afolabi got an error`, `operator reports`, `someone is hitting`, `a user said`, forwarded support
+`Afolabi got an error`, `steward reports`, `someone is hitting`, `a user said`, forwarded support
 message, attached user screenshot, paraphrased complaint — they all engage this mode.
 
 - Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
@@ -56,27 +50,28 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - See the User-Facing Bug Triage Protocol in Part 1 — it gates the choice between UI Regression
   and Data/API/Contract protocols.
 
+### QA-slice signals → qa_slice_fix mode
+
+- "pull in the QA issues", "work the QA slices", "fix what we found in QA", "pick up the
+  QA session slices", "did QA earlier — start on the findings"
+- The work objects are slice sub-issues of a `QA session YYYY-MM-DD` parent in Linear, written
+  by `/qa-triage --call` or the `qa-call-report` routine after a team QA call.
+- Focus: one slice at a time, measured repair per `.claude/context/qa.md § Fix posture` — never
+  a feature build.
+
 ### Verification signals
 
 - "verify this works", "prove completion", "evidence this is done"
 - Focus: evidence-based checks after implementation
 
-### Legacy slash (deprecated)
-
-`/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
-
-## Progress Tracking (REQUIRED)
-
-Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
-
 ---
 
 ## Safety Rules
 
-- Non-destructive recovery only
-- Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
-- Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
-- Never use destructive reset/reclone patterns in debug flow
+- Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
+- Stay on the current branch and follow `AGENTS.md § Multi-Agent Repo Safety`; do not stash, branch,
+  or rewrite another session's work unless the user explicitly authorizes that Git action.
+- In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle
 
@@ -88,22 +83,20 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 
 ## Part 1: Root Cause Investigation
 
-### Phase 1: Gather Evidence
+### Phase 1: Choose the entrypoint
 
-**DO NOT attempt any fixes yet.**
+**DO NOT attempt any fixes yet.** Reproduce with exact steps, read the full error, check `git log --oneline -20` for recent changes — then route:
 
-1. **Read error messages thoroughly**
-2. **Reproduce consistently** — exact steps
-3. **Check recent changes**: `git log --oneline -20`
-4. **Choose the right entrypoint**:
-   - External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
-   - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
-   - Data/API/contract symptom: trace data flow backward from the failing output.
+- External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
+- User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
+- Data/API/contract symptom: trace data flow backward from the failing output.
+- QA slices from Linear: run the **QA Slice Fix Protocol** — it wraps the protocols below with
+  the slice loop and the fix posture.
 
 ### User-Facing Bug Triage Protocol
 
 Fires for `user_bug_triage` mode. Use this as the gating frame whenever any external party
-(user, gardener, operator, customer, team member, partner) reports broken product behavior —
+(user, gardener, steward, customer, team member, partner) reports broken product behavior —
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 
@@ -139,6 +132,54 @@ protocols; this decides which one fits.
 9. **After fix, if the symptom→cause mapping is reusable**, persist it as a project memory
    (e.g., `project_<subsystem>_known_failures.md`) so the next session resolves it faster.
 
+### QA Slice Fix Protocol
+
+Fires for `qa_slice_fix` mode: working the slice sub-issues a QA call produced. One slice = one
+branch = one PR, and the posture is repair, not feature building.
+
+1. **List the slices.** Resolve the latest `QA session YYYY-MM-DD` parent on the Product team and
+   list its open sub-issues **and its related already-tracked Issues** in priority order. Only
+   `Todo`/`Backlog` items are available to take — a related Issue already `In Progress` or
+   `In Review` is someone's active work: show it as context, keep its state, never select it as
+   a slice. A sub-issue with no `package:*` label is not a slice either — the
+   `Product decisions from QA session YYYY-MM-DD` child is that case — so it is context for a design
+   call and never selected. Confirm which slice to take — or take the top available one when the user already
+   said to work through them.
+2. **Take ONE slice.** Move it to `In Progress` only when work actually starts — after the
+   grounding below and the branch go in step 5; a slice stopped before then (design call,
+   declined branch, unsuitable checkout) goes back to `Todo` with a comment saying why. Never
+   batch slices into one branch. Sanity-check its seeded priority — it derives from catalog
+   walk priority plus verdict, not judged severity; re-rank if the defect is plainly cosmetic
+   or plainly worse.
+3. **Ground per [`qa.md § Fix posture`](../../context/qa.md)**: history first (shipping PR, plan
+   hub, new vs. established), map the feature's modules/seams, hold the update-or-remove-over-add
+   default. A slice that turns out to need a new module or a design call goes back to the user
+   before any code.
+4. **Diagnose with the protocols below** — UI Regression or Data/API/Contract, chosen by symptom;
+   reproduce before fixing, as always.
+5. **Branch — only with the user's explicit go, once per slice.** One slice = one branch = one
+   PR, so every slice boundary gets its own ask: propose `fix/<work-description>` for THIS slice
+   off fresh `develop` — describing the work, never the session, date, or issue number
+   (`.claude/context/linear-routing-rules.md § Branch and PR naming`) — and proceed only on a yes. Never reuse the previous slice's
+   branch, and never create or switch branches without that answer (Safety Rules above;
+   `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout). A
+   standing "work through them all" covers taking slices, not branch actions. Traceability lives
+   in the PR's `Fixes PRD-NNN` line.
+6. **Repair to the slice's "Done when"** — the catalog Test IDs' expected results — and stop
+   there.
+7. **Validate via the selector**: render `bun run check --plan -- --intent qa` for the
+   touched paths and run the returned plan, plus the slice's named validation command — never an
+   invented fixed suite (the selector owns criticality overrides and stop conditions).
+8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
+   slice per PR.
+9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
+   IDs re-record as pass in the QA app (whoever recorded the fail re-records).
+10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
+    open slice lands, close the parent against its `Done when` (every slice Done or explicitly
+    deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
+    line) — or say what still holds it open: an unruled decisions child or investigate line
+    keeps a parent open after its last slice lands.
+
 ### User-Observed UI Regression Protocol
 
 When the user describes what they can see or touch in the UI, do not start with providers,
@@ -155,7 +196,7 @@ queries, auth, or indexer hypotheses. First prove the rendered surface.
 5. **Check recent component history** with `git log --follow` or focused `git show` on the
    visible component and wrapper files before proposing a fix.
 6. **For shared-component layout bugs, check the Tailwind v4 shared JSX scanning gotcha**
-   in `CLAUDE.md` before chasing data-layer hypotheses.
+   in `packages/shared/AGENTS.md` before chasing data-layer hypotheses.
 7. **Separate rendered-but-unusable from missing data**. If text/data exists in the DOM but the
    control is collapsed, invisible, untappable, or lacks visual selected state, treat it as a
    component/CSS regression until browser or DOM evidence proves otherwise.
@@ -176,153 +217,63 @@ geometry. Start at the failing output and trace backward through the data path.
 4. **Verify environment truth first**: chain ID, deployment JSON, indexer config, schema UID,
    contract address, RPC URL, and package guide for the touched surface.
 5. **Use repo wrappers for contract/indexer checks**. Do not invoke Forge directly for build
-   or test commands; use the bun scripts in `CLAUDE.md` and the package guides.
+   or test commands; use the Bun scripts in `AGENTS.md` and the package guides.
 6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
    the data is present and the rendered control is still collapsed, invisible, or unusable.
 
+### Hard-Bug Feedback Loop Gate
+
+Use this gate when the symptom has no exact failing assertion or observable loop, spans multiple
+layers, or survives the first evidence-backed fix attempt. Before expanding the hypothesis set:
+
+1. Establish one **red-capable signal** that fails for the reported symptom rather than for an
+   unrelated setup problem: a targeted test, exact command, boundary probe, or real-surface interaction.
+2. Minimize the reproduction while preserving the failure. Remove unrelated setup and inputs, not the
+   boundary where the symptom occurs.
+3. Make the loop deterministic, fast enough to repeat, and runnable by the agent in the current
+   environment. Record the exact input and failing output.
+4. Change one variable, rerun the same loop, and reject any explanation the loop falsifies.
+
+This gate does not replace required real-surface proof. A mocked or lower-layer test cannot certify an
+authenticated UI, wallet, passkey, deployment, or production-only symptom. If no red-capable loop can
+be established, state that proof limit and do not claim the eventual change fixed the original symptom.
+
 ### Phase 2: Hypothesis Testing
 
-1. **Form specific hypothesis**
-   - ✅ "Error occurs because X calls Y with null"
-   - ❌ "Something is wrong with the API"
-
-2. **Test minimally** — ONE variable at a time
-
-3. **If 3+ fixes fail: STOP**
-   - Question the architecture
-   - Reassess understanding
-   - Ask for help
+Form one specific hypothesis ("X calls Y with null", not "something is wrong with the API"), test one variable at a time. After 3 failed fixes, STOP fixing — question the architecture and your assumptions before trying a fourth.
 
 ---
 
-## Part 2: Escalation to cracked-coder
+## Part 2: Fix Sizing
 
-| Fix Type | Criteria | Action |
-|----------|----------|--------|
-| **Simple** | <10 lines, single file | Fix directly |
-| **Complex** | >10 lines, multi-file, needs tests | Escalate to cracked-coder |
-| **Architectural** | Pattern change, refactor | cracked-coder + planning |
-
-### Handoff Format
-
-```markdown
-## Debug → cracked-coder Handoff
-
-### Root Cause
-[What you found]
-
-### Location
-[File:line where issue originates]
-
-### Evidence
-[Commands/logs that prove the cause]
-
-### Suggested Fix
-[Your recommendation]
-```
+Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex or architectural fixes (multi-file, pattern change, needs new tests) go through plan mode first — present root cause + evidence + smallest fix, get approval, then implement.
 
 ---
 
 ## Part 3: Verification Before Completion
 
-### Mandatory Verification
-
-| Claim | Command |
-|-------|---------|
-| "Tests pass" | `bun run test` (NOT `bun test` — see CLAUDE.md) |
-| "Build succeeds" | `bun build` |
-| "Linting clean" | `bun lint` |
-| "Types correct" | `bun run tsc --noEmit` |
-
-### Suspicious Language
-
-If you say these, STOP and verify first:
-- "should work"
-- "I think"
-- "probably"
-- "seems to"
+Follow [the validation pipeline](../../context/validation-pipeline.md) and root `AGENTS.md`:
+report fresh observed evidence, choose the owning package commands, and identify anything
+unverified. Do not substitute a guessed command for selected proof.
 
 ---
 
-## Part 4: Green Goods Debugging
+## Part 4: Operational Evidence Map
 
-### Offline Sync Issues
-- Check `useJobQueue` for stuck jobs
-- IndexedDB: Brave DevTools > Application > IndexedDB > `jobQueueDB`
-- Service Worker registration: Brave DevTools > Application > Service Workers
-- Job queue stats: `jobQueue.getStats(userAddress)` in console
-- Event bus monitoring: subscribe to `"job:failed"` events
+Use the owning runtime source instead of a copied command or event inventory:
 
-### Contract Issues
+- Development and service entrypoints: `scripts/README.md` and the nearest package README.
+- Package constraints and health boundaries: the nearest package `AGENTS.md`, supported by
+  [client](../../context/client.md), [shared](../../context/shared.md),
+  [indexer](../../context/indexer.md), [contracts](../../context/contracts.md), and
+  [agent](../../context/agent.md) context where the failure crosses package seams.
+- Offline pipeline: IndexedDB/job-queue implementation in Shared → upload module → contract receipt →
+  indexer event/schema → query cache. Start at the failing output and traverse only the implicated links.
+- Telemetry questions and privacy-safe outputs: `docs/routines/posthog-questions.md` and
+  `docs/routines/README.md`; PostHog measures impact and Sentry provides stack/release context.
+- Current events, health endpoints, and logger interfaces: their code and package exports.
 
-```bash
-# Compile and check artifacts
-cd packages/contracts && bun build
-
-# Inspect deployment addresses
-cat deployments/11155111-latest.json | jq '.gardenToken'
-
-# Verbose test output (traces all calls) through bun wrapper
-cd packages/contracts && bun run test -- --match-test "testFailing" -vvvv
-
-# Quick production-readiness gate for contract-touching fixes
-bun run verify:contracts:fast
-
-# Decode transaction calldata
-cast decode-function "functionName(uint256)" 0xcalldata
-
-# Check on-chain state
-cast call <contract> "functionName()" --rpc-url $RPC
-```
-
-### Frontend Debugging Tools
-
-| Tool | Purpose | How to Access |
-|------|---------|---------------|
-| **React DevTools** | Component tree, props, state, re-renders | Browser extension → Components tab |
-| **React Profiler** | Render timing, commit frequency | Browser extension → Profiler tab |
-| **TanStack Query DevTools** | Query cache, stale state, refetch triggers | Auto-included in dev mode |
-| **Redux DevTools** | Zustand store inspection (with `devtools` middleware) | Browser extension |
-| **Vite Debug** | Build issues, dependency resolution | `DEBUG=vite:* bun dev` |
-| **Network tab** | GraphQL queries, IPFS uploads, RPC calls | Brave DevTools → Network |
-
-### Indexer Debugging
-
-```bash
-# View Docker container logs
-cd packages/indexer && bun run dev:docker:logs
-
-# Check Hasura GraphQL console (runs on port 8080)
-open http://localhost:8080/console
-
-# Test a GraphQL query directly
-node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Garden { id name } }\"})}).then(r=>r.text()).then(console.log)'
-
-# Restart indexer containers
-bun run dev:docker:down && bun run dev:docker
-```
-
-### Build & Type Debugging
-
-```bash
-# TypeScript errors without emitting
-cd packages/shared && npx tsc --noEmit
-
-# Check specific package types
-cd packages/client && npx tsc --noEmit
-
-# Vite build with verbose output
-cd packages/client && DEBUG=vite:* bun build
-
-# Check bundle analysis
-cd packages/client && npx vite-bundle-visualizer
-```
-
-### Hook Issues
-
-```bash
-bash .claude/scripts/validate-hook-location.sh
-```
+Hook-location complaints use `bash .claude/scripts/validate-hook-location.sh`.
 
 ### Common Debug Scenarios
 
@@ -334,125 +285,6 @@ bash .claude/scripts/validate-hook-location.sh
 | Indexer missing events | Contract address mismatch in config | Compare `deployments/*.json` with `config.yaml` |
 | Storage quota errors | Too many offline photos | Check `getStorageQuota()` |
 | Service worker not updating | Aggressive caching | Check `Cache-Control` headers for `/sw.js` |
-
----
-
-## Part 5: Distributed Debugging (End-to-End Pipeline)
-
-For tracing issues through the full offline → blockchain → indexer pipeline:
-
-### Work Submission Pipeline
-
-```
-IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Event → GraphQL Cache
-```
-
-### Step-by-Step Trace
-
-#### Layer 1: Client (IndexedDB → Job Queue)
-
-```bash
-# Check IndexedDB for stuck drafts
-# Brave DevTools > Application > IndexedDB > green-goods-drafts
-
-# Check job queue state
-# Console: jobQueue.getStats(userAddress)
-
-# Monitor job events
-# Console: jobQueueEventBus.subscribe("job:*", console.log)
-```
-
-| Symptom | Layer | Check |
-|---------|-------|-------|
-| Draft not saving | IndexedDB | Storage quota: `navigator.storage.estimate()` |
-| Job stuck in `pending` | Job Queue | Is the user online? Check `navigator.onLine` |
-| Job stuck in `processing` | Job Queue | Check for thrown errors in IPFS/contract call |
-| Job `failed` repeatedly | IPFS or Chain | Check `job.error` and `job.retryCount` |
-
-#### Layer 2: IPFS Upload
-
-```bash
-# Check if media uploaded successfully
-# Job payload should contain a CID after upload
-
-# Verify CID is retrievable
-node -e 'fetch(\"https://w3s.link/ipfs/<CID>\").then(r => console.log(r.status))'
-
-# Check Storacha service health
-# Look for 4xx/5xx in Network tab for storacha requests
-```
-
-#### Layer 3: Blockchain Transaction
-
-```bash
-# Decode the transaction that was sent
-cast tx <txHash> --rpc-url $RPC
-
-# Check if transaction reverted and why
-cast run <txHash> --rpc-url $RPC
-
-# Verify contract state after tx
-cast call <gardenAddress> "getWork(bytes32)" <workUID> --rpc-url $RPC
-
-# Check gas estimation (may fail before tx is sent)
-cast estimate <gardenAddress> "submitWork(bytes32,string)" <args> --rpc-url $RPC
-```
-
-#### Layer 4: Indexer Processing
-
-```bash
-# Check if event was emitted
-cast receipt <txHash> --rpc-url $RPC | grep -A5 "logs"
-
-# Check indexer lag — how far behind is it?
-# Compare latest indexed block vs chain head
-INDEXED=$(node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ _metadata { lastProcessedBlock } }\"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
-CHAIN_HEAD=$(cast block-number --rpc-url $RPC)
-echo \"Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks\"
-
-# Check if entity exists in indexer
-node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Work(where: {id: {_eq: \\\"<workId>\\\"}}) { id status } }\"})}).then(r=>r.text()).then(console.log)'
-```
-
-#### Layer 5: Frontend Cache
-
-```bash
-# Force refetch in TanStack Query DevTools
-# Or invalidate programmatically:
-# queryClient.invalidateQueries({ queryKey: queryKeys.work.all })
-
-# Check if the query key matches what the indexer returns
-# TanStack Query DevTools > Queries tab > check cache content
-```
-
-### Cross-Layer Diagnostic Script
-
-```bash
-# Full pipeline health check
-echo "=== Pipeline Health ==="
-
-# 1. Chain connectivity
-echo -n "Chain: "; cast block-number --rpc-url $RPC && echo "OK" || echo "UNREACHABLE"
-
-# 2. Contract deployed
-echo -n "Contract: "; cast call $GARDEN_ADDRESS "name()(string)" --rpc-url $RPC && echo "OK" || echo "MISSING"
-
-# 3. Indexer running
-echo -n \"Indexer: \"; node -e 'fetch(\"http://localhost:8080/healthz\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"DOWN\"
-
-# 4. Frontend GraphQL reachable
-echo -n \"GraphQL: \"; node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ __typename }\"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"UNREACHABLE\"
-```
-
----
-
-## Three-Strike Protocol
-
-After 3 failed fixes:
-1. **STOP fixing**
-2. **Document what you tried**
-3. **Question assumptions**
-4. **Consider alternatives**
 
 ---
 
@@ -472,40 +304,28 @@ After debugging provide:
 
 ### Verification
 - Commands executed and outcomes
-- Contract-touching fixes should also run: `bun run verify:contracts:fast`
+- Contract-touching fixes should also run: `bun run check --only contracts-verify-fast`
 
 ### Next Step
 - `DONE`, `NEEDS_INPUT`, or `ESCALATE`
 
-## Reference Files
-
-- **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
-- **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
-
 ## Linear Routing
 
-This skill is read-only on Linear while debugging. The shared routing core (team routing,
+This skill is read-only on Linear while debugging. The one exception is the QA Slice Fix
+Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back) — and only on
+the slice being worked. The shared routing core (team routing,
 `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 
 Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
-- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
-- The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
-
-## Anti-Patterns
-
-- **Guessing without reproduction** — never change code before reproducing the issue
-- **Using destructive recovery commands** — avoid `git checkout -- .`, repo deletion, and forced resets in debug workflows
-- **Claiming success without evidence** — always attach commands and outputs for build/test verification
-- **Skipping dependency order checks** — contracts/indexer/shared/app drift can hide root cause
-- **Using blocked network commands in docs** — prefer `node -e fetch(...)` examples over `curl`/`wget`
+- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:build` (or `activity:maintenance` for hygiene) + relevant `package:*` + `protocol:*`.
+- The PostHog/Sentry-to-Linear privacy specifics live in `AGENTS.md § Linear Workspace` and
+  `docs/routines/README.md`.
 
 ## Related Skills
 
-- `react` (error-handling sub-file) — Error categorization and handling strategies
-- `testing` — Writing regression tests after fixing bugs
-- `debug` (monitoring sub-file) — Production diagnostics and error tracking
-- `react` (performance sub-file) — Performance profiling for performance bugs
+- `review` — post-fix review of the change (regressions, gaps, validation)
+- [docs/routines/posthog-questions.md](../../../docs/routines/posthog-questions.md) — curated telemetry question library when scale/impact context is needed
+- Error-handling and testing invariants live in `.claude/context/shared.md` and `.claude/context/testing.md`

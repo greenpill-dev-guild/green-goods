@@ -1,178 +1,370 @@
-/**
- * Draft Resume Hook
- *
- * Handles resuming drafts from URL parameters and detecting
- * meaningful drafts that should prompt the user to continue.
- *
- * @module hooks/work/useDraftResume
- */
-
+import {
+  LEGACY_MEDIA_KEY,
+  getLegacyRecoveryMarker,
+  startLegacyRecovery,
+  finishLegacyRecovery,
+  discardUnrecoveredLegacy,
+} from "../../modules/work/legacy-draft-recovery";
+import type { MissingDraftAttachment, WorkDraftRecord } from "../../types/job-queue";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { trackStorageError } from "../../modules/app/error-tracking";
-import { logger } from "../../modules/app/logger";
+import { get } from "idb-keyval";
 import { useDrafts } from "./useDrafts";
-
-interface DraftFormState {
-  images: File[];
-  gardenAddress: string | null;
-  actionUID: number | null;
-  feedback: string;
-}
+import { useUser } from "../auth/useUser";
+import { useCurrentChain } from "../blockchain/useChainConfig";
+import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
+import { draftDB } from "../../modules/job-queue/draft-db";
+import { queueDraftWrite } from "../../modules/work/draft-lifecycle";
+import {
+  fromDraftWorkLink,
+  hasWorkLinkIntentParams,
+  parseWorkLinkIntent,
+  sameWorkLinkIdentity,
+  toDraftWorkLink,
+  type WorkLinkIntent,
+  writeWorkLinkIntent,
+} from "../../modules/commitment-pooling/work-link-intent";
+import {
+  captureWorkFile,
+  identifyWorkFile,
+  restoreWorkFile,
+} from "../../modules/work/work-attachments";
+import type { WorkFormData } from "./useWorkForm";
 
 interface UseDraftResumeOptions {
-  /** Current form state for detecting meaningful progress */
-  formState: DraftFormState;
-  /** Whether the user is on the intro tab */
-  isOnIntroTab: boolean;
-  /** URL search params for draftId parameter */
   searchParams: URLSearchParams;
-  /** Function to update search params */
   setSearchParams: (params: URLSearchParams, options?: { replace?: boolean }) => void;
+  restoreForm?: (values: WorkFormData) => void;
+}
+const LEGACY_KEY = LEGACY_MEDIA_KEY;
+
+function matchesPagePromise(draft: WorkDraftRecord, intent: WorkLinkIntent): boolean {
+  if (
+    draft.gardenAddress?.toLowerCase() !== intent.garden.toLowerCase() ||
+    draft.actionUID !== intent.actionUID
+  )
+    return false;
+  if (!draft.linkIntent) return true;
+  const kept = fromDraftWorkLink(draft.linkIntent);
+  return kept !== null && sameWorkLinkIdentity(kept, intent);
 }
 
-/**
- * Hook for handling draft resumption from URL and detecting meaningful drafts.
- *
- * @example
- * ```tsx
- * const [searchParams, setSearchParams] = useSearchParams();
- *
- * const {
- *   showDraftDialog,
- *   setShowDraftDialog,
- *   handleContinueDraft,
- *   handleStartFresh,
- * } = useDraftResume({
- *   formState: { images, gardenAddress, actionUID, feedback },
- *   isOnIntroTab: activeTab === WorkTab.Intro,
- *   searchParams,
- *   setSearchParams,
- * });
- * ```
- */
-export function useDraftResume(options: UseDraftResumeOptions) {
-  const { formState, isOnIntroTab, searchParams, setSearchParams } = options;
+export function useDraftResume({
+  searchParams,
+  setSearchParams,
+  restoreForm,
+}: UseDraftResumeOptions) {
+  const { resumeDraft, clearActiveDraft } = useDrafts();
+  const { primaryAddress: userAddress } = useUser();
+  const chainId = useCurrentChain();
+  const [showDraftSheet, setSheet] = useState(false);
+  // Closing the prompt, by any path, is the person's answer: the draft may be written again.
+  const setShowDraftSheet = useCallback((open: boolean) => {
+    if (!open) useWorkFlowStore.setState({ draftChoicePending: false });
+    setSheet(open);
+  }, []);
+  const [legacyRecovery, setLegacyRecovery] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  // A warm store is not proof that this visit is for the same work. Hold the new page's
+  // autosave and selection effects until its promise has been reconciled with the saved draft.
+  const [entryResolved, setEntryResolved] = useState(false);
+  const hydrated = useWorkFlowStore((state) => state.draftHydrated);
+  const explicitId = searchParams.get("draftId");
+  const latest = useRef({ resumeDraft, restoreForm, searchParams, setSearchParams });
+  latest.current = { resumeDraft, restoreForm, searchParams, setSearchParams };
+  // Whether the page's promise came back from the resumed draft rather than the page's own link.
+  const restoredLink = useRef(false);
 
-  const { activeDraftId, resumeDraft, clearActiveDraft } = useDrafts();
-
-  const [showDraftDialog, setShowDraftDialog] = useState(false);
-  const hasCheckedDraft = useRef(false);
-  const hasResumedDraft = useRef(false);
-
-  // Extract draftId as a primitive to avoid re-running the effect
-  // when the searchParams object reference changes but draftId hasn't
-  const draftIdFromUrl = searchParams.get("draftId");
-
-  /**
-   * Resume draft from URL parameter
-   * Uses AbortController for proper cancellation on unmount
-   */
   useEffect(() => {
-    if (hasResumedDraft.current) return;
-    if (!draftIdFromUrl) return;
-
+    setEntryResolved(false);
+    if (!userAddress) {
+      if (useWorkFlowStore.getState().draftScope) {
+        useWorkFlowStore.getState().reset();
+        latest.current.restoreForm?.({ feedback: "" });
+      }
+      setShowDraftSheet(false);
+      setLegacyRecovery(false);
+      useWorkFlowStore.setState((state) => ({
+        draftHydrated: false,
+        draftScope: null,
+        draftEpoch: state.draftEpoch + 1,
+        draftPagePromise: null,
+      }));
+      return;
+    }
+    const scope = `${userAddress.toLowerCase()}:${chainId}`;
+    // Read before the prompt is put away below. A visit that left it open never answered, so
+    // this one loads the draft and asks again instead of carrying on with it.
+    const state = useWorkFlowStore.getState();
+    setLegacyRecovery(false);
+    setShowDraftSheet(false);
+    const incomingPromise = parseWorkLinkIntent(latest.current.searchParams);
+    if (
+      state.draftScope === scope &&
+      state.draftHydrated &&
+      !state.draftChoicePending &&
+      !explicitId &&
+      !incomingPromise
+    ) {
+      // Still loaded from an earlier visit, so the page comes back as it was.
+      // The URL doesn't, though: the draft's promise is put back into it, as a
+      // resume does, or the work could upload without its link.
+      setEntryResolved(true);
+      const draftId = state.activeDraftId;
+      if (
+        !draftId ||
+        state.draftLinkCleared ||
+        hasWorkLinkIntentParams(latest.current.searchParams)
+      )
+        return;
+      let cancelled = false;
+      void draftDB
+        .getDraft(draftId)
+        .then((draft) => {
+          const current = useWorkFlowStore.getState();
+          if (cancelled || current.activeDraftId !== draftId || current.draftLinkCleared) return;
+          const link = draft?.linkIntent ? fromDraftWorkLink(draft.linkIntent) : null;
+          if (!link || hasWorkLinkIntentParams(latest.current.searchParams)) return;
+          restoredLink.current = true;
+          latest.current.setSearchParams(writeWorkLinkIntent(latest.current.searchParams, link), {
+            replace: true,
+          });
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (state.draftScope && state.draftScope !== scope) {
+      state.reset();
+      latest.current.restoreForm?.({ feedback: "" });
+    }
     const controller = new AbortController();
-    hasResumedDraft.current = true;
-
-    resumeDraft(draftIdFromUrl, { signal: controller.signal })
-      .then(() => {
-        // Check if aborted before updating state
-        if (controller.signal.aborted) return;
-
-        const currentParams = new URLSearchParams(searchParams.toString());
-        currentParams.delete("draftId");
-        setSearchParams(currentParams, { replace: true });
-      })
-      .catch((error) => {
-        // Ignore abort errors
-        if (error.name === "AbortError") return;
-        // Check if aborted before handling error
-        if (controller.signal.aborted) return;
-
-        logger.error("Failed to resume draft", { source: "useDraftResume", error });
-        trackStorageError(error, {
-          source: "useDraftResume.resumeFromUrl",
-          userAction: "resuming draft from URL parameter",
-          recoverable: true,
-          metadata: { draft_id: draftIdFromUrl, operation: "resume_draft" },
+    restoredLink.current = false;
+    // The promise the last visit's page was opened for, if its prompt went unanswered. It is for
+    // the same account, gives way to a draft or a promise this visit names itself, and is spent
+    // once a load completes, so an interrupted load does not lose it.
+    const pagePromise =
+      state.draftPagePromise &&
+      state.draftScope === scope &&
+      !explicitId &&
+      !hasWorkLinkIntentParams(latest.current.searchParams)
+        ? fromDraftWorkLink(state.draftPagePromise)
+        : null;
+    useWorkFlowStore.setState({
+      draftScope: scope,
+      draftHydrated: false,
+      draftSaveState: "loading",
+      draftError: null,
+      draftLinkCleared: false,
+    });
+    void (async () => {
+      try {
+        // An outgoing page can still be saving its last edit. Let that write finish before
+        // changing its generation or reading its record; this page's autosave stays disabled.
+        await queueDraftWrite(async () => undefined);
+        controller.signal.throwIfAborted();
+        useWorkFlowStore.setState((current) => ({ draftEpoch: current.draftEpoch + 1 }));
+        const draftId = explicitId ?? (await draftDB.getActiveDraft(userAddress, chainId));
+        controller.signal.throwIfAborted();
+        const requestedPromise = incomingPromise ?? pagePromise;
+        let resumed = false;
+        // The draft brings back the promise it was for, unless this visit names one itself.
+        let link: WorkLinkIntent | null = pagePromise;
+        if (draftId) {
+          const draft = await draftDB.getDraft(draftId);
+          controller.signal.throwIfAborted();
+          if (
+            draft &&
+            (draft.userAddress.toLowerCase() !== userAddress.toLowerCase() ||
+              draft.chainId !== chainId)
+          )
+            throw new Error("draft-owner");
+          if (requestedPromise && (!draft || !matchesPagePromise(draft, requestedPromise))) {
+            if (await draftDB.isAtDraftLimit(userAddress, chainId)) throw new Error("draft-limit");
+            controller.signal.throwIfAborted();
+            // Keep the record and its media in Your Work; only release the wizard's active slot.
+            await queueDraftWrite(async () => {
+              controller.signal.throwIfAborted();
+              await draftDB.releaseActiveDraft(userAddress, chainId, draftId);
+            });
+            controller.signal.throwIfAborted();
+            useWorkFlowStore.getState().reset();
+            latest.current.restoreForm?.({ feedback: "" });
+          } else {
+            await latest.current.resumeDraft(draftId, {
+              signal: controller.signal,
+              restoreForm: latest.current.restoreForm,
+            });
+            resumed = true;
+            const kept = draft?.linkIntent;
+            if (!link && kept && !hasWorkLinkIntentParams(latest.current.searchParams))
+              link = fromDraftWorkLink(kept);
+            if (!explicitId && !requestedPromise) setSheet(true);
+          }
+        } else if (requestedPromise) {
+          useWorkFlowStore.getState().reset();
+          latest.current.restoreForm?.({ feedback: "" });
+        } else {
+          const legacy = await get<File[]>(LEGACY_KEY);
+          controller.signal.throwIfAborted();
+          const marker = await getLegacyRecoveryMarker();
+          if (Array.isArray(legacy) && legacy.length && (!marker || marker.scope === scope)) {
+            setLegacyRecovery(true);
+            setSheet(true);
+          }
+        }
+        controller.signal.throwIfAborted();
+        // A prompted draft is held in the same step that turns saving on. A save on arrival
+        // would write the page's promise, garden and action onto it before the person answers.
+        useWorkFlowStore.setState({
+          draftHydrated: true,
+          draftSaveState: resumed ? "saved" : "idle",
+          draftChoicePending: resumed && !explicitId && !requestedPromise,
+          draftPagePromise: null,
         });
-
-        const currentParams = new URLSearchParams(searchParams.toString());
-        currentParams.delete("draftId");
-        setSearchParams(currentParams, { replace: true });
-      });
-
+        if (explicitId || link) {
+          const params = link
+            ? writeWorkLinkIntent(latest.current.searchParams, link)
+            : new URLSearchParams(latest.current.searchParams);
+          params.delete("draftId");
+          restoredLink.current = Boolean(link) && link !== pagePromise;
+          latest.current.setSearchParams(params, { replace: true });
+        }
+        setEntryResolved(true);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        useWorkFlowStore.setState({
+          draftSaveState: "failed",
+          draftError: error instanceof Error ? error.message : "draft-load-failed",
+        });
+      }
+    })();
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- searchParams.toString() is read for snapshot, not as a reactive dep
-  }, [draftIdFromUrl, setSearchParams, resumeDraft]);
+  }, [userAddress, chainId, explicitId, loadAttempt, setShowDraftSheet]);
 
-  /**
-   * Check for meaningful draft progress to show dialog
-   */
-  useEffect(() => {
-    if (hasCheckedDraft.current) return;
-    hasCheckedDraft.current = true;
-
-    // Don't show dialog if resuming a draft from URL
-    if (draftIdFromUrl) return;
-
-    // Images are the strongest indicator of draft progress
-    const hasImages = formState.images.length > 0;
-
-    // Having both selections + some form input indicates progress
-    const hasBothSelections = formState.gardenAddress !== null && formState.actionUID !== null;
-    const hasFormInput = formState.feedback.length > 0;
-    const hasProgressWithSelections = hasBothSelections && hasFormInput;
-
-    const hasMeaningfulDraft = hasImages || hasProgressWithSelections;
-
-    if (hasMeaningfulDraft && isOnIntroTab) {
-      setShowDraftDialog(true);
+  const handleContinueDraft = useCallback(async () => {
+    if (legacyRecovery && userAddress) {
+      const epoch = useWorkFlowStore.getState().draftEpoch;
+      const isCurrent = () =>
+        useWorkFlowStore.getState().draftEpoch === epoch &&
+        useWorkFlowStore.getState().draftScope === `${userAddress.toLowerCase()}:${chainId}`;
+      const files = await get<File[]>(LEGACY_KEY);
+      const marker = await startLegacyRecovery(
+        files ?? [],
+        `${userAddress.toLowerCase()}:${chainId}`
+      );
+      const existing = await draftDB.getDraft(marker.draftId);
+      if (!isCurrent()) throw new DOMException("Account changed", "AbortError");
+      if (existing) {
+        await resumeDraft(existing.id, { restoreForm });
+        await finishLegacyRecovery(existing);
+      } else {
+        const copied: File[] = [];
+        const missing: MissingDraftAttachment[] = [];
+        for (const entry of marker.entries) {
+          try {
+            const file = await captureWorkFile(files![entry.index]);
+            const identity = await identifyWorkFile(file);
+            copied.push(restoreWorkFile(identity.fileData, entry.id, identity.contentHash));
+          } catch {
+            missing.push({ id: entry.id, name: entry.name, order: entry.index, kind: "media" });
+          }
+        }
+        const saved = await draftDB.saveSnapshot(
+          userAddress,
+          chainId,
+          marker.draftId,
+          { legacyRecovery: true, legacySourceId: marker.sourceId, legacyEntries: marker.entries },
+          copied,
+          [],
+          isCurrent,
+          missing
+        );
+        if (!isCurrent()) throw new DOMException("Account changed", "AbortError");
+        await resumeDraft(marker.draftId, { restoreForm });
+        if (saved) await finishLegacyRecovery(saved);
+      }
+      setLegacyRecovery(false);
     }
-  }, [formState, isOnIntroTab, draftIdFromUrl]);
+    setShowDraftSheet(false);
+  }, [legacyRecovery, userAddress, chainId, resumeDraft, restoreForm, setShowDraftSheet]);
 
-  /**
-   * Continue with the existing draft
-   */
-  const handleContinueDraft = useCallback(() => {
-    setShowDraftDialog(false);
-    // Draft is already loaded, just continue
-  }, []);
-
-  /**
-   * Start fresh by clearing the draft
-   */
   const handleStartFresh = useCallback(async () => {
-    setShowDraftDialog(false);
-    if (activeDraftId) {
+    const scope = `${userAddress?.toLowerCase()}:${chainId}`;
+    if (!userAddress || useWorkFlowStore.getState().draftScope !== scope) return;
+    // A saved draft is set aside, not deleted, so the new work needs a draft slot of its own.
+    if (
+      !legacyRecovery &&
+      useWorkFlowStore.getState().activeDraftId &&
+      (await draftDB.isAtDraftLimit(userAddress, chainId))
+    )
+      throw new Error("draft-limit");
+    const initial = useWorkFlowStore.getState();
+    if (initial.draftScope !== scope) return;
+    if (legacyRecovery && initial.activeDraftId) {
+      // Photos recovered from before the account keep their explicit Discard.
+      await clearActiveDraft();
+    } else {
+      const generation = initial.draftEpoch + 1;
+      useWorkFlowStore.setState({ draftEpoch: generation, draftDeleting: true });
+      const current = () => {
+        const state = useWorkFlowStore.getState();
+        return state.draftScope === scope && state.draftEpoch === generation;
+      };
       try {
-        await clearActiveDraft();
+        if (legacyRecovery) await discardUnrecoveredLegacy(scope);
+        // The draft stays in Your Work as it was saved. The wizard stops reopening on it, once any
+        // save still writing has finished, so that save can't point the wizard back at it.
+        else if (initial.activeDraftId) {
+          const setAside = initial.activeDraftId;
+          await queueDraftWrite(() => draftDB.releaseActiveDraft(userAddress, chainId, setAside));
+        }
+        if (current()) {
+          useWorkFlowStore.getState().reset();
+          restoreForm?.({ feedback: "" });
+        }
       } catch (error) {
-        logger.error("Failed to clear draft", { source: "useDraftResume", error });
-        trackStorageError(error, {
-          source: "useDraftResume.handleStartFresh",
-          userAction: "clearing active draft to start fresh",
-          recoverable: true,
-          metadata: { draft_id: activeDraftId, operation: "clear_draft" },
-        });
+        if (current())
+          useWorkFlowStore.setState({ draftDeleting: false, draftSaveState: "failed" });
+        throw error;
       }
     }
-  }, [activeDraftId, clearActiveDraft]);
+    if (useWorkFlowStore.getState().draftScope === scope) {
+      setLegacyRecovery(false);
+      setShowDraftSheet(false);
+      // A promise that came back with the old draft goes with it; one the page was opened for stays.
+      if (restoredLink.current) {
+        restoredLink.current = false;
+        const { searchParams: params, setSearchParams: write } = latest.current;
+        write(writeWorkLinkIntent(params, null), { replace: true });
+      }
+    }
+  }, [legacyRecovery, clearActiveDraft, userAddress, chainId, restoreForm, setShowDraftSheet]);
 
   return {
-    /** Whether to show the draft continuation dialog */
-    showDraftDialog,
-    /** Set dialog visibility */
-    setShowDraftDialog,
-    /** Handler for continuing with draft */
+    showDraftSheet,
+    setShowDraftSheet,
     handleContinueDraft,
-    /** Handler for starting fresh */
     handleStartFresh,
-    /** Whether a draft is currently being resumed from URL */
-    isResumingFromUrl: hasResumedDraft.current,
-    /** Clear the active draft (e.g., after successful submission) */
+    /**
+     * Leaving while the prompt is still open: the next visit loads the draft and asks again, for
+     * the promise this page was opened for. Returns whether Back must not reopen this address,
+     * which is when the promise in it is the draft's and would read as the page's own.
+     */
+    askAgainNextVisit: () => {
+      if (!showDraftSheet && useWorkFlowStore.getState().draftHydrated) return false;
+      const own = restoredLink.current ? null : parseWorkLinkIntent(latest.current.searchParams);
+      useWorkFlowStore.setState({
+        draftHydrated: false,
+        draftPagePromise: own ? toDraftWorkLink(own) : null,
+      });
+      return restoredLink.current;
+    },
     clearActiveDraft,
+    legacyRecovery,
+    retryHydration: () => setLoadAttempt((attempt) => attempt + 1),
+    isResumingFromUrl: !hydrated || !entryResolved,
   };
 }

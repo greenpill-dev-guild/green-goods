@@ -1,6 +1,6 @@
 /**
  * Garden Community & Pools Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests useGardenCommunity and useGardenPools hooks after the subgraph refactor.
  * These hooks use a dual-path pattern:
@@ -18,10 +18,11 @@
  * - Weight scheme and pool type mapping
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333";
@@ -72,12 +73,6 @@ import { useGardenPools } from "../../../hooks/conviction/useGardenPools";
 import type { Address } from "../../../types/domain";
 import { PoolType, WeightScheme } from "../../../types/gardens-community";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // useGardenCommunity — subgraph path
 // ============================================
@@ -87,9 +82,7 @@ describe("useGardenCommunity — subgraph path", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("maps subgraph data to GardenCommunity type with RPC enrichment", async () => {
@@ -105,12 +98,12 @@ describe("useGardenCommunity — subgraph path", () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
     mockReadContract.mockResolvedValueOnce(1); // getGardenWeightScheme (Exponential)
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenCommunity(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -124,8 +117,8 @@ describe("useGardenCommunity — subgraph path", () => {
   });
 
   it("returns null when garden address is undefined", () => {
-    const { result } = renderHook(() => useGardenCommunity(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(undefined), {
+      queryClient,
     });
 
     expect(mockGetGardenCommunity).not.toHaveBeenCalled();
@@ -135,12 +128,12 @@ describe("useGardenCommunity — subgraph path", () => {
   it("returns null when subgraph returns null (no community found)", async () => {
     mockGetGardenCommunity.mockResolvedValueOnce(null);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenCommunity(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -149,13 +142,13 @@ describe("useGardenCommunity — subgraph path", () => {
   });
 
   it("respects enabled option", () => {
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useGardenCommunity(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
           enabled: false,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(mockGetGardenCommunity).not.toHaveBeenCalled();
@@ -173,12 +166,12 @@ describe("useGardenCommunity — subgraph path", () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
     mockReadContract.mockResolvedValueOnce(0);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenCommunity(mixedCase as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -193,12 +186,12 @@ describe("useGardenCommunity — subgraph path", () => {
   it("returns null on subgraph error", async () => {
     mockGetGardenCommunity.mockRejectedValueOnce(new Error("Subgraph error"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenCommunity(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -216,12 +209,12 @@ describe("useGardenCommunity — subgraph path", () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
     mockReadContract.mockResolvedValueOnce(1); // getGardenWeightScheme
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenCommunity(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -238,9 +231,7 @@ describe("useGardenCommunity — RPC fallback", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("assembles GardenCommunity from RPC when no communityAddress", async () => {
@@ -251,8 +242,8 @@ describe("useGardenCommunity — RPC fallback", () => {
       .mockResolvedValueOnce(TEST_GOODS_TOKEN) // goodsToken
       .mockResolvedValueOnce(1000000000000000000n); // stakeAmountPerMember
 
-    const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -266,8 +257,8 @@ describe("useGardenCommunity — RPC fallback", () => {
   it("returns null when no GardensModule is configured (RPC fallback)", async () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(null);
 
-    const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -284,8 +275,8 @@ describe("useGardenCommunity — RPC fallback", () => {
       .mockResolvedValueOnce(TEST_GOODS_TOKEN)
       .mockResolvedValueOnce(1000000000000000000n);
 
-    const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -300,8 +291,8 @@ describe("useGardenCommunity — RPC fallback", () => {
       .mockResolvedValueOnce(TEST_GOODS_TOKEN)
       .mockResolvedValueOnce(500000000000000000n);
 
-    const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -313,8 +304,8 @@ describe("useGardenCommunity — RPC fallback", () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
     mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
 
-    const { result } = renderHook(() => useGardenCommunity(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenCommunity(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -331,9 +322,7 @@ describe("useGardenPools — subgraph path", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns annotated signal pools from subgraph", async () => {
@@ -352,12 +341,12 @@ describe("useGardenPools — subgraph path", () => {
       },
     ]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenPools(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -372,8 +361,8 @@ describe("useGardenPools — subgraph path", () => {
   });
 
   it("returns empty array when garden address is undefined", () => {
-    const { result } = renderHook(() => useGardenPools(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenPools(undefined), {
+      queryClient,
     });
 
     expect(mockGetGardenPools).not.toHaveBeenCalled();
@@ -383,12 +372,12 @@ describe("useGardenPools — subgraph path", () => {
   it("returns empty array on subgraph error", async () => {
     mockGetGardenPools.mockRejectedValueOnce(new Error("Subgraph error"));
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenPools(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -398,12 +387,12 @@ describe("useGardenPools — subgraph path", () => {
   it("handles empty pool list from subgraph", async () => {
     mockGetGardenPools.mockResolvedValueOnce([]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenPools(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -420,12 +409,12 @@ describe("useGardenPools — subgraph path", () => {
       },
     ]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenPools(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -445,12 +434,12 @@ describe("useGardenPools — subgraph path", () => {
       },
     ]);
 
-    const { result } = renderHook(
+    const { result } = renderHookWithQueryClient(
       () =>
         useGardenPools(mixedCase as Address, {
           communityAddress: TEST_COMMUNITY as Address,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -465,13 +454,13 @@ describe("useGardenPools — subgraph path", () => {
   });
 
   it("respects enabled option", () => {
-    renderHook(
+    renderHookWithQueryClient(
       () =>
         useGardenPools(TEST_GARDEN as Address, {
           communityAddress: TEST_COMMUNITY as Address,
           enabled: false,
         }),
-      { wrapper: createWrapper(queryClient) }
+      { queryClient }
     );
 
     expect(mockGetGardenPools).not.toHaveBeenCalled();
@@ -487,9 +476,7 @@ describe("useGardenPools — RPC fallback", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("returns pools via RPC when no communityAddress", async () => {
@@ -499,8 +486,8 @@ describe("useGardenPools — RPC fallback", () => {
       .mockResolvedValueOnce([TEST_POOL_1, TEST_POOL_2]) // getGardenSignalPools
       .mockResolvedValueOnce(TEST_COMMUNITY); // getGardenCommunity
 
-    const { result } = renderHook(() => useGardenPools(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenPools(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -515,8 +502,8 @@ describe("useGardenPools — RPC fallback", () => {
   it("returns empty when no GardensModule configured (RPC fallback)", async () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(null);
 
-    const { result } = renderHook(() => useGardenPools(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenPools(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -529,8 +516,8 @@ describe("useGardenPools — RPC fallback", () => {
       .mockResolvedValueOnce(TEST_POOL_2) // gardenHypercertSignalPools
       .mockRejectedValueOnce(new Error("RPC error"));
 
-    const { result } = renderHook(() => useGardenPools(TEST_GARDEN as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenPools(TEST_GARDEN as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -545,8 +532,8 @@ describe("useGardenPools — RPC fallback", () => {
       .mockResolvedValueOnce([TEST_POOL_1])
       .mockResolvedValueOnce(TEST_COMMUNITY);
 
-    const { result } = renderHook(() => useGardenPools(mixedCase as Address), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenPools(mixedCase as Address), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

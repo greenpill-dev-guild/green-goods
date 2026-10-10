@@ -1,0 +1,86 @@
+# Design Implementation
+
+Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in `packages/shared/AGENTS.md`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
+
+## Platform and source rules
+
+Before frontend, UI, CSS, accessibility, or browser-proof work, use `modern-web-guidance` and
+retrieve current guidance with the repository-installed tool:
+
+```bash
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP"
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility
+```
+
+Target Baseline Widely Available. Prefer semantic HTML, native controls, and platform CSS;
+keep focus, accessible names, touch targets, loading/error/empty states, and reduced motion usable.
+Root `DESIGN.md` owns tokens; `packages/shared/src/styles/theme.css` is their runtime projection.
+Use semantic color, radius, material, and spring tokens rather than raw values. Use Remixicon.
+The owning surface's `DESIGN.md` and package guide govern its UI; use the shared
+[alignment protocol](system-alignment-review.md) for a full design-system review.
+
+## New Component Runbook
+
+Linear path from blank file to merge-ready.
+
+| # | Step | Decide / Do | Source |
+|---|------|-------------|--------|
+| 1 | Paradigm | Command / Ambient / Data Landscape / Conversational / Ritual. One-line comment at top of file. | [SKILL.md § Paradigm Selection](./SKILL.md) |
+| 2 | Material | Thickness by density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense = solid. | [surfaces.md](./surfaces.md) |
+| 3 | Shape | Fixed (badges), Capsule (icon button / chip), Concentric (`child_radius = parent_radius − padding`). Client buttons ride the shared `Button` (`emphasis`), `IconButton`, and `Chip`: one button corner per surface for every emphasis, 16px in the app and square on the website (DL-026, DL-029); fields 16px; heights 48 / 44 / 40 / 32 (DL-022, DL-023, Rule 19). Admin carve-out: fixed 4/8/12/16/9999 scale — the FAB is a capsule at both sizes (DL-010); `AdminButton` stays pill on the 28/32/40 compact metric (DL-011; DL-030: fields 44 on touch widths and 40 from 640px, pills 36); filled-underline is the default field anatomy. | [language.md § Shape System](./language.md) |
+| 4 | Motion | `var(--spring-*)` only; never hardcode `cubic-bezier`/`duration`. Standard for admin; Expressive only for client hero moments. | [language.md § Motion System](./language.md) |
+| 5 | Primitive | Compose Radix + `tv()`. Dialogs → `DialogShell` (client/shared) or `AdminDialog` (admin). | Dialogs below |
+| 6 | Responsive | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:`/`md:` for page-level. | — |
+| 7 | A11y | Label inputs, errors via `aria-describedby`, color never the sole indicator, hit targets ≥ 44px, focus via Radix. | — |
+| 8 | i18n | Every string via `intl.formatMessage` / `FormattedMessage`; update en/es/pt; action labels Title Case in en only (DL-012 — es/pt native casing); keep `lint:vocab` terms out. | i18n below |
+| 9 | Storybook | CSF3, `tags: ["autodocs"]`, default + loading + error + empty variants. | Storybook below |
+| 10 | Review | Four-lens self-review (Regenerative → Spatial → Ecosystem → Compliance); `bun run check --only design-tokens` before merge. | [review-checklist.md](./review-checklist.md) |
+
+**Admin shortcut**: steps 1–4 are pre-answered (Command + solid + the reduced 4/8/12/16/9999 M3 shape scale + Standard motion) — start at step 5.
+**Client shortcut**: hero components (garden creation, hypercert mint) override step 4 → Expressive, step 2 → dramatic material. See [language.md § Hero Moments](./language.md).
+
+## Dialogs — two project wrappers over Radix `Dialog.*`
+
+Both own full-width mobile bottom sheets + desktop viewport width caps — consumers must **not** restate `max-w-*` (guarded; see frontend-design Rule 14). Every mobile bottom sheet spans the viewport width, with padding inside the surface; this also applies to public editorial sheets and `AdminSideSheet`. Raw Radix `Dialog.*` only when neither wrapper fits.
+
+- **`DialogShell`** — client / shared default. `packages/shared/src/components/Dialog/DialogShell.tsx`, exported from `@green-goods/shared` and `@green-goods/shared/components/Dialog/DialogShell`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`, centered width), `sheetSize?` (`compact|half|tall|full`, the narrow-viewport height tier, DL-014), `actions?` (`SheetActionsProps`: `primary`, `secondary`, a rare `tertiary`, `layout` `stack|steps`, DL-016), `children`, `preventClose?`, `hideCloseButton?`. Owns z-layering. Below 640px it renders the shared `PwaSheet` bottom sheet (drag handle, shared header, scrollable body) into `<body>`; the centered Radix surface only mounts at `sm`+. Every open sheet or dialog registers itself so the PWA AppBar steps aside (DL-015). `ConfirmDialog` follows the same split, so drafts, deletes, and every other confirm share one sheet in the installed app. Actions are data, not buttons: pass `actions` and the shared `SheetActions` bar (`@green-goods/shared/components/Dialog/SheetActions`) pins them under the body, stacked with the primary on top below 640px and one right-aligned row above. `PwaSheet` and the client `AppSheet` take the same `actions` prop. `PwaSheet` also owns every sheet's motion (DL-033): the slide in, the drag from the grip or the header's title block, backdrop and drag dismissal, and the exit on `--spring-spatial-exit`; a consumer never animates a sheet or binds its own drag, and holds dismissal during in-flight work with `preventClose`. **Never in admin.**
+- **`AdminDialog`** — admin dashboard default, strict M3. `packages/admin/src/components/AdminDialog.tsx` (+ `AdminConfirmDialog`). Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`, `size` (`sm|md|lg` — three tiers by action weight), `variant` (`standard|confirm|palette|flow`), `tone` (`hub|garden|community|actions|home` — required in-portal; the portal escapes `[data-tone]`, so unset falls back to green), `preventClose?`. `palette` backs the command palette; `flow` + `ADMIN_FLOW_DIALOG_CLASS` (with `size="lg"`) backs full-surface flows (Submit Work, Create Assessment, Create Hypercert). No `size="fullscreen"` — retired and enforced by check-tokens.sh. Size/variant standard: [prompt-contract.md § Dialog size & variant standard](./prompt-contract.md).
+
+## Admin layout & component palette
+
+- Layout default: `CanvasRouteFrame` + `CanvasRouteHeader` (`packages/admin/src/components/Layout/`) → one primary workspace → every detail/inspection flow in a centered `AdminDialog` (`RightSheet`/`LeftSheet`/`BottomSheet` renderers retired; `AdminSideSheet` only for the 3 global AppBar surfaces). Model new admin surfaces on the `/hub` route (`packages/admin/src/views/Hub/`). Actions go in the header `actions` slot, never beside the title.
+- Cards / elevated surfaces = records or bounded interactions, not page structure. One dominant workspace surface per route; avoid nested rounded-panel stacks.
+- Chrome & skins: the admin shell is forked — `packages/admin/src/components/Shell/` owns AppBar/NavigationBar/MainSheet styling in JSX, independent of the shared Canvas components. Admin-owned component skins and motion live in `packages/admin/src/styles/admin-m3-components.css`, tokens in `admin-m3-tokens.css` (`admin-m3-overrides.css` is retired). Depth is the single `--m3-elevation-0/1/2` ladder; workspace tone appears in exactly 4 places (active tab/nav pill, one filled header action, faint canvas wash, nav-shell FAB fill).
+- Canonical palettes (do not invent component names — flag a missing primitive instead): admin → [prompt-contract.md § Canonical Component Palette](./prompt-contract.md); client → [client-prompt-contract.md § Canonical Component Palette](./client-prompt-contract.md).
+
+## Storybook
+
+Unified instance hosted from `packages/shared`, indexing shared + admin + client stories.
+
+| Command (in `packages/shared`) | Purpose |
+|---|---|
+| `bun run storybook` | Dev server, port 3004 |
+| `bun run build-storybook` | Static build |
+| `bun run check:stories` | Coverage gate — `scripts/quality/check-story-coverage.ts` |
+| `bun run check:story-quality` | Determinism / agent-readability gate — `scripts/quality/check-story-quality.ts` |
+| `bun run test:stories:ci` | Curated browser-mode `play()` smoke |
+
+- Co-locate story with component. CSF3 + `tags: ["autodocs"]`; cover default / loading / error / empty / permission via named stories or a `StateCatalog` (never `Gallery`).
+- **Tags (clean-room)**: `autodocs` always; `visual-harness` only when a real component can't render deterministically (wallet / contract / live-service seams) — harness stories don't count as real-component coverage without an audited exception; `storybook-ci` only for stable high-value `play()` behavior (keep the CI lane curated).
+- **Determinism**: use `.storybook/fixtures.ts` / `adminFixtures.ts` fixtures and `.storybook/decorators.tsx` helpers (`withRouter`, `withCanvasFrame`, `withAdminIdentity`, `withSeededQueryClient`). Never `Date.now()`, zero-arg `new Date()`, `picsum.photos`, live IPFS, or placeholder CIDs — use `STORYBOOK_NOW_SECONDS`, `hoursAgo`/`daysAgo`/`daysFromNow`, and `FIXTURE_*` data-URL images.
+- Title families are enforced by `check:story-quality` — match the nearest existing family (`Shared/*`, `Admin/*`, `Client/*`); don't invent one.
+- Icons: Remixicon (`@remixicon/react`), not lucide. Dark mode via the theme toolbar (`data-theme="dark"`), not duplicate `DarkMode` stories.
+
+## i18n
+
+react-intl, 3 bundled locales. Every user-facing string via `FormattedMessage` / `intl.formatMessage`; format dates/numbers with `Intl`, never by hand. **Coverage gate**: every new key must land in all three of `packages/shared/src/i18n/{en,es,pt}.json` in the same change — parity is mandatory. Keys are semantic (`app.feature.action`). Keep banned copy out (`bun run check --only vocabulary`).
+
+## View Transitions
+
+Baseline + directional (forwards / backwards / fade) + reduced-motion gating are already implemented in `packages/client/src/styles/view-transitions.css`. Named classes: `.vt-main`, `.vt-page`, `.vt-header`, `.vt-garden-card`, `.vt-work-card`. Persistent entities morph by sharing a `viewTransitionName` (e.g. `garden-${id}`) across list + detail — **unique per entity per page, stable across routes**. Full-page morphs use the spatial-slow spring token family (`--spring-spatial-slow-*`); smaller swaps the spatial one. Reduced motion is handled in CSS — no per-component work.
+
+## Validation roll-up
+
+Follow [the validation pipeline](../../context/validation-pipeline.md) for `agentic-readiness`,
+DesignMD/generated/token checks, vocabulary, and applicable Storybook coverage and quality proof.
+Label rendered proof per [Browser Evidence](../../../AGENTS.md#browser-evidence).

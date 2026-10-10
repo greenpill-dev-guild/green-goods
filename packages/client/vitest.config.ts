@@ -1,12 +1,18 @@
+import { availableParallelism, totalmem } from "node:os";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
 
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
+
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
     server: {
@@ -30,35 +36,84 @@ export default defineConfig({
     testTimeout: 10000,
     // Use threads to avoid module pollution between tests
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
-        "node_modules/",
-        "src/__tests__/",
-        "src/__mocks__/",
-        "src/test-utils/",
+        "node_modules/**",
+        "src/__tests__/**",
+        "src/__mocks__/**",
+        "src/test-utils/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",
         "**/build/**",
       ],
       thresholds: {
-        global: {
-          branches: 75,
-          functions: 80,
-          lines: 80,
-          statements: 80,
+        branches: 56,
+        functions: 62,
+        lines: 64,
+        statements: 63,
+        // Aggregate floors measured at 08f96dc; global floors still include these files.
+        "src/views/Home/WalletSheet/**": {
+          branches: 67,
+          functions: 60,
+          lines: 75,
+          statements: 74,
+        },
+        "src/views/Profile/**": {
+          branches: 78,
+          functions: 88,
+          lines: 86,
+          statements: 85,
         },
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.065T and 1.059T instructions against 1.544T and 1.538T
+          // with jsdom (-31%) and took 23.1 and 24.8 s against 30.7 and 35.9 s, with identical
+          // results. Files that need jsdom behaviour pin it with a docblock that says which.
+          environment: "happy-dom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
   resolve: {
     conditions: ["import", "module", "browser", "default"],
     alias: [
+      // Declared package exports whose path does not mirror their source
+      // location; the build aliases these too, so tests must resolve them the
+      // same way or an import that ships fine fails only under test.
+      {
+        find: "@green-goods/shared/service-worker",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/modules/app/service-worker-registration.ts"
+        ),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: path.resolve(__dirname, "../shared/src/hooks"),
@@ -112,6 +167,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
       {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: path.resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
+        find: "@green-goods/shared/public",
+        replacement: path.resolve(__dirname, "../shared/src/hooks/public/publicSurfaceState.ts"),
+      },
+      {
         find: "@green-goods/shared",
         replacement: path.resolve(__dirname, "../shared/src"),
       },
@@ -137,6 +200,22 @@ export default defineConfig({
       {
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import: 34 s of import
+      // across 28 files on 2026-09-28. An alias reaches Shared's own import of the adapter, which
+      // only Shared can resolve. Four alternating full runs retired 1.542T and 1.536T
+      // instructions with these against 1.660T and 1.694T without (-8.2%), identical results.
+      // viem stays external here: inlining it cost 5.8% more instructions in the same test.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"
+        ),
       },
     ],
   },

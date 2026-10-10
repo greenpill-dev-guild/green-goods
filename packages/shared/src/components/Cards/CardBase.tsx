@@ -99,7 +99,7 @@ const surfaceCardVariants = tv({
       interactive: [
         "cursor-pointer",
         "transition-[box-shadow,transform] duration-[var(--spring-spatial-fast-duration,200ms)] ease-[var(--spring-spatial-fast-easing)]",
-        "hover:shadow-[var(--edge-hover),_var(--elevation-2)] hover:-translate-y-0.5",
+        "hover:shadow-[var(--m3-elevation-2)] hover:-translate-y-0.5",
         "active:translate-y-0 active:scale-[0.992]",
       ].join(" "),
     },

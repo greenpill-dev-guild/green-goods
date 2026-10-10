@@ -2,6 +2,7 @@ import { RiSearchLine } from "@remixicon/react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen } from "../test-utils";
 import { AdminButton } from "../../components/AdminButton";
+import { AdminSideSheet } from "../../components/AdminSideSheet";
 import {
   ADMIN_FLOW_DIALOG_CLASS,
   AdminConfirmDialog,
@@ -14,7 +15,7 @@ describe("AdminDialog", () => {
       <AdminDialog
         open
         onOpenChange={vi.fn()}
-        title="Edit domains"
+        title="Edit Domains"
         description="Choose supported work domains"
         actions={
           <>
@@ -27,7 +28,7 @@ describe("AdminDialog", () => {
       </AdminDialog>
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Edit domains" });
+    const dialog = screen.getByRole("dialog", { name: "Edit Domains" });
     expect(dialog).toHaveAttribute("data-component", "AdminDialog");
     expect(dialog).toHaveAttribute("data-variant", "standard");
     expect(dialog).toHaveAttribute("data-mobile", "sheet");
@@ -55,7 +56,7 @@ describe("AdminDialog", () => {
       <AdminDialog
         open
         onOpenChange={vi.fn()}
-        title="Submit work"
+        title="Submit Work"
         variant="flow"
         size="lg"
         className={ADMIN_FLOW_DIALOG_CLASS}
@@ -64,7 +65,7 @@ describe("AdminDialog", () => {
       </AdminDialog>
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Submit work" });
+    const dialog = screen.getByRole("dialog", { name: "Submit Work" });
     expect(dialog).toHaveAttribute("data-variant", "flow");
     expect(dialog).toHaveAttribute("data-size", "lg");
     expect(dialog.className).toContain("inset-x-0");
@@ -94,8 +95,7 @@ describe("AdminDialog", () => {
     expect(dialog).toHaveClass("admin-dialog--palette");
     expect(dialog.className).toContain("left-1/2");
     expect(dialog.className).toContain("-translate-x-1/2");
-    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
-    expect(dialog.className).not.toContain("w-[100dvw]");
+    expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-2xl");
     expect(screen.getByLabelText("Search commands")).toBeInTheDocument();
   });
 
@@ -140,7 +140,42 @@ describe("AdminConfirmDialog", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps confirm dialogs on the compact mobile geometry", () => {
+  it("names what the act writes to under the title, before the description", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Close This Pool"
+        target={<p>Writing to Rocinha’s pool</p>}
+        description="Closing ends participation for every member."
+        confirmLabel="Close Pool"
+      />
+    );
+
+    const title = screen.getByRole("heading", { name: "Close This Pool" });
+    const target = screen.getByText("Writing to Rocinha’s pool");
+    const description = screen.getByText("Closing ends participation for every member.");
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, target)).toBe(true);
+    expect(follows(target, description)).toBe(true);
+  });
+
+  it("keeps the header as it was when a dialog names no target", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Emergency pause"
+        description="Pause this vault?"
+      />
+    );
+    expect(document.querySelector('[data-slot="target"]')).toBeNull();
+  });
+
+  it("keeps confirm dialogs full width on mobile and capped on desktop", () => {
     renderWithProviders(
       <AdminConfirmDialog
         isOpen
@@ -155,8 +190,7 @@ describe("AdminConfirmDialog", () => {
     expect(dialog).toHaveAttribute("data-variant", "confirm");
     expect(dialog.className).toContain("left-1/2");
     expect(dialog.className).toContain("-translate-x-1/2");
-    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
-    expect(dialog.className).not.toContain("w-[100dvw]");
+    expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-md");
   });
 
   it("locks confirmation dialogs while loading", () => {
@@ -177,5 +211,22 @@ describe("AdminConfirmDialog", () => {
     expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+  });
+});
+
+describe("AdminSideSheet mobile geometry", () => {
+  it("opens global surfaces full width on mobile and keeps the desktop rail width", () => {
+    renderWithProviders(
+      <AdminSideSheet open onOpenChange={vi.fn()} title="Notifications">
+        <p>No new notifications</p>
+      </AdminSideSheet>
+    );
+
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toHaveClass(
+      "w-full",
+      "max-w-none",
+      "bottom-0",
+      "sm:w-[var(--admin-side-sheet-width)]"
+    );
   });
 });

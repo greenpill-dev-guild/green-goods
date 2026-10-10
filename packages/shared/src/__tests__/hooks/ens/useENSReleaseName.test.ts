@@ -1,27 +1,38 @@
 /**
  * useENSReleaseName Hook Tests
  *
- * Tests the ENS subdomain release mutation hook for passkey-sponsored and
- * wallet-funded release paths.
+ * Tests the ENS subdomain release mutation hook. Releases are sponsored where
+ * the ENS sender supports it. On the legacy sender, wallets pay the fee.
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSendTransaction = vi.fn();
-const mockWriteContract = vi.fn();
+const mockWalletSendTransaction = vi.fn();
 const mockReadContract = vi.fn();
 const mockGetBalance = vi.fn();
+const mockEstimateGas = vi.fn();
+const mockEstimateFeesPerGas = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
-const mockEnsureAppKitWalletChain = vi.fn();
+const mockReadyWalletClient = vi.fn();
+
+/** Function selectors on the ENS sender. */
+const RELEASE_NAME_SPONSORED_SELECTOR = "0x0bcd9fed";
+const RELEASE_NAME_SELECTOR = "0x58cdf6bd";
+
+type MockWalletClient = {
+  account: { address: string; type: "json-rpc" };
+  sendTransaction: typeof mockWalletSendTransaction;
+};
 
 let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
 let mockWalletAddress: string | undefined = "0x1234567890123456789012345678901234567890";
-let mockWalletClientData: { writeContract: ReturnType<typeof vi.fn> } | undefined = {
-  writeContract: mockWriteContract,
-};
+let mockWalletClientData: MockWalletClient | undefined;
+let mockPoolBalance = 200000n;
+let mockWalletBalance = 10n ** 18n;
 
 const mockSmartAccountClient = {
   account: { address: "0xSmartAccount1234567890123456789012345678" },
@@ -33,9 +44,6 @@ let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmar
 vi.mock("wagmi", () => ({
   useAccount: vi.fn(() => ({
     address: mockWalletAddress,
-  })),
-  useWalletClient: vi.fn(() => ({
-    data: mockWalletClientData,
   })),
 }));
 
@@ -69,12 +77,18 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
     publicClient: {
       readContract: mockReadContract,
       getBalance: mockGetBalance,
+      estimateGas: mockEstimateGas,
+      estimateFeesPerGas: mockEstimateFeesPerGas,
       waitForTransactionReceipt: mockWaitForTransactionReceipt,
     },
   })),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -99,7 +113,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 }));
 
 vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+  readyWalletClient: (...args: unknown[]) => mockReadyWalletClient(...args),
 }));
 
 import { toastService } from "../../../components/toast";
@@ -134,10 +148,20 @@ describe("useENSReleaseName", () => {
     mockAuthMode = null;
     mockSmartAccountClientValue = mockSmartAccountClient;
     mockWalletAddress = "0x1234567890123456789012345678901234567890";
-    mockWalletClientData = { writeContract: mockWriteContract };
+    mockWalletClientData = {
+      account: { address: mockWalletAddress, type: "json-rpc" },
+      sendTransaction: mockWalletSendTransaction,
+    };
+    mockReadyWalletClient.mockImplementation(async () => mockWalletClientData);
     mockEnsAddress = ENS_ADDRESS;
-    mockGetBalance.mockResolvedValue(200000n);
-    mockWaitForTransactionReceipt.mockResolvedValue({ logs: [] });
+    mockPoolBalance = 200000n;
+    mockWalletBalance = 10n ** 18n;
+    mockGetBalance.mockImplementation(({ address }: { address: string }) =>
+      Promise.resolve(address === mockEnsAddress ? mockPoolBalance : mockWalletBalance)
+    );
+    mockEstimateGas.mockResolvedValue(300000n);
+    mockEstimateFeesPerGas.mockResolvedValue({ maxFeePerGas: 25000000n });
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: "success", logs: [] });
     mockDefaultReadContract();
   });
 
@@ -184,7 +208,7 @@ describe("useENSReleaseName", () => {
     });
 
     it("fails before submitting when the sponsored ENS fund is underfunded", async () => {
-      mockGetBalance.mockResolvedValue(1n);
+      mockPoolBalance = 1n;
 
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useENSReleaseName(), { wrapper });
@@ -197,8 +221,7 @@ describe("useENSReleaseName", () => {
       expect(mockSendTransaction).not.toHaveBeenCalled();
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
-          description:
-            "The sponsored username fund needs more ETH before passkey users can release names.",
+          description: "The sponsored username fund needs more ETH before names can be released.",
         })
       );
     });
@@ -222,7 +245,7 @@ describe("useENSReleaseName", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
           description:
-            "Username changes are temporarily operator-assisted while we migrate the ENS sender.",
+            "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
         })
       );
     });
@@ -238,23 +261,42 @@ describe("useENSReleaseName", () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       expect(result.current.error?.message).toBe("Passkey smart account not ready");
-      expect(mockWriteContract).not.toHaveBeenCalled();
+      expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });
 
-  describe("wallet user flow (user-funded)", () => {
+  describe("wallet user flow", () => {
+    const releaseFee = 123456n;
+
     beforeEach(() => {
       mockAuthMode = "wallet";
-    });
-
-    it("reads fee and calls releaseName with value", async () => {
-      const mockFee = 123456n;
       mockReadContract.mockImplementation(({ functionName }) => {
         if (functionName === "ownerToSlug") return Promise.resolve("bob");
-        if (functionName === "getReleaseFee") return Promise.resolve(mockFee);
+        if (functionName === "getReleaseFee") return Promise.resolve(releaseFee);
+        if (functionName === "totalPendingRefunds") return Promise.resolve(0n);
         return Promise.resolve(undefined);
       });
-      mockWriteContract.mockResolvedValue(MOCK_TX_HASH);
+      mockWalletSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+    });
+
+    it("releases through the sponsored call without sending ETH where the sender has one", async () => {
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useENSReleaseName(), { wrapper });
+
+      expect(result.current.isSponsoredReleaseUnavailable).toBe(false);
+
+      result.current.mutate();
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockGetBalance).toHaveBeenCalledWith({ address: ENS_ADDRESS });
+      const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
+      expect(sent).toMatchObject({ to: ENS_ADDRESS, value: 0n });
+      expect(sent.data.startsWith(RELEASE_NAME_SPONSORED_SELECTOR)).toBe(true);
+    });
+
+    it("pays the release fee on the legacy sender, which has no sponsored release", async () => {
+      mockEnsAddress = LEGACY_ENS_ADDRESS;
 
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useENSReleaseName(), { wrapper });
@@ -263,45 +305,97 @@ describe("useENSReleaseName", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockReadContract).toHaveBeenCalledWith(
-        expect.objectContaining({
-          functionName: "getReleaseFee",
-          args: ["bob"],
-        })
+      expect(mockEstimateGas).toHaveBeenCalledWith(expect.objectContaining({ value: releaseFee }));
+      // The wallet is readied for the owner whose name was looked up.
+      expect(mockReadyWalletClient).toHaveBeenCalledExactlyOnceWith(11155111, mockWalletAddress);
+      const sent = mockWalletSendTransaction.mock.calls[0]?.[0];
+      expect(sent).toMatchObject({ to: LEGACY_ENS_ADDRESS, value: releaseFee });
+      expect(sent.data.startsWith(RELEASE_NAME_SELECTOR)).toBe(true);
+    });
+
+    it("keeps the wallet closed when it cannot pay the legacy release fee", async () => {
+      mockEnsAddress = LEGACY_ENS_ADDRESS;
+      mockWalletBalance = releaseFee - 1n;
+
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useENSReleaseName(), { wrapper });
+
+      result.current.mutate();
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error?.message).toBe("InsufficientFee");
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ description: "Not enough ETH to cover the release fee." })
       );
-      expect(mockWriteContract).toHaveBeenCalledWith(
-        expect.objectContaining({
-          functionName: "releaseName",
-          value: mockFee,
-        })
-      );
+      expect(mockReadyWalletClient).not.toHaveBeenCalled();
+      expect(mockWalletSendTransaction).not.toHaveBeenCalled();
     });
   });
 
   describe("onSuccess", () => {
-    it("clears cached protocol name and shows a success toast", async () => {
+    it("replaces a stale active read with durable release progress and retains the name for polling", async () => {
       mockAuthMode = "passkey";
       mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
 
       const { queryClient, wrapper } = createTestWrapper();
-      queryClient.setQueryData(
-        queryKeys.ens.protocolName(mockSmartAccountClient.account.address),
-        "alice"
+      const nameKey = queryKeys.ens.protocolName(
+        mockSmartAccountClient.account.address.toLowerCase()
       );
+      const statusKey = queryKeys.ens.registrationStatus("alice");
+      queryClient.setQueryData(nameKey, "alice.greengoods.eth");
+      queryClient.setQueryData(statusKey, { status: "active" });
+      let finishOldRead!: (value: { status: string }) => void;
+      const oldRead = queryClient
+        .fetchQuery({
+          queryKey: statusKey,
+          queryFn: () =>
+            new Promise((resolve) => {
+              finishOldRead = resolve;
+            }),
+        })
+        .catch(() => undefined);
       const { result } = renderHook(() => useENSReleaseName(), { wrapper });
 
       result.current.mutate();
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(
-        queryClient.getQueryData(queryKeys.ens.protocolName(mockSmartAccountClient.account.address))
-      ).toBeNull();
+      await act(async () => {
+        finishOldRead({ status: "active" });
+        await oldRead;
+      });
+      expect(queryClient.getQueryData(nameKey)).toBe("alice.greengoods.eth");
+      expect(queryClient.getQueryData(statusKey)).toMatchObject({
+        status: "pending",
+        release: { owner: mockSmartAccountClient.account.address },
+        submittedAt: expect.any(Number),
+      });
       expect(toastService.success).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Name release started",
         })
       );
+    });
+
+    it("does not mark a reverted receipt as a release or report success", async () => {
+      mockAuthMode = "passkey";
+      mockSendTransaction.mockResolvedValue(MOCK_TX_HASH);
+      mockWaitForTransactionReceipt.mockResolvedValueOnce({ status: "reverted", logs: [] });
+      const { queryClient, wrapper } = createTestWrapper();
+      queryClient.setQueryData(queryKeys.ens.registrationStatus("alice"), { status: "active" });
+      const { result } = renderHook(() => useENSReleaseName(), { wrapper });
+      result.current.mutate();
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(queryClient.getQueryData(queryKeys.ens.registrationStatus("alice"))).toEqual({
+        status: "active",
+      });
+      expect(toastService.success).not.toHaveBeenCalled();
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Release failed" })
+      );
+      const { logger } = await import("../../../modules/app/logger");
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 });

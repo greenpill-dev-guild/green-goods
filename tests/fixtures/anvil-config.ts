@@ -11,7 +11,7 @@
 
 export const FORK_CONFIG = {
   /** RPC URL for forking (Sepolia by default) */
-  rpcUrl: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+  rpcUrl: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
 
   /** Optional: specific block number for deterministic tests */
   blockNumber: process.env.ANVIL_FORK_BLOCK ? BigInt(process.env.ANVIL_FORK_BLOCK) : undefined,
@@ -45,8 +45,8 @@ export const TEST_ACCOUNTS = {
     privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as const,
   },
 
-  /** Account 1 - Used as garden operator */
-  operator: {
+  /** Account 1 - Used as garden steward */
+  steward: {
     address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as const,
     privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const,
   },
@@ -80,18 +80,6 @@ export const TEST_ACCOUNTS = {
 // CONTRACT ADDRESSES (Sepolia)
 // ============================================================================
 
-/**
- * Well-known contract addresses on Sepolia.
- * Deployment-specific addresses are loaded dynamically from deployment artifacts.
- */
-export const SEPOLIA_CONTRACTS = {
-  /** EAS (Ethereum Attestation Service) on Sepolia */
-  eas: "0xC2679fBD37d54388Ce493F1DB75320D236e1815e" as const,
-
-  /** EAS Schema Registry on Sepolia */
-  schemaRegistry: "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0" as const,
-} as const;
-
 // ============================================================================
 // TIMEOUTS
 // ============================================================================
@@ -104,7 +92,7 @@ export const ANVIL_TIMEOUTS = {
   startup: 15000,
 
   /** Time to wait for a transaction to be mined */
-  transaction: 30000,
+  transaction: 60000,
 
   /** Time to wait for RPC to respond */
   rpc: 5000,

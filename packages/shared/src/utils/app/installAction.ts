@@ -13,7 +13,6 @@
 
 import type { InstallGuidance } from "../../hooks/app/useInstallGuidance";
 import { copyToClipboard } from "./clipboard";
-import { hapticLight } from "./haptics";
 
 export interface InstallActionContext {
   /** From `useApp().promptInstall` — fires the deferred install event when present. */
@@ -64,7 +63,6 @@ export async function dispatchInstallAction(
 
   switch (action.type) {
     case "native-install": {
-      hapticLight();
       promptInstall();
       return true;
     }

@@ -30,6 +30,10 @@ export interface NetworkContracts {
   strategyHypercertFractionOffer: Address;
   // GreenWill
   greenWill: Address;
+  commitmentPoolingModule: Address;
+  commitmentRegistry: Address;
+  settlementModule: Address;
+  celoSettlementExecutor: Address;
 }
 
 export type MarketplaceReadinessField =
@@ -79,8 +83,8 @@ export interface CreateGardenParams {
   domainMask: number;
   /** Addresses to grant Gardener role atomically during mint */
   gardeners: Address[];
-  /** Addresses to grant Operator role atomically during mint */
-  operators: Address[];
+  /** Addresses to grant Steward role atomically during mint */
+  stewards: Address[];
 }
 
 // Contract deployment parameters

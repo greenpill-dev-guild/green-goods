@@ -18,7 +18,7 @@
  *   offline.ts - OfflineStatus, SyncMetrics, WorkConflict
  *
  * INFRASTRUCTURE:
- *   auth.ts - AuthMode, BaseAuthContext
+ *   auth.ts - AuthMode, BaseAuthContext, SmartAccountClientResolver
  *   contracts.ts - NetworkContracts, DeploymentParams
  *   blockchain.ts - ChainId, DeploymentConfig
  *
@@ -28,18 +28,24 @@
  *
  * TYPE DECLARATIONS (*.d.ts):
  *   global.d.ts - JSX intrinsic elements (AppKit web components)
- *   react-window.d.ts - Virtual scrolling types (library ships Flow types)
  *   temporal.d.ts - Temporal API declarations
  */
 
 // ============================================
 // Auth Types
 // ============================================
-export type { AuthMode, BaseAuthContext } from "./auth";
+export type { AuthMode, BaseAuthContext, SmartAccountClientResolver } from "./auth";
 // ============================================
 // Blockchain Types
 // ============================================
 export type { ChainId, DeploymentConfig } from "./blockchain";
+export {
+  KARMA_REQUIRED_SYNC_VERSION,
+  type KarmaIntegrationProjection,
+  type KarmaIntegrationStatus,
+  type KarmaIntegrationStatusName,
+  type KarmaProjectionState,
+} from "./karma";
 // ============================================
 // Contract Types
 // ============================================
@@ -80,15 +86,13 @@ export type {
   CampaignCookieJar,
   CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorPolicy,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardPolicy,
+  CampaignCookieJarStewardSource,
   CookieJarAccessType,
   CookieJarWithdrawalType,
   CookieJar,
-  CookieJarAdminParams,
   CookieJarDepositParams,
-  CookieJarEmergencyWithdrawParams,
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
   CookieJarWithdrawParams,
@@ -224,6 +228,14 @@ export { ACTION_DOMAINS, LISTING_DEFAULTS } from "./hypercerts";
 export type {
   IndexerAction,
   IndexerActionsResponse,
+  IndexerCommitmentPayoutPlan,
+  IndexerCommitmentPayoutPlansResponse,
+  IndexerCommitmentPayoutPlanStatus,
+  IndexerCommitmentSettlementFlow,
+  IndexerDisbursement,
+  IndexerDisbursementKind,
+  IndexerDisbursementsResponse,
+  IndexerDisbursementState,
   IndexerGarden,
   IndexerGardener,
   IndexerGardenersResponse,
@@ -280,3 +292,4 @@ export type {
   VaultPreview,
   WithdrawParams,
 } from "./vaults";
+export type { GreenWillBadgeView } from "./greenwill";

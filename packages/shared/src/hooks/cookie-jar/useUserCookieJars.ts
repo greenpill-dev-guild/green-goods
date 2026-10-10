@@ -2,58 +2,55 @@ import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address, Garden } from "../../types/domain";
-import {
-  COOKIE_JAR_ABI,
-  COOKIE_JAR_MODULE_ABI,
-  ERC20_DECIMALS_ABI,
-} from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI, COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { ERC20_DECIMALS_ABI } from "../../utils/blockchain/abis/erc20";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
-import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 function getGardenAccountAddress(garden: Garden): Address {
   return garden.id.toLowerCase() as Address;
 }
 
 /**
- * Aggregates cookie jars across all gardens where the current user is an operator.
+ * Aggregates cookie jars across all gardens where the current user is a steward.
  * Useful for wallet/dashboard views that show all jars the user can manage.
  */
 export function useUserCookieJars() {
   const chainId = useCurrentChain();
-  const { operatorGardens: roleOperatorGardens } = useRole();
+  const { stewardGardens: roleStewardGardens } = useRole();
   const { data: gardens } = useGardens();
 
   const contracts = getNetworkContracts(chainId);
   const moduleAddress = contracts.cookieJarModule;
   const moduleConfigured = !!moduleAddress && moduleAddress.toLowerCase() !== ZERO_ADDRESS;
 
-  // Filter to operator gardens only
-  const operatorGardens = useMemo(() => {
-    if (!gardens || !roleOperatorGardens?.length) return [];
-    const opSet = new Set(roleOperatorGardens.map((g) => g.id.toLowerCase()));
+  // Filter to steward gardens only
+  const stewardGardens = useMemo(() => {
+    if (!gardens || !roleStewardGardens?.length) return [];
+    const opSet = new Set(roleStewardGardens.map((g) => g.id.toLowerCase()));
     return gardens.filter((g) => opSet.has(getGardenAccountAddress(g)));
-  }, [gardens, roleOperatorGardens]);
+  }, [gardens, roleStewardGardens]);
 
-  // Step 1: Batch-read jar addresses for each operator garden
+  // Step 1: Batch-read jar addresses for each steward garden
   const jarAddressContracts = useMemo(
     () =>
-      operatorGardens.map((garden) => ({
+      stewardGardens.map((garden) => ({
         address: moduleAddress as Address,
         abi: COOKIE_JAR_MODULE_ABI,
         functionName: "getGardenJars" as const,
         args: [getGardenAccountAddress(garden)] as const,
       })),
-    [operatorGardens, moduleAddress]
+    [stewardGardens, moduleAddress]
   );
 
   const { data: jarAddressResults, isLoading: isLoadingAddresses } = useReadContracts({
     contracts: jarAddressContracts,
     query: {
-      enabled: moduleConfigured && operatorGardens.length > 0,
+      enabled: moduleConfigured && stewardGardens.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
@@ -62,20 +59,20 @@ export function useUserCookieJars() {
   const jarGardenPairs = useMemo(() => {
     if (!jarAddressResults) return [];
     const pairs: Array<{ jarAddress: Address; gardenAddress: Address }> = [];
-    for (let i = 0; i < operatorGardens.length; i++) {
+    for (let i = 0; i < stewardGardens.length; i++) {
       const result = jarAddressResults[i];
       const addrs = (result?.result as Address[] | undefined) ?? [];
       for (const addr of addrs) {
         if (addr.toLowerCase() !== ZERO_ADDRESS) {
           pairs.push({
             jarAddress: addr,
-            gardenAddress: getGardenAccountAddress(operatorGardens[i]),
+            gardenAddress: getGardenAccountAddress(stewardGardens[i]),
           });
         }
       }
     }
     return pairs;
-  }, [jarAddressResults, operatorGardens]);
+  }, [jarAddressResults, stewardGardens]);
 
   // Step 2: Multicall to read each jar's state
   const jarDetailContracts = useMemo(

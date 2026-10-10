@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { PostHog } from "posthog-node";
 import { createLogger } from "./logger";
 import type { InboundMessage, OutboundResponse, Platform } from "../types";
+import type {
+  GardenJoinRequestedVia,
+  GardenJoinRequestKind,
+} from "@green-goods/shared/public-contracts/join-requests";
 
 const log = createLogger("analytics");
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
@@ -11,9 +15,43 @@ export type AgentAnalyticsEvent =
   | "agent_runtime_started"
   | "agent_message_received"
   | "agent_message_handled"
-  | "agent_message_failed";
+  | "agent_message_failed"
+  | "join_request_created"
+  | "join_request_create_rejected"
+  | "join_request_status_checked"
+  | "join_request_resolved"
+  | "join_request_withdrawn"
+  | "join_request_expired";
 
 type AgentAnalyticsProperties = Record<string, boolean | number | string | null | undefined>;
+
+type GardenJoinRequestAnalyticsProperties = {
+  count?: number;
+  error_class?:
+    | "already_member"
+    | "already_steward"
+    | "authentication_failed"
+    | "invalid_request"
+    | "open_joining"
+    | "proof_replayed"
+    | "queue_full"
+    | "rate_limited"
+    | "service_unavailable";
+  is_counterfactual?: boolean;
+  kind?: GardenJoinRequestKind;
+  requested_via?: GardenJoinRequestedVia;
+  resolution?: "declined" | "welcomed";
+  retry?: boolean;
+  /** The dependency a rejected create was waiting on when it failed. */
+  stage?:
+    | "signature_verification"
+    | "open_joining_read"
+    | "membership_read"
+    | "steward_read"
+    | "proof_claim"
+    | "store_create";
+  state?: "declined" | "none" | "pending" | "welcomed";
+};
 
 interface AgentAnalyticsClient {
   capture: (input: {
@@ -94,6 +132,13 @@ export async function trackAgentRuntimeStarted(input: {
     chain_id: input.chainId,
     node_env: input.nodeEnv,
   });
+}
+
+export function trackGardenJoinRequestEvent(
+  event: Extract<AgentAnalyticsEvent, `join_request_${string}`>,
+  properties: GardenJoinRequestAnalyticsProperties
+): Promise<void> {
+  return trackAgentEvent(event, RUNTIME_DISTINCT_ID, properties);
 }
 
 export async function trackAgentMessageReceived(message: InboundMessage): Promise<void> {

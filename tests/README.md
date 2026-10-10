@@ -1,261 +1,148 @@
 # Green Goods E2E Tests
 
-Playwright tests for client (PWA) and admin (dashboard) with platform-specific authentication.
+The root Playwright suite covers the client PWA and admin cockpit. The source of truth is
+[`playwright.config.ts`](../playwright.config.ts); the root scripts in [`package.json`](../package.json)
+are the supported entrypoints. `scripts/dev/test-e2e.js` owns E2E preset dispatch and qualification.
 
-> **For general setup and contributing:** See [Developer Documentation](../docs/developer/getting-started.md)
-
-## Quick Start
+## Quick start
 
 ```bash
-# Run all E2E tests (auto-starts dev, runs tests, cleans up)
-bun test:e2e
+# Starts owned test servers, runs the selected desktop projects, then cleans up
+bun run browser e2e --preset all
 
-# Run smoke tests only (faster, recommended ⚡)
-bun test:e2e:smoke
+# Client and admin smoke projects only
+bun run browser e2e --preset smoke
 
-# Interactive debug UI
-bun test:e2e:ui
+# Playwright UI against services you have already started
+bun run browser e2e --preset ui
 ```
 
-**What happens:**
-1. Script starts the PM2 web fallback with `bun run dev:web` in background
-2. Waits for client (3001) and admin (3002) to be ready
-3. Runs Playwright tests
-4. Cleans up PM2 processes automatically
+`bun run browser e2e --preset all` and `--preset smoke` use Playwright-owned Client/Admin
+servers with the CI test profile (`APP_ENV=test`, `NODE_ENV=test`, Sepolia). Playwright refuses
+occupied app ports and cleans up only its own server process groups, including after failure or
+cancellation. These presets do not start the live PM2 stack or local indexer. Use `--preset ui`
+when you deliberately want interactive checks against services you already started.
 
-**Note:** The indexer will crash (expected - using production instance)
+## Test structure
 
-## Test Structure
-
-```
+```text
 tests/
-├── specs/
-│   ├── client.smoke.spec.ts  # Client PWA (login + gardens)
-│   └── admin.smoke.spec.ts   # Admin dashboard (login + gardens)
-├── helpers/
-│   └── test-utils.ts         # ClientTestHelper, AdminTestHelper
-├── global-setup.ts            # Health checks, env vars
-├── global-teardown.ts         # Cleanup
-└── run-tests.ts               # Test runner CLI
+  fixtures/                 # Anvil, contract, and Playwright service helpers
+  helpers/                  # Shared browser helpers and test configuration
+  mocks/                    # Pimlico bundler/paymaster handlers
+  specs/                    # Client, admin, fork, passkey, and diagnostic specs
+  global-setup.ts           # Optional health checks and environment setup
+  global-teardown.ts        # Test cleanup
 ```
 
-## Platform-Specific Authentication
+Useful references:
 
-| Platform | Auth Method | Why |
-|----------|-------------|-----|
-| **Android Chrome** | Passkey (virtual WebAuthn) | Full automation support |
-| **iOS Safari** | Wallet (storage injection) | Safari lacks virtual WebAuthn |
-| **Admin Desktop** | Dev `mockAuth` + mocked GraphQL | Stable cockpit verification without wallet state hacks |
+- `tests/fixtures/playwright-services.ts` controls which app servers and indexer are required.
+- `tests/fixtures/anvil-fork.ts` owns the local fork lifecycle.
+- `tests/fixtures/contract-helpers.ts` loads deployment artifacts for browser tests.
+- `tests/helpers/test-utils.ts` exports `ClientTestHelper` and `AdminTestHelper`.
+- `tests/helpers/test-config.ts` centralizes test URLs and chain defaults.
+- `tests/mocks/pimlico-handlers.ts` keeps the legacy bundler/paymaster response fixture, tested directly without network calls. The qualified passkey rejection spec owns its strict server substitute.
 
-### Client Tests (Platform Detection)
+## Projects and focused runs
 
-```typescript
-test("can view gardens", async ({ page }, testInfo) => {
-  const helper = new ClientTestHelper(page);
-  const ios = testInfo.project.name === "mobile-safari";
+The config keeps CI lanes and optional manual projects separate:
 
-  if (ios) {
-    // iOS - wallet injection
-    await helper.injectWalletAuth();
-    await page.goto("/home");
-  } else {
-    // Android/Chromium - passkey
-    await helper.setupPasskeyAuth();
-    await helper.createPasskeyAccount(`test_${Date.now()}`);
-  }
+- `client-ci` and `admin-ci` run deterministic smoke and CI specs.
+- `client-full`, `chromium`, and `performance` are the default desktop wrapper projects.
+- `mobile-chrome`, `mobile-safari`, and `iphone-16-pro` are explicit device/diagnostic projects.
+- `anvil-fork`, `passkey-mock`, and `testnet` are explicit integration projects.
 
-  // Test assertions...
-});
-```
-
-### Admin Tests (Cockpit Mock Auth)
-
-```typescript
-test("can access the cockpit", async ({ page }) => {
-  const helper = new AdminTestHelper(page);
-  await helper.enableMockAuth("operator");
-  await page.route("**/api/graphql", mockIndexerRoute);
-
-  await page.goto("/hub");
-  // Assertions...
-});
-```
-
-Use this path for admin cockpit checks:
-- Seed `sessionStorage` with `helper.enableMockAuth("operator" | "deployer" | "user")`.
-- Mock indexer requests on both `**/api/graphql` and `**/v1/graphql` because local HTTPS uses the Vite proxy.
-- Assert against current cockpit routes like `/hub`, `/garden`, `/community`, and `/actions`, not legacy `/dashboard`.
-
-## Writing New Tests
-
-### 1. Choose Test Helper
-
-```typescript
-// Client PWA
-import { ClientTestHelper } from "../helpers/test-utils";
-const helper = new ClientTestHelper(page);
-
-// Admin Dashboard
-import { AdminTestHelper } from "../helpers/test-utils";
-const helper = new AdminTestHelper(page);
-```
-
-### 2. Authenticate
-
-```typescript
-// Android/Chromium - Passkey
-await helper.setupPasskeyAuth();
-await helper.createPasskeyAccount("username");
-
-// iOS - Wallet
-await helper.injectWalletAuth("0xAddress");
-await page.goto("/route");
-```
-
-### 3. Query Indexer
-
-```typescript
-import { hasGardens, queryIndexer } from "../helpers/test-utils";
-
-// Simple check
-const gardensExist = await hasGardens(page);
-
-// Custom query
-const data = await queryIndexer(page, `
-  query { Garden(limit: 5) { id name } }
-`);
-```
-
-### 4. Handle Data Variance
-
-```typescript
-const gardensExist = await hasGardens(page);
-
-if (gardensExist) {
-  // Test with real data
-  await expect(page.locator('[data-testid="garden-card"]').first()).toBeVisible();
-} else {
-  // Test empty state
-  await expect(page.locator("text=No gardens")).toBeVisible();
-}
-```
-
-## Test Runner Commands
+Use Bun to launch the checked-in Playwright CLI:
 
 ```bash
-# Development
-bun tests/run-tests.ts check        # Health check
-bun tests/run-tests.ts smoke        # Quick validation
-bun tests/run-tests.ts mobile       # Android + iOS
-bun tests/run-tests.ts ui           # Visual debugger
+bun x playwright test --project=client-ci
+bun x playwright test --project=admin-ci
+bun x playwright test tests/specs/client.navigation.spec.ts
 
-# Platform-specific
-bun tests/run-tests.ts smoke:client
-bun tests/run-tests.ts smoke:admin
-bun tests/run-tests.ts mobile:android
-bun tests/run-tests.ts mobile:ios
-
-# Full help
-bun tests/run-tests.ts help
+bun run browser e2e --preset fork
+bun run browser e2e --preset passkey
+bun run browser e2e --preset testnet
 ```
 
-## Watch Tests Run
+Fork and testnet projects have 120-second test timeouts. The default config uses one local retry,
+two CI retries, four local workers, two CI workers, traces on the first retry, screenshots on
+failure, and local failure video.
 
-Two ways to observe test execution:
-
-| Mode | Command | Best For |
-|------|---------|----------|
-| **Playwright UI** | `bun test:e2e:ui` | Time-travel debugging, DOM inspection |
-| **Headed Browser** | `bun tests/run-tests.ts headed` | Quick visual verification |
-
-### Playwright UI (Recommended for Debugging)
+## Qualified verification
 
 ```bash
-bun test:e2e:ui
+bun run browser e2e --preset passkey
+bun run browser e2e --preset explore --seed 42
+bun run browser e2e --preset pwa-preview
 ```
 
-Features:
-- Time-travel through test execution
-- Inspect DOM at any step
-- View network requests and console
-- Re-run individual tests
+These presets own their local server and Chromium contexts, pin CI mode and the Chromium binary checked by the capability probe, allow no retries, and
+stop at the first failure within a five-minute run budget. Only complete fresh JSON reports count
+as passing: one passkey case, two work-inspection cases, or one production PWA case. Skips,
+missing cases, retries and old reports fail qualification. `--list` is discovery only. Filters,
+shards and timeout overrides are rejected; diagnostic output and worker options remain available.
+The default report lives in `.cache/validation/browser-<preset>/results.json`; set
+`PLAYWRIGHT_JSON_OUTPUT_FILE` to preserve a run elsewhere. Playwright attachments include screenshots
+and, for exploration, the seed, role, viewport, data and attempted action sequence.
 
-### Headed Mode (Quick Visual Check)
+The passkey case uses a real Chromium virtual authenticator and requires the server rejection to
+leave the user signed out after reload. It does not prove real-device biometrics, a working remote
+passkey server, or successful wallet registration. The seeded work pilot reads synthetic work and
+recovers an injected EAS outage, then reloads the same record. Each case has a fresh context and
+an allowlist of route actions and network substitutes; it never signs or submits a decision.
+External font and telemetry requests receive local substitutes, so this is not font-fidelity proof.
 
-```bash
-bun tests/run-tests.ts headed
-```
+The PWA preset builds production assets before previewing them. It verifies an anonymous login
+shell, blocks page and worker network requests offline, and then removes the navigation cache to
+prove the reload depends on it. Production auth restrictions remain active. This does not certify
+an installed or authenticated Brave session, queued uploads, or the worker-update lifecycle.
 
-Watch the browser execute tests in real-time. Faster startup than UI mode.
+The named browser checks in `scripts/data/validation-policy.json` select these proofs for relevant
+changes. Missing pinned Chromium is reported as blocked. Existing critical gates and authenticated
+browser-proof requirements still apply. Source, fixtures, profile, environment, toolchain and seed
+changes invalidate existing runner receipts. CI runs qualified checks in the existing required
+Client browser job and retains their reports with its test artifacts.
 
-### Debug Specific Test
+The `fork` preset preserves a caller-managed Client surface and starts no app or indexer
+servers. The fork fixture owns Anvil on chain 31337. Run that project separately from
+owned Sepolia test-server projects; mixed profiles are rejected. Its legacy Client smoke
+cases do not prove browser-to-fork-to-indexer integration or authenticated-session behavior.
 
-```bash
-npx playwright test tests/specs/client.smoke.spec.ts --debug
-```
+## Authentication
 
-### Trace Viewer
+- Client specs use the helpers appropriate to the project: wallet/session injection for smoke
+  coverage and virtual WebAuthn for the `passkey-mock` project.
+- Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
+  Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
+- Browser automation here is clean-room test evidence. Label it as such; root
+  `AGENTS.md § Browser Evidence` names the wallet, passkey, session, and installed-PWA surfaces that
+  still need the authenticated Brave path.
 
-```bash
-# After test failure, view the trace
-npx playwright show-report
-```
+## Servers and environment
 
-### Cursor + Playwright Workflow
+When Playwright owns server startup, `PLAYWRIGHT_APP=client` selects the client, `admin` selects the
+admin, and an unset value selects both. The indexer starts on port 3006 only when the selected specs
+need it; `SKIP_INDEXER=true` disables it. `SKIP_WEBSERVER=true` tells Playwright to reuse externally
+managed services.
 
-For the complete Issue → Agent → Tests → Fix workflow, see [Cursor Workflows](../docs/developer/cursor-workflows.md).
+The deterministic browser-test chain is Sepolia (`VITE_CHAIN_ID=11155111`). Local URLs are HTTPS
+outside CI and HTTP in CI.
 
-## Configuration
+The shared `mockClientBackend` fixture parses named GraphQL queries and validates the scenario's
+chain, garden, schema and pagination inputs. Unsupported operations and RPC calls throw from the
+route handler. Empty results are declared responses, not a catch-all success. A scenario can list
+required requests, inject a read outage with `setUnavailable`, and call `assertSatisfied()` after
+its UI outcome. Exact `rpcReads` permit preparation simulations; transaction sends remain
+unsupported. The approval and Admin production-flow specs use this fixture. Older standalone
+Admin smoke mocks are separate and are not covered by this contract.
 
-Key settings in `playwright.config.ts`:
+Client startup warms the PWA login graph before the first test's interaction budget, matching
+the existing Admin boot warm-up. A failed warm-up does not waive a spec's readiness assertions.
 
-```typescript
-projects: [
-  { name: "chromium" },       // Desktop (admin + dev)
-  { name: "mobile-chrome" },  // Android Pixel 5
-  { name: "mobile-safari" },  // iPhone 13 Pro
-]
+## Further reading
 
-webServer: [
-  { command: "bun run dev:indexer", port: 3006 },
-  { command: "bun run dev:client", port: 3001 },
-  { command: "bun run dev:admin", port: 3002 },
-]
-```
-
-**Environment variables** (set in `global-setup.ts`):
-- `TEST_CLIENT_URL` → https://localhost:3001
-- `TEST_ADMIN_URL` → https://localhost:3002
-- `TEST_INDEXER_URL` -> http://localhost:3006/v1/graphql
-- `TEST_CHAIN_ID` → 11155111 (Sepolia)
-
-## CI/CD
-
-Smoke tests run automatically on push:
-
-```yaml
-# .github/workflows/e2e-tests.yml
-- run: |
-    bun run dev:web &
-    sleep 30
-    bun test:e2e:smoke  # Chromium only in CI
-```
-
-Manual QA on real devices:
-- iOS Safari (TestFlight or local)
-- Android Chrome (local or cloud device)
-- PWA install + offline mode
-
-## Architecture Deep Dive
-
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for:
-- Test execution flow diagrams
-- Virtual WebAuthn technical details
-- Cursor + Playwright + MCP workflow
-- When to use which debugging tool
-
-## Reference
-
-- [Playwright Documentation](https://playwright.dev)
-- [Green Goods Developer Guide](../docs/developer/getting-started.md)
-- [Test Architecture](./ARCHITECTURE.md)
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- [`E2E_TEST_GUIDE.md`](./E2E_TEST_GUIDE.md)
+- [`TESTING_GUIDE.md`](./TESTING_GUIDE.md)
+- [Builder guide: Playwright](../docs/docs/builders/testing/playwright.mdx)

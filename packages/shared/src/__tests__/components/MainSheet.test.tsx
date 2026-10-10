@@ -1,6 +1,6 @@
 /**
  * MainSheet Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * MainSheet is a static surface since the QA refinement pass: it no longer
  * recedes (blur/dim/translate) when sheets open — sheets portal into

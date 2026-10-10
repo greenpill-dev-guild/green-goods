@@ -117,11 +117,11 @@ export function ProtocolRevenueExplorer() {
         valuation,
         price,
         contributorValue: price * inputs.tokenSupply * (inputs.contributorAllocationPercent / 100),
-        operatorValue: price * inputs.tokenSupply * (inputs.operatorAllocationPercent / 100),
+        stewardValue: price * inputs.tokenSupply * (inputs.stewardAllocationPercent / 100),
         gardenerValue: price * inputs.tokenSupply * (inputs.gardenerAllocationPercent / 100),
       };
     });
-  }, [inputs.revenueMultiple, inputs.tokenSupply, inputs.contributorAllocationPercent, inputs.operatorAllocationPercent, inputs.gardenerAllocationPercent]);
+  }, [inputs.revenueMultiple, inputs.tokenSupply, inputs.contributorAllocationPercent, inputs.stewardAllocationPercent, inputs.gardenerAllocationPercent]);
 
   useEffect(() => {
     const nextSearch = serializeScenarioToSearch(presetId, inputs);
@@ -672,10 +672,10 @@ export function ProtocolRevenueExplorer() {
                         {formatCapital(s.contributorValue)}
                       </div>
                     ))}
-                    <div className={styles.upsideRowLabel}>Operator</div>
+                    <div className={styles.upsideRowLabel}>Steward</div>
                     {upsideByStage.map((s) => (
                       <div key={s.id} className={styles.upsideCell}>
-                        {formatCapital(s.operatorValue)}
+                        {formatCapital(s.stewardValue)}
                       </div>
                     ))}
                     <div className={styles.upsideRowLabel}>Gardener</div>

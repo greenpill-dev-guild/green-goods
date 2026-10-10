@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
+  /* Root DESIGN.md rounded.md, projected locally for docs media. */
+  --radius-md: 8px;
+
   /* Primary green — matches shared theme green-500 */
   --ifm-color-primary: #1a7544;
   --ifm-color-primary-dark: #176539;
@@ -37,7 +40,7 @@
 
   /* Role accents mirror shared Warm Earth semantic colors at docs volume only. */
   --docs-role-gardener: #1a7544;
-  --docs-role-operator: #335cff;
+  --docs-role-steward: #335cff;
   --docs-role-assessment: #7d52f4;
   --docs-role-funder: #e6a819;
   --docs-role-builder: #0f766e;
@@ -66,7 +69,7 @@
   --docs-accent-community: #2ebb6b;
   --docs-accent-builders: #2dd4bf;
   --docs-role-gardener: #2ebb6b;
-  --docs-role-operator: #6895ff;
+  --docs-role-steward: #6895ff;
   --docs-role-assessment: #8c71f6;
   --docs-role-funder: #ffd268;
   --docs-role-builder: #2dd4bf;

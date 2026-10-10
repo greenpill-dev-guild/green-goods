@@ -6,12 +6,9 @@ import { parseEventLogs, type Hex } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import {
-  INDEXER_LAG_SCHEDULE_MS,
-  queryInvalidation,
-  queryKeys,
-  STALE_TIME_MEDIUM,
-} from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
+import { cookieJarKeys } from "../../config/query-keys/vault";
 import { logger } from "../../modules/app/logger";
 import type {
   CampaignCookieJar,
@@ -26,13 +23,13 @@ import {
   deriveCampaignCookieJarClaimState,
   parseCampaignCookieJarMetadata,
 } from "../../utils/cookie-jar-campaign";
+import { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import {
-  COOKIE_JAR_ABI,
-  COOKIE_JAR_FACTORY_ABI,
   ERC20_ALLOWANCE_ABI,
+  ERC20_BALANCE_ABI,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
-} from "../../utils/blockchain/abis";
+} from "../../utils/blockchain/abis/erc20";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -40,16 +37,6 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useCookieJarFactoryAddress } from "./useCookieJarFactoryAddress";
-
-const ERC20_BALANCE_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-] as const;
 
 const BASE_FIELD_COUNT = 13;
 const JAR_OWNER_ROLE =
@@ -116,6 +103,7 @@ export function useCampaignCookieJar(
   jarAddress?: Address,
   options: UseCampaignCookieJarOptions = {}
 ) {
+  const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const enabled = options.enabled ?? true;
   const normalizedJar = jarAddress?.toLowerCase() as Address | undefined;
@@ -145,7 +133,7 @@ export function useCampaignCookieJar(
       { address: normalizedJar, abi: COOKIE_JAR_ABI, functionName: "getAllowlist" as const },
     ];
 
-    if (!normalizedUser) return baseContracts;
+    if (!normalizedUser) return baseContracts.map((contract) => ({ ...contract, chainId }));
 
     return [
       ...baseContracts,
@@ -167,8 +155,8 @@ export function useCampaignCookieJar(
         functionName: "hasRole" as const,
         args: [JAR_OWNER_ROLE, normalizedUser],
       },
-    ];
-  }, [normalizedJar, normalizedUser]);
+    ].map((contract) => ({ ...contract, chainId }));
+  }, [chainId, normalizedJar, normalizedUser]);
 
   const detailsQuery = useReadContracts({
     contracts: jarContracts,
@@ -184,8 +172,13 @@ export function useCampaignCookieJar(
   const tokenQuery = useReadContracts({
     contracts: currency
       ? [
-          { address: currency, abi: ERC20_DECIMALS_ABI, functionName: "decimals" as const },
-          { address: currency, abi: ERC20_SYMBOL_ABI, functionName: "symbol" as const },
+          {
+            address: currency,
+            abi: ERC20_DECIMALS_ABI,
+            functionName: "decimals" as const,
+            chainId,
+          },
+          { address: currency, abi: ERC20_SYMBOL_ABI, functionName: "symbol" as const, chainId },
         ]
       : [],
     allowFailure: true,
@@ -196,6 +189,7 @@ export function useCampaignCookieJar(
   });
 
   const metadataQuery = useReadContract({
+    chainId,
     address: factory.factoryAddress,
     abi: COOKIE_JAR_FACTORY_ABI,
     functionName: "getMetadata",
@@ -381,7 +375,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
       let jarAddress: Address | undefined;
       if (isCanonicalTxHash(hash)) {
         try {
-          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash });
+          const receipt = await waitForTransactionReceipt(getWagmiConfig(), { hash, chainId });
           const logs = parseEventLogs({
             abi: COOKIE_JAR_FACTORY_ABI,
             eventName: "JarCreated",
@@ -408,8 +402,8 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
         title: formatMessage({ id: "app.campaignCookieJar.create.title" }),
         message: formatMessage({ id: "app.campaignCookieJar.create.success" }),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cookieJar.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.cookieJar.campaigns(chainId) });
+      queryClient.invalidateQueries({ queryKey: cookieJarKeys.all });
+      queryClient.invalidateQueries({ queryKey: cookieJarKeys.campaigns(chainId) });
       if (result.jarAddress) {
         campaignInvalidationKeys(result.jarAddress, primaryAddress ?? undefined, chainId).forEach(
           (queryKey) => queryClient.invalidateQueries({ queryKey })
@@ -467,6 +461,7 @@ export function useCampaignCookieJarDeposit(options: CookieJarMutationOptions = 
           abi: ERC20_BALANCE_ABI,
           functionName: "balanceOf",
           args: [primaryAddress as Address],
+          chainId,
         });
         const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
         if (balance < params.amount) {
@@ -488,6 +483,7 @@ export function useCampaignCookieJarDeposit(options: CookieJarMutationOptions = 
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
           args: [primaryAddress as Address, params.jarAddress],
+          chainId,
         });
         allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
       } catch {

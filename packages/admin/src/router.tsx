@@ -1,4 +1,6 @@
-import { HydrationFallback, adminRoutes } from "@green-goods/shared";
+import { useIntl } from "react-intl";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { adminCanvasRoutes } from "@/routes/views";
@@ -6,6 +8,19 @@ import { adminCanvasRoutes } from "@/routes/views";
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
+
+function RouteLoadingScreen() {
+  const intl = useIntl();
+  return (
+    <AdminLoadingScreen
+      label={intl.formatMessage({
+        id: "app.admin.loading.opening",
+        defaultMessage: "Opening your workspace…",
+      })}
+      locale={intl.locale}
+    />
+  );
+}
 
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
@@ -19,9 +34,7 @@ export const router = createRouter([
     id: "root",
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
     errorElement: <RouteErrorBoundary />,
-    hydrateFallbackElement: (
-      <HydrationFallback appName="Green Goods Admin" showIcon message="Loading..." />
-    ),
+    hydrateFallbackElement: <RouteLoadingScreen />,
     children: [
       {
         path: "login",

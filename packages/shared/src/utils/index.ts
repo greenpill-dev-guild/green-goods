@@ -1,8 +1,6 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
-// ============================================================================
 // QUERY INVALIDATION
-// ============================================================================
 export type {
   InvalidationDelay,
   ProgressiveInvalidationOptions,
@@ -13,9 +11,7 @@ export {
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
 } from "../config/query-keys/schedule";
-// ============================================================================
 // ACTION
-// ============================================================================
 export {
   buildActionId,
   findActionByUID,
@@ -23,6 +19,7 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
+export { hasActionEnded, msUntilActionWindowChange } from "./action/window";
 export {
   ACTION_INSTRUCTIONS_SCHEMA_VERSION,
   ACTION_TRANSLATION_LOCALES,
@@ -155,6 +152,8 @@ export {
 export {
   ActionRegistryABI,
   assertMarketplaceReady,
+  CommitmentPoolingModuleABI,
+  CommitmentRegistryABI,
   createClients,
   deriveMarketplaceReadiness,
   formatMarketplaceReadinessError,
@@ -165,6 +164,7 @@ export {
   getNetworkContracts,
   HatsABI,
   MARKETPLACE_READINESS_REQUIRED_FIELDS,
+  SettlementModuleABI,
 } from "./blockchain/contracts";
 export type {
   ResolveEnsAddressOptions,
@@ -251,7 +251,7 @@ export type {
   CampaignCookieJarPayoutAssetId,
 } from "./cookie-jar-campaign";
 export {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
   CAMPAIGN_COOKIE_JAR_METADATA_KIND,
@@ -294,7 +294,6 @@ export {
 } from "./eas/explorers";
 export {
   buildApprovalAttestTx,
-  buildBatchWorkAttestTx,
   buildWorkAttestTx,
 } from "./eas/transaction-builder";
 export type { BlockchainErrorInfo, BlockchainErrorType } from "./errors/blockchain-errors";
@@ -351,14 +350,14 @@ export {
 export {
   aggregateBadges,
   DOMAIN_LABEL_IDS,
-  getMedian,
   getSeverityRank,
-  hoursSince,
   parseGardenDetailTab,
   parseGardenRange,
   RANGE_TO_MS,
+  summarizeReviewQueue,
   toMs,
 } from "./garden-detail";
+export type { ReviewQueueSummary, ReviewQueueWork } from "./garden-detail";
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,
@@ -396,14 +395,23 @@ export { clearFormDraft, loadFormDraft, saveFormDraft } from "./storage/form";
 // ============================================================================
 // STORAGE QUOTA
 // ============================================================================
-export type { StorageQuotaInfo, StorageQuotaThresholds } from "./storage/quota";
+export type {
+  PersistentStorageReason,
+  RefetchableStorageCleanupResult,
+  StorageQuotaInfo,
+  StorageQuotaThresholds,
+} from "./storage/quota";
 export {
+  cleanupRefetchableStorage,
   DEFAULT_CRITICAL_THRESHOLD,
   DEFAULT_LOW_THRESHOLD,
   formatBytes,
   getStorageQuota,
   hasEnoughStorage,
   isStorageQuotaSupported,
+  isQuotaExceededError,
+  requestPersistentStorageOnce,
+  retryOnceAfterQuotaCleanup,
   trackStorageErrorWithQuota,
   trackStorageQuota,
 } from "./storage/quota";
@@ -440,10 +448,8 @@ export {
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
-  formatDateRange,
   formatDateTime,
   formatDuration,
-  formatRelativeTime,
   fromDateInputValue,
   fromDateTimeLocalValue,
   getCurrentTimezone,
@@ -458,6 +464,8 @@ export {
   toSafeDate,
   toSafeInstant,
 } from "./time";
+export { fromCalendarDateKey, toCalendarDateKey } from "./calendar-date";
+export { formatRelativeTime, getRelativeTimeParts } from "./relativeTime";
 // ============================================================================
 // WORK
 // ============================================================================
@@ -477,11 +485,6 @@ export {
   imageCompressor,
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
-export {
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
-  filterPendingNeedsReview,
-} from "./work/pending-review";
 export {
   resolveWorkSubmissionTitle,
   stripGeneratedWorkTitleTimestamp,

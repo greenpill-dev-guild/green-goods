@@ -24,13 +24,17 @@ interface DeploymentWithGreenWill extends DeploymentData {
     owner?: unknown;
     deployer?: unknown;
     genesisHatId?: unknown;
+    /** Overrides Hats Protocol for a chain that runs its own (a local fork's mock). */
+    hatsProtocol?: unknown;
     metadataURIs?: {
       genesis?: unknown;
       firstWork?: unknown;
       firstSupport?: unknown;
     };
   };
-  greenWill?: unknown;
+  // `string`, not `unknown`: `DeploymentData`'s index signature does not admit `unknown`, and this
+  // is an artifact address key. `optionalAddress` still validates it at runtime.
+  greenWill?: string;
 }
 
 interface GreenWillArtifact {
@@ -73,6 +77,8 @@ export interface GreenWillDeploymentPlan {
 }
 
 const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
+/** Hats Protocol v1, at one address on every chain (`HatsLib.HATS_PROTOCOL` in src/lib/Hats.sol). */
+const HATS_PROTOCOL_ADDRESS = "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137";
 const GENESIS_BADGE_ID = id("GENESIS");
 const FIRST_WORK_BADGE_ID = id("FIRST_WORK");
 const FIRST_SUPPORT_BADGE_ID = id("FIRST_SUPPORT");
@@ -124,7 +130,7 @@ export class GreenWillDeployer {
     );
     const genesisCriteria = this.uint256ToBytes32(genesisHatId);
     const deploymentRegistry = this.requiredAddress(deployment.deploymentRegistry, "deploymentRegistry");
-    const hats = this.requiredAddress(deployment.hatsModule, "hatsModule");
+    const hats = this.genesisValidator(launchConfig.hatsProtocol, deployment.hatsModule);
     const eas = this.requiredAddress(deployment.eas?.address, "eas.address");
     const workSchemaUID = this.requiredBytes32(deployment.schemas?.workSchemaUID, "schemas.workSchemaUID");
     const octantResolver = this.requiredAddress(deployment.octantModule, "octantModule");
@@ -423,6 +429,23 @@ export class GreenWillDeployer {
       throw new Error(`GreenWill deploy requires a non-zero bytes32 for ${label}.`);
     }
     return value.toLowerCase();
+  }
+
+  /**
+   * Genesis asks Hats Protocol itself whether the account wears the hat
+   * (`IHats.isWearerOfHat`). The Green Goods HatsModule only stores that
+   * address and has no `isWearerOfHat`, so a validator pointed at it reverts
+   * every Genesis claim, which is what the 2026-09 Arbitrum deploy shipped.
+   */
+  private genesisValidator(configured: unknown, hatsModule: unknown): string {
+    const validator = this.requiredAddress(configured ?? HATS_PROTOCOL_ADDRESS, "greenWillConfig.hatsProtocol");
+    const module = this.optionalAddress(hatsModule);
+    if (module && module.toLowerCase() === validator.toLowerCase()) {
+      throw new Error(
+        "The Genesis validator must be Hats Protocol, not the Green Goods HatsModule: the module has no isWearerOfHat.",
+      );
+    }
+    return validator;
   }
 
   private requiredGenesisHatId(value: string | undefined): bigint {

@@ -1,42 +1,34 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// Ensure fake-indexeddb is loaded before job-queue module
-import "fake-indexeddb/auto";
-
-// Mock modules that pull in problematic dependencies (@walletconnect -> uint8arrays)
-vi.mock("../../config/appkit", () => ({
-  getWagmiConfig: () => ({}),
-  getAppKit: () => null,
-}));
-
-vi.mock("@wagmi/core", () => ({
-  getPublicClient: vi.fn(() => ({
-    readContract: vi.fn(),
-  })),
-}));
-
-vi.mock("../../modules/app/posthog", () => ({
-  track: vi.fn(),
-}));
-
-vi.mock("../../modules/work/passkey-submission", () => ({
-  submitWorkWithPasskey: vi.fn(async () => "0xtestwork"),
-  submitApprovalWithPasskey: vi.fn(async () => "0xtestapproval"),
-}));
-
-import { jobQueue } from "../../modules/job-queue";
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../config/garden-visibility";
 import {
   submitApprovalToQueue,
   submitWorkToQueue,
   validateWorkSubmissionContext,
+  type WorkSubmissionDependencies,
 } from "../../modules/work/work-submission";
 import { parseContractError } from "../../utils/errors/contract-errors";
+import {
+  createMockAction,
+  createMockWork,
+  createMockWorkApprovalDraft,
+  createMockWorkDraft,
+  MOCK_ADDRESSES,
+} from "../test-utils/mock-factories";
 
 // Test user address for scoped queue operations
-const TEST_USER_ADDRESS = "0xTestUser123";
+const TEST_USER_ADDRESS = MOCK_ADDRESSES.user;
+
+const addJob = vi.fn<WorkSubmissionDependencies["queue"]["addJob"]>();
+const requestBackgroundSync =
+  vi.fn<WorkSubmissionDependencies["backgroundSync"]["requestBackgroundSync"]>();
+const dependencies: WorkSubmissionDependencies = {
+  queue: { addJob },
+  backgroundSync: { requestBackgroundSync },
+  newClientWorkId: () => "client-work-1",
+};
 
 // Helper to create mock files
 function createMockFile(name: string, size: number = 1024): File {
@@ -46,8 +38,9 @@ function createMockFile(name: string, size: number = 1024): File {
 
 describe("modules/work-submission", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.spyOn(jobQueue, "addJob").mockResolvedValue("job-1");
+    vi.clearAllMocks();
+    addJob.mockResolvedValue("job-1");
+    requestBackgroundSync.mockResolvedValue(true);
   });
 
   it("validates submission context and returns errors", () => {
@@ -108,6 +101,19 @@ describe("modules/work-submission", () => {
       expect(errors).toEqual([]);
     });
 
+    it("lets the composer keep a HEIC photo waiting to convert, counting it toward the minimum", () => {
+      const heic = new File(["heic"], "garden.heic", { type: "" });
+      expect(validateWorkSubmissionContext("0xGarden", 1, [heic], { minRequired: 1 })).toContain(
+        "Only JPEG, PNG, WebP, MP4, and WebM are supported"
+      );
+      expect(
+        validateWorkSubmissionContext("0xGarden", 1, [heic], {
+          minRequired: 1,
+          pendingHeic: "accept",
+        })
+      ).toEqual([]);
+    });
+
     it("fails for minRequired of 5 with only 3 images", () => {
       const errors = validateWorkSubmissionContext(
         "0xGarden",
@@ -128,40 +134,50 @@ describe("modules/work-submission", () => {
       expect(errors).toContain("Garden must be selected");
       expect(errors).toContain("Action must be selected");
     });
+
+    it("refuses a garden hidden everywhere, whichever path selected it", () => {
+      // A saved draft, a commitment link, or navigation state can carry one past the picker.
+      const errors = validateWorkSubmissionContext(GARDENS_HIDDEN_EVERYWHERE[0].address, 1, []);
+      expect(errors).toEqual(["Garden must be selected"]);
+    });
   });
 
   it("submits work to queue and returns offline tx hash", async () => {
-    const draft = { feedback: "ok" } as any;
+    const draft = createMockWorkDraft({ feedback: "ok", title: undefined });
     const tx = await submitWorkToQueue(
       draft,
-      "0x123",
+      MOCK_ADDRESSES.garden,
       1,
-      [{ id: "11155111-1", title: "Act" }] as any,
+      [createMockAction({ id: "11155111-1", title: "Act" })],
       11155111,
       [],
-      TEST_USER_ADDRESS
+      TEST_USER_ADDRESS,
+      dependencies
     );
     expect(tx.txHash.startsWith("0xoffline_")).toBe(true);
-    expect(jobQueue.addJob).toHaveBeenCalled();
-    expect(vi.mocked(jobQueue.addJob).mock.calls[0]?.[1]).toEqual(
+    expect(tx.clientWorkId).toBe("client-work-1");
+    expect(addJob).toHaveBeenCalled();
+    expect(addJob.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         title: "Act",
       })
     );
+    expect(requestBackgroundSync).toHaveBeenCalledOnce();
   });
 
   it("queues approval jobs", async () => {
     const result = await submitApprovalToQueue(
-      {
+      createMockWorkApprovalDraft({
         workUID: "0xwork",
         actionUID: 1,
         approved: true,
         confidence: 2,
         verificationMethod: 1,
-      },
-      { gardenerAddress: "0xabc" } as any,
+      }),
+      createMockWork({ gardenerAddress: MOCK_ADDRESSES.gardener }),
       11155111,
-      TEST_USER_ADDRESS
+      TEST_USER_ADDRESS,
+      dependencies
     );
     expect(result.jobId).toBe("job-1");
     expect(result.txHash.startsWith("0xoffline_")).toBe(true);

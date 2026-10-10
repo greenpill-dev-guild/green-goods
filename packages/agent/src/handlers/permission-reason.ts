@@ -1,7 +1,7 @@
 import { agentMessage, type AgentMessageKey } from "../i18n";
 
 const SAFE_PERMISSION_REASON_MESSAGES: Record<string, AgentMessageKey> = {
-  "Address is not an operator for this garden": "permission.reason.notOperator",
+  "Address is not a steward for this garden": "permission.reason.notSteward",
   "Address is not a gardener in this garden": "permission.reason.notGardener",
   "Garden contract not found at this address": "permission.reason.gardenNotFound",
 };

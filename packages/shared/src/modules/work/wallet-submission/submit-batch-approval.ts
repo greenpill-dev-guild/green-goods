@@ -6,7 +6,7 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
+import { workApprovalsKeys, worksKeys } from "../../../config/query-keys/work";
 import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
 import { track } from "../../../modules/app/posthog";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
@@ -22,7 +22,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
 import type { BatchApprovalOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitBatchApprovalsDirectly(
   approvals: Array<{
@@ -59,8 +59,8 @@ export async function submitBatchApprovalsDirectly(
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
 
-  const operatorAddress = walletClient.account?.address;
-  if (!operatorAddress) {
+  const stewardAddress = walletClient.account?.address;
+  if (!stewardAddress) {
     throw new Error("Wallet account address not available");
   }
 
@@ -71,7 +71,7 @@ export async function submitBatchApprovalsDirectly(
         draft: approval.draft,
         gardenAddress: approval.gardenAddress,
         chainId,
-        accountAddress: operatorAddress as `0x${string}`,
+        accountAddress: stewardAddress as `0x${string}`,
       });
     }
 
@@ -98,16 +98,22 @@ export async function submitBatchApprovalsDirectly(
 
     debugLog("[WalletSubmission] Batch approval transaction sent", { hash });
 
+    // Only a timeout is tolerable here. A revert means none of the batched
+    // decisions were recorded, so it must not be swallowed into an optimistic
+    // cache write.
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       debugLog("[WalletSubmission] Batch approval confirmed", { hash });
-    } catch {
+    } catch (err: unknown) {
+      if (!(err instanceof TransactionReceiptTimeoutError)) {
+        throw err;
+      }
       debugLog("[WalletSubmission] Batch approval timeout, continuing...", { hash });
     }
 
     const optimisticApprovals = approvals.map(({ draft, gardenerAddress }) => ({
       id: `optimistic-batch-${hash}-${draft.workUID}`,
-      operatorAddress,
+      stewardAddress,
       gardenerAddress,
       actionUID: draft.actionUID,
       workUID: draft.workUID,
@@ -119,7 +125,7 @@ export async function submitBatchApprovalsDirectly(
       createdAt: Math.floor(Date.now() / 1000),
     }));
 
-    queryClient.setQueryData<EASWorkApproval[]>(queryKeys.workApprovals.all, (old) => [
+    queryClient.setQueryData<EASWorkApproval[]>(workApprovalsKeys.all, (old) => [
       ...optimisticApprovals,
       ...(old || []),
     ]);
@@ -128,11 +134,11 @@ export async function submitBatchApprovalsDirectly(
 
     const uniqueGardenAddresses = [...new Set(approvals.map((a) => a.gardenAddress))];
     const pollKeys = [
-      queryKeys.workApprovals.all,
-      queryKeys.works.all,
+      workApprovalsKeys.all,
+      worksKeys.all,
       ...uniqueGardenAddresses.flatMap((addr) => [
-        queryKeys.works.online(addr, chainId),
-        queryKeys.works.merged(addr, chainId),
+        worksKeys.online(addr, chainId),
+        worksKeys.merged(addr, chainId),
       ]),
     ];
 

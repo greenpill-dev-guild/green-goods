@@ -19,12 +19,12 @@ import { AuthProvider, Surface, queryKeys, useAuthState } from "@green-goods/sha
 
 ## Validation
 
-From `packages/shared/`:
+From the repository root:
 
 ```bash
-bun run typecheck
-bun run test
-bun run check:stories
+bun run --cwd packages/shared typecheck
+bun run --cwd packages/shared test
+bun run --cwd packages/shared check:stories
 ```
 
 When shared exports or public contracts move, also run from the repo root:

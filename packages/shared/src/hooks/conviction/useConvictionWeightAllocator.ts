@@ -33,7 +33,7 @@ interface UseConvictionWeightAllocatorResult {
  * server saves; computes signed deltas via percentMapToSignedDeltas before
  * dispatching the contract tx through useAllocateHypercertSupport.
  *
- * Audit finding #4 from the Tier-5 audit-then-ship pass.
+ * Audit finding #4 from the 2026-06 conviction audit.
  *
  * Per CLAUDE.md react-patterns rule 1, debounce is implemented via
  * useTimeout (not raw setTimeout). Per design_handoff README § 9, the save

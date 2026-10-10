@@ -7,19 +7,24 @@
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
 **Linear Issue**: `PRD-455`
 **Linear Source**: `source:plans`
-**Status**: `BACKLOG`
+**Stage**: `ideas`
+**Status**: `IDEA — later portable six-badge expansion; no rollout date accepted`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-05-10`
-**Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
+**Last Updated**: `2026-10-06`
+**Historical Q2 dates (superseded)**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**. No current rollout date is accepted.
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
-> **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** The phases and dated schedule below are a historical proposal. Do not dispatch them until updated scope and rollout dates are accepted through the `plan` skill. Steps use checkbox (`- [ ]`) syntax.
 
 > 2026-04-25 cleanup note, updated after deployment-readiness review: this backlog hub owns the later portable badge expansion and shared `GreenGoodsBadge` EAS schema. The initial GreenWill launch is only Genesis, First Work, and First Support, and does not require this schema.
 
 > 2026-04-27 scope update: moved to backlog. The April 28 presentation/release scope is only the existing three initial GreenWill badges (`genesis`, `first-work`, `first-support`). This hub is the later six-badge portable reputation expansion and should not block the current closeout.
 
 > 2026-05-10 Linear sync update: `PRD-455` is the current `source:plans` mirror for this later six-badge portable expansion. The old `PRD-292` epic is completed GitHub-migration context, not the active plan mirror.
+
+## Status reconciliation (2026-10-06)
+
+PRD-455 remains Backlog. Keep this distinct from the initial three GreenWill badges. The April/June rollout dates are historical, not current commitments. Activation requires updated chain availability, portability evidence, issuer/contract confidence and explicit pilot scope; no badge deployment or issuance is authorized.
 
 ## Decision Log
 
@@ -75,7 +80,7 @@
 - ✅ Query keys via `queryKeys.*` helpers (add `queryKeys.badges(address)`)
 - ✅ Indexer boundary respected — no EAS / Unlock re-indexing; shared hook queries EAS directly
 - ✅ `bun run test` (never `bun test`) for agent, shared, admin, client
-- ✅ `bun build` respects dependency order (contracts → shared → agent → admin/client)
+- ✅ `bun run build` respects dependency order (contracts → shared → indexer → client/admin/agent)
 - ✅ Intent Priorities: #2 Security — trusted attester key managed via deployment artifact + rotation runbook; #3 UX — auto-issuance removes friction
 
 ## Phase 0 — Locks, Schemas, Scaffolding (2026-04-17 → 2026-04-25)
@@ -349,7 +354,7 @@
 - Modify: `packages/shared/src/index.ts` (barrel)
 
 - [ ] Export `BADGE_METADATA: Record<BadgeId, { displayName, description, icon, criterionCopy, tierFormat? }>`
-- [ ] i18n keys under `app.shared.badges.<badgeId>.*` — register in `shared/i18n/en.json` per `.claude/skills/ui/i18n.md`
+- [ ] i18n keys under `app.shared.badges.<badgeId>.*` — register in `shared/i18n/en.json` per `.claude/skills/design/implementation.md` (§ i18n)
 - [ ] Unit test: every badge in registry has metadata
 - [ ] Commit: `feat(shared): badge display metadata module`
 

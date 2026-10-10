@@ -1,0 +1,1798 @@
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { describe, it } from "vitest";
+
+const repoRoot = path.join(import.meta.dirname, "..", "..");
+
+/**
+ * Bun cannot execute JSDOM's script VM because its global prototype chain uses
+ * a Proxy. Run this one real-page harness in Node while keeping the assertion
+ * under the existing agent-tools Vitest suite.
+ */
+async function clientRaceHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({
+    ok: true,
+    status: 200,
+    json: async () => structuredClone(body),
+  });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  let remote = {
+    "PUB-001": { Afo: { s: "pass", n: "old poll snapshot note", at: "2026-08-30T10:00:00.000Z" } },
+  };
+  const posts = [];
+  const timers = new Map();
+  let timerId = 0;
+  let pollCallback = null;
+  let stateGetCount = 0;
+  let releaseStalePoll = null;
+  let jsdomError = "";
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      // Identity arrives as `you` in the state payload — see the mocks below.
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = (callback) => {
+        pollCallback = callback;
+        return 1;
+      };
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: [testCase.tab], cases: [testCase] });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          const body = JSON.parse(String(init.body));
+          posts.push(body);
+          for (const [caseId, patch] of Object.entries(body.entries)) {
+            if (patch.delete) {
+              delete remote[caseId];
+              continue;
+            }
+            const current = remote[caseId]?.Afo || { s: "", n: "" };
+            const next = {
+              s: Object.prototype.hasOwnProperty.call(patch, "s") ? patch.s : current.s,
+              n: Object.prototype.hasOwnProperty.call(patch, "n") ? patch.n : current.n,
+              at: "2026-08-30T12:00:00.000Z",
+            };
+            if (!next.s && !next.n.trim()) delete remote[caseId];
+            else remote[caseId] = { Afo: next };
+          }
+          return response({ ok: true, person: body.person, count: Object.keys(remote).length });
+        }
+
+        stateGetCount++;
+        const snapshot = structuredClone(remote);
+        if (stateGetCount === 1) return response({ team: ["Afo"], you: "Afo", entries: snapshot });
+        return new Promise((resolve) => {
+          releaseStalePoll = () => resolve(response({ team: ["Afo"], you: "Afo", entries: snapshot }));
+        });
+      };
+    },
+  });
+
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+
+  try {
+    await flush();
+    const signInPanel = dom.window.document.getElementById("signin");
+    assert.equal(signInPanel?.hidden, true);
+    assert.equal(dom.window.getComputedStyle(signInPanel).display, "none");
+    assert.ok(pollCallback, jsdomError || "poll interval was not registered");
+    assert.equal(
+      dom.window.document.querySelector('[data-sort="journey"]'),
+      null,
+      "older deployed catalogs must not show empty Journey controls",
+    );
+    const pendingPoll = pollCallback();
+    await flush();
+    assert.ok(releaseStalePoll, "slow poll did not start");
+
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    assert.ok(note, "note input did not render");
+    note.value = "new note saved before stale poll";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await runTimer(2500);
+
+    assert.equal(dom.window.document.getElementById("savebar")?.textContent, "saved ✓");
+    assert.deepEqual(posts[0].entries, { "PUB-001": { n: "new note saved before stale poll" } });
+
+    releaseStalePoll();
+    await pendingPoll;
+    await flush();
+    assert.equal(
+      dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
+      "new note saved before stale poll",
+    );
+
+    dom.window.document.querySelector('[data-id="PUB-001"][data-s="fail"]')?.click();
+    await runTimer(900);
+
+    assert.deepEqual(posts[1].entries, { "PUB-001": { s: "fail" } });
+    assert.equal(remote["PUB-001"].Afo.s, "fail");
+    assert.equal(remote["PUB-001"].Afo.n, "new note saved before stale poll");
+  } finally {
+    dom.window.close();
+  }
+}
+
+/**
+ * A tester closes the tab (or dismisses the installed PWA) before the debounce
+ * fires. The page promises "kept locally, retrying", so the unsent note has to
+ * outlive the page session and go out on the next open.
+ *
+ * Two page lives, with only what a browser would actually carry between them:
+ * localStorage is seeded from the first window, sessionStorage starts empty.
+ */
+async function outboxDurabilityHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const AFO_ADDRESS = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
+  const GUI_ADDRESS = "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  async function pageLife(
+    { seedKey = `qa-outbox:${AFO_ADDRESS}`, carried = null, person = "Afo", owner = AFO_ADDRESS },
+    drive,
+  ) {
+    const posts = [];
+    const timers = new Map();
+    let timerId = 0;
+    let jsdomError = "";
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (error) => {
+      jsdomError = error.cause?.stack || error.cause?.message || error.message;
+    });
+
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      virtualConsole,
+      beforeParse(window) {
+        // Identity arrives as `you` in the state payload.
+        // Everything the previous page life left behind, and nothing more.
+        if (carried) window.localStorage.setItem(seedKey, carried);
+        window.setTimeout = (callback, delay = 0) => {
+          const id = ++timerId;
+          timers.set(id, { callback, delay });
+          return id;
+        };
+        window.clearTimeout = (id) => timers.delete(id);
+        window.setInterval = () => 1;
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") {
+            return response({ tabs: [testCase.tab], cases: [testCase] });
+          }
+          if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+          if (init.method === "POST") {
+            posts.push(JSON.parse(String(init.body)));
+            return response({ ok: true, person, count: 1 });
+          }
+          // The store never received the note, so it has nothing to return.
+          return response({ team: ["Afo", "Gui"], you: person, address: owner, entries: {} });
+        };
+      },
+    });
+
+    const runTimer = async (delay) => {
+      const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+      assert.ok(timer, `expected a ${delay}ms timer`);
+      timers.delete(timer[0]);
+      await timer[1].callback();
+      await flush();
+    };
+
+    try {
+      await flush();
+      assert.ok(
+        dom.window.document.querySelector('[data-note="PUB-001"]'),
+        jsdomError || "the page did not render",
+      );
+      await drive({ dom, posts, runTimer, storage: dom.window.localStorage });
+      return dom.window.localStorage.getItem(`qa-outbox:${owner}`);
+    } finally {
+      dom.window.close();
+    }
+  }
+
+  // Life one: type, then end the page session with the save still pending.
+  const carried = await pageLife({}, async ({ dom, posts }) => {
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "unsent when the tab closed";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+    assert.deepEqual(posts, [], "the debounce should not have fired yet");
+  });
+  assert.ok(carried, "closing the tab left no recoverable copy of the unsent note");
+  const carriedShape = JSON.parse(carried);
+  // Stamped so the carry prompt can say how old held-back work is.
+  assert.match(carriedShape.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
+  delete carriedShape.updatedAt;
+  assert.deepEqual(carriedShape, {
+    owner: AFO_ADDRESS,
+    person: "Afo",
+    delta: { "PUB-001": { n: "unsent when the tab closed" } },
+  });
+
+  // Life two: a new page session recovers it and sends it as a field patch.
+  const recover = async ({ dom, posts, runTimer }) => {
+    assert.equal(
+      dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
+      "unsent when the tab closed",
+    );
+    await runTimer(400);
+    assert.deepEqual(posts, [
+      { entries: { "PUB-001": { n: "unsent when the tab closed" } } },
+    ]);
+  };
+  const drained = await pageLife({ carried }, recover);
+  assert.equal(drained, null, "a confirmed write should leave nothing pending");
+
+  // The same recovery from the single shared key this page used before it kept
+  // one queue per tester, so an upgrade in place does not strand pending work.
+  const migrated = await pageLife({ carried, seedKey: "qa-outbox" }, recover);
+  assert.equal(migrated, null, "a migrated queue should drain like any other");
+
+  // The first wallet-auth release keyed by display name. Re-home that queue
+  // under the signing address before removing the old copy.
+  const legacyCarried = JSON.stringify({ person: "Afo", delta: JSON.parse(carried).delta });
+  const nameKeyMigration = await pageLife({ carried: legacyCarried, seedKey: "qa-outbox:Afo" }, recover);
+  assert.equal(nameKeyMigration, null, "a name-keyed queue should migrate to its owner address");
+
+  // A DIFFERENT tester opening the same browser must not touch Afo's queue:
+  // localStorage is shared across tabs, so one key for everyone would let this
+  // delete the only copy of work Afo has not managed to save.
+  await pageLife({ carried, person: "Gui", owner: GUI_ADDRESS }, async ({ storage, posts }) => {
+    assert.deepEqual(posts, [], "Gui's page should not post Afo's work");
+    // Byte for byte what life one left, timestamp included: Gui's page must not
+    // rewrite Afo's queue, not even to restamp it.
+    assert.equal(
+      storage.getItem(`qa-outbox:${AFO_ADDRESS}`),
+      carried,
+      "Afo's unsent work was changed by another tester's page",
+    );
+  });
+
+  // TWO TABS, ONE TESTER. They share a key but each holds its own queue, so a
+  // whole-object write would drop whatever the other tab had put there.
+  await pageLife({}, async ({ dom, storage }) => {
+    storage.setItem(
+      `qa-outbox:${AFO_ADDRESS}`,
+      JSON.stringify({ person: "Afo", delta: { "PUB-002": { n: "queued by the other tab" } } }),
+    );
+
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "queued by this tab";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+
+    const stored = JSON.parse(storage.getItem(`qa-outbox:${AFO_ADDRESS}`) || "null");
+    // `updatedAt` is when the tester last touched the queue; the carry prompt
+    // reports its age, so only its shape is asserted here.
+    assert.match(stored.updatedAt, /^\d{4}-\d\d-\d\dT[\d:.]+Z$/);
+    delete stored.updatedAt;
+    assert.deepEqual(stored, {
+      owner: AFO_ADDRESS,
+      person: "Afo",
+      delta: {
+        "PUB-002": { n: "queued by the other tab" },
+        "PUB-001": { n: "queued by this tab" },
+      },
+    });
+  });
+}
+
+/**
+ * A field that has already reached the server must not ride along on the next
+ * edit. Status click posts `{s}`; the tester types a note before that response
+ * lands; the follow-up has to carry only `{n}`, or it reasserts a verdict the
+ * other device may have moved on from.
+ */
+async function inFlightFieldHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  const posts = [];
+  const timers = new Map();
+  let timerId = 0;
+  let releaseFirstPost = null;
+  let jsdomError = "";
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      // Identity arrives as `you` in the state payload — see the mocks below.
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: [testCase.tab], cases: [testCase] });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          posts.push(JSON.parse(String(init.body)));
+          // Hold the FIRST response open so the note is typed mid-flight.
+          if (posts.length === 1) {
+            return new Promise((resolve) => {
+              releaseFirstPost = () => resolve(response({ ok: true, person: "Afo", count: 1 }));
+            });
+          }
+          return response({ ok: true, person: "Afo", count: 1 });
+        }
+        return response({ team: ["Afo"], you: "Afo", entries: {} });
+      };
+    },
+  });
+
+  const takeTimer = (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    return timer[1].callback;
+  };
+  const runTimer = async (delay) => {
+    await takeTimer(delay)();
+    await flush();
+  };
+
+  try {
+    await flush();
+    assert.ok(
+      dom.window.document.querySelector('[data-note="PUB-001"]'),
+      jsdomError || "the page did not render",
+    );
+
+    dom.window.document.querySelector('[data-id="PUB-001"][data-s="fail"]')?.click();
+    // Fire WITHOUT awaiting — this request is deliberately left in flight.
+    const inFlight = takeTimer(900)();
+    await flush();
+    assert.ok(releaseFirstPost, "the status save did not start");
+    assert.deepEqual(posts[0].entries, { "PUB-001": { s: "fail" } });
+
+    const note = dom.window.document.querySelector('[data-note="PUB-001"]');
+    note.value = "typed while the verdict was still in flight";
+    note.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await flush();
+
+    releaseFirstPost();
+    await inFlight;
+    await flush();
+
+    await runTimer(400);
+    assert.equal(posts.length, 2, "the note should have gone out on its own");
+    assert.deepEqual(posts[1].entries, {
+      "PUB-001": { n: "typed while the verdict was still in flight" },
+    });
+  } finally {
+    dom.window.close();
+  }
+}
+
+async function authRecoveryHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const owner = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
+  const other = "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56";
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body, status = 200) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => structuredClone(body),
+  });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  let pollCallback = null;
+  let stateReads = 0;
+  const walletCalls = [];
+  const virtualConsole = new VirtualConsole();
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "https://qa.greengoods.app/",
+    virtualConsole,
+    beforeParse(window) {
+      window.localStorage.setItem(
+        `qa-outbox:${owner}`,
+        JSON.stringify({ owner, person: "Afo", delta: { "PUB-001": { n: "unsaved" } } }),
+      );
+      window.setTimeout = () => 1;
+      window.clearTimeout = () => {};
+      window.setInterval = (callback) => {
+        pollCallback = callback;
+        return 1;
+      };
+      window.clearInterval = () => {};
+      window.ethereum = {
+        request: async ({ method }) => {
+          walletCalls.push(method);
+          if (method === "eth_requestAccounts") return [other];
+          throw new Error(`unexpected wallet method ${method}`);
+        },
+      };
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") return response({ tabs: [testCase.tab], cases: [testCase] });
+        if (target === "/api/state" && !init.method) {
+          stateReads++;
+          if (stateReads === 1) {
+            return response({ team: ["Afo"], you: "Afo", address: owner, named: true, entries: {} });
+          }
+          return response({ error: "sign in" }, 401);
+        }
+        throw new Error(`unexpected fetch ${target}`);
+      };
+    },
+  });
+
+  try {
+    await flush();
+    assert.ok(pollCallback, "poll interval was not registered");
+    await pollCallback();
+    await flush();
+    assert.equal(dom.window.document.getElementById("signin")?.hidden, false);
+    assert.equal(dom.window.document.getElementById("mount")?.inert, true);
+    assert.match(dom.window.document.getElementById("signin-why")?.textContent || "", /session expired/i);
+
+    dom.window.document.getElementById("signin-btn")?.click();
+    await flush();
+    assert.match(dom.window.document.getElementById("signin-err")?.textContent || "", /wallet that started/i);
+    assert.deepEqual(walletCalls, ["eth_requestAccounts"]);
+  } finally {
+    dom.window.close();
+  }
+}
+
+/**
+ * Display labels are untrusted, mutable presentation. A late collision must
+ * replace the old labels without duplicating entries, and a JavaScript
+ * prototype-shaped name must behave like any other tester name.
+ */
+async function displayLabelHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const testCase = {
+    id: "PUB-001",
+    tab: "Public Website",
+    area: "Funding",
+    pri: "P0",
+    scenario: "Donate end to end",
+    expected: "The donation completes",
+    rp: false,
+    rd: false,
+    tx: false,
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+
+  async function openPage(initial, next = initial) {
+    let pollCallback = null;
+    let reads = 0;
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      beforeParse(window) {
+        window.setTimeout = () => 1;
+        window.clearTimeout = () => {};
+        window.setInterval = (callback) => {
+          pollCallback = callback;
+          return 1;
+        };
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") return response({ tabs: [testCase.tab], cases: [testCase] });
+          if (target === "/api/state" && init.method === "POST") {
+            return response({ ok: true, person: initial.you, count: 1 });
+          }
+          if (target === "/api/state") return response(reads++ === 0 ? initial : next);
+          throw new Error(`unexpected fetch ${target}`);
+        };
+      },
+    });
+    await flush();
+    return { dom, poll: pollCallback };
+  }
+
+  const owner = "0x2aa64e6d80390f5c017f0313cb908051be2fd35e";
+  const at = "2026-08-30T10:00:00.000Z";
+  const initial = {
+    team: ["Afo", "Gui"],
+    you: "Afo",
+    address: owner,
+    named: true,
+    entries: {
+      "PUB-001": {
+        Afo: { s: "pass", n: "mine", at },
+        Gui: { s: "fail", n: "theirs", at },
+      },
+    },
+  };
+  const ownLabel = "Afo (0x2aa6…d35e)";
+  const otherLabel = "afo (0x2268…6b56)";
+  const relabelled = {
+    ...initial,
+    team: [ownLabel, otherLabel],
+    you: ownLabel,
+    entries: {
+      "PUB-001": Object.fromEntries([
+        [ownLabel, initial.entries["PUB-001"].Afo],
+        [otherLabel, initial.entries["PUB-001"].Gui],
+      ]),
+    },
+  };
+
+  const collision = await openPage(initial, relabelled);
+  try {
+    assert.ok(collision.poll, "poll interval was not registered");
+    const pendingNote = collision.dom.window.document.querySelector('[data-note="PUB-001"]');
+    assert.ok(pendingNote, "note input did not render");
+    pendingNote.value = "mine, still pending during relabel";
+    pendingNote.dispatchEvent(new collision.dom.window.Event("input", { bubbles: true }));
+    await flush();
+    await collision.poll();
+    await flush();
+    assert.equal(collision.dom.window.document.querySelector(".current-tester")?.textContent, ownLabel);
+    assert.equal(collision.dom.window.document.querySelectorAll(".who-btn").length, 0);
+    assert.equal(collision.dom.window.document.querySelectorAll(".mark").length, 0);
+    assert.equal(collision.dom.window.document.querySelectorAll(".onote").length, 0);
+    assert.equal(
+      collision.dom.window.document.querySelector('[data-note="PUB-001"]')?.value,
+      "mine, still pending during relabel",
+    );
+    const viewSelect = collision.dom.window.document.querySelector("[data-view-select]");
+    assert.ok(viewSelect, "view select did not render");
+    viewSelect.value = "";
+    viewSelect.dispatchEvent(new collision.dom.window.Event("change", { bubbles: true }));
+    await flush();
+    assert.equal(collision.dom.window.document.querySelectorAll("textarea").length, 0);
+    assert.equal(collision.dom.window.document.querySelectorAll("button.st").length, 0);
+    assert.deepEqual(
+      [...collision.dom.window.document.querySelectorAll(".person-status b")].map((node) => node.textContent),
+      [`${ownLabel}:`, `${otherLabel}:`],
+    );
+    assert.deepEqual(
+      [...collision.dom.window.document.querySelectorAll(".overview-notes .onote b")].map(
+        (node) => node.textContent,
+      ),
+      [`${ownLabel}:`, `${otherLabel}:`],
+    );
+  } finally {
+    collision.dom.window.close();
+  }
+
+  const prototypeName = "__proto__";
+  const prototype = await openPage({
+    team: [prototypeName],
+    you: prototypeName,
+    address: owner,
+    named: true,
+    entries: {},
+  });
+  try {
+    prototype.dom.window.document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.click();
+    await flush();
+    assert.equal(
+      prototype.dom.window.document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(prototype.dom.window.document.querySelector(".row")?.classList.contains("done"), true);
+    assert.equal(prototype.dom.window.document.querySelectorAll(".mark").length, 0);
+    assert.equal(prototype.dom.window.document.querySelector(".tab small")?.textContent, "1/1");
+  } finally {
+    prototype.dom.window.close();
+  }
+
+  const markupName = '<img src=x onerror="globalThis.displayNameRan=true">';
+  const escaped = await openPage({
+    team: [markupName],
+    you: markupName,
+    address: owner,
+    named: true,
+    entries: {},
+  });
+  try {
+    assert.equal(escaped.dom.window.document.querySelector("header img"), null);
+    assert.equal(escaped.dom.window.document.querySelector(".current-tester")?.textContent, markupName);
+    assert.equal(escaped.dom.window.displayNameRan, undefined);
+  } finally {
+    escaped.dom.window.close();
+  }
+}
+
+async function journeyModeHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const cases = [
+    { id: "ADM-002", tab: "Admin Dashboard", area: "Delivery", pri: "P0", scenario: "Third", preconditions: ["Third condition"], steps: ["Third step"], expected: "Third result", role: "steward", rp: false, rd: false, tx: true },
+    { id: "PWA-001", tab: "PWA", area: "Claim", pri: "P0", scenario: "Second", preconditions: ["Second condition"], steps: ["Second step"], expected: "Second result", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Prepare", pri: "P1", scenario: "First", preconditions: ["First condition", "Shared cycle visible"], steps: ["First step"], expected: "First result", role: "steward", rp: false, rd: false, tx: true },
+  ];
+  const lanes = [
+    { id: "review", label: "Protocol & review", role: "Protocol steward" },
+    { id: "member", label: "Garden & member", role: "Garden member" },
+  ];
+  const journeys = [
+    {
+      id: "relay",
+      label: "Service relay",
+      summary: "Two people follow one service relay.",
+      lanes,
+      phases: [
+        { id: "prepare", label: "Prepare" },
+        { id: "deliver", label: "Deliver" },
+      ],
+      steps: [
+        { caseId: "ADM-001", phaseId: "prepare", leadLaneId: "review" },
+        {
+          caseId: "PWA-001",
+          phaseId: "deliver",
+          leadLaneId: "member",
+          verifyLaneIds: ["review"],
+          handoff: "Wait for the reviewer.",
+          knownGate: "Settlement is not enabled.",
+        },
+        { caseId: "ADM-002", phaseId: "deliver", leadLaneId: "member" },
+      ],
+    },
+    {
+      id: "treasury",
+      label: "Treasury top-up",
+      summary: "Review one separate funding rail.",
+      lanes,
+      phases: [{ id: "fund", label: "Fund" }],
+      steps: [{ caseId: "ADM-002", phaseId: "fund", leadLaneId: "review" }],
+    },
+  ];
+  const localizedJourney = {
+    relay: {
+      label: "Relevo de servicios",
+      summary: "Dos personas siguen un relevo de servicios.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { prepare: "Preparar", deliver: "Entregar" },
+      steps: {
+        "PWA-001": {
+          handoff: "Espera a que la persona revisora continúe.",
+          knownGate: "La liquidación no está habilitada.",
+        },
+      },
+    },
+    treasury: {
+      label: "Recarga de tesorería",
+      summary: "Revisa una vía de financiación separada.",
+      lanes: {
+        review: { label: "Protocolo y revisión", role: "Responsable del protocolo" },
+        member: { label: "Garden y miembro", role: "Steward y miembro del Garden" },
+      },
+      phases: { fund: "Financiar" },
+      steps: {},
+    },
+  };
+  const locales = {
+    es: {
+      name: "Español",
+      ui: {
+        journey: "Recorrido",
+        part: "Parte",
+        allParts: "Todas las partes",
+        allSurfaces: "Todas las superficies",
+        act: "Actuar",
+        verify: "Verificar",
+        surface: "Superficie",
+        caseRole: "Rol requerido",
+        preconditions: "Antes de empezar",
+        handoff: "Coordinación",
+        knownGate: "Condición conocida",
+        journeyRoles: "Roles del recorrido",
+        roleRequirements: "Responsabilidades del rol",
+        language: "Idioma del recorrido",
+        orderJourney: "Recorrido",
+      },
+      journeys: localizedJourney,
+      cases: {
+        "ADM-001": {
+          scenario: "Primero en español",
+          preconditions: ["Primera condición", "El ciclo compartido está visible"],
+          steps: ["Primer paso", "Segundo paso detallado"],
+          expected: "Primer resultado",
+          role: "Steward",
+        },
+        "PWA-001": { scenario: "Segundo en español", preconditions: ["Segunda condición"], steps: ["Segundo paso"], expected: "Segundo resultado", role: "Miembro del Garden" },
+        "ADM-002": { scenario: "Tercero en español", preconditions: ["Tercera condición"], steps: ["Tercer paso"], expected: "Tercer resultado", role: "Steward" },
+      },
+    },
+    pt: {
+      name: "Português",
+      ui: {
+        journey: "Jornada",
+        part: "Parte",
+        allParts: "Todas as partes",
+        allSurfaces: "Todas as superfícies",
+        act: "Agir",
+        verify: "Verificar",
+        surface: "Superfície",
+        caseRole: "Papel necessário",
+        preconditions: "Antes de começar",
+        handoff: "Passagem",
+        knownGate: "Limitação conhecida",
+        journeyRoles: "Papéis da jornada",
+        roleRequirements: "Responsabilidades do papel",
+        language: "Idioma da jornada",
+        orderJourney: "Jornada",
+      },
+      journeys: {
+        ...localizedJourney,
+        relay: {
+          ...localizedJourney.relay,
+          label: "Revezamento de serviços",
+          summary: "Duas pessoas acompanham um revezamento de serviços.",
+          lanes: {
+            review: { label: "Protocolo e revisão", role: "Responsável pelo protocolo" },
+            member: { label: "Garden e membro", role: "Steward e membro do Garden" },
+          },
+          phases: { prepare: "Preparar", deliver: "Entregar" },
+          steps: {
+            "PWA-001": {
+              handoff: "Espere a pessoa revisora continuar.",
+              knownGate: "A liquidação não está habilitada.",
+            },
+          },
+        },
+      },
+      cases: {
+        "ADM-001": { scenario: "Primeiro em português", preconditions: ["Primeira condição", "O ciclo compartilhado está visível"], steps: ["Primeiro passo"], expected: "Primeiro resultado", role: "Steward" },
+        "PWA-001": { scenario: "Segundo em português", preconditions: ["Segunda condição"], steps: ["Segundo passo"], expected: "Segundo resultado", role: "Pessoa integrante do Garden" },
+        "ADM-002": { scenario: "Terceiro em português", preconditions: ["Terceira condição"], steps: ["Terceiro passo"], expected: "Terceiro resultado", role: "Steward" },
+      },
+    },
+  };
+  const response = (body) => ({ ok: true, status: 200, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const posts = [];
+  const timers = new Map();
+  let timerId = 0;
+  let restoredScroll = null;
+  const virtualConsole = new VirtualConsole();
+  let jsdomError = "";
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      Object.defineProperty(window, "innerWidth", { value: 375, configurable: true });
+      window.sessionStorage.setItem("qa-view", JSON.stringify({
+        tab: "Admin Dashboard",
+        filter: "all",
+        sort: "journey",
+        scope: "overview",
+        journey: "relay",
+        part: "",
+        surface: "all",
+        scroll: 73,
+      }));
+      window.localStorage.setItem("qa-locale", "es");
+      window.scrollTo = (_x, y) => { restoredScroll = y; };
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ tabs: ["PWA", "Admin Dashboard"], journeys, locales, cases });
+        }
+        if (target !== "/api/state") throw new Error(`unexpected fetch ${target}`);
+        if (init.method === "POST") {
+          posts.push(JSON.parse(String(init.body)));
+          return response({ ok: true });
+        }
+        return response({
+          team: ["Tester A", "Tester B"],
+          you: "Tester A",
+          address: "0x0000000000000000000000000000000000000001",
+          entries: { "PWA-001": { "Tester B": { s: "fail", n: "visible issue" } } },
+        });
+      };
+    },
+  });
+
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, `expected a ${delay}ms timer`);
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+
+  try {
+    await flush();
+    const document = dom.window.document;
+    assert.equal(restoredScroll, 73, jsdomError || "journey scroll was not restored");
+    assert.equal(document.querySelector('[data-sort="journey"]')?.getAttribute("aria-pressed"), "true");
+    assert.equal(document.querySelector('[data-tab="all"]')?.textContent.startsWith("Todas las superficies"), true);
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Recorrido"), true);
+    assert.equal(document.querySelector('label[for="qa-part-select"]')?.textContent.includes("Parte"), true);
+    assert.equal(document.querySelector("#qa-part-select option")?.textContent, "Todas las partes");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "es");
+    assert.equal(document.querySelector("#qa-part-select")?.getAttribute("aria-describedby"), "qa-part-role");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsabilidades del rol"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), true);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001", "ADM-002"],
+      "journey steps did not override catalog/surface order",
+    );
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primero en español"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primer resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "es");
+    const firstJourneyPrerequisites = document.querySelector(".journey-prerequisites");
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Antes de empezar"), true);
+    assert.equal(firstJourneyPrerequisites?.textContent.includes("Rol requerido: Steward"), true);
+    assert.deepEqual(
+      [...firstJourneyPrerequisites.querySelectorAll(".journey-preconditions li")].map((node) => node.textContent),
+      ["Primera condición", "El ciclo compartido está visible"],
+    );
+    const firstJourneySteps = document.querySelector(".journey-steps");
+    assert.equal(firstJourneySteps?.tagName, "OL");
+    assert.ok(
+      firstJourneyPrerequisites.compareDocumentPosition(firstJourneySteps)
+        & dom.window.Node.DOCUMENT_POSITION_FOLLOWING,
+      "the prerequisites must appear before authored actions",
+    );
+    assert.deepEqual(
+      [...firstJourneySteps.querySelectorAll("li")].map((node) => node.textContent),
+      ["Primer paso", "Segundo paso detallado"],
+    );
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["Preparar · 1", "Entregar · 2"],
+    );
+    assert.equal(document.querySelector(".known-gate")?.textContent.includes("La liquidación no está habilitada"), true);
+    assert.equal(document.querySelector(".journey-handoff")?.textContent.includes("Espera a que la persona revisora"), true);
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
+    assert.equal(posts.length, 0, "rendering a known gate must not write a Blocked verdict");
+
+    const initialJourneySelect = document.querySelector("#qa-journey-select");
+    initialJourneySelect.focus();
+    initialJourneySelect.value = "treasury";
+    initialJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-002"]);
+
+    const treasuryJourneySelect = document.querySelector("#qa-journey-select");
+    treasuryJourneySelect.value = "relay";
+    treasuryJourneySelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-journey-select");
+
+    const viewSelect = document.querySelector("#qa-view-select");
+    viewSelect.value = "Tester A";
+    viewSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    const gatedRow = [...document.querySelectorAll(".row")].find((row) =>
+      row.querySelector(".rid b")?.textContent === "PWA-001"
+    );
+    assert.equal(gatedRow?.querySelectorAll("button.st").length, 4);
+    assert.equal(gatedRow?.querySelectorAll('button.st[aria-pressed="true"]').length, 0);
+    gatedRow?.querySelector('[data-s="blocked"]')?.click();
+    assert.equal(
+      document.querySelector('[data-id="PWA-001"][data-s="blocked"]')?.getAttribute("aria-pressed"),
+      "true",
+    );
+    await runTimer(900);
+    assert.deepEqual(posts[0]?.entries, { "PWA-001": { s: "blocked" } });
+
+    const part = document.querySelector("#qa-part-select");
+    part.focus();
+    part.value = "review";
+    part.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-part-select");
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("Responsable del protocolo"), true);
+    assert.equal(document.querySelector("#qa-part-role")?.textContent.includes("miembro del Garden"), false);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-001", "PWA-001"],
+    );
+    const roleText = [...document.querySelectorAll(".journey-meta")].map((node) => node.textContent);
+    assert.equal(roleText[0].includes("ActuarProtocolo y revisión"), true);
+    assert.equal(roleText[1].includes("VerificarProtocolo y revisión"), true);
+    assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).part, "review");
+
+    const locale = document.querySelector("#qa-locale-select");
+    locale.focus();
+    locale.value = "pt";
+    locale.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    assert.equal(document.activeElement?.id, "qa-locale-select");
+    assert.equal(document.querySelector(".journey-row")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector('label[for="qa-journey-select"]')?.textContent.includes("Jornada"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro em português"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Primeiro resultado"), true);
+    assert.equal(document.querySelector(".scen")?.getAttribute("lang"), "pt");
+    assert.equal(document.querySelector(".journey-prerequisites")?.textContent.includes("Antes de começar"), true);
+    assert.equal(document.querySelector(".journey-preconditions")?.textContent.includes("Primeira condição"), true);
+    assert.equal(dom.window.localStorage.getItem("qa-locale"), "pt");
+
+    const mobileRules = [...document.styleSheets[0].cssRules]
+      .filter((rule) => rule.conditionText === "(max-width:720px)")
+      .flatMap((rule) => [...rule.cssRules]);
+    const mobileVerdicts = mobileRules.find((rule) => rule.selectorText === ".st");
+    const mobileSavebar = mobileRules.find((rule) => rule.selectorText === ".savebar");
+    assert.equal(mobileVerdicts.style.width, "44px");
+    assert.equal(mobileVerdicts.style.height, "44px");
+    assert.equal(mobileSavebar.style.position, "static");
+
+    document.querySelector('[data-f="issues"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["PWA-001"]);
+    document.querySelector('[data-f="open"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    document.querySelector('[data-f="all"]')?.click();
+    document.querySelector('[data-tab="Admin Dashboard"]')?.click();
+    assert.deepEqual([...document.querySelectorAll(".rid b")].map((node) => node.textContent), ["ADM-001"]);
+    assert.equal([...timers.values()].filter((timer) => timer.delay === 900).length, 0);
+    assert.equal(posts.length, 1, "filtering journey rows must remain read-only");
+
+    document.querySelector('[data-sort="walk"]')?.click();
+    assert.equal(document.querySelector("#qa-journey-select"), null);
+    assert.equal(document.querySelector(".journey-prerequisites"), null);
+    assert.equal(document.querySelector(".journey-steps"), null);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Third"), true);
+    assert.equal(document.querySelector(".scen")?.textContent.includes("Terceiro em português"), false);
+    assert.deepEqual(
+      [...document.querySelectorAll(".rid b")].map((node) => node.textContent),
+      ["ADM-002", "ADM-001"],
+      "Walk should keep the selected tab's catalog order",
+    );
+    document.querySelector('[data-sort="priority"]')?.click();
+    assert.deepEqual(
+      [...document.querySelectorAll("h2.area")].map((node) => node.textContent),
+      ["P0 · 1", "P1 · 1"],
+      "Priority should keep its severity bands",
+    );
+  } finally {
+    dom.window.close();
+  }
+}
+
+async function runsHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const OWNER = "0x0000000000000000000000000000000000000001";
+  const at = "2026-09-04T19:00:00.000Z";
+  const cases = [
+    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true, replaces: ["PWA-021"] },
+    { id: "PUB-001", tab: "PWA", area: "Home", pri: "P1", scenario: "Home renders", preconditions: [], steps: ["Open /"], expected: "Usable", role: "none", rp: false, rd: false, tx: false },
+    { id: "ADM-001", tab: "Admin Dashboard", area: "Shell", pri: "P0", scenario: "Admin shell", preconditions: [], steps: ["Open /hub"], expected: "Usable", role: "steward", rp: false, rd: false, tx: false },
+  ];
+  const runs = [
+    { id: "run-1", n: 1, label: "Baseline", legacy: true, openedAt: "2026-08-29T09:00:00.000Z", openedBy: null, openedByLabel: null, closedAt: "2026-09-08T14:00:00.000Z", closedBy: OWNER, closedByLabel: "Tester A", environment: "beta", catalog: null, builds: {}, window: { from: "2026-08-29T09:00:00.000Z", to: "2026-09-08T14:00:00.000Z" } },
+    { id: "run-2", n: 2, label: "Re-QA 2026-09-08", openedAt: "2026-09-08T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester B", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null },
+  ];
+  const entriesByRun = {
+    "run-1": {
+      "PWA-021": { "Tester A": { s: "fail", n: "request to join not visible", at } },
+      // A note-only row on a successor is walked but undecided: the retired
+      // predecessor's Fail must still be inherited onto it.
+      "PWA-052": { "Tester B": { s: "", n: "looked, undecided", at } },
+      "PUB-001": { "Tester B": { s: "fail", n: "", at } },
+      "ADM-001": { "Tester A": { s: "pass", n: "", at } },
+    },
+    "run-2": { "PUB-001": { "Tester A": { s: "pass", n: "", at: "2026-09-08T15:00:00.000Z" } } },
+    "run-3": {},
+    "run-4": {},
+  };
+  const server = { openRun: "run-2" };
+  const posts = [];
+  const gets = [];
+  const rollovers = [];
+  const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const stateFor = (runId) => ({
+    team: ["Tester A", "Tester B"],
+    you: "Tester A",
+    address: OWNER,
+    named: true,
+    entries: entriesByRun[runId] || {},
+    readAt: new Date().toISOString(),
+    runs,
+    run: runId,
+    openRun: server.openRun,
+  });
+  const openNext = (label) => {
+    const current = runs[runs.length - 1];
+    current.closedAt = "2026-09-08T16:00:00.000Z";
+    current.closedBy = OWNER;
+    current.closedByLabel = "Tester B";
+    const opened = { id: "run-" + (current.n + 1), n: current.n + 1, label, openedAt: "2026-09-08T16:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester B", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null };
+    runs.push(opened);
+    server.openRun = opened.id;
+    return { closed: current, opened };
+  };
+
+  const timers = new Map();
+  let timerId = 0;
+  let pollCallback = null;
+  let jsdomError = null;
+  const virtualConsole = new VirtualConsole();
+  virtualConsole.on("jsdomError", (error) => {
+    jsdomError = error.cause?.stack || error.cause?.message || error.message;
+  });
+
+  const dom = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      window.sessionStorage.setItem("qa-view", JSON.stringify({ tab: "PWA", filter: "all", sort: "walk", scope: "Tester A" }));
+      // A queue written by the page before it keyed queues by run.
+      window.localStorage.setItem("qa-outbox:" + OWNER, JSON.stringify({ owner: OWNER, person: "Tester A", delta: { "ADM-001": { s: "blocked" } } }));
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = (callback) => { pollCallback = callback; return 1; };
+      window.clearInterval = () => {};
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") {
+          return response({ revision: "abc123def456", tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+        }
+        if (target === "/api/runs") {
+          const body = JSON.parse(String(init.body));
+          rollovers.push(body);
+          const { closed, opened } = openNext(body.label);
+          return response({ ok: true, closed, opened, runs, openRun: opened.id });
+        }
+        const [route, query] = target.split("?");
+        if (route !== "/api/state") throw new Error("unexpected fetch " + target);
+        if (init.method === "POST") {
+          const body = JSON.parse(String(init.body));
+          posts.push(body);
+          const run = runs.find((candidate) => candidate.id === body.run);
+          if (body.run && (!run || run.closedAt)) {
+            return response({ error: body.run + " is closed", reason: run ? "closed" : "unknown", openRun: server.openRun }, 409);
+          }
+          const target = body.run || server.openRun;
+          for (const [caseId, patch] of Object.entries(body.entries || {})) {
+            (entriesByRun[target][caseId] ??= {})["Tester A"] = { s: patch.s || "", n: patch.n || "", at };
+          }
+          return response({ ok: true, person: "Tester A", count: 1, run: target });
+        }
+        const requested = query ? new URLSearchParams(query).get("run") : null;
+        gets.push(requested || "open");
+        return response(stateFor(requested || server.openRun));
+      };
+    },
+  });
+
+  const runTimer = async (delay) => {
+    const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+    assert.ok(timer, "expected a " + delay + "ms timer");
+    timers.delete(timer[0]);
+    await timer[1].callback();
+    await flush();
+  };
+  const rowIds = () => [...dom.window.document.querySelectorAll(".row .rid b")].map((cell) => cell.textContent);
+  const rowFor = (id) => [...dom.window.document.querySelectorAll(".row")].find((row) => row.querySelector(".rid b")?.textContent === id);
+  const change = (selector, value) => {
+    const control = dom.window.document.querySelector(selector);
+    assert.ok(control, "missing " + selector);
+    control.value = value;
+    control.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  };
+
+  try {
+    await flush();
+    await flush();
+    const document = dom.window.document;
+    assert.equal(jsdomError, null, jsdomError);
+
+    // 1. Runs arrive with the state: the run select shows both runs with the
+    //    open one selected, the header names it, and N/A explains itself.
+    const runSelect = document.querySelector("#qa-run-select");
+    assert.ok(runSelect, "run select");
+    assert.deepEqual([...runSelect.options].map((option) => option.textContent), ["Run 1 · Baseline · closed", "Run 2 · Re-QA 2026-09-08 · open"]);
+    assert.equal(runSelect.value, "run-2");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("Run 2 · Re-QA 2026-09-08"));
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("opened by Tester B"));
+    assert.ok(document.querySelector(".helpline")?.textContent.includes("[beta]"));
+    assert.equal(document.querySelector('[data-id="PUB-001"][data-s="na"]')?.getAttribute("title"), "N/A — out of scope for this run");
+    assert.ok(document.querySelector("#qa-run-rollover"), "start new run button");
+
+    // 2. The run-less queue was adopted into the open run's key, once, and is
+    //    sent against that run.
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER), null);
+    const adopted = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
+    // The run-less queue carried no stamp, and re-homing it does not invent
+    // one: an unknown age is reported as unknown, never as "just now".
+    assert.deepEqual(adopted, { owner: OWNER, person: "Tester A", run: "run-2", delta: { "ADM-001": { s: "blocked" } } });
+    await runTimer(400);
+    assert.deepEqual(posts[0], { entries: { "ADM-001": { s: "blocked" } }, run: "run-2" });
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
+
+    // 3. Compare with the closed baseline: verdicts and notes per row, a
+    //    verdict on a retired id inherited by each successor, the delta tally,
+    //    and the Re-QA filter.
+    change("#qa-compare-select", "run-1");
+    await flush();
+    await flush();
+    assert.equal(gets.filter((run) => run === "run-1").length, 1);
+    const joinRow = rowFor("PWA-051");
+    assert.ok(joinRow?.querySelector(".compare-verdict.fail")?.textContent.includes("Run 1 · Baseline:Fail"), joinRow?.querySelector(".compare")?.textContent);
+    assert.ok(joinRow?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
+    assert.ok(joinRow?.querySelector(".compare-notes")?.textContent.includes("request to join not visible"));
+    assert.ok(rowFor("PWA-052")?.querySelector(".compare-verdict.fail"), "a note-only successor row still inherits the retired Fail");
+    assert.ok(rowFor("PWA-052")?.querySelector(".inherited")?.textContent.includes("inherited from PWA-021"));
+    const requestNotes = rowFor("PWA-052")?.querySelector(".compare-notes")?.textContent || "";
+    assert.ok(requestNotes.includes("looked, undecided") && requestNotes.includes("request to join not visible"), requestNotes);
+    assert.ok(rowFor("PUB-001")?.querySelector(".compare-verdict.fail"));
+    const tally = document.querySelector(".counts")?.textContent || "";
+    assert.ok(tally.includes("vs Run 1 · Baseline: 1 fixed · 0 still failing · 0 regressed · 0 newly walked"), tally);
+    document.querySelector('.filt[data-f="reqa"]')?.click();
+    assert.deepEqual(rowIds(), ["PWA-051", "PWA-052", "PUB-001"]);
+    assert.equal(document.querySelector('.filt[data-f="reqa"]')?.getAttribute("aria-pressed"), "true");
+    document.querySelector('.filt[data-f="all"]')?.click();
+
+    // 4. A pending edit stays in the open run's queue and never overlays a
+    //    closed run, which renders read-only.
+    rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.click();
+    assert.equal(rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.getAttribute("aria-pressed"), "true");
+    change("#qa-run-select", "run-1");
+    await flush();
+    await flush();
+    assert.equal(gets.filter((run) => run === "run-1").length, 2);
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-1");
+    assert.equal(document.querySelectorAll("button.st").length, 0);
+    assert.equal(rowFor("PWA-052")?.querySelector(".readonly-status")?.textContent, "Undecided");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("read only"));
+    assert.equal(document.querySelector("#qa-compare-select"), null, "no closed run other than the one on screen to compare with");
+    change("#qa-run-select", "run-2");
+    await flush();
+    await flush();
+    assert.equal(rowFor("PWA-052")?.querySelector('[data-s="blocked"]')?.getAttribute("aria-pressed"), "true");
+
+    // 5. A teammate rolls the run over under this tab: the refused save is
+    //    re-targeted at the new open run, sent once more, and announced.
+    openNext("Re-QA later");
+    await runTimer(900);
+    assert.equal(posts[1].run, "run-2");
+    assert.deepEqual(posts[2], { entries: { "PWA-052": { s: "blocked" } }, run: "run-3" });
+    assert.ok(document.querySelector("#savebar")?.textContent.includes("Run 2 · Re-QA 2026-09-08 was closed — your pending saves went to run-3"), document.querySelector("#savebar")?.textContent);
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
+    assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+    await flush();
+    await flush();
+    assert.equal(gets[gets.length - 1], "open");
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+    assert.ok(document.querySelector(".run-summary")?.textContent.includes("Run 3 · Re-QA later"));
+    assert.equal(JSON.parse(dom.window.sessionStorage.getItem("qa-view")).run, "run-3");
+    // A comparison reads baseline → later: a closed run offers only earlier runs.
+    change("#qa-run-select", "run-2");
+    await flush();
+    await flush();
+    assert.deepEqual([...document.querySelectorAll("#qa-compare-select option")].map((option) => option.value), ["", "run-1"]);
+    change("#qa-run-select", "run-3");
+    await flush();
+    await flush();
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+
+    // 6. The rollover form closes the open run and opens its successor.
+    document.querySelector("#qa-run-rollover")?.click();
+    const form = document.querySelector("#qa-rollover");
+    assert.ok(form, "rollover form");
+    assert.ok(form.querySelector(".rollover-confirm")?.textContent.includes("Close Run 3 · Re-QA later and open Run 4"));
+    form.querySelector("#qa-rollover-label").value = " Re-QA   2026-09-09 ";
+    form.querySelector('[name="client"]').value = "D4D860573";
+    form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+    await flush();
+    await flush();
+    await flush();
+    assert.deepEqual(rollovers[0], { action: "rollover", expectedOpenRun: "run-3", label: "Re-QA   2026-09-09", environment: "beta", builds: { client: "d4d860573" }, catalog: { revision: "abc123def456", activeCases: 4 } });
+    assert.equal(document.querySelector("#qa-rollover"), null);
+    assert.equal(document.querySelector("#qa-run-select")?.value, "run-4");
+    assert.ok(document.querySelector("#savebar")?.textContent.includes("opened — recording continues there"));
+    assert.equal(jsdomError, null, jsdomError);
+  } finally {
+    dom.window.close();
+  }
+
+  // 7. A server without runs leaves the page in tolerant mode: no run
+  //    controls, the old queue key, and saves that name no run.
+  const legacyPosts = [];
+  const legacy = new JSDOM(page, {
+    runScripts: "dangerously",
+    url: "http://localhost:4610/",
+    virtualConsole,
+    beforeParse(window) {
+      window.setTimeout = (callback, delay = 0) => {
+        const id = ++timerId;
+        timers.set(id, { callback, delay });
+        return id;
+      };
+      window.clearTimeout = (id) => timers.delete(id);
+      window.setInterval = () => 1;
+      window.fetch = async (input, init = {}) => {
+        const target = String(input);
+        if (target === "catalog.json") return response({ tabs: ["PWA", "Admin Dashboard"], journeys: [], locales: {}, cases });
+        if (target !== "/api/state") throw new Error("unexpected fetch " + target);
+        if (init.method === "POST") {
+          legacyPosts.push(JSON.parse(String(init.body)));
+          return response({ ok: true });
+        }
+        return response({ team: ["Tester A"], you: "Tester A", address: OWNER, entries: {} });
+      };
+    },
+  });
+  try {
+    await flush();
+    await flush();
+    const document = legacy.window.document;
+    assert.equal(document.querySelector("#qa-run-select"), null);
+    assert.equal(document.querySelector("#qa-run-rollover"), null);
+    assert.equal(document.querySelector(".helpline"), null);
+    document.querySelector('[data-id="PUB-001"][data-s="pass"]')?.click();
+    await runTimer(900);
+    assert.deepEqual(legacyPosts[0], { entries: { "PUB-001": { s: "pass" } } });
+    assert.equal(legacy.window.localStorage.getItem("qa-outbox:" + OWNER), null);
+    assert.equal(jsdomError, null, jsdomError);
+  } finally {
+    legacy.window.close();
+  }
+}
+
+/**
+ * Work that never reached the server before its run closed is offered to the
+ * tester rather than sent into a run it was never recorded against.
+ *
+ * This is the 2026-09-22 failure as a test: a queue that had been rejected for
+ * days was adopted by the rollover and became a brand-new run's results.
+ */
+async function carryPromptHarness() {
+  const dynamicImport = new Function("specifier", "return import(specifier)");
+  const assert = (await dynamicImport("node:assert/strict")).default;
+  const { readFileSync } = await dynamicImport("node:fs");
+  const path = await dynamicImport("node:path");
+  const { JSDOM, VirtualConsole } = await dynamicImport("jsdom");
+
+  const page = readFileSync(path.join(process.cwd(), "packages", "qa", "index.html"), "utf8");
+  const OWNER = "0x0000000000000000000000000000000000000001";
+  const cases = [
+    { id: "PWA-051", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Join an open garden", preconditions: [], steps: ["Join"], expected: "Joined", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-052", tab: "PWA", area: "Garden Join", pri: "P0", scenario: "Request to join", preconditions: [], steps: ["Request"], expected: "Pending", role: "gardener", rp: false, rd: false, tx: true },
+    { id: "PWA-053", tab: "PWA", area: "Offline", pri: "P1", scenario: "Works offline", preconditions: [], steps: ["Go offline"], expected: "Usable", role: "gardener", rp: false, rd: false, tx: false },
+  ];
+  const response = (body, status = 200) => ({ ok: status < 400, status, json: async () => structuredClone(body) });
+  const flush = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
+  };
+  const closedRun = (n, label, closedAt) => ({ id: "run-" + n, n, label, openedAt: "2026-09-08T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester A", closedAt, closedBy: OWNER, closedByLabel: "Tester A", environment: "beta", catalog: null, builds: {}, window: { from: "2026-09-08T14:00:00.000Z", to: closedAt } });
+  const openRunRecord = (n, label) => ({ id: "run-" + n, n, label, openedAt: "2026-09-20T14:00:00.000Z", openedBy: OWNER, openedByLabel: "Tester A", closedByLabel: null, environment: "beta", catalog: null, builds: {}, window: null });
+
+  /** One page life. `seed` writes localStorage before the page script runs. */
+  async function pageLife({ runs, openRun, seed, failPostsFor, retargetTo }, body) {
+    const posts = [];
+    const rollovers = [];
+    const timers = new Map();
+    let timerId = 0;
+    let pollCallback = null;
+    let jsdomError = null;
+    const server = { openRun, runs: runs.slice() };
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (error) => {
+      jsdomError = error.cause?.stack || error.cause?.message || error.message;
+    });
+    const dom = new JSDOM(page, {
+      runScripts: "dangerously",
+      url: "http://localhost:4610/",
+      virtualConsole,
+      beforeParse(window) {
+        if (seed) for (const [key, value] of Object.entries(seed)) window.localStorage.setItem(key, value);
+        window.setTimeout = (callback, delay = 0) => {
+          const id = ++timerId;
+          timers.set(id, { callback, delay });
+          return id;
+        };
+        window.clearTimeout = (id) => timers.delete(id);
+        window.setInterval = (callback) => { pollCallback = callback; return 1; };
+        window.clearInterval = () => {};
+        window.fetch = async (input, init = {}) => {
+          const target = String(input);
+          if (target === "catalog.json") {
+            return response({ revision: "abc123def456", tabs: ["PWA"], journeys: [], locales: {}, cases });
+          }
+          if (target === "/api/runs") {
+            const requested = JSON.parse(String(init.body));
+            rollovers.push(requested);
+            const current = server.runs[server.runs.length - 1];
+            current.closedAt = "2026-09-22T04:37:10.303Z";
+            current.closedBy = OWNER;
+            current.closedByLabel = "Tester A";
+            current.window = { from: current.openedAt, to: current.closedAt };
+            const opened = openRunRecord(current.n + 1, requested.label);
+            server.runs.push(opened);
+            server.openRun = opened.id;
+            return response({ ok: true, closed: current, opened, runs: server.runs, openRun: opened.id });
+          }
+          const [route, query] = target.split("?");
+          if (route !== "/api/state") throw new Error("unexpected fetch " + target);
+          if (init.method === "POST") {
+            const sent = JSON.parse(String(init.body));
+            posts.push(sent);
+            if (failPostsFor && sent.run === failPostsFor) {
+              return response({ error: "entries could not be saved" }, 503);
+            }
+            if (retargetTo && sent.run && sent.run !== retargetTo) {
+              // The lease ran out mid-save: the server put the closed shard
+              // back, wrote the delta into the run that is open now, and says
+              // so. The write SUCCEEDED — nothing is left unsent.
+              const current = server.runs[server.runs.length - 1];
+              if (!current.closedAt) {
+                current.closedAt = "2026-09-22T04:37:10.303Z";
+                current.closedBy = OWNER;
+                current.closedByLabel = "Tester A";
+                current.window = { from: current.openedAt, to: current.closedAt };
+                server.runs.push(openRunRecord(current.n + 1, "QA 2026-09-22"));
+                server.openRun = retargetTo;
+              }
+              return response({ ok: true, person: "Tester A", count: 1, run: retargetTo, retargeted: true });
+            }
+            return response({ ok: true, person: "Tester A", count: 1, run: sent.run || server.openRun });
+          }
+          const requested = query ? new URLSearchParams(query).get("run") : null;
+          return response({
+            team: ["Tester A"],
+            you: "Tester A",
+            address: OWNER,
+            named: true,
+            entries: {},
+            readAt: new Date().toISOString(),
+            runs: server.runs,
+            run: requested || server.openRun,
+            openRun: server.openRun,
+          });
+        };
+      },
+    });
+    const runTimer = async (delay) => {
+      const timer = [...timers.entries()].find(([, pending]) => pending.delay === delay);
+      assert.ok(timer, "expected a " + delay + "ms timer");
+      timers.delete(timer[0]);
+      await timer[1].callback();
+      await flush();
+    };
+    try {
+      await flush();
+      await flush();
+      assert.equal(jsdomError, null, jsdomError);
+      await body({ dom, posts, rollovers, runTimer, server, poll: async () => { await pollCallback(); await flush(); } });
+      assert.equal(jsdomError, null, jsdomError);
+    } finally {
+      dom.window.close();
+    }
+  }
+
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const strandedQueue = JSON.stringify({
+    owner: OWNER,
+    person: "Tester A",
+    run: "run-2",
+    updatedAt: twoDaysAgo,
+    delta: { "PWA-051": { s: "fail", n: "cannot join" }, "PWA-052": { s: "blocked" } },
+  });
+
+  // 1. A queue found under a run that has already closed is NOT sent. It is
+  //    reported with its size and age, and it stays where it was recorded.
+  await pageLife(
+    {
+      runs: [closedRun(2, "Re-QA 2026-09-08", "2026-09-20T14:00:00.000Z"), openRunRecord(3, "QA 2026-09-22")],
+      openRun: "run-3",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+    },
+    async ({ dom, posts, runTimer }) => {
+      const document = dom.window.document;
+      const summary = document.querySelector(".carry-confirm")?.textContent || "";
+      assert.match(summary, /2 verdicts recorded in Run 2 · Re-QA 2026-09-08 never reached the server, last edited 2 days ago\./);
+      assert.match(summary, /Send them to <?b?>?Run 3 · QA 2026-09-22/);
+      assert.deepEqual(posts, [], "stranded work must not be sent without being offered");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), strandedQueue);
+      // Nothing was adopted into the open run's queue either.
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+      // The rows show no verdict: the run on screen does not own this work.
+      assert.equal(document.querySelector('[data-id="PWA-051"][aria-pressed="true"]'), null);
+
+      // 2. Keeping it collapses the prompt to a standing line and sends nothing.
+      document.querySelector("#qa-carry-keep")?.click();
+      await flush();
+      assert.equal(document.querySelector(".carry-prompt"), null);
+      assert.match(document.querySelector(".carry-line")?.textContent || "", /2 verdicts recorded in Run 2/);
+      assert.deepEqual(posts, []);
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), strandedQueue);
+
+      // 3. Reviewing re-opens it; sending moves it to the open run, once.
+      document.querySelector("#qa-carry-review")?.click();
+      await flush();
+      assert.ok(document.querySelector(".carry-prompt"), "Review should re-open the prompt");
+      document.querySelector("#qa-carry-send")?.click();
+      await flush();
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null, "sent work leaves the closed run's key");
+      assert.equal(document.querySelector(".carry-row"), null, "nothing left to offer");
+      await runTimer(400);
+      assert.deepEqual(posts, [
+        { entries: { "PWA-051": { s: "fail", n: "cannot join" }, "PWA-052": { s: "blocked" } }, run: "run-3" },
+      ]);
+      assert.equal(dom.window.document.querySelector("#savebar")?.textContent, "saved ✓");
+    },
+  );
+
+  // 4. The 2026-09-22 sequence: a queue that keeps being rejected against the
+  //    OPEN run, and then the tester starts a new run. The work does not follow
+  //    the rollover, so the new run does not open already walked.
+  await pageLife(
+    {
+      runs: [openRunRecord(2, "Re-QA 2026-09-08")],
+      openRun: "run-2",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+      failPostsFor: "run-2",
+    },
+    async ({ dom, posts, rollovers, runTimer }) => {
+      const document = dom.window.document;
+      // Recovered work still retries against the run it names — that is the
+      // promise on the savebar — and here the store keeps refusing it.
+      await runTimer(400);
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].run, "run-2");
+      assert.equal(document.querySelector("#savebar")?.textContent, "not saved — kept locally, retrying");
+      assert.equal(document.querySelector(".carry-row"), null, "nothing is stranded while its run is open");
+
+      document.querySelector("#qa-run-rollover")?.click();
+      await flush();
+      const form = document.querySelector("#qa-rollover");
+      form.querySelector("#qa-rollover-label").value = "QA 2026-09-22";
+      form.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true }));
+      await flush();
+      await flush();
+      await flush();
+
+      assert.equal(rollovers.length, 1);
+      assert.equal(document.querySelector("#qa-run-select")?.value, "run-3");
+      assert.equal(posts.length, 1, "the held-back walk must not be posted into the new run");
+      assert.match(
+        document.querySelector("#savebar")?.textContent || "",
+        /2 unsent verdicts from Run 2 · Re-QA 2026-09-08 need a decision/,
+      );
+      assert.ok(document.querySelector(".carry-prompt"), "the new run offers the held-back work");
+      const parked = JSON.parse(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"));
+      assert.deepEqual(Object.keys(parked.delta).sort(), ["PWA-051", "PWA-052"]);
+      assert.equal(parked.updatedAt, twoDaysAgo, "the age the tester sees is theirs, not the rollover's");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null);
+    },
+  );
+
+  // 5. A save the SERVER re-targeted landed; it is not unsent work. Parking it
+  //    would offer back verdicts the store already holds, and the
+  //    acknowledgement only clears the run that is open now, so the parked copy
+  //    would be offered again on every later open.
+  await pageLife(
+    {
+      runs: [openRunRecord(2, "Re-QA 2026-09-08")],
+      openRun: "run-2",
+      seed: { ["qa-outbox:" + OWNER + ":run-2"]: strandedQueue },
+      retargetTo: "run-3",
+    },
+    async ({ dom, posts, runTimer }) => {
+      await runTimer(400);
+      assert.equal(posts.length, 1);
+      assert.equal(posts[0].run, "run-2");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null, "an accepted delta must not be parked back under the closed run");
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-3"), null, "and it is acknowledged, not left pending");
+      assert.equal(dom.window.document.querySelector(".carry-row"), null, "nothing to decide about work the server already stored");
+      // The save reported itself saved, not as something still needing a home.
+      const savebar = dom.window.document.querySelector("#savebar")?.textContent || "";
+      assert.doesNotMatch(savebar, /need/);
+      assert.match(savebar, /saved/);
+    },
+  );
+
+  // 6. Parked and live patches for one case are merged field by field, the way
+  //    every other delta here is. A status set in the new run must not delete
+  //    the only copy of a note typed in the old one.
+  await pageLife(
+    {
+      runs: [closedRun(2, "Re-QA 2026-09-08", "2026-09-20T14:00:00.000Z"), openRunRecord(3, "QA 2026-09-22")],
+      openRun: "run-3",
+      seed: {
+        ["qa-outbox:" + OWNER + ":run-2"]: JSON.stringify({
+          owner: OWNER,
+          person: "Tester A",
+          run: "run-2",
+          updatedAt: twoDaysAgo,
+          delta: { "PWA-051": { n: "note typed in the old run" } },
+        }),
+      },
+    },
+    async ({ dom, posts, runTimer }) => {
+      const document = dom.window.document;
+      const row = [...document.querySelectorAll(".row")].find((candidate) => candidate.querySelector(".rid b")?.textContent === "PWA-051");
+      row.querySelector('[data-s="fail"]').click();
+      await flush();
+      document.querySelector("#qa-carry-send").click();
+      await flush();
+      await runTimer(400);
+      assert.deepEqual(posts, [
+        { entries: { "PWA-051": { s: "fail", n: "note typed in the old run" } }, run: "run-3" },
+      ]);
+      assert.equal(dom.window.localStorage.getItem("qa-outbox:" + OWNER + ":run-2"), null);
+    },
+  );
+}
+
+describe("QA app client races", () => {
+  // Each case spawns a Node subprocess and boots JSDOM once per page life, which
+  // runs past Vitest's 5s default — the cause of the intermittent timeout here.
+  const JSDOM_SUBPROCESS_TIMEOUT_MS = 120_000;
+
+  it("does not let a stale poll roll back a note that already showed saved", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${clientRaceHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("keeps an unsent note across a page session and sends it on the next open", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${outboxDurabilityHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("does not resend a verdict the server already stored alongside a later note", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${inFlightFieldHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("surfaces expiry and will not move unsaved work to a switched wallet", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${authRecoveryHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("keeps mutable and prototype-shaped display labels presentation-only", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${displayLabelHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("keeps runs apart: keyed queues, read-only closed runs, compare, Re-QA, re-targeting, and rollover", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${runsHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("offers work stranded by a closed run instead of sending it into the next one", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${carryPromptHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "inherit", timeout: JSDOM_SUBPROCESS_TIMEOUT_MS },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+
+  it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
+    execFileSync(
+      "node",
+      [
+        "scripts/dev/node-cli.js",
+        "node",
+        "--input-type=module",
+        "--eval",
+        `await (${journeyModeHarness.toString()})()`,
+      ],
+      { cwd: repoRoot, stdio: "pipe" },
+    );
+  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+});

@@ -25,7 +25,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import {
@@ -33,7 +33,7 @@ import {
   type OctantVaultCampaignManifest,
 } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { OCTANT_VAULT_REDEEM_CALL_SHAPES } from "../../utils/blockchain/octant-vault-redeem";
 import { DEFAULT_WITHDRAW_MAX_LOSS_BPS } from "../../utils/blockchain/vaults";
 
@@ -233,10 +233,7 @@ export function useOctantVaultPositions(
 
   const query = useQuery({
     queryKey: ownerKey
-      ? ([
-          ...queryKeys.vaults.octantPositions(ownerKey, primaryChainId),
-          campaignSignature,
-        ] as const)
+      ? ([...vaultsKeys.octantPositions(ownerKey, primaryChainId), campaignSignature] as const)
       : ([
           "greengoods",
           "vaults",

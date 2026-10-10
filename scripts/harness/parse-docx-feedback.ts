@@ -5,7 +5,7 @@
  * iterate through.
  *
  * Usage:
- *   bun .plans/doc-feedback-extract/parse-docx-feedback.ts <doc.docx> [--out <path>] [--json]
+ *   bun scripts/harness/parse-docx-feedback.ts <doc.docx> [--out tmp/doc-feedback/<slug>/feedback.md] [--json]
  *
  * Get the input file via Google Docs → File → Download → Microsoft Word (.docx).
  * No OAuth, no API calls. Requires the `unzip` binary (preinstalled on macOS).

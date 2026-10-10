@@ -1,5 +1,6 @@
 import { queryKeys } from "./registry";
 import { financeInvalidation } from "./invalidation-finance";
+import type { Address } from "../../types/domain";
 
 export const queryInvalidation = {
   invalidateAll: () => queryKeys.all,
@@ -76,6 +77,14 @@ export const queryInvalidation = {
     queryKeys.gardens.detail(gardenId, chainId),
   ],
 
+  invalidateGardenKarma: (gardenId: string, chainId: number) => [
+    queryKeys.gardens.byChain(chainId),
+    queryKeys.gardens.detail(gardenId, chainId),
+    queryKeys.gardens.karmaStatus(gardenId, chainId),
+    queryKeys.gardens.karmaVersion(gardenId, chainId),
+    queryKeys.gardens.karmaSlug(gardenId, chainId),
+  ],
+
   invalidateDrafts: (userAddress: string, chainId: number) => [
     queryKeys.drafts.all,
     queryKeys.drafts.list(userAddress, chainId),
@@ -114,7 +123,7 @@ export const queryInvalidation = {
     queryKeys.role.deploymentPermissions(),
   ],
 
-  invalidateGardenerProfile: (address?: string, chainId?: number) => {
+  invalidateGardenerProfile: (address?: Address, chainId?: number) => {
     if (address && chainId) {
       return [queryKeys.gardenerProfile.byAddress(address, chainId)];
     }
@@ -159,7 +168,7 @@ export const queryInvalidation = {
   /** Refresh sendable-token balances after a token send (direct RPC reads). */
   onTokenSent: (account: string, chainId: number) => [
     queryKeys.tokens.balances(account, chainId),
-    queryKeys.tokens.all,
+    ...(chainId === 42220 ? [queryKeys.tokens.celoBalance(account)] : []),
   ],
 
   ...financeInvalidation,

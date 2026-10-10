@@ -1,0 +1,142 @@
+---
+title: Review and Approve Work
+sidebar_label: Review and Approve Work
+slug: /community/steward-guide/reviewing-work
+description: "Review gardener submissions, approve good evidence, or reject with useful feedback."
+audience: steward
+owner: docs
+last_verified: 2026-08-30
+feature_status: Live
+goal: "Walk a steward through approving or rejecting a gardener's submission, with the exact on-screen steps."
+difficulty: "standard"
+estimated_time: "2-10 minutes per submission."
+prereqs: "Garden owner/steward authority, pending work in the queue, and a signer on Arbitrum."
+next_steps: "./creating-impact-certificates"
+persona_context: "Stewards clearing the work queue and giving gardeners timely feedback."
+source_of_truth:
+  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/admin/src/views/Garden/WorkDetail/index.tsx
+  - packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx
+  - packages/admin/src/views/Garden/WorkDetail/SubmissionDetails.tsx
+  - packages/shared/src/hooks/work/useWorkApproval.ts
+  - packages/shared/src/hooks/work/useBatchWorkApproval.ts
+keywords:
+  - approve work
+  - review work
+  - work queue
+  - attestation
+---
+
+import {NextBestAction, StewardPathNav, StatusBadge} from "@site/src/components/docs";
+
+# Review and Approve Work
+
+<StatusBadge status="Live" />
+
+<StewardPathNav />
+
+## What this helps you do
+
+Clear pending gardener submissions: review the action, evidence, and details, then approve good work or reject work that needs correction.
+
+Owners and stewards can approve or reject work. Evaluators can make assessments, but they cannot approve work unless they are also an owner or steward.
+
+You can review from the mobile app/PWA or from admin. Use the app when you are already in the garden. Use admin when you are working through a queue.
+
+## Before you start
+
+- You are signed in as a garden **owner** or **steward**.
+- There is at least one **pending** submission in the work queue.
+- You are online and ready to sign the decision.
+- If you use an external wallet, keep a little Arbitrum gas available.
+
+:::tip
+If you can see the submission but not the approve/reject controls, you do not have approval authority for that garden.
+:::
+
+## Step-by-step flow
+
+### Option A: Review in the installed app
+
+Use this when you are on mobile or already looking at the garden.
+
+1. Open the Green Goods app and go to **Home**.
+2. Open the garden that owns the submission.
+3. Open the **Work** tab and select a pending submission.
+4. Review the action, details, media, and gardener notes.
+5. Tap **Approve** if the evidence is enough, or **Reject** if the gardener needs to fix or resubmit something.
+6. Follow the confidence and feedback steps below.
+7. Submit the decision and sign when prompted.
+
+### Option B: Review in admin
+
+Use this when you are clearing a larger queue or need desktop context.
+
+1. Open the **Hub** workspace.
+2. Stay on **Work**.
+3. Use the garden picker when you only want one garden.
+4. Filter to **Pending** to see what still needs a decision.
+
+<img src="/img/screenshots/admin-work-queue.png" alt="Admin work queue filtered to pending submissions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+### Open one submission
+
+1. Click a submission.
+2. Review the action, garden, details, media, and notes.
+3. Compare the evidence against the action requirements and assessment context.
+4. If something is unclear, reject with a specific request instead of guessing.
+
+<img src="/img/screenshots/admin-work-detail.png" alt="Admin work detail page with submission evidence and review controls" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+### Approve or reject
+
+To approve:
+
+1. In the installed app, tap **Approve** to open the decision panel. In admin, the confidence controls are already visible.
+2. Choose **Low**, **Medium**, or **High** confidence. **None** cannot be used for an approval.
+3. Add a short verification note if it helps the gardener or future reviewers. This note is optional for an approval.
+4. Tap **Submit** in the installed app or click **Approve** in admin, then sign when prompted.
+
+Use the confidence level that matches the evidence:
+
+- **Low:** Evidence is limited or primarily trust-based.
+- **Medium:** You reviewed relevant photo or document evidence.
+- **High:** The submission has strong corroborating evidence, such as a receipt, witness, or verifiable record.
+
+For an approval, Green Goods records the verification method as **Human** automatically. You do not need to choose a method.
+
+To reject:
+
+1. Explain exactly what needs to change: the field, photo, count, action, or garden. The installed app requires feedback; in admin, always provide it so the gardener knows how to recover.
+2. Tap or click **Reject**, then submit and sign when prompted.
+
+A rejection records **None** confidence automatically.
+
+:::tip
+Specific rejection feedback saves time. "Photo is too dark to verify tree count; retake in daylight and resubmit against this action" is better than "insufficient evidence."
+:::
+
+## How to know it worked
+
+- The submission status changes to **Approved** or **Rejected**.
+- It drops out of the pending queue.
+- The gardener sees the new status and any rejection feedback in their Work Dashboard.
+- You can find the reviewed item again in the history/completed view.
+
+## If something goes wrong
+
+- **No Approve/Reject buttons.** You are not an owner/steward for this garden. Ask the garden owner to add the right role.
+- **Selected garden error.** Reload and open the submission from the queue again.
+- **Transaction cancelled.** Nothing was recorded. Retry when ready.
+- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
+- **Wrong decision.** Decisions are recorded once submitted. If you rejected valid work, ask the gardener to resubmit; if you approved weak evidence, flag it for the garden owner before assessment or certification.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+
+## Next step
+
+<NextBestAction
+  title="Mint an impact certificate"
+  why="Once the assessment and approved work tell a coherent story, package them into the certificate flow."
+  actionLabel="Mint Impact Certificate"
+  actionHref="./creating-impact-certificates"
+/>

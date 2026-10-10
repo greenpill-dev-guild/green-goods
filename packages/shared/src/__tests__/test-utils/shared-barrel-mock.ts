@@ -21,8 +21,6 @@
 
 import { vi } from "vitest";
 
-type SharedModule = typeof import("../../index");
-
 /**
  * Default hook return values — sensible defaults that prevent component crashes.
  * Each returns the minimal shape to avoid runtime errors.
@@ -72,21 +70,19 @@ function createDefaultHookMocks() {
     // UI store
     useUIStore: vi.fn((selector?: (state: any) => any) => {
       const state = {
-        isOfflineBannerVisible: false,
-        setOfflineBannerVisible: vi.fn(),
         isWorkDashboardOpen: false,
         openWorkDashboard: vi.fn(),
         closeWorkDashboard: vi.fn(),
         isGardenFilterOpen: false,
         openGardenFilter: vi.fn(),
         closeGardenFilter: vi.fn(),
-        isEndowmentDrawerOpen: false,
-        isWalletDrawerOpen: false,
-        openWalletDrawer: vi.fn(),
-        closeWalletDrawer: vi.fn(),
-        openEndowmentDrawer: vi.fn(),
-        closeEndowmentDrawer: vi.fn(),
-        isAnyDrawerOpen: () => false,
+        isEndowmentSheetOpen: false,
+        isWalletSheetOpen: false,
+        openWalletSheet: vi.fn(),
+        closeWalletSheet: vi.fn(),
+        openEndowmentSheet: vi.fn(),
+        closeEndowmentSheet: vi.fn(),
+        isAnySheetOpen: () => false,
         sidebarOpen: false,
         setSidebarOpen: vi.fn(),
         toggleSidebar: vi.fn(),
@@ -133,15 +129,16 @@ function createDefaultHookMocks() {
  * @param actual - The real module from importOriginal()
  * @param overrides - Custom hook implementations for this test
  */
-export function createSharedBarrelMock(
-  actual: SharedModule,
-  overrides: Record<string, unknown> = {}
-): SharedModule {
-  const defaults = createDefaultHookMocks();
+export function createSharedBarrelMock<TModule extends object>(
+  actual: TModule,
+  overrides: Partial<TModule> = {},
+  options: { defaults?: boolean } = {}
+): TModule {
+  const defaults = options.defaults === false ? {} : createDefaultHookMocks();
 
   return {
     ...actual, // All real exports (types, utils, components)
     ...defaults, // Default hook mocks
     ...overrides, // Test-specific overrides win
-  } as unknown as SharedModule;
+  } as unknown as TModule;
 }

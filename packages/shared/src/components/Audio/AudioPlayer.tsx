@@ -1,5 +1,5 @@
 import { RiCloseLine, RiPauseFill, RiPlayFill } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../../utils/styles/cn";
 
 export interface AudioPlayerProps {
@@ -115,10 +115,10 @@ export function AudioPlayer({ src, file, compact = false, onDelete, className }:
         aria-label={isPlaying ? "Pause" : "Play"}
         className={cn(
           "flex-shrink-0 rounded-full transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface",
           compact ? "h-6 w-6" : "h-8 w-8",
           "flex items-center justify-center",
-          "bg-primary-base text-white hover:bg-primary-dark"
+          "bg-primary-action text-primary-action-foreground hover:bg-primary-action-hover"
         )}
       >
         {isPlaying ? (
@@ -139,10 +139,8 @@ export function AudioPlayer({ src, file, compact = false, onDelete, className }:
           onChange={handleSeek}
           aria-label="Audio progress"
           aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-          className="min-w-0 flex-1 h-1 accent-primary-base cursor-pointer"
-          style={{
-            background: `linear-gradient(to right, var(--color-primary-base, #3b82f6) ${progress}%, var(--color-bg-soft-200, #e5e7eb) ${progress}%)`,
-          }}
+          className="gg-audio-seek min-w-0 flex-1 h-1 accent-primary-on-surface cursor-pointer"
+          style={{ "--audio-progress": `${progress}%` } as CSSProperties}
         />
 
         {/* Time display */}

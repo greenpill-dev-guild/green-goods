@@ -15,26 +15,26 @@ Green Goods is the verified impact operations layer for community-led regenerati
 | # | Archetype | What They Want | Primary Constraint | Tech Comfort |
 |---|-----------|----------------|-------------------|--------------|
 | 1 | **Gardener** | Rewards, recognition, impact visibility | Low connectivity, low patience for forms | None assumed |
-| 2 | **Garden Operator** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
+| 2 | **Garden Steward** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
 | 3 | **Evaluator** | Uphold expertise, iterate methodologies, gather research insights | Time, domain complexity | Moderate-high |
 | 4 | **Funder** | Verified impact for funding confidence | Budget/allocation strategy, trust | Varies |
 | 5 | **Community Member** | Community improvements, better resources | Awareness, access | None assumed |
 
-**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Operator onboarding (Operators are the distribution channel).
+**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
 
 ### Persona & Tone Quick-Reference
 
 | Archetype | Persona | Perceives Green Goods As | Tone | Avoid |
 |-----------|---------|--------------------------|------|-------|
 | Gardener | Maria | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
-| Operator | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
+| Steward | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
 | Evaluator | Dr. Chen | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
 | Funder | Amara | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
 | Community | Kwame | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
 - Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
-- Operator copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
+- Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
 - For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
@@ -52,7 +52,7 @@ Green Goods is the verified impact operations layer for community-led regenerati
 | Passkey auth with zero blockchain vocabulary | Seed phrase, gas fee prompts, chain switching |
 | Graceful degradation on 2G/3G | Features that require persistent connectivity |
 
-### Operator (Admin Dashboard)
+### Steward (Admin Dashboard)
 
 | Acceptable | Unacceptable |
 |------------|--------------|
@@ -79,11 +79,11 @@ Green Goods is the verified impact operations layer for community-led regenerati
 
 | Category | Example | UI Behavior |
 |----------|---------|-------------|
-| network | API timeout, no connectivity, DNS failure | Retry button + offline indicator (SyncStatusBar) |
+| network | API timeout, no connectivity, DNS failure | Retry button + offline banner |
 | validation | Invalid input, missing required field, format error | Inline field error via react-hook-form |
 | auth | Session expired, passkey rejected, wrong account | Redirect to login, clear session state |
 | contract | Revert, gas estimation failure, nonce conflict | Toast with `parseContractError()` message + retry option |
-| sync | Job queue failure, IndexedDB write error, quota exceeded | SyncStatusBar warning + auto-retry with exponential backoff |
+| sync | Job queue failure, IndexedDB write error, quota exceeded | Failure toast + the item's status in Your Work › Pending, where it can be sent again |
 
 ## Graceful Degradation
 
@@ -91,7 +91,7 @@ When connectivity is lost or degraded, features degrade predictably:
 
 | Feature | Degradation Mode | User Sees |
 |---------|-----------------|-----------|
-| Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + SyncStatusBar |
+| Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
 | Work approvals | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
@@ -131,9 +131,50 @@ Resolve conflicts in this order (highest priority first):
 1. **Gardener submission friction** -- Nothing blocks the <2 min capture flow
 2. **Data integrity** -- Attestations are correct and verifiable, never fabricated
 3. **Offline resilience** -- Operations queue and sync, never silently fail
-4. **Operator efficiency** -- Reduce reporting/admin overhead per garden
+4. **Steward efficiency** -- Reduce reporting/admin overhead per garden
 5. **Funder legibility** -- Impact data is export-ready and auditable
 6. **Feature breadth** -- New capabilities only after core flow is solid
+
+## Organizational Decision Heuristics
+
+When features conflict with organizational goals:
+
+1. Features advancing Capital Formation + Impact Accessibility > Governance only
+2. Features serving LATAM communities > features for enterprise polish
+3. Gardener-facing simplicity > technical correctness visible to Gardener
+4. Field-tested action schemas > theoretically complete schemas
+
+Green Goods is a 5-sided marketplace: labor, management, capital, verification, community benefit.
+
+Real communities behind the abstractions (~20 active garden communities, primarily LATAM):
+
+- TAS HUB (Awka, Nigeria): solar infrastructure and education — power outages common
+- AgroforestDAO (Minas Gerais, Brazil): scientific data partnerships — Portuguese required
+- Greenpill Kenya: education and waste programming — mobile-first, low bandwidth
+- Offline-first is not abstract — it means field workers during power outages
+
+Action schemas and work submissions:
+
+- Every action must maintain the CIDS chain: Activity → Output → Outcome → Impact
+- Removing evidence capture (photos) breaks the entire verification model
+- 8 Forms of Capital frame assessment scope (not just financial)
+- Core actions (7) available in ALL gardens; domain-specific actions are opt-in
+
+Economic context for priority decisions: target 150 Gardeners / 1,500 actions/month / 30 Hypercerts/month; monthly ops cost ~$195 (gas + IPFS + infra + monitoring); break-even TVL ~$60k minimum, ~$100-200k target.
+
+### Grant Context for Scope Decisions
+
+Each major feature set maps to a specific grant. When a feature request or bug touches one of these areas, scope the work to that grant's deliverables. Features spanning multiple grants need explicit prioritization from the team — do not assume cross-grant scope without confirmation.
+
+| Grant | Features Funded |
+|---|---|
+| **Arb in ReFi Grant** | App Home, Garden, Work, Insights, Assessments, Gardeners, Garden details |
+| **Arb New Ideas Grant** | Governance, Garden Pools (Voting), Funding, Vaults, Hypercerts, Impact |
+| **RealFi Hackathon** | Details, Gardens Filter, Work Dashboard (Recent/Pending/Completed) |
+| **VeBetter Rewards** | Wallet, Cookies (Payouts), Send |
+| **Unlock Celo Grant** | Hats (Roles), Trust Graph (Reputation) |
+| **Octant Epoch 10** | Revnet & Streams (Revenue) |
+| **Celo/Grassroots Grant** | Commitment Pools (Vouchers) |
 
 ## Feature Priority Framework
 
@@ -142,7 +183,7 @@ Resolve conflicts in this order (highest priority first):
 These are already part of the core product baseline and should be treated as live, not future roadmap items:
 
 - Offline-first work submission with photo evidence
-- Operator review and approval workflows
+- Steward review and approval workflows
 - EAS attestation chains (Work → Approval → Assessment)
 - Hats Protocol role management
 - Indexer-backed state queries
@@ -159,7 +200,7 @@ These are already part of the core product baseline and should be treated as liv
 ### Ship Later (Q3/Q4 2026)
 
 - Expand beyond Season One partner gardens
-- Operator subscriptions and funder-facing dashboards
+- Steward subscriptions and funder-facing dashboards
 - Deeper Hypercert marketplace participation
 - Community-owned infrastructure exploration (RevNets, public goods staking)
 - Meeting-to-action automation and broader agent coordination
@@ -182,11 +223,11 @@ These are already part of the core product baseline and should be treated as liv
 
 ## GTM Model
 
-- **B2B2C**: Operators onboard Gardeners. Gardener acquisition cost is effectively zero (passkeys + gas sponsorship).
-- **Revenue**: Operators ($49-$1000/mo per Garden), Funders ($2k-$50k/yr for dashboards).
+- **B2B2C**: Stewards onboard Gardeners. Gardener acquisition cost is effectively zero (passkeys + gas sponsorship).
+- **Revenue**: Stewards ($49-$1000/mo per Garden), Funders ($2k-$50k/yr for dashboards).
 - **Sustainability**: Yield-backed via Octant vault (~$100k-$200k TVL target for self-sustaining ops).
 
-**Implication for agents:** Operator setup friction directly impacts revenue. Gardener friction directly impacts retention. Optimize both paths aggressively.
+**Implication for agents:** Steward setup friction directly impacts revenue. Gardener friction directly impacts retention. Optimize both paths aggressively.
 
 ## Messaging Constraints
 
@@ -207,14 +248,14 @@ These are already part of the core product baseline and should be treated as liv
 - "Web3" or "blockchain" in Gardener-facing copy
 - "Decentralized" as a feature (it is an implementation detail)
 
-**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Operator/Funder copy may reference on-chain verification as a trust mechanism.
+**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward/Funder copy may reference on-chain verification as a trust mechanism.
 
 ## Competitive Differentiation
 
 | Differentiator | Why It Matters |
 |----------------|----------------|
 | Last-mile proof capture (offline-first PWA, <2 min) | Reaches gardeners where connectivity fails |
-| Human community verification (Operator-led) | Not self-report, not remote sensing -- local trust |
+| Human community verification (Steward-led) | Not self-report, not remote sensing -- local trust |
 | Composable on-chain records (EAS attestations) | Interoperable impact data, not siloed |
 | Capital formation primitives (yield + Hypercerts) | Funding follows verified impact automatically |
 
@@ -223,20 +264,19 @@ These are already part of the core product baseline and should be treated as liv
 - **Minimize on-chain PII**: No names, emails, or phone numbers in attestation data.
 - **Addresses are pseudonymous**: Do not build features that link wallet addresses to real-world identity on-chain.
 - **Media storage**: IPFS hashes on-chain, media files off-chain. Never store raw images in attestation data.
-- **Operator discretion**: Operators manage gardener identity mapping off-chain. The protocol does not enforce or store this mapping.
+- **Steward discretion**: Stewards manage gardener identity mapping off-chain. The protocol does not enforce or store this mapping.
 
 ## Escalate Product Decisions When
 
 - A feature trade-off pits Gardener friction against data integrity
 - Copy or UI implies carbon credit / offset functionality
 - A change would expose PII on-chain (even indirectly via attestation fields)
-- Funder-facing reporting accuracy conflicts with Operator workflow simplicity
+- Funder-facing reporting accuracy conflicts with Steward workflow simplicity
 - The feature is not on the priority framework and would take more than 2 days to implement
 - Gardener-facing UX requires blockchain vocabulary or wallet interaction
 
 ## Related Context
-- Organizational mission and values → `docs/docs/concepts/mission-and-values.mdx`
-- Impact model (CIDS) and action domains → `docs/docs/concepts/impact-model.mdx`
-- Strategic goals, metrics, economic model → `docs/docs/concepts/strategy-and-goals.mdx`
-- Real communities and localization → `docs/docs/concepts/communities.mdx`
-- Agent decision heuristics → `.claude/context/intent.md`
+- Organizational mission and values → `docs/docs/community/why-we-build.mdx`
+- Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
+- Public capability boundaries → `docs/docs/community/green-goods-claims.generated.mdx`
+- Real communities and localization → `docs/docs/reference/design-research.md`

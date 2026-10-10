@@ -49,9 +49,9 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
         gardenGamma = _mintTestGarden("Gamma Garden", 0x04); // Edu only
 
         // Grant operator roles to garden-specific actors
-        _grantGardenRole(gardenAlpha, alphaOperator, IHatsModule.GardenRole.Operator);
-        _grantGardenRole(gardenBeta, betaOperator, IHatsModule.GardenRole.Operator);
-        _grantGardenRole(gardenGamma, gammaOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAlpha, alphaOperator, IHatsModule.GardenRole.Steward);
+        _grantGardenRole(gardenBeta, betaOperator, IHatsModule.GardenRole.Steward);
+        _grantGardenRole(gardenGamma, gammaOperator, IHatsModule.GardenRole.Steward);
 
         // Register 2 actions (global, not per-garden) with domains matching
         // the target gardens so resolver isolation tests reach role checks.
@@ -363,8 +363,8 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
         address cvAlpha = _mintTestGarden("CV Alpha", 0x0F);
         address cvBeta = _mintTestGarden("CV Beta", 0x0F);
 
-        _grantGardenRole(cvAlpha, cvAlphaOp, IHatsModule.GardenRole.Operator);
-        _grantGardenRole(cvBeta, cvBetaOp, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(cvAlpha, cvAlphaOp, IHatsModule.GardenRole.Steward);
+        _grantGardenRole(cvBeta, cvBetaOp, IHatsModule.GardenRole.Steward);
 
         // Signal pools are per-garden
         address[] memory poolsAlpha = gardensModule.getGardenSignalPools(cvAlpha);

@@ -1,6 +1,5 @@
-import { RiCheckLine } from "@remixicon/react";
 import { type ComponentType } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types
@@ -23,11 +22,13 @@ export interface AdminFilterChipProps {
  * AdminFilterChip — M3 Filter Chip
  *
  * Implements Material Design 3 filter chip anatomy:
- * - Height: 32dp (h-8)
+ * - Height: 32dp visual (h-8) with a 44px effective touch target (admin-hit-target)
  * - Shape: corner-small (8dp) via --m3-shape-sm
  * - Unselected: transparent fill, outline ring, on-surface-variant text
- * - Selected: secondary-container fill, no outline, on-secondary-container text, leading checkmark
- * - Optional leadingIcon shown when unselected; replaced by RiCheckLine when selected
+ * - Selected: secondary-container fill, no outline, on-secondary-container text
+ * - Selection shows by fill and `aria-pressed` alone, with no leading check mark,
+ *   so choosing a chip never changes its width or moves the chips after it
+ *   (PRD-1022 D6). An optional leadingIcon shows in both states for the same reason.
  * - Disabled: pointer-events-none opacity-38
  */
 export function AdminFilterChip({
@@ -51,8 +52,8 @@ export function AdminFilterChip({
         "h-8 rounded-[var(--m3-shape-sm)]",
         // Typography
         "text-label-lg font-medium whitespace-nowrap",
-        // State layer
-        "m3-state-layer",
+        // State layer + expanded 44px hit area (visual stays 32px)
+        "m3-state-layer admin-hit-target",
         // Focus ring
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
         // Motion
@@ -78,12 +79,7 @@ export function AdminFilterChip({
         className
       )}
     >
-      {/* Leading icon: checkmark when selected, custom icon when unselected */}
-      {selected ? (
-        <RiCheckLine className="h-[18px] w-[18px] shrink-0" aria-hidden />
-      ) : LeadingIcon ? (
-        <LeadingIcon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-      ) : null}
+      {LeadingIcon ? <LeadingIcon className="h-[18px] w-[18px] shrink-0" aria-hidden /> : null}
 
       <span>{label}</span>
     </button>

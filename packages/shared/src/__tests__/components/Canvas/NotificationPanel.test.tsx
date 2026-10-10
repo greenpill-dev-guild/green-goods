@@ -49,6 +49,7 @@ describe("NotificationPanel", () => {
             description: "Garden One",
             meta: "5 minutes ago",
             tone: "critical",
+            actionLabel: "Review Pending Work from This Garden",
             onSelect,
           },
           {
@@ -64,6 +65,12 @@ describe("NotificationPanel", () => {
     expect(screen.getByText("Garden One")).toBeInTheDocument();
     expect(screen.getByText("5 minutes ago")).toBeInTheDocument();
     expect(screen.getByText("Impact report minted")).toBeInTheDocument();
+
+    const actionLabel = screen.getByText("Review Pending Work from This Garden");
+    expect(actionLabel).toHaveClass("gg-button");
+    expect(actionLabel).toHaveAttribute("data-emphasis", "tertiary");
+    expect(actionLabel).toHaveAttribute("data-size", "sm");
+    expect(actionLabel).toHaveStyle({ overflowWrap: "anywhere", whiteSpace: "normal" });
 
     fireEvent.click(screen.getByRole("button", { name: /3 work submissions need review/i }));
 

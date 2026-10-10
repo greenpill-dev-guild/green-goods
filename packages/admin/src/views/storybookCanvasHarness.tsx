@@ -18,14 +18,23 @@ function StorybookCanvasHydrateFallback() {
 }
 
 function withHydrateFallback(routes: RouteObject[]): RouteObject[] {
-  return routes.map((route) => ({
-    ...route,
-    HydrateFallback: route.HydrateFallback ?? StorybookCanvasHydrateFallback,
-    children: route.children ? withHydrateFallback(route.children) : undefined,
-  }));
+  return routes.map((route) => {
+    if (route.index === true) {
+      return {
+        ...route,
+        HydrateFallback: route.HydrateFallback ?? StorybookCanvasHydrateFallback,
+      };
+    }
+
+    return {
+      ...route,
+      HydrateFallback: route.HydrateFallback ?? StorybookCanvasHydrateFallback,
+      children: route.children ? withHydrateFallback(route.children) : undefined,
+    };
+  });
 }
 
-export function createStorybookAdminCanvasRouter(initialPath: string) {
+function createStorybookAdminCanvasRouter(initialPath: string) {
   return createMemoryRouter(
     [
       {

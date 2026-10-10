@@ -1,4 +1,4 @@
-# Indexer Package — Codex Guide
+# Indexer Package — Agent Guide
 
 Use this guide when editing `packages/indexer/**`.
 
@@ -13,24 +13,33 @@ responsible for protocol entities, not for EAS attestations.
 - `bun run test`
 - `bun run build`
 - `bun run codegen`
-- `bun run setup-generated`
+- `bun run dev`
 
 ## Non-Negotiables
 
 - Do not index EAS attestations here. Those stay in shared's EAS data layer.
 - Every persisted entity needs a `chainId`.
-- Use composite IDs that include `chainId` to avoid cross-chain collisions.
+- Use composite IDs that include `chainId` to avoid cross-chain collisions. Documented exception:
+  `Garden.id` stays the bare GardenAccount address for GraphQL compatibility with existing
+  consumers; it still carries `chainId`. Do not convert it to a composite ID.
 - When relationships change, update both sides.
-- After schema or config changes, regenerate and rebuild generated code before trusting tests.
+- Keep TypeScript `strict` and `noImplicitAny` enabled for handwritten `src/` and `test/` code; do not weaken compiler flags to accommodate generated types.
+- After schema or config changes, regenerate `.envio/` types before trusting tests.
+- Envio v3 registrations use `indexer.onEvent` and `indexer.contractRegister`; do not restore
+  generated-v2 imports, `MockDb`, ReScript setup, or package-local pnpm workflows.
+- `envio dev` preserves the local database. Use `bun run --cwd packages/indexer dev --restart` only when a destructive
+  local replay is explicitly intended and authorized.
 
-## Codex Notes
+## Package Notes
 
 - On macOS, local development usually relies on Docker-based scripts, but validation still needs
   boundary checks, tests, and a TypeScript build.
 - Indexer changes often fail later than app changes if codegen is skipped. Run codegen first when
-  touching `schema.graphql`, `config.yaml`, or generated types.
+  touching `schema.graphql`, `config.yaml`, or `.envio/` types.
 
 ## Validation
 
-- Schema/config changes: `bun run codegen && bun run setup-generated`
-- Package loop: `bun run check:indexing-boundary && bun run test && bun run build`
+- QA Speed Mode: run `node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/<file>.test.ts` for one behavior.
+- Package loop: `bun run check:indexing-boundary && bun run test && bun run build`.
+- Conditional proof: schema, config, or generated-type changes require `bun run codegen && bun run build` before targeted tests are trusted.
+- Broader impact: run the root Repo Quick Gate when event, ABI, schema, or consumer-facing data contracts move.

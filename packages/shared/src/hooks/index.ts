@@ -1,6 +1,4 @@
-// Hooks — EXPLICIT EXPORTS for tree-shaking
-
-// ============================================================================
+// Hooks — EXPLICIT EXPORTS for tree-shaking ==================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
@@ -10,6 +8,7 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-key
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
+  creditInvalidationKeys,
   INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
@@ -67,9 +66,9 @@ export type {
   UseLoadingWithMinDurationResult,
 } from "./app/useLoadingWithMinDuration";
 export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export { useLocalizedRelativeTime } from "./app/useLocalizedRelativeTime";
 export { useMerged } from "./app/useMerged";
-export type { NavigateToTopOptions } from "./app/useNavigateToTop";
-export { useNavigateToTop } from "./app/useNavigateToTop";
+export { type NavigateToTopOptions, useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export { useScrollToTop } from "./app/useScrollToTop";
@@ -89,12 +88,6 @@ export type {
   UseAssessmentDraftResult,
 } from "./assessment/useAssessmentDraft";
 export { useAssessmentDraft } from "./assessment/useAssessmentDraft";
-export type { AssessmentFormData, UseAssessmentFormReturn } from "./assessment/useAssessmentForm";
-export {
-  assessmentFormSchema,
-  createDefaultAssessmentFormData,
-  useAssessmentForm,
-} from "./assessment/useAssessmentForm";
 export type {
   AssessmentStepId,
   CreateAssessmentFormData,
@@ -114,11 +107,11 @@ export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkf
 // ============================================================================
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+export * from "./commitment-pooling";
 // ============================================================================
 // AUTH
 // ============================================================================
 export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
-// Compatibility exports
 // Prefer useAuthState/useAuthActions in new code.
 export { useAuth, useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
@@ -207,9 +200,6 @@ export {
 } from "./cookie-jar/useCampaignCookieJar";
 export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export {
-  useCookieJarEmergencyWithdraw,
-  useCookieJarPause,
-  useCookieJarUnpause,
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
 } from "./cookie-jar/useCookieJarAdmin";
@@ -277,6 +267,7 @@ export type {
   UseFilteredGardensResult,
 } from "./garden/useFilteredGardens";
 export { useFilteredGardens } from "./garden/useFilteredGardens";
+export { useGardenAccountSigner } from "./garden/useGardenAccountSigner";
 export { useGardenDerivedState } from "./garden/useGardenDerivedState";
 export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
@@ -287,6 +278,7 @@ export { useGardenInvites } from "./garden/useGardenInvites";
 export { useGardenOperations } from "./garden/useGardenOperations";
 export type { GardenPermissions } from "./garden/useGardenPermissions";
 export { useGardenPermissions } from "./garden/useGardenPermissions";
+export * from "./garden/useKarmaIntegration";
 export { GardenTab, useGardenTabs } from "./garden/useGardenTabs";
 export {
   checkGardenOpenJoining,
@@ -385,16 +377,15 @@ export type {
   UsePublicFieldNotesOptions,
 } from "./public/usePublicFieldNotes";
 export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
-// ============================================================================
 // PUBLIC READ-SIDE (Living Archive journal)
-// ============================================================================
 export type {
   PublicFieldNote,
-  PublicGardenContributor,
   PublicGardenDetail,
   UsePublicGardenDetailOptions,
 } from "./public/usePublicGardenDetail";
 export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
+export { usePublicCommitmentImpact } from "./public/usePublicCommitmentImpact";
+export { usePublicGardenPool } from "./public/usePublicGardenPool";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
 export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
@@ -539,7 +530,6 @@ export {
 } from "./vault/vault-helpers";
 export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
-export { useBatchWorkSync } from "./work/useBatchWorkSync";
 export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
 export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
@@ -547,12 +537,12 @@ export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { type NeedsReviewState, useNeedsReview } from "./work/useNeedsReview";
 export type { PendingReviewCountState } from "./work/usePendingReviewCount";
 export { usePendingReviewCount } from "./work/usePendingReviewCount";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";
 export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
-export { useReviewerWorks } from "./work/useReviewerWorks";
 export type {
   SubmissionProgressState,
   SubmissionStage,
@@ -586,15 +576,14 @@ export {
   useQueueStatistics,
   useWorks,
 } from "./work/useWorks";
-// ============================================================================
-// YIELD
-// ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
   type GardenYieldSummary,
   useGardenYieldSummary,
 } from "./yield/useGardenYieldSummary";
 export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
+// useHarvestDistribution and useYieldStatus are deliberately not re-exported
+// here: consumers import their declared leaf subpaths (package.json#exports).
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   type ProtocolYieldSummary,
@@ -602,3 +591,5 @@ export {
 } from "./yield/useProtocolYieldSummary";
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
+export * from "./offline/useOfflineContent";
+export { useAgentReportingPermissions } from "./agent-reporting/useAgentReportingPermissions";

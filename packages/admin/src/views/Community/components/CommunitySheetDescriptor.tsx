@@ -1,10 +1,12 @@
-import { type Address, adminRoutes } from "@green-goods/shared";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
+import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
-import { VaultActionRouteDialog, type VaultActionRoute } from "./VaultActionRouteDialog";
+import { type VaultActionRoute, VaultActionRouteDialog } from "./VaultActionRouteDialog";
 
 interface CommunitySheetDescriptorProps {
   isStrategiesRoute: boolean;
@@ -24,7 +26,7 @@ export function CommunitySheetDescriptor({
   const { formatMessage } = useIntl();
 
   const communitySheet = useMemo(() => {
-    if (isStrategiesRoute) {
+    if (GOVERNANCE_ENABLED && isStrategiesRoute) {
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
@@ -34,7 +36,7 @@ export function CommunitySheetDescriptor({
       };
     }
 
-    if (isSignalPoolRoute) {
+    if (GOVERNANCE_ENABLED && isSignalPoolRoute) {
       return {
         title: formatMessage({
           id:

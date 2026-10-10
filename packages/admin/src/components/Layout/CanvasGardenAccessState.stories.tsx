@@ -34,7 +34,7 @@ type Story = StoryObj<typeof CanvasGardenAccessState>;
 
 export const CanCreateGarden: Story = {};
 
-export const OperatorOnly: Story = {
+export const StewardOnly: Story = {
   args: {
     canCreateGarden: false,
   },

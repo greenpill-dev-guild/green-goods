@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 /**
@@ -37,6 +37,10 @@ vi.mock("../../hooks/auth/useUser", () => ({
 
 // Mock config
 vi.mock("../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 

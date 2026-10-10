@@ -1,40 +1,49 @@
+import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
-  formatApy,
-  formatTokenAmount,
   type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-  useInViewReveal,
-  usePublicGardens,
-  usePublicVaultSummary,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+import { usePublicVaultCatalogSummary } from "@green-goods/shared/hooks/public/usePublicVaultCatalogSummary";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
+  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
+  EditorialListRowSkeleton,
   EditorialLinkArrow,
   EditorialNumeral,
-  EditorialTitleAccent,
+  EditorialVaultAssetCardSkeleton,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
-import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
-import { resolveGardenQuery } from "@/views/Public/garden-query-resolution";
-
+import { resolveGardenQuery } from "@/views/Public/gardenQueryResolution";
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,
   }))
 );
-
+const PublicEndowmentPanel = lazy(() =>
+  import("@/components/Public/PublicEndowmentPanel").then((module) => ({
+    default: module.PublicEndowmentPanel,
+  }))
+);
+const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 interface SupportPathProps {
   numeral: string;
   titleId: string;
@@ -77,7 +86,7 @@ function SupportPath({
       <dl className="space-y-3 text-sm leading-[1.55] text-text-sub-600">
         <div>
           <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({ id: "public.fund.support.routes", defaultMessage: "Routes through" })}
+            {formatMessage({ id: "public.fund.support.routes", defaultMessage: "Where it goes" })}
           </dt>
           <dd className="mt-1">{formatMessage({ id: routesId, defaultMessage: defaultRoutes })}</dd>
         </div>
@@ -150,19 +159,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
         ) : showSkeleton ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
             {[0, 1].map((index) => (
-              <div
-                key={index}
-                className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
-              >
-                <div className="h-3 w-28 animate-pulse bg-stroke-soft-200/60" />
-                <div className="mt-4 h-8 w-36 animate-pulse bg-stroke-soft-200/60" />
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
-                </div>
-              </div>
+              <EditorialVaultAssetCardSkeleton key={index} />
             ))}
           </div>
         ) : (
@@ -344,32 +341,10 @@ function getGardenVaultSummary(
   );
 }
 
-/**
- * Fund — public garden funding gateway.
- *
- * Editorial recomposition:
- *   Hero → § 01 Vault overview → § 02 Ways to support (Donate first,
- *   Endow second) with always-visible tax / risk disclosures → § 03 Compact
- *   garden grid with per-card Donate + Endow CTAs and the wallet-owned
- *   Manage Endowments panel entry → optional receipt / stale-link banner
- *   → Footer.
- *
- * Behavior contract:
- * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
- * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
- *   missing, zero-match, or ambiguous queries fall back to the regular Fund
- *   layout with a localized non-blocking message.
- * - Each Garden row exposes Donate and Endow CTAs that open PublicFundingCard
- *   (single editorial card with amount-first input, visual token picker, and
- *   inline wallet-connect through the smart submit button) with the matching
- *   intent pre-set. Donate leads; Endow follows.
- * - `?manage=endowments` opens the wallet-owned public endowment panel.
- * - No public address lookup or admin controls.
- */
 function FundPageContent() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading } = usePublicGardens();
-  const vaultSummary = usePublicVaultSummary();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
+  const vaultSummary = usePublicVaultCatalogSummary();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
@@ -383,6 +358,11 @@ function FundPageContent() {
     const match = resolved.garden;
     return [match, ...gardens.filter((g) => g.id !== match.id)];
   }, [gardens, resolved]);
+  const gardensState = selectPublicSurfaceState({
+    isLoading,
+    isError,
+    itemCount: orderedGardens.length,
+  });
 
   const [selectorState, setSelectorState] = useState<{
     garden: PublicGardenSummary;
@@ -474,20 +454,17 @@ function FundPageContent() {
         title={formatMessage(
           {
             id: "public.fund.heroTitle",
-            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons.",
+            defaultMessage:
+              "<line>A small gesture,</line> <line><accent>growing</accent> over</line> <line>many seasons</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Donate to a Garden's shared fund today, or endow its Vault so yield supports the Garden over many seasons. Every contribution lands with the Garden, not a platform account.",
+            "Choose a Garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved work before contributing.",
         })}
       />
-
-      <VaultAggregationSection summary={vaultSummary} />
 
       {intentId ? (
         <section className="bg-bg-weak-50 px-6 pt-32 pb-8 sm:px-10 sm:pt-36 md:pt-40">
@@ -522,19 +499,119 @@ function FundPageContent() {
         </section>
       ) : null}
 
+      {/* § 03 — Choose a Garden to donate to or endow */}
+      <section
+        ref={gardensRef}
+        data-revealed={gardensRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+        aria-labelledby="public-fund-gardens-title"
+      >
+        <div className="editorial-cascade mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <EditorialKicker className="mb-3">
+                  {formatMessage({
+                    id: "public.fund.gardens.kicker",
+                    defaultMessage: "§ 01: Choose a Garden",
+                  })}
+                </EditorialKicker>
+                <EditorialHeading id="public-fund-gardens-title">
+                  {formatMessage({
+                    id: "public.fund.gardens.title",
+                    defaultMessage: "Find a Garden to support.",
+                  })}
+                </EditorialHeading>
+              </div>
+              <EditorialGhostButton
+                variant="warm"
+                onClick={handleManageEndowmentsClick}
+                aria-expanded={isEndowmentPanelOpen}
+                aria-haspopup="dialog"
+                className="w-fit sm:mt-1"
+              >
+                {formatMessage({
+                  id: "public.fund.manageEndowments.cta",
+                  defaultMessage: "Manage Endowments",
+                })}
+              </EditorialGhostButton>
+            </div>
+          </header>
+
+          <PublicSurfaceState
+            state={gardensState}
+            loading={
+              <div
+                className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
+                aria-hidden="true"
+              >
+                {[0, 1, 2, 3].map((i) => (
+                  <EditorialListRowSkeleton key={i} />
+                ))}
+              </div>
+            }
+            onRetry={() => void refetch()}
+            empty={
+              <div className="mt-12 max-w-md">
+                <p className="font-serif text-xl italic text-text-soft-400">
+                  {formatMessage({
+                    id: "public.fund.empty",
+                    defaultMessage:
+                      "Gardens will appear here after their first approved work submission.",
+                  })}
+                </p>
+                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+                  <EditorialLinkArrow to="/gardens">
+                    {formatMessage({
+                      id: "public.fund.empty.browseGardens",
+                      defaultMessage: "Browse All Gardens",
+                    })}
+                  </EditorialLinkArrow>
+                  <EditorialLinkArrow to="/impact">
+                    {formatMessage({
+                      id: "public.fund.empty.viewImpact",
+                      defaultMessage: "View Public Evidence",
+                    })}
+                  </EditorialLinkArrow>
+                </div>
+              </div>
+            }
+          >
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
+              data-testid="public-fund-garden-grid"
+            >
+              {orderedGardens.map((garden) => {
+                const isMatchedHighlight =
+                  resolved.status === "match" && resolved.garden?.id === garden.id;
+                return (
+                  <div
+                    key={garden.id}
+                    ref={isMatchedHighlight ? matchHighlightRef : undefined}
+                    className={
+                      isMatchedHighlight
+                        ? "h-full min-w-0 ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        : "h-full min-w-0"
+                    }
+                  >
+                    <PublicGardenRow
+                      garden={garden}
+                      vaultSummary={getGardenVaultSummary(vaultSummary, garden)}
+                      onSupport={handleSupport}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </PublicSurfaceState>
+        </div>
+      </section>
+
       {/* § 02 — Ways to support: Donate + Endow path context */}
       <section
         ref={pathsRef}
         data-revealed={pathsRevealed}
-        className={
-          vaultSummary.hasVaults ||
-          vaultSummary.isLoading ||
-          intentId ||
-          resolved.status === "stale" ||
-          resolved.status === "ambiguous"
-            ? "editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-            : "editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
-        }
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
         aria-labelledby="public-fund-paths-title"
       >
         <div className="editorial-cascade mx-auto max-w-7xl">
@@ -548,7 +625,7 @@ function FundPageContent() {
             <EditorialHeading id="public-fund-paths-title">
               {formatMessage({
                 id: "public.fund.paths.title",
-                defaultMessage: "Donate now, or Endow for many seasons.",
+                defaultMessage: "Choose how your support helps.",
               })}
             </EditorialHeading>
           </header>
@@ -616,117 +693,24 @@ function FundPageContent() {
         </div>
       </section>
 
-      {/* § 03 — Choose a Garden to donate to or endow */}
-      <section
-        ref={gardensRef}
-        data-revealed={gardensRevealed}
-        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
-        aria-labelledby="public-fund-gardens-title"
-      >
-        <div className="editorial-cascade mx-auto max-w-7xl">
-          <header className="border-b border-stroke-soft-200 pb-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <EditorialKicker className="mb-3">
-                  {formatMessage({
-                    id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03: Choose a Garden",
-                  })}
-                </EditorialKicker>
-                <EditorialHeading id="public-fund-gardens-title">
-                  {formatMessage({
-                    id: "public.fund.gardens.title",
-                    defaultMessage: "Gardens accepting support this season.",
-                  })}
-                </EditorialHeading>
-              </div>
-              <button
-                type="button"
-                onClick={handleManageEndowmentsClick}
-                aria-expanded={isEndowmentPanelOpen}
-                aria-haspopup="dialog"
-                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
-              >
-                {formatMessage({
-                  id: "public.fund.manageEndowments.cta",
-                  defaultMessage: "Manage Endowments",
-                })}
-              </button>
-            </div>
-          </header>
-
-          {isLoading ? (
-            <div
-              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
-              aria-hidden="true"
-            >
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                  <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
-                  <div className="flex flex-1 flex-col justify-center gap-2">
-                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                  </div>
-                  <div className="flex shrink-0 flex-col justify-center gap-2">
-                    <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/60" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : orderedGardens.length === 0 ? (
-            <div className="mt-12 max-w-md">
-              <p className="font-serif text-xl italic text-text-soft-400">
-                {formatMessage({
-                  id: "public.fund.empty",
-                  defaultMessage: "Endowment destinations will appear here as Gardens enable them.",
-                })}
-              </p>
-              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-                <EditorialLinkArrow to="/gardens">
-                  {formatMessage({
-                    id: "public.fund.empty.browseGardens",
-                    defaultMessage: "Browse all Gardens",
-                  })}
-                </EditorialLinkArrow>
-                <EditorialLinkArrow to="/impact">
-                  {formatMessage({
-                    id: "public.fund.empty.viewImpact",
-                    defaultMessage: "View public evidence",
-                  })}
-                </EditorialLinkArrow>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
-              data-testid="public-fund-garden-grid"
-            >
-              {orderedGardens.map((garden) => {
-                const isMatchedHighlight =
-                  resolved.status === "match" && resolved.garden?.id === garden.id;
-                return (
-                  <div
-                    key={garden.id}
-                    ref={isMatchedHighlight ? matchHighlightRef : undefined}
-                    className={
-                      isMatchedHighlight
-                        ? "h-full min-w-0 ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
-                        : "h-full min-w-0"
-                    }
-                  >
-                    <PublicGardenRow
-                      garden={garden}
-                      vaultSummary={getGardenVaultSummary(vaultSummary, garden)}
-                      onSupport={handleSupport}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      <div className="bg-bg-weak-50 px-6 pb-16 sm:px-10">
+        <div className="mx-auto max-w-7xl">
+          <p className="max-w-2xl text-base leading-relaxed text-text-sub-600">
+            {formatMessage({ id: "public.home.getInTouch.callBody" })}
+          </p>
+          <div className="mt-5">
+            <EditorialLinkArrow to="/#contact">
+              {formatMessage({ id: "public.gardenDetail.discussFunding" })}
+            </EditorialLinkArrow>
+          </div>
+          <details className="mt-10 border-t border-stroke-soft-200 pt-5">
+            <summary className="min-h-11 cursor-pointer text-sm font-medium text-primary-action focus-visible:outline-2 focus-visible:outline-offset-2">
+              {formatMessage({ id: "public.fund.endowmentDetails" })}
+            </summary>
+            <VaultAggregationSection summary={vaultSummary} />
+          </details>
         </div>
-      </section>
+      </div>
 
       <PublicFooter variant="soil" />
 
@@ -748,29 +732,33 @@ function FundPageContent() {
           }
         >
           {selectorState ? (
-            <PublicFundingCard
-              open
-              garden={selectorState.garden}
-              intent={selectorState.intent}
-              onClose={closeSelector}
-            />
+            <WalletRuntimeProviders>
+              <PublicFundingCard
+                open
+                garden={selectorState.garden}
+                intent={selectorState.intent}
+                onClose={closeSelector}
+              />
+            </WalletRuntimeProviders>
           ) : null}
         </Suspense>
       ) : null}
 
-      <PublicEndowmentPanel
-        open={isEndowmentPanelOpen}
-        onExitComplete={handleEndowmentPanelExitComplete}
-        onOpenChange={handleEndowmentPanelOpenChange}
-      />
+      {isEndowmentPanelOpen ? (
+        <Suspense fallback={null}>
+          <WalletRuntimeProviders>
+            <PublicEndowmentPanel
+              open
+              onExitComplete={handleEndowmentPanelExitComplete}
+              onOpenChange={handleEndowmentPanelOpenChange}
+            />
+          </WalletRuntimeProviders>
+        </Suspense>
+      ) : null}
     </>
   );
 }
 
 export default function FundPage() {
-  return (
-    <WalletRuntimeProviders>
-      <FundPageContent />
-    </WalletRuntimeProviders>
-  );
+  return <FundPageContent />;
 }

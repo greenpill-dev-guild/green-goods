@@ -43,7 +43,7 @@ export interface ActionsHeaderStatsInput {
   domainsCovered: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 

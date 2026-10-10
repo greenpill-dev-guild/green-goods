@@ -46,5 +46,13 @@
     "workName": "Green Goods Work Submission",
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
     "workSchemaUID": "0x481c4190bcaf0140d77d1124acd443f51ed78d73fecb6cd4f77265142df0c00a"
+  },
+  "celoSettlementExecutor": "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F",
+  "celoSettlementExecutorImpl": "0xe634f50f112C573b07f2b98A60aa828cBFdfE86d",
+  "releaseReceipts": {
+    "celoSettlementExecutor": {
+      "transactionHash": "0x132d74be32162863654210af4ab647326ec502fe672c4c408dc9797db07c7c23",
+      "blockNumber": 74691430
+    }
   }
 }

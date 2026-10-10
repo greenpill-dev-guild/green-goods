@@ -8,10 +8,10 @@
  * - Honest states: loading, empty, EAS error, partialData,
  *   sourceLimitReached.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -61,21 +61,42 @@ const mockSliceReady = {
 const mockUsePublicStats = vi.fn();
 const mockUsePublicImpactEvidence = vi.fn();
 const mockUsePublicGardens = vi.fn();
+const mockUsePublicCommitmentImpact = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicStats: () => mockUsePublicStats(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicImpactEvidence", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicGardens: () => mockUsePublicGardens(),
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
-  "public.impact.heroTitle": "See how Garden work becomes evidence.",
+  "public.impact.heroTitle": "See how Garden work becomes evidence",
   "public.impact.heroLede":
     "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
   "public.impact.totalAssessments": "Assessments",
@@ -86,7 +107,7 @@ const messages: Record<string, string> = {
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
-  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.viewSource": "View Source",
   "public.impact.evidence.noSource": "Source pending",
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.proof.notPublicYet": "Not public yet",
@@ -125,6 +146,10 @@ describe("ImpactPage", () => {
     mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
     mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    // § 02 commitments band has its own suite (`commitment-editorial.test.tsx`);
+    // here it is pinned to a still-loading read so its figures cannot collide
+    // with the proof-marker counts this suite asserts on.
+    mockUsePublicCommitmentImpact.mockReturnValue({ data: undefined, isLoading: true });
   });
 
   it("renders the editorial hero", () => {
@@ -137,11 +162,38 @@ describe("ImpactPage", () => {
   it("renders confirmed proof markers from usePublicStats", () => {
     renderView();
     expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gardens with approved work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Approved submissions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("30")).toBeInTheDocument();
+  });
+
+  it("renders a stats read that settled without data as unavailable, never as zero", () => {
+    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: false });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    // Three live markers dash out with a screen-reader label; the certificates
+    // marker is a confirmed "not public yet", not a failed read, and keeps its phrase.
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
+    expect(within(proof).getAllByText("Not public yet")).toHaveLength(1);
+    expect(within(proof).queryByText("0")).toBeNull();
+  });
+
+  it("dashes out only the count the stats read could not establish", () => {
+    mockUsePublicStats.mockReturnValue({
+      data: { ...mockStats, fieldNoteCount: null },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(1);
+    expect(within(proof).getByText("7")).toBeInTheDocument();
+    expect(within(proof).queryByText("30")).toBeNull();
   });
 
   it("renders evidence cards with their titles in an image-forward grid", () => {
@@ -153,10 +205,40 @@ describe("ImpactPage", () => {
     expect(screen.getByRole("button", { name: "Composting Pilot" })).toBeInTheDocument();
   });
 
+  it("titles a work record without the timestamps its stored title carries, and no other kind", () => {
+    const stamps = " - 2026-04-23T18:44:24.803Z - 2026-04-23T18:44:25.160Z";
+    const base = { gardenId: "0x1", gardenName: "Solar Garden", sourceAvailable: true };
+    const work = { ...base, id: "work:0x9", kind: "work" as const, createdAt: 1720000000 };
+    const certificate = { ...base, id: "certificate:0x7", kind: "certificate" as const };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        ...mockSliceReady,
+        records: [
+          { ...work, title: `Cleanup Event${stamps}`, easUid: "0x9" },
+          { ...certificate, title: `Harvest Record${stamps}`, createdAt: 1715000000 },
+          ...mockSliceReady.records,
+        ],
+      },
+      isLoading: false,
+    });
+    renderView();
+
+    const card = screen.getByRole("button", { name: "Cleanup Event" });
+    expect(within(card).getByRole("heading", { level: 3 })).toHaveTextContent(/^Cleanup Event$/);
+    // A certificate keeps the title it was minted with, whatever it ends in.
+    expect(screen.getByRole("button", { name: `Harvest Record${stamps}` })).toBeInTheDocument();
+
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog", { name: "Cleanup Event" })).toBeInTheDocument();
+  });
+
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("shows the empty evidence state when no records load", () => {

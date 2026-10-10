@@ -1,0 +1,7 @@
+interface:
+  display_name: "Resolve PR Comments"
+  short_description: "Validate, sweep, fix, and publish PR feedback"
+  default_prompt: "Use $resolve-pr-comments to validate, sweep, fix, commit, and push the unresolved review feedback on this pull request."
+
+policy:
+  allow_implicit_invocation: true

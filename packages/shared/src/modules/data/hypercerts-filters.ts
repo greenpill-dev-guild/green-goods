@@ -1,9 +1,11 @@
 import { Domain, type GardenAssessment } from "../../types/domain";
+import type { EASGardenAssessment } from "../../types/eas-responses";
 import {
   type ActionDomain,
   type AttestationFilters,
   type HypercertAttestation,
 } from "../../types/hypercerts";
+import { toUtcDay } from "../../utils/calendar-date";
 
 /**
  * Maps numeric Domain enum values to ActionDomain strings used in hypercert attestations.
@@ -77,21 +79,28 @@ export function applyAttestationFilters(
 }
 
 /**
- * Filters attestations based on a GardenAssessment's parameters.
- * Applies the assessment's reportingPeriod, domain, and selectedActionUIDs
- * as filters to narrow down which work attestations are relevant for hypercert minting.
+ * Narrows work attestations to the ones an assessment covers: created within
+ * its reporting period and, when the work names a domain, in its domain.
+ *
+ * A reporting period names whole days. Create Assessment stores each end as
+ * UTC midnight of the day the author picked, so the stored end is the first
+ * instant of the period's last day. Work belongs to the period from its first
+ * UTC day through the whole of its last.
  */
 export function filterAttestationsByAssessment(
   attestations: HypercertAttestation[],
-  assessment: GardenAssessment
+  assessment: GardenAssessment | EASGardenAssessment
 ): HypercertAttestation[] {
   const actionDomain = domainToActionDomain(assessment.domain);
-  const { start, end } = assessment.reportingPeriod;
+  const { start, end } =
+    "reportingPeriod" in assessment
+      ? assessment.reportingPeriod
+      : { start: assessment.startDate, end: assessment.endDate };
 
   return attestations.filter((attestation) => {
-    // Filter by reporting period (work must fall within the assessment window)
-    if (start && attestation.createdAt < start) return false;
-    if (end && attestation.createdAt > end) return false;
+    const createdOn = toUtcDay(attestation.createdAt);
+    if (start && createdOn < toUtcDay(start)) return false;
+    if (end && createdOn > toUtcDay(end)) return false;
 
     // Filter by domain
     if (actionDomain && attestation.domain && attestation.domain !== actionDomain) {

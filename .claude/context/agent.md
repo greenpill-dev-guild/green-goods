@@ -1,6 +1,6 @@
 # Agent Package Context
 
-Loaded when working in `packages/agent/`. Extends CLAUDE.md.
+Loaded when working in `packages/agent/`. Extends `packages/agent/AGENTS.md`.
 
 ## Quick Reference
 
@@ -9,9 +9,9 @@ Loaded when working in `packages/agent/`. Extends CLAUDE.md.
 | `bun dev` | Start in polling mode (local) |
 | `bun start` | Start in webhook mode (production) |
 | `bun run test` | Run tests (Vitest) |
-| `bun run test:watch` | Watch mode |
-| `bun run test:coverage` | Tests with coverage |
-| `bun run test:ui` | Interactive test UI |
+| `bun run --cwd packages/agent test --scope unit --watch` | Watch mode |
+| `bun run --cwd packages/agent test --scope unit --coverage` | Tests with coverage |
+| `bun run --cwd packages/agent test --scope unit --ui` | Interactive test UI |
 
 ## Contents
 - [Architecture](#architecture)
@@ -307,7 +307,7 @@ The test setup (`src/__tests__/setup.ts`) provides:
 
 Read these docs pages when you need domain context for bot responses or user guidance:
 
-- Domain glossary (35+ terms): `docs/docs/glossary.md`
-- Impact model and CIDS framework: `docs/docs/concepts/impact-model.mdx`
-- Gardener getting started: `docs/docs/gardener/getting-started.mdx`
-- Communities and localization: `docs/docs/concepts/communities.mdx`
+- Domain terminology: `packages/shared/src/ontology/green-goods-ontology.json`; public projection: `docs/docs/reference/glossary.generated.mdx`
+- Impact model and evidence loop: `docs/docs/community/how-it-works.mdx`
+- Gardener getting started: `docs/docs/community/gardener-guide/index.mdx`
+- Communities and localization context: `docs/docs/community/welcome.mdx`

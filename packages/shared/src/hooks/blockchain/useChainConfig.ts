@@ -8,7 +8,8 @@
  * @module hooks/blockchain/useChainConfig
  */
 
-import { DEFAULT_CHAIN_ID, getEASConfig, getNetworkConfig } from "../../config/blockchain";
+import { getEASConfig, getNetworkConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 
 // ============================================================================
 // Pure Functions (preferred for non-React contexts)

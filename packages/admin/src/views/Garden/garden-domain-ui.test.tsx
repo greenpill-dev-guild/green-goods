@@ -1,34 +1,42 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import enMessages from "@green-goods/shared/i18n/en";
+import { createTestQueryClient } from "@green-goods/shared/testing/query-client";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from "react-router-dom";
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
-import { useGardenWorkspaceController } from "@green-goods/shared";
+import type { GardenSettingsFormState } from "@/components/Garden/GardenSettingsEditor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
 
-const { mockCanManageGarden, settingsEditorProbe } = vi.hoisted(() => ({
+const { mockCanManageGarden, mockReviewQueue, settingsEditorProbe } = vi.hoisted(() => ({
   mockCanManageGarden: vi.fn(() => true),
+  mockReviewQueue: { medianReviewLatencyMs: null, pendingCount: 0 },
   // Captures the dirty-state reporter the workspace passes to the (mocked)
   // settings editor, so tests can drive the dialog's close guard directly.
   settingsEditorProbe: {
     reportDirtyState: undefined as
       | undefined
-      | ((state: { isDirty: boolean; isSaving: boolean }) => void),
+      | ((
+          state: Partial<GardenSettingsFormState> & { isDirty: boolean; isSaving: boolean }
+        ) => void),
   },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const Router = await import("react-router-dom");
+vi.mock("@green-goods/shared/components/Canvas/useViewActions", () => ({
+  useViewActions: ({ actions }: { actions: Array<{ visible?: boolean }> }) => ({
+    desktopActions: actions.filter((action) => action.visible !== false),
+  }),
+}));
 
+vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController", async () => {
+  const Router = await import("react-router-dom");
   return {
-    ...actual,
     useGardenWorkspaceController: () => {
       // Route-faithful stub: the real controller derives the view from the
       // pathname and closes the settings dialog by navigating — the dirty-close
@@ -53,7 +61,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           approvedInRangeCount: 0,
           approvedInLastThirtyDays: 0,
           impactVelocityDelta: 0,
-          medianReviewAgeHours: 0,
+          reviewQueue: mockReviewQueue,
           pendingWorks: [],
           filteredActivityEvents: [],
         },
@@ -74,7 +82,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           openJoining: true,
           maxGardeners: 42,
           gardeners: [],
-          operators: [],
+          stewards: [],
           evaluators: [],
           funders: [],
           owners: [gardenAddress],
@@ -88,6 +96,26 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         hypercertId: undefined,
         hypercerts: [],
         hypercertSheetCloseTo: "/garden",
+        karmaIntegration: {
+          status: {
+            status: "synced",
+            chainId: 42161,
+            gardenAddress,
+            projectUID: null,
+            profileUrl: "https://www.karmahq.org/project/no-domain-garden",
+            syncVersion: 1,
+            requiredSyncVersion: 1,
+            reason: null,
+          },
+          profileUrl: "https://www.karmahq.org/project/no-domain-garden",
+          canReconcile: true,
+          isLoading: false,
+          isFetching: false,
+          isReconciling: false,
+          isPending: false,
+          error: null,
+          reconcile: vi.fn(),
+        },
         isOwner: true,
         openSection: vi.fn(),
         range: "30d",
@@ -109,129 +137,157 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
             : "health",
       };
     },
-    useCanvasSearchParams: () => ({
-      searchParams: new URLSearchParams(),
-      updateSearch: vi.fn(),
-    }),
-    useGardenStateStore: (selector: (state: unknown) => unknown) =>
-      selector({
-        getGardenWorkspaceState: () => ({
-          activeMode: "settings",
-          filter: "all",
-          scrollPosition: 0,
-        }),
-        setGardenWorkspaceState: vi.fn(),
-      }),
-    useSheetWidth: () => ({ containerRef: { current: null } }),
-    useMediaQuery: () => true,
-    useViewActions: ({ actions }: { actions: Array<{ visible?: boolean }> }) => ({
-      desktopActions: actions.filter((action) => action.visible !== false),
-    }),
-    useAdminGardenWorkspaceSelection: () => ({
-      selectedGarden: {
-        id: gardenAddress,
-        tokenAddress: gardenAddress,
-        name: "No Domain Garden",
-      },
-      gardenOptions: [],
-      handleSelectGarden: vi.fn(),
-    }),
-    useGardenDetailData: () => ({
-      garden: {
-        id: gardenAddress,
-        tokenAddress: gardenAddress,
-        tokenID: "1",
-        chainId: 11155111,
-        name: "No Domain Garden",
-        description: "A garden without domains",
-        location: "Earth",
-        bannerImage: "",
-        domainMask: 0,
-        openJoining: true,
-        maxGardeners: 42,
-        gardeners: [],
-        operators: [],
-        evaluators: [],
-        funders: [],
-        owners: [gardenAddress],
-      },
-      fetching: false,
-      error: null,
-      canManage: mockCanManageGarden(),
-      canReview: false,
-      isOwner: true,
-      assessments: [],
-      fetchingAssessments: false,
-      assessmentsError: null,
-      community: null,
-      gardenVaults: [],
-      vaultNetDeposited: 0n,
-      allocations: [],
-      works: [],
-      hypercerts: [],
-      roleMembers: {},
-    }),
-    useGardenDerivedState: () => ({
-      overviewAlerts: [],
-      domainLabels: [],
-      impactBadge: { severity: "none" },
-      gardenHealthLabel: "Healthy",
-      approvedInRangeCount: 0,
-      approvedInLastThirtyDays: 0,
-      impactVelocityDelta: 0,
-      medianReviewAgeHours: 0,
-      pendingWorks: [],
-      filteredActivityEvents: [],
-    }),
-    useGardens: () => ({
-      data: [
-        {
-          id: gardenAddress,
-          name: "No Domain Garden",
-          domainMask: 0,
-        },
-      ],
-    }),
-    useActions: () => ({ data: [] }),
-    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
-    useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
-    useBeforeUnloadWhilePending: () => undefined,
-    useGardenDomains: () => ({ data: 0n, isLoading: false }),
-    useSetGardenDomains: () => ({
-      mutate: vi.fn(),
-      isPending: false,
-    }),
-    useWorkMutation: () => ({
-      error: null,
-      isPending: false,
-      mutate: vi.fn(),
-    }),
   };
 });
 
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      {
+        id: gardenAddress,
+        name: "No Domain Garden",
+        domainMask: 0,
+      },
+    ],
+  }),
+  useActions: () => ({ data: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: {
+      id: gardenAddress,
+      tokenAddress: gardenAddress,
+      name: "No Domain Garden",
+    },
+    gardenOptions: [],
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
+  useGardenDerivedState: () => ({
+    overviewAlerts: [],
+    domainLabels: [],
+    impactBadge: { severity: "none" },
+    gardenHealthLabel: "Healthy",
+    approvedInRangeCount: 0,
+    approvedInLastThirtyDays: 0,
+    impactVelocityDelta: 0,
+    reviewQueue: mockReviewQueue,
+    pendingWorks: [],
+    filteredActivityEvents: [],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
+  useGardenDetailData: () => ({
+    garden: {
+      id: gardenAddress,
+      tokenAddress: gardenAddress,
+      tokenID: "1",
+      chainId: 11155111,
+      name: "No Domain Garden",
+      description: "A garden without domains",
+      location: "Earth",
+      bannerImage: "",
+      domainMask: 0,
+      openJoining: true,
+      maxGardeners: 42,
+      gardeners: [],
+      stewards: [],
+      evaluators: [],
+      funders: [],
+      owners: [gardenAddress],
+    },
+    fetching: false,
+    error: null,
+    canManage: mockCanManageGarden(),
+    canReview: false,
+    isOwner: true,
+    assessments: [],
+    fetchingAssessments: false,
+    assessmentsError: null,
+    community: null,
+    gardenVaults: [],
+    endowmentByAsset: [],
+    hasEndowment: false,
+    allocations: [],
+    works: [],
+    hypercerts: [],
+    roleMembers: {},
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDomains", () => ({
+  useGardenDomains: () => ({ data: 0n, isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useSetGardenDomains", () => ({
+  useSetGardenDomains: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useCanvasSearchParams", () => ({
+  useCanvasSearchParams: () => ({
+    searchParams: new URLSearchParams(),
+    updateSearch: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
+
+vi.mock("@green-goods/shared/hooks/useSheetWidth", () => ({
+  useSheetWidth: () => ({ containerRef: { current: null } }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useBeforeUnloadWhilePending", () => ({
+  useBeforeUnloadWhilePending: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorkMutation", () => ({
+  useWorkMutation: () => ({
+    error: null,
+    isPending: false,
+    mutate: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/providers/Auth", () => ({
+  useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
+}));
+
+vi.mock("@green-goods/shared/stores/useGardenStateStore", () => ({
+  useGardenStateStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      getGardenWorkspaceState: () => ({
+        activeMode: "settings",
+        filter: "all",
+        scrollPosition: 0,
+      }),
+      setGardenWorkspaceState: vi.fn(),
+    }),
+}));
+
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
   GardenSettingsEditor: (props: {
-    onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;
+    onDirtyStateChange?: typeof settingsEditorProbe.reportDirtyState;
   }) => {
     settingsEditorProbe.reportDirtyState = props.onDirtyStateChange;
     return <div data-testid="garden-settings-editor" />;
   },
 }));
 
-// The settings dialog also hosts the cookie-jar manage modal, whose
-// useGardenCookieJars hook reads wagmi context this harness doesn't provide —
-// out of scope for the domain-editor flow under test.
-vi.mock("@/views/Hub/components/CookieJarManageModal", () => ({
-  CookieJarManageModal: () => null,
-}));
-
 function TestProviders({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+  const queryClient = createTestQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -246,6 +302,7 @@ describe("garden domain recovery UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCanManageGarden.mockReturnValue(true);
+    mockReviewQueue.pendingCount = 0;
   });
 
   function GardenWorkspaceHarness() {
@@ -272,12 +329,30 @@ describe("garden domain recovery UI", () => {
     return router;
   }
 
+  it("counts Pending Work across the whole garden, not only its newest page", () => {
+    // The page holds no pending rows; the garden's whole queue has six waiting.
+    mockReviewQueue.pendingCount = 6;
+    const router = createMemoryRouter(
+      [{ path: "/garden/health", element: <GardenWorkspaceHarness /> }],
+      { initialEntries: ["/garden/health"] }
+    );
+    render(
+      <TestProviders>
+        <RouterProvider router={router} />
+      </TestProviders>
+    );
+
+    const pendingWork = screen.getByText("Pending Work").closest(".garden-stat-row");
+    expect(pendingWork).not.toBeNull();
+    expect(within(pendingWork as HTMLElement).getByText("6")).toBeInTheDocument();
+  });
+
   it("closes pristine garden settings straight to health with no discard prompt", async () => {
     const user = userEvent.setup();
 
     renderWorkspaceAtSettings();
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
 
     await user.keyboard("{Escape}");
 
@@ -295,9 +370,9 @@ describe("garden domain recovery UI", () => {
 
     expect(await screen.findByText("Discard Changes?")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    await user.click(screen.getByRole("button", { name: "Keep Editing" }));
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
     expect(screen.queryByText("Health route")).not.toBeInTheDocument();
   });
 
@@ -321,8 +396,83 @@ describe("garden domain recovery UI", () => {
 
     await user.keyboard("{Escape}");
 
-    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit Garden" })).toBeVisible();
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+  });
+
+  it("says how many wallet confirmations a save takes, then shows each write and where it stopped", () => {
+    renderWorkspaceAtSettings();
+    // Named for the action that opens it, with no description under the title (D8).
+    expect(
+      screen.queryByText("Update settings, metadata, and on-chain identifiers")
+    ).not.toBeInTheDocument();
+
+    const editing = { isSaving: false, hasValidationError: false, canEdit: true };
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        ...editing,
+        isDirty: true,
+        dirtyCount: 3,
+        run: null,
+      })
+    );
+    expect(screen.getByText("3 changes · 3 wallet confirmations")).toBeVisible();
+
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        ...editing,
+        isDirty: true,
+        dirtyCount: 2,
+        run: {
+          status: "stopped",
+          fields: ["name", "description", "location"],
+          progress: {
+            name: { state: "saved", hash: "0xabc" },
+            description: { state: "failed", hash: null },
+            location: { state: "queued", hash: null },
+          },
+        },
+      })
+    );
+
+    expect(
+      screen.getByText("Stopped at Description. 1 of 3 saved. Your other edits are still here.")
+    ).toBeVisible();
+    const rows = within(screen.getByTestId("garden-settings-save")).getAllByRole("listitem");
+    expect(rows.map((row) => row.getAttribute("data-status"))).toEqual([
+      "saved",
+      "failed",
+      "queued",
+    ]);
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Keep Editing" })).toBeEnabled();
+    // The form waits under the progress, holding the edits Try Again sends.
+    expect(screen.getByTestId("garden-settings-editor").parentElement).toHaveClass("hidden");
+  });
+
+  it("ends a finished save on All changes saved, and Done closes the dialog", async () => {
+    const user = userEvent.setup();
+
+    renderWorkspaceAtSettings();
+    act(() =>
+      settingsEditorProbe.reportDirtyState?.({
+        isDirty: false,
+        isSaving: false,
+        hasValidationError: false,
+        canEdit: true,
+        dirtyCount: 0,
+        run: {
+          status: "complete",
+          fields: ["name"],
+          progress: { name: { state: "saved", hash: "0xabc" } },
+        },
+      })
+    );
+
+    expect(screen.getByText("All changes saved")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(await screen.findByText("Health route")).toBeVisible();
   });
 
   it("routes Submit Work's empty domain state back to garden settings", async () => {
@@ -353,7 +503,7 @@ describe("garden domain recovery UI", () => {
 
     expect(screen.getByText("No actions available for this garden's domains")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Configure domains" }));
+    await user.click(screen.getByRole("button", { name: "Configure Domains" }));
 
     expect(screen.getByText("Garden settings route")).toBeVisible();
   });

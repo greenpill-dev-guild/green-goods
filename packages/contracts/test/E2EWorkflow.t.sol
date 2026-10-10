@@ -59,14 +59,14 @@ contract E2EWorkflowForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }
 
     /// @notice Grant operator/gardener/evaluator roles using real HatsModule
     function _grantRoles(address garden) internal {
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
     }
@@ -126,7 +126,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
         );
 
         // Grant operator role via real HatsModule
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
 
         // Operator can update
         vm.prank(forkOperator);

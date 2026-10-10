@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 // The hero only needs `cn` from the shared barrel; mocking the barrel keeps
 // this suite off the wallet dependency graph (same pattern as fund.test.tsx).
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 

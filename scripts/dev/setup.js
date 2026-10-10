@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createBaselineEnv } from "../lib/setup-env.mjs";
 
 /**
  * Green Goods Setup Script
@@ -10,7 +11,28 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execSync } from "child_process";
-import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+import { fileURLToPath } from "url";
+import {
+  foundryVersionMatches,
+  readPinnedFoundryVersion,
+} from "../contracts/check-foundry-version.mjs";
+import {
+  SUBMODULE_RECOVERY_COMMAND,
+  commandExists,
+  dependencyReadiness,
+  commandVersion,
+  inspectPinnedNode,
+  inspectPinnedSubmodules,
+  majorVersion,
+  readEnginesNodeFloor,
+  readPinnedNodeVersion,
+  resolveSubmoduleSetupAction,
+} from "../lib/dev-shared.js";
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
+const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
 const validProfiles = new Set(["host", "isolated", "cloud"]);
 const validInstallModes = new Set(["auto", "always", "skip"]);
@@ -50,6 +72,7 @@ function parseArgs(argv) {
 
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
+    if (arg === "--") continue;
 
     if (arg === "--help" || arg === "-h") {
       usage();
@@ -184,11 +207,13 @@ function installBun() {
 }
 
 function installFoundry() {
-  log.info("Installing Foundry...\n");
+  log.info(`Installing Foundry ${requiredFoundryVersion}...\n`);
 
   if (process.platform === "win32") {
     log.error("Automatic Foundry install is not supported on Windows");
-    console.log(`${c.dim}Install via WSL: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    console.log(
+      `${c.dim}Install via WSL: foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}${c.reset}\n`
+    );
     return false;
   }
 
@@ -201,8 +226,9 @@ function installFoundry() {
     return false;
   }
 
-  const asset = `foundry_stable_${platform}_${assetArch}.tar.gz`;
-  const url = `https://github.com/foundry-rs/foundry/releases/download/stable/${asset}`;
+  const releaseTag = `v${requiredFoundryVersion}`;
+  const asset = `foundry_${releaseTag}_${platform}_${assetArch}.tar.gz`;
+  const url = `https://github.com/foundry-rs/foundry/releases/download/${releaseTag}/${asset}`;
   const home = os.homedir();
   const binDir = path.join(home, ".foundry", "bin");
   const tmpFile = path.join(os.tmpdir(), `foundry-${Date.now()}.tar.gz`);
@@ -271,14 +297,57 @@ function installFoundry() {
       }
     }
 
-    log.success("Foundry installed successfully\n");
+    const installedVersion = commandVersion("forge");
+    if (!foundryVersionMatches(installedVersion, requiredFoundryVersion)) {
+      log.error(`Foundry ${requiredFoundryVersion} install verification failed; detected ${installedVersion || "unknown"}`);
+      return false;
+    }
+
+    log.success(`Foundry ${requiredFoundryVersion} installed successfully\n`);
     return true;
   } catch (err) {
     log.error("Failed to install Foundry automatically");
-    console.log(`${c.dim}Install manually: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    console.log(
+      `${c.dim}Install manually: foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}${c.reset}\n`
+    );
     fs.rmSync(tmpFile, { force: true });
     return false;
   }
+}
+
+function checkFoundryVersion() {
+  if (!commandExists("forge")) {
+    log.error("Foundry not found");
+    return false;
+  }
+
+  const version = commandVersion("forge");
+  if (!foundryVersionMatches(version, requiredFoundryVersion)) {
+    log.error(`Foundry ${requiredFoundryVersion} required; detected ${version || "unknown"}`);
+    return false;
+  }
+
+  log.success(version);
+  return true;
+}
+
+/**
+ * Setup is the first command a new contributor runs, so a Node whose major
+ * differs from the pin stops it here rather than surfacing later as a CI
+ * failure or as every validation check reporting `blocked:toolchain.node`.
+ * An undetectable version only warns: it is not evidence of a wrong Node.
+ */
+function checkNodeVersion() {
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
+  if (node.runtimeNote) log.info(node.runtimeNote);
+  if (node.state === "matched") {
+    log.success(`Node.js ${node.detail}`);
+    return true;
+  }
+  const report = node.state === "mismatched" ? log.error : log.warning;
+  report(`Node.js ${node.detail}`);
+  console.log(`${c.dim}Fix: ${node.fix}${c.reset}`);
+  return node.state !== "mismatched";
 }
 
 function checkVersion(cmd, minVersion, name) {
@@ -306,17 +375,6 @@ function checkDocker() {
     log.error("Docker not running or not installed");
     return false;
   }
-}
-
-function dependencyReadiness() {
-  const requiredPaths = [
-    "node_modules/.bun",
-    "node_modules/.bin/turbo",
-    "node_modules/.bin/oxlint",
-    "node_modules/multiformats/basics.js",
-  ];
-  const missing = requiredPaths.filter((entry) => !fs.existsSync(entry));
-  return { ready: missing.length === 0, missing };
 }
 
 function shouldRunInstall() {
@@ -347,6 +405,46 @@ function installEnvironment() {
   };
 }
 
+function ensurePinnedSubmodules() {
+  const status = inspectPinnedSubmodules({ cwd: projectRoot });
+  const action = resolveSubmoduleSetupAction({
+    state: status.state,
+    installMode: options.installMode,
+  });
+
+  if (action === "none") {
+    log.success("Pinned contract submodules are ready");
+    return;
+  }
+  if (action === "initialize") {
+    log.info(`Initializing pinned contract submodules (${SUBMODULE_RECOVERY_COMMAND})...`);
+    try {
+      execSync(SUBMODULE_RECOVERY_COMMAND, { cwd: projectRoot, stdio: "inherit" });
+    } catch {
+      log.error("Failed to initialize pinned contract submodules");
+      log.info(`Retry: ${SUBMODULE_RECOVERY_COMMAND}\n`);
+      process.exit(1);
+    }
+    const initialized = inspectPinnedSubmodules({ cwd: projectRoot });
+    if (!initialized.ready) {
+      log.error(`Contract submodules remain ${initialized.state} after initialization`);
+      process.exit(1);
+    }
+    log.success("Pinned contract submodules initialized");
+    return;
+  }
+
+  if (status.state === "uninitialized") {
+    log.error("Pinned contract submodules are not initialized and install mode is skip");
+    log.info(`Recovery: ${SUBMODULE_RECOVERY_COMMAND}\n`);
+  } else {
+    log.error(`Pinned contract submodules require human inspection (${status.state})`);
+    if (status.detail) log.warning(status.detail);
+    log.warning("Setup will not reset mismatched, conflicted, or locally modified submodules.\n");
+  }
+  process.exit(1);
+}
+
 function writeBaselineEnv() {
   const envPath = ".env";
   if (fs.existsSync(envPath)) {
@@ -362,18 +460,7 @@ function writeBaselineEnv() {
   const shouldCreate = options.envMode === "baseline" || (isIsolated && options.envMode === "auto");
   if (!shouldCreate) return;
 
-  const lines = [
-    "# Non-secret Green Goods baseline generated by setup profile.",
-    "# Replace or extend this file locally when a workflow needs credentials.",
-    `GG_WORKSPACE_PROFILE=${options.profile}`,
-    "APP_ENV=development",
-    "VITE_CHAIN_ID=11155111",
-    "VITE_API_BASE_URL=http://127.0.0.1:3005",
-    "VITE_ENVIO_INDEXER_URL=http://localhost:3006/v1/graphql",
-    "",
-  ];
-
-  fs.writeFileSync(envPath, lines.join("\n"), { mode: 0o600 });
+  createBaselineEnv(process.cwd(), options.profile);
   log.success("Created non-secret baseline .env for isolated workspace\n");
 }
 
@@ -386,16 +473,16 @@ function reportEnvState() {
   writeBaselineEnv();
   if (fs.existsSync(".env")) return;
 
-  if (fs.existsSync(".env.template")) {
-    log.info(".env.template found — run `bun run env:sync` to materialize .env via `op inject`\n");
-  } else if (fs.existsSync(".env.schema")) {
+  if (fs.existsSync("env.template")) {
+    log.info("env.template found — run `bun run env:sync` to materialize .env via `op inject`\n");
+  } else if (fs.existsSync("env.schema")) {
     log.info("No .env yet. Bootstrap:");
-    console.log(`  1. ${c.cyan}bun run env:template:init${c.reset}  -- generate .env.template from .env.schema`);
-    console.log(`  2. Edit .env.template, replacing op://YOUR_VAULT/... with real 1Password refs`);
+    console.log(`  1. ${c.cyan}node scripts/dev/env-template-init.js${c.reset}  -- generate env.template from env.schema`);
+    console.log(`  2. Edit env.template, replacing op://YOUR_VAULT/... with real 1Password refs`);
     console.log(`  3. ${c.cyan}bun run env:sync${c.reset}            -- materialize .env via \`op inject\``);
     console.log(`  Or for a portable baseline: ${c.cyan}npm run setup -- --profile isolated${c.reset}\n`);
   } else {
-    log.warning("No .env.schema found\n");
+    log.warning("No env.schema found\n");
   }
 }
 
@@ -403,22 +490,23 @@ console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}${c.dim} (${options.pro
 
 // Check dependencies
 log.info("Checking dependencies...\n");
-const hasNode = checkVersion("node", 22, "Node.js");
+const hasNode = checkNodeVersion();
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
 const hasDocker = isHost ? checkDocker() : false;
-const hasForge = isHost ? checkCommand("forge", "Foundry") : commandExists("forge");
-if (!isHost && hasForge) log.success(commandVersion("forge") || "Foundry available");
+const hasForge = checkFoundryVersion();
 
 console.log("");
 
 if (!hasNode || !hasGit) {
   log.error("Missing required dependencies. Install them and try again.\n");
   console.log(`${c.dim}Required:${c.reset}
-  • Node.js 22+: https://nodejs.org
+  • Node.js ${minimumNodeVersion} or later in the same major (.mise.toml pins ${requiredNodeVersion}): mise install, or https://nodejs.org
   • Git: https://git-scm.com\n`);
   process.exit(1);
 }
+
+ensurePinnedSubmodules();
 
 if (!hasBun) {
   if (isCloud) {
@@ -441,13 +529,13 @@ if (isHost && !hasDocker) {
 let foundryInstalled = hasForge;
 if (!hasForge) {
   if (isHost) {
-    log.warning("Foundry not found. Attempting to install...\n");
+    log.warning(`Foundry ${requiredFoundryVersion} is missing or mismatched. Attempting to install...\n`);
     foundryInstalled = installFoundry();
     if (!foundryInstalled) {
-      log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
+      log.warning("Continuing without Foundry — contract scripts and critical contract push validation will fail until installed.\n");
     }
   } else {
-    log.warning("Foundry not found. Contracts work will need an image/profile that provides it.\n");
+    log.warning(`Foundry ${requiredFoundryVersion} is required for contracts work in this profile.\n`);
   }
 }
 
@@ -471,27 +559,28 @@ reportEnvState();
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 if (isIsolated) {
   console.log(`${c.cyan}Next steps:${c.reset}
-  1. Check portable readiness: bun run dev:doctor -- --profile web
+  1. Check public browsing readiness: bun run dev:health -- prod
   2. Run focused package tests or builds for the task at hand
-  3. Start services only when this workspace owns them: bun run dev:web
+  3. Start local browsers with hosted APIs: bun run dev -- prod
   4. Clean local artifacts when done: bun run dev:clean
 
 ${c.dim}Isolated setup avoids host installs, secret resolution, Docker starts, browser launches, and service stops.${c.reset}
 `);
 } else if (!isCloud) {
   console.log(`${c.cyan}Next steps:${c.reset}
-  1. Materialize .env from 1Password: bun run env:sync
-     (First time? Run \`bun run env:template:init\` first to scaffold .env.template.)
+  1. If .env is absent, materialize it from 1Password: bun run env:sync
+     Keep an existing .env; inspect health before explicitly replacing credentials.
+     (First time? Run \`node scripts/dev/env-template-init.js\` first to scaffold env.template.)
   2. Check environment readiness: bun run dev:health
-     • PM2-only fallback check: bun run dev:doctor -- --profile web
-  3. Start the full local environment: bun run dev
-     • PM2-only fallback frontend services: bun run dev:web
-  4. Smoke frontend services: bun run dev:smoke:web
-  5. Run tests: bun run test
+     • PM2-only fallback check: bun run dev:health -- --profile web
+  3. Confirmed transactions affect live Arbitrum. Start local services: bun run dev
+     • PM2-only fallback frontend services: bun run dev -- web
+  4. Check the connected local services: bun run dev:smoke
+  5. Select focused checks: bun run check --plan -- --intent qa
 
 ${c.dim}Individual packages:${c.reset}
-  • bun run dev:client    - React PWA (port 3001)
-  • bun run dev:indexer   - Blockchain indexer GraphQL (port 3006)
-  • bun run dev:contracts - Local blockchain (Anvil)
+  • bun run dev -- client    - React PWA (port 3001)
+  • bun run dev -- indexer   - Blockchain indexer GraphQL (port 3006)
+  • bun run --cwd packages/contracts dev - Local blockchain (Anvil)
 `);
 }

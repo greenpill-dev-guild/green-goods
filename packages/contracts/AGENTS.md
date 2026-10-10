@@ -1,4 +1,4 @@
-# Green Goods Contracts — Architecture Guide
+# Contracts Package — Agent Guide
 
 The contracts package contains Solidity smart contracts for the Green Goods protocol, built with Foundry.
 
@@ -7,53 +7,57 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - `bun run build`
 - `bun run test`
 - `bun run lint`
-- `bun run test:audit:full`
+- `bun run test:audit full`
+
+## Validation
+
+- QA Speed Mode: run `bun run test --suite solidity --profile match -- test/<path>.t.sol`; add `bun run build --mode target -- src/<path>.sol` when the compiled contract surface moves.
+- Package loop: `bun run test`.
+- Conditional proof: storage, size, fork, script, release, and deployment checks come from the root selector and must all pass when selected.
+- Broader impact: run the root Repo Quick Gate when ABI or deployment artifacts change downstream consumers.
 
 ## Deployment Script Defaults
 
 - Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
   `forge` commands or ad hoc shell sequences.
-- Root `contracts:*:arbitrum` wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
-- Contract wrappers clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
+- The contracts CLI preserves operation-specific Arbitrum defaults, including `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
+- Applicable contract operations clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
   upgrades.
 - Arbitrum upgrade/broadcast scripts that need the proxy owner use sender
   `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 - Signal-pool/yield lane commands, in order:
-  - `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`
-  - `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`
-  - `bun run contracts:migrate:vaults:dry:arbitrum`
-  - `bun run contracts:migrate:vaults:arbitrum`
-  - `bun run contracts:verify:post-deploy:arbitrum`
+  - `bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode simulate`
+  - `bun run contracts -- upgrade signal-pool-yield-wiring --network arbitrum --mode broadcast`
+  - `bun run contracts -- migrate vaults --network arbitrum --mode simulate`
+  - `bun run contracts -- migrate vaults --network arbitrum --mode broadcast`
+  - `bun run contracts -- verify --network arbitrum`
 
 ## Architecture Overview
 
+Current high-change systems are `src/modules/CommitmentPooling.sol`,
+`src/modules/SettlementModule.sol`, `src/registries/Credit.sol`, and
+`src/registries/Deployment.sol`. Treat this map as routing, not a frozen file inventory.
+
 ```
 src/
-├── accounts/            # Token-bound accounts
-│   └── Garden.sol      # Garden account (TBA)
-├── modules/             # Integration modules (fan-out pattern)
-│   ├── Octant.sol      # Yield vault creation
-│   ├── Unlock.sol      # Work badges
-│   └── Hats.sol        # Role management
-├── registries/          # Protocol registries
-│   ├── Action.sol      # Action registry
-│   └── ENS.sol         # ENS subdomain registration (CCIP)
-├── resolvers/           # EAS schema resolvers
-│   ├── GreenGoods.sol  # Central fan-out resolver
-│   ├── Assessment.sol  # Assessment attestations
-│   ├── Work.sol        # Work submission attestations
-│   └── WorkApproval.sol # Work approval attestations
-├── tokens/              # Token contracts
-│   └── Garden.sol      # Garden NFT (ERC721)
-├── lib/                 # Shared libraries
-│   ├── EAS.sol
-│   ├── Karma.sol
-│   ├── StringUtils.sol
-│   └── TBA.sol
-├── interfaces/          # Contract interfaces
-├── mocks/               # Test mocks
-├── DeploymentRegistry.sol # Deployment tracking
-└── Schemas.sol          # EAS schema definitions
+├── accounts/                # Garden accounts, action routing, and Celo relay/coordinator
+├── modules/                 # Integrations plus pooling and settlement control planes
+│   ├── CommitmentPooling.sol
+│   ├── SettlementModule.sol
+│   └── CeloSettlementExecutor.sol
+├── registries/              # Action, commitment, credit, deployment, ENS, power, GreenWill
+│   ├── Commitment.sol
+│   ├── Credit.sol
+│   └── Deployment.sol
+├── resolvers/               # EAS assessment, testimony, work, approval, and yield resolvers
+├── lib/                     # Shared libraries, including pooling and settlement behavior
+├── libraries/               # Garden account and settlement codecs/execution helpers
+├── markets/                 # Marketplace adapters
+├── strategies/              # Yield strategies
+├── tokens/                  # Garden and Goods tokens
+├── interfaces/              # Contract interfaces
+├── mocks/                   # Test mocks
+└── Schemas.sol              # EAS schema definitions
 ```
 
 ## Design Principles for Solidity
@@ -78,7 +82,10 @@ src/
 
 ### Single Responsibility (SOLID)
 
-- Each resolver handles one schema type (WorkResolver, WorkApprovalResolver, AssessmentResolver)
+- Each resolver owns one coherent trust and authorization boundary. A resolver may serve multiple
+  exact EAS schema UIDs when their branches share that boundary, provided dispatch fails closed,
+  every UID is explicitly configured and distinct, and branch-specific revocation and role rules
+  remain independently tested.
 - Each module handles one integration (OctantModule, UnlockModule, HatsModule)
 - Registries separate from tokens
 
@@ -161,7 +168,7 @@ function mint(address to) { ... }  // Defaults to public!
 
 ```solidity
 // ✅ Multi-sig + Timelock for admin actions
-// - Gnosis Safe (3-of-5 signers minimum)
+// - Gnosis Safe (at least a 2-signature threshold)
 // - Timelock delay (48h for mainnet, 24h for testnet)
 // - Emergency pause with separate guardian
 
@@ -204,7 +211,7 @@ uint256 result = a.add(b);
 **Use random inputs to find edge cases:**
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0);
 
@@ -243,7 +250,6 @@ function invariant_totalSupplyMatchesBalance() public {
 
 ### Open/Closed (SOLID)
 
-- GreenGoodsResolver fan-out pattern: add modules without modifying core
 - Module enable/disable without redeployment
 - New resolvers can be added without changing existing ones
 
@@ -262,32 +268,6 @@ function invariant_totalSupplyMatchesBalance() public {
 ---
 
 ## Core Contracts
-
-### GreenGoodsResolver (Central Fan-Out)
-
-Central resolver for protocol integrations. Called by other resolvers after attestation validation.
-
-**Key features:**
-- UUPS upgradeable
-- Module enable/disable via owner
-- Try/catch isolation (one module failure doesn't block others)
-- Events for observability (success/failure per module)
-
-**Location:** `src/resolvers/GreenGoods.sol`
-
-**Architecture:**
-```solidity
-// Resolvers call this after validation
-function onWorkApproved(address garden, string name, bytes32 workUID, address worker) {
-    // Each module isolated with try/catch
-    if (isModuleEnabled(MODULE_OCTANT)) {
-        try octantModule.onWorkApproved(garden, name) { ... } catch { ... }
-    }
-    if (isModuleEnabled(MODULE_UNLOCK)) {
-        try unlockModule.onWorkApproved(garden, worker, workUID) { ... } catch { ... }
-    }
-}
-```
 
 ### Integration Modules
 
@@ -345,12 +325,12 @@ Registry for garden actions (planting, cleanup, etc.).
 Process attestations for the Ethereum Attestation Service:
 
 - **WorkResolver** — Validates work submissions
-- **WorkApprovalResolver** — Validates approvals, calls GreenGoodsResolver
+- **WorkApprovalResolver** — Validates approvals and optionally creates Karma GAP impacts
 - **AssessmentResolver** — Validates assessments
 
 **Location:** `src/resolvers/`
 
-### DeploymentRegistry
+### Deployment Registry
 
 Tracks contract deployments across networks.
 
@@ -359,27 +339,26 @@ Tracks contract deployments across networks.
 - Address registry
 - Ownership management
 
-**Location:** `src/DeploymentRegistry.sol`
+**Location:** `src/registries/Deployment.sol`
 
 ## Deployment
 
-### Using deploy.ts (Required)
+### Using the contracts CLI (Required)
 
-**Always use the TypeScript deployment CLI:**
+**Always use the package-owned contracts CLI:**
 
 ```bash
 # Dry run
-bun script/deploy.ts core --network sepolia
+bun run contracts -- deploy core --network sepolia --mode simulate
 
 # Deploy for real
-bun script/deploy.ts core --network sepolia --broadcast
+bun run contracts -- deploy core --network sepolia --mode broadcast
 
-# Update schemas only
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
+# Register an approved new schema through its standalone deploy path.
+# Bulk --update-schemas remains prohibited.
 
-# Or use npm scripts
-bun deploy:testnet     # Sepolia
-bun deploy:mainnet     # Production
+# Inspect other supported targets, networks, and modes
+bun run contracts -- help
 ```
 
 **Never use raw forge commands for deployment.**
@@ -424,9 +403,9 @@ deployments/
 ### Pre-Flight Checks
 
 ```bash
-bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
-bun build                                                 # Clean compilation, no errors
-bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
+bun run test                                              # all selected tests pass
+bun run build                                             # Clean compilation, no errors
+bun run contracts -- deploy core --network sepolia --mode simulate
 ```
 
 ### Phase-Aware Artifact Review
@@ -453,7 +432,7 @@ For new contract work, deployment artifacts move through phases:
 
 ### Pre-Broadcast Red Flags (Block Broadcast)
 
-- Test pass rate < 80% (testnet) or < 100% (mainnet)
+- Any required selected test fails
 - Compiler errors or warnings
 - Missing deploy command or unsafe dry-run for the target module
 - Bad required network config, manager defaults, or deployer wallet inputs
@@ -468,13 +447,36 @@ For new contract work, deployment artifacts move through phases:
 - Indexer config still points at a zero or stale address for newly deployed indexed contracts
 - Generated ABI/config artifacts were not refreshed after deployment metadata changed
 
-### Mainnet Additional Requirements (All Blocking)
+### Mainnet Requirements by Activation Risk
 
-- External security audit completed — no unresolved critical/high findings
-- Multisig ownership configured (Gnosis Safe, 3-of-5 minimum)
-- Timelock delay: 48h mainnet, 24h testnet
-- Minimum 2 weeks testnet operation before mainnet
-- Rollback procedures documented and tested
+Every mainnet boundary requires 100% passing required tests, explicit human release authorization,
+no unresolved critical/high finding under the recorded review disposition, persisted receipts and
+post-state verification, and documented/tested rollback. Beyond that common floor, apply the
+highest tier reached by the boundary:
+
+1. **Paused deployment only** — contracts remain paused, temporary authority is recorded, and no
+   peer, role, allowance, custody, transfer, or value-moving capability is enabled. Safe ownership,
+   timelock, and soak may remain later activation gates when the active release handoff records
+   them as blocked and the verifier proves the paused/no-authority endpoint.
+2. **Coordination-only activation** — the activated contract is non-custodial and its records are
+   non-transferable; every value-bearing dependency remains paused or disabled. A temporary owner
+   may remain only when the accountable release owner explicitly accepts that bounded risk in the
+   active handoff, the exact owner and rollback owner are verified, emergency pause remains
+   available, and the selected committed-range security review has no unresolved critical/high
+   finding. Any later custody, transferability, peer wiring, allowance, or value authority moves
+   the boundary to tier 3 before it is enabled.
+3. **Value-bearing or protocol-authority activation** — protocol UUPS/admin ownership must be on a
+   Gnosis Safe with a threshold of at least 2. Owner membership is operationally managed and does
+   not block the release; the verifier reads only the live threshold. External audit, timelock
+   (48h mainnet, 24h testnet), and minimum
+   two-week testnet operation are blocking defaults. A human release owner may replace or waive
+   one of those defaults only through an explicit, dated, release-scoped disposition that names
+   the substitute evidence; no agent, passing test, or deployment artifact grants that waiver.
+
+A per-garden Celo settlement Safe is always tier 3. It uses the Commitment Pooling pilot's exact
+2-of-3 recovery policy only when all three named owner roles, scoped Roles/Allowance selectors and
+caps, owner/executor separation, recovery configuration hash, and live post-deploy verification
+satisfy `settlement-spec.md`. It grants no protocol upgrade authority.
 
 ---
 
@@ -493,7 +495,7 @@ bun run test -- --match-test testGardenToken
 bun run test:fork
 
 # E2E workflow
-bun run test:e2e:workflow
+bun run test:e2e workflow
 ```
 
 ### Test Structure
@@ -507,7 +509,7 @@ test/
 │   └── ...
 ├── integration/             # Multi-contract flows
 │   ├── GardenAccessControl.t.sol
-│   ├── GreenGoodsResolver.t.sol
+│   ├── GreenWillWorkflow.t.sol
 │   └── HatsModule.t.sol
 ├── schema/                  # Schema validation
 │   └── KarmaGAPSchemaValidation.t.sol
@@ -522,24 +524,36 @@ test/
 ```solidity
 // Pattern: test[ContractName]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorizedMint() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
-// Categories: test_, testRevert_, testFuzz_, testIntegration_, testUpgrade_
+// Categories: test[Contract]_, testFuzz_[Contract]_, testIntegration_[Contract]_,
+//             testUpgrade_[Contract]_, testE2E_[Contract]_, invariant_[Contract]_
 ```
 
-### Coverage Targets
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category. This convention is diff-aware: existing legacy names are grandfathered, but
+every newly added or renamed test must use a canonical category. Rename a legacy test when its
+behavior is materially edited; do not churn unrelated tests solely for naming cleanup.
 
-- **Testnet:** 80% pass rate acceptable
-- **Mainnet:** 100% tests must pass
-- **Critical paths:** Storage gaps, access control, attestation validation
+### Evidence Expectations
+
+All selected tests must pass on testnet and mainnet paths. Coverage measures execution but never
+turns known failures into acceptable evidence. Storage gaps, access control, attestation validation,
+upgrade safety, and value-moving paths require their selector-chosen critical proof.
 
 ## Critical Rules
 
 ### 1. Schema Immutability
 
-**NEVER modify `config/schemas.json`** — This creates duplicate schemas on-chain.
+`config/schemas.json` is append-only for approved immutable production schema additions.
 
-For testing, create `schemas.test.json` instead.
+- Existing schema definitions and artifact keys are immutable: never edit, rename, reorder, or
+  remove them.
+- Every approved addition uses a unique artifact key and a standalone registration path; do not
+  use the bulk `--update-schemas` flow.
+- Before registration, require human review plus dry-run and fresh-chain proof. After broadcast,
+  verify the persisted artifact, schema UID, and dependent configuration.
+- Tests use `schemas.test.json`; never add test-only schemas to `config/schemas.json`.
 
 ### 2. Custom Errors
 
@@ -560,7 +574,7 @@ require(addr != address(0), "Zero address");
 
 ```solidity
 // Calculate: 50 total - used slots = gap
-uint256[46] private __gap;  // GreenGoodsResolver: 50 - 4 = 46
+uint256[48] private __gap;  // WorkApprovalResolver: 50 - 2 = 48
 ```
 
 ### 4. UUPS Upgrade Safety

@@ -1,6 +1,6 @@
 # Shared Package Context
 
-Loaded when working in `packages/shared/`. Extends CLAUDE.md.
+Loaded when working in `packages/shared/`. Extends `packages/shared/AGENTS.md`.
 
 ## Quick Reference
 
@@ -127,7 +127,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
 
 **Admin** (`packages/admin/src/main.tsx`):
 ```tsx
-<PersistQueryClientProvider>  {/* Persisted query cache (admin-specific) */}
+<QueryPersistenceProvider>  {/* Reading cache, one record per query (admin database) */}
   <ErrorBoundary>
     <AppKitProvider>          {/* Wallet connection */}
       <AuthProvider>          {/* Auth state — depends on wallet context */}
@@ -137,7 +137,7 @@ Providers must nest in dependency order (outermost first). Wrong order causes ru
       </AuthProvider>
     </AppKitProvider>
   </ErrorBoundary>
-</PersistQueryClientProvider>
+</QueryPersistenceProvider>
 ```
 
 **Dependency chain**: AppKitProvider (wallet) -> AuthProvider (auth) -> AppProvider (app)
@@ -227,6 +227,69 @@ intl.formatMessage({ id: "app.update.title", defaultMessage: "Refresh app" })
 - `src/i18n/es.json`
 - `src/i18n/pt.json`
 
+### Zustand Store Inventory
+
+All stores live in `packages/shared/src/stores/` (exported via `stores/index.ts`):
+
+| Store | Purpose |
+|-------|---------|
+| `useAdminStore` | Admin cockpit state + tx status (`TransactionInfo`/`TransactionStatus`) |
+| `useCreateGardenStore` | Multi-step garden-creation flow (`persist`) |
+| `useCreateAssessmentStore` | Multi-step assessment-creation flow (`persist` + `partialize`) |
+| `useHypercertWizardStore` | Hypercert minting wizard |
+| `useWorkFlowStore` | Work-submission flow + draft/object-URL state |
+| `useGardenStateStore` | Garden view state |
+| `useSheetOrchestratorStore` | Sheet/overlay orchestration |
+| `useUIStore` | Global UI state |
+
+**Multi-step wizard shape**: `useCreateGardenStore` + `useCreateAssessmentStore` use `persist` and share `currentStep` / `setField` / `nextStep` / `prevStep` / computed `isStepValid(stepId)` / `reset()`. Exceptions — `useHypercertWizardStore` persists in-progress minting to **sessionStorage** (custom, not `persist`; no `isStepValid`) and loads drafts from IndexedDB; `useWorkFlowStore` is non-persisted and its `reset()` revokes tracked object URLs.
+
+### Offline Job Queue + IndexedDB
+
+`jobQueue` singleton (`modules/job-queue/index.ts`, barrel-exported) — the write path for all offline ops; every method is scoped by `userAddress` (`addJob` throws without it):
+
+- `addJob(kind, payload, userAddress, meta?) → jobId` · `processJob(jobId, ctx)` · `flush(ctx)` (ctx carries `transactionSender`; `explicit: true` marks a person's own tap; `flush` also takes `userAddress` and optional `kinds`)
+- `getStats` · `getJobs(userAddress, filter?)` · `getPendingCount` · `hasPendingJobs` · `subscribe(listener) → unsub` · `cleanup()`
+- `JobKind` = `keyof JobKindMap` (`types/job-queue.ts`): `work`, `approval`, and the commitment kinds. Work and decisions are the upload kinds (`modules/work/upload-kinds.ts`); they wait for Upload all, and every send goes through `modules/work/send-with-checkpoint.ts`
+- Job states `pending → processing → synced` / `failed`; retry `MAX_RETRIES = 5`, backoff `min(1000 · 2^attempts, 60_000)` ms
+- React access: `useJobQueue()` (`providers/JobQueue.tsx`)
+
+**Two IndexedDB databases** (not one), both typed Dexie databases whose version history is the
+schema (`modules/job-queue/db-schema.ts`, `modules/job-queue/draft-connection.ts`). Dexie stores a
+declared version ×10, so these open the `idb`-era databases in place. `jobQueueDB.observeJobs` /
+`observeStats` and `useLiveQuery` expose live views (`usePendingWorksCount`, `useQueueStatistics`).
+
+| DB | Dexie version | Object stores |
+|----|---------------|---------------|
+| `green-goods-job-queue` | 8 | `jobs`, `job_images`, `cached_work`, `client_work_id_mappings`, `client_commitment_id_mappings`, `client_series_id_mappings`, `work_completions`, `execution_claims` |
+| `green-goods-drafts` | 4 | `drafts`, `draft_images`, `active_drafts`, `draft_migrations` (`draftDB`, `modules/job-queue/draft-db.ts`) |
+
+### Error Utilities
+
+Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
+
+- `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
+- `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)
+- `ValidationError` — throw for precondition/programming-error checks (`validation-error.ts`)
+- `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription?, formatMessage? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`. Pass a hook's `formatMessage` and a known error whose parser names its copy (`titleKey`, `messageKey`, `messageValues`) shows in the reader's language: a wallet on another network, an earlier version still queued, and offline (`unsent-failures.ts`). Every other known error still shows the parser's English.
+- `USER_FRIENDLY_ERRORS` lives in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
+
+### React Compiler
+
+`client` and `admin` enable `babel-plugin-react-compiler` in `vite.config.ts`, so components/hooks in those apps are auto-memoized. `packages/shared` is compiled by each consuming app — so `.claude/rules/react-patterns.md` Rules 9/10 (manual `useMemo`, memoized context-provider values) still apply to shared hooks and providers.
+
+### Contract ABIs
+
+ABIs are public exports of `@green-goods/shared` (source: `utils/blockchain/abis.ts`, e.g. `GardenAccountABI`, `GardenTokenABI`). Never import ABI JSON from `contracts/out/*.json`.
+
+### Feature Availability (undeployed contracts)
+
+Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a feature contract is undeployed (zero-address) on the active chain. Render a "not available on this network" branch instead of a generic empty state — masking deployment gaps as data gaps wastes debugging cycles.
+
+### Optimistic-UI Memos over localStorage
+
+When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+
 ## Anti-Patterns
 
 ### Never Mix State Concerns
@@ -272,7 +335,7 @@ export { useNewHook } from "./domain/useNewHook";
 
 | Mistake | Why It Fails | Solution |
 |---------|--------------|----------|
-| Deep imports from shared | Bypasses barrel exports | Import from `@green-goods/shared` root |
+| Deep/internal imports from shared | Bypasses the declared public surface | Import only from paths declared in `packages/shared/package.json#exports`; never `@green-goods/shared/src/**` |
 | Using wallet chainId | Wallet may be on wrong chain | Use `useCurrentChain()` |
 | Polling for updates | Wastes resources, stale data | Use event-driven updates |
 | Creating hooks in client | Violates hook boundary | Move to shared |
@@ -288,7 +351,7 @@ export { useNewHook } from "./domain/useNewHook";
 ```typescript
 // hooks/{domain}/useNewHook.ts
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 export function useNewHook(param: string) {
   return useQuery({
@@ -373,10 +436,16 @@ The a11y addon runs automatically:
 | `packages/shared/.storybook/storybook.css` | Tailwind + tokens |
 | `packages/shared/.storybook/theme.ts` | Green Goods branding |
 
+### Story Gates & Determinism
+
+- Coverage + quality gates run from this package: `bun run check:stories` (`scripts/quality/check-story-coverage.ts`) and `bun run check:story-quality` (`scripts/quality/check-story-quality.ts`). Run both when a story changes.
+- Use deterministic fixtures/decorators from `.storybook/` (`fixtures.ts`, `adminFixtures.ts`, `decorators.tsx`). Never `Date.now()`, zero-arg `new Date()`, `picsum.photos`, live IPFS, or placeholder CIDs — use `STORYBOOK_NOW_SECONDS`, `hoursAgo`/`daysAgo`, and `FIXTURE_*` data URLs.
+- Tag a story `visual-harness` only when a real component can't render deterministically (wallet/contract/live-service seams); `storybook-ci` only for stable high-value `play()` behavior. Story authoring/tagging conventions: `.claude/skills/design/implementation.md § Storybook`.
+
 ## Reference Files
 
 - Hook exports: `src/hooks/index.ts`
-- Query keys: `src/hooks/query-keys.ts`
+- Query keys: `src/config/query-keys/`
 - Package exports: `src/index.ts`
 - Providers: `src/providers/`
 - Stores: `src/stores/`
@@ -386,8 +455,7 @@ The a11y addon runs automatically:
 
 Read these docs pages when you need domain context beyond code patterns:
 
-- System architecture with Mermaid diagrams: `docs/docs/developers/architecture.mdx`
-- Domain glossary (35+ terms): `docs/docs/glossary.md`
-- Impact model and CIDS framework: `docs/docs/concepts/impact-model.mdx`
-- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
-- Gardener common errors (error-to-fix table): `docs/docs/gardener/common-errors.mdx`
+- System architecture with Mermaid diagrams: `docs/docs/builders/architecture.mdx`
+- Domain authority: `packages/shared/src/ontology/green-goods-ontology.json`; public projection: `docs/docs/reference/glossary.generated.mdx`
+- Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
+- Cross-protocol entity matrix (draft/vocab aid): `docs/docs/builders/integrations/entity-matrix.mdx`

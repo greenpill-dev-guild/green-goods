@@ -5,7 +5,7 @@
  * - Desktop renders only `Explore Gardens`.
  * - Mobile renders the install CTA first, then `Explore Gardens` second.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -28,15 +28,35 @@ const {
   mockUsePublicStats: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: mockUseApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: mockUseInstallGuidance,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: mockUsePublicInstallHandler,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", () => ({
   usePublicStats: mockUsePublicStats,
-  usePublicGardens: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),
 }));
 
@@ -54,6 +74,9 @@ vi.mock("@/components/Public/PublicFundingBridge", () => ({
 vi.mock("@/components/Public/PublicRecordLoop", () => ({
   PublicRecordLoop: () => createElement("div", { "data-testid": "stub-loop" }),
 }));
+vi.mock("@/components/Public/PublicWhoTendsAGarden", () => ({
+  PublicWhoTendsAGarden: () => createElement("div", { "data-testid": "stub-who" }),
+}));
 vi.mock("@/components/Public/PublicGetInTouch", () => ({
   PublicGetInTouch: () => createElement("div", { "data-testid": "stub-getintouch" }),
 }));
@@ -67,7 +90,7 @@ const messages: Record<string, string> = {
   "public.home.hero.title.line1": "From good intentions to ",
   "public.home.hero.title.line2": "green outcomes",
   "public.home.hero.title":
-    "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+    "<line>From <accent>good</accent></line> <line>intentions to</line> <line><accent>green</accent> outcomes</line>",
   "public.home.hero.lede":
     "Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together.",
   "public.home.hero.exploreGardens": "Explore Gardens",
@@ -150,8 +173,9 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
+    // Anchored: a string argument matches part of the text and would let a closing period back in.
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "From good intentions to green outcomes."
+      /^From good intentions to green outcomes$/
     );
     expect(screen.queryByText("Create your account")).not.toBeInTheDocument();
   });
@@ -180,6 +204,41 @@ describe("Public Home — hero CTAs", () => {
     }
   });
 
+  it("renders the eight canonical sections in order", () => {
+    mockUseApp.mockReturnValue({
+      isPwaPresentation: false,
+      isMobile: false,
+      isInstalled: false,
+      wasInstalled: false,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+
+    renderHome();
+
+    // Hero (asserted via H1 elsewhere) is section 1; the stubbed sections
+    // pin the remaining order. DESIGN.browser.md § Homepage is the canon —
+    // a section added or removed here must change that list too.
+    const orderedStubs = [
+      "stub-featured",
+      "stub-proof",
+      "stub-loop",
+      "stub-who",
+      "stub-funding",
+      "stub-getintouch",
+      "stub-footer",
+    ].map((id) => screen.getByTestId(id));
+
+    for (let i = 0; i < orderedStubs.length - 1; i++) {
+      expect(
+        orderedStubs[i].compareDocumentPosition(orderedStubs[i + 1]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        `${orderedStubs[i].dataset.testid} should precede ${orderedStubs[i + 1].dataset.testid}`
+      ).toBeTruthy();
+    }
+  });
+
   it("renders the record loop after proof and before the funding bridge", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
@@ -201,7 +260,7 @@ describe("Public Home — hero CTAs", () => {
     expect(loop.compareDocumentPosition(funding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("mobile: renders Install App first, then Explore Gardens second", () => {
+  it("mobile: leads with exploring Gardens, followed by support", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: true,
@@ -222,15 +281,12 @@ describe("Public Home — hero CTAs", () => {
     );
     const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
 
-    // Order matters: install first, explore second.
-    const installIndex = ctaLabels.indexOf("Install App");
-    const exploreIndex = ctaLabels.indexOf("Explore Gardens");
-    expect(installIndex, "Install App should be present in the hero").toBeGreaterThanOrEqual(0);
-    expect(exploreIndex, "Explore Gardens should be present in the hero").toBeGreaterThanOrEqual(0);
-    expect(installIndex).toBeLessThan(exploreIndex);
+    expect(ctaLabels).toEqual(["Explore Gardens", "Support a Garden"]);
+    expect(heroCtas[0]).toHaveAttribute("href", "/gardens");
+    expect(heroCtas[1]).toHaveAttribute("href", "/fund");
   });
 
-  it("mobile + already installed: shows Open App as the lead CTA", () => {
+  it("keeps public discovery first when the app is already installed", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: true,
@@ -261,7 +317,8 @@ describe("Public Home — hero CTAs", () => {
     );
     const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
 
-    expect(ctaLabels[0]).toBe("Open App");
+    expect(ctaLabels[0]).toBe("Explore Gardens");
+    expect(ctaLabels).toContain("Support a Garden");
     expect(ctaLabels).toContain("Explore Gardens");
   });
 });

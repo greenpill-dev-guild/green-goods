@@ -4,12 +4,13 @@ import { useIntl } from "react-intl";
 import type { Address } from "viem";
 import { toastService } from "../../components/toast";
 import type { CookieJarWithdrawParams } from "../../types/cookie-jar";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type TxErrorMode = "toast" | "inline" | "auto";

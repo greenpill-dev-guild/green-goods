@@ -5,7 +5,8 @@ import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 
 interface UseYieldAllocationsOptions {
   enabled?: boolean;
@@ -45,9 +46,14 @@ const YIELD_ALLOCATIONS_QUERY = `
   }
 `;
 
+/** How many allocations a list holds unless the caller asks for another limit. */
+const YIELD_ALLOCATIONS_DEFAULT_LIMIT = 20;
+
 /**
  * Query yield allocation history for a garden from the indexer.
- * Returns allocation records sorted by most recent first.
+ * Returns allocation records sorted by most recent first. `atLimit` says the
+ * list filled its limit, so the garden may have more: a count of it is a
+ * lower bound.
  */
 export function useYieldAllocations(
   gardenAddress?: Address,
@@ -55,11 +61,11 @@ export function useYieldAllocations(
 ) {
   const chainId = useCurrentChain();
   const enabled = options.enabled ?? true;
-  const limit = options.limit ?? 20;
+  const limit = options.limit ?? YIELD_ALLOCATIONS_DEFAULT_LIMIT;
   const normalizedGarden = gardenAddress ? normalizeAddress(gardenAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.yield.allocations(normalizedGarden ?? "", chainId, limit),
+    queryKey: yieldKeys.allocations(normalizedGarden ?? "", chainId, limit),
     queryFn: async (): Promise<YieldAllocation[]> => {
       if (!normalizedGarden) return [];
 
@@ -97,8 +103,10 @@ export function useYieldAllocations(
     placeholderData: [],
   });
 
+  const allocations = (query.data ?? []) as YieldAllocation[];
   return {
     ...query,
-    allocations: (query.data ?? []) as YieldAllocation[],
+    allocations,
+    atLimit: allocations.length >= limit,
   };
 }

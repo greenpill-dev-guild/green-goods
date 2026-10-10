@@ -1,4 +1,5 @@
-import { adminRoutes, type Garden } from "@green-goods/shared";
+import type { Garden } from "../../../types/domain";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

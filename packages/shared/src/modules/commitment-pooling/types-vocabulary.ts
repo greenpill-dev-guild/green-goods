@@ -1,0 +1,148 @@
+export enum CommitmentPoolType {
+  UNKNOWN = "UNKNOWN",
+  GARDEN = "GARDEN",
+  PROTOCOL = "PROTOCOL",
+}
+
+export enum CommitmentPoolState {
+  UNKNOWN = "UNKNOWN",
+  NOT_READY = "NOT_READY",
+  READY = "READY",
+  OPEN = "OPEN",
+  PAUSED = "PAUSED",
+  CLOSED = "CLOSED",
+  COMPOSTED = "COMPOSTED",
+}
+
+export enum CommitmentCycleType {
+  UNKNOWN = "UNKNOWN",
+  SEASON = "SEASON",
+  CAMPAIGN = "CAMPAIGN",
+}
+
+export enum CommitmentCycleState {
+  UNKNOWN = "UNKNOWN",
+  SEEDED = "SEEDED",
+  OPEN = "OPEN",
+  RECONCILED = "RECONCILED",
+  COMPOSTED = "COMPOSTED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum CommitmentDirection {
+  UNKNOWN = "UNKNOWN",
+  OFFER = "OFFER",
+  REQUEST = "REQUEST",
+}
+
+export enum CommitmentClaimType {
+  UNKNOWN = "UNKNOWN",
+  GARDEN = "GARDEN",
+  INDIVIDUAL = "INDIVIDUAL",
+}
+
+export enum CommitmentContributorPolicy {
+  UNKNOWN = "UNKNOWN",
+  OPEN = "OPEN",
+  LEAD_MANAGED = "LEAD_MANAGED",
+}
+
+export enum CommitmentClaimMode {
+  UNKNOWN = "UNKNOWN",
+  OPEN = "OPEN",
+  APPROVAL_GATED = "APPROVAL_GATED",
+}
+
+export enum FundingState {
+  UNKNOWN = "UNKNOWN",
+  PLEDGED = "PLEDGED",
+  DEPOSIT_RECORDED = "DEPOSIT_RECORDED",
+  CONSUMED = "CONSUMED",
+  CLOSED = "CLOSED",
+  REFUND_QUEUED = "REFUND_QUEUED",
+  REFUNDED = "REFUNDED",
+  WITHDRAWN = "WITHDRAWN",
+}
+
+export enum DisbursementKind {
+  UNKNOWN = "UNKNOWN",
+  CONTRIBUTOR_CONSIDERATION = "CONTRIBUTOR_CONSIDERATION",
+  FUNDING = "FUNDING",
+  LOAN_PRINCIPAL = "LOAN_PRINCIPAL",
+  GARDEN_BENEFICIARY = "GARDEN_BENEFICIARY",
+  REFUND = "REFUND",
+}
+
+export enum HypercertBundleKind {
+  WORK_LEGACY = "WORK_LEGACY",
+  COMMITMENT = "COMMITMENT",
+}
+
+export enum CommitmentSettlementFlow {
+  UNKNOWN = "UNKNOWN",
+  INTERNAL = "INTERNAL",
+  PROTOCOL_TO_GARDEN = "PROTOCOL_TO_GARDEN",
+  GARDEN_TO_PROTOCOL = "GARDEN_TO_PROTOCOL",
+  GARDEN_TO_GARDEN = "GARDEN_TO_GARDEN",
+}
+
+export enum CommitmentOnchainState {
+  UNKNOWN = "UNKNOWN",
+  OFFERED = "OFFERED",
+  REQUESTED = "REQUESTED",
+  ACCEPTED = "ACCEPTED",
+  READY_FOR_CONFIRMATION = "READY_FOR_CONFIRMATION",
+  FULFILLED = "FULFILLED",
+  CANCELLED = "CANCELLED",
+  EXPIRED = "EXPIRED",
+  DISPUTED = "DISPUTED",
+}
+
+export enum CommitmentKind {
+  UNKNOWN = "UNKNOWN",
+  DOMAIN_IMPACT = "DOMAIN_IMPACT",
+  SUPPORT_SERVICE = "SUPPORT_SERVICE",
+  SEASON_CAMPAIGN = "SEASON_CAMPAIGN",
+  STEWARD_CAPTURED = "STEWARD_CAPTURED",
+}
+
+export enum CommitmentClaimRequestState {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  DECLINED = "DECLINED",
+  SUPERSEDED = "SUPERSEDED",
+}
+
+export enum CommitmentUnitScope {
+  POOL = "POOL",
+  CYCLE = "CYCLE",
+}
+
+export enum CommitmentSeriesState {
+  UNKNOWN = "UNKNOWN",
+  ACTIVE = "ACTIVE",
+  RESTING = "RESTING",
+  RETIRED = "RETIRED",
+}
+
+export enum CommitmentConsiderationRail {
+  UNKNOWN = "UNKNOWN",
+  NONE = "NONE",
+  ARBITRUM_EXTERNAL = "ARBITRUM_EXTERNAL",
+  CELO_SETTLEMENT = "CELO_SETTLEMENT",
+}
+
+export enum CommitmentConfirmationPath {
+  UNKNOWN = "UNKNOWN",
+  ORDINARY = "ORDINARY",
+  POOL_FALLBACK = "POOL_FALLBACK",
+  PROTOCOL_FALLBACK = "PROTOCOL_FALLBACK",
+}
+
+export type CommitmentDerivedState =
+  | keyof typeof CommitmentOnchainState
+  | "DRAFT"
+  | "ACTIVE"
+  | "EVIDENCE_SUBMITTED"
+  | "PARTIALLY_APPROVED"
+  | "RECONCILED";

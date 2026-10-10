@@ -42,7 +42,7 @@ interface UseConvictionProposalsForPoolResult {
  * voting power + hypercert metadata into the percent-based ConvictionProposal[]
  * shape that ConvictionMeter / ProposalCardConviction consume.
  *
- * Audit finding #1 from the Tier-5 audit-then-ship pass.
+ * Audit finding #1 from the 2026-06 conviction audit.
  *
  * Indexer-lag handling for downstream mutations is already provided by
  * useAllocateHypercertSupport (uses useProgressiveInvalidation with
@@ -144,9 +144,7 @@ export function useConvictionProposalsForPool(
 /**
  * Conservative defaults — produces sensible numbers in solo gardens but
  * inflates conviction percent in multi-member ones (denominator =
- * pointsPerVoter * memberCount). See cleanup B1 in
- * .plans/active/admin-design-revamp/handoffs/claude-cleanup.md for the
- * concrete blocker analysis.
+ * pointsPerVoter * memberCount).
  *
  * Status of each field on the live HypercertSignalPool contract:
  * - decayRate     → readable via HYPERCERT_SIGNAL_POOL_ABI `decay()` view.

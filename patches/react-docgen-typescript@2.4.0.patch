@@ -1,0 +1,22 @@
+diff --git a/lib/parser.js b/lib/parser.js
+index 3e83fdc9f6cb975b025aa6875723f7cd5652376e..c57d21f7f739116d8dc572201cb81cb56aa253c4 100644
+--- a/lib/parser.js
++++ b/lib/parser.js
+@@ -24,9 +24,14 @@ var buildFilter_1 = require("./buildFilter");
+ var trimFileName_1 = require("./trimFileName");
+ exports.defaultParserOpts = {};
+ exports.defaultOptions = {
+-    jsx: ts.JsxEmit.React,
+-    module: ts.ModuleKind.CommonJS,
+-    target: ts.ScriptTarget.Latest,
++    // TypeScript 7 (native port) no longer exposes these compiler enums on the JS
++    // API, so `ts.JsxEmit`/`ts.ModuleKind`/`ts.ScriptTarget` are undefined and reading
++    // `.React` etc. throws at import. Guard with the stable enum literals so the module
++    // loads under TS7. Storybook is configured with reactDocgen: "react-docgen", so this
++    // package's parser is not used at runtime — only its import must survive.
++    jsx: ts.JsxEmit ? ts.JsxEmit.React : 2,
++    module: ts.ModuleKind ? ts.ModuleKind.CommonJS : 1,
++    target: ts.ScriptTarget ? ts.ScriptTarget.Latest : 99,
+     esModuleInterop: true
+ };
+ /**

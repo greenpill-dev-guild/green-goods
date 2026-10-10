@@ -1,3 +1,4 @@
+// @shared-graph isolate: @hypercerts-org/sdk sets BigInt.prototype.toJSON when it loads.
 import { describe, it, expect } from "vitest";
 import {
   formatHypercertMetadata,
@@ -36,7 +37,7 @@ function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraf
   return {
     id: "draft-123",
     gardenId: "garden-1",
-    operatorAddress: "0x0000000000000000000000000000000000000001",
+    stewardAddress: "0x0000000000000000000000000000000000000001",
     stepNumber: 1,
     attestationIds: ["attestation-1"],
     title: "Test Hypercert",
@@ -56,6 +57,13 @@ function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraf
     updatedAt: Date.now(),
     ...overrides,
   };
+}
+
+/** The metadata of a draft the SDK accepts, which is every draft here but the refused one. */
+function format(input: Parameters<typeof formatHypercertMetadata>[0]) {
+  const metadata = formatHypercertMetadata(input);
+  if (!metadata) throw new Error("The Hypercerts SDK refused this draft");
+  return metadata;
 }
 
 function createAllowlistEntry(
@@ -79,7 +87,7 @@ describe("formatHypercertMetadata", () => {
       });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.name).toBe("My Hypercert Title");
       expect(result.description).toBe("My detailed description");
@@ -89,7 +97,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ title: "Test Hypercert" });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.image).toContain("data:image/svg+xml");
       // URL-encoded SVG should contain the title when decoded
@@ -102,7 +110,7 @@ describe("formatHypercertMetadata", () => {
       const attestations = [createMockAttestation()];
       const imageUri = "ipfs://QmTest123";
 
-      const result = formatHypercertMetadata({ draft, attestations, imageUri });
+      const result = format({ draft, attestations, imageUri });
 
       expect(result.image).toBe(imageUri);
     });
@@ -112,7 +120,7 @@ describe("formatHypercertMetadata", () => {
       const attestations = [createMockAttestation()];
       const gardenName = "My Beautiful Garden";
 
-      const result = formatHypercertMetadata({
+      const result = format({
         draft,
         attestations,
         gardenName,
@@ -127,7 +135,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ externalUrl: "https://example.com" });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.external_url).toBe("https://example.com");
     });
@@ -136,7 +144,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ externalUrl: "  https://example.com  " });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.external_url).toBe("https://example.com");
     });
@@ -145,7 +153,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ externalUrl: "   " });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.external_url).toBeUndefined();
     });
@@ -156,7 +164,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ workScopes: ["custom-scope", "another"] });
       const attestations = [createMockAttestation({ workScope: ["from-attestation"] })];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.work_scope.value).toContain("custom-scope");
       expect(result.hypercert.work_scope.value).toContain("another");
@@ -169,7 +177,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ workScope: ["planting", "gardening"] }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       // Should include unique scopes from attestations
       expect(result.hypercert.work_scope.value).toContain("gardening");
@@ -182,7 +190,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ impactScopes: ["environment", "community"] });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.impact_scope.value).toContain("environment");
       expect(result.hypercert.impact_scope.value).toContain("community");
@@ -192,7 +200,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ impactScopes: [] });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.impact_scope.value).toContain("all");
     });
@@ -208,7 +216,7 @@ describe("formatHypercertMetadata", () => {
       });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.work_timeframe.value[0]).toBe(1700000000);
       expect(result.hypercert.work_timeframe.value[1]).toBe(1704067200);
@@ -226,7 +234,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ createdAt: 1703980800, approvedAt: 1704240000 }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       // Should use earliest createdAt and latest approvedAt
       expect(result.hypercert.work_timeframe.value[0]).toBe(1703980800);
@@ -239,10 +247,40 @@ describe("formatHypercertMetadata", () => {
       });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       // Indefinite end should be 0
       expect(result.hypercert.impact_timeframe.value[1]).toBe(0);
+    });
+
+    // The label is permanent once minted, so it cannot depend on who mints. The
+    // SDK writes each end as its UTC day; 22:13 UTC is already the next day in
+    // any zone two hours or more east.
+    it("names each period by its UTC days, in the SDK's own form", () => {
+      const draft = createMockDraft({
+        workTimeframeStart: Date.UTC(2023, 10, 14, 22, 13, 20) / 1000,
+        workTimeframeEnd: Date.UTC(2024, 0, 1) / 1000,
+      });
+
+      const result = format({ draft, attestations: [createMockAttestation()] });
+
+      expect(result.hypercert.work_timeframe.display_value).toBe("2023-11-14 → 2024-01-01");
+      expect(result.hypercert.impact_timeframe.display_value).toBe("2023-11-14 → indefinite");
+    });
+
+    // The SDK refuses an end that is not a finite number. The wizard's own
+    // fields cannot hold one, and a record built by hand in its place would be
+    // labelled in the minter's own zone and language.
+    it("has no metadata for a draft the SDK refuses", () => {
+      const draft = createMockDraft({
+        workTimeframeStart: Date.UTC(2023, 10, 14) / 1000,
+        workTimeframeEnd: Date.UTC(2024, 0, 1) / 1000,
+        impactTimeframeEnd: Number.NaN,
+      });
+
+      expect(
+        formatHypercertMetadata({ draft, attestations: [createMockAttestation()] })
+      ).toBeNull();
     });
   });
 
@@ -255,7 +293,7 @@ describe("formatHypercertMetadata", () => {
         createAllowlistEntry("0x2222222222222222222222222222222222222222", 50_000_000n),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations, allowlist });
+      const result = format({ draft, attestations, allowlist });
 
       expect(result.hypercert.contributors.value).toContain(
         "0x1111111111111111111111111111111111111111"
@@ -272,7 +310,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ gardenerAddress: "0x2222222222222222222222222222222222222222" }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.contributors.value).toContain(
         "0x1111111111111111111111111111111111111111"
@@ -290,7 +328,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ gardenerAddress: "0x2222222222222222222222222222222222222222" }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       // Should only have 2 unique contributors
       expect(result.hypercert.contributors.value).toHaveLength(2);
@@ -302,7 +340,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft();
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hypercert.rights.value).toContain("Public Display");
     });
@@ -313,7 +351,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ gardenId: "my-garden-id" });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.gardenId).toBe("my-garden-id");
     });
@@ -325,7 +363,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ id: "0x5678", title: "Work 2", domain: "education" }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.attestationRefs).toHaveLength(2);
       expect(result.hidden_properties?.attestationRefs[0].uid).toBe("0x1234");
@@ -337,7 +375,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ sdgs: [1, 13, 15] });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.sdgs).toEqual([1, 13, 15]);
     });
@@ -346,7 +384,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft({ capitals: ["living", "social", "financial"] });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.capitals).toEqual(["living", "social", "financial"]);
     });
@@ -367,7 +405,7 @@ describe("formatHypercertMetadata", () => {
       });
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.outcomes.predefined.trees_planted).toBeDefined();
       expect(result.hidden_properties?.outcomes.predefined.trees_planted.value).toBe(100);
@@ -386,7 +424,7 @@ describe("formatHypercertMetadata", () => {
         }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       // Should aggregate metrics from attestations
       expect(result.hidden_properties?.outcomes.predefined.trees).toBeDefined();
@@ -400,7 +438,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ domain: "agroforestry" }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.domain).toBe("education");
     });
@@ -411,7 +449,7 @@ describe("formatHypercertMetadata", () => {
         createMockAttestation({ domain: undefined }),
       ];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.domain).toBe("mutual_credit");
     });
@@ -420,7 +458,7 @@ describe("formatHypercertMetadata", () => {
       const draft = createMockDraft();
       const attestations = [createMockAttestation()];
 
-      const result = formatHypercertMetadata({ draft, attestations });
+      const result = format({ draft, attestations });
 
       expect(result.hidden_properties?.protocolVersion).toBe(DEFAULT_PROTOCOL_VERSION);
     });

@@ -11,7 +11,7 @@ describe("client Vercel public social shell routing", () => {
     value: "no-cache, no-store, must-revalidate",
   };
 
-  it("serves generated editorial shells before the catch-all SPA rewrite", () => {
+  it("serves generated editorial shells and the ceremony proxy before the catch-all SPA rewrite", () => {
     const rewrites = vercelConfig.rewrites;
     const catchAllIndex = rewrites.findIndex(
       (rewrite) => rewrite.source === spaFallbackRewrite.source
@@ -25,7 +25,27 @@ describe("client Vercel public social shell routing", () => {
       { source: "/gardens", destination: "/gardens/index.html" },
       { source: "/gardens/:path*", destination: "/gardens/index.html" },
       { source: "/cookies", destination: "/cookies/index.html" },
+      {
+        source: "/api/messaging/:path*",
+        destination: "https://agent.greengoods.app/messaging/:path*",
+      },
     ]);
+  });
+
+  it("keeps reporting ceremony pages and their API private to the browser that opened them", () => {
+    const privateHeaders = [
+      { key: "Cache-Control", value: "no-store" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
+    expect(vercelConfig.headers).toContainEqual({
+      source: "/agent/reporting/:path*",
+      headers: privateHeaders,
+    });
+    expect(vercelConfig.headers).toContainEqual({
+      source: "/api/messaging/:path*",
+      headers: privateHeaders,
+    });
   });
 
   it("keeps PWA routes on the SPA fallback path", () => {

@@ -4,4 +4,4 @@ export {
   type BadgeProps,
   type BadgeVariantProps,
   badgeVariants,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Badge/Badge";

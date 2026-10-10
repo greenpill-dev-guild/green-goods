@@ -9,7 +9,7 @@
 import { fromPromise } from "xstate";
 
 import { validateMetadata } from "../../../lib/hypercerts";
-import { uploadJSONToIPFS } from "../../../modules";
+import { uploadJSONToIPFS } from "../../../modules/data/ipfs/upload";
 import { logger } from "../../../modules/app/logger";
 import type { MintHypercertInput } from "../../../workflows/mintHypercert";
 import type { MintServiceDeps } from "./types";

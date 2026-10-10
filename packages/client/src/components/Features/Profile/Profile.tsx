@@ -7,6 +7,7 @@ import {
   RiWallet3Fill,
   RiWhatsappLine,
 } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/Communication";
 
 const ProfileDataTypes = {
@@ -25,12 +26,14 @@ type actionsMap = {
 
 type ProfileProps = {
   avatar: string;
+  avatarAction?: ReactNode;
   displayName: string;
   isLoadingAvatar?: boolean;
 } & actionsMap;
 
 export const Profile: React.FC<ProfileProps> = ({
   avatar,
+  avatarAction,
   displayName,
   isLoadingAvatar,
   ...props
@@ -39,16 +42,18 @@ export const Profile: React.FC<ProfileProps> = ({
     <div className="relative flex flex-col items-center gap-2 px-2">
       {/* Avatar container with proper spacing */}
       <div className="relative w-24 h-24 mb-2">
-        <img
-          src={avatar ?? "/images/avatar.png"}
-          alt="profile avatar"
-          className="rounded-full w-24 h-24 object-cover"
-        />
-        {isLoadingAvatar && (
+        {avatarAction ?? (
+          <img
+            src={avatar ?? "/images/avatar.png"}
+            alt="profile avatar"
+            className="rounded-full w-24 h-24 object-cover"
+          />
+        )}
+        {isLoadingAvatar && !avatarAction && (
           <div className="absolute inset-0 rounded-full bg-bg-soft-200/80 animate-pulse backdrop-blur-sm" />
         )}
       </div>
-      <h5 className="title-section max-w-full truncate" title={displayName}>
+      <h5 className="max-w-full truncate text-[1.125rem] font-bold" title={displayName}>
         {displayName}
       </h5>
       <div className="flex flex-row flex-wrap justify-center items-center gap-2">
@@ -56,7 +61,7 @@ export const Profile: React.FC<ProfileProps> = ({
           const Icon = ProfileDataTypes[key as keyof typeof ProfileDataTypes];
           if (value === undefined) return;
           return (
-            <Badge key={key} leadingIcon={<Icon className="w-4 text-primary mx-1" />}>
+            <Badge key={key} leadingIcon={<Icon className="w-4 text-primary-on-surface mx-1" />}>
               {value}
             </Badge>
           );

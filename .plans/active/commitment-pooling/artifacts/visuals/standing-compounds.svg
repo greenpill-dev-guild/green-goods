@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="compounds-title compounds-desc">
+  <title id="compounds-title">A commitment compounds through repetition, not replacement</title>
+  <desc id="compounds-desc">The upper half shows one ongoing Offer running through three cycles. Each cycle holds its own independent commitment instances, and the ongoing Offer accumulates an exact count across all of them. The lower half shows the alternative the architecture rejects: recreating an unlinked commitment every cycle, which leaves the offer with no identity and no history.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">A commitment compounds through repetition</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">One durable identity. Many independent promises. Counts that stay exact.</text>
+
+  <!-- WITH an ongoing Offer -->
+  <rect x="44" y="102" width="812" height="336" rx="14" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+  <text x="72" y="134" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">WITH AN ONGOING OFFER</text>
+
+  <!-- spine -->
+  <rect x="72" y="150" width="756" height="42" rx="10" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="450" y="177" text-anchor="middle" font-size="18" font-weight="600" fill="#24422E">Hosting climate workshops — one ongoing Offer, held by Maria</text>
+
+  <!-- cycle 1 -->
+  <text x="176" y="222" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Season of Seedlings</text>
+  <path d="M176 232 L176 252" stroke="#4C7A57" stroke-width="2" fill="none"/>
+  <rect x="76" y="252" width="200" height="52" rx="9" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+  <text x="176" y="274" text-anchor="middle" font-size="15" fill="#3B372E">2 places · both kept</text>
+  <text x="176" y="294" text-anchor="middle" font-size="15" fill="#6E6857">own evidence each</text>
+
+  <!-- cycle 2 -->
+  <text x="450" y="222" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Season of First Rains</text>
+  <path d="M450 232 L450 252" stroke="#4C7A57" stroke-width="2" fill="none"/>
+  <rect x="350" y="252" width="200" height="52" rx="9" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2"/>
+  <text x="450" y="274" text-anchor="middle" font-size="15" fill="#3B372E">3 places · 3 kept</text>
+  <text x="450" y="294" text-anchor="middle" font-size="15" fill="#6E6857">1 reviewed, then kept</text>
+
+  <!-- cycle 3 -->
+  <text x="724" y="222" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Season of Long Rains</text>
+  <path d="M724 232 L724 252" stroke="#988D77" stroke-width="2" fill="none" stroke-dasharray="5 4"/>
+  <rect x="624" y="252" width="200" height="52" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="724" y="274" text-anchor="middle" font-size="15" fill="#3B372E">asked again</text>
+  <text x="724" y="294" text-anchor="middle" font-size="15" fill="#6E6857">nothing opened yet</text>
+
+  <rect x="72" y="326" width="756" height="88" rx="10" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="450" y="360" text-anchor="middle" font-size="22" font-weight="700" fill="#24422E">Kept 12 times across 5 cycles</text>
+  <text x="450" y="388" text-anchor="middle" font-size="16" fill="#3E5C41">Exact, event-derived, and linked to every individual record.</text>
+  <text x="450" y="406" text-anchor="middle" font-size="16" fill="#3E5C41">A cycle groups promises. It never owns the offer.</text>
+
+  <!-- WITHOUT -->
+  <rect x="44" y="462" width="812" height="292" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="72" y="494" font-size="14" font-weight="700" fill="#8A6D3B" letter-spacing="1.2">WITHOUT ONE — REPLACEMENT, THE MODEL WE REJECTED</text>
+
+  <rect x="76" y="512" width="220" height="76" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="186" y="540" text-anchor="middle" font-size="16" fill="#3B372E">a new offer</text>
+  <text x="186" y="562" text-anchor="middle" font-size="15" fill="#6E6857">created from scratch</text>
+  <text x="186" y="580" text-anchor="middle" font-size="15" fill="#6E6857">each cycle</text>
+
+  <rect x="340" y="512" width="220" height="76" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="450" y="540" text-anchor="middle" font-size="16" fill="#3B372E">a new offer</text>
+  <text x="450" y="562" text-anchor="middle" font-size="15" fill="#6E6857">no link to the last</text>
+
+  <rect x="604" y="512" width="220" height="76" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="714" y="540" text-anchor="middle" font-size="16" fill="#3B372E">a new offer</text>
+  <text x="714" y="562" text-anchor="middle" font-size="15" fill="#6E6857">history scattered</text>
+
+  <text x="450" y="632" text-anchor="middle" font-size="18" font-weight="600" fill="#A65D57">The offer has no identity, so nothing can accumulate.</text>
+  <text x="450" y="662" text-anchor="middle" font-size="16" fill="#6E6857">Any &#8220;kept 12 times&#8221; would be a guess reconstructed from a name and a creator —</text>
+  <text x="450" y="684" text-anchor="middle" font-size="16" fill="#6E6857">and it would break the first time the wording changed or a cycle was skipped.</text>
+  <text x="450" y="722" text-anchor="middle" font-size="16" fill="#6E6857">Copying terms forward stays available for genuinely one-off promises.</text>
+
+  <text x="450" y="800" text-anchor="middle" font-size="17" fill="#4C6B54">Repetition builds something dependable only when the thing repeating has a name.</text>
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>

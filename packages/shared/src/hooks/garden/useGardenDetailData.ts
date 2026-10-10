@@ -1,21 +1,24 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isAddress } from "viem";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
 import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
-import { getNetDeposited } from "../../utils/blockchain/vaults";
+import { summarizeNetDepositsByAsset } from "../../utils/blockchain/vaults";
 import { useGardenAssessments } from "../assessment/useGardenAssessments";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useConvictionStrategies } from "../conviction/useConvictionStrategies";
+import { useGardenCookieJars } from "../cookie-jar/useGardenCookieJars";
 import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
 import { useGardenCommunity } from "../conviction/useGardenCommunity";
 import { useGardenPools } from "../conviction/useGardenPools";
 import { useHypercerts } from "../hypercerts/useHypercerts";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenVaults } from "../vault/useGardenVaults";
+import { useGardenReviewQueue } from "../work/useGardenReviewQueue";
 import { useWorks } from "../work/useWorks";
 import { useYieldAllocations } from "../yield/useYieldAllocations";
 import type { GardenOperationResult } from "./createGardenOperation";
@@ -55,8 +58,8 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     addGardener,
     removeGardener,
-    addOperator,
-    removeOperator,
+    addSteward,
+    removeSteward,
     addEvaluator,
     removeEvaluator,
     addOwner,
@@ -73,8 +76,16 @@ export function useGardenDetailData(id: string | undefined) {
   const canManageRoles = garden ? gardenPermissions.canAddMembers(garden) : false;
   const isOwner = garden ? gardenPermissions.isOwnerOfGarden(garden) : false;
 
-  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(id, {
-    enabled: Boolean(id),
+  const vaultGardenAddress = id && isAddress(id) ? id : undefined;
+  const { vaults: gardenVaults = [], isLoading: vaultsLoading } = useGardenVaults(
+    vaultGardenAddress,
+    {
+      enabled: Boolean(vaultGardenAddress),
+    }
+  );
+  // Steward alerts read the jars' claim limits; stewards are the only ones shown alerts.
+  const { jars: cookieJars, hasNoJar: hasNoPayoutJar } = useGardenCookieJars(id, {
+    enabled: Boolean(id) && canManage,
   });
 
   const { strategies: convictionStrategies } = useConvictionStrategies(
@@ -89,40 +100,60 @@ export function useGardenDetailData(id: string | undefined) {
   const { mutate: createPools, isPending: isCreatingPools } = useCreateGardenPools(
     id as Address | undefined
   );
-  const { allocations, isLoading: allocationsLoading } = useYieldAllocations(
-    id as Address | undefined,
-    { enabled: Boolean(id) }
-  );
+  const {
+    allocations,
+    atLimit: allocationsAtLimit,
+    isLoading: allocationsLoading,
+  } = useYieldAllocations(id as Address | undefined, { enabled: Boolean(id) });
 
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
-  const { vaultNetDeposited, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  // Endowment amounts stay per asset: WETH and DAI base units never add up.
+  const { endowmentByAsset, hasEndowment, vaultHarvestCount, vaultDepositorCount } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of gardenVaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
+    const byAsset = summarizeNetDepositsByAsset(gardenVaults, garden?.chainId ?? DEFAULT_CHAIN_ID);
     return {
-      vaultNetDeposited: netDeposited,
+      endowmentByAsset: byAsset,
+      hasEndowment: byAsset.some((entry) => entry.amount > 0n),
       vaultHarvestCount: harvestCount,
       vaultDepositorCount: depositorCount,
     };
-  }, [gardenVaults]);
+  }, [gardenVaults, garden?.chainId]);
 
   const {
     works,
     isLoading: worksLoading,
     isFetching: worksFetching,
+    isError: isWorksError,
+    isPaused: isWorksPaused,
+    error: worksError,
     refetch: refreshWorks,
+    hasOlderWork,
+    hasUnknownStatuses,
+    readThisSession: worksReadThisSession,
   } = useWorks(gardenId);
-  const { hypercerts, isLoading: hypercertsLoading } = useHypercerts({ gardenId: id });
+  // Rows whose statuses are current. A row whose approval could not be read
+  // shows a cached or fallback status, a failed or paused refresh leaves the
+  // last rows read, and rows restored from an earlier session may be days old.
+  // A refresh in flight is fine: the rows are as current as they were a moment
+  // before it started.
+  const worksCurrent =
+    !hasUnknownStatuses && !isWorksError && !isWorksPaused && worksReadThisSession;
+  const gardenReviewQueue = useGardenReviewQueue(gardenId, { enabled: hasOlderWork });
+  const {
+    hypercerts,
+    isLoading: hypercertsLoading,
+    error: hypercertsError,
+  } = useHypercerts({ gardenId: id });
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
-    operator: garden?.operators ?? [],
+    steward: garden?.stewards ?? [],
     evaluator: garden?.evaluators ?? [],
     gardener: garden?.gardeners ?? [],
     funder: garden?.funders ?? [],
@@ -131,7 +162,7 @@ export function useGardenDetailData(id: string | undefined) {
 
   const roleActions = {
     owner: { add: addOwner, remove: removeOwner },
-    operator: { add: addOperator, remove: removeOperator },
+    steward: { add: addSteward, remove: removeSteward },
     evaluator: { add: addEvaluator, remove: removeEvaluator },
     gardener: { add: addGardener, remove: removeGardener },
     funder: { add: addFunder, remove: removeFunder },
@@ -172,17 +203,34 @@ export function useGardenDetailData(id: string | undefined) {
     isCreatingPools,
     gardenVaults,
     vaultsLoading,
-    vaultNetDeposited,
+    cookieJars,
+    hasNoPayoutJar,
+    endowmentByAsset,
+    hasEndowment,
     vaultHarvestCount,
     vaultDepositorCount,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     works,
+    // Current rows prove a stall alone only when they hold the whole history.
+    worksComplete: worksCurrent && !hasOlderWork,
+    // Past the newest page, the garden's whole queue speaks for older work.
+    // Beside its list, the rows add only decisions, which stay true however old
+    // the rows are. Beside a floor, their own waiting work counts too, so it
+    // must be current.
+    gardenReviewQueue:
+      hasOlderWork && (gardenReviewQueue?.waiting !== null || worksCurrent)
+        ? gardenReviewQueue
+        : undefined,
     worksLoading,
     worksFetching,
+    isWorksError,
+    worksError,
     refreshWorks,
     hypercerts,
     hypercertsLoading,
+    hypercertsError,
     convictionStrategyCount: convictionStrategies.length,
     scheduleBackgroundRefetch,
   };

@@ -18,7 +18,7 @@ export interface TxInlineFeedbackProps {
 const severityStyles: Record<TxInlineFeedbackSeverity, string> = {
   error: "border-error-light bg-error-lighter text-error-dark",
   warning: "border-warning-light bg-warning-lighter text-warning-dark",
-  info: "border-primary-light bg-primary-lighter text-primary-dark",
+  info: "border-primary-alpha-24 bg-primary-alpha-10 text-primary-on-surface",
 };
 
 function SeverityIcon({ severity }: { severity: TxInlineFeedbackSeverity }) {

@@ -34,7 +34,7 @@ function ControlPrimitiveCatalog() {
             <option value="changes">Needs changes</option>
           </NativeSelect>
         </FormField>
-        <FormField label="Operator note" htmlFor="admin-control-note">
+        <FormField label="Steward note" htmlFor="admin-control-note">
           <Textarea
             id="admin-control-note"
             surface="admin"
@@ -131,6 +131,126 @@ type Story = StoryObj<typeof ControlPrimitiveCatalog>;
 
 export const StateCatalog: Story = {};
 
+/**
+ * The client field scale: a 16px rounded rectangle at sm 40, md 44, lg 48 (DL-022,
+ * DL-023), and the public site's editorial underline field (DL-024). Display-size
+ * text keeps the field's height, and a small select keeps its chevron lane.
+ */
+export const DefaultSurfaceSizes: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <section className="flex w-[320px] max-w-full flex-col gap-3 bg-bg-white-0 p-3 text-text-strong-950">
+      <TextInput aria-label="Small field" controlSize="sm" placeholder="sm · 40px" />
+      <TextInput aria-label="Medium field" placeholder="md · 44px" />
+      <TextInput aria-label="Large field" controlSize="lg" placeholder="lg · 48px" />
+      <NativeSelect aria-label="Medium select" defaultValue="all">
+        <option value="all">All Gardens</option>
+      </NativeSelect>
+      <NativeSelect
+        aria-label="Small select"
+        controlSize="sm"
+        defaultValue="month"
+        className="w-auto"
+      >
+        <option value="day">Day</option>
+        <option value="month">Month</option>
+      </NativeSelect>
+      <TextInput aria-label="Invalid field" invalid defaultValue="0x00" />
+      <TextInput aria-label="Editorial field" surface="editorial" placeholder="you@example.com" />
+      <TextInput aria-label="Display amount" className="font-serif text-2xl" defaultValue="25.00" />
+      <TextInput
+        aria-label="Editorial display field"
+        surface="editorial"
+        className="text-2xl"
+        placeholder="you@example.com"
+      />
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const radius = (element: HTMLElement) =>
+      Number.parseFloat(getComputedStyle(element).borderTopLeftRadius);
+    for (const [name, height] of [
+      ["Small field", 40],
+      ["Medium field", 44],
+      ["Large field", 48],
+    ] as const) {
+      const field = canvas.getByRole("textbox", { name });
+      await expect(field.getBoundingClientRect().height).toBe(height);
+      await expect(radius(field)).toBe(16);
+    }
+    await expect(radius(canvas.getByRole("combobox", { name: "Medium select" }))).toBe(16);
+    await expect(radius(canvas.getByRole("textbox", { name: "Editorial field" }))).toBe(0);
+    // A 24px serif value sits inside the 44px step instead of growing the field.
+    for (const name of ["Display amount", "Editorial display field"]) {
+      await expect(canvas.getByRole("textbox", { name }).getBoundingClientRect().height).toBe(44);
+    }
+    const smallSelect = canvas.getByRole("combobox", { name: "Small select" });
+    await expect(getComputedStyle(smallSelect).paddingRight).toBe("36px");
+  },
+};
+
+/**
+ * Header-row filters take the compact size: a 32px face, the height of the
+ * compact buttons beside them, sized to the chosen option with the condensed
+ * density's 64px floor (DL-032). The select keeps the 48px tap area (DL-023):
+ * its own box takes the taps above and below the face, so the row still lays
+ * out a 32px control.
+ */
+export const CompactHeaderFilters: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <section className="w-[360px] max-w-full bg-bg-white-0 p-4 text-text-strong-950">
+      <div className="flex min-h-10 items-center gap-2" data-testid="header-row">
+        <p className="shrink-0 whitespace-nowrap text-sm text-text-sub-600">7 live</p>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <NativeSelect
+            aria-label="Status"
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            defaultValue="live"
+          >
+            <option value="live">Live</option>
+            <option value="settled">Settled</option>
+            <option value="all">All</option>
+          </NativeSelect>
+          <NativeSelect
+            aria-label="Kind"
+            controlSize="compact"
+            density="condensed"
+            className="w-auto min-w-16 max-w-48 field-sizing-content"
+            defaultValue="all"
+          >
+            <option value="all">All kinds</option>
+            <option value="offers">Offers</option>
+            <option value="requests">Requests</option>
+          </NativeSelect>
+        </div>
+      </div>
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const select = canvas.getByRole("combobox", { name: "Status" });
+    const style = getComputedStyle(select);
+    const box = select.getBoundingClientRect();
+    const borderTop = Number.parseFloat(style.borderTopWidth);
+    const face = box.height - borderTop - Number.parseFloat(style.borderBottomWidth);
+
+    await expect(face).toBe(32);
+    await expect(box.height).toBe(48);
+    // The row lays out a 32px control, so the 40px header row keeps its height.
+    await expect(canvas.getByTestId("header-row").getBoundingClientRect().height).toBe(40);
+    // A tap 6px above the visible face still lands on the select.
+    const hit = canvasElement.ownerDocument.elementFromPoint(
+      box.left + box.width / 2,
+      box.top + borderTop - 6
+    );
+    await expect(hit).toBe(select);
+  },
+};
+
 export const FocusedTopInputMobile: Story = {
   parameters: {
     viewport: { defaultViewport: "mobile1" },
@@ -147,7 +267,7 @@ export const FocusedTopInputMobile: Story = {
       <FormField
         label="Manual allowlist review note"
         htmlFor="focused-top-textarea"
-        error="Enter at least one valid operator address."
+        error="Enter at least one valid steward address."
       >
         <Textarea
           id="focused-top-textarea"

@@ -71,27 +71,35 @@ All user-generated text MUST have `truncate` or `line-clamp-*` AND a `title` att
 
 ## Rule 5: No Action Duplication
 
-Tab-level actions (in PageHeader or tab bar) are canonical. Do not create shortcut cards that duplicate them.
+View-level actions in the `CanvasRouteHeader` `actions` slot / `AdminViewActions` (or the tab bar) are canonical. Do not create shortcut cards that duplicate them.
 
 ## Rule 6: Flex Height
 
 Use `flex-1` on cards that should expand vertically within a flex container.
 
-## Rule 7: Filter Alignment
+## Rule 7: Filter Alignment (card header rows)
 
-When using `flex-col` inside `Card.Header`, always add `items-start` to override the base `items-center`.
+`AdminCardHeader` (and the legacy shared `Card.Header`, now client-only — admin retired shared `Card` on 2026-08-30) defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
 
 ```tsx
-<Card.Header className="flex-col items-start gap-3">
+<AdminCardHeader className="flex-col items-start gap-3">
 ```
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails (40px) using `ImageWithFallback` or letter fallbacks.
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar and `HubWorkCard`'s media mosaic.
 
 ## Rule 9: Typography Utilities
 
-Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin the cockpit scale (`packages/admin/DESIGN.md` § Typography) is:
+
+- `body-sm` 14px body · `body-xs` 12px meta · `label-xs` 12px label (500) · `label-sm` 11px, chips only · `body-md` 16px.
+- `text-title-md font-semibold` (16/24) for card and section titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, flow, and step titles and full-page state headings. A step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063).
+- The `text-body-*`, `text-label-*`, and `text-title-*` aliases are on the scale too.
+
+The named classes are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`body-sm font-medium`) and responsive variants work (`body-xs sm:body-sm`). `check:design-tokens` fails on a raw size anywhere in `packages/admin/src`, stories included.
+
+Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -114,11 +122,13 @@ Always include `sm:` breakpoint. Never skip from single-column to `md:` 2-column
 
 ## Rule 12: Accessibility — Status Indicators
 
-Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). The `StatusBadge` component handles this — always use it.
+Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). Use `StatusBadge` for generic status. `HubWorkCard`'s semantic status chip pairs are the sanctioned Hub exception — colors there are always icon/text-paired or text-labeled, never color-only.
 
 ## Rule 13: Dark Mode — Semantic Tokens Only
 
 Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semantic tokens (`bg-bg-sub`, `text-text-strong`).
+
+In admin, views colour through the Warm Earth aliases (`text-text-strong`, `text-text-sub`, `bg-bg-white`, `border-stroke-soft`, …). The M3 role tokens (`rgb(var(--m3-*))`) and `--admin-surface-*` belong inside the `Admin*` primitives (the field family included), the shell (`components/Shell`), and `ActionFlowShell`; `check:design-tokens` fails on a raw `--m3-*` colour anywhere else in `packages/admin/src`, stories included. Workspace tone (`--tone-*`) keeps to Rule 18's budget.
 
 ## Rule 14: Modal Mobile Safety
 
@@ -130,17 +140,25 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 
 ## Rule 15: Form Fields
 
-Use the `FormField` component from `@green-goods/shared` for label+input+error patterns
-(admin-local `components/ui` shims are forbidden — admin.mdx Migration Rules). Mark required
-fields. For an inline **setting row** (field title on the left, a `Switch` or compact control on
-the right), use the admin `AdminSettingRow` primitive — it carries the same label token as
-`FormField`, so a toggle row never reads smaller or greyer than the stacked fields beside it.
+**Admin**: fields ride the admin field family — `AdminTextField` / `AdminTextArea` /
+`AdminSelect` for single controls, `AdminInlineField` for the 32px inline axis, and
+`AdminFieldGroup` for group-shaped fields (checkbox grids, repeating rows, upload wells).
+Shared `FormField`/`TextInput`/`Textarea`/`NativeSelect` renders in `packages/admin/src` fail
+the wrapper-adoption sweep in `check:design-tokens`. For an inline **setting row** (field title
+left, `Switch` or compact control right), use `AdminSettingRow`.
+
+**Client**: use the `FormField` component from `@green-goods/shared` for label+input+error
+patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
+`FormattedAmountInput`, `DatePicker`, and `FileUploadField` as the controls — never a raw
+`<input>`, `<textarea>`, or `<select>` with its own classes (Rule 19). Fields are 16px on the
+default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
+its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
 **A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
 selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
-field read visibly smaller and greyer than the `FormField` labels next to it — the Garden Profile
-dialog regressed exactly this way. Route every field label through `FormField` or
-`AdminSettingRow`.
+field read visibly smaller and greyer than the family labels next to it — the Garden Profile
+dialog regressed exactly this way. Route every admin field label through the field family
+(`AdminTextField`/`AdminFieldGroup`/`AdminSettingRow`); client labels go through `FormField`.
 
 ```tsx
 // Bad — hand-rolled eyebrow token as a field label
@@ -151,13 +169,16 @@ dialog regressed exactly this way. Route every field label through `FormField` o
 <input {...register('name')} />
 {errors.name && <p>{errors.name.message}</p>}
 
-// Good — canonical label primitives
-import { FormField } from "@green-goods/shared";
+// Good — canonical admin field family
+import { AdminFieldGroup } from "@/components/AdminFieldGroup";
 import { AdminSettingRow } from "@/components/AdminSettingRow";
+import { AdminTextField } from "@/components/AdminTextField";
 
-<FormField label="Name" required error={errors.name?.message}>
-  <input {...register('name')} />
-</FormField>
+<AdminTextField label="Name" required error={errors.name?.message} {...register("name")} />
+
+<AdminFieldGroup label="Forms of capital" required error={error} contentClassName="grid grid-cols-2 gap-2">
+  {options.map(...)}
+</AdminFieldGroup>
 
 <AdminSettingRow labelId="open-joining" label="Open joining" description="…">
   <Switch aria-labelledby="open-joining" ... />
@@ -183,13 +204,13 @@ Use the `Alert` component from `@green-goods/shared` for all error/warning/info 
 
 ## Rule 17: Don't redeclare context the chrome already declares
 
-Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the operator is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
+Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the steward is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
 
 ```tsx
-// Bad — AppBar GardenChip already shows "Aiyeloja Family Garden"
+// Bad — AppBar GardenChip already shows "Tech and Sun Hub"
 <PageHeader
   title="Work"
-  description="Review work flowing through Aiyeloja Family Garden."
+  description="Review work flowing through Tech and Sun Hub."
   metadata={<MetaStrip items={[{ label: garden.name }]} />}
 />
 <WorkbenchRow eyebrow={garden.name} title={...} />
@@ -210,5 +231,66 @@ When to redeclare:
 - A list **mixes entities** (cross-garden feed, multi-workspace dashboard) — then the row must name its garden because chrome can't.
 - A card may be **detached** from chrome (PDF export, email digest, screenshot share) — keep an accessible `title=""` attribute even if the visible line is removed for in-app contexts.
 - The body **disambiguates** (e.g., "the garden's vault is X, the parent DAO's vault is Y") — declaring the qualifier is the whole point of the line.
+- A dialog **commits an irreversible write** — it names its target first (`PoolTarget` for pool writes), because the chrome cannot prove which pool or record the dialog is about to change.
 
 Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered DOM for the active garden / workspace / entity name; if it appears more than once outside chrome, justify it or remove it.
+
+## Rule 18: Cockpit M3 1a Invariants (admin)
+
+The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
+
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
+- **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
+- **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
+- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
+- **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
+- **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.
+
+## Rule 19: Client Buttons and Controls Come From the Shared Family
+
+In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
+tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (`TextInput`,
+`Textarea`, `NativeSelect`, `Switch`, `FormattedAmountInput`, `DatePicker`, `FileUploadField`;
+DL-025, DL-031). The primitive owns the corner, one per surface for every emphasis: the 16px field
+corner in the app and no corner on the public website (DL-026, DL-029). The height comes from
+`size` on the shared scale 48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical
+padding class to them, and never a `variant`: the legacy class contract is gone.
+
+A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
+or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, `trigger`, `fab`, or `tab` (a
+whole card or list row that opens something, a sheet scrim, a photo, the trigger for a hidden
+picker or popover, a floating action button and its speed-dial choices, a tab without tab ARIA);
+an `<input>` of type `file`, `radio`, `checkbox`, `hidden`, or `range`. A link that looks like a
+button is `<Button asChild>`. Radii stay on the scale: no `rounded-sm`, `rounded-3xl`, or
+`rounded-4xl` in client source.
+
+`bun run check --only react-patterns` enforces this rule (`rule-19-client-shared-controls` in
+`scripts/quality/check-react-patterns.js`) and fails on any hit; there is no baseline.
+
+```tsx
+// Bad — a hand-rolled secondary that drifts from the system
+<button className="rounded-lg border px-4 py-2.5 text-sm">{formatMessage({ id: "app.common.retry" })}</button>
+<input className="w-full rounded-md border px-3 py-2" value={amount} onChange={onChange} />
+
+// Good
+import { Button } from "@green-goods/shared/components/Button";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+
+<Button emphasis="secondary" onClick={retry}>{formatMessage({ id: "app.common.retry" })}</Button>
+<IconButton aria-label={formatMessage({ id: "app.common.close" })} icon={<RiCloseLine />} onClick={close} />
+<TextInput value={amount} onChange={onChange} aria-label={formatMessage({ id: "app.send.amount" })} />
+
+// Good — a whole card that opens a detail view declares itself
+<button type="button" data-pressable="card" onClick={openWork} className="rounded-lg ...">…</button>
+```
+
+## Rule 20: Interface Principles Come First
+
+Every rule in this file applies root `DESIGN.md` § Interface Principles (grounded in *Don't Make Me Think*, *Refactoring UI*, and *Atomic Design*). Read that section before designing or reviewing UI, and run its five-minute review on every UI change. A screen that passes every rule here but fails that review is not done.
+
+- A control never acts outside the scope the page announces, and a tab never changes scope silently.
+- A write that needs several signatures says how many up front, shows each one landing, and ends on a done state.
+- An organism that writes is handed its target explicitly and has one home; any other mount is a recorded decision.
+
+> Full surface context: [.claude/context/client.md](../context/client.md) / [.claude/context/admin.md](../context/admin.md); implementation runbook: [.claude/skills/design/implementation.md](../skills/design/implementation.md).

@@ -9,13 +9,13 @@
  * the moment it lands, even when the offending key is orphaned from the
  * component graph but still ships in the bundle.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, expect, it } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
-import esMessages from "../../../../shared/src/i18n/es.json";
-import ptMessages from "../../../../shared/src/i18n/pt.json";
+import enMessages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 
 const BANNED_TERMS: { label: string; pattern: RegExp }[] = [
   { label: "smart contract", pattern: /smart contract/i },

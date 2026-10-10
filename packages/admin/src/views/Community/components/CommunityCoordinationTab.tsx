@@ -1,0 +1,175 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import {
+  PoolType,
+  WEIGHT_SCHEME_VALUES,
+  WeightScheme,
+} from "@green-goods/shared/types/gardens-community";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { RiArrowRightSLine, RiCheckLine, RiQuestionLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
+import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
+import { GovernancePanel } from "./GovernancePanel";
+
+export type CommunityCoordinationTabProps = Pick<
+  CommunityWorkspace,
+  "canManage" | "community" | "createPools" | "gardenId" | "isCreatingPools" | "pools"
+> & {
+  garden: NonNullable<CommunityWorkspace["garden"]>;
+};
+
+export function CommunityCoordinationTab({
+  garden,
+  gardenId,
+  canManage,
+  community,
+  pools,
+  createPools,
+  isCreatingPools,
+}: CommunityCoordinationTabProps) {
+  const { formatMessage } = useIntl();
+  const gardenRouteContext = { gardenId: garden.id };
+  const hypercertPool = pools.find((pool) => pool.poolType === PoolType.Hypercert);
+  const actionPool = pools.find((pool) => pool.poolType === PoolType.Action);
+  const communityConfig = community as { weightScheme?: number } | null | undefined;
+  const weightScheme =
+    typeof communityConfig?.weightScheme === "number"
+      ? (communityConfig.weightScheme as WeightScheme)
+      : undefined;
+  const weightSchemeLabel =
+    weightScheme !== undefined && WeightScheme[weightScheme]
+      ? WeightScheme[weightScheme].toLowerCase()
+      : undefined;
+  const weightSchemeValues =
+    weightScheme !== undefined ? WEIGHT_SCHEME_VALUES[weightScheme] : undefined;
+
+  return (
+    <div className="garden-tab-shell">
+      <div className="garden-tab-layout">
+        <div className="garden-tab-main">
+          <AdminCard variant="elevated" className="space-y-4">
+            <div>
+              <AdminCardTitle>
+                {formatMessage({ id: "cockpit.community.coordination.proposals" })}
+              </AdminCardTitle>
+              <p className="mt-1 text-body-sm text-text-sub">
+                {formatMessage({ id: "cockpit.community.coordination.proposalsDescription" })}
+              </p>
+            </div>
+            <GovernancePanel pools={pools} gardenId={gardenId} />
+          </AdminCard>
+        </div>
+
+        <aside className="garden-tab-rail">
+          <div className="garden-tab-rail-sticky">
+            <AdminCard variant="filled" className="space-y-3">
+              <AdminCardTitle>
+                {formatMessage({ id: "cockpit.community.coordination.status" })}
+              </AdminCardTitle>
+              <div className="garden-stat-row">
+                <span className="garden-stat-row-label">
+                  {formatMessage({ id: "cockpit.community.coordination.community" })}
+                </span>
+                <span className="inline-flex items-center gap-1 text-body-sm font-medium text-text-strong">
+                  {communityConfig ? (
+                    <RiCheckLine className="h-4 w-4 text-success-dark" />
+                  ) : (
+                    <RiQuestionLine className="h-4 w-4 text-text-sub" />
+                  )}
+                  {communityConfig
+                    ? formatMessage({ id: "app.community.statusConnected" })
+                    : formatMessage({ id: "app.community.statusNotConnected" })}
+                </span>
+              </div>
+
+              {weightScheme !== undefined && weightSchemeLabel && weightSchemeValues ? (
+                <AdminCard variant="outlined" density="compact">
+                  <p className="text-label-sm text-text-sub">
+                    {formatMessage({ id: "app.community.weightScheme" })}
+                  </p>
+                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                    {formatMessage({ id: `app.community.weightScheme.${weightSchemeLabel}` })}
+                  </p>
+                  <p className="mt-1 text-body-sm text-text-sub">
+                    {formatMessage(
+                      { id: "cockpit.community.coordination.weightSummary" },
+                      {
+                        community: weightSchemeValues.community / 10_000,
+                        gardener: weightSchemeValues.gardener / 10_000,
+                        steward: weightSchemeValues.steward / 10_000,
+                      }
+                    )}
+                  </p>
+                </AdminCard>
+              ) : null}
+
+              <div className="space-y-2">
+                {[hypercertPool, actionPool].map((pool, index) => {
+                  const labelId =
+                    index === 0
+                      ? "app.community.poolType.hypercert"
+                      : "app.community.poolType.action";
+                  const linkTarget =
+                    index === 0
+                      ? adminRoutes.communityCoordinationSignalPool("hypercert", gardenRouteContext)
+                      : adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext);
+                  return (
+                    <AdminCard key={labelId} variant="outlined" density="compact">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-label-sm text-text-sub">
+                            {formatMessage({ id: labelId })}
+                          </p>
+                          <div className="mt-1 text-body-sm text-text-strong">
+                            {pool ? (
+                              <AddressDisplay address={pool.poolAddress} className="body-sm" />
+                            ) : (
+                              formatMessage({ id: "cockpit.community.coordination.poolMissing" })
+                            )}
+                          </div>
+                        </div>
+                        {pool ? (
+                          <Link
+                            to={linkTarget}
+                            aria-label={formatMessage({ id: "app.actions.view" })}
+                            className="mt-0.5 text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))]"
+                          >
+                            <RiArrowRightSLine className="h-4 w-4" />
+                          </Link>
+                        ) : null}
+                      </div>
+                    </AdminCard>
+                  );
+                })}
+              </div>
+
+              {canManage && communityConfig && pools.length === 0 ? (
+                <AdminButton
+                  type="button"
+                  variant="tonal"
+                  size="sm"
+                  onClick={createPools}
+                  disabled={isCreatingPools}
+                  loading={isCreatingPools}
+                  className="w-full"
+                >
+                  {formatMessage({ id: "app.community.createPools" })}
+                </AdminButton>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <AdminButton asChild variant="text" size="sm" className="px-0">
+                  <Link to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}>
+                    {formatMessage({ id: "app.conviction.manageStrategies" })}
+                    <RiArrowRightSLine className="h-4 w-4" />
+                  </Link>
+                </AdminButton>
+              </div>
+            </AdminCard>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

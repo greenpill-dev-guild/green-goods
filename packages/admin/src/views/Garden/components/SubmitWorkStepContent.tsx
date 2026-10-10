@@ -1,0 +1,203 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import {
+  getMinRequiredWorkImages,
+  type SubmitWorkController,
+} from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import type { Domain } from "@green-goods/shared/types/domain";
+import { useIntl } from "react-intl";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminTextArea, AdminTextField } from "@/components/AdminTextField";
+import type { FlowSendStatus } from "@/components/Layout/FlowSendFooter";
+import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
+import { ActionChooserGrid } from "./ActionChooserGrid";
+import { SubmitWorkFields } from "./SubmitWorkFields";
+import { SubmitWorkPhotos } from "./SubmitWorkPhotos";
+import { SubmitWorkReview } from "./SubmitWorkReview";
+
+const DOMAIN_TAB_KEYS: Record<Domain, string> = {
+  0: "app.admin.assessment.domainAction.domain.solar",
+  1: "app.admin.assessment.domainAction.domain.agroforestry",
+  2: "app.admin.assessment.domainAction.domain.education",
+  3: "app.admin.assessment.domainAction.domain.waste",
+};
+
+export function SubmitWorkStepContent({
+  controller,
+  photoRequirementText,
+  reviewStatus,
+}: {
+  controller: SubmitWorkController;
+  photoRequirementText: string;
+  /** Where the send stands, as the Review's status row says it. */
+  reviewStatus: FlowSendStatus;
+}) {
+  const { formatMessage } = useIntl();
+  const {
+    activeStepId,
+    availableActions,
+    busy,
+    chooserDomains,
+    effectiveDomain,
+    form,
+    goToStep,
+    handleFilesChange,
+    handleSelectAction,
+    images,
+    isPreparingMedia,
+    progressMessage,
+    mediaFeedback,
+    removeImage,
+    selectDomain,
+    selectedAction,
+    selectedActionId,
+    showValidation,
+    visibleActions,
+  } = controller;
+  const { control, formState, getValues, register } = form;
+  const { errors } = formState;
+
+  if (activeStepId === "action") {
+    return (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+          description={formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
+        />
+        {chooserDomains.length > 1 ? (
+          <AdminTabRail
+            ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
+            activeId={effectiveDomain === "all" ? "all" : String(effectiveDomain)}
+            onChange={(id) => selectDomain(id === "all" ? "all" : (Number(id) as Domain))}
+            tabs={[
+              {
+                id: "all",
+                label: formatMessage({
+                  id: "app.admin.work.submit.allActions",
+                  defaultMessage: "All",
+                }),
+              },
+              ...chooserDomains.map((domain) => ({
+                id: String(domain),
+                label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
+                count: availableActions.filter((action) => action.domain === domain).length,
+              })),
+            ]}
+          />
+        ) : null}
+        <p className="sr-only" aria-live="polite">
+          {formatMessage(
+            {
+              id: "app.admin.work.submit.actionCount",
+              defaultMessage:
+                "{count, plural, one {# action available} other {# actions available}}",
+            },
+            { count: visibleActions.length }
+          )}
+        </p>
+        <ActionChooserGrid
+          actions={visibleActions}
+          selectedActionId={selectedActionId}
+          onSelect={handleSelectAction}
+          disabled={busy}
+          groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
+        />
+      </div>
+    );
+  }
+  if (activeStepId === "media") {
+    return (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={
+            selectedAction?.mediaInfo?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.photos" })
+          }
+          description={photoRequirementText}
+        />
+        <FileUploadField
+          surface="admin"
+          label={formatMessage({ id: "app.admin.work.submit.media" })}
+          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          multiple
+          compress={false}
+          showPreview={false}
+          onFilesChange={handleFilesChange}
+          disabled={busy}
+        />
+        {isPreparingMedia ? (
+          <p role="status" className="body-sm text-text-sub">
+            {progressMessage}
+          </p>
+        ) : null}
+        <SubmitWorkPhotos
+          images={images}
+          minRequired={getMinRequiredWorkImages(selectedAction)}
+          onRemove={removeImage}
+        />
+        {mediaFeedback ? (
+          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+        ) : null}
+      </div>
+    );
+  }
+  if (activeStepId === "details") {
+    return (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={
+            selectedAction?.details?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.details" })
+          }
+          description={selectedAction?.title}
+        />
+        {selectedAction?.inputs.some((input) => input.required) ? (
+          <p className="body-xs text-text-sub">
+            {formatMessage({
+              id: "app.admin.work.submit.requiredLegend",
+              defaultMessage: "* Required field",
+            })}
+          </p>
+        ) : null}
+        {selectedAction && selectedAction.inputs.length > 0 ? (
+          <SubmitWorkFields
+            inputs={selectedAction.inputs}
+            control={control}
+            register={register}
+            errors={errors as Record<string, { message?: string } | undefined>}
+            showValidation={showValidation}
+          />
+        ) : null}
+        <AdminTextField
+          label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
+          id="timeSpentMinutes"
+          type="number"
+          error={showValidation ? errors.timeSpentMinutes?.message : undefined}
+          helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+          placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
+          inputProps={{ step: "0.25", min: 0 }}
+          {...register("timeSpentMinutes")}
+        />
+        <AdminTextArea
+          label={formatMessage({ id: "app.admin.work.submit.feedback" })}
+          id="feedback"
+          rows={3}
+          error={showValidation ? errors.feedback?.message : undefined}
+          placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
+          {...register("feedback")}
+        />
+      </div>
+    );
+  }
+  return selectedAction ? (
+    <SubmitWorkReview
+      action={selectedAction}
+      images={images}
+      values={getValues() as Record<string, unknown>}
+      photoRequirementText={photoRequirementText}
+      status={reviewStatus}
+      onEditStep={goToStep}
+    />
+  ) : null;
+}

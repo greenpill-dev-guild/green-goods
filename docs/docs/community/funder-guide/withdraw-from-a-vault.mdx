@@ -7,7 +7,6 @@ audience: funder
 owner: docs
 last_verified: 2026-05-21
 feature_status: Live
-image: /img/social/withdraw-from-a-vault.webp
 goal: "Walk a funder through removing some or all of their existing endowment from a garden vault."
 difficulty: "quickstart"
 estimated_time: "3-5 minutes."
@@ -18,9 +17,9 @@ source_of_truth:
   - packages/client/src/components/Public/PublicEndowmentPanel.tsx
   - packages/client/src/views/Public/Fund.tsx
   - packages/shared/src/hooks/public/usePublicEndowmentPositions.ts
-  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
-  - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
-  - packages/client/src/components/Dialogs/TreasuryDrawer/MyDepositRow.tsx
+  - packages/client/src/components/Sheets/EndowmentSheet/index.tsx
+  - packages/client/src/components/Sheets/EndowmentSheet/TreasuryTabContent.tsx
+  - packages/client/src/components/Sheets/EndowmentSheet/MyDepositRow.tsx
   - packages/shared/src/hooks/vault/useVaultWithdraw.ts
 keywords:
   - funder
@@ -31,20 +30,11 @@ keywords:
   - my deposits
 ---
 
-import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Remove an Endowment
 
 <StatusBadge status="Live" />
-
-<GuideOpener
-  image="/img/social/withdraw-from-a-vault.webp"
-  alt="A funder drawing a gold token out of a transparent garden vault toward a field notebook"
-  label="Funder chapter"
-  roleAccent="funder"
->
-  Open your endowment row, choose an amount, then withdraw.
-</GuideOpener>
 
 ## What this helps you do
 

@@ -3,13 +3,14 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { SetConvictionStrategiesParams } from "../../types/conviction";
-import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
+import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis/hats";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useSetConvictionStrategies() {

@@ -4,17 +4,18 @@
  * This exists to avoid raw `forge build <path>` usage in day-to-day work.
  *
  * Usage:
- *   bun run build:target -- src/registries/ENS.sol
- *   bun run build:target -- src/registries/ENS.sol src/tokens/Garden.sol
+ *   bun run --cwd packages/contracts build --mode target -- src/registries/ENS.sol
+ *   bun run --cwd packages/contracts build --mode target -- src/registries/ENS.sol src/tokens/Garden.sol
  *
  * Notes:
  * - Passing explicit PATHS makes Foundry compile only those sources + dependencies.
  * - This is *much* faster than compiling the entire `src/` tree on every change.
  */
 
-import { resolve } from "path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const contractsDir = resolve(import.meta.dir, "../..");
+const contractsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const quiet = process.env.GG_CONTRACTS_BUILD_QUIET !== "0";
 
 function log(msg: string) {
@@ -22,7 +23,7 @@ function log(msg: string) {
 }
 
 function usage(): never {
-  console.error("Usage: bun run build:target -- <solidity-path> [more-paths...]");
+  console.error("Usage: bun run --cwd packages/contracts build --mode target -- <solidity-path> [more-paths...]");
   process.exit(1);
 }
 
@@ -34,18 +35,33 @@ function shouldSkipScript(paths: string[]): boolean {
   return !paths.some((p) => p.endsWith(".s.sol") || p.startsWith("script/"));
 }
 
-async function runForgeBuild(targets: string[]): Promise<number> {
+export function targetBuildArguments(targets: string[], isQuiet = true): string[] {
+  if (!targets.length || targets.some((target) => !target.endsWith(".sol") || target.startsWith("-"))) {
+    throw new Error("Target build requires explicit Solidity paths");
+  }
   const args: string[] = ["forge", "build"];
-  if (quiet) args.push("-q");
+  if (isQuiet) args.push("-q");
 
   // Only skip if none of the targets are in those buckets (skip filters can exclude explicit paths).
   if (shouldSkipTest(targets)) args.push("--skip", "test");
   if (shouldSkipScript(targets)) args.push("--skip", "script");
 
-  args.push(...targets);
+  // --skip is variadic: terminate options before the target paths, otherwise Forge treats
+  // every requested source as another skip filter and silently compiles something else.
+  args.push("--", ...targets);
+  return args;
+}
+
+async function runForgeBuild(targets: string[]): Promise<number> {
+  const args = targetBuildArguments(targets, quiet);
 
   log(args.join(" "));
-  const proc = Bun.spawn(args, { cwd: contractsDir, stdout: "inherit", stderr: "inherit" });
+  const proc = Bun.spawn(args, {
+    cwd: contractsDir,
+    stdout: "inherit",
+    stderr: "inherit",
+    env: process.env,
+  });
   return await proc.exited;
 }
 
@@ -57,4 +73,4 @@ async function main() {
   process.exit(exitCode);
 }
 
-main();
+if (import.meta.main) main();

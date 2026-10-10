@@ -45,6 +45,67 @@ export const HATS_MODULE_ABI = [
     inputs: [{ name: "garden", type: "address" }],
     outputs: [{ name: "", type: "bool" }],
   },
+  // Exact hat membership per role (GARDEN_ROLE_HAT_FUNCTIONS).
+  {
+    type: "function",
+    name: "isGardenerOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isEvaluatorOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isOperatorOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isOwnerOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isFunderOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isCommunityOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
 ] as const;
 
 export const HATS_MODULE_CONVICTION_ABI = [

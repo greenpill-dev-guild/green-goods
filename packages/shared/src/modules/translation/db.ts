@@ -19,7 +19,12 @@ interface TranslationDB {
   translations: CachedTranslation;
 }
 
-class TranslationCache {
+export interface TranslationCache {
+  get(text: string, source: string, target: string): Promise<string | null>;
+  set(text: string, translated: string, source: string, target: string): Promise<void>;
+}
+
+class IndexedDbTranslationCache implements TranslationCache {
   private db: IDBPDatabase<TranslationDB> | null = null;
 
   async init(): Promise<IDBPDatabase<TranslationDB>> {
@@ -110,4 +115,4 @@ class TranslationCache {
   }
 }
 
-export const translationCache = new TranslationCache();
+export const translationCache = new IndexedDbTranslationCache();

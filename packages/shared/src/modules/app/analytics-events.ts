@@ -13,13 +13,11 @@
  */
 
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
-import { track } from "./posthog";
+import { track, type TrackOptions } from "./posthog";
 
-// ============================================================================
 // TRACKER FACTORY
-// ============================================================================
 
-type AuthMode = "passkey" | "wallet" | "embedded" | null;
+export type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
 export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
 export type AuthPasskeyOutcome = "started" | "success" | "failed";
@@ -50,16 +48,14 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 /**
  * Creates a typed tracking function that automatically converts keys to snake_case
  */
-function createTracker<T extends Record<string, unknown>>(
+export function createTracker<T extends Record<string, unknown>>(
   eventName: string,
-  options?: { includeSessionId?: boolean }
+  options?: TrackOptions
 ) {
   return (props: T) => track(eventName, toSnakeCase(props), options);
 }
 
-// ============================================================================
 // EVENT NAMES
-// ============================================================================
 
 export const ANALYTICS_EVENTS = {
   // Auth
@@ -79,10 +75,8 @@ export const ANALYTICS_EVENTS = {
   GARDEN_JOIN_STARTED: "garden_join_started",
   GARDEN_JOIN_SUCCESS: "garden_join_success",
   GARDEN_JOIN_FAILED: "garden_join_failed",
+  GARDEN_JOIN_CANCELLED: "garden_join_cancelled",
   GARDEN_JOIN_ALREADY_MEMBER: "garden_join_already_member",
-  GARDEN_AUTO_JOIN_STARTED: "garden_auto_join_started",
-  GARDEN_AUTO_JOIN_SUCCESS: "garden_auto_join_success",
-  GARDEN_AUTO_JOIN_FAILED: "garden_auto_join_failed",
 
   // Work Submission
   WORK_SUBMISSION_STARTED: "work_submission_started",
@@ -98,6 +92,8 @@ export const ANALYTICS_EVENTS = {
   WORK_APPROVAL_STARTED: "work_approval_started",
   WORK_APPROVAL_SUCCESS: "work_approval_success",
   WORK_APPROVAL_FAILED: "work_approval_failed",
+  WORK_APPROVAL_LIFECYCLE: "work_approval_lifecycle",
+  WORK_APPROVAL_PRESENTATION_FAILED: "work_approval_presentation_failed",
   WORK_REJECTION_SUCCESS: "work_rejection_success",
 
   // Admin: Garden Management
@@ -130,11 +126,14 @@ export const ANALYTICS_EVENTS = {
   ADMIN_ACTION_CREATE_SUCCESS: "admin_action_create_success",
   ADMIN_ACTION_CREATE_FAILED: "admin_action_create_failed",
   ADMIN_ACTION_UPDATE_SUCCESS: "admin_action_update_success",
+
+  // Admin: Harvest distribution
+  ADMIN_HARVEST_DISTRIBUTION_STARTED: "admin_harvest_distribution_started",
+  ADMIN_HARVEST_DISTRIBUTION_HARVEST: "admin_harvest_distribution_harvest",
+  ADMIN_HARVEST_DISTRIBUTION_OUTCOME: "admin_harvest_distribution_outcome",
 } as const;
 
-// ============================================================================
 // AUTH TRACKING
-// ============================================================================
 
 type AuthPasskeyTelemetry = {
   source: AuthPasskeySource;
@@ -188,9 +187,7 @@ export const trackAuthSwitchMethod = createTracker<{
   to: "passkey" | "wallet";
 }>(ANALYTICS_EVENTS.AUTH_SWITCH_METHOD);
 
-// ============================================================================
 // GARDEN JOIN TRACKING
-// ============================================================================
 
 export const trackGardenJoinStarted = createTracker<{
   gardenAddress: string;
@@ -205,34 +202,29 @@ export const trackGardenJoinSuccess = createTracker<{
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
+/**
+ * Genuine failures only — telemetry carries the parsed error family, never the
+ * raw message (viem embeds the signer address). A declined prompt is an abort,
+ * not a breakage: it emits `trackGardenJoinCancelled` and stays out of the
+ * funnel, mirroring the `garden_join_already_member` precedent.
+ */
 export const trackGardenJoinFailed = createTracker<{
   gardenAddress: string;
   error: string;
+  parsedErrorFamily: string;
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
+
+export const trackGardenJoinCancelled = createTracker<{
+  gardenAddress: string;
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED);
 
 export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
   ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
 );
 
-export const trackGardenAutoJoinStarted = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_STARTED);
-
-export const trackGardenAutoJoinSuccess = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  txHash: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_SUCCESS);
-
-export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; error: string }>(
-  ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_FAILED
-);
-
-// ============================================================================
 // WORK SUBMISSION TRACKING
-// ============================================================================
 
 const workSubmissionTrackerOptions = { includeSessionId: false };
 
@@ -319,9 +311,7 @@ export const trackWorkSubmissionOffline = createTracker<{
   jobId: string;
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_OFFLINE);
 
-// ============================================================================
 // WORK APPROVAL TRACKING
-// ============================================================================
 
 export const trackWorkApprovalStarted = createTracker<{
   workUID: string;
@@ -351,9 +341,23 @@ export const trackWorkApprovalFailed = createTracker<{
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.WORK_APPROVAL_FAILED);
 
-// ============================================================================
+export const trackWorkApprovalLifecycle = createTracker<{
+  approved: boolean;
+  authMode: AuthMode;
+  stage: "handoff" | "broadcast" | "confirmed" | "indexing" | "completed" | "cancelled";
+  reason?: "receipt-timeout" | "indexer-delay" | "presentation-failed";
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_LIFECYCLE);
+
+export const trackWorkApprovalPresentationFailed = createTracker<{
+  approved: boolean;
+  failureReason: "detail-resolution" | "inspector-close";
+  resolutionStatus: "loading" | "resolved" | "temporarily-absent" | "not-found" | "error";
+}>(ANALYTICS_EVENTS.WORK_APPROVAL_PRESENTATION_FAILED, {
+  anonymizeIdentity: true,
+  includeSessionId: false,
+});
+
 // WALLET SUBMISSION TIMING
-// ============================================================================
 
 export function trackWalletSubmissionTiming(props: {
   gardenAddress: string;
@@ -376,9 +380,7 @@ export function trackWalletSubmissionTiming(props: {
   });
 }
 
-// ============================================================================
 // ADMIN: GARDEN MANAGEMENT
-// ============================================================================
 
 export const trackAdminGardenCreateStarted = createTracker<{
   gardenName: string;
@@ -418,9 +420,7 @@ export const trackAdminAssessmentCreateFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_ASSESSMENT_CREATE_FAILED);
 
-// ============================================================================
 // ADMIN: MEMBER MANAGEMENT
-// ============================================================================
 
 export const trackAdminMemberAddStarted = createTracker<{
   gardenAddress: string;
@@ -462,9 +462,7 @@ export const trackAdminMemberRemoveFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_MEMBER_REMOVE_FAILED);
 
-// ============================================================================
 // ADMIN: DEPLOYMENT
-// ============================================================================
 
 export const trackAdminDeployStarted = createTracker<{ chainId: number; contractType: string }>(
   ANALYTICS_EVENTS.ADMIN_DEPLOY_STARTED
@@ -483,9 +481,7 @@ export const trackAdminDeployFailed = createTracker<{
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED);
 
-// ============================================================================
 // ADMIN: ACTION MANAGEMENT
-// ============================================================================
 
 export const trackAdminActionCreateStarted = createTracker<{
   gardenAddress: string;

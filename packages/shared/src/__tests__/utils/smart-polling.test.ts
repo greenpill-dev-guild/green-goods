@@ -1,7 +1,7 @@
 /**
  * Tests for smart polling with early exit
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -120,6 +120,32 @@ describe("smart polling with early exit", () => {
     await promise;
 
     // Should NOT have attempted 3 or 4 (early exit)
+    expect(onAttempt).toHaveBeenCalledTimes(2);
+  });
+
+  it("exits early once `until` holds, for a change that leaves the counts as they were", async () => {
+    const onAttempt = vi.fn();
+    const queryKey = ["works", "online", "garden1", 11155111];
+    // A local row stands in for the work; the indexed row replaces it one for one.
+    mockQueryData.set(JSON.stringify(queryKey), [{ id: "work", local: true }]);
+    let replaced = false;
+
+    const promise = pollQueriesAfterTransaction({
+      queryKeys: [queryKey],
+      onAttempt,
+      baseDelay: 1000,
+      until: () => replaced,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onAttempt).toHaveBeenCalledTimes(1);
+
+    mockQueryData.set(JSON.stringify(queryKey), [{ id: "work" }]);
+    replaced = true;
+    await vi.advanceTimersByTimeAsync(1000);
+    // Nothing is left to run once polling has stopped; a poll still going would attempt again.
+    await vi.runAllTimersAsync();
+    await promise;
+
     expect(onAttempt).toHaveBeenCalledTimes(2);
   });
 

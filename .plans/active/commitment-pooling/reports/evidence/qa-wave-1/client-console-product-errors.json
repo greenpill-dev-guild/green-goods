@@ -1,0 +1,23 @@
+{
+  "excluded": "Chrome extension content-script errors were QA-tooling noise and are not product findings.",
+  "errors": [
+    {
+      "level": "error",
+      "message": "[2026-08-25T03:25:21.331Z] [ERROR] [ServiceWorker] Service Worker registration failed Object",
+      "timestamp": "2026-08-25T03:25:21.338Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "In HTML, %s cannot be a descendant of <%s>.\nThis will cause a hydration error.%s <div> p \n\n  ...\n    <div className=\"h-full min...\">\n      <EndowmentDrawer>\n      <Outlet context={{gardenId:\"...\"}}>\n        <RenderedRoute match={{...}} routeContext={{outlet:null, ...}}>\n          <GardenCommitment>\n            <CommitmentDetailShell onBack={function t2} title=\"Mulch the ...\" bar={null}>\n              <div className=\"flex h-ful...\">\n                <TopNav>\n                <div className=\"min-h-0 fl...\">\n                  <div className=\"space-y-4 ...\">\n                    <h1>\n                    <CommitmentIdentity commitment={{id:\"42161-...\", ...}} contributors={[...]} seat=\"provider\" ...>\n                      <section className=\"rounded-[v...\" data-component=\"Commitment...\" data-tone=\"kept\">\n                        <h2>\n                        <p>\n                        <div className=\"mt-2\">\n                          <Provenance commitment={{id:\"42161-...\", ...}}>\n>                           <p\n>                             className=\"flex flex-wrap items-center gap-1 text-xs text-text-sub-600\"\n>                             data-component=\"ConfirmProvenance\"\n>                             data-path=\"POOL_FALLBACK\"\n>                           >\n                              <AddressDisplay address=\"0xfbaf2a97...\" showCopyButton={false}>\n                                <div className=\"flex items...\">\n                                  <button>\n>                                 <div\n>                                   id=\"_r_1_\"\n>                                   popover=\"hint\"\n>                                   className=\"px-2 py-1 bg-bg-sub text-text-strong text-xs rounded whitespace-nowrap ...\"\n>                                   style={{inset:\"unset\",margin:\"unset\"}}\n>                                 >\n                              ...\n                      ...\n                    ...\n            ...\n",
+      "timestamp": "2026-08-25T03:26:56.465Z",
+      "url": "https://localhost:3001/@vite/client"
+    },
+    {
+      "level": "error",
+      "message": "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. p <div>",
+      "timestamp": "2026-08-25T03:26:56.465Z",
+      "url": "https://localhost:3001/@vite/client"
+    }
+  ]
+}

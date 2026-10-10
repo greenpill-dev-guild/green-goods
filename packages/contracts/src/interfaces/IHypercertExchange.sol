@@ -9,7 +9,6 @@ library OrderStructs {
     enum QuoteType {
         MakerBid, // 0 = buyer is maker
         MakerAsk // 1 = seller is maker
-
     }
 
     /// @notice Collection type for the order
@@ -17,7 +16,6 @@ library OrderStructs {
         ERC721, // 0
         ERC1155, // 1
         Hypercert // 2
-
     }
 
     /// @notice Maker order (signed off-chain by the seller/buyer)

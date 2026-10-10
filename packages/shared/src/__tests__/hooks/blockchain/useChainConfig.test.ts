@@ -1,6 +1,6 @@
 /**
  * Chain Configuration Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the pure function wrappers in useChainConfig.ts.
  * These hooks delegate to config/blockchain.ts, so we mock that module
@@ -34,6 +34,10 @@ vi.mock("../../../config/blockchain", () => ({
       actionRegistry: "0xActionRegistry",
     },
   }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 import { getEASConfig, getNetworkConfig } from "../../../config/blockchain";

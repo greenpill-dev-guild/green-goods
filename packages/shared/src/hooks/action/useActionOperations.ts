@@ -3,23 +3,28 @@
  *
  * Provides functions to manage actions in the ActionRegistry.
  * Uses a shared executor to eliminate duplication across 6 operations.
- * Each operation follows: wallet check → simulation → execution → refetch.
+ * Each operation follows: account check → simulation → execution → refetch.
  */
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
-import type { Abi, WalletClient } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
-import { getChain } from "../../config/chains";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import type { Abi } from "viem";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { useIntl } from "react-intl";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { toastService } from "../../components/toast";
-import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
+import {
+  type ActionOperationCommand,
+  type ActionOperationResult,
+  createDefaultActionOperationPorts,
+  executeActionOperation,
+} from "../../modules/action/action-operation-command";
 import { Capital, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { type ToastActionOptions, useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../../config/query-keys";
+import { useToastAction } from "../app/useToastAction";
+import { actionsKeys } from "../../config/query-keys/garden";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /** Delay before refetching after transaction to allow indexer sync */
@@ -28,93 +33,11 @@ const INDEXER_SYNC_DELAY_MS = 5000;
 /**
  * Result of an action operation
  */
-export interface ActionOperationResult {
-  /** Transaction hash if successful */
-  hash?: `0x${string}`;
-  /** Whether the operation was successful */
-  success: boolean;
-  /** Error if operation failed */
-  error?: {
-    name: string;
-    message: string;
-    action?: string;
-  };
-}
+export type { ActionOperationResult } from "../../modules/action/action-operation-command";
 
 // ---------------------------------------------------------------------------
 // Core executor — shared by all 6 operations
 // ---------------------------------------------------------------------------
-
-interface ActionOpConfig {
-  functionName: string;
-  args: unknown[];
-  messages: { loading: string; success: string; error: string };
-}
-
-interface ActionOpDeps {
-  contractAddress: `0x${string}`;
-  abi: Abi;
-  walletClient: WalletClient;
-  address: `0x${string}`;
-  executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
-  scheduleBackgroundRefetch: () => void;
-  chainId: number;
-}
-
-/**
- * Executes an ActionRegistry contract call with simulation, toast, and refetch.
- * Extracted from the per-operation functions to eliminate ~400 lines of duplication.
- */
-async function executeActionOperation(
-  config: ActionOpConfig,
-  deps: ActionOpDeps
-): Promise<ActionOperationResult> {
-  // Step 1: Simulate the transaction
-  const simulation = await simulateTransaction(
-    deps.contractAddress,
-    deps.abi,
-    config.functionName,
-    config.args,
-    deps.address,
-    deps.chainId
-  );
-
-  if (!simulation.success) {
-    toastService.error({
-      title: simulation.error?.name ?? "Transaction Failed",
-      message: simulation.error?.message ?? "Transaction simulation failed",
-      context: "action operation",
-    });
-    return { success: false, error: simulation.error };
-  }
-
-  // Step 2: Execute the actual transaction
-  const hash = await deps.executeWithToast(
-    async () => {
-      await ensureAppKitWalletChain(deps.chainId);
-      await assertLocalArbitrumForkWallet();
-
-      return deps.walletClient.writeContract({
-        address: deps.contractAddress,
-        abi: deps.abi,
-        functionName: config.functionName,
-        account: deps.address,
-        args: config.args,
-        chain: getChain(deps.chainId),
-      });
-    },
-    {
-      loadingMessage: config.messages.loading,
-      successMessage: config.messages.success,
-      errorMessage: config.messages.error,
-    }
-  );
-
-  // Step 3: Schedule background refetch for indexer sync
-  deps.scheduleBackgroundRefetch();
-
-  return { hash, success: true };
-}
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -127,32 +50,35 @@ export function useActionOperations(chainId: number) {
   const [isLoading, setIsLoading] = useState(false);
 
   const { executeWithToast } = useToastAction();
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const address = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const contracts = getNetworkContracts(chainId);
   const queryClient = useQueryClient();
 
   // Schedule background refetch to sync with indexer
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
     useCallback(
-      () => queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) }),
+      () => queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) }),
       [queryClient, chainId]
     ),
     INDEXER_SYNC_DELAY_MS
   );
 
   /**
-   * Wraps an operation with wallet check, loading tracking, and error parsing.
+   * Wraps an operation with account check, loading tracking, and error parsing.
    */
   async function withTracking(
-    buildConfig: (deps: ActionOpDeps) => ActionOpConfig
+    buildConfig: () => ActionOperationCommand
   ): Promise<ActionOperationResult> {
-    if (!walletClient || !address) {
+    if (!address || !sender) {
       return {
         success: false,
         error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
+          name: "AccountNotReady",
+          message: formatMessage({
+            id: !address ? "app.account.signInRequired" : "app.account.signerNotReady",
+          }),
         },
       };
     }
@@ -160,20 +86,38 @@ export function useActionOperations(chainId: number) {
     loadingCount.current++;
     setIsLoading(true);
 
-    const deps: ActionOpDeps = {
+    const call = {
+      ...buildConfig(),
       contractAddress: contracts.actionRegistry as `0x${string}`,
       abi: ActionRegistryABI as Abi,
-      walletClient,
-      address: address as `0x${string}`,
-      executeWithToast,
-      scheduleBackgroundRefetch,
+      account: address as `0x${string}`,
       chainId,
     };
 
     try {
-      return await executeActionOperation(buildConfig(deps), deps);
+      const result = await executeActionOperation(
+        call,
+        createDefaultActionOperationPorts({ executeWithToast, transactionSender: sender })
+      );
+      if (!result.success) {
+        toastService.error({
+          title: result.error?.name ?? "Transaction Failed",
+          message: result.error?.message ?? "Transaction simulation failed",
+          context: "action operation",
+        });
+      } else {
+        scheduleBackgroundRefetch();
+      }
+      return result;
     } catch (error) {
-      const parsed = parseContractError(error);
+      const parsed =
+        error instanceof TransactionConfirmationPendingError
+          ? {
+              name: error.name,
+              message: formatMessage({ id: "app.account.transactionPending" }),
+              action: undefined,
+            }
+          : parseContractError(error);
       return {
         success: false,
         error: {
@@ -285,7 +229,18 @@ export function useActionOperations(chainId: number) {
       },
     }));
 
+  const assertReady = async () => {
+    if (!address || !sender)
+      throw new Error(
+        formatMessage({
+          id: !address ? "app.account.signInRequired" : "app.account.signerNotReady",
+        })
+      );
+    await sender.assertOwnership?.(address, chainId);
+  };
+
   return {
+    assertReady,
     registerAction,
     updateActionStartTime,
     updateActionEndTime,

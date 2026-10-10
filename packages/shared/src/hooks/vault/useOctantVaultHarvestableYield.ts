@@ -15,7 +15,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import type {
@@ -24,7 +24,8 @@ import type {
   OctantVaultYieldStrategy,
 } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI, OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/blockchain/abis";
+import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/blockchain/abis/octant";
 
 export type OctantVaultHarvestableYieldStatus = "unavailable" | "zero" | "positive";
 export type OctantVaultHarvestableYieldUnavailableReason =
@@ -84,7 +85,7 @@ export function useOctantVaultHarvestableYield(
   const query = useQuery({
     queryKey:
       vaultAddress && chainId
-        ? queryKeys.vaults.octantHarvestableYield(vaultAddress, chainId, yieldStrategy?.address)
+        ? vaultsKeys.octantHarvestableYield(vaultAddress, chainId, yieldStrategy?.address)
         : (["greengoods", "vaults", "octantHarvestableYield", "disabled"] as const),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

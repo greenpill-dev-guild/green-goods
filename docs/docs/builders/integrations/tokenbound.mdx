@@ -4,7 +4,7 @@ sidebar_label: Tokenbound
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-08-30
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/accounts/Garden.sol
@@ -13,34 +13,15 @@ source_of_truth:
   - packages/shared/src/utils/blockchain/contracts.ts
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
-
 # Tokenbound Accounts (ERC-6551)
 
-<StatusBadge status="Live" />
+Each Garden token is associated with a deterministic tokenbound account that holds Garden-owned
+assets and participates in module flows.
 
-## Overview
-Tokenbound accounts are part of the live garden account model. Each garden token can map to a smart account that owns assets, stores metadata, and acts as the garden's protocol identity.
+The Garden token and account contracts own creation, authorization, and execution behavior. Shared
+blockchain utilities own application-side resolution. Callers must resolve with the selected chain,
+token contract, and token ID; an address from another chain is not interchangeable.
 
-## Current surfaces
-
-- Garden account contracts under `packages/contracts/src/accounts`.
-- Garden token contracts under `packages/contracts/src/tokens`.
-- TBA helper library in `packages/contracts/src/lib/TBA.sol`.
-- Shared contract utilities and deployment artifacts for consumers.
-
-## Builder notes
-
-- Keep garden-account assumptions chain-scoped; each frontend build targets one chain.
-- Use shared contract utilities and deployment artifacts rather than hardcoding addresses.
-- Separate gardener auth/smart accounts from garden tokenbound accounts in docs and UI copy.
-
-<NextBestAction
-  title="Next best action"
-  why="Contracts documentation explains how garden accounts fit into the broader protocol deployment."
-  actionLabel="Contracts package"
-  actionHref="../packages/contracts"
-  alternatives={[
-    {label: "Architecture", href: "../architecture"},
-  ]}
-/>
+Treat the account as a protocol identity and treasury boundary, not as a generic user wallet.
+Changes to execution or ownership require contract-level tests, deployment rehearsal, and explicit
+recovery analysis.

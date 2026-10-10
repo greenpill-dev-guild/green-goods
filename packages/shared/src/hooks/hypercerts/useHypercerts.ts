@@ -11,7 +11,8 @@ import {
 import type { HypercertRecord, HypercertStatus } from "../../types/hypercerts";
 import { ValidationError } from "../../utils/errors/validation-error";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { hypercertsKeys } from "../../config/query-keys/hypercert";
 
 /**
  * Sync status for newly minted hypercerts.
@@ -177,7 +178,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
   }, [chainId]);
 
   const listQuery = useQuery({
-    queryKey: queryKeys.hypercerts.list(gardenId, chainId, status),
+    queryKey: hypercertsKeys.list(gardenId, chainId, status),
     queryFn: () => {
       if (!gardenId) {
         throw new ValidationError("gardenId is required for listing hypercerts");
@@ -190,7 +191,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   const listMetadataQuery = useQuery({
     queryKey: [
-      ...queryKeys.hypercerts.all,
+      ...hypercertsKeys.all,
       "metadata",
       "list",
       chainId,
@@ -213,7 +214,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
   const shouldPoll = Boolean(optimisticData) && !hasFoundData && pollAttempts < MAX_POLL_ATTEMPTS;
 
   const detailQuery = useQuery({
-    queryKey: queryKeys.hypercerts.detail(hypercertId),
+    queryKey: hypercertsKeys.detail(hypercertId),
     queryFn: () => {
       if (!hypercertId) return Promise.resolve(null);
       return fetchHypercertWithFallback(hypercertId);
@@ -226,7 +227,7 @@ export function useHypercerts(params: UseHypercertsParams = {}): UseHypercertsRe
 
   const detailMetadataQuery = useQuery({
     queryKey: [
-      ...queryKeys.hypercerts.all,
+      ...hypercertsKeys.all,
       "metadata",
       "detail",
       chainId,

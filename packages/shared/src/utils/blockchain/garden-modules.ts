@@ -2,7 +2,7 @@ import { readContract } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import type { Address } from "../../types/domain";
-import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis";
+import { GARDEN_ACCOUNT_TOKEN_ABI, GARDEN_TOKEN_MODULES_ABI } from "./abis/garden";
 import { isZeroAddress } from "./address";
 
 export async function fetchGardensModuleAddress(

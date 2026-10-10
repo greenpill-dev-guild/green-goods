@@ -1,16 +1,16 @@
-import type { Domain, GardenAssessment } from "../../../types/domain";
+import type { Domain } from "../../../types/domain";
 import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
   PIPELINE_STAGE_CONFIG,
-  SUBMIT_WORK_CONTENT_ID,
-  type SortDirection,
   parseCertificationContentId,
   parseSortDirection,
   parseWorkDetailContentId,
+  parseWorkScope,
   resolvePipelineStageFromPath,
+  type SortDirection,
+  SUBMIT_WORK_CONTENT_ID,
   toCertificationContentId,
-  toHistoryContentId,
   toWorkDetailContentId,
 } from "./hub.utils";
 
@@ -18,46 +18,44 @@ type WorkStatusLike = {
   status?: string;
 };
 
-type HypercertLike = {
-  id: string;
-};
-
 export interface HubStageModelInput {
   requestedStage: HubPipelineStage;
+  /** Owners and stewards: the Work stage, where submissions are reviewed. */
   canManage: boolean;
-  canAssess: boolean;
-  canCertify: boolean;
-  canBrowseHistory: boolean;
+  /**
+   * Owners, stewards and evaluators, the people who can create an assessment:
+   * the Assessments and Hypercerts stages.
+   */
+  canReview: boolean;
+  /** The reader stewards at least one garden: the Confirm stage exists only then. */
+  canConfirm?: boolean;
+  /** Ordinary plus fallback rows waiting on the reader (useCommitmentsToConfirm). */
+  confirmCount?: number;
   works: WorkStatusLike[];
-  assessments: Pick<GardenAssessment, "id">[];
-  hypercerts: HypercertLike[];
 }
 
 export interface HubRouteSelectionInput {
   routeWorkId?: string;
   routeCertificationId?: string;
-  routeHistoryEventId?: string;
   activeWorkDetailId: string | null;
   activeCertificationId: string | null;
   isSubmitRoute: boolean;
   selectedWork: unknown;
   selectedCertification: unknown;
-  selectedHistoryEvent: unknown;
 }
 
 export interface HubRouteSheetInput {
   routeWorkId?: string;
   routeCertificationId?: string;
-  routeHistoryEventId?: string;
   isSubmitRoute: boolean;
 }
 
 export interface HubRouteStateInput {
   pathname: string;
   sortParam: string | null;
+  scopeParam?: string | null;
   routedWorkIdParam?: string;
   routedAssessmentIdParam?: string;
-  routedHistoryEventIdParam?: string;
   activeContentId: string | null;
 }
 
@@ -69,10 +67,21 @@ export interface HubWorkspaceStateInput {
   hasOpenHubInspector: boolean;
 }
 
+export type HubStageContentKind = "work" | "assess" | "confirm" | "certify";
+
+export interface HubSheetSelectionInput {
+  routeWorkId?: string;
+  routeCertificationId?: string;
+  activeWorkDetailId: string | null;
+  hasSelectedCertification: boolean;
+}
+
+export type HubSheetSelection = { kind: "work"; id: string } | { kind: "certification" } | null;
+
 type ActionTitleLike = {
   id: string | number | bigint;
   title: string;
-  domain?: Domain;
+  domain?: Domain | null;
 };
 
 export interface HubActionSummary {
@@ -84,11 +93,25 @@ export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
 }
 
+export function selectHubStageContent(stage: HubPipelineStage): HubStageContentKind {
+  return stage;
+}
+
+export function resolveHubSheetSelection({
+  routeWorkId,
+  routeCertificationId,
+}: HubSheetSelectionInput): HubSheetSelection {
+  // Selection snapshots can outlive navigation; only the route owns visibility.
+  if (routeWorkId) return { kind: "work", id: routeWorkId };
+  if (routeCertificationId) return { kind: "certification" };
+  return null;
+}
+
 export function buildActionTitleMap(actions: ActionTitleLike[]) {
   return new Map<number, HubActionSummary>(
     actions.map((action) => {
       const summary: HubActionSummary = { title: action.title };
-      if (action.domain !== undefined) {
+      if (action.domain !== null && action.domain !== undefined) {
         summary.domain = action.domain;
       }
       return [Number(action.id), summary];
@@ -99,22 +122,20 @@ export function buildActionTitleMap(actions: ActionTitleLike[]) {
 export function resolveHubRouteState({
   pathname,
   sortParam,
+  scopeParam,
   routedWorkIdParam,
   routedAssessmentIdParam,
-  routedHistoryEventIdParam,
   activeContentId,
 }: HubRouteStateInput) {
   const isSubmitRoute = pathname.endsWith("/work/submit");
   const routeWorkId = routedWorkIdParam;
   const routeCertificationId = routedAssessmentIdParam;
-  const routeHistoryEventId = routedHistoryEventIdParam;
   const activeWorkDetailId = parseWorkDetailContentId(activeContentId);
   const activeCertificationId = parseCertificationContentId(activeContentId);
   const { routeSheetContentId, routeSheetSide } = resolveHubRouteSheet({
     isSubmitRoute,
     routeWorkId,
     routeCertificationId,
-    routeHistoryEventId,
   });
 
   return {
@@ -123,11 +144,11 @@ export function resolveHubRouteState({
     isSubmitRoute,
     requestedStage: resolvePipelineStageFromPath(pathname),
     routeCertificationId,
-    routeHistoryEventId,
     routeSheetContentId,
     routeSheetSide,
     routeWorkId,
     sortDirection: parseSortDirection(sortParam),
+    workScope: parseWorkScope(scopeParam),
   };
 }
 
@@ -150,26 +171,25 @@ export function buildHubWorkspaceState({
 export function buildHubStageModel({
   requestedStage,
   canManage,
-  canAssess,
-  canCertify,
-  canBrowseHistory,
+  canReview,
+  canConfirm = false,
+  confirmCount = 0,
   works,
-  assessments,
-  hypercerts,
 }: HubStageModelInput) {
-  const certifiedAssessmentIds = new Set(hypercerts.map((hypercert) => hypercert.id));
+  // A count on the rail means "waiting on you", so only the two queues carry
+  // one. Assessments and Hypercerts list records, which wait on no one.
   const stageCounts: Record<HubPipelineStage, number | undefined> = {
     work: works.filter((work) => work.status === "pending").length,
-    assess: works.filter((work) => work.status === "approved").length,
-    certify: assessments.filter((assessment) => !certifiedAssessmentIds.has(assessment.id)).length,
-    history: undefined,
+    assess: undefined,
+    certify: undefined,
+    confirm: confirmCount,
   };
 
   const stageVisibility: Record<HubPipelineStage, boolean> = {
     work: canManage,
-    assess: canAssess,
-    certify: canCertify,
-    history: canBrowseHistory,
+    assess: canReview,
+    certify: canReview,
+    confirm: canConfirm,
   };
 
   const allStages = PIPELINE_STAGE_CONFIG.map((cfg) => ({
@@ -178,7 +198,7 @@ export function buildHubStageModel({
     visible: stageVisibility[cfg.id],
   }));
   const stages = allStages.filter((stageOption) => stageOption.visible);
-  const fallbackStage = stages[0]?.id ?? "history";
+  const fallbackStage = stages[0]?.id ?? "work";
   const stage = stages.some((option) => option.id === requestedStage)
     ? requestedStage
     : fallbackStage;
@@ -196,31 +216,18 @@ export function buildHubStageModel({
 export function resolveHubRouteSelection({
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
   activeWorkDetailId,
   activeCertificationId,
   isSubmitRoute,
   selectedWork,
   selectedCertification,
-  selectedHistoryEvent,
 }: HubRouteSelectionInput) {
   const persistedSelectedItem =
-    routeWorkId ??
-    routeCertificationId ??
-    routeHistoryEventId ??
-    activeWorkDetailId ??
-    activeCertificationId ??
-    null;
+    routeWorkId ?? routeCertificationId ?? activeWorkDetailId ?? activeCertificationId ?? null;
 
   return {
     hasOpenHubInspector: Boolean(
-      routeWorkId ||
-        routeCertificationId ||
-        routeHistoryEventId ||
-        isSubmitRoute ||
-        selectedWork ||
-        selectedCertification ||
-        selectedHistoryEvent
+      routeWorkId || routeCertificationId || isSubmitRoute || selectedWork || selectedCertification
     ),
     persistedSelectedItem,
   };
@@ -230,22 +237,19 @@ export function resolveHubRouteSheet({
   isSubmitRoute,
   routeWorkId,
   routeCertificationId,
-  routeHistoryEventId,
 }: HubRouteSheetInput): {
   routeSheetContentId: string | null;
   routeSheetSide: AdminSheetSide | null;
 } {
   const routeSheetSide: AdminSheetSide | null =
-    isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;
+    isSubmitRoute || routeWorkId || routeCertificationId ? "left" : null;
   const routeSheetContentId = isSubmitRoute
     ? SUBMIT_WORK_CONTENT_ID
     : routeWorkId
       ? toWorkDetailContentId(routeWorkId)
       : routeCertificationId
         ? toCertificationContentId(routeCertificationId)
-        : routeHistoryEventId
-          ? toHistoryContentId(routeHistoryEventId)
-          : null;
+        : null;
 
   return { routeSheetContentId, routeSheetSide };
 }
@@ -253,14 +257,45 @@ export function resolveHubRouteSheet({
 export function getHubResultCount(
   stage: HubPipelineStage,
   counts: {
-    pendingWorks: number;
-    assessmentQueue: number;
-    certificationQueue: number;
-    historyEvents: number;
+    works: number;
+    assessments: number;
+    hypercerts: number;
+    confirmQueue?: number;
   }
 ): number {
-  if (stage === "work") return counts.pendingWorks;
-  if (stage === "assess") return counts.assessmentQueue;
-  if (stage === "certify") return counts.certificationQueue;
-  return counts.historyEvents;
+  if (stage === "work") return counts.works;
+  if (stage === "assess") return counts.assessments;
+  if (stage === "certify") return counts.hypercerts;
+  return counts.confirmQueue ?? 0;
+}
+
+/**
+ * Whether the open stage's list could not be read. A failed read is not an
+ * empty list, so the stage says so instead of "none yet". Each stage answers
+ * for its own read: a work outage must not hide assessments that loaded, nor
+ * the reverse. A garden that could not be read fails every stage. The two
+ * record tabs say so only while they have nothing already read to show, so a
+ * refresh that fails in the background keeps the records on screen. The Work
+ * tab still says so on any failed work read: whether a review queue may show
+ * rows it could not refresh is a separate decision, left as it was. The
+ * Confirm stage reads its own queue and reports its own failures.
+ *
+ * It takes each read's error as it comes, so a caller has nothing to combine.
+ */
+export function hasHubStageDataError(
+  stage: HubPipelineStage,
+  read: {
+    gardenError: unknown;
+    worksError: unknown;
+    assessmentsError: unknown;
+    assessmentCount: number;
+    hypercertsError: unknown;
+    hypercertCount: number;
+  }
+): boolean {
+  if (read.gardenError) return true;
+  if (stage === "work") return Boolean(read.worksError);
+  if (stage === "assess") return Boolean(read.assessmentsError) && read.assessmentCount === 0;
+  if (stage === "certify") return Boolean(read.hypercertsError) && read.hypercertCount === 0;
+  return false;
 }

@@ -3,7 +3,7 @@ import type {ReactNode} from "react";
 import {StatusBadge, type FeatureStatus} from "./StatusBadge";
 import styles from "./styles.module.css";
 
-export type RoleAccent = "gardener" | "operator" | "assessment" | "funder" | "builder";
+export type RoleAccent = "gardener" | "steward" | "assessment" | "funder" | "builder";
 
 type RolePathCardProps = {
   title: string;

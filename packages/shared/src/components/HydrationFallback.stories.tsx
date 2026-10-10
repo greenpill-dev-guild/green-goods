@@ -14,9 +14,9 @@ const meta: Meta<typeof HydrationFallback> = {
       control: "boolean",
       description: "Show icon above spinner",
     },
-    message: {
-      control: "text",
-      description: "Optional loading message",
+    showMessage: {
+      control: "boolean",
+      description: "Show the loading line under the spinner",
     },
   },
   parameters: {
@@ -43,7 +43,7 @@ export const WithIcon: Story = {
 export const WithMessage: Story = {
   args: {
     appName: "Green Goods",
-    message: "Loading your dashboard...",
+    showMessage: true,
   },
 };
 
@@ -51,7 +51,7 @@ export const WithIconAndMessage: Story = {
   args: {
     appName: "Green Goods Admin",
     showIcon: true,
-    message: "Preparing your workspace...",
+    showMessage: true,
   },
 };
 
@@ -62,19 +62,11 @@ export const ClientStyle: Story = {
   },
 };
 
-export const AdminStyle: Story = {
-  args: {
-    appName: "Green Goods Admin",
-    showIcon: true,
-    message: "Loading administrative tools...",
-  },
-};
-
 export const DarkMode: Story = {
   args: {
     appName: "Green Goods",
     showIcon: true,
-    message: "Loading your dashboard...",
+    showMessage: true,
   },
   decorators: [
     (Story) => (

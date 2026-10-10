@@ -7,18 +7,40 @@
  * install dependencies, start services, write .env, or print secret values.
  */
 
+import { groups, parseHealthArgs } from "../lib/dev-modes.mjs";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+import {
+  foundryVersionMatches,
+  readPinnedFoundryVersion,
+} from "../contracts/check-foundry-version.mjs";
+import {
+  SUBMODULE_RECOVERY_COMMAND,
+  commandExists,
+  dependencyReadiness,
+  dockerEnvironment,
+  commandVersion,
+  inspectPersonalSkills,
+  inspectWorktreeHooks,
+  inspectPinnedNode,
+  inspectPinnedSubmodules,
+  majorVersion,
+  profileRequiresContractSubmodules,
+  readEnginesNodeFloor,
+  readPinnedNodeVersion,
+} from "../lib/dev-shared.js";
+import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
+const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
+const requiredNodeVersion = readPinnedNodeVersion(projectRoot);
+const minimumNodeVersion = readEnginesNodeFloor(projectRoot);
 
-const validProfiles = new Set(["web", "full", "contracts", "upload", "prod", "prod-mirror"]);
 
 const profileLabels = {
   web: "Frontend QA",
@@ -29,49 +51,31 @@ const profileLabels = {
   "prod-mirror": "Production-backed local dev with local indexer mirror",
 };
 
-const profilePorts = {
-  web: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-  ],
-  full: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3008, label: "indexer postgres" },
-    { port: 3004, label: "storybook" },
-    { port: 3005, label: "agent" },
-    { port: 3006, label: "indexer graphql" },
-    { port: 3007, label: "envio indexer" },
-    { port: 3009, label: "anvil arbitrum fork" },
-  ],
-  contracts: [],
-  upload: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-  ],
-  prod: [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-  ],
-  "prod-mirror": [
-    { port: 3001, label: "client" },
-    { port: 3002, label: "admin" },
-    { port: 3003, label: "docs" },
-    { port: 3004, label: "storybook" },
-    { port: 3006, label: "indexer graphql" },
-    { port: 3007, label: "envio indexer" },
-    { port: 3008, label: "indexer postgres" },
-  ],
+const serviceByPort = {
+  3001: "client",
+  3002: "admin",
+  3003: "docs",
+  3004: "storybook",
+  3005: "agent",
+  3006: "indexer",
+  3007: "indexer",
+  3008: "indexer",
+  3009: "anvil-arbitrum",
 };
 
+const modePorts = Object.fromEntries(Object.entries(groups).map(([mode, services]) => [
+  mode,
+  Object.entries(serviceByPort)
+    .filter(([, service]) => services.includes(service))
+    .map(([port, service]) => ({ port: Number(port), label: service })),
+]));
+const profilePorts = { ...modePorts, contracts: [], upload: modePorts.web.filter(({ port }) => port !== 3004) };
+
+const dockerEnv = dockerEnvironment();
+
+// Node is checked against the `.mise.toml` pin by checkPinnedNode, not by a
+// floor of its own.
 const requiredTools = [
-  { cmd: "node", label: "Node.js", minMajor: 22 },
   { cmd: "bun", label: "Bun", minMajor: 1 },
   { cmd: "git", label: "Git" },
 ];
@@ -89,46 +93,19 @@ let opReady = null;
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    `Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload|prod|prod-mirror] [--json]\n`
+    `Usage: bun run dev:health -- [${Object.keys(groups).join("|")}] [--json]\nAdvanced: --profile web|full|contracts|upload|prod|prod-mirror [--core]\n`
   );
   process.exit(exitCode);
 }
 
-function parseArgs(argv) {
-  const options = { profile: "web", json: false };
-
-  for (let index = 0; index < argv.length; index++) {
-    const arg = argv[index];
-
-    if (arg === "--help" || arg === "-h") usage(0);
-    if (arg === "--json") {
-      options.json = true;
-      continue;
-    }
-
-    if (arg === "--profile") {
-      options.profile = argv[++index] || "";
-      continue;
-    }
-
-    if (arg.startsWith("--profile=")) {
-      options.profile = arg.slice("--profile=".length);
-      continue;
-    }
-
-    process.stderr.write(`Unknown option: ${arg}\n`);
-    usage(1);
-  }
-
-  if (!validProfiles.has(options.profile)) {
-    process.stderr.write(`Invalid profile: ${options.profile || "(missing)"}\n`);
-    usage(1);
-  }
-
-  return options;
+let options;
+try {
+  options = parseHealthArgs(process.argv.slice(2));
+  if (options.help) usage(0);
+} catch (error) {
+  console.error(error.message);
+  usage(1);
 }
-
-const options = parseArgs(process.argv.slice(2));
 
 function add(level, title, detail = "", fix = "", metadata = {}) {
   results.push({ level, title, detail, fix, ...metadata });
@@ -136,6 +113,14 @@ function add(level, title, detail = "", fix = "", metadata = {}) {
 
 function requiredLevel(requiredProfiles, fallback = "warn") {
   return requiredProfiles.includes(options.profile) ? "fail" : fallback;
+}
+
+function expectedCompatibilityKey(port) {
+  const profile =
+    options.profile === "prod" || options.profile === "prod-mirror"
+      ? options.profile
+      : options.fork ? "fork" : "local-live";
+  return `${serviceByPort[port]}:${profile}`;
 }
 
 function parseEnvFile(filePath) {
@@ -236,7 +221,28 @@ function checkPlatform() {
   });
 }
 
+// A Node outside the range package.json engines accepts is a failure, not a
+// warning: CI installs the pinned major only, and the validation policy blocks
+// every local check whose toolchain differs from it. An unreadable version
+// warns instead, because it is not evidence of a wrong Node.
+const nodeLevels = { matched: "pass", mismatched: "fail", unknown: "warn" };
+const nodeTitles = {
+  matched: "Node.js matches the repository pin",
+  mismatched: "Node.js does not match the repository pin",
+  unknown: "Node.js version could not be read",
+};
+
+function checkPinnedNode() {
+  const node = inspectPinnedNode({ pinned: requiredNodeVersion, minimum: minimumNodeVersion });
+  if (node.runtimeNote) {
+    add("info", "Bun is running this check", node.runtimeNote, "", { check: "runtime:bun" });
+  }
+  add(nodeLevels[node.state], nodeTitles[node.state], node.detail, node.fix, { check: "tool:node" });
+}
+
 function checkTools() {
+  checkPinnedNode();
+
   for (const tool of requiredTools) {
     if (!commandExists(tool.cmd)) {
       add("fail", `${tool.label} not found`, "", `Install ${tool.label}, then rerun bun run setup.`, {
@@ -252,7 +258,7 @@ function checkTools() {
         "fail",
         `${tool.label} version is too old`,
         `${version || "unknown version"} detected; ${tool.minMajor}+ required.`,
-        tool.cmd === "node" ? "Install Node 22, or run mise install from the repo root." : "",
+        "",
         { check: `tool:${tool.cmd}` }
       );
       continue;
@@ -262,42 +268,46 @@ function checkTools() {
   }
 
   if (options.profile === "full" || options.profile === "prod-mirror") {
-    if (!commandExists("docker")) {
+    if (spawnSync("docker", ["--version"], { env: dockerEnv, timeout: 5_000 }).status !== 0) {
       add("fail", "Docker not found", "Required for full-stack/indexer work.", "Install OrbStack, Docker Desktop, or Docker Engine.", {
         check: "tool:docker",
       });
     } else {
-      add("pass", "Docker available", commandVersion("docker"), "", { check: "tool:docker" });
+      add("pass", "Docker available", "Docker CLI detected", "", { check: "tool:docker" });
     }
 
-    if (!commandExists("pnpm")) {
-      add("warn", "pnpm not found", "Only required for native generated-indexer package work.", "", {
-        check: "tool:pnpm",
-      });
-    } else {
-      add("pass", "pnpm available", commandVersion("pnpm"), "", { check: "tool:pnpm" });
-    }
   }
 
-  if (options.profile === "contracts") {
+  if (options.profile === "contracts" || options.fork) {
     if (!commandExists("forge")) {
       add(
         "fail",
         "Foundry not found",
         "Required for contracts work.",
-        "Install Foundry with curl -L https://foundry.paradigm.xyz | bash && foundryup.",
+        `Run foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}.`,
         { check: "tool:forge" }
       );
     } else {
-      add("pass", "Foundry available", commandVersion("forge"), "", { check: "tool:forge" });
+      const installedVersion = commandVersion("forge");
+      if (!foundryVersionMatches(installedVersion, requiredFoundryVersion)) {
+        add(
+          "fail",
+          "Foundry version mismatch",
+          `${installedVersion || "unknown version"} detected; ${requiredFoundryVersion} required.`,
+          `Run foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}.`,
+          { check: "tool:forge" }
+        );
+      } else {
+        add("pass", "Foundry available", installedVersion, "", { check: "tool:forge" });
+      }
     }
   }
 }
 
 function checkDocker() {
-  if ((options.profile !== "full" && options.profile !== "prod-mirror") || !commandExists("docker")) return;
+  if ((options.profile !== "full" && options.profile !== "prod-mirror") || spawnSync("docker", ["--version"], { env: dockerEnv, timeout: 5_000 }).status !== 0) return;
 
-  const result = spawnSync("docker", ["ps"], { stdio: "ignore" });
+  const result = spawnSync("docker", ["info"], { env: dockerEnv, stdio: "ignore", timeout: 10_000 });
   if (result.status === 0) {
     add("pass", "Docker daemon running", "Required for full-stack/indexer development.", "", {
       check: "docker-daemon",
@@ -307,21 +317,46 @@ function checkDocker() {
       "fail",
       "Docker daemon is not running",
       "Full-stack/indexer work needs Docker.",
-      process.platform === "darwin" ? "Open OrbStack or Docker Desktop, then rerun bun run dev:doctor -- --profile full." : "",
+      process.platform === "darwin" ? "Open OrbStack or Docker Desktop, then rerun bun run dev:health -- --profile full." : "",
       { check: "docker-daemon" }
     );
   }
 }
 
+function checkContractSubmodules() {
+  if (!profileRequiresContractSubmodules(options.profile)) return;
+  const status = inspectPinnedSubmodules({ cwd: projectRoot });
+  if (status.ready) {
+    add(
+      "pass",
+      "Pinned contract submodules are ready",
+      "kernel and tokenbound match their recursive gitlinks.",
+      "",
+      { check: "contracts:submodules" },
+    );
+    return;
+  }
+
+  add(
+    "fail",
+    `Pinned contract submodules are ${status.state}`,
+    status.detail,
+    status.state === "uninitialized"
+      ? `Run ${SUBMODULE_RECOVERY_COMMAND}.`
+      : "Inspect the reported submodule state; the doctor will not reset local or mismatched content.",
+    { check: "contracts:submodules", submoduleState: status.state },
+  );
+}
+
 function checkOpReadiness() {
-  const templatePath = path.join(projectRoot, ".env.template");
+  const templatePath = path.join(projectRoot, "env.template");
   const opRefKeys = templateOpRefs(templatePath);
 
   if (opRefKeys.length === 0) {
     add(
       "info",
-      "No 1Password refs in .env.template",
-      ".env values are direct (or .env.template doesn't exist yet). Skipping op signin check.",
+      "No 1Password refs in env.template",
+      ".env values are direct (or env.template doesn't exist yet). Skipping op signin check.",
       "",
       { check: "op:template-refs" }
     );
@@ -334,7 +369,7 @@ function checkOpReadiness() {
     add(
       "fail",
       "1Password CLI is not installed",
-      `${opRefKeys.length} op:// refs in .env.template require resolution.`,
+      `${opRefKeys.length} op:// refs in env.template require resolution.`,
       "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`.",
       { check: "op:cli" }
     );
@@ -348,7 +383,7 @@ function checkOpReadiness() {
   add(
     "info",
     "1Password CLI present",
-    `${opRefKeys.length} op:// ref(s) in .env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
+    `${opRefKeys.length} op:// ref(s) in env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
     "",
     { check: "op:cli-present" }
   );
@@ -363,7 +398,7 @@ function checkEnvSchemaCompleteness() {
   if (envCheck.status === 0) {
     add(
       "pass",
-      ".env satisfies .env.schema",
+      ".env satisfies env.schema",
       (envCheck.stdout || "").trim() || "All required keys present and non-empty.",
       "",
       { check: "env:schema-complete" }
@@ -371,9 +406,9 @@ function checkEnvSchemaCompleteness() {
   } else {
     add(
       "fail",
-      ".env is incomplete vs .env.schema",
+      ".env is incomplete vs env.schema",
       (envCheck.stderr || envCheck.stdout || "").trim().split("\n").slice(0, 5).join(" "),
-      "Run `bun run env:sync` to materialize from .env.template, or fill missing keys in .env directly.",
+      "Run `bun run env:sync` to materialize from env.template, or fill missing keys in .env directly.",
       { check: "env:schema-complete" }
     );
   }
@@ -381,7 +416,7 @@ function checkEnvSchemaCompleteness() {
 
 function checkEnv() {
   const envPath = path.join(projectRoot, ".env");
-  const schemaPath = path.join(projectRoot, ".env.schema");
+  const schemaPath = path.join(projectRoot, "env.schema");
   const envFile = parseEnvFile(envPath);
   const schema = parseEnvFile(schemaPath);
 
@@ -420,7 +455,11 @@ function checkEnv() {
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
   const envioApiToken = valueFor(envFile, "ENVIO_API_TOKEN");
   const envioApiTokenOpRef = valueFor(envFile, "ENVIO_API_TOKEN_OP_REF");
-  const apiBaseUrl = valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
+  const apiBaseUrl = ["prod", "prod-mirror"].includes(options.profile)
+    ? "https://agent.greengoods.app"
+    : ["full", "web"].includes(options.profile)
+      ? "http://127.0.0.1:3005"
+      : valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
   const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
   const hasPinataServer =
     hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
@@ -453,7 +492,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload signing credential missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set PINATA_JWT in root .env, or in .env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
+      "Set PINATA_JWT in root .env, or in env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
       { check: "env:pinata" }
     );
   }
@@ -486,7 +525,7 @@ function checkEnv() {
         "fail",
         "Envio API token missing for live-indexer mirror",
         "The local mirror can start without it, but live Arbitrum catch-up may stall or lag beyond the smoke threshold.",
-        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in .env.template and run `bun run env:sync`.",
+        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in env.template and run `bun run env:sync`.",
         { check: "env:envio-api-token" }
       );
     }
@@ -499,7 +538,7 @@ function checkEnv() {
         : "The default stack can start without it, but the local Docker indexer mirrors live configured networks and may fall behind or receive HyperSync 429s without a token.",
       hasEnvioApiToken
         ? ""
-        : "Set ENVIO_API_TOKEN in root .env when you need `bun run dev:smoke:full` or `bun run dev:prod:mirror` to prove fresh indexer catch-up.",
+        : "Set ENVIO_API_TOKEN in root .env when you need `bun run dev:smoke -- full` or `bun run dev -- prod-mirror` to prove fresh indexer catch-up.",
       { check: "env:envio-api-token" }
     );
   }
@@ -541,7 +580,7 @@ function checkEnv() {
     add(
       "pass",
       "Hosted production indexer selected by stack overlay",
-      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql",
+      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/e6edffd/v1/graphql",
       "",
       { check: "env:indexer-url" }
     );
@@ -558,7 +597,7 @@ function checkEnv() {
     options.profile === "full" ||
     options.profile === "upload"
   ) {
-    const indexerUrl = valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
+    const indexerUrl = options.profile === "full" ? "http://localhost:3006/v1/graphql" : valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
     if (indexerUrl.includes("localhost:3006")) {
       add("pass", "Indexer URL points to local GraphQL", "http://localhost:3006/v1/graphql", "", {
         check: "env:indexer-url",
@@ -585,11 +624,11 @@ function checkEnv() {
       "",
       { check: "env:chain-id" }
     );
-  } else if (options.profile === "full") {
+  } else if (options.profile === "full" || options.mode === "web") {
     add(
       "pass",
-      "Full-local stack targets an Arbitrum fork",
-      "The stack overlays VITE_DEV_CHAIN_MODE=arbitrum_fork, VITE_CHAIN_ID=42161, VITE_LOCAL_FORK_RPC_URL=http://127.0.0.1:3009, and VITE_ENABLE_ANVIL_WALLETS=true. Wallet writes mine in local Anvil state only.",
+      options.fork ? "Local Arbitrum fork selected" : "Local stack targets live Arbitrum One",
+      options.fork ? "Disposable wallet transactions stay in Anvil; passkeys are blocked. The indexer mirrors live networks, not fork-only writes." : "bun run dev clears fork mode, selects chain 42161, and routes the client/admin to the local agent and local live indexer. Confirmed transactions write to production Arbitrum.",
       "",
       { check: "env:chain-id" }
     );
@@ -632,58 +671,123 @@ function checkEnv() {
 function checkIndexerGenerated() {
   if (options.profile !== "full" && options.profile !== "prod-mirror") return;
 
-  const generatedDir = path.join(projectRoot, "packages/indexer/generated");
-  const generatedSrc = path.join(generatedDir, "src");
-  const generatedModules = path.join(generatedDir, "node_modules");
+  const indexerDir = path.join(projectRoot, "packages/indexer");
+  const generatedTypes = path.join(indexerDir, ".envio/types.d.ts");
+  const typeReference = path.join(indexerDir, "envio-env.d.ts");
+  const envioPackage = path.join(indexerDir, "node_modules/envio");
 
-  if (!fs.existsSync(generatedDir)) {
+  if (!fs.existsSync(generatedTypes)) {
     add(
       "fail",
-      "Indexer generated folder missing",
-      "Needed for indexer tests and full-stack Docker builds.",
-      "Run cd packages/indexer && bun run codegen && bun run setup-generated.",
-      { check: "indexer:generated" }
+      "Indexer v3 generated types missing",
+      "packages/indexer/.envio/types.d.ts is needed for strict handler and test types.",
+      "Run bun run --cwd packages/indexer codegen.",
+      { check: "indexer:generated-types" }
     );
-    return;
-  }
-
-  if (fs.existsSync(generatedSrc)) {
-    add("pass", "Indexer generated source exists", "packages/indexer/generated/src", "", {
-      check: "indexer:generated-src",
-    });
   } else {
-    add("fail", "Indexer generated source missing", "", "Run cd packages/indexer && bun run codegen.", {
-      check: "indexer:generated-src",
+    add("pass", "Indexer v3 generated types exist", "packages/indexer/.envio/types.d.ts", "", {
+      check: "indexer:generated-types",
     });
   }
 
-  if (fs.existsSync(generatedModules)) {
-    add("pass", "Indexer generated dependencies installed", "packages/indexer/generated/node_modules", "", {
-      check: "indexer:generated-deps",
+  if (fs.existsSync(typeReference)) {
+    add("pass", "Indexer v3 type reference exists", "packages/indexer/envio-env.d.ts", "", {
+      check: "indexer:type-reference",
     });
   } else {
     add(
-      "warn",
-      "Indexer generated dependencies missing",
-      "Needed for native indexer tests.",
-      "Run cd packages/indexer && bun run setup-generated.",
-      { check: "indexer:generated-deps" }
+      "fail",
+      "Indexer v3 type reference missing",
+      "envio-env.d.ts must link the generated module augmentation.",
+      "Run bun run --cwd packages/indexer codegen.",
+      { check: "indexer:type-reference" }
+    );
+  }
+
+  if (fs.existsSync(envioPackage)) {
+    add("pass", "Envio package installed", "packages/indexer/node_modules/envio", "", {
+      check: "indexer:dependency",
+    });
+  } else {
+    add(
+      "fail",
+      "Envio package missing",
+      "The root Bun install has not materialized the indexer dependency.",
+      "Run bun install --frozen-lockfile from the repository root.",
+      { check: "indexer:dependency" }
     );
   }
 }
 
 async function checkPorts() {
-  for (const item of profilePorts[options.profile]) {
+  for (const item of (options.mode ? modePorts[options.mode] : profilePorts[options.profile]).filter(({ port }) => !options.core || ![3003, 3004].includes(port))) {
     const available = await checkPort(item.port);
+    const ownership = inspectSurface({ port: item.port, portLive: !available });
     if (available) {
-      add("pass", `Port ${item.port} available`, item.label, "", { check: `port:${item.port}` });
+      if (ownership.state === "stale") {
+        add(
+          "warn",
+          `Port ${item.port} has a stale lease`,
+          `${item.label}; former owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid} is gone and no listener remains.`,
+          "The next repo stack launch will remove this stale claim before starting the service.",
+          { check: `port:${item.port}`, ownership }
+        );
+      } else if (ownership.state === "claimed-starting") {
+        const compatible =
+          ownership.claim.compatibilityKey === expectedCompatibilityKey(item.port);
+        add(
+          compatible ? "info" : "warn",
+          `Port ${item.port} is claimed and ${compatible ? "starting" : "incompatible"}`,
+          `${item.label}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          compatible
+            ? "Reuse that owning session; do not start a competing service."
+            : `This profile needs ${expectedCompatibilityKey(item.port)}. Use the owning session to stop the conflicting profile.`,
+          { check: `port:${item.port}`, ownership }
+        );
+      } else {
+        add("pass", `Port ${item.port} available`, item.label, "", {
+          check: `port:${item.port}`,
+          ownership,
+        });
+      }
+      continue;
+    }
+
+    if (ownership.state === "owned-live") {
+      const compatible =
+        ownership.claim.compatibilityKey === expectedCompatibilityKey(item.port);
+      if (compatible) {
+        add(
+          "pass",
+          `Port ${item.port} already serves ${ownership.claim.service}`,
+          `${ownership.claim.compatibilityKey}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          "Reuse the compatible live service. Only its owner may stop it or release its lease.",
+          { check: `port:${item.port}`, ownership }
+        );
+      } else {
+        add(
+          "warn",
+          `Port ${item.port} serves an incompatible profile`,
+          `${ownership.claim.compatibilityKey}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          `This profile needs ${expectedCompatibilityKey(item.port)}. Use the owning session to stop the conflicting profile.`,
+          { check: `port:${item.port}`, ownership }
+        );
+      }
+    } else if (ownership.state === "stale-owner-live") {
+      add(
+        "warn",
+        `Port ${item.port} has a live listener but a stale owner`,
+        `${item.label}; recorded owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid} is gone.`,
+        "Treat the listener as external. Inspect it manually; the repo stack will not delete, stop, or take over this claim.",
+        { check: `port:${item.port}`, ownership }
+      );
     } else {
       add(
         "warn",
-        `Port ${item.port} already in use`,
+        `Port ${item.port} is occupied by an external listener`,
         item.label,
-        "Run bun run dev:stack:stop for PM2 services, or stop the conflicting process before starting services.",
-        { check: `port:${item.port}` }
+        "Inspect the listener and reuse it only when compatible. The repo stack will not stop unknown processes.",
+        { check: `port:${item.port}`, ownership }
       );
     }
   }
@@ -693,6 +797,7 @@ function summary() {
   const failures = results.filter((result) => result.level === "fail");
   const warnings = results.filter((result) => result.level === "warn");
   return {
+    mode: options.mode,
     profile: options.profile,
     label: profileLabels[options.profile],
     ready: failures.length === 0,
@@ -703,6 +808,7 @@ function summary() {
 
 function printJson() {
   const payload = {
+    mode: options.mode,
     profile: options.profile,
     label: profileLabels[options.profile],
     results,
@@ -710,17 +816,17 @@ function printJson() {
     entrypoints: {
       firstClone: "npm run setup",
       isolatedSetup: "npm run setup -- --profile isolated",
-      doctor: "bun run dev:doctor -- --profile web",
-      webStack: "bun run dev:web",
-      webSmoke: "bun run dev:smoke:web",
+      doctor: "bun run dev:health -- --profile web",
+      webStack: "bun run dev -- web",
+      webSmoke: "bun run dev:smoke -- web",
       fullStack: "bun run dev",
-      productionStack: "bun run dev:prod",
-      productionHealth: "bun run dev:prod:health",
-      productionMirrorStack: "bun run dev:prod:mirror",
-      productionMirrorHealth: "bun run dev:prod:mirror:health",
-      productionSmoke: "bun run dev:prod:smoke",
+      productionStack: "bun run dev -- prod",
+      productionHealth: "bun run dev:health -- prod",
+      productionMirrorStack: "bun run dev -- prod-mirror",
+      productionMirrorHealth: "bun run dev:health -- prod-mirror",
+      productionSmoke: "bun run dev:smoke -- prod",
       clean: "bun run dev:clean",
-      stop: "bun run dev:stack:stop",
+      stop: "bun run dev -- stop",
     },
   };
 
@@ -737,30 +843,30 @@ function printText() {
 
   console.log("\nRole readiness");
   console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/3004.");
-  console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
+  console.log("- Full-stack/indexer: frontend QA plus Docker and Envio v3 generated types.");
   console.log("- Contracts: frontend QA plus Foundry.");
   console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT.");
   console.log("- Production-backed local dev: frontend QA against Arbitrum 42161 and production APIs.");
-  console.log("- Production local mirror: production-backed local dev plus Docker and indexer generated files.");
+  console.log("- Production local mirror: production-backed local dev plus Docker and Envio v3 generated types.");
 
   console.log("\nSecret policy");
-  console.log("- `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`).");
+  console.log("- `.env` is materialized from `env.template` via `bun run env:sync` (runs `op inject`).");
   console.log("- Direct root `.env` values are fine for personal local-only credentials.");
-  console.log("- Shared team secrets: edit `.env.template` with `op://Vault/Item/field` refs.");
+  console.log("- Shared team secrets: edit `env.template` with `op://Vault/Item/field` refs.");
 
   console.log("\nRecommended entrypoints");
   console.log("- First clone: npm run setup");
   console.log("- Isolated worktree/container setup: npm run setup -- --profile isolated");
-  console.log("- Doctor profile: bun run dev:doctor -- --profile web");
+  console.log("- Doctor profile: bun run dev:health -- --profile web");
   console.log("- Full local environment: bun run dev");
-  console.log("- Production-backed local environment: bun run dev:prod");
-  console.log("- Production local indexer mirror: bun run dev:prod:mirror");
-  console.log("- Production smoke: bun run dev:prod:smoke");
-  console.log("- PM2 fallback frontend stack: bun run dev:web");
-  console.log("- Web smoke: bun run dev:smoke:web");
+  console.log("- Production-backed local environment: bun run dev -- prod");
+  console.log("- Production local indexer mirror: bun run dev -- prod-mirror");
+  console.log("- Production smoke: bun run dev:smoke -- prod");
+  console.log("- PM2 fallback frontend stack: bun run dev -- web");
+  console.log("- Web smoke: bun run dev:smoke -- web");
   console.log("- Clean current checkout artifacts: bun run dev:clean");
-  console.log("- Stop repo-owned services: bun run dev:stop");
-  console.log("- Stop PM2 services directly: bun run dev:stack:stop");
+  console.log("- Stop repo-owned services: bun run dev -- stop");
+  console.log("- Stop PM2 services directly: bun run dev -- stop");
 
   const currentSummary = summary();
   if (!currentSummary.ready) {
@@ -778,6 +884,12 @@ function printText() {
 
 checkPlatform();
 checkTools();
+results.push(...inspectPersonalSkills());
+results.push(...inspectWorktreeHooks({ cwd: projectRoot }));
+const dependencies = dependencyReadiness(projectRoot);
+add(dependencies.ready ? "pass" : "fail", dependencies.ready ? "Workspace dependencies are ready" : "Workspace dependencies are missing or incomplete",
+  dependencies.missing.join(", "), dependencies.ready ? "" : "Run setup with the appropriate profile after authorizing dependency installation.", { check: "dependencies" });
+checkContractSubmodules();
 checkDocker();
 checkEnv();
 checkIndexerGenerated();

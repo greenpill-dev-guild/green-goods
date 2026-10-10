@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
@@ -17,7 +17,7 @@ const meta: Meta<typeof CreateListingDialog> = {
     docs: {
       description: {
         component:
-          "Real `CreateListingDialog` in its configure phase. `useCreateListing` is wired but inert against the mock wagmi transport — clicking *Sign & List* sets the mutation in flight but never resolves. The in-progress / done / error visual states ride the same `MintProgress`-style step tracker, covered under `Admin/Workflows/Hypercerts/Steps/MintProgress`.",
+          "Real `CreateListingDialog` in its configure phase. `useCreateListing` is wired but inert against the mock wagmi transport — clicking *Sign & List* sets the mutation in flight but never resolves. The in-progress / done / error visual states are its own step tracker, shown once the mutation moves.",
       },
     },
   },

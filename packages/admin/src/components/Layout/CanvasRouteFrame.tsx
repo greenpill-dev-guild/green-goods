@@ -1,12 +1,18 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { forwardRef, type ComponentProps, type ComponentPropsWithoutRef } from "react";
 import { PageHeader } from "./PageHeader";
 
-type CanvasRouteFrameProps = ComponentPropsWithoutRef<"div">;
-
-type CanvasRouteContentProps = ComponentPropsWithoutRef<"div"> & {
-  maxWidthClassName?: string;
+type CanvasDataAttributes = {
+  "data-component"?: string;
+  "data-region"?: string;
 };
+
+type CanvasRouteFrameProps = ComponentPropsWithoutRef<"div"> & CanvasDataAttributes;
+
+type CanvasRouteContentProps = ComponentPropsWithoutRef<"div"> &
+  CanvasDataAttributes & {
+    maxWidthClassName?: string;
+  };
 
 type CanvasRouteHeaderProps = ComponentProps<typeof PageHeader> & {
   maxWidthClassName?: string;
@@ -15,7 +21,9 @@ type CanvasRouteHeaderProps = ComponentProps<typeof PageHeader> & {
 
 // Canonical canvas gutter and max-width live on `<main className="main-scroll-area">`
 // in CanvasLayout. CanvasRouteFrame renders the per-view outer card (`canvas-route-card`)
-// that wraps PageHeader + content with reference-spec internal padding (16/28/40px).
+// that wraps PageHeader + content with the frame's side padding: 24px from 600px and
+// 32px from 1024px. Below 600px it adds none, because the shell's phone gutter is the
+// one side inset there, and a view must not add its own.
 // CanvasRouteContent renders flush inside the card; pass `maxWidthClassName` only when
 // a view wants to narrow inward (e.g. forms at `max-w-6xl`).
 export const CanvasRouteFrame = forwardRef<HTMLDivElement, CanvasRouteFrameProps>(

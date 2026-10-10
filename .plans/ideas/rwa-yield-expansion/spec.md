@@ -1,21 +1,28 @@
 ---
 title: RWA Yield Expansion — Design
 epic: Epic — RWA Yield Expansion
-outcome: Octant Vault APY ≥ 5% sustained 30 days
-quarter: Q2 2026
-due: 2026-06-30
-status: Draft
+outcome: Evidence-backed recommendation on conservative Arbitrum yield strategies
+status: Research in progress; implementation scope unselected
 owner: afo
-last_updated: 2026-04-17
+last_updated: 2026-10-06
+historical_outcome: Octant Vault APY ≥ 5% sustained 30 days
+historical_quarter: Q2 2026
+historical_due: 2026-06-30
 ---
 
 # RWA Yield Expansion — Design
 
-## Goal
+## Status reconciliation (2026-10-06)
+
+[RESR-9](https://linear.app/greenpill-dev-guild/issue/RESR-9) is In Progress and asks for a decision-ready recommendation on conservative Arbitrum yield strategies for garden endowments. Its former rates, products, Q2 rollout dates and preset construction sequence are hypotheses to re-check with current primary sources. Research does not authorize contracts, adapters, custody, migration or fund movement.
+
+Compare principal protection, liquidity, custody/compliance, yield mechanism and failure/recovery against the current Aave baseline, then produce a recommendation with evidence and explicit uncertainty. Environmental or solar assets are candidates, not mandatory selections. The historical preset design below is retained for provenance and is not a locked implementation contract.
+
+## Historical goal (unselected hypothesis)
 
 Lift the Octant Vault yield from ~1% (pure Aave V3 USDC) to **≥5% sustained 30 days** by introducing a diversified yield engine across RWA and high-quality DeFi strategies, exposed to operators as curated presets.
 
-## Decisions (locked during brainstorm)
+## Historical brainstorm decisions (reopened hypotheses)
 
 | # | Decision | Value |
 |---|---|---|
@@ -241,7 +248,7 @@ Stays within CLAUDE.md indexer boundary (vault + yield history).
 | `components/Vault/PresetSelectorDialog.tsx` (NEW) | Preset comparison for creation + switching |
 | `components/Vault/PresetDriftBadge.tsx` (NEW) | In-target / drift indicator |
 
-All copy i18n'd per `.claude/skills/ui/i18n.md`.
+All copy i18n'd per `.claude/skills/design/implementation.md` (§ i18n).
 
 ## Shared (`packages/shared`) — new hooks
 

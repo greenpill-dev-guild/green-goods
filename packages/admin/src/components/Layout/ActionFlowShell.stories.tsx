@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { RiUploadCloudLine } from "@remixicon/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { useState } from "react";
 import { AdminButton } from "../AdminButton";
 import { AdminLinearProgress } from "../AdminLinearProgress";
 import { ActionFlowShell } from "./ActionFlowShell";
@@ -25,7 +26,7 @@ function ProgressFooter({ busy, label }: { busy?: boolean; label?: string }) {
         {busy ? (
           <div className="space-y-1.5">
             <AdminLinearProgress ariaLabel={label} />
-            <p className="truncate text-sm text-text-sub">{label}</p>
+            <p className="truncate body-sm text-text-sub">{label}</p>
           </div>
         ) : null}
       </div>
@@ -58,7 +59,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     // AdminDialog (flow variant). Switch the viewport toolbar to Mobile to see the
     // full-width bottom-sheet width (rail collapses to the header stepper).
     (Story) => (
-      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))] lg:max-w-5xl">
+      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-bg-white lg:max-w-5xl">
         <Story />
       </div>
     ),
@@ -79,8 +80,8 @@ type Story = StoryObj<typeof ActionFlowShell>;
 // Configure phase: in-flow back-arrow + pinned footer with idle progress slot.
 export const Configure: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     backLabel: "Back to action selection",
     onBack: fn(),
     layout: "dialog",
@@ -101,8 +102,8 @@ export const Submitting: Story = {
 // Qualify phase: no back-arrow (first phase), no footer — selection auto-advances.
 export const QualifyPhase: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     layout: "dialog",
     children: (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -143,13 +144,42 @@ const STEPS = [
 // Mobile to see the rail collapse into the compact stepper in the header.
 export const TwoColumnRail: Story = {
   args: {
-    title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    title: "Submit Work",
+    context: "Tech and Sun Hub",
     steps: STEPS,
     currentStep: 2,
     onStepClick: fn(),
     layout: "dialog",
     children: <FormPreview rows={6} />,
     footer: <ProgressFooter />,
+  },
+};
+
+export const CompletionVisibility: Story = {
+  tags: ["storybook-ci"],
+  render: function CompletionExample() {
+    const [complete, setComplete] = useState(false);
+    return (
+      <ActionFlowShell
+        title="Submit Work"
+        complete={complete}
+        footer={<AdminButton onClick={() => setComplete(true)}>Complete submission</AdminButton>}
+      >
+        <p role="status">{complete ? "Work submitted" : "Review your work"}</p>
+        <FormPreview rows={20} />
+      </ActionFlowShell>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const scrollBody = canvasElement.querySelector<HTMLElement>('[data-component="SheetBody"]')!;
+    scrollBody.scrollTop = scrollBody.scrollHeight;
+    await expect(scrollBody.scrollTop).toBeGreaterThan(0);
+    await userEvent.click(canvas.getByRole("button", { name: "Complete submission" }));
+    await expect(scrollBody.scrollTop).toBe(0);
+    await expect(canvas.getByRole("status")).toBeVisible();
+    await expect(canvasElement.ownerDocument.activeElement).toBe(
+      canvasElement.querySelector('[data-region="action-flow-body"]')
+    );
   },
 };

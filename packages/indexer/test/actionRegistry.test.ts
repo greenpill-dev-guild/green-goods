@@ -1,35 +1,9 @@
 import assert from "assert";
-import { createRequire } from "module";
+import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { assertAbsent } from "./helpers/projections";
+import { ActionRegistry, createTestIndexer } from "./v3";
 
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, ActionRegistry } = TestHelpers;
-
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 async function seedAction(mockDb: any, actionUID: bigint = 100n) {
   const event = ActionRegistry.ActionRegistered.createMockEvent({
@@ -55,8 +29,8 @@ async function seedAction(mockDb: any, actionUID: bigint = 100n) {
 
 describe("ActionRegistry.ActionRegistered", () => {
   it("creates action entity with all fields", async () => {
-    const mockDb = await seedAction(MockDb.createMockDb());
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const mockDb = await seedAction(createTestIndexer());
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.equal(action.id, `${CHAIN_ID}-100`);
@@ -73,8 +47,8 @@ describe("ActionRegistry.ActionRegistered", () => {
   });
 
   it("maps capital types correctly", async () => {
-    const mockDb = await seedAction(MockDb.createMockDb());
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const mockDb = await seedAction(createTestIndexer());
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.deepEqual(action.capitals, ["SOCIAL", "FINANCIAL", "EXPERIENTIAL"]);
@@ -89,7 +63,7 @@ describe("ActionRegistry.ActionRegistered", () => {
     ];
 
     for (const { value, expected } of domains) {
-      const mockDb = MockDb.createMockDb();
+      const mockDb = createTestIndexer();
       const event = ActionRegistry.ActionRegistered.createMockEvent({
         owner: addr(1),
         actionUID: BigInt(value + 200),
@@ -105,14 +79,14 @@ describe("ActionRegistry.ActionRegistered", () => {
       });
 
       const result = await ActionRegistry.ActionRegistered.processEvent({ event, mockDb });
-      const action = result.entities.Action.get(`${CHAIN_ID}-${value + 200}`);
+      const action = await result.Action.get(`${CHAIN_ID}-${value + 200}`);
       assert.ok(action, `Action for domain ${expected} should exist`);
       assert.equal(action.domain, expected);
     }
   });
 
   it("uses chainId in action ID for cross-chain uniqueness", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
 
     // Same actionUID on different chains
     const event1 = ActionRegistry.ActionRegistered.createMockEvent({
@@ -146,8 +120,8 @@ describe("ActionRegistry.ActionRegistered", () => {
     mockDb = await ActionRegistry.ActionRegistered.processEvent({ event: event1, mockDb });
     mockDb = await ActionRegistry.ActionRegistered.processEvent({ event: event2, mockDb });
 
-    const action1 = mockDb.entities.Action.get("42161-42");
-    const action2 = mockDb.entities.Action.get("11155111-42");
+    const action1 = await mockDb.Action.get("42161-42");
+    const action2 = await mockDb.Action.get("11155111-42");
 
     assert.ok(action1);
     assert.ok(action2);
@@ -162,7 +136,7 @@ describe("ActionRegistry.ActionRegistered", () => {
 
 describe("ActionRegistry.ActionStartTimeUpdated", () => {
   it("updates start time on existing action", async () => {
-    let mockDb = await seedAction(MockDb.createMockDb());
+    let mockDb = await seedAction(createTestIndexer());
 
     const event = ActionRegistry.ActionStartTimeUpdated.createMockEvent({
       owner: addr(1),
@@ -172,7 +146,7 @@ describe("ActionRegistry.ActionStartTimeUpdated", () => {
     });
 
     mockDb = await ActionRegistry.ActionStartTimeUpdated.processEvent({ event, mockDb });
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.equal(action.startTime, 5000n);
@@ -181,7 +155,7 @@ describe("ActionRegistry.ActionStartTimeUpdated", () => {
   });
 
   it("does nothing when action not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = ActionRegistry.ActionStartTimeUpdated.createMockEvent({
       owner: addr(1),
@@ -191,14 +165,13 @@ describe("ActionRegistry.ActionStartTimeUpdated", () => {
     });
 
     const result = await ActionRegistry.ActionStartTimeUpdated.processEvent({ event, mockDb });
-    const action = result.entities.Action.get(`${CHAIN_ID}-999`);
-    assert.equal(action, undefined);
+    await assertAbsent(result.Action, `${CHAIN_ID}-999`);
   });
 });
 
 describe("ActionRegistry.ActionEndTimeUpdated", () => {
   it("updates end time on existing action", async () => {
-    let mockDb = await seedAction(MockDb.createMockDb());
+    let mockDb = await seedAction(createTestIndexer());
 
     const event = ActionRegistry.ActionEndTimeUpdated.createMockEvent({
       owner: addr(1),
@@ -208,14 +181,14 @@ describe("ActionRegistry.ActionEndTimeUpdated", () => {
     });
 
     mockDb = await ActionRegistry.ActionEndTimeUpdated.processEvent({ event, mockDb });
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.equal(action.endTime, 9000n);
   });
 
   it("does nothing when action not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = ActionRegistry.ActionEndTimeUpdated.createMockEvent({
       owner: addr(1),
@@ -225,13 +198,13 @@ describe("ActionRegistry.ActionEndTimeUpdated", () => {
     });
 
     const result = await ActionRegistry.ActionEndTimeUpdated.processEvent({ event, mockDb });
-    assert.equal(result.entities.Action.get(`${CHAIN_ID}-999`), undefined);
+    assert.equal(await result.Action.get(`${CHAIN_ID}-999`), undefined);
   });
 });
 
 describe("ActionRegistry.ActionTitleUpdated", () => {
   it("updates title on existing action", async () => {
-    let mockDb = await seedAction(MockDb.createMockDb());
+    let mockDb = await seedAction(createTestIndexer());
 
     const event = ActionRegistry.ActionTitleUpdated.createMockEvent({
       owner: addr(1),
@@ -241,7 +214,7 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
     });
 
     mockDb = await ActionRegistry.ActionTitleUpdated.processEvent({ event, mockDb });
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.equal(action.title, "New Title");
@@ -249,7 +222,7 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
   });
 
   it("does nothing when action not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = ActionRegistry.ActionTitleUpdated.createMockEvent({
       owner: addr(1),
@@ -259,13 +232,13 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
     });
 
     const result = await ActionRegistry.ActionTitleUpdated.processEvent({ event, mockDb });
-    assert.equal(result.entities.Action.get(`${CHAIN_ID}-999`), undefined);
+    assert.equal(await result.Action.get(`${CHAIN_ID}-999`), undefined);
   });
 });
 
 describe("ActionRegistry.ActionInstructionsUpdated", () => {
   it("updates instructions on existing action", async () => {
-    let mockDb = await seedAction(MockDb.createMockDb());
+    let mockDb = await seedAction(createTestIndexer());
 
     const event = ActionRegistry.ActionInstructionsUpdated.createMockEvent({
       owner: addr(1),
@@ -275,14 +248,14 @@ describe("ActionRegistry.ActionInstructionsUpdated", () => {
     });
 
     mockDb = await ActionRegistry.ActionInstructionsUpdated.processEvent({ event, mockDb });
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.equal(action.instructions, "New instructions here");
   });
 
   it("does nothing when action not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = ActionRegistry.ActionInstructionsUpdated.createMockEvent({
       owner: addr(1),
@@ -292,13 +265,13 @@ describe("ActionRegistry.ActionInstructionsUpdated", () => {
     });
 
     const result = await ActionRegistry.ActionInstructionsUpdated.processEvent({ event, mockDb });
-    assert.equal(result.entities.Action.get(`${CHAIN_ID}-999`), undefined);
+    assert.equal(await result.Action.get(`${CHAIN_ID}-999`), undefined);
   });
 });
 
 describe("ActionRegistry.ActionMediaUpdated", () => {
   it("updates media on existing action", async () => {
-    let mockDb = await seedAction(MockDb.createMockDb());
+    let mockDb = await seedAction(createTestIndexer());
 
     const event = ActionRegistry.ActionMediaUpdated.createMockEvent({
       owner: addr(1),
@@ -308,14 +281,14 @@ describe("ActionRegistry.ActionMediaUpdated", () => {
     });
 
     mockDb = await ActionRegistry.ActionMediaUpdated.processEvent({ event, mockDb });
-    const action = mockDb.entities.Action.get(`${CHAIN_ID}-100`);
+    const action = await mockDb.Action.get(`${CHAIN_ID}-100`);
 
     assert.ok(action);
     assert.deepEqual(action.media, ["ipfs://new-media-1", "ipfs://new-media-2"]);
   });
 
   it("does nothing when action not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = ActionRegistry.ActionMediaUpdated.createMockEvent({
       owner: addr(1),
@@ -325,7 +298,7 @@ describe("ActionRegistry.ActionMediaUpdated", () => {
     });
 
     const result = await ActionRegistry.ActionMediaUpdated.processEvent({ event, mockDb });
-    assert.equal(result.entities.Action.get(`${CHAIN_ID}-999`), undefined);
+    assert.equal(await result.Action.get(`${CHAIN_ID}-999`), undefined);
   });
 });
 
@@ -335,7 +308,7 @@ describe("ActionRegistry.ActionMediaUpdated", () => {
 
 describe("ActionRegistry.GardenDomainsUpdated", () => {
   it("creates GardenDomains entity with expanded bitmask", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(5);
 
     const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
@@ -345,7 +318,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
 
     const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
-    const domains = result.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
+    const domains = await result.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x0f);
@@ -355,7 +328,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
   });
 
   it("stores single domain bitmask", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(5);
 
     const event = ActionRegistry.GardenDomainsUpdated.createMockEvent({
@@ -365,7 +338,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
 
     const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
-    const domains = result.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
+    const domains = await result.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x04);
@@ -373,7 +346,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
   });
 
   it("overwrites previous GardenDomains on re-update", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(5);
 
     const event1 = ActionRegistry.GardenDomainsUpdated.createMockEvent({
@@ -390,7 +363,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
     mockDb = await ActionRegistry.GardenDomainsUpdated.processEvent({ event: event2, mockDb });
 
-    const domains = mockDb.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
+    const domains = await mockDb.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x01);
