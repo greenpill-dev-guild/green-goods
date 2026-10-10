@@ -42,6 +42,8 @@ Useful references:
 - `tests/fixtures/contract-helpers.ts` loads deployment artifacts for browser tests.
 - `tests/helpers/test-utils.ts` exports `ClientTestHelper` and `AdminTestHelper`.
 - `tests/helpers/test-config.ts` centralizes test URLs and chain defaults.
+- `tests/helpers/reporting-ceremony.ts` stands in for the chat, the passkey directory, the hosted
+  passkey server and the chain behind the reporting ceremony's Account step.
 - `tests/mocks/pimlico-handlers.ts` keeps the legacy bundler/paymaster response fixture, tested directly without network calls. The qualified passkey rejection spec owns its strict server substitute.
 
 ## Projects and focused runs
@@ -79,19 +81,29 @@ bun run browser e2e --preset pwa-preview
 
 These presets own their local server and Chromium contexts, pin CI mode and the Chromium binary checked by the capability probe, allow no retries, and
 stop at the first failure within a five-minute run budget. Only complete fresh JSON reports count
-as passing: one passkey case, two work-inspection cases, or one production PWA case. Skips,
+as passing: three passkey cases, two work-inspection cases, or one production PWA case. Skips,
 missing cases, retries and old reports fail qualification. `--list` is discovery only. Filters,
 shards and timeout overrides are rejected; diagnostic output and worker options remain available.
 The default report lives in `.cache/validation/browser-<preset>/results.json`; set
 `PLAYWRIGHT_JSON_OUTPUT_FILE` to preserve a run elsewhere. Playwright attachments include screenshots
 and, for exploration, the seed, role, viewport, data and attempted action sequence.
 
-The passkey case uses a real Chromium virtual authenticator and requires the server rejection to
-leave the user signed out after reload. It does not prove real-device biometrics, a working remote
-passkey server, or successful wallet registration. The seeded work pilot reads synthetic work and
-recovers an injected EAS outage, then reloads the same record. Each case has a fresh context and
-an allowlist of route actions and network substitutes; it never signs or submits a decision.
-External font and telemetry requests receive local substitutes, so this is not font-fidelity proof.
+The passkey cases use a real Chromium virtual authenticator. One requires a server rejection to
+leave the user signed out after reload. Two walk the chat link's Account step
+(`/agent/reporting/:link`) against the Agent's loopback reporting driver. A newcomer on a phone
+that last saw another account gets past a taken name and a closed prompt, and the page returns to
+the step by itself once the account exists. Someone with an account gets back in after a closed
+prompt, then from a browser that has forgotten the account, by its name and at the same address.
+The passkey directory, the hosted passkey server and the one chain read are local stand-ins, fonts
+and vendor telemetry get empty substitutes, and any other request that leaves the Client fails the
+case. Both journeys stop at Sign to Continue, because the driver verifies wallet signatures only.
+None of this proves real-device biometrics, a synced passkey, a working remote passkey directory or
+server, an account on a chain, or font fidelity.
+
+The seeded work pilot reads synthetic work and recovers an injected EAS outage, then reloads the
+same record. Each case has a fresh context and an allowlist of route actions and network
+substitutes; it never signs or submits a decision. External font and telemetry requests receive
+local substitutes, so this is not font-fidelity proof.
 
 The PWA preset builds production assets before previewing them. It verifies an anonymous login
 shell, blocks page and worker network requests offline, and then removes the navigation cache to
@@ -125,6 +137,13 @@ When Playwright owns server startup, `PLAYWRIGHT_APP=client` selects the client,
 admin, and an unset value selects both. The indexer starts on port 3006 only when the selected specs
 need it; `SKIP_INDEXER=true` disables it. `SKIP_WEBSERVER=true` tells Playwright to reuse externally
 managed services.
+
+The `passkey-mock` project also starts the Agent's loopback reporting driver on port 3016
+(`packages/agent/src/__tests__/reporting/driver`) and points the Client's `/api/messaging` proxy at
+it. The driver serves the Client's origin only, and the test profile ignores a
+`REPORTING_AGENT_URL` from the root `.env`, so a running Agent is never behind a test. The Client
+workflow does not run on Agent-only changes, so a driver or ceremony API change that breaks these
+journeys shows on the next Client or Shared pull request.
 
 The deterministic browser-test chain is Sepolia (`VITE_CHAIN_ID=11155111`). Local URLs are HTTPS
 outside CI and HTTP in CI.

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  REPORTING_DRIVER_PORT,
+  REPORTING_DRIVER_URL,
   resolvePlaywrightApps,
   selectedProjectNames,
   shouldUsePlaywrightIndexer,
@@ -127,6 +129,43 @@ describe("production preview profile", () => {
         VITE_SENTRY_CLIENT_DSN: "",
         GG_ENABLE_SOURCEMAPS: "false",
       },
+    });
+  });
+});
+
+// The account-step spec walks the reporting ceremony, so its project owns the Agent's driver too.
+describe("passkey project", () => {
+  const originalArgv = process.argv;
+  afterEach(() => {
+    process.argv = originalArgv;
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  it("owns a reporting driver on the Client's origin and proxies the Client to it alone", async () => {
+    process.argv = ["node", "playwright", "test", "--project=passkey-mock"];
+    vi.stubEnv("CI", "true");
+    vi.stubEnv("SKIP_WEBSERVER", "false");
+    vi.stubEnv("SKIP_INDEXER", "true");
+    const { default: config } = await import("../../playwright.config");
+    const servers = [config.webServer].flat();
+    expect(servers).toHaveLength(2);
+    const [driver, client] = servers;
+    expect(client?.url).toBe("http://localhost:3001");
+    expect(driver).toMatchObject({
+      command: "bun src/__tests__/reporting/driver/server.ts",
+      cwd: "./packages/agent",
+      url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
+      reuseExistingServer: false,
+      env: {
+        REPORTING_DRIVER_PORT: String(REPORTING_DRIVER_PORT),
+        // The driver refuses a page on any origin but this one.
+        REPORTING_DRIVER_ORIGIN: client?.url,
+      },
+    });
+    expect(client).toMatchObject({
+      cwd: "./packages/client",
+      // An empty Agent address keeps a root .env from putting a running Agent behind the test.
+      env: { VITE_PASSKEY_SERVER_ENABLED: "true", REPORTING_AGENT_URL: "", REPORTING_DRIVER_URL },
     });
   });
 });

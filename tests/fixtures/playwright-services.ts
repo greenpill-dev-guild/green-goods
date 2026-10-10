@@ -1,5 +1,13 @@
 export type PlaywrightApp = "admin" | "client";
 
+/**
+ * Where the passkey project runs the Agent's loopback reporting driver, beside the Client that
+ * proxies `/api/messaging` to it. The port stays clear of 3001 to 3013, which the dev stack and
+ * the contracts dual-chain test hold, and of 8787, where a hand-started driver listens.
+ */
+export const REPORTING_DRIVER_PORT = 3016;
+export const REPORTING_DRIVER_URL = `http://127.0.0.1:${REPORTING_DRIVER_PORT}`;
+
 const PROJECT_APPS: Readonly<Record<string, readonly PlaywrightApp[]>> = {
   "admin-ci": ["admin"],
   "anvil-fork": ["client"],

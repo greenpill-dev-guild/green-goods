@@ -1,5 +1,7 @@
 import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/test";
 import {
+  REPORTING_DRIVER_PORT,
+  REPORTING_DRIVER_URL,
   resolvePlaywrightApps,
   selectedProjectNames,
   shouldUsePlaywrightIndexer,
@@ -28,6 +30,8 @@ function envFlag(name: string): boolean {
 
 const requestedProjects = selectedProjectNames(process.argv);
 const callerManagedFork = requestedProjects.includes("anvil-fork");
+// The passkey project signs in against the passkey directory and walks the reporting ceremony.
+const passkeyProject = requestedProjects.includes("passkey-mock");
 // Workers reload the config without the runner's project-selection arguments.
 const isWorkerProcess = process.env.TEST_WORKER_INDEX !== undefined;
 if (
@@ -60,6 +64,26 @@ const webServers: NonNullable<PlaywrightTestConfig["webServer"]> = [
           env: { NODE_ENV: "test" },
         },
       ]),
+  // Reporting driver (Agent): the real ceremony API over fixture ports, for the passkey project's
+  // account-step spec. The Client proxies /api/messaging to it, so it serves the Client's origin
+  // and refuses any other.
+  ...(passkeyProject
+    ? [
+        {
+          command: "bun src/__tests__/reporting/driver/server.ts",
+          cwd: "./packages/agent",
+          url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
+          reuseExistingServer: false,
+          timeout: 120000,
+          env: {
+            APP_ENV: "test",
+            NODE_ENV: "test",
+            REPORTING_DRIVER_PORT: String(REPORTING_DRIVER_PORT),
+            REPORTING_DRIVER_ORIGIN: currentEnv.client,
+          },
+        },
+      ]
+    : []),
   // Client (PWA) — `url` (not `port`) so Playwright waits for an actual HTTP
   // 200 before running tests; Vite binds the TCP socket before the HTTP route
   // handler is ready, which causes flaky page.goto timeouts in CI.
@@ -91,9 +115,11 @@ const webServers: NonNullable<PlaywrightTestConfig["webServer"]> = [
             // CI exercises the installed-app/offline contract, so the client
             // test server must expose vite-plugin-pwa's development worker.
             VITE_ENABLE_SW_DEV: String(!productionPreview),
-            VITE_PASSKEY_SERVER_ENABLED: String(
-              productionPreview || selectedProjectNames(process.argv).includes("passkey-mock")
-            ),
+            VITE_PASSKEY_SERVER_ENABLED: String(productionPreview || passkeyProject),
+            // The ceremony API is the owned driver or nothing: a root .env naming a running
+            // Agent must not put it behind a test.
+            REPORTING_AGENT_URL: "",
+            REPORTING_DRIVER_URL,
           },
         },
       ]
