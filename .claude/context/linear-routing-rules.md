@@ -232,31 +232,35 @@ nothing. Treat the table as what to expect, not as proof: the issue's state hist
 evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
-names and no other:
+names and no other. A line that names several issues is outside this closeout: report it and ask.
 
-1. Read the issue's `stateHistory`, not only its current status. The integration usually lands
-   within seconds of the merge but can land later, so treat this first reading as provisional.
+1. Read the issue's `stateHistory`, not only its current status. An entry dated shortly after the
+   merge that matches what the table predicts is the integration's; any other change after the
+   merge is someone's decision. The integration can land after this first read, so treat it as
+   provisional.
 2. Write only the gap, and only for completed work. When the PR completes the issue, it belongs
    in `In Review`: write nothing when it is already there, and set it when the integration left
    it in an earlier state. Write nothing for partial work, for an issue the PR only relates to,
-   or for one that is already `Done` or `Canceled`. Judge completion against the issue's
-   `Done when`, not the keyword: the last PR of a multi-PR issue completes it even when it says
-   `Refs`.
+   for one that is already `Done` or `Canceled`, or over a state someone decided after the merge.
+   Judge completion against the issue's `Done when`, not the keyword: the last PR of a multi-PR
+   issue completes it even when it says `Refs`.
 3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
    what changed for the person using the product, and what the review should check or what
    remains open. Read the issue's comments first and post nothing when one already closes out
    that PR, so a retried or repeated closeout never comments twice.
-4. Read the issue again before reporting. A state that changed since step 2 means the integration
-   landed late: repeat step 2 once, then read once more. Report the issue, its last observed
-   state, and whether the integration or a hand write set it, and say so if it still had not
-   settled. For a PR that names no issue in any of these forms, report `no Linear issue linked`.
+4. Read the issue again before reporting. If the state changed since step 2 and the new entry is
+   the integration's, it landed late: repeat step 2 once, then read once more. Leave any other
+   change as it is. Report the issue, its last observed state, and what set it (the integration,
+   your write, or someone else), and say so if it still had not settled. For a PR that names no
+   issue in any of these forms, report `no Linear issue linked`.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
 named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and
 posting that one comment. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
-If the integration moved the issue to `Done`, leave it and report that the team's merge setting
-no longer matches this rule. Cloud routines keep the limits in their own specs.
+If the issue is `Done` after the merge, leave it; when the integration put it there, report that
+the team's merge setting no longer matches this rule. Cloud routines keep the limits in their own
+specs.
 
 **Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
 their plain confirmation. It is a separate write under the first

@@ -7,7 +7,7 @@
 <!--
 If this work has a Linear issue, add exactly one explicit reference line here:
 - Fixes PRD-NNN: this PR completes the issue; the target after the merge is In Review, and Done follows a person's review
-- Refs PRD-NNN: partial or stacked work; the merge is not expected to move the issue forward
+- Refs PRD-NNN: partial or stacked work; Linear's integration is not expected to move the issue forward at the merge, though the closeout still moves it to In Review when this PR completes the issue
 - Relates to PRD-NNN: context only; the issue's status is not expected to change
 
 These are targets, not guarantees: Linear's own settings decide what a merge does, and the closeout
