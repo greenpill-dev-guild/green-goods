@@ -232,3 +232,43 @@ renders all 13 skills.
   check and the nine docs test files as focus; the PR body records the result.
 - **Human gates open**: D12 (Afo judges the rendered Anatomy page), the page-length gate, a
   Reference landing, and the merge.
+
+## Validation Receipt — QA round 2 (2026-10-10)
+
+- **Scope**: Afo's eleven items from the rebuilt local build (old admin captures, guild framing,
+  capital formation, route literals, full-width infographic, the dense entity matrix, the design
+  page's structure, package order, retired commands, Unlock through GreenWill, more product
+  captures) plus a self-review pass; decisions 21 to 27.
+- **Exact commands and results**:
+  `node --test scripts/docs/generate.test.mjs scripts/quality/check-ontology.test.mjs docs/scripts/developer-guides.test.mjs scripts/quality/select-validation.test.mjs docs/scripts/llms.test.mjs docs/scripts/docs-audit.test.mjs scripts/docs/mermaid-parse.test.mjs scripts/quality/task-routing-contract.test.mjs docs/scripts/check-search-index.test.mjs`
+  → 248/248 · `node scripts/quality/check-ontology.mjs --generate` then `node scripts/docs/generate.mjs`
+  → 16 projections, `--check` clean after the commits · `node scripts/quality/check-ontology.mjs` → all
+  guards, 3 generated artifacts current · `node docs/scripts/docs-audit.mjs --ci` → exit 0, the two
+  advisory endpoint notes only · `node scripts/quality/check-docs-design-parity.mjs` → 11 bindings
+  aligned · in `docs/`: `bun run test` 85/85, `bun run typecheck` clean, `bun run build` green (70
+  routes, search index covers 70).
+- **Captures** (Storybook, deployed build, headless Chromium at 2x, light theme; the public site at
+  greengoods.app, headless Chromium 1440x900 at 2x): the admin Hub Work tab (Rio Rainforest Lab,
+  approved submissions), Actions registry, Garden Promises tab, Hub Hypercerts tab, the PWA Your Work
+  sheet, the public home, gardens, impact, vaults and cookies pages, and four design-system stories
+  (color gallery, website foundations and buttons, admin buttons). The Hub work-detail story renders
+  "Work not found" on the deployed build and was not used; the Hub work-queue story's garden has no
+  seeded work, so the approved tab stands in for the queue.
+- **Rendered proof** (docs local production build served on 127.0.0.1:3013, browser pane): every
+  figure on Anatomy and Design reports `complete` with a natural width (6 and 14 images); the
+  infographic renders at the full column width; Data Model renders 8 of 8 diagrams with no failure
+  fallback (the console's parse errors in that tab predate round 1's fix); Personas shows the
+  persona-by-surface matrix and no route literals; Entity Matrix opens with the glance table and
+  one section per protocol; Unlock Protocol sits last under Integrations; Architecture lists six
+  ideas with the Promises-tab figure; First Contribution ends with Stay in touch and the new admin
+  capture; the Packages sidebar reads Contracts, Indexer, Shared, Agent, QA, Admin, Client.
+- **Validated paths**: `docs/`, `scripts/docs/`, `scripts/data/validation-policy.json`,
+  `scripts/quality/{check-ontology.test,ontology-render}.mjs`,
+  `packages/shared/src/ontology/green-goods-ontology.json`, `.github/workflows/{docs,ontology}.yml`.
+- **Worktree identity**: `git status --porcelain` → empty after commits `0ef282c23` and `b691dbdf9`.
+- **Push gate**: run on the pushed head through this branch's own pre-push hook with the ontology
+  check and the nine docs test files as focus; the PR body records the result.
+- **Human gates open**: D12 (Afo judges the rendered Anatomy page), the page-length gate, a
+  Reference landing, the merge, and the review-pass items left to Afo (community pages and footer
+  still name the guild; root DESIGN.md says website buttons are 16px while DL-029 and the Storybook
+  say square; the Command inventory order).

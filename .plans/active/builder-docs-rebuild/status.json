@@ -76,7 +76,7 @@
         "status": "green_recorded",
         "red": {
           "command": "node --test scripts/docs/generate.test.mjs",
-          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) \u2014 1 file-level failure covering the 4 new behavior tests"
+          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) — 1 file-level failure covering the 4 new behavior tests"
         },
         "green": {
           "command": "node --test scripts/docs/generate.test.mjs",
@@ -209,6 +209,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "QA round 1 (decisions 15 to 20): thirty items from Afo's walk of the local build landed on the branch; chrome, diagrams, generated pages, hand-written pages, design tokens and Storybook captures. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T03:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "QA round 2 (decisions 21 to 27): eleven items from Afo's second walk landed; current product captures, Unlock through GreenWill in the catalog, per-protocol entity matrix, persona-by-surface matrix, retired commands dropped from the generated pages, six ideas on Architecture, the Design page as one system and three dialects. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

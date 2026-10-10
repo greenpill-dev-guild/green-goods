@@ -3,7 +3,7 @@
 **Feature Slug**: `builder-docs-rebuild`
 **Status**: ACTIVE
 **Created**: 2026-09-02
-**Last Updated**: 2026-10-09
+**Last Updated**: 2026-10-10
 
 ## Decision Log
 
@@ -29,6 +29,13 @@
 | 18 | Product Experience QA becomes Product QA and is condensed, overriding decision 7 for this round (Afo, 2026-10-10) | Afo asked for the rename and a lighter page; the qa-report stream keeps ownership afterwards |
 | 19 | Deployments & Addresses prints every recorded address and schema UID with explorer links from an explicit artifact allowlist; owners, deployers, managers, safes, signers and receipts are blocked by name and tested (2026-10-10) | Resolves the open Codex thread; the page is now the address reference its sidebar label promised |
 | 20 | Architecture reframes "three ideas" as five (adding opt-in modules and local-first capture with indexed reads) and the dependency arrow reads `contracts → indexer → shared → client / admin / agent` as data flow (Afo, 2026-10-10) | "Three ideas" sold the protocol short; the indexer belongs in the arrow |
+| 21 | QA round 2 lands on the same PR (Afo, 2026-10-10): eleven review items from the rebuilt local build plus a self-review pass | Same reasoning as decision 15 |
+| 22 | Unlock Protocol joins the integration catalog through the GreenWill registry, with its own page and the `Unlock` matrix column (Afo, 2026-10-10: "Unlock protocol is integrated through GreenWill") | The column note called it vocabulary-only while the registry, three locks, shared hooks and an indexer handler exist; a catalog entry makes the status table, the matrix and the deployments page agree |
+| 23 | The entity matrix reads per protocol (a two-column table under each protocol, a glance table above) and the personas page drops the route-literal appendix and reads the ontology alone (2026-10-10) | Afo found the grid dense and confusing and asked what the route literals were for; the literals had no reader and coupled the page to every client and admin route edit |
+| 24 | Retired command names leave the generated Command inventory and Contract operations pages; both migration ledgers stay inputs to the docs authority audit only (Afo, 2026-10-10) | A reader needs what runs today; the audit still refuses retired callers everywhere |
+| 25 | Architecture carries six ideas: Capital forms around verified work joins the five from decision 20 (Afo, 2026-10-10) | Five ideas still missed commitment pooling and capital formation |
+| 26 | Package order is contracts, indexer, shared, agent, qa, admin, client in the Monorepo Map and the Packages sidebar (Afo, 2026-10-10); the Command inventory keeps the contributor order from round 1 unless Afo says otherwise | The map follows the dependency direction; the inventory order was a separate explicit ask |
+| 27 | The builder track is Green Goods-centric: no dev-guild byline, guild-wide guide or blog link in First Contribution, and the closing section is Stay in touch (Afo, 2026-10-10) | Afo is stripping the dev-guild framing; the community pages, footer blog link and copyright line still name the guild and are his call |
 
 ## Requirements Coverage
 
@@ -130,6 +137,16 @@ Getting Started refreshed, First Contribution de-duplicated, five ideas on Archi
 indexer in the arrow, one package table, deeper package pages with screenshots, integrations status
 table, Product QA, design page with tokens and six Storybook captures. Receipt in
 `handoffs/claude-ui.md`.
+
+Status (2026-10-10, later): QA round 2 from Afo's walk of the rebuilt build, eleven items, all landed
+(decisions 21 to 27). Current admin and public-site captures replace the old admin screenshots in
+the builder track (Storybook, deployed build, headless Chromium; the public site at greengoods.app),
+First Contribution loses the guild framing, Architecture gains the capital-formation idea with the
+Promises tab as its figure, the Anatomy infographic runs full width, the entity matrix reads per
+protocol, the personas page is a persona-by-surface matrix from the ontology alone, the retired-name
+ledgers leave the two command pages, Unlock Protocol gets a catalog entry and a page through
+GreenWill, the Design page is one system then three dialects with captures, and the package order
+follows the dependency direction. The self-review outline went to Afo in chat and the Linear comment.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
