@@ -51,8 +51,12 @@ export class FakeDelegatedSender implements DelegatedSender {
     const op = JSON.parse(signedOperation) as { hash: Hex; account: string; to: string; data: Hex };
     this.submitted += 1;
     if (!this.chain.userOperations.has(op.hash)) {
-      const transactionHash = this.chain.submit({ attester: op.account, to: op.to, data: op.data });
-      this.chain.userOperations.set(op.hash, transactionHash);
+      this.chain.submitUserOperation({
+        account: op.account,
+        to: op.to,
+        data: op.data,
+        userOperationHash: op.hash,
+      });
     }
     if (this.loseSubmitResponse) throw new Error("bundler response lost");
     return { accepted: true, retryable: false };

@@ -5,17 +5,25 @@ import {
   parseFieldAnswer,
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
-import type { PromptRecord } from "../prompts";
+import { gardenScope } from "../gardens";
+import { type PromptRecord, typedChoice } from "../prompts";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
 import { EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditField, askEditMenu } from "./edit-menu";
 import {
+  AGAIN_CHOICE,
   answeredGarden,
-  askAction,
-  askField,
   askGarden,
+  askJoin,
+  JOIN_CHOICE,
+  offeredGardens,
+} from "./garden-step";
+import {
+  askAction,
+  askAnotherGarden,
+  askField,
   fieldHint,
   fieldQuestionText,
   gardenLabel,
@@ -49,6 +57,8 @@ function explainQuestion(writer: TurnWriter, prompt: PromptRecord): void {
   const draft = ctx.draft;
   switch (prompt.kind) {
     case "select_garden":
+      // With no gardens on offer the question says what is wrong itself, and is put again.
+      if (!offeredGardens(prompt)) return;
       return writer.say(ctx.account ? "report.explainGarden" : "report.explainGardenUnlinked");
     case "select_action":
       return writer.say("report.explainAction", {
@@ -119,25 +129,43 @@ export function handleReportAnswer(
       provenance: gardenerFact(sourceEntryId, original, unit),
     },
   ];
-  // The entry that opens another page of choices can be picked by its number, like any other.
-  const paging = option ?? (text ? prompt.options[Number(text.trim()) - 1] : undefined);
-  const page = paging?.value.startsWith("page:") ? Number(paging.value.slice(5)) : null;
+  // An entry that is not an answer, such as the one that opens another page of choices, can be
+  // picked like any other: by its number, or by its own words typed out.
+  const picked = option ?? typedChoice(prompt, text);
+  const page = picked?.value.startsWith("page:") ? Number(picked.value.slice(5)) : null;
 
   switch (prompt.kind) {
     case "select_garden": {
-      if (page !== null) return askGarden(writer, draft, ctx.account?.address ?? null, page);
-      const garden = answeredGarden(core.gardens, prompt, option, text);
+      const account = ctx.account?.address ?? null;
+      if (page !== null) return askGarden(writer, draft, account, page);
+      if (picked?.value === JOIN_CHOICE && account) return askJoin(writer, draft, account);
+      if (picked?.value === AGAIN_CHOICE) {
+        // A report that has its garden is shown the gardens to change to. One still without it
+        // carries on below, where it takes the account's only garden or is asked again.
+        if (draft.content.garden) return askGarden(writer, draft, account);
+        break;
+      }
+      const garden = answeredGarden(gardenScope(core.gardens, account), prompt, option, text);
       if (!garden) {
+        // Words sent where no garden was on offer look at the account's gardens again, as the
+        // question's one choice does.
         return offChoice(writer, plan, external, () =>
-          askGarden(writer, draft, ctx.account?.address ?? null, prompt.page)
+          offeredGardens(prompt)
+            ? askGarden(writer, draft, account, prompt.page)
+            : void finish(writer, draft, work, external, "answer")
         );
       }
-      apply(work, [
-        { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },
-      ]);
+      // Naming a garden asks for its activity again. Choosing the one the report already has
+      // changes nothing, so the report keeps its activity and carries on.
+      if (garden.address !== draft.content.garden?.address)
+        apply(work, [
+          { field: "garden", value: gardenRef(garden), provenance: gardenerFact(sourceEntryId) },
+        ]);
       break;
     }
     case "select_action": {
+      // The activities belonged to a garden that has since left the list.
+      if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
       if (page !== null) return askAction(writer, draft, external.catalog, page);
       const actions = external.catalog.result?.ok ? external.catalog.result.actions : [];
       const uid =
@@ -287,7 +315,7 @@ export function handleReportAnswer(
       break;
     }
     case "edit_field": {
-      const field = option?.value ?? presentedKeys(prompt)[Number(text) - 1];
+      const field = picked?.value;
       if (!field) return offChoice(writer, plan, external, () => askEditMenu(writer, draft));
       return askEditField(writer, draft, field, external.catalog);
     }

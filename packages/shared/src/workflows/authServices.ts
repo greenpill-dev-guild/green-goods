@@ -6,7 +6,11 @@ import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/se
 import { logger } from "../modules/app/logger";
 import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
 import { normalizePasskeyName } from "../public-contracts/passkey-directory";
-import { classifyAuthErrorReason, PasskeyServerLookupError } from "./auth-passkey-errors";
+import {
+  classifyAuthErrorReason,
+  PasskeyNotFoundError,
+  PasskeyServerLookupError,
+} from "./auth-passkey-errors";
 import {
   defaultPasskeyAdapters,
   type PasskeyAdapters,
@@ -270,12 +274,10 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
 
   const authenticateFromCache = async (userName: string | null, chainId: number) => {
     const credential = session.getStoredCredential();
-    if (!credential) throw new Error("No passkey found. Please create a new account.");
+    if (!credential) throw new PasskeyNotFoundError("device");
     const storedUsername = session.getStoredUsername();
     const rpId = cachedPasskeyRpId();
-    if (userName && !matchesCachedUsername(userName)) {
-      throw new Error("No passkey credential found for that username.");
-    }
+    if (userName && !matchesCachedUsername(userName)) throw new PasskeyNotFoundError("name");
     const response = await adapters.getWebAuthnCredential({
       publicKey: {
         challenge: strictArrayBuffer(adapters.randomChallenge()),
@@ -426,7 +428,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
               ...(await authenticateFromCache(input.userName, input.chainId)),
               source: "local_cache",
             };
-          } else throw new Error("No passkey credential found for that username.");
+          } else throw new PasskeyNotFoundError("name");
         } catch (serverError) {
           if (
             attemptSource === "server" &&

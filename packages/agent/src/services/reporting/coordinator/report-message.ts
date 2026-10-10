@@ -1,5 +1,6 @@
 import { applyReportChanges, emptyReport } from "@green-goods/shared/modules/agent-reporting";
 import { createDraft } from "../drafts";
+import { gardenScope } from "../gardens";
 import { recordMediaIntake } from "../media-intake";
 import { requestConnection, welcome } from "./account-steps";
 import { isGreeting } from "./commands";
@@ -93,13 +94,18 @@ export function handleReportMessage(
 
   const work: Working = { content: draft.content, snapshot: draft.snapshot, changed: false };
   if (external.interpretation) {
-    applyInterpretation(work, external.interpretation, external, sourceEntryId, core.gardens);
+    const scope = gardenScope(core.gardens, ctx.account?.address ?? null);
+    applyInterpretation(work, external.interpretation, external, sourceEntryId, scope);
   } else if (text && ctx.draft && !work.content.feedback) {
     apply(work, [
       { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },
     ]);
   }
-  autoFill(writer, work, external, sourceEntryId);
+  // A file sent on its own is answered by the media job once it is processed, whether or not it
+  // could be used. That job takes the chat's only garden itself, so the garden is said and the
+  // next question asked once, not twice.
+  const fileOnly = !text && plan.media.length > 0;
+  if (!fileOnly) autoFill(writer, work, external, sourceEntryId);
 
   if (
     !work.changed &&
@@ -112,7 +118,7 @@ export function handleReportMessage(
     writer.say("report.editPrompt");
     return;
   }
-  if (!text && plan.media.length > 0 && !work.changed) return; // the media job replies after processing
+  if (fileOnly && !work.changed) return;
   if (!work.changed && !["collecting", "review"].includes(lifecycleState(draft))) {
     // Past confirmation an unchanged message must not reissue the summary over the open question.
     handleReportCommand(writer, { kind: "status" }, external);

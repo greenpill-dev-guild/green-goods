@@ -7,11 +7,17 @@ import type { GrantView } from "../../../modules/agent-reporting/api-contract";
 import { readCeremony, writeCeremony } from "../../../hooks/agent-reporting/ceremony-storage";
 import { resumeGrantInstallation } from "../../../hooks/agent-reporting/useGrantInstallation";
 import type { ContractCall, TransactionSender } from "../../../modules/transactions/types";
+import { PasskeyNotFoundError } from "../../../workflows/auth-passkey-errors";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { ACCOUNT, FakeAgent, OTHER_ACCOUNT, TX_HASH, workEnvelope } from "./fake-agent";
 
 const mocks = vi.hoisted(() => ({
-  account: "0x00000000000000000000000000000000000000a1" as `0x${string}`,
+  /** The account this browser is signed in to, or null before anyone has connected one. */
+  account: "0x00000000000000000000000000000000000000a1" as `0x${string}` | null,
+  /** The failure the account layer last reported, as a sign-in with no passkey leaves one. */
+  authError: null as Error | null,
+  /** A prompt or a wallet chooser is open. */
+  authenticating: false,
   signMessage: vi.fn(async (_args: { message: string }) => `0x${"11".repeat(65)}` as `0x${string}`),
   sender: null as TransactionSender | null,
   ownerClient: {
@@ -21,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   sendActivation: vi.fn(),
   signOut: vi.fn(async () => {}),
   loginWithPasskey: vi.fn(async (_name?: string) => {}),
+  createAccount: vi.fn(async (_name: string) => {}),
   trackError: vi.fn(),
   offer: vi.fn(
     async (_account: string): Promise<{ address: string; name: string; chainId: number } | null> =>
@@ -60,16 +67,19 @@ vi.mock("../../../modules/agent-reporting/grants", async (load) => {
 vi.mock("wagmi", () => ({ useSignMessage: () => ({ signMessageAsync: mocks.signMessage }) }));
 vi.mock("../../../providers/Auth", () => ({
   useAuthState: () => ({
-    authMode: "wallet",
+    authMode: mocks.account ? "wallet" : null,
     walletAddress: mocks.account,
     smartAccountAddress: null,
     embeddedAddress: null,
     smartAccountClient: mocks.ownerClient,
-    isAuthenticating: false,
+    isAuthenticating: mocks.authenticating,
+    error: mocks.authError,
+    hasStoredCredential: false,
   }),
   useAuthActions: () => ({
     loginWithWallet: vi.fn(),
     loginWithPasskey: mocks.loginWithPasskey,
+    createAccount: mocks.createAccount,
     signOut: mocks.signOut,
   }),
 }));
@@ -121,10 +131,13 @@ async function reachReview(result: ReturnType<typeof render>["result"]) {
 beforeEach(() => {
   agent = new FakeAgent();
   mocks.account = ACCOUNT;
+  mocks.authError = null;
+  mocks.authenticating = false;
   mocks.sender = null;
   mocks.signMessage.mockClear();
   mocks.signOut.mockClear();
   mocks.loginWithPasskey.mockClear();
+  mocks.createAccount.mockClear();
   mocks.trackError.mockClear();
   mocks.offer.mockReset();
   mocks.offer.mockResolvedValue(null);
@@ -358,10 +371,68 @@ describe("reporting ceremony page", () => {
     expect(opened()).toHaveLength(0);
   });
 
+  it("returns to its account step when the account created there is new to this device", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    mocks.account = null;
+    const first = render();
+    await act(() => first.result.current.start());
+    await act(() => first.result.current.createAccount("ada"));
+    expect(mocks.createAccount).toHaveBeenCalledWith("ada");
+    // An account this device has not seen before remounts every screen, this page included.
+    first.unmount();
+    mocks.account = OTHER_ACCOUNT;
+    const second = render();
+    await waitFor(() => expect(second.result.current.stage).toBe("connect"));
+    expect(opened()).toHaveLength(2);
+
+    // Signing with it is the end of choosing: a reload afterwards waits for Continue again.
+    await act(() => second.result.current.prove());
+    expect(second.result.current.stage).toBe("pairing");
+    second.unmount();
+    const third = render();
+    await act(async () => {});
+    expect(third.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(2);
+  });
+
+  it("stays on its start after a sign-in that connected no account", async () => {
+    agent.purpose = "link_account";
+    agent.boundAccount = null;
+    mocks.account = null;
+    const first = render();
+    await act(() => first.result.current.start());
+    await act(() => first.result.current.connectPasskey());
+    // The prompt closed, and the tab was reloaded with still no one signed in.
+    first.unmount();
+    const second = render();
+    await act(async () => {});
+    expect(second.result.current.stage).toBe("intro");
+    expect(opened()).toHaveLength(1);
+  });
+
   it("finds a passkey account by the name it was created with", async () => {
     const { result } = render();
     await act(() => result.current.connectPasskey("afo.eth"));
     expect(mocks.loginWithPasskey).toHaveBeenCalledWith("afo.eth");
+  });
+
+  it("says why a sign-in failed, and lets the next attempt take the words away for good", async () => {
+    // Nothing is saved in this browser, so the account layer refused before any prompt.
+    mocks.account = null;
+    mocks.authError = new PasskeyNotFoundError("device");
+    const { result, rerender } = render();
+    await waitFor(() => expect(result.current.failure?.reason).toBe("no_saved_passkey"));
+    expect(result.current.failure?.spoken).toBe("No passkey is saved in this browser.");
+    expect(mocks.createAccount).not.toHaveBeenCalled();
+
+    // A wallet chooser opened and closed leaves the account layer's old error where it was.
+    act(() => result.current.connectWallet());
+    mocks.authenticating = true;
+    rerender();
+    mocks.authenticating = false;
+    rerender();
+    expect(result.current.failure).toBeNull();
   });
 
   it("records the error behind a failure it can only call unknown", async () => {

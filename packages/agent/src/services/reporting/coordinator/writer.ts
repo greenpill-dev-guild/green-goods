@@ -4,7 +4,8 @@ import { enqueueReply } from "../outbox";
 import type { ParticipantBinding } from "../participants";
 import { issuePrompt, type PromptOption, type PromptRecord, replyIdFor } from "../prompts";
 import type { ReportingCore } from "../runtime";
-import type { OutboundMessage } from "../transport";
+import type { OutboundLink, OutboundMessage } from "../transport";
+import { commandReplyId } from "./commands";
 import type { TurnContext } from "./context";
 
 export interface ReplyTarget {
@@ -108,9 +109,23 @@ export class ConversationWriter {
     );
   }
 
-  /** A reply with a link to a public record. Nothing is signed there, so any browser will do. */
-  sayWithRecord(key: ReportingCopyKey, values: CopyValues, record: OutboundMessage["link"]): void {
-    this.enqueue({ text: this.text(key, values), ...(record ? { link: record } : {}) }, key);
+  /**
+   * A reply with buttons that each send a command word. It asks nothing, so the conversation's
+   * open question stays open. A channel that draws no buttons shows the text alone, which then
+   * has to name the words.
+   */
+  sayWithCommands(
+    key: ReportingCopyKey,
+    values: CopyValues,
+    commands: ReadonlyArray<{ word: string; label: string }>
+  ): void {
+    const choices = commands.map(({ word, label }) => ({ id: commandReplyId(word), label }));
+    this.reply({ text: this.text(key, values), ...(choices.length ? { choices } : {}) }, key);
+  }
+
+  /** A reply with links to public records. Nothing is signed there, so any browser will do. */
+  sayWithRecords(key: ReportingCopyKey, records: OutboundLink[]): void {
+    this.enqueue({ text: this.text(key), records }, key);
   }
 
   /** Issues the conversation's single open question and sends it with numbered choices. */
@@ -125,7 +140,8 @@ export class ConversationWriter {
       page?: number;
     },
     text: (prompt: PromptRecord) => string,
-    link?: OutboundMessage["link"]
+    link?: OutboundMessage["link"],
+    copy?: OutboundMessage["copy"]
   ): PromptRecord {
     const prompt = issuePrompt(this.core, {
       conversationId: this.target.conversationId,
@@ -146,6 +162,7 @@ export class ConversationWriter {
         text: `${text(prompt)}${numbered}`,
         ...(choices.length ? { choices } : {}),
         ...(link ? { link } : {}),
+        ...(copy ? { copy } : {}),
       },
       `prompt:${input.kind}`,
       prompt.id

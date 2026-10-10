@@ -122,6 +122,26 @@ function isTestPath(path) {
   return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
 }
 
+// A test directory also holds what no runner can execute: helpers, fixtures, setup and notes.
+// Only a test file can be a focused run. Handing a runner anything else finds no tests, which
+// Vitest reports as a failure.
+function isRunnableTestPath(path) {
+  return (
+    isTestPath(path) &&
+    (/(^|[/.])(test|spec)\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".t.sol"))
+  );
+}
+
+// Notes kept beside tests change no test's outcome, so they select no test run.
+function isTestNotesPath(path) {
+  return isTestPath(path) && /\.mdx?$/i.test(path);
+}
+
+// A changed test, helper or fixture can change what its suite reports.
+function affectsTests(path) {
+  return isTestPath(path) && !isTestNotesPath(path);
+}
+
 function isStorybookConfigPath(path) {
   return path.includes("/.storybook/");
 }
@@ -174,11 +194,13 @@ function classifyChangedPath(path) {
   return "other";
 }
 
+// A changed helper or fixture is no focus, so its suite runs whole unless the author names the
+// test that exercises it or changed one alongside it.
 function inferChangedTestPaths(paths, deletedPaths = []) {
   const deleted = new Set(deletedPaths);
   const inferred = {};
   for (const path of paths) {
-    if (!isTestPath(path) || deleted.has(path)) continue;
+    if (!isRunnableTestPath(path) || deleted.has(path)) continue;
     const surface = owningSurface(path);
     if (!surface || surface === "docs") continue;
     const prefix = `packages/${surface}/`;
@@ -320,7 +342,7 @@ function addValidationOnlyChecks(select, surface, paths, { includeTypecheck = tr
   if (includeTypecheck && testTypechecks[surface]) {
     select(testTypechecks[surface], `validation-only:${surface}:types`);
   }
-  if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
+  if (paths.some(affectsTests)) select(`${surface}-test`, `validation-only:${surface}:tests`);
   if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
   if (paths.some(isStorybookConfigPath)) {
     select("storybook-build", `validation-only:${surface}:storybook-config`);
@@ -382,12 +404,20 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPa
     if (needsOwnerCompileProof(changedPaths, surface)) continue;
     missing.add(surface);
   }
-  // A deleted package test leaves its suite with nothing to focus on. Only the author can name the
-  // test that still proves the same failure, so ask for it, unless the whole suite costs no more
-  // than a focused run would. Docs tests have no focused mode and always run whole.
-  for (const path of deletedPaths) {
+  // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
+  // or fixture, which no runner can execute. Only the author can name the test that still proves
+  // the same failure, or that exercises the helper, so ask for it, unless the whole suite costs no
+  // more than a focused run would. Docs tests have no focused mode and always run whole.
+  const deleted = new Set(deletedPaths);
+  const unfocusable = [
+    ...deletedPaths.filter(affectsTests),
+    ...changedPaths.filter(
+      (path) => affectsTests(path) && !isRunnableTestPath(path) && !deleted.has(path),
+    ),
+  ];
+  for (const path of unfocusable) {
     const surface = owningSurface(path);
-    if (!isTestPath(path) || !surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    if (!surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
     const suite = policy.checks.find((check) => check.id === `${surface}-test`);
     if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);

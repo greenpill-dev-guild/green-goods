@@ -5,6 +5,7 @@ import { RiUserLine } from "@remixicon/react";
 import {
   createContext,
   type ReactNode,
+  type SyntheticEvent,
   useContext,
   useEffect,
   useMemo,
@@ -28,17 +29,69 @@ interface FocusedShellSlots {
 
 const Slots = createContext<FocusedShellSlots | null>(null);
 
+/** What a person presses or tabs to on a page. Its words and layout are not among them. */
+const CONTROLS = "button, a[href], input, select, textarea, summary, [tabindex]";
+/** The page's title, which the page may focus: the cards that draw one give it a tabindex. */
+const PAGE_TITLE = "h1[tabindex]";
+
 /**
  * The focused shell for reporting ceremony pages: the top bar, then the page. The bar and its
  * Account and Help sheet are on screen before the page's code loads; the page then reaches into
  * them, drawing its steps in the bar's middle and its account in the sheet, so each piece is said
  * by the part of the page that knows it.
+ *
+ * The shell also keeps focus on the page. A step is taken by pressing a control, and the next
+ * step either replaces that control, so focus falls back to the document and the next Tab starts
+ * again from the top bar, or reuses its node under another name, so focus sits on an act the
+ * person has not read yet. Either way a screen reader says nothing of the step that arrived. So
+ * when the step has changed since the person last used a control, and focus is still where that
+ * left it, the page's title takes it. A step has changed when that control is gone or the page's
+ * title reads differently. A page that changes by itself, as on first load or when a send
+ * settles, follows no control anyone used, and a dialog or the account sheet holds focus of its
+ * own, so neither is touched.
  */
 export function FocusedShell({ children }: { children: ReactNode }) {
   const [middle, setMiddle] = useState<HTMLElement | null>(null);
   const [account, setAccount] = useState<HTMLElement | null>(null);
   const [page, setPage] = useState<{ signedIn: boolean } | null>(null);
   const slots = useMemo(() => ({ middle, account, setPage }), [middle, account]);
+  const mainRef = useRef<HTMLElement>(null);
+  // The control a person last used on the page, and what the page's title said at the time.
+  const lastUsed = useRef<{ control: Element; title: string | null } | null>(null);
+  // Pressed as well as focused: some browsers leave focus where it was when a button is tapped.
+  const noteControl = (event: SyntheticEvent) => {
+    const control = event.target instanceof Element ? event.target.closest(CONTROLS) : null;
+    if (!control) return;
+    const title = mainRef.current?.querySelector(PAGE_TITLE)?.textContent ?? null;
+    lastUsed.current = { control, title };
+  };
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const observer = new MutationObserver(() => {
+      const used = lastUsed.current;
+      if (!used) return;
+      const title = main.querySelector<HTMLElement>(PAGE_TITLE);
+      const stepChanged =
+        !used.control.isConnected || (title !== null && title.textContent !== used.title);
+      if (!stepChanged) return;
+      const active = document.activeElement;
+      if (active && active !== document.body && active !== used.control) {
+        // The person is somewhere else by now, in a dialog or on the top bar.
+        lastUsed.current = null;
+        return;
+      }
+      // Until the next step is drawn there is no title to go to.
+      if (!title) return;
+      lastUsed.current = null;
+      title.focus();
+    });
+    // A title that changes in place is a change of its text, not of the page's nodes.
+    observer.observe(main, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-bg-white-0">
       <FocusedSiteHeader
@@ -48,7 +101,14 @@ export function FocusedShell({ children }: { children: ReactNode }) {
         pageSaysAccount={page !== null}
       />
       <Slots.Provider value={slots}>
-        <main className="flex-1">{children}</main>
+        <main
+          ref={mainRef}
+          className="flex-1"
+          onClickCapture={noteControl}
+          onFocusCapture={noteControl}
+        >
+          {children}
+        </main>
       </Slots.Provider>
     </div>
   );

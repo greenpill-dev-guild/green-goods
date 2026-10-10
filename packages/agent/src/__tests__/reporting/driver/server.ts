@@ -9,7 +9,7 @@
  * provider, wallet or chain.
  */
 import { randomBytes } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildReportingProofMessage } from "@green-goods/shared/modules/agent-reporting";
@@ -48,6 +48,8 @@ export const DRIVER_API_TOKEN = "driver-local-token";
 
 export interface Driver {
   url: string;
+  /** Where its SQLite database and media live until it stops. */
+  dataDir: string;
   runtime: ReportingRuntime;
   chain: FakeChain;
   transport: RecordingTransport;
@@ -77,6 +79,8 @@ export async function startDriver(
     fetch: (request) => (app ? app.fetch(request) : new Response("starting", { status: 503 })),
   });
   const origin = options.origin ?? `http://127.0.0.1:${server.port}`;
+  // A directory the driver makes is the driver's to remove when it stops. A caller's is left alone.
+  const ownsDataDir = options.dataDir === undefined;
   const dataDir = options.dataDir ?? mkdtempSync(join(tmpdir(), "gg-reporting-driver-"));
   const chain = new FakeChain();
   const transport = new RecordingTransport();
@@ -136,6 +140,7 @@ export async function startDriver(
         text: sent.message.text,
         choices: sent.message.choices ?? [],
         link: sent.message.link ?? null,
+        records: sent.message.records ?? [],
       }))
     );
   });
@@ -197,12 +202,14 @@ export async function startDriver(
   runtime.start();
   return {
     url: `http://127.0.0.1:${server.port}`,
+    dataDir,
     runtime,
     chain,
     transport,
     async stop() {
       server.stop(true);
       await runtime.stop();
+      if (ownsDataDir) rmSync(dataDir, { recursive: true, force: true });
     },
   };
 }
@@ -215,5 +222,17 @@ if (import.meta.main) {
   });
   console.log(`Reporting driver listening on ${driver.url} (fixture chain, recorded transport)`);
   console.log(`Operator token for /reporting/ops/*: Bearer ${DRIVER_API_TOKEN}`);
-  process.on("SIGINT", () => void driver.stop().then(() => process.exit(0)));
+  // A terminal ends the driver with SIGINT; Playwright and process managers send SIGTERM. Either
+  // way it stops once, so the directory it made does not outlive it.
+  let stopping = false;
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => {
+      if (stopping) return;
+      stopping = true;
+      void driver.stop().then(
+        () => process.exit(0),
+        () => process.exit(1)
+      );
+    });
+  }
 }

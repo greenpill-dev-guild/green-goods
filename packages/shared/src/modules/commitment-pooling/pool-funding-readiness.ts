@@ -1,5 +1,7 @@
 import type {
   PoolFundingCalculationInput,
+  PoolFundingSnapshot,
+  PoolFundingTransferLimit,
   PoolFundingUnavailableReason,
   SettlementUnavailableReason,
 } from "./pool-funding";
@@ -178,4 +180,37 @@ export function deriveSettlementUnavailableReasons(
   }
 
   return [...new Set(reasons)];
+}
+
+/**
+ * The smallest limit a new transfer of `amount` out of this Safe is over, so one
+ * correction clears every limit it broke; null when it fits all that were read.
+ * Only what the current read returned counts. A limit that was not read never
+ * blocks, and neither does a snapshot kept from before a failed refresh, nor a
+ * stale balance, which stands in for one that could not be read. The Celo
+ * executor compares the amount plus any sender-paid G$ fee, so an amount within
+ * that fee of a limit fits here and can still fail there.
+ */
+export function selectExceededTransferLimit(
+  funding: {
+    snapshot: Pick<PoolFundingSnapshot, "balance" | "limits"> | null;
+    isError: boolean;
+    hasStaleBalance: boolean;
+  },
+  amount: bigint
+): PoolFundingTransferLimit | null {
+  if (!funding.snapshot || funding.isError) return null;
+  const { balance, limits } = funding.snapshot;
+  const maxima: [PoolFundingTransferLimit, bigint | null][] = [
+    ["transfer_cap", limits.maxTransferAmount],
+    ["period_allowance", limits.periodAllowanceRemaining],
+    ["roles_allowance", limits.rolesAllowanceRemaining],
+    ["balance", funding.hasStaleBalance ? null : (balance?.value ?? null)],
+  ];
+  let exceeded: { limit: PoolFundingTransferLimit; max: bigint } | null = null;
+  for (const [limit, max] of maxima) {
+    if (max === null || amount <= max) continue;
+    if (!exceeded || max < exceeded.max) exceeded = { limit, max };
+  }
+  return exceeded?.limit ?? null;
 }

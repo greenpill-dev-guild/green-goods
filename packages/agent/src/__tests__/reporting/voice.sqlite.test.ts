@@ -115,7 +115,7 @@ describe("voice notes", () => {
     expect(openai.transcriptions).toEqual([]);
   });
 
-  it("retries an unavailable transcription, then explains and keeps the report", async () => {
+  it("retries an unavailable transcription, then explains and carries the report on", async () => {
     const openai = voiceOn([null, null, null, null, null]);
     await sendVoice("voice-1");
     await harness.press(ADA, "I agree");
@@ -125,9 +125,11 @@ describe("voice notes", () => {
       await harness.drain();
     }
     expect(openai.transcriptions).toHaveLength(5);
-    expect(harness.transport.sent.at(-1)?.message.text).toContain(
-      "I couldn't transcribe that voice note. Your report is saved"
-    );
+    // The note was all the report had to go on, so its next question follows the reason.
+    expect(harness.transport.texts().slice(-2)).toEqual([
+      "I couldn't transcribe that voice note. Your report is saved; please try again or type your update.",
+      "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden",
+    ]);
     expect(draft()?.content.feedback).toBeNull();
   });
 
