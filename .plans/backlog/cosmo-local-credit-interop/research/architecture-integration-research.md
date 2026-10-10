@@ -1,7 +1,8 @@
 # Architecture and integration research
 
 **Observed:** 2026-10-10, against Green Goods commit `06a31dbf5` in this worktree, the reconciled
-hub documents in the main checkout (uncommitted 9 October edits), live Linear, and public
+9 October hub documents (uncommitted in the planning checkout when read, committed beside this
+file later that day), live Linear, and public
 Cosmo-Local Credit (CLC) material. Chain reads were taken from public RPC endpoints at Gnosis block
 48,683,249 (factory scan) and 48,683,632 (activity), Arbitrum block 513,486,280 and Celo block
 79,727,365. Every read was an `eth_call`, `eth_getCode` or `eth_getLogs`; nothing was broadcast.
@@ -26,7 +27,7 @@ the public terms, the public repositories and the chain.
 
 | Authority | What was read | Freshness |
 |---|---|---|
-| Plan hub (main checkout) | `status.json`, `spec.md`, `eval.md`, `brief.md`, `plan.todo.md`, `resources.md`, `tensions.md`, `whitepaper-v8-review.md`, `project-reconciliation.md`, `hackathon-discussion.md`, the research handover | 9 October, uncommitted on `codex/cosmo-local-planning` |
+| Plan hub (planning checkout) | `status.json`, `spec.md`, `eval.md`, `brief.md`, `plan.todo.md`, `resources.md`, `tensions.md`, `whitepaper-v8-review.md`, `project-reconciliation.md`, `hackathon-discussion.md`, the research handover | 9 October, uncommitted on `codex/cosmo-local-planning` |
 | Linear | RESR-73 and its four comments, RESR-74 and its four comments (22 September findings), PRD-857, PRD-1096, PRD-1097, PRD-1100, PRD-1197, COM-46 | live, 10 October |
 | Decision artifact | "Money, credits and pools, the model, 22 Sep" (attached to RESR-73 and PRD-857) | 22 September |
 | Green Goods code | chain and account configuration in Shared; the settlement lane (codec, command, configuration, executor authentication and acknowledgment); the garden Safe relay and router; confirmation and terms libraries; interfaces; the local CCIP router; Foundry profiles; `networks.json`; the Celo lane evidence folder; fork and unit test harnesses; indexer config, schema and handlers; the installed `permissionless` 0.2.57 Kernel constants | commit `06a31dbf5` |

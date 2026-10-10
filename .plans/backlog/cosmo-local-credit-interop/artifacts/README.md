@@ -2,8 +2,7 @@
 
 Editable pitch material for the SustainableFinance.Live 2026 entry (Problem Statement 2). First
 draft, 9 October 2026. Research, claim ledger, supporter offer, demo scripts and the fiat
-decision note live in
-[`.plans/backlog/cosmo-local-credit-interop/research/`](../../.plans/backlog/cosmo-local-credit-interop/research/README.md).
+decision note live beside this folder in [`../research/`](../research/README.md).
 
 ## Deck
 
@@ -25,7 +24,7 @@ screen. Fonts load from Google Fonts; offline, the system serif and sans fallbac
 From the repository root, with the repository's Playwright install:
 
 ```bash
-node artifacts/cosmo-local-hackathon/deck/render.mjs
+node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs
 ```
 
 ### Photos
@@ -40,7 +39,7 @@ presenting or rendering. Without them the two slides show an empty frame with it
 
 Every diagram distinguishes three states with the same chips: **Live today** (solid green),
 **Planned pilot, rehearsal first** (dashed amber) and **Stretch** (dotted sky). Keep the labels
-when editing. The [claim ledger](../../.plans/backlog/cosmo-local-credit-interop/research/claim-ledger.md)
+when editing. The [claim ledger](../research/claim-ledger.md)
 says which wording each claim may carry.
 
 ### What is deliberately missing

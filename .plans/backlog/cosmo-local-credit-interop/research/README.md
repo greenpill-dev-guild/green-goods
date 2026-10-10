@@ -1,16 +1,16 @@
 # Research and pitch package (first draft)
 
-**Drafted:** 2026-10-09 and 2026-10-10 by Claude Fable 5.1, from the research and pitch handover
-(`../handoffs/claude-fable-research-pitch.md`, part of the 9 October planning reconciliation that is
-still uncommitted on `codex/cosmo-local-planning` and is not in this branch).
+**Drafted:** 2026-10-09 and 2026-10-10 by Claude Fable 5.1, from the
+[research and pitch handover](../handoffs/claude-fable-research-pitch.md).
 **Posture:** reviewable first draft, in a draft pull request since 10 October. Nothing here is
 approved copy or an implementation dispatch. Every amount, buyer and partnership stays labeled
 until Afo confirms it.
 
-**Read with care until the planning reconciliation lands.** These files cite the reconciled
-9 October hub documents: `../brief.md`, `../spec.md`, `../eval.md`, `../plan.todo.md` and the white
-paper v0.8 review. On a branch cut from `develop` those paths still hold the August model that the
-reconciliation retires, and the review and handover files are absent.
+These files read against the reconciled 9 October hub documents: the [brief](../brief.md),
+[architecture](../spec.md), [plan](../plan.todo.md), [acceptance evidence](../eval.md) and the
+[white paper v0.8 review](../whitepaper-v8-review.md). That reconciliation was committed beside
+this package on 10 October, unchanged from the planning checkout. The pitch assets live in the hub
+at [`../artifacts/`](../artifacts/README.md).
 
 ## Outline
 
@@ -22,7 +22,7 @@ backward from that funding decision and forward from evidence we actually hold.
 |---|---|---|---|
 | 1 | Research brief: first audience, need, comparable approaches, funding routes, Nigeria data, four-level capital-flow map, unknowns | [research-brief.md](research-brief.md) | first draft |
 | 1 | Claim ledger: every consequential claim with status, source, date and allowed phrasing | [claim-ledger.md](claim-ledger.md) | first draft |
-| 2 | Eight-to-ten-minute pitch: slide sequence, editable deck, speaker notes, technical appendix, rendered slides | [artifacts/cosmo-local-hackathon](../../../../artifacts/cosmo-local-hackathon/README.md) | first draft |
+| 2 | Eight-to-ten-minute pitch: slide sequence, editable deck, speaker notes, technical appendix, rendered slides | [`../artifacts/`](../artifacts/README.md) | first draft |
 | 3 | One-page supporter offer and FAQ | [supporter-offer.md](supporter-offer.md) | first draft |
 | 4 | Demo scripts: go-authorized live version and no-go local rehearsal | [demo-script-go.md](demo-script-go.md), [demo-script-no-go.md](demo-script-no-go.md) | first draft |
 | 5 | Fiat stretch decision note | [fiat-stretch-decision.md](fiat-stretch-decision.md) | first draft |
@@ -32,8 +32,7 @@ backward from that funding decision and forward from evidence we actually hold.
 
 1. The [research brief](research-brief.md) for the recommended first audience and offer.
 2. The [claim ledger](claim-ledger.md) before editing any slide or external copy.
-3. The deck [README](../../../../artifacts/cosmo-local-hackathon/README.md) for how to edit and
-   re-render the slides.
+3. The pitch assets [README](../artifacts/README.md) for how to edit and re-render the slides.
 4. The [architecture and integration research](architecture-integration-research.md) before
    dispatching PRD-1096 or answering a technical question from a judge.
 
@@ -57,8 +56,8 @@ In Progress). The brief's section 12 records all five.
   the research and pitch records as the handover authorized, and RESR-94 moved to In Progress on
   his acceptance.
 - The two hub photographs the deck uses are not committed, and the rendered slides under
-  `deck/output/` are ignored by the repository's `.gitignore`. The deck README says how to supply
-  both.
+  `deck/output/` are ignored by the repository's `.gitignore`. The pitch assets README says how to
+  supply both.
 - The repository is public. Partner contacts, wallet addresses and private evidence stay out of
   these files.
 
@@ -126,3 +125,16 @@ Agent/model: Claude Code, Claude Opus 5.5 (claude-opus-5-5) | Coverage: this seg
 | Verify and publish | 2026-10-10T16:38Z → see the pull request | Branch `research/cosmo-local-pitch-and-architecture` cut from `origin/develop`. Validation receipts (plan-hub validator, guidance links, immutable reports, push gate) are in the pull request description, because a receipt cannot name the commit that contains it. |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+## Task record: planning edits and hub-local pitch assets (10 October)
+
+Task record: planning reconciliation committed on the pull request branch, pitch assets moved into the hub | Type: packaging | Outcome: both pushed to the draft pull request; no merge requested
+Agent/model: Claude Code, Claude Opus 5.5 (claude-opus-5-5) | Coverage: this segment only
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | unknown → 2026-10-10T16:51Z | The planning checkout was read without changing it: 14 modified and 4 new planning files across four hubs, last written 9 October 19:30Z. None of the 14 had changed on `develop` since that checkout's base. `.claude/settings.json` and the Green Goods OS idea hub were left out as unrelated. |
+| Implement | 2026-10-10T16:51Z → 2026-10-10T16:53Z | The 18 planning files were copied byte for byte and committed on their own. Lane objects and workflow state are identical to `develop` in all four hubs. The deck package then moved from a top-level `artifacts/` folder to this hub's `artifacts/`, with every reference updated and the handover's save location corrected. |
+| Verify and publish | 2026-10-10T16:53Z → see the pull request | Validation receipts are in the pull request description. |
+
+Human corrections: 1 in this segment (no top-level `artifacts/` folder; pitch assets belong in the plan hub); attention: unknown.

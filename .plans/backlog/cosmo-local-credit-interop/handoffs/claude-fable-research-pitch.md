@@ -92,8 +92,9 @@ a certificate. State verifiable benefits and the evidence needed for stronger cl
 ## Deliverables
 
 Save new working material under `.plans/backlog/cosmo-local-credit-interop/research/` and editable
-pitch assets under `artifacts/cosmo-local-hackathon/` in this repository, without copying private
-source attachments. Begin with a short outline, then complete a coherent first draft of:
+pitch assets under `.plans/backlog/cosmo-local-credit-interop/artifacts/`, without copying private
+source attachments. (Corrected on 10 October: the first version named a top-level `artifacts/`
+folder, which this repository does not keep.) Begin with a short outline, then complete a coherent first draft of:
 
 1. **Research brief and claim ledger:** first audience, need, comparable approaches, funding route,
    source/date for each consequential claim, implemented/planned/observed labels, unknowns and next

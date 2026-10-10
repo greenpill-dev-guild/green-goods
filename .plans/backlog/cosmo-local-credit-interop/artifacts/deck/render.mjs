@@ -1,5 +1,6 @@
 // Renders every slide of index.html to PNG and the whole deck to PDF.
-// Usage, from the repository root: node artifacts/cosmo-local-hackathon/deck/render.mjs
+// Usage, from the repository root:
+//   node .plans/backlog/cosmo-local-credit-interop/artifacts/deck/render.mjs
 // Needs the repository's Playwright install (chromium). Writes to ./output next to this file.
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
