@@ -19,7 +19,7 @@ The prior prices, fit percentage, ARR, margins and funding ask are withdrawn fro
 
 **Technical exploration, 9 October 2026:** [local setup and device architecture](architecture.md) consolidates the mesh discussion, the user's requirement to begin without a dedicated computer node, the extension as an active laptop hub, offline setup, API limits and deliberate publication. [Purchasable sensor research](sensor-kit-research.md) compares stock products, browser configuration, local logging, primary-source prices and missing integration work. These are research companions, not an expanded prototype or approved procurement list.
 
-The [v3 cover checkpoint](artifacts/visual-direction-v3/README.md) carries the agreed cover; the [v2 checkpoint](artifacts/visual-direction-v2/README.md) still holds the problem and solution compositions. Review these before extending the editable deck. New imagery must reference the actual website's photographic language. Use no em dashes in revised copy. The [commission](handoffs/research-to-pitch-commission-draft.md) carries the research and production requirements forward.
+The [v3 cover checkpoint](artifacts/visual-direction-v3/README.md) carries the agreed cover, the solution sample and the sixteen-slide core deck for review; the [v2 checkpoint](artifacts/visual-direction-v2/README.md) is history. New imagery must reference the actual website's photographic language. Use no em dashes in revised copy. The [commission](handoffs/research-to-pitch-commission-draft.md) carries the research and production requirements forward.
 
 ## Decisions before implementation
 
@@ -31,4 +31,4 @@ The [v3 cover checkpoint](artifacts/visual-direction-v3/README.md) carries the a
 
 [Quality reviews](eval.md) record what can carry forward; the [handoff](handoffs/research.md) records scope and verification. Canonical product and website wording can be reconciled through a later bounded documentation pass. This proposal does not alter current capability claims.
 
-Latest decisions, 9 October 2026 Pacific / 10 October UTC: Fraunces Medium 500 upright title with the second line in the website's accent green and no italic, an 18-word third-person subtitle for land stewards, and the v2 panel composition. The cover is agreed; the solution sample is next. The [continuation prompt](handoffs/pitch-restart-prompt.md) owns the immediate next step.
+Latest decisions, 9 October 2026 Pacific / 10 October UTC: Fraunces Medium 500 upright title with the second line in the website's accent green and no italic, an 18-word third-person subtitle for land stewards, and the v2 panel composition. The cover is agreed, and the core deck built from the agreed narrative awaits review. The [continuation prompt](handoffs/pitch-restart-prompt.md) owns the immediate next step.

@@ -47,6 +47,33 @@ Built 10 October 2026 UTC from the v2 solution composition on the agreed rules, 
 - **Composition.** Text left, the v2 field-notebook scene right, unchanged and still conceptual with cropped hands only. Geometry in inches: title 0.667, 0.448 at 11.979 by 1.25; lede 0.667, 2.0; three blocks from 2.75 at a 1.17 pitch, with the label at the block top, the heading 0.24 below and the body 0.70 below; image 7.073, 2.75 at 5.594 by 3.521; caption 7.073, 6.37; closing line 0.667, 6.5; footnote 0.667, 7.115.
 - **Build and measurements.** One slide spec drives both the PPTX builder and the renderer, so positions, sizes, colours and text are identical by construction. Every text box fits on one line in its box with the exact fonts: widest body line 505 px of 560 px, widest label 340 px of 571 px. PPTX SHA-256 `fe67e5ff897bb80284d26dc3e8d09d5091bda2f0892d5d94d6d9d5d78ef47e63`.
 
+## Core deck
+
+Built 10 October 2026 UTC from the agreed sixteen-slide narrative in [pitch-revision.md](../../pitch-revision.md), for review: [editable PPTX](green-goods-pitch-core-v3.pptx), [speaker notes](speaker-notes-core.md), [receipt](verification-core.json) and the [deck spec](core/deck-spec.json) that generated both the file and the renders. The per-slide renders and the PDF preview were produced, inspected and delivered for review, but are not committed: the push gate's binary-diff buffer already carries the historical decks, so this branch stays within it as the earlier packaging pass did. Both regenerate from the spec with the renderer; their hashes are in the receipt. The cover and the solution sample are carried in as slides 1 and 5.
+
+Rules applied on every slide: Fraunces Medium headings with the second title line in the website accent green, Inter body, charcoal on linen with stone for small text, one green accent per slide, images on the right, editable text and diagrams, a footnote stating the evidence boundary, and status labels wherever a capability is claimed. No market size, price, margin, revenue or funding figure appears; the withdrawn figures stay withdrawn. No new image was generated: slides 7 and 10 use the website's own hero photography (`hero-actions.webp`, `hero-cookie.webp`, cropped hands only) labelled as website imagery, and slides 1 and 5 keep the v2 conceptual scenes. All other slides are typographic or use editable shapes.
+
+| # | Headline | Visual | Evidence boundary |
+|---|---|---|---|
+| 1 | Land care within reach | Garden concept behind the linen panel | Vision, not availability today |
+| 2 | Unequal access makes regenerative work harder | Three columns: cost, complexity, knowledge silos | Problem hypothesis; FAO regional evidence, P07 |
+| 3 | Different circumstances. Knowledge worth sharing in every setting. | Four settings in a two by two grid, needs and offers | Illustrative settings, not customers |
+| 4 | A lesson learned in one place can help another. | Three cards with arrows: lesson, question, feedback | Reciprocal value is a hypothesis; pilot gate |
+| 5 | A browser workspace for land stewardship | Reviewed solution sample, notebook scene, status labels | R03, R06, R07, R09, R11 to R14 |
+| 6 | Observe. Understand. Review. Choose what to share. | Four step cards with status labels | Capture and review exist; context view and preview proposed |
+| 7 | Make today's work useful tomorrow. | Five benefits beside the website notebook image | Benefits to measure, no savings claim |
+| 8 | Accessibility. Sovereignty. Trust. Reciprocity. | Four columns, three cross-cutting principles beneath | Agreed principles, not certification |
+| 9 | Knowledge grows through relationships. | Three-node exchange diagram, returns and costs | Network effect unproven |
+| 10 | Turn shared understanding into collective action. | Example task with four contributions beside the website jar image | Funding available, pooling in progress; R11 to R14 |
+| 11 | Start with a trusted local cohort. Build toward global access. | Four roles and a nested first-cohort diagram | Recommended entry point; no market size |
+| 12 | Connect to the systems communities already value. | Comparison table of five systems | W20 to W27; no novelty claim |
+| 13 | Pay for useful services and dependable support. | Four sequence cards with payers | Recommendation; no price or margin |
+| 14 | Grow through trusted delivery and useful exchange. | Timeline of four milestones, maintenance ownership | Proposed go-to-market |
+| 15 | Prove usefulness, control and reciprocal value. | Three status columns, pilot line | PRD gates; inspected code is not live proof |
+| 16 | Help shape the first locally useful, globally connected cohort. | Audience table and the vision statement | P01 to P06; relevance, not interest; no dollar ask |
+
+Notes carry the full claim boundary and sources for every slide, with evidence IDs from the [register](../../evidence-register.md). Build: one spec per slide drives a stdlib PPTX builder (text, picture, rectangle and line shapes, one notes part per slide) and the Chromium renderer, so positions, sizes, colours and text match by construction. The renderer reports any text box whose text exceeds its box; the final report is clean. Every slide was inspected individually at 1280 by 720; the PDF is Chromium's print of the same pages. Renders are browser replicas, not PowerPoint, Keynote or Google Slides output. The two conceptual scenes are re-encoded as JPEG in this file to keep it at 2.5 MB; the standalone cover and solution files keep the PNG originals. Fonts are referenced, not embedded; the [v3 bundle](../green-goods-pitch-fonts-v3.zip) covers all three faces. PPTX SHA-256 `d000c31e650e71046bf52b6ab4736447c2dc22eb128d1dc931771bc90f32bde0`.
+
 ## Files and source-to-claim index
 
 - [Editable presentation](green-goods-pitch-cover-v3.pptx), [speaker notes](speaker-notes.md), [verification receipt](verification.json), render above.
@@ -56,4 +83,4 @@ Built 10 October 2026 UTC from the v2 solution composition on the agreed rules, 
 
 ## Next step
 
-Review the solution sample above. On acceptance, expand the full deck from the agreed narrative with the same spec-driven build: one spec per slide, Fraunces Medium headings, Inter body, one accent per slide, images right, status labels where capabilities are claimed, and source-bearing notes.
+Review the core deck above. Requested changes go through the deck spec and a rebuild, with every slide re-rendered. After acceptance: tailored final asks and appendices per audience, a delivery PDF rendered with the bundle, and propagation of accepted positioning into the PRD and strategy without rewriting implementation facts.

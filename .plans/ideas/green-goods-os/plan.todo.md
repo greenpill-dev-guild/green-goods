@@ -30,8 +30,8 @@ First cohort, buyer, geography, workflow, commercial inputs and ask remain propo
 - [x] Discuss title typography and fuller cover copy; record the decisions: Fraunces upright, subtitle Option 1, composition C1.
 - [x] Produce the v3 cover: a rendered 400 and 500 pair, then the agreed Medium 500 cover with the accent green second line, as an editable PPTX with a browser render and a font bundle.
 - [x] Build the solution-slide sample on the agreed rules with status labels and a single accent.
-- [ ] Review the solution sample; on acceptance, the full-deck item below proceeds.
-- [ ] Produce the next editable deck from aligned content and imagery, with all-slide inspection.
+- [x] Build the sixteen-slide core deck from the agreed narrative with the spec-driven build, all-slide inspection and source-bearing notes; the solution sample is slide 5.
+- [ ] Review the core deck; then tailored asks and appendices, a delivery PDF, and propagation into the PRD and strategy.
 - [x] Final link/claim/arithmetic/artifact checks and handoff; observed results in eval.md.
 - [x] Document the mesh, node-free start, extension hub, local setup, API boundaries, local AI and private/public separation.
 - [x] Research purchasable sensor kits using primary listings, manuals and local protocols; distinguish stock behavior from proposed Green Goods adapters.
