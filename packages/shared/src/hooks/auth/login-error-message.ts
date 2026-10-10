@@ -1,8 +1,24 @@
 import type { IntlShape } from "react-intl";
 import { withoutQuotedRequest } from "../../utils/errors/extract-message";
 import { isPasskeyCredentialUnavailableError } from "../../utils/errors/tx-error-classifier";
+import { PasskeyNotFoundError } from "../../workflows/auth-passkey-errors";
 
-export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): string {
+/**
+ * What a failed sign-in or account creation tells the person. `creating` is whether the
+ * attempt was making an account: a prompt that closes then made none, which is the thing to say.
+ */
+export function getFriendlyLoginErrorMessage(
+  error: unknown,
+  intl: IntlShape,
+  { creating = false }: { creating?: boolean } = {}
+): string {
+  // No name was asked for, so the answer must not blame one.
+  if (error instanceof PasskeyNotFoundError && error.scope === "device") {
+    return intl.formatMessage({
+      id: "app.login.error.noSavedPasskey",
+      defaultMessage: "No passkey is saved in this browser.",
+    });
+  }
   if (isPasskeyCredentialUnavailableError(error)) {
     return intl.formatMessage({
       id: "app.login.error.noPasskey",
@@ -23,10 +39,15 @@ export function getFriendlyLoginErrorMessage(error: unknown, intl: IntlShape): s
     message.includes("user deny") ||
     message.includes("not allowed")
   ) {
-    return intl.formatMessage({
-      id: "app.login.error.cancelled",
-      defaultMessage: "Sign in was cancelled.",
-    });
+    return creating
+      ? intl.formatMessage({
+          id: "app.login.error.createCancelled",
+          defaultMessage: "No account was created. Try again.",
+        })
+      : intl.formatMessage({
+          id: "app.login.error.cancelled",
+          defaultMessage: "Sign in was cancelled.",
+        });
   }
   if (
     message.includes("expected account address") ||
