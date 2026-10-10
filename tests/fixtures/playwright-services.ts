@@ -48,6 +48,29 @@ export function selectedProjectNames(argv: readonly string[]): string[] {
   return names;
 }
 
+/**
+ * Whether a `--project` selection picks this project. Playwright matches names without regard to
+ * case and lets `*` stand for any run of characters, so `passkey-*` selects `passkey-mock`.
+ */
+export function selectsProject(selectors: readonly string[], project: string): boolean {
+  const name = project.toLowerCase();
+  return selectors.some((selector) => {
+    const parts = selector.toLowerCase().split("*");
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+    if (parts.length === 1) return first === name;
+    if (!name.startsWith(first) || name.length < first.length + last.length) return false;
+    // The pieces between the stars must follow one another, and the last must end the name.
+    let from = first.length;
+    for (const piece of parts.slice(1, -1)) {
+      const at = name.indexOf(piece, from);
+      if (at < 0) return false;
+      from = at + piece.length;
+    }
+    return name.length - last.length >= from && name.endsWith(last);
+  });
+}
+
 export function resolvePlaywrightApps(
   options: { argv?: readonly string[]; playwrightApp?: string } = {}
 ): { admin: boolean; client: boolean } {

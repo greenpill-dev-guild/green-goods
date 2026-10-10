@@ -4,6 +4,7 @@ import {
   REPORTING_DRIVER_URL,
   resolvePlaywrightApps,
   selectedProjectNames,
+  selectsProject,
   shouldUsePlaywrightIndexer,
 } from "./tests/fixtures/playwright-services";
 
@@ -31,7 +32,7 @@ function envFlag(name: string): boolean {
 const requestedProjects = selectedProjectNames(process.argv);
 const callerManagedFork = requestedProjects.includes("anvil-fork");
 // The passkey project signs in against the passkey directory and walks the reporting ceremony.
-const passkeyProject = requestedProjects.includes("passkey-mock");
+const passkeyProject = selectsProject(requestedProjects, "passkey-mock");
 // Workers reload the config without the runner's project-selection arguments.
 const isWorkerProcess = process.env.TEST_WORKER_INDEX !== undefined;
 if (
