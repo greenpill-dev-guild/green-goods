@@ -1,0 +1,431 @@
+{
+  "results": [
+    {
+      "name": "S0 the page opens with a preloaded photo and an Identify control",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 first-use sheet opens before the first request",
+      "pass": true,
+      "detail": "{\"type\":\"firstUse\",\"args\":{\"photoId\":\"p-1\",\"mode\":\"identify\"},\"returnTo\":\"idb-p-1\"}"
+    },
+    {
+      "name": "S1 sheet received focus on open",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 request in flight after consent",
+      "pass": true,
+      "detail": "identifying"
+    },
+    {
+      "name": "S1 guava suggested and added to Species planted",
+      "pass": true,
+      "detail": "[\"Guava\"]"
+    },
+    {
+      "name": "S1 one credit used",
+      "pass": true,
+      "detail": "4"
+    },
+    {
+      "name": "S1 polite announcement",
+      "pass": true,
+      "detail": "Guava added to Species planted."
+    },
+    {
+      "name": "S1 tab order: replace, remove, then overlay actions",
+      "pass": true,
+      "detail": "[\"Replace photo 1\",\"Remove photo 1\",\"Details for Guava, photo 1\",\"Change Guava, photo 1\",\"Add photo\",\"Add Details\"]"
+    },
+    {
+      "name": "S1 Details sheet is a dialog with a title",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 Escape closes the sheet and focus returns to Details",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 opening Details spent nothing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 layout B shows Added to Species planted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 layout B: planting has no Check health control",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 allocation remainder",
+      "pass": true,
+      "detail": "8 of 20 seedlings allocated · 12 unallocated"
+    },
+    {
+      "name": "S1 over-allocation rejected with an explanation",
+      "pass": true,
+      "detail": "The amounts per entry add up to 25 seedlings, more than the 20 seedlings in Seedlings Planted. Lower an amount or raise the total."
+    },
+    {
+      "name": "S1 Review blocked while over-allocated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 correcting the name keeps amount and notes",
+      "pass": true,
+      "detail": "{\"id\":\"row-3\",\"section\":\"planted\",\"relationship\":\"planted\",\"name\":\"Strawberry guava\",\"sci\":\"Psidium cattleyanum\",\"taxonId\":\"kw-taxon-1002\",\"nameOrigin\":\"identification\",\"quantity\":\"8\",\"notes\":\"Planted along the east fence\",\"supports\":[\"id-2\"],\"health\":null,\"stale\":false,\"createdAt\":\"2026-09-29T10:07Z\"}"
+    },
+    {
+      "name": "S1 original prediction retained after correction",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S1 choosing the original back keeps amount",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S2 second guava photo joins the existing entry without doubling",
+      "pass": true,
+      "detail": "{\"rows\":1,\"supports\":2}"
+    },
+    {
+      "name": "S2 a separate entry is still possible",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S3 ambiguous result waits for a choice",
+      "pass": true,
+      "detail": "ambiguous"
+    },
+    {
+      "name": "S3 chosen alternative enters Details; top guess kept as original",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S3 disclosure lists all suggestions and the original",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4 review shows publication reminder and plant entries",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4 returning to edit keeps state",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b typing a name resolves an ambiguous photo into your own entry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b a plant added by hand needs no photo",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b editing a suggested name makes it yours on blur and keeps the amount",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b typing the suggestion back restores it",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b removing the entry leaves the photo with an Add to Details card",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S4b Add to Details restores the entry without a new request",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S5 first attempt fails without spending",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S5 typed name creates a manual entry linked to the photo",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S5 retry succeeds and offers a visible choice instead of overwriting",
+      "pass": true,
+      "detail": "{\"manualName\":\"Cashew\",\"rowId\":\"row-3\"}"
+    },
+    {
+      "name": "S5 keeping the typed name records the suggestion as original",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S5 metadata keeps manual selection and original taxon",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S6 removing a photo with a linked entry asks first",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S6 empty generated entry goes with its photo, visibly",
+      "pass": true,
+      "detail": "[\"Removed the Mango entry that came only from photo 2.\"]"
+    },
+    {
+      "name": "S6 replacing bytes invalidates the analysis and flags the row",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S6 keeping the entry preserves the amount as a manual entry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S7 site identification enters Existing plants only",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S7 explicit Add to planting plan creates the planned entry",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S8 harvest: 12 kg with 8 kg tomato leaves 4 kg unallocated",
+      "pass": true,
+      "detail": "8 of 12 kg allocated · 4 unallocated"
+    },
+    {
+      "name": "S8 harvest over-allocation rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S8 no health check on harvest",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 survival offers Check health once an entry exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 health suggestion arrives as a separate request and credit",
+      "pass": true,
+      "detail": "[{\"name\":\"Early blight (Alternaria)\",\"score\":0.62},{\"name\":\"Nutrient deficiency\",\"score\":0.21}]"
+    },
+    {
+      "name": "S9 layout A+ keeps the compact card but surfaces the health row",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 included health note is editable text on the entry",
+      "pass": true,
+      "detail": "{\"text\":\"Possible early blight (alternaria) seen in photo 1.\",\"identId\":\"id-2\",\"origin\":\"kindwise\",\"includedAt\":\"2026-09-29T10:09Z\"}"
+    },
+    {
+      "name": "S9 corrected note keeps its suggestion origin",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 no activity or treatment inferred",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 note removable; suggestion stays in provenance",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S9 maintenance health note never ticks an activity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S10 offline tap queues a photo-specific intent",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S10 queued intent can be cancelled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S10 reconnect runs the queued request once and keeps edits",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S10 a second reconnect sends nothing",
+      "pass": true,
+      "detail": "You're online. Nothing was waiting."
+    },
+    {
+      "name": "S11 review warns about the pending analysis",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S11 submit while queued creates a snapshot without the pending result",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S11 later result arrives separately; snapshot unchanged",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S11 deliberate update is a separate record",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S11 metadata preview keeps the update outside the snapshot and lists omissions",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S12 credit limit preserves the draft and sends nothing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S12 viewing results never starts another analysis",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S13 Learning Reflection has no Identify control",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S13 unrelated solar action has no Identify control",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S13 planting offers Identify",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S14 no plant found leaves the draft usable",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 submission snapshot carries entries, amounts and photo links",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 gardener and steward views agree on entries",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 steward copy separates approval from identity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 steward dialog is a dialog and received focus",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 approval needs a confidence level",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 simulated approval keeps identity as a suggestion",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S15 desktop steward dialog is centered, not a side sheet",
+      "pass": true,
+      "detail": "[220,960]"
+    },
+    {
+      "name": "S16 desktop media uses a two-column grid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S16 desktop sheets are centered dialogs, not bottom sheets",
+      "pass": true,
+      "detail": "[420,560]"
+    },
+    {
+      "name": "S17 report separates relationships and shows unallocated and unknown",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S17 report totals add fixtures and the session work; unknown stays separate",
+      "pass": true,
+      "detail": "[\"70\",\"26\",\"14\",\"30\",\"12 kg\",\"8 kg\"]"
+    },
+    {
+      "name": "S17 relationship filter narrows rows",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "S17 drill-through opens the source work with its own allocation",
+      "pass": true,
+      "detail": "\n      Stand-inPhoto 1Stand-inPhoto 2\n      Seedlings Planted20Participants6\n      Of 20 seedlings planted: Guava 8 + Mango 5 = 13 allocated · 7 unallocated\n      Plant entriesGuavaPlanted · 8 seedlin"
+    },
+    {
+      "name": "A11y reduced motion collapses animation",
+      "pass": true,
+      "detail": "1e-05s"
+    },
+    {
+      "name": "A11y every button reaches a 44px target (visible box plus hit area)",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "A11y every button has an accessible name",
+      "pass": true,
+      "detail": "0"
+    }
+  ],
+  "errors": [],
+  "chromium": "148.0.7778.96"
+}
