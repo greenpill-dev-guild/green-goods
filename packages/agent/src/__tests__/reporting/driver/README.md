@@ -13,7 +13,8 @@ fixture ports in place of providers.
 | Models | Off (deterministic questions) | Fallback behavior only |
 
 It binds to `127.0.0.1`, refuses to start when `NODE_ENV` or `APP_ENV` is `production`, and its
-synthetic ingress and signing helpers are never mounted by `createServer`.
+synthetic ingress and signing helpers are never mounted by `createServer`. Its database and media
+live in a temporary directory that it removes when it stops, on Ctrl-C or `SIGTERM`.
 
 ## Run it
 

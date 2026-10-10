@@ -76,6 +76,9 @@ const webServers: NonNullable<PlaywrightTestConfig["webServer"]> = [
           url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
           reuseExistingServer: false,
           timeout: 120000,
+          // Playwright ends a server with SIGKILL unless told otherwise, and a killed driver
+          // leaves its data directory in the OS temp folder. SIGTERM lets it remove that first.
+          gracefulShutdown: { signal: "SIGTERM" as const, timeout: 5000 },
           env: {
             APP_ENV: "test",
             NODE_ENV: "test",
