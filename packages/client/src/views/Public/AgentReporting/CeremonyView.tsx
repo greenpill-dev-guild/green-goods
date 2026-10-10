@@ -344,10 +344,10 @@ export function CeremonyView(props: CeremonyViewProps) {
   if (stage === "connect" && !props.account) {
     return (
       <AccountEntry
-        screen={screen}
+        heading={ceremonyHeading(intl, screen, { resource: null, grant: null, account: null })}
         steps={steps}
         problem={problem}
-        channelLabel={props.channelLabel}
+        account={<PageAccount account={null} signedIn={false} channel={props.channelLabel} />}
         passkeyUnavailable={props.passkeyUnavailable}
         failure={props.failure}
         savedPasskey={props.savedPasskey}
@@ -355,9 +355,12 @@ export function CeremonyView(props: CeremonyViewProps) {
         connecting={props.connecting}
         connectWallet={props.connectWallet}
         connectPasskey={props.connectPasskey}
-        createAccount={props.createAccount}
+        // Only linking an account may create one: every other link asks for the account the chat has.
+        createAccount={screen.isLink ? props.createAccount : undefined}
         initialEntry={props.initialEntry}
-      />
+      >
+        <WhatHappensNext flow={screen.isLink ? "link" : "any"} />
+      </AccountEntry>
     );
   }
 

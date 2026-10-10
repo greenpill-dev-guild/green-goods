@@ -30,6 +30,9 @@ const meta: Meta<typeof RecoveryView> = {
     error: null,
     account: null,
     connecting: false,
+    failure: null,
+    savedPasskey: false,
+    canFindAccount: true,
     connectWallet: noop,
     connectPasskey: asyncNoop,
     start: asyncNoop,
@@ -44,6 +47,23 @@ type Story = StoryObj<typeof RecoveryView>;
 
 export const Intro: Story = {};
 export const Connect: Story = { args: { stage: "connect" } };
+/** A browser that remembers a passkey can still reach another account, by its name. */
+export const ConnectReturning: Story = { args: { stage: "connect", savedPasskey: true } };
+/** On a new phone the browser remembers no passkey, so Use Passkey asks for the account's name. */
+export const FindAccount: Story = { args: { stage: "connect", initialEntry: "find" } };
+export const FindNameNotFound: Story = {
+  args: {
+    ...FindAccount.args,
+    failure: { reason: "name_not_found", spoken: "No passkey found for that username." },
+  },
+};
+/** A failed attempt to connect is said in the heading card, with what to do next. */
+export const ConnectFailed: Story = {
+  args: {
+    ...ConnectReturning.args,
+    failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+  },
+};
 export const Connected: Story = { args: { stage: "connect", account: ACCOUNT } };
 export const ConnectDeclined: Story = { args: { ...Connected.args, error: "declined" } };
 export const Code: Story = {
