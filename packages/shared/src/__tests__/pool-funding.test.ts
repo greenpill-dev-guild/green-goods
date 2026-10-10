@@ -6,6 +6,7 @@ import {
   calculateUnknownSplitFeeBuffer,
   type PoolFundingCalculationInput,
   type PoolFundingDisbursement,
+  selectExceededTransferLimit,
   selectPoolFundingSnapshot,
 } from "../modules/commitment-pooling/pool-funding";
 
@@ -593,5 +594,77 @@ describe("selectPoolFundingSnapshot", () => {
     );
     expect(snapshot.available).toBeNull();
     expect(snapshot.fundingUnavailableReasons).toContain("ledger_inconsistent");
+  });
+});
+
+describe("selectExceededTransferLimit", () => {
+  /** A funding read whose four limits all sit at 1,000 unless a row says otherwise. */
+  function fundingRead({
+    cap = 1_000n,
+    period = 1_000n,
+    roles = 1_000n,
+    balance = 1_000n,
+    isError = false,
+    hasStaleBalance = false,
+    unread = false,
+  }: {
+    cap?: bigint | null;
+    period?: bigint | null;
+    roles?: bigint | null;
+    balance?: bigint | null;
+    isError?: boolean;
+    hasStaleBalance?: boolean;
+    unread?: boolean;
+  }) {
+    return {
+      snapshot: unread
+        ? null
+        : {
+            balance:
+              balance === null
+                ? null
+                : { value: balance, blockNumber: 50n, blockTimestamp: 2_000, readAt: 2_001 },
+            limits: {
+              ...input().limits,
+              maxTransferAmount: cap,
+              periodAllowanceRemaining: period,
+              rolesAllowanceRemaining: roles,
+            },
+          },
+      isError,
+      hasStaleBalance,
+    };
+  }
+
+  it.each([
+    ["lets an amount equal to every limit through", {}, 1_000n, null],
+    ["names the per-transfer cap", { cap: 500n }, 501n, "transfer_cap"],
+    ["names the period allowance", { period: 500n }, 501n, "period_allowance"],
+    ["names the Safe allowance", { roles: 500n }, 501n, "roles_allowance"],
+    ["names the Safe balance", { balance: 500n }, 501n, "balance"],
+    ["names the smallest of several limits", { cap: 700n, balance: 300n }, 800n, "balance"],
+    ["treats an exhausted allowance as read, not unread", { period: 0n }, 1n, "period_allowance"],
+    [
+      "ignores limits that were not read",
+      { cap: null, period: null, roles: null, balance: null },
+      5_000n,
+      null,
+    ],
+    [
+      "still applies a read limit beside an unread one",
+      { cap: null, period: 500n },
+      600n,
+      "period_allowance",
+    ],
+    ["ignores a snapshot left by a failed refresh", { cap: 500n, isError: true }, 600n, null],
+    [
+      "ignores a stale balance and keeps the other limits",
+      { cap: 700n, balance: 300n, hasStaleBalance: true },
+      800n,
+      "transfer_cap",
+    ],
+    ["passes before the first read", { unread: true }, 1n, null],
+  ] as const)("%s", (_name, read, amount, expected) => {
+    expect(selectExceededTransferLimit(fundingRead(read), amount)).toBe(expected);
   });
 });
