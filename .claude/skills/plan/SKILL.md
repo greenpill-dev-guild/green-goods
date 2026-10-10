@@ -319,8 +319,8 @@ A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Lin
    backward or reopen Canceled scope.
 2. After a human merges delivered implementation, run the closeout in
    [After a merge](../../context/linear-routing-rules.md#after-a-merge) for the issue the PR's
-   reference line names: it belongs in `In Review`, with a one- or two-sentence comment on what
-   shipped and anything still open. The hub's other mirrored implementation issues and parent
+   reference line names. When that closeout comments, the comment says in one or two sentences
+   what shipped and anything still open. The hub's other mirrored implementation issues and parent
    change only through the step 1 manifest's create and update actions: verify them against live
    Linear, and ask before any other write to them. Nothing reaches `Done` before a person's
    review. Preserve already-Done bodies and Canceled scope. Research-only reconciliation does

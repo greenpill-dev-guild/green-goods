@@ -173,9 +173,9 @@ branch = one PR, and the posture is repair, not feature building.
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
    slice per PR.
 9. **Hand back**: issue → `In Review` with the PR linked. Once the PR merges, run the closeout in
-   [`linear-routing-rules.md § After a merge`](../../context/linear-routing-rules.md#after-a-merge):
-   read the slice's state history before writing it. It reaches `Done` only when its Test
-   IDs re-record as pass in the QA app (whoever recorded the fail re-records).
+   [`linear-routing-rules.md § After a merge`](../../context/linear-routing-rules.md#after-a-merge).
+   It reaches `Done` only when its Test IDs re-record as pass in the QA app (whoever recorded
+   the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
     deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate

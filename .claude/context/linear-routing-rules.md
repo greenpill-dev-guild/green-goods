@@ -212,8 +212,8 @@ otherwise, per [repository safety](../../AGENTS.md#multi-agent-repo-safety).
 
 A merge does not finish the Linear record. Work that a pull request completes belongs in
 `In Review` once it merges, and it reaches `Done` only after a person has reviewed the merged
-work. Nothing in this repository writes Linear at a merge; whatever moves is either Linear's own
-GitHub integration or the closeout below.
+work. No workflow, hook, or script in this repository writes Linear when a pull request merges:
+the named issue moves only through Linear's own GitHub integration or the closeout below.
 
 **What Linear does by itself.** The integration acts on the PR's reference line. The outcome
 depends on the keyword and on a per-team setting this repository cannot read:
@@ -224,28 +224,32 @@ depends on the keyword and on a per-team setting this repository cannot read:
 | `Refs PRD-NNN` | Never applies it, and can return an `In Review` issue to `In Progress`. |
 | `Relates to PRD-NNN` | Attaches the PR and changes no status. Use it for an issue that is already `Done`. |
 
-An issue ID that follows any of these words is linked, so the reference line names only the
-issue the PR implements. The integration never posts a comment, and a PR that names no issue
-moves nothing. Treat the table as what to expect, not as proof: the issue's state history is the
-only evidence of what happened.
+Legacy lines on existing PRs still name the issue: Linear treats `Closes PRD-NNN` and its other
+closing words like `Fixes`, and a `Linear: PRD-NNN` line counts whatever the integration does
+with it. An issue ID that follows any linking word is linked, so name an issue that way only on
+the reference line. The integration never posts a comment, and a PR that names no issue moves
+nothing. Treat the table as what to expect, not as proof: the issue's state history is the only
+evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
 names and no other:
 
 1. Read the issue's `stateHistory`, not only its current status. The integration usually lands
    within seconds of the merge but can land later, so treat this first reading as provisional.
-2. Write only the gap. A PR that completes the issue leaves it `In Review`: write nothing when it
-   is already there, and set it when the integration left it in an earlier state. Partial work
-   stays `In Progress`. Judge completion against the issue's `Done when`, not the keyword: the
-   last PR of a multi-PR issue completes it even when it says `Refs`.
-3. When the issue reaches `In Review`, add one short comment that names the PR: what changed for
-   the person using the product, and what the review should check or what remains open. Read the
-   issue's comments first and post nothing when one already closes out that PR, so a retried or
-   repeated closeout never comments twice.
+2. Write only the gap, and only for completed work. When the PR completes the issue, it belongs
+   in `In Review`: write nothing when it is already there, and set it when the integration left
+   it in an earlier state. Write nothing for partial work, for an issue the PR only relates to,
+   or for one that is already `Done` or `Canceled`. Judge completion against the issue's
+   `Done when`, not the keyword: the last PR of a multi-PR issue completes it even when it says
+   `Refs`.
+3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
+   what changed for the person using the product, and what the review should check or what
+   remains open. Read the issue's comments first and post nothing when one already closes out
+   that PR, so a retried or repeated closeout never comments twice.
 4. Read the issue again before reporting. A state that changed since step 2 means the integration
    landed late: repeat step 2 once, then read once more. Report the issue, its last observed
    state, and whether the integration or a hand write set it, and say so if it still had not
-   settled. For a PR with no reference line, report `no Linear issue linked`.
+   settled. For a PR that names no issue in any of these forms, report `no Linear issue linked`.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
 named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and

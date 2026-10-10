@@ -123,9 +123,8 @@ the targeted local contract and current-head CI.
 
 Publication does not authorize a merge, and a merge does not finish the Linear record. When the
 user asks for the merge or reports one, run the closeout in
-[After a merge](../../context/linear-routing-rules.md#after-a-merge): read the named issue's state
-history, write only what Linear's integration left undone, and add the one comment. That section
-owns what the closeout may write; `Done` waits for a person's review.
+[After a merge](../../context/linear-routing-rules.md#after-a-merge). That section owns the steps,
+their conditions, and what the closeout may write; `Done` waits for a person's review.
 
 ## Output
 
