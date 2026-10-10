@@ -286,8 +286,14 @@ describe("a linked account's reporting gardens", () => {
   it("reads the garden list again before an account's gardens are shown or used", async () => {
     harness = new Harness();
     harness.gardens.cached = true;
+    await harness.say(ADA, "START");
+    await harness.say(ADA, "yes");
+    // An account named to a chat that has none is looked up in a list read for that turn, not
+    // in the one read before it joined Aiyeloja.
     joins(adaAccount, AIYELOJA);
-    await linked();
+    harness.clock.advance(10_000);
+    expect((await harness.say(ADA, ada))[0]).toContain(`${ada} is in: Aiyeloja Family Garden.`);
+    await pair(adaAccount);
     await harness.say(ADA, STORY);
     // A steward adds Ada to TAS. The list was read a moment ago, so that read still serves.
     joins(adaAccount, TAS);

@@ -124,6 +124,28 @@ function reportGarden(
  */
 const REPORT_COMMANDS = new Set<ChatCommand["kind"]>(["pair", "confirm"]);
 
+/**
+ * Questions answered outside the report's own steps: a review's, and those about an account or
+ * its permissions. Their answers never offer a garden's activities.
+ */
+const OUTSIDE_REPORT = new Set([
+  "select_review_work",
+  "publication_consent",
+  "grant_choice",
+  "join_community",
+  "connect_offer",
+]);
+
+/** While a decision question is open, free text re-asks it instead of starting a report. */
+function reasksReview(ctx: TurnContext, plan: TurnPlan): boolean {
+  return (
+    plan.kind === "message" &&
+    plan.media.length === 0 &&
+    Boolean(ctx.review && ctx.account) &&
+    isReviewPrompt(ctx.prompt?.kind)
+  );
+}
+
 /** A report's questions that offer a list of choices. */
 const REPORT_CHOICES = new Set([
   "select_garden",
@@ -162,16 +184,25 @@ async function gatherExternal(
       .eligibleActions(place, core.clock.now())
       .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
   const account = turnAccount(core, ctx, plan);
+  // A decision's own turns never reach a report: its answers, and free text sent to its question.
+  const reviewText = reasksReview(ctx, plan);
+  const outside =
+    plan.kind === "answer" &&
+    (OUTSIDE_REPORT.has(plan.prompt.kind) || isReviewPrompt(plan.prompt.kind));
   // A story or correction is read by the model, and so are words sent to a list of choices that
   // pick none of them: they may be a question, a correction or the answer in other words.
   const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
-  const forModel = said && ctx.modelEnabled && ctx.binding ? said : null;
-  if (account) await readGardensForTurn(core, ctx, plan, forModel !== null);
+  const forModel = said && !reviewText && ctx.modelEnabled && ctx.binding ? said : null;
+  // CONNECT with an address says which gardens that account is in, whatever this chat is linked to.
+  const namesAccount =
+    plan.kind === "command" && plan.command.kind === "connect" && plan.command.account !== null;
+  if ((account || namesAccount) && !reviewText)
+    await readGardensForTurn(core, ctx, plan, forModel !== null);
   // A tap on a button of an earlier question puts the report's open question again.
   const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
   const reportPlan =
-    plan.kind === "message" ||
-    plan.kind === "answer" ||
+    (plan.kind === "message" && !reviewText) ||
+    (plan.kind === "answer" && !outside) ||
     (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
     reasks;
   const scope = gardenScope(core.gardens, account);
@@ -186,7 +217,7 @@ async function gatherExternal(
     outstandingRequirements(draft.content, draft.snapshot).some((need) => need.kind === "action");
   // A report that is about to name another garden has to choose its activity again.
   const changing = garden?.address !== draft?.content.garden?.address;
-  const answersOther = plan.kind === "answer" && plan.prompt.kind !== "select_garden";
+  const answersOther = plan.kind === "answer" && !outside && plan.prompt.kind !== "select_garden";
   const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
@@ -292,9 +323,8 @@ function applyTurn(
       }
       return "consume";
     case "message": {
-      const { review, prompt, account } = writer.ctx;
-      // While a decision question is open, free text re-asks it instead of starting a report.
-      if (review && account && isReviewPrompt(prompt?.kind) && plan.media.length === 0) {
+      const { review, account } = writer.ctx;
+      if (review && account && reasksReview(writer.ctx, plan)) {
         nextReviewStep(writer, review, account.address);
         return "consume";
       }

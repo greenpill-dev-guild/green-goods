@@ -94,6 +94,9 @@ describe("steward review", () => {
     expect(await harness.say(BOLA, "REVIEW")).toEqual([
       "Work waiting for your review in TAS. Choose one to start:\n1. Tree planting (TAS)",
     ]);
+    // A decision's answers have nothing to do with a garden's activities, so none are read, even
+    // for a steward whose account is in a single garden.
+    const activityReads = harness.catalog.calls;
     expect(await harness.say(BOLA, "1")).toEqual([
       `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
     ]);
@@ -102,6 +105,7 @@ describe("steward review", () => {
     ]);
     await harness.press(BOLA, "High");
     const summary = await harness.say(BOLA, "Well documented, thank you");
+    expect(harness.catalog.calls).toBe(activityReads);
     expect(summary[0]).toContain(
       "• Decision: Approve\n• Confidence: High\n• Feedback: Well documented, thank you\n• Method: human review"
     );
