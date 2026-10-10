@@ -654,6 +654,9 @@
         "tests/global-setup.ts",
         "tests/helpers/test-utils.ts",
         "tests/specs/client.passkey.spec.ts",
+        "tests/specs/client.reporting-account.passkey.spec.ts",
+        "tests/helpers/reporting-ceremony.ts",
+        "packages/agent/src/__tests__/reporting/driver/server.ts",
         "packages/shared/src/config/passkeyServer.ts"
       ],
       "prefixes": [
@@ -1445,9 +1448,9 @@
       "id": "browser-passkey",
       "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
       "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
-      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable.",
+      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable. On the chat link's Account step a newcomer and a returning account each reach Sign to Continue, and a refused name or a closed prompt leaves no passkey and no account.",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 80,
+      "budgetSeconds": 130,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies", "playwrightChromium"]
     },
