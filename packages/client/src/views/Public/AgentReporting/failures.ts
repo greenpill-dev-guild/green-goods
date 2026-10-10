@@ -99,6 +99,60 @@ export function failureProblem(failure: keyof typeof FAILURE_COPY): CeremonyProb
   return { message: FAILURE_COPY[failure], tone: CAUTIONS.has(failure) ? "caution" : "error" };
 }
 
+type AccountFailure = NonNullable<AgentReportingCeremony["failure"]>;
+
+/** This browser cannot open a passkey prompt at all: said before anyone presses for one. */
+export const PASSKEYS_UNAVAILABLE: CeremonyProblem = {
+  message: {
+    id: "public.reporting.browser.noPasskey",
+    defaultMessage: "Passkeys don't work here. Use Safari or Chrome, or a wallet.",
+  },
+  tone: "caution",
+};
+
+/**
+ * What happened when connecting or creating an account failed, and what to do next. No line
+ * here tells anyone to create an account, and none says they have none: a prompt that closed
+ * may have been dismissed, may have timed out, or may have had no passkey to offer.
+ */
+const ACCOUNT_FAILURE_COPY: Partial<Record<AccountFailure["reason"], MessageDescriptor>> = {
+  prompt_closed: {
+    id: "public.reporting.account.failure.promptClosed",
+    defaultMessage: "The passkey prompt closed. Try again, or use another way in.",
+  },
+  not_created: {
+    id: "public.reporting.account.failure.notCreated",
+    defaultMessage: "The passkey prompt closed, so no account was made. Try again.",
+  },
+  no_saved_passkey: {
+    id: "public.reporting.account.failure.noSavedPasskey",
+    defaultMessage: "No passkey is saved in this browser. Try another way in.",
+  },
+  name_not_found: {
+    id: "public.reporting.account.failure.nameNotFound",
+    defaultMessage: "No account has that name. Check the spelling, or go back.",
+  },
+  passkey_not_here: {
+    id: "public.reporting.account.failure.passkeyNotHere",
+    defaultMessage: "That passkey isn't on this device. Try another way in.",
+  },
+  name_taken: {
+    id: "public.reporting.account.failure.nameTaken",
+    defaultMessage: "That name is taken. Pick another, or go back if it's yours.",
+  },
+  passkeys_unavailable: PASSKEYS_UNAVAILABLE.message,
+  unreachable: FAILURE_COPY.offline,
+};
+
+/** A failed attempt on the account step as the problem the heading card says. */
+export function accountFailureProblem(failure: AccountFailure): CeremonyProblem | SpokenProblem {
+  const message = ACCOUNT_FAILURE_COPY[failure.reason];
+  // Without words of its own for it, the page says the account layer's.
+  if (!message) return { spoken: failure.spoken, tone: "error" };
+  const waits = failure.reason === "unreachable" || failure.reason === "passkeys_unavailable";
+  return { message, tone: waits ? "caution" : "error" };
+}
+
 /** Why an act is switched off. These are states of their own, so each brings its title. */
 export const BLOCKS = {
   wrongAccount: {

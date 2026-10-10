@@ -40,6 +40,7 @@ import { useAccount, useConfig } from "wagmi";
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { useAuthActor } from "../hooks/auth/useAuthActor";
+import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
 import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
@@ -53,7 +54,6 @@ import {
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
-  hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
   setStoredWalletAddress,
@@ -183,6 +183,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const actor = useAuthActor(adapters);
 
   const snapshot = useSelector(actor as AuthActor, (s) => s);
+  // A passkey saved or cleared during this session, not only the one found when the page loaded.
+  const storedCredential = useHasStoredCredential(actor as AuthActor | null);
 
   const prevWalletState = useRef<{
     isConnected: boolean;
@@ -630,9 +632,6 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       // button stays hidden with no way to recover.
       (isConnecting && walletModalOpen);
 
-    // Check for stored credential (indicates existing account in localStorage)
-    const storedCredential = hasStoredCredential();
-
     const isRestoring = snapshot.matches("restoring");
     const authenticatedSession =
       snapshot.matches("authenticated") ||
@@ -650,6 +649,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       smartAccountClient: snapshot.context.smartAccountClient,
       resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
+      // A stored credential indicates an existing account in localStorage.
       hasStoredCredential: storedCredential,
       // Wallet address is only set when wallet is the PRIMARY auth
       walletAddress: snapshot.context.walletAddress,
@@ -659,7 +659,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: snapshot.context.externalWalletConnected,
       externalWalletAddress: snapshot.context.externalWalletAddress,
     };
-  }, [snapshot, isConnecting, walletModalOpen]);
+  }, [snapshot, isConnecting, walletModalOpen, storedCredential]);
 
   // ============================================================
   // CONTEXT VALUES
