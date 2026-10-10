@@ -147,6 +147,8 @@ describe("passkey project", () => {
     vi.stubEnv("SKIP_WEBSERVER", "false");
     vi.stubEnv("SKIP_INDEXER", "true");
     const { default: config } = await import("../../playwright.config");
+    // One case at a time: a route's first load can make the dev server reload every open page.
+    expect(config.workers).toBe(1);
     const servers = [config.webServer].flat();
     expect(servers).toHaveLength(2);
     const [driver, client] = servers;

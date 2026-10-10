@@ -150,7 +150,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 2 : 4,
+  // The passkey cases share one dev server. When a route first loads on a cold dependency cache
+  // the server re-bundles and reloads every open page, so a case running beside that load loses
+  // its page mid-step. They run one at a time.
+  workers: passkeyProject ? 1 : process.env.CI ? 2 : 4,
   maxFailures: process.env.CI ? 10 : undefined,
 
   outputDir: "tests/test-results",
