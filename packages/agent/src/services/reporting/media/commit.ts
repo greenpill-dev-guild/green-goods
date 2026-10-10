@@ -16,6 +16,7 @@ import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
+import { openPrompt } from "../prompts";
 import { findGarden, gardenScope, soleGarden } from "../gardens";
 import type { ReportingCore } from "../runtime";
 import type { JobOutcome } from "../worker";
@@ -24,8 +25,9 @@ import type { MediaExtraction, MediaSource } from "./extract";
 /**
  * Applies one processed asset to its draft: the sanitized photo as candidate evidence and any
  * proposed values with their exact sources, committed only on the draft's current revision. A
- * concurrent turn wins and the job resumes from the stored asset. Limitations are explained and
- * the draft is kept; the next question is asked once, after the last file of a batch.
+ * concurrent turn wins and the job resumes from the stored asset. A file that cannot be used is
+ * explained and the draft is kept. The next question is asked once, after the last file of a
+ * batch; after a file that could not be used, only when the report has no question open.
  */
 export type Limitation =
   | "media.tooLarge"
@@ -155,14 +157,18 @@ function commitInTransaction(
     dedupePrefix: `media:${asset.id}`,
   });
   if (!draft || !writer) return done;
+  const editable = EDITABLE_STATES.has(lifecycleState(draft));
   if (result.limitation) {
     writer.say(result.limitation);
-    return done;
-  }
-  if (!EDITABLE_STATES.has(lifecycleState(draft))) {
+    // A report that can still change is never left with nothing asked. When the file that could
+    // not be used was all it had to go on, its next step is put as it is after one that could.
+    // A question that is already open stays as it is.
+    if (!editable || openPrompt(core, asset.conversationId)) return done;
+  } else if (!editable) {
     writer.say("media.late");
     return done;
   }
+  const used = result.limitation === null;
   let content = draft.content;
   if (result.evidence) {
     content = withEvidence(content, {
@@ -193,7 +199,8 @@ function commitInTransaction(
   }
   const account = activeAccount(core, asset.participantId, core.settings.chainId);
   const work: Working = {
-    content: applyReportChanges(content, changes, draft.snapshot).content,
+    // A file that could not be used adds nothing to the report.
+    content: used ? applyReportChanges(content, changes, draft.snapshot).content : draft.content,
     snapshot: draft.snapshot,
     changed: false,
   };
@@ -213,12 +220,14 @@ function commitInTransaction(
   // Said with the file that caused it: the question that follows waits for the batch's last file.
   if (work.taken) announceGarden(writer, work.taken);
   if (result.transcript) writer.say("voice.heard", { transcript: clip(result.transcript.text) });
-  if (result.warnings.includes("hidden_content_excluded")) writer.say("media.hiddenExcluded");
+  if (used && result.warnings.includes("hidden_content_excluded"))
+    writer.say("media.hiddenExcluded");
   if (result.extraction && result.warnings.includes("docx_visuals_not_read"))
     writer.say("media.wordNative");
   if (result.extraction && result.warnings.includes("spreadsheet_visuals_not_read"))
     writer.say("media.spreadsheetNative");
   if (
+    used &&
     result.warnings.some(
       (warning) =>
         ![
@@ -240,7 +249,7 @@ function commitInTransaction(
   // One reply after the last file of a batch, not one question per photo.
   if (pending.n === 0) {
     // Without an extraction (model processing off or unavailable) the file was only kept.
-    if (!result.transcript)
+    if (used && !result.transcript)
       writer.say(
         result.sourceKind === "image"
           ? "media.photoAdded"

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
 import { ADA, Harness } from "./support/harness";
-import { scriptedOpenAI, zip } from "./support/media";
+import { scriptedOpenAI, VIDEO_CLIP, zip } from "./support/media";
 
 /**
  * Attachments through the real coordinator, stores and media job. Photos run through Sharp for
@@ -119,20 +119,10 @@ describe("limits", () => {
   it("refuses video, oversized and macro-enabled files without losing the draft", async () => {
     await plantingDraft();
     const before = draft()?.revision;
-    const video = new Uint8Array([
-      0,
-      0,
-      0,
-      24,
-      ...new TextEncoder().encode("ftypisom"),
-      0,
-      0,
-      0,
-      0,
-    ]);
-    expect((await send("clip-1", video, "video/mp4"))[0]).toContain(
-      "I can't use that kind of file."
-    );
+    // The question that was open stays as it is: only the reason is sent.
+    const refused = await send("clip-1", VIDEO_CLIP, "video/mp4");
+    expect(refused).toHaveLength(1);
+    expect(refused[0]).toContain("I can't use that kind of file.");
 
     harness.mediaFiles.set("big-1", new Uint8Array(1));
     const tooBig = await harness.say(ADA, "", {
@@ -157,6 +147,15 @@ describe("limits", () => {
       "I couldn't read that file."
     );
     expect(draft()?.revision).toBe(before);
+  });
+
+  it("puts the report's next question after a first file it cannot use", async () => {
+    // The file opens the chat, so it waits for consent and is looked at once that is given.
+    await send("clip-1", VIDEO_CLIP, "video/mp4");
+    expect((await harness.press(ADA, "I agree")).slice(-2)).toEqual([
+      "I can't use that kind of file. Your report is saved; send photos (JPEG, PNG or WebP), a PDF, a Word or Excel file, a CSV, or type the details.",
+      "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden",
+    ]);
   });
 
   it("names a PDF that is too long instead of reading part of it", async () => {

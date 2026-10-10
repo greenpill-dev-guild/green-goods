@@ -101,8 +101,9 @@ export function handleReportMessage(
       { field: "feedback", value: text, provenance: gardenerFact(sourceEntryId, text) },
     ]);
   }
-  // A file sent on its own is answered by the media job once it is processed. That job takes the
-  // chat's only garden itself, so the garden is said and the next question asked once, not twice.
+  // A file sent on its own is answered by the media job once it is processed, whether or not it
+  // could be used. That job takes the chat's only garden itself, so the garden is said and the
+  // next question asked once, not twice.
   const fileOnly = !text && plan.media.length > 0;
   if (!fileOnly) autoFill(writer, work, external, sourceEntryId);
 

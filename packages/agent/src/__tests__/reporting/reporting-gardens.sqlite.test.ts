@@ -3,6 +3,7 @@ import type { PrivateKeyAccount } from "viem/accounts";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReportingGarden } from "../../services/reporting/gardens";
 import { TestBrowser } from "./support/browser";
+import { VIDEO_CLIP } from "./support/media";
 import { AIYELOJA, TAS } from "./support/fixtures";
 import { adaAccount, bolaAccount, latestLink } from "./support/flows";
 import { ADA, BOLA, Harness, type Person } from "./support/harness";
@@ -261,6 +262,17 @@ describe("a linked account's reporting gardens", () => {
     expect(await sendPhoto(ADA, "photo-1")).toEqual([
       `TAS ${ONLY_GARDEN}`,
       "Photo added to your report.",
+      TAS_ACTIVITIES,
+    ]);
+
+    // A first file that cannot be used starts the report the same way, after the reason.
+    joins(bolaAccount, TAS);
+    await linked(bolaAccount, BOLA);
+    harness.mediaFiles.set("clip-1", VIDEO_CLIP);
+    const media = [{ providerMediaId: "clip-1", declaredMime: "video/mp4" }];
+    expect(await harness.say(BOLA, "", { text: undefined, media })).toEqual([
+      "I can't use that kind of file. Your report is saved; send photos (JPEG, PNG or WebP), a PDF, a Word or Excel file, a CSV, or type the details.",
+      `TAS ${ONLY_GARDEN}`,
       TAS_ACTIVITIES,
     ]);
   });
