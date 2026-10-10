@@ -259,7 +259,7 @@ test("pre-push forwards focused proof paths and gate arguments without shell exp
     { paths: "", gateArgs: "" },
     { paths: "client:src/views/example.test.tsx shared:src/**/example.test.ts", gateArgs: "" },
     { paths: "", gateArgs: "--check ontology" },
-    { paths: "docs:scripts/llms.test.mjs", gateArgs: "--base origin/develop --check ontology" },
+    { paths: "docs:scripts/llms.test.mjs", gateArgs: "--check ontology --check docs-generated" },
   ];
   for (const { paths, gateArgs } of cases) {
     const result = spawnSync("sh", ["-c", `
@@ -283,7 +283,8 @@ ${hook}
   }
   // Only the focus flags pass through: a value that would change what the gate runs stops the
   // push before the gate starts, so an exported variable cannot downgrade validation.
-  for (const gateArgs of ["--plan", "--only-lint", "--skip-docs", "--check", "--base --check ontology", "--check ontology --plan"]) {
+  // --base is refused too: "--base HEAD" would hand the gate an empty diff and an empty check list.
+  for (const gateArgs of ["--plan", "--only-lint", "--skip-docs", "--check", "--base HEAD", "--base origin/develop --check ontology", "--check ontology --plan"]) {
     const result = spawnSync("sh", ["-c", `
 git() { :; }
 bun() { :; }

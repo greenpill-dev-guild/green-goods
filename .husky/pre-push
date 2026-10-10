@@ -34,8 +34,9 @@ fi
 # "blocked:toolchain.node" on every check only teaches people to reach for --no-verify.
 # Optional whitespace-separated surface:path entries select direct proof, just as --test-path
 # does for a manual gate. GG_PUSH_GATE_ARGS may add the gate's own focus flags, and only those:
-# --base <rev>, --check <id>, and --test-path <surface:path>. Anything else (--plan, --only-lint,
-# a skip flag) would change what the gate runs, so the hook refuses it instead of forwarding it.
+# --check <id> and --test-path <surface:path>. Anything else (--plan, --only-lint, a skip flag, or
+# --base, which can empty the diff the gate validates) would change what the gate runs, so the hook
+# refuses it instead of forwarding it.
 # Disable glob expansion and keep every entry a separate argument.
 set --
 set -f
@@ -56,9 +57,9 @@ for gate_arg in ${GG_PUSH_GATE_ARGS:-}; do
     continue
   fi
   case "$gate_arg" in
-    --base|--check|--test-path) gate_flag="$gate_arg" ;;
+    --check|--test-path) gate_flag="$gate_arg" ;;
     *)
-      echo "pre-push: GG_PUSH_GATE_ARGS may only carry --base <rev>, --check <id>, or --test-path <surface:path>; refusing '$gate_arg'" >&2
+      echo "pre-push: GG_PUSH_GATE_ARGS may only carry --check <id> or --test-path <surface:path> (--base is refused: it can empty the diff the gate validates); refusing '$gate_arg'" >&2
       exit 1
       ;;
   esac
