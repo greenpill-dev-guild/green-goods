@@ -568,8 +568,11 @@ test("deployments page links every recorded address and schema UID and keeps ope
   assert.ok(rendered.includes(`<CopyCommand command="${arbitrum.workApprovalResolver}" />`));
   assert.ok(rendered.includes(`[arbiscan.io](https://arbiscan.io/address/${arbitrum.workApprovalResolver})`));
   assert.ok(rendered.includes(`https://arbitrum.easscan.org/schema/view/${arbitrum.schemas.workSchemaUID}`));
-  assert.ok(rendered.includes("| commitmentPoolingModule (proxy) |"));
-  assert.ok(rendered.includes("| commitmentPoolingModule (implementation) |"));
+  assert.ok(rendered.includes("| Commitment pooling module (proxy) |"));
+  assert.ok(rendered.includes("| Commitment pooling module (implementation) |"));
+  assert.ok(rendered.includes("| ERC-6551 account proxy |"));
+  assert.ok(rendered.includes("| GreenWill badge registry |"));
+  assert.doesNotMatch(rendered, /^\| [a-z][A-Za-z0-9]* \|/m, "no raw artifact key is used as a label");
   assert.match(rendered, /Recorded as the zero address on this network: [^\n]*`ensReceiver`/);
 
   // Any hex value stored under an operator, receipt, or safe path must stay off the page unless

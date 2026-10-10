@@ -274,9 +274,57 @@ export function assignAddressGroups(entries, groups = ADDRESS_GROUPS) {
 
 const explorerHost = (url) => new URL(url).host;
 
+// Reader-facing names for the artifact keys. Schemas, libraries and locks already carry their own
+// names from the artifact; a top-level key missing here falls back to its words.
+const CONTRACT_LABELS = {
+  accountProxy: "ERC-6551 account proxy",
+  actionRegistry: "Action registry",
+  assessmentResolver: "Assessment resolver",
+  celoSettlementExecutor: "Celo settlement executor",
+  commitmentPoolingModule: "Commitment pooling module",
+  commitmentRegistry: "Commitment registry",
+  cookieJarFactory: "Cookie Jar factory (1Hive)",
+  cookieJarModule: "Cookie Jar module",
+  creditRegistry: "Credit registry",
+  deploymentRegistry: "Deployment registry",
+  ensReceiver: "ENS receiver",
+  gardenAccountImpl: "Garden account implementation (ERC-6551)",
+  gardenToken: "Garden token (ERC-721)",
+  gardensModule: "Gardens module",
+  greenGoodsENS: "Green Goods ENS registry",
+  greenWill: "GreenWill badge registry",
+  "greenWillBadges.implementation": "GreenWill badges (implementation)",
+  guardian: "Guardian",
+  hatsModule: "Hats module",
+  hypercertExchange: "Hypercert exchange",
+  hypercertMinter: "Hypercert minter",
+  hypercertsModule: "Hypercerts module",
+  karmaGAPModule: "Karma GAP module",
+  marketplaceAdapter: "Marketplace adapter",
+  octantFactory: "Octant vault factory",
+  octantModule: "Octant module",
+  previousEnsReceiver: "ENS receiver (previous)",
+  rootGarden: "Root garden",
+  "rootGarden.address": "Root garden",
+  settlementModule: "Settlement module",
+  strategyHypercertFractionOffer: "Hypercert fraction offer strategy",
+  testimonyResolver: "Testimony resolver",
+  transferManager: "Transfer manager",
+  unifiedPowerRegistry: "Unified power registry",
+  "unlock.factory": "Unlock factory",
+  workApprovalResolver: "Work approval resolver",
+  workResolver: "Work resolver",
+  yieldSplitter: "Yield splitter",
+};
+
+const wordsOf = (key) => key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/^[a-z]/, (c) => c.toUpperCase());
+const baseLabel = (key) => CONTRACT_LABELS[key] ?? wordsOf(key);
+
 function contractLabel(entry, keys) {
-  if (entry.key.endsWith("Impl") && keys.has(entry.key.slice(0, -4))) return `${entry.key.slice(0, -4)} (implementation)`;
-  if (keys.has(`${entry.key}Impl`)) return `${entry.key} (proxy)`;
+  if (entry.key.endsWith("Impl") && keys.has(entry.key.slice(0, -4))) return `${baseLabel(entry.key.slice(0, -4))} (implementation)`;
+  if (keys.has(`${entry.key}Impl`)) return `${baseLabel(entry.key)} (proxy)`;
+  if (CONTRACT_LABELS[entry.key]) return CONTRACT_LABELS[entry.key];
+  if (entry.label === entry.key && /^[a-z][A-Za-z0-9]*$/.test(entry.key)) return wordsOf(entry.key);
   return entry.label;
 }
 
