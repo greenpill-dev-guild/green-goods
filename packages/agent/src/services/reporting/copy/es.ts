@@ -102,7 +102,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.gardensUnavailable":
     "No puedo cargar la lista de huertos en este momento. Tu mensaje está guardado; escríbeme de nuevo en unos minutos. Soporte: {support}",
   "report.ownGardensUnavailable":
-    "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Reintentar o envía cualquier mensaje.",
+    "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Intentar de nuevo o envía cualquier mensaje.",
   "report.questionPosition": "{position} de {total} · ",
   "report.actionAdoptedOne":
     "Entendido: {action} en {garden}. Una pregunta rápida y luego un resumen para revisar.",
@@ -113,8 +113,8 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "report.noActions":
     "{garden} no tiene actividades abiertas para reportar ahora. Tu borrador está guardado. Envía EDIT para elegir otro huerto, o escribe a {support} si no lo esperabas.",
   "report.catalogUnavailable":
-    "No pude cargar las actividades de {garden} en este momento. Es un problema de mi lado y tu borrador está guardado. Toca Reintentar o envía cualquier mensaje.",
-  "report.tryAgain": "Reintentar",
+    "No pude cargar las actividades de {garden} en este momento. Es un problema de mi lado y tu borrador está guardado. Toca Intentar de nuevo o envía cualquier mensaje.",
+  "report.tryAgain": "Intentar de nuevo",
   "report.choiceHelp":
     "No estoy seguro de cuál quieres decir. Toca una opción de abajo o responde con su número. Envía HELP para ver todo lo que puedo hacer, o CANCEL para detener este reporte.",
   "report.askNumber": "{title} Envía solo el número{unit}.",

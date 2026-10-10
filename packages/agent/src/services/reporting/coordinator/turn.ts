@@ -38,6 +38,7 @@ import {
   requestConnection,
   welcome,
 } from "./account-steps";
+import type { ChatCommand } from "./commands";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -46,7 +47,7 @@ import {
 } from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
-import { answeredGarden, readOwnGardens } from "./garden-step";
+import { answeredGarden, asksToLookAgain, readOwnGardens } from "./garden-step";
 import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
@@ -115,6 +116,21 @@ function reportGarden(
   return address ? findGarden(core.gardens, address) : soleGarden(scope);
 }
 
+/**
+ * The commands whose reply can show or use a report's gardens or activities: linking an account,
+ * the garden step's own words, and CONFIRM, which puts the open question again when no summary is
+ * showing. Every other command, STOP, DELETE and HELP among them, is answered without waiting on
+ * the indexer.
+ */
+const REPORT_COMMANDS = new Set<ChatCommand["kind"]>([
+  "pair",
+  "connect",
+  "start",
+  "garden",
+  "join",
+  "confirm",
+]);
+
 /** A report's questions that offer a list of choices. */
 const REPORT_CHOICES = new Set([
   "select_garden",
@@ -156,10 +172,19 @@ async function gatherExternal(
   // A tap on a button of an earlier question puts the report's open question again.
   const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
   const reportPlan =
-    plan.kind === "message" || plan.kind === "answer" || plan.kind === "command" || reasks;
+    plan.kind === "message" ||
+    plan.kind === "answer" ||
+    (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
+    reasks;
   // Any of these may show or use a linked account's gardens: the garden question and its
   // answers, a garden a model reads in a correction, a reply that names them.
-  if (account && reportPlan) await readOwnGardens(core);
+  if (account && reportPlan) {
+    // A reply that puts a garden question with no garden to offer again is asking to look again,
+    // whether it answers that question or taps a button of an earlier one.
+    const lookAgain =
+      (plan.kind === "answer" || reasks) && ctx.prompt !== null && asksToLookAgain(ctx.prompt);
+    await readOwnGardens(core, lookAgain);
+  }
   const scope = gardenScope(core.gardens, account);
   let garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has

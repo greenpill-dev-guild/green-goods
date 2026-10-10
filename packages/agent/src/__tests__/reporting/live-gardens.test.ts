@@ -118,13 +118,16 @@ describe("live garden directory", () => {
     expect(labelsOf(gardens.membershipsOf(ada))).toEqual(["TAS"]);
     expect(gardens.membershipsOf(STRANGER)).toEqual(UNAVAILABLE);
 
-    // The failed read is not repeated at once, and the next good one settles both answers.
+    // The failed read is not repeated at once. A caller may ask for it sooner than the
+    // directory's own wait, though not within the wait it names.
     await gardens.refresh(50_000, 30_000);
+    await gardens.refresh(42_000, 3_000, 3_000);
     expect(requests()).toBe(2);
-    await gardens.refresh(70_000, 30_000);
+    await gardens.refresh(50_000, 3_000, 3_000);
     expect(requests()).toBe(3);
+    // The good read settles both answers, and serves until it is too old for its caller.
     expect(labelsOf(gardens.membershipsOf(STRANGER))).toEqual(["TAS"]);
-    await gardens.refresh(90_000, 30_000);
+    await gardens.refresh(70_000, 30_000);
     expect(requests()).toBe(3);
   });
 

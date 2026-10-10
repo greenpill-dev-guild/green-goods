@@ -6,7 +6,7 @@ import {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { CopyValues } from "../copy";
 import { gardenScope } from "../gardens";
-import type { PromptRecord } from "../prompts";
+import type { PromptOption, PromptRecord } from "../prompts";
 import { requestConnection } from "./account-steps";
 import { isGreeting } from "./commands";
 import type { TurnPlan } from "./context";
@@ -48,6 +48,16 @@ function presentedKeys(prompt: PromptRecord): string[] {
   return prompt.options
     .filter((option) => !option.value.startsWith("page:"))
     .map((option) => option.value);
+}
+
+/** The choice typed words pick: the one at that number, or the one whose label they spell out. */
+function typedChoice(prompt: PromptRecord, text: string | null): PromptOption | undefined {
+  const typed = text?.trim().toLowerCase();
+  if (!typed) return undefined;
+  return (
+    prompt.options[Number(typed) - 1] ??
+    prompt.options.find((choice) => choice.label.toLowerCase() === typed)
+  );
 }
 
 /** What the open question is asking for, in a sentence, before its choices are shown again. */
@@ -129,8 +139,8 @@ export function handleReportAnswer(
     },
   ];
   // An entry that is not an answer, such as the one that opens another page of choices, can be
-  // picked by its number like any other.
-  const picked = option ?? (text ? prompt.options[Number(text.trim()) - 1] : undefined);
+  // picked like any other: by its number, or by its own words typed out.
+  const picked = option ?? typedChoice(prompt, text);
   const page = picked?.value.startsWith("page:") ? Number(picked.value.slice(5)) : null;
 
   switch (prompt.kind) {

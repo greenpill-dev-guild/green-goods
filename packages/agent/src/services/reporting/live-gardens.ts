@@ -21,7 +21,10 @@ const GARDENS_QUERY = `query ReportingGardens($chainId: Int!) {
   }
 }`;
 
-/** After a failed read, wait this long before asking the indexer again. */
+/**
+ * After a failed read, wait this long before asking the indexer again. A caller may name a
+ * shorter wait of its own.
+ */
 const RETRY_MS = 30_000;
 
 /**
@@ -54,7 +57,8 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
   let members: ReadonlyMap<string, ReadonlySet<string>> = new Map();
   /** When the list was last read; null before the first read and after one that failed. */
   let readAt: number | null = null;
-  let retryAt = 0;
+  /** When a read last failed; null once one has gone through since. */
+  let failedAt: number | null = null;
   let loading: Promise<void> | null = null;
 
   async function load(nowMs: number): Promise<void> {
@@ -89,9 +93,10 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
         .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
       members = roles;
       readAt = nowMs;
+      failedAt = null;
     } catch (error) {
       readAt = null;
-      retryAt = nowMs + RETRY_MS;
+      failedAt = nowMs;
       throw error;
     }
   }
@@ -106,9 +111,10 @@ export function createLiveGardenDirectory(options: LiveGardenOptions): GardenDir
         ? { ok: true, gardens: own }
         : { ok: false, reason: "unavailable" };
     },
-    refresh(nowMs, maxAgeMs = ttl) {
+    refresh(nowMs, maxAgeMs = ttl, retryAfterMs = RETRY_MS) {
       const fresh = readAt !== null && nowMs - readAt < maxAgeMs;
-      if (fresh || nowMs < retryAt) return Promise.resolve();
+      const waiting = failedAt !== null && nowMs - failedAt < retryAfterMs;
+      if (fresh || waiting) return Promise.resolve();
       loading ??= load(nowMs).finally(() => {
         loading = null;
       });

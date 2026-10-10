@@ -36,9 +36,11 @@ export interface GardenDirectory {
   membershipsOf(account: Address): GardenMemberships;
   /**
    * Reloads the list once it is older than `maxAgeMs`, or than the directory's own lifetime when
-   * that is left out. A failure keeps the previous list and rejects.
+   * that is left out. A failure keeps the previous list and rejects. A failed read is then left
+   * alone for `retryAfterMs`, or for the directory's own wait when that is left out, so a turn
+   * does not hold every chat up asking an indexer that is down.
    */
-  refresh(nowMs: number, maxAgeMs?: number): Promise<void>;
+  refresh(nowMs: number, maxAgeMs?: number, retryAfterMs?: number): Promise<void>;
 }
 
 /**

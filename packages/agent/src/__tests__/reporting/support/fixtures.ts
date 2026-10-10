@@ -39,13 +39,19 @@ export const AIYELOJA: ReportingGarden = {
 
 /** A fixed directory whose reads of an account's gardens a test can make fail or go stale. */
 export interface FixedGardens extends GardenDirectory {
-  /** While true the indexer is down: no account's gardens can be read. */
+  /**
+   * While true the indexer is down: no account's gardens can be read. A read that failed is left
+   * alone for as long as the live directory leaves it, so they stay unreadable afterwards until
+   * a read goes through.
+   */
   unavailable: boolean;
   /**
    * While true an account's gardens are those of the last read, held as long as the live
    * directory holds them. Otherwise they follow the chain at once.
    */
   cached: boolean;
+  /** How many times the list has been read. */
+  reads: number;
 }
 
 /**
@@ -59,12 +65,14 @@ export function fixedGardens(
 ): FixedGardens {
   let read = new Map(chain?.roles);
   let readAt: number | null = null;
+  let failedAt: number | null = null;
   const directory: FixedGardens = {
     unavailable: false,
     cached: false,
+    reads: 0,
     list: () => gardens,
     membershipsOf(account) {
-      if (directory.unavailable) return { ok: false, reason: "unavailable" };
+      if (directory.unavailable || failedAt !== null) return { ok: false, reason: "unavailable" };
       const granted = directory.cached ? read : chain?.roles;
       const reportsTo = (garden: ReportingGarden): boolean => {
         const roles = granted?.get(`${garden.address}:${account.toLowerCase()}`);
@@ -72,11 +80,17 @@ export function fixedGardens(
       };
       return { ok: true, gardens: gardens.filter(reportsTo) };
     },
-    async refresh(nowMs, maxAgeMs = 5 * 60 * 1000) {
-      if (directory.unavailable) throw new Error("indexer unavailable");
+    async refresh(nowMs, maxAgeMs = 5 * 60 * 1000, retryAfterMs = 30_000) {
+      if (failedAt !== null && nowMs - failedAt < retryAfterMs) return;
+      if (directory.unavailable) {
+        failedAt = nowMs;
+        throw new Error("indexer unavailable");
+      }
+      failedAt = null;
       if (readAt !== null && nowMs - readAt < maxAgeMs) return;
       read = new Map(chain?.roles);
       readAt = nowMs;
+      directory.reads += 1;
     },
   };
   return directory;

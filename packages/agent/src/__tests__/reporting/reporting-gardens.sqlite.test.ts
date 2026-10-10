@@ -103,10 +103,12 @@ describe("a linked account's reporting gardens", () => {
       "1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
     // No garden is open to join from the chat here, so another one takes a steward.
-    expect(await harness.say(ADA, "JOIN")).toEqual([
-      `Your account ${ada} can report to the gardens it's in. To add one, ask a steward of that garden to add this account. It can take a few minutes to show here once they do.\n1. Show my gardens`,
-    ]);
+    const askSteward = `Your account ${ada} can report to the gardens it's in. To add one, ask a steward of that garden to add this account. It can take a few minutes to show here once they do.\n1. Show my gardens`;
+    expect(await harness.say(ADA, "JOIN")).toEqual([askSteward]);
     joins(adaAccount, TAS);
+    // On a numbered list, a choice typed out in its own words is picked like any other.
+    expect(await harness.say(ADA, "show my gardens")).toEqual([OWN_GARDENS]);
+    expect(await harness.say(ADA, "Join another garden")).toEqual([askSteward]);
     expect(await harness.press(ADA, "Show my gardens")).toEqual([OWN_GARDENS]);
     // Another garden has its own activities, so the activity is asked again.
     expect(await harness.say(ADA, "1")).toEqual([TAS_ACTIVITIES]);
@@ -158,8 +160,17 @@ describe("a linked account's reporting gardens", () => {
       `This chat is connected to ${ada}.\nI can't load your gardens right now.\nTo use a different account, send SWITCH.`,
     ]);
 
+    // The indexer is back. A failed read is left alone for half a minute, but not by the person
+    // asking: a few seconds on, Try again reads the list, even tapped on the question's first copy.
     harness.gardens.unavailable = false;
-    expect(await harness.press(ADA, "Try again")).toEqual([`TAS ${ONLY_GARDEN}`, TAS_ACTIVITIES]);
+    harness.clock.advance(5_000);
+    const first = harness.transport.sent
+      .flatMap((sent) => sent.message.choices ?? [])
+      .find((choice) => choice.label === "Try again");
+    expect(await harness.say(ADA, "Try again", { replyId: first?.id })).toEqual([
+      `TAS ${ONLY_GARDEN}`,
+      TAS_ACTIVITIES,
+    ]);
   });
 
   it("asks again within the next account's gardens after a switch, dropping a garden it is not in", async () => {
@@ -216,12 +227,12 @@ describe("a linked account's reporting gardens", () => {
     await harness.say(ADA, STORY);
     // A steward adds Ada to TAS. The list was read a moment ago, so that read still serves.
     joins(adaAccount, TAS);
-    expect(await harness.say(ADA, "JOIN")).toHaveLength(1);
-    expect((await harness.press(ADA, "Show my gardens"))[0]).not.toContain("TAS");
+    await harness.say(ADA, "EDIT");
+    expect((await harness.press(ADA, "Garden"))[0]).not.toContain("TAS");
     // Ten seconds on it is read again, here for an answer about a report that has its garden.
-    await harness.say(ADA, "JOIN");
+    await harness.say(ADA, "EDIT");
     harness.clock.advance(10_000);
-    expect(await harness.press(ADA, "Show my gardens")).toEqual([OWN_GARDENS]);
+    expect(await harness.press(ADA, "Garden")).toEqual([OWN_GARDENS]);
 
     // A file can be processed long after the turn that brought it: Bola's photo fails to
     // download, Bola is added to TAS, and the retry must not find Bola in no garden.
@@ -237,6 +248,18 @@ describe("a linked account's reporting gardens", () => {
       "Photo added to your report.",
       TAS_ACTIVITIES,
     ]);
+  });
+
+  it("answers HELP and STOP without waiting on the garden list or a garden's activities", async () => {
+    harness = new Harness();
+    joins(adaAccount, TAS);
+    await linked();
+    // Long enough on that a turn which uses the account's gardens would read the list again.
+    harness.clock.advance(60_000);
+    const before = { list: harness.gardens.reads, activities: harness.catalog.calls };
+    expect((await harness.say(ADA, "HELP"))[0]).toContain("Green Goods reporting:");
+    expect((await harness.say(ADA, "STOP"))[0]).toContain("You've stopped the assistant.");
+    expect({ list: harness.gardens.reads, activities: harness.catalog.calls }).toEqual(before);
   });
 
   it("still reads the account's role from the chain before publishing to a garden it was offered", async () => {
@@ -267,7 +290,8 @@ describe("a linked account's reporting gardens", () => {
         "Aiyeloja Family Garden es tu único huerto, así que lo usaré para este reporte. Envía GARDEN para cambiarlo, o JOIN para unirte a otro huerto.",
       own: "¿Para cuál de tus huertos es este reporte?\n1. TAS\n2. Aiyeloja Family Garden\n3. Unirse a otro huerto",
       failed:
-        "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Reintentar o envía cualquier mensaje.\n1. Reintentar",
+        "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Intentar de nuevo o envía cualquier mensaje.\n1. Intentar de nuevo",
+      retry: "Intentar de nuevo",
     },
     {
       locale: "pt",
@@ -278,6 +302,7 @@ describe("a linked account's reporting gardens", () => {
       own: "Para qual das suas hortas é este relato?\n1. TAS\n2. Aiyeloja Family Garden\n3. Entrar em outra horta",
       failed:
         "Não consigo carregar suas hortas agora. O problema é do meu lado e seu relato está guardado. Toque em Tentar de novo ou envie qualquer mensagem.\n1. Tentar de novo",
+      retry: "Tentar de novo",
     },
   ])("answers in $locale for no garden, one, several and a failed read", async (copy) => {
     harness = new Harness({ settings: { communityGarden: TAS.address } });
@@ -291,5 +316,9 @@ describe("a linked account's reporting gardens", () => {
     expect(await harness.say(person, "GARDEN")).toEqual([copy.own]);
     harness.gardens.unavailable = true;
     expect(await harness.say(person, "GARDEN")).toEqual([copy.failed]);
+    // Typed out, the one choice is an answer in each language, never a command word.
+    harness.gardens.unavailable = false;
+    harness.clock.advance(5_000);
+    expect(await harness.say(person, copy.retry)).toEqual([copy.own]);
   });
 });

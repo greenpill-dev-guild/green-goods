@@ -27,15 +27,27 @@ const log = createLogger("reporting");
 const OWN_GARDENS_MAX_AGE_MS = 10_000;
 
 /**
+ * The same, when the person has asked to look again. Their reply gets a read of its own even
+ * while a failed one is waiting to be repeated, so Try again does try, as it does for a garden's
+ * activities. Replies moments apart, in one chat or several, share a read.
+ */
+const LOOK_AGAIN_MAX_AGE_MS = 3_000;
+
+/**
  * Reads the garden list again before a linked account's gardens are used, unless it was read
  * moments ago. A garden joined on the link page a minute ago should be there, and an account must
  * not be told it has none from an old list. A read that fails is answered by the directory, which
- * then says the account's gardens cannot be read.
+ * then says the account's gardens cannot be read. `lookAgain` is for a reply that asks for
+ * exactly that.
  */
-export async function readOwnGardens(core: ReportingCore): Promise<void> {
-  await core.gardens
-    .refresh(core.clock.now(), OWN_GARDENS_MAX_AGE_MS)
-    .catch((err) => log.warn({ err }, "Could not read the garden list for a linked account"));
+export async function readOwnGardens(core: ReportingCore, lookAgain = false): Promise<void> {
+  const now = core.clock.now();
+  const read = lookAgain
+    ? core.gardens.refresh(now, LOOK_AGAIN_MAX_AGE_MS, LOOK_AGAIN_MAX_AGE_MS)
+    : core.gardens.refresh(now, OWN_GARDENS_MAX_AGE_MS);
+  await read.catch((err) =>
+    log.warn({ err }, "Could not read the garden list for a linked account")
+  );
 }
 
 /** The garden question's choices that are not gardens. */
@@ -75,6 +87,15 @@ export function offeredGardens(prompt: PromptRecord): boolean {
   return prompt.options.some(
     ({ value }) => value !== JOIN_CHOICE && value !== AGAIN_CHOICE && !value.startsWith("page:")
   );
+}
+
+/**
+ * Whether a reply to this question asks to look at the account's gardens again. A garden
+ * question with no garden to offer has that one choice (Try again, Check again or Show my
+ * gardens), and any other words sent to it are taken the same way.
+ */
+export function asksToLookAgain(prompt: PromptRecord): boolean {
+  return prompt.kind === "select_garden" && !offeredGardens(prompt);
 }
 
 function ask(
