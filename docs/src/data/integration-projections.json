@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:85eb90e6022ab8902a36a0cd678a00d4070985e8e41a6a3e774316fad54483fa",
+  "digest": "sha256:f667f358aed3b9a8c238a604217650f0d0532303c4745fe8dc7ab1027f54b673",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",
@@ -273,6 +273,24 @@
       "indexedContracts": [
         "GardenAccount",
         "GardenToken"
+      ]
+    },
+    "unlock": {
+      "display": "Unlock Protocol",
+      "definition": "Unlock Protocol locks back the GreenWill badges: the GreenWill registry proves a claim from on-chain state and grants the matching non-transferable Unlock key. Deployment artifacts and indexer configuration own recorded availability.",
+      "networks": [
+        {
+          "chainId": 42161,
+          "name": "Arbitrum One",
+          "status": "Deployed",
+          "recorded": [
+            "greenWill"
+          ]
+        }
+      ],
+      "totalNetworks": 4,
+      "indexedContracts": [
+        "GreenWill"
       ]
     }
   }

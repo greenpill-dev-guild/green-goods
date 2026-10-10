@@ -212,8 +212,6 @@ export async function auditWorkflowCommands(root) {
 
 const callerEvidenceExclusions = new Set([
   "packages/contracts/config/command-migration.json", // Historical invocation evidence.
-  "docs/docs/builders/packages/contract-operations.mdx", // Generated historical migration table.
-  "docs/docs/builders/packages/commands.mdx", // Generated repository-wide migration table.
   "docs/scripts/developer-guides.test.mjs", // Deliberately invalid caller fixtures below.
   "scripts/data/command-migration.json", // Baseline and replacement evidence, never runtime policy.
 ]);

@@ -413,6 +413,21 @@ export function renderEntityMatrixMdx(
   } = {}
 ) {
   const { protocols, rows } = ontology.integration_matrix;
+  const KIND_LABELS = { entity: "Entity", schema: "Schema", persona: "Persona", concept: "Concept" };
+  // Status is data: the catalog says which columns have code, the artifacts say where it is
+  // recorded, and the sidecar's column notes explain every column without code.
+  const byColumn = new Map(
+    (ontology.integrations ?? []).filter((integration) => integration.matrix_column).map((integration) => [integration.matrix_column, integration])
+  );
+  const columnNotes = ontology.integration_matrix.column_notes ?? {};
+  const mappedRows = (protocol) => rows.filter((row) => row.cells[protocol]);
+  const networksFor = (integration) => {
+    const record = integrations?.[integration.id];
+    if (!record) return "deployment data not supplied";
+    if (record.networks.length === 0) return "none recorded";
+    return record.networks.map((network) => `${esc(network.name)} (${esc(network.status)})`).join(", ");
+  };
+  const integrationLink = (integration) => `[${esc(integration.display)}](/builders/integrations/${integration.id})`;
   const lines = [];
   lines.push(
     generatedFrontmatter({
@@ -430,70 +445,24 @@ export function renderEntityMatrixMdx(
   lines.push("# Entity Matrix");
   lines.push("");
   lines.push(
-    "This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). A cell is a naming translation between Green Goods and a partner protocol, not a shipped integration contract; the status table below says which columns have code behind them and where their components are recorded."
+    "Every partner protocol has its own name for the things Green Goods records. This page is the translation table, one section per protocol: what that protocol calls a garden, a piece of work, an approval, or a role. A mapping is vocabulary, not a shipped integration; each section says whether code stands behind it and where its components are recorded. It is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section)."
   );
   lines.push("");
-  lines.push("## How to read this table");
-  lines.push("");
-  lines.push("- **Rows** are grouped as entities, schemas, personas, or integration-facing concepts.");
-  lines.push("- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.");
-  lines.push("- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.");
-  lines.push(
-    "- **Role entities** (Garden Steward through Data Scientist/Researcher) map to protocol-specific role or permission types."
-  );
-  lines.push("");
-  lines.push("## Integration Matrix");
-  lines.push("");
-  for (const [kind, heading] of [
-    ["entity", "Entities"],
-    ["schema", "Schemas"],
-    ["persona", "Personas"],
-    ["concept", "Integration-facing concepts"],
-  ]) {
-    const groupedRows = rows.filter((row) => row.ref.startsWith(`${kind}:`));
-    if (groupedRows.length === 0) continue;
-    lines.push(`### ${heading}`);
-    lines.push("");
-    lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
-    lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
-    for (const row of groupedRows) {
-      const cells = protocols.map((protocol) =>
-        row.cells[protocol] ? esc(row.cells[protocol]) : "—"
-      );
-      lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
-    }
-    lines.push("");
-  }
-  // Status is data: the catalog says which columns have code, the artifacts say where it is
-  // recorded, and the sidecar's column notes explain every column without code.
-  const byColumn = new Map(
-    (ontology.integrations ?? []).filter((integration) => integration.matrix_column).map((integration) => [integration.matrix_column, integration])
-  );
-  const columnNotes = ontology.integration_matrix.column_notes ?? {};
-  const mappedRows = (protocol) => rows.filter((row) => row.cells[protocol]).length;
-  lines.push("## Protocol integration status");
+  lines.push("## Protocols at a glance");
   lines.push("");
   lines.push(
-    "A column is a vocabulary mapping. Whether code stands behind it is a separate fact: the integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A column without a catalog entry is a mapping only."
+    "The integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A protocol without a catalog entry is a vocabulary mapping only."
   );
   lines.push("");
-  lines.push("| Protocol | Code integration | Networks with recorded components | Mapped rows |");
+  lines.push("| Protocol | Code integration | Networks with recorded components | Mapped terms |");
   lines.push("|---|---|---|---|");
   for (const protocol of protocols) {
     const integration = byColumn.get(protocol);
     if (!integration) {
-      lines.push(`| ${esc(protocol)} | Vocabulary mapping only, no code integration | — | ${mappedRows(protocol)} |`);
+      lines.push(`| ${esc(protocol)} | Vocabulary mapping only, no code integration | — | ${mappedRows(protocol).length} |`);
       continue;
     }
-    const record = integrations?.[integration.id];
-    const networks = !record
-      ? "deployment data not supplied"
-      : record.networks.length === 0
-        ? "none recorded"
-        : record.networks.map((network) => `${esc(network.name)} (${esc(network.status)})`).join(", ");
-    lines.push(
-      `| ${esc(protocol)} | [${esc(integration.display)}](/builders/integrations/${integration.id}) | ${networks} | ${mappedRows(protocol)} |`
-    );
+    lines.push(`| ${esc(protocol)} | ${integrationLink(integration)} | ${networksFor(integration)} | ${mappedRows(protocol).length} |`);
   }
   lines.push("");
   const noted = protocols.filter((protocol) => columnNotes[protocol]);
@@ -503,18 +472,41 @@ export function renderEntityMatrixMdx(
     for (const protocol of noted) lines.push(`- **${esc(protocol)}**: ${esc(columnNotes[protocol])}`);
     lines.push("");
   }
-  lines.push("## Using the matrix");
-  lines.push("");
-  lines.push("### For developers");
+  lines.push("## Mappings by protocol");
   lines.push("");
   lines.push(
-    "When implementing a new protocol integration, consult this matrix to understand which Green Goods entities have equivalents in the target protocol. This prevents naming confusion and ensures API boundaries align with established mappings."
+    "Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept."
   );
   lines.push("");
-  lines.push("### For agents");
+  for (const protocol of protocols) {
+    const mapped = mappedRows(protocol);
+    if (mapped.length === 0) continue;
+    const integration = byColumn.get(protocol);
+    lines.push(`### ${esc(protocol)}`);
+    lines.push("");
+    lines.push(
+      integration
+        ? `Code integration: ${integrationLink(integration)}. Recorded on: ${networksFor(integration)}.`
+        : `Vocabulary mapping only, no code integration.${columnNotes[protocol] ? ` ${esc(columnNotes[protocol])}` : ""}`
+    );
+    lines.push("");
+    lines.push(`| Green Goods | ${esc(protocol)} | Kind |`);
+    lines.push("|---|---|---|");
+    for (const row of mapped) {
+      const kind = row.ref.split(":")[0];
+      lines.push(`| ${esc(row.label)} | ${esc(row.cells[protocol])} | ${KIND_LABELS[kind] ?? esc(kind)} |`);
+    }
+    lines.push("");
+  }
+  const unmapped = protocols.filter((protocol) => mappedRows(protocol).length === 0);
+  if (unmapped.length > 0) {
+    lines.push(`Protocols in the matrix with no mapped terms yet: ${unmapped.map(esc).join(", ")}.`);
+    lines.push("");
+  }
+  lines.push("## Using the matrix");
   lines.push("");
   lines.push(
-    'When a task involves a partner protocol, use this matrix to translate between vocabularies. For example, if a Karma GAP issue references "Project Milestones", map that to Green Goods Assessments.'
+    "When you build against a partner protocol, read its section first so the names at the API boundary match the mapping the team already settled on. When a task or an issue speaks the partner's language (a Karma GAP \"Project Milestone\", for instance), translate it back through the same section: that one is a Green Goods Assessment."
   );
   lines.push("");
   lines.push("### Maintenance");

@@ -19,7 +19,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/check-ontology.mjs
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:062fc5fd37175999c8d208347c0f0f9aa782c947ec8771723b9c168bb0bf91fa"
+source_digest: "sha256:fbcc8b77ba7b7ecc426ec1439fa02e9580859f7fd8d9e14891d6ccf358dd0aab"
 source_of_truth:
   - packages/contracts/config/schemas.json
   - packages/contracts/deployments/1-latest.json
@@ -42,54 +42,13 @@ import {NextBestAction} from "@site/src/components/docs";
 
 # Entity Matrix
 
-This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). A cell is a naming translation between Green Goods and a partner protocol, not a shipped integration contract; the status table below says which columns have code behind them and where their components are recorded.
+Every partner protocol has its own name for the things Green Goods records. This page is the translation table, one section per protocol: what that protocol calls a garden, a piece of work, an approval, or a role. A mapping is vocabulary, not a shipped integration; each section says whether code stands behind it and where its components are recorded. It is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section).
 
-## How to read this table
+## Protocols at a glance
 
-- **Rows** are grouped as entities, schemas, personas, or integration-facing concepts.
-- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.
-- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.
-- **Role entities** (Garden Steward through Data Scientist/Researcher) map to protocol-specific role or permission types.
+The integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A protocol without a catalog entry is a vocabulary mapping only.
 
-## Integration Matrix
-
-### Entities
-
-| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Garden | Project | Hypercert Holder | Vault Owner | Community | Top Hat | Project | Jar | — | — | — | — |
-| Assessment | Project Milestone | Hypercert Data | — | — | — | — | — | — | — | — | — |
-| Action | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
-| Work | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
-
-### Schemas
-
-| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Work Approval | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
-
-### Personas
-
-| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Garden Steward | Project Owner | Creator | Vault Admin, TAM Operator | Council Member | Steward Hat | — | — | — | — | — | — |
-| Gardener | Project Member | Creator | TAM Proposer | Community Member | Gardener Hat | — | — | — | — | — | — |
-| Community Member | Project Explorer | Evaluator | TAM Voter | Community Member | Community Member | — | — | — | — | — | — |
-
-### Integration-facing concepts
-
-| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Funder/Evaluator | Grant Evaluator | Funder | Vault Depositor | Community Funder | Garden Supporter | — | — | — | — | — | — |
-| Data Scientist/Researcher | Grant Evaluator | Evaluator | — | Community Explorer | Garden Analyst | — | — | — | — | — | — |
-| Impact | — | Hypercert Token | — | — | — | — | — | — | — | — | — |
-| Badges | — | — | — | — | — | — | — | Unlock NFT | — | — | — |
-
-## Protocol integration status
-
-A column is a vocabulary mapping. Whether code stands behind it is a separate fact: the integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A column without a catalog entry is a mapping only.
-
-| Protocol | Code integration | Networks with recorded components | Mapped rows |
+| Protocol | Code integration | Networks with recorded components | Mapped terms |
 |---|---|---|---|
 | Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 10 |
 | Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 11 |
@@ -98,7 +57,7 @@ A column is a vocabulary mapping. Whether code stands behind it is a separate fa
 | Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
 | Silvi | Vocabulary mapping only, no code integration | — | 1 |
 | Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 1 |
-| Unlock | Vocabulary mapping only, no code integration | — | 1 |
+| Unlock | [Unlock Protocol](/builders/integrations/unlock) | Arbitrum One (Deployed) | 1 |
 | ENS | [ENS](/builders/integrations/ens) | Ethereum Mainnet (Partial), Sepolia Testnet (Deployed), Arbitrum One (Partial) | 0 |
 | Lido | Vocabulary mapping only, no code integration | — | 0 |
 | FTC | Vocabulary mapping only, no code integration | — | 0 |
@@ -106,19 +65,115 @@ A column is a vocabulary mapping. Whether code stands behind it is a separate fa
 Columns without a code integration:
 
 - **Silvi**: Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
-- **Unlock**: Credential and badge primitive. The Arbitrum One artifact records badge locks under its unlock key and the matrix maps Badges to Unlock NFT, but the integration catalog has no entry yet.
 - **Lido**: Liquid staking. A yield integration is an idea with no entity mappings and no code.
 - **FTC**: Integration scope to be defined; no entity mappings and no code.
 
+## Mappings by protocol
+
+Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept.
+
+### Karma GAP
+
+Code integration: [Karma GAP](/builders/integrations/karma). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Karma GAP | Kind |
+|---|---|---|
+| Garden | Project | Entity |
+| Assessment | Project Milestone | Entity |
+| Action | Partial Project Update | Entity |
+| Work | Partial Project Update | Entity |
+| Work Approval | Partial Project Update | Schema |
+| Garden Steward | Project Owner | Persona |
+| Gardener | Project Member | Persona |
+| Community Member | Project Explorer | Persona |
+| Funder/Evaluator | Grant Evaluator | Concept |
+| Data Scientist/Researcher | Grant Evaluator | Concept |
+
+### Hypercerts
+
+Code integration: [Hypercerts](/builders/integrations/hypercerts). Recorded on: Sepolia Testnet (Partial), Arbitrum One (Deployed).
+
+| Green Goods | Hypercerts | Kind |
+|---|---|---|
+| Garden | Hypercert Holder | Entity |
+| Assessment | Hypercert Data | Entity |
+| Action | Hypercert Data | Entity |
+| Work | Hypercert Data | Entity |
+| Work Approval | Hypercert Data | Schema |
+| Garden Steward | Creator | Persona |
+| Gardener | Creator | Persona |
+| Community Member | Evaluator | Persona |
+| Funder/Evaluator | Funder | Concept |
+| Data Scientist/Researcher | Evaluator | Concept |
+| Impact | Hypercert Token | Concept |
+
+### Octant
+
+Code integration: [Octant](/builders/integrations/octant). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Octant | Kind |
+|---|---|---|
+| Garden | Vault Owner | Entity |
+| Garden Steward | Vault Admin, TAM Operator | Persona |
+| Gardener | TAM Proposer | Persona |
+| Community Member | TAM Voter | Persona |
+| Funder/Evaluator | Vault Depositor | Concept |
+
+### Gardens V2
+
+Code integration: [Gardens](/builders/integrations/gardens). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Gardens V2 | Kind |
+|---|---|---|
+| Garden | Community | Entity |
+| Garden Steward | Council Member | Persona |
+| Gardener | Community Member | Persona |
+| Community Member | Community Member | Persona |
+| Funder/Evaluator | Community Funder | Concept |
+| Data Scientist/Researcher | Community Explorer | Concept |
+
+### Hats Protocol
+
+Code integration: [Hats Protocol](/builders/integrations/hats). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Hats Protocol | Kind |
+|---|---|---|
+| Garden | Top Hat | Entity |
+| Garden Steward | Steward Hat | Persona |
+| Gardener | Gardener Hat | Persona |
+| Community Member | Community Member | Persona |
+| Funder/Evaluator | Garden Supporter | Concept |
+| Data Scientist/Researcher | Garden Analyst | Concept |
+
+### Silvi
+
+Vocabulary mapping only, no code integration. Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
+
+| Green Goods | Silvi | Kind |
+|---|---|---|
+| Garden | Project | Entity |
+
+### Cookie Jar
+
+Code integration: [Cookie Jar](/builders/integrations/cookie-jar). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Cookie Jar | Kind |
+|---|---|---|
+| Garden | Jar | Entity |
+
+### Unlock
+
+Code integration: [Unlock Protocol](/builders/integrations/unlock). Recorded on: Arbitrum One (Deployed).
+
+| Green Goods | Unlock | Kind |
+|---|---|---|
+| Badges | Unlock NFT | Concept |
+
+Protocols in the matrix with no mapped terms yet: ENS, Lido, FTC.
+
 ## Using the matrix
 
-### For developers
-
-When implementing a new protocol integration, consult this matrix to understand which Green Goods entities have equivalents in the target protocol. This prevents naming confusion and ensures API boundaries align with established mappings.
-
-### For agents
-
-When a task involves a partner protocol, use this matrix to translate between vocabularies. For example, if a Karma GAP issue references "Project Milestones", map that to Green Goods Assessments.
+When you build against a partner protocol, read its section first so the names at the API boundary match the mapping the team already settled on. When a task or an issue speaks the partner's language (a Karma GAP "Project Milestone", for instance), translate it back through the same section: that one is a Green Goods Assessment.
 
 ### Maintenance
 

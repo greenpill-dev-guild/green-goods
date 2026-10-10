@@ -31,12 +31,6 @@ export function parseStringObject(root, source, symbol) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function routeLiterals(root, source) {
-  const text = readFileSync(path.join(root, source), "utf8");
-  const values = new Set();
-  for (const match of text.matchAll(/\bpath:\s*["'`]([^"'`$]+)["'`]/g)) values.add(match[1]);
-  return [...values].sort();
-}
 
 export function indexerContracts(root, source) {
   const text = readFileSync(path.join(root, source), "utf8");

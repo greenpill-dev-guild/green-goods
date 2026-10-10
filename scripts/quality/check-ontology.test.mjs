@@ -807,12 +807,14 @@ test("matrix renderer reports code integrations and recorded networks per column
   assert.ok(renderEntityMatrixMdx(miniOntology).includes("deployment data not supplied"));
 });
 
-test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
+test("matrix renderer lists mapped terms per protocol and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
-  assert.ok(matrix.includes("| Garden | Project | — |"));
+  assert.ok(matrix.includes("| Garden | Project | Entity |"), matrix);
   const reference = renderOntologyMdx(miniOntology, miniProjections);
   assert.ok(reference.includes("markPoolReady \\| guard"));
-  assert.ok(matrix.includes("### Entities"));
+  assert.ok(matrix.includes("### Karma GAP"));
+  assert.equal(matrix.includes("### Unlock"), false, "a column with no mapped terms gets no section");
+  assert.ok(matrix.includes("Protocols in the matrix with no mapped terms yet: Unlock."), matrix);
 });
 
 test("integrity rejects undeclared executable transition endpoints and relationship targets", () => {

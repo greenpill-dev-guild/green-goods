@@ -12,7 +12,6 @@ import {
   publicRouteRegistrations,
   readJson,
   readText,
-  routeLiterals,
   workflowInventory,
 } from "./source-readers.mjs";
 import {
@@ -118,53 +117,45 @@ export function renderApiIndex({ root, sources, digest }) {
   return body;
 }
 
-// Where a persona's surface id lands in prose. Throws on an id the ontology check does not know.
-const SURFACE_LABELS = {
-  admin: "the admin cockpit",
-  client: "the client app",
-  agent: "the messaging agent",
-  community: "community channels",
-  public: "the public site",
-  docs: "these docs",
-};
-
-const listInProse = (items) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+// Each surface id a persona may name, in display order, with its column heading and what it is.
+// The renderer throws on an id the ontology names but this table does not.
+const SURFACES = [
+  ["admin", "Admin cockpit", "the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
+  ["client", "Client app", "the installed PWA at greengoods.app, where work is captured and tracked in the field"],
+  ["agent", "Messaging agent", "the Telegram bot and the public HTTP API, for people who never install anything"],
+  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens, impact, and funding"],
+  ["community", "Community channels", "the Telegram and Discord spaces around the product"],
+  ["docs", "Docs", "this site"],
+];
 
 export function renderPersonaSurfaces({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
-  const clientRoutes = routeLiterals(root, declaredSource(sources, "packages/client/src/config/routes.tsx"));
-  const clientPwaRoutes = parseStringObject(
-    root,
-    declaredSource(sources, "packages/client/src/config/pwaRouting.ts"),
-    "APP_ROUTES",
-  ).map((route) => route.value);
-  const adminShellRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/router.tsx"));
-  const adminCanvasRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/routes/views.tsx"));
+  const known = new Set(SURFACES.map(([id]) => id));
+  for (const persona of ontology.personas) {
+    for (const surface of persona.surfaces) {
+      if (!known.has(surface)) throw new Error(`Persona ${persona.id} names a surface without a label: ${surface}`);
+    }
+  }
+  const used = SURFACES.filter(([id]) => ontology.personas.some((persona) => persona.surfaces.includes(id)));
   let body = pageHeader(
     { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
     "Personas and Surfaces",
-    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means; the route definitions own the paths it navigates. Read this page before the work-submission trace, which names these actors at every step."
+    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means and where it works, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step."
   );
-  body += "## Personas\n\n| Persona | Hat | Surfaces | Definition |\n|---|---|---|---|\n";
-  for (const persona of ontology.personas) body += `| ${esc(persona.display)} | \`${esc(persona.hat)}\` | ${persona.surfaces.map(esc).join(", ")} | ${esc(persona.definition)} |\n`;
-  body += "\n## Where each persona works\n\n";
+  body += "## Personas\n\n| Persona | Hat | Definition |\n|---|---|---|\n";
+  for (const persona of ontology.personas) body += `| ${esc(persona.display)} | \`${esc(persona.hat)}\` | ${esc(persona.definition)} |\n`;
+  body += "\n## Where each persona works\n\nA surface is a place a persona acts from. The matrix marks each persona's surfaces, and the list below says what each surface is.\n\n";
+  body += `| Persona | ${used.map(([, heading]) => heading).join(" | ")} |\n|---|${used.map(() => "---").join("|")}|\n`;
   for (const persona of ontology.personas) {
-    const surfaces = persona.surfaces.map((surface) => {
-      const label = SURFACE_LABELS[surface];
-      if (!label) throw new Error(`Persona ${persona.id} names a surface without a prose label: ${surface}`);
-      return label;
-    });
-    body += `**${persona.display}** holds the \`${persona.hat}\` hat. ${persona.definition} This persona works in ${listInProse(surfaces)}.\n\n`;
+    body += `| ${esc(persona.display)} | ${used.map(([id]) => (persona.surfaces.includes(id) ? "✓" : "—")).join(" | ")} |\n`;
   }
-  if (ontology.personas_note) body += `${ontology.personas_note}\n\n`;
-  body += "<details>\n<summary>Declared route literals</summary>\n\nPaths below are literals as declared in the route definitions and may be nested under a parent route.\n\n| Authority | Paths or segments |\n|---|---|\n";
-  body += `| Client route tree | ${clientRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
-  body += `| Client canonical PWA routes | ${clientPwaRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
-  body += `| Admin shell route tree | ${adminShellRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
-  body += `| Admin canvas route segments | ${adminCanvasRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
-  body += "\n</details>\n";
+  body += "\n";
+  for (const [, heading, blurb] of used) body += `- **${heading}**: ${blurb}.\n`;
+  body += "\n";
+  if (ontology.personas_note) body += `${ontology.personas_note}\n`;
   return body;
 }
+
 
 function deploymentState(values, fields) {
   const present = fields.filter((field) => isRecordedAddress(values[field]));
@@ -861,16 +852,10 @@ export function renderQaCatalog({ root, sources, digest }) {
   return body;
 }
 
-// The ledger stores manifest -> name -> replacement; flatten it back to rows.
-function migrationRows(migration, status) {
-  return Object.entries(migration[status === "replacement" ? "replacements" : "retained"] ?? {}).flatMap(
-    ([manifest, names]) => Object.entries(names).map(([name, replacement]) => ({ manifest, name, replacement, status })),
-  );
-}
-
+// Retired command names are deliberately absent here: the migration ledgers stay machine-read
+// by the docs authority audit, and a reader of this page only needs what runs today.
 export function renderCommands({ root, sources, digest }) {
   const manifestSources = orderCommandManifests(sources.filter((source) => source.endsWith("package.json")));
-  const migration = readJson(root, declaredSource(sources, "scripts/data/command-migration.json"));
   const validation = readJson(root, declaredSource(sources, "scripts/data/validation-policy.json"));
   const implementationSources = sources.filter((source) => /(?:scripts\/(?:dev|agents)|packages\/contracts\/script)\/.+\.(?:mjs|js)$/.test(source));
   let body = pageHeader(
@@ -897,11 +882,6 @@ export function renderCommands({ root, sources, digest }) {
   body += `Manifest counts stay separate from the ${OPERATIONS.length} contract operations and ${validation.checks?.length ?? 0} stable validation checks selected behind the root interfaces. Those definitions preserve capabilities without adding aliases.\n\n`;
   body += `This projection tracks ${implementationSources.length} owning command implementation files:\n\n`;
   for (const source of implementationSources) body += `- \`${esc(source)}\`\n`;
-  body += "\n## Removed command replacements\n\nThe former names below are not runnable aliases. Use the replacement exactly as shown, including its working directory and flags.\n\n";
-  body += "| Previous manifest | Previous name | Replacement |\n|---|---|---|\n";
-  for (const entry of migrationRows(migration, "replacement")) {
-    body += `| \`${esc(entry.manifest)}\` | \`${esc(entry.name)}\` | ${copyCommand(entry.replacement)} |\n`;
-  }
   return body;
 }
 
@@ -947,7 +927,6 @@ const operationOptions = (operation) => [
 
 export function renderContractOperations({ root, sources, digest }) {
   declaredSource(sources, "packages/contracts/script/cli/operations.mjs");
-  const migration = readJson(root, declaredSource(sources, "packages/contracts/config/command-migration.json"));
   const grouped = assignOperationGroups(OPERATIONS);
   const code = (value) => `\`${esc(value)}\``;
   let body = pageHeader(
@@ -982,13 +961,6 @@ export function renderContractOperations({ root, sources, digest }) {
       body += "\n";
     }
   }
-  body += `## Command migration\n\nThe ${migration.entries.length} retired script names below are historical labels, kept so an old runbook still resolves. Replacements run from the repository root with an explicit network and execution mode; a recorded \`--sender\` address is shown as \`<sender>\`, so supply your own.\n\n`;
-  body += `<details>\n<summary>Command migration ledger (${migration.entries.length} retired names)</summary>\n\n| Previous manifest | Retired name | Replacement |\n|---|---|---|\n`;
-  for (const entry of migration.entries) {
-    const replacement = String(entry.replacement).replace(/--sender 0x[a-fA-F0-9]{40}/g, "--sender <sender>");
-    body += `| ${esc(entry.scope)} | \`${esc(entry.name)}\` | ${copyCommand(replacement)} |\n`;
-  }
-  body += "\n</details>\n";
   return body;
 }
 

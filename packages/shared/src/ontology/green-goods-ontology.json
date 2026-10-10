@@ -131,6 +131,16 @@
       "deployment_fields": ["accountProxy", "gardenAccountImpl"],
       "indexer_contracts": ["GardenAccount", "GardenToken"],
       "additional_sources": ["packages/contracts/src/tokens/Garden.sol"]
+    },
+    {
+      "id": "unlock",
+      "display": "Unlock Protocol",
+      "matrix_column": "Unlock",
+      "definition": "Unlock Protocol locks back the GreenWill badges: the GreenWill registry proves a claim from on-chain state and grants the matching non-transferable Unlock key. Deployment artifacts and indexer configuration own recorded availability.",
+      "contract_source": "packages/contracts/src/registries/GreenWill.sol",
+      "deployment_fields": ["greenWill"],
+      "indexer_contracts": ["GreenWill"],
+      "additional_sources": ["packages/shared/src/modules/data/greenwill.ts"]
     }
   ],
   "entities": [
@@ -3990,7 +4000,7 @@
     ],
     "column_notes": {
       "Silvi": "Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.",
-      "Unlock": "Credential and badge primitive. The Arbitrum One artifact records badge locks under its unlock key and the matrix maps Badges to Unlock NFT, but the integration catalog has no entry yet.",
+
       "Lido": "Liquid staking. A yield integration is an idea with no entity mappings and no code.",
       "FTC": "Integration scope to be defined; no entity mappings and no code."
     },

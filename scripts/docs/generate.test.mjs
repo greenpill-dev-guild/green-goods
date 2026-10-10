@@ -298,19 +298,22 @@ test("every projection source is routed to the Docs workflow", () => {
   }
 });
 
-test("personas page leads with who the actors are and keeps the route literals as an appendix", () => {
+test("personas page reads from the ontology alone and maps each persona onto its surfaces", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/architecture/personas.mdx",
   );
   assert.ok(projection);
+  assert.deepEqual(projection.sources, ["packages/shared/src/ontology/green-goods-ontology.json"]);
   const rendered = renderProjection(REPO_ROOT, projection);
   assert.match(rendered, /^title: Personas and Surfaces$/m);
   assert.match(rendered, /^slug: \/builders\/architecture\/personas$/m);
   assert.ok(rendered.indexOf("## Personas") < rendered.indexOf("## Where each persona works"));
-  assert.ok(rendered.indexOf("## Where each persona works") < rendered.indexOf("<details>"));
-  assert.match(rendered, /\*\*Gardener\*\* holds the `gardener` hat\./);
-  assert.match(rendered, /Client canonical PWA routes[^\n]*`\/home`/);
-  assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
+  assert.match(rendered, /^\| Gardener \| `gardener` \| /m);
+  assert.match(rendered, /^\| Persona \| Admin cockpit \| Client app \| Messaging agent \| Public site \| Docs \|$/m);
+  assert.match(rendered, /^\| Community Member \| — \| ✓ \| — \| ✓ \| ✓ \|$/m);
+  assert.match(rendered, /^- \*\*Messaging agent\*\*: /m);
+  assert.equal(rendered.includes("Declared route literals"), false);
+  assert.equal(rendered.includes("<details>"), false);
 });
 
 test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
@@ -445,6 +448,7 @@ test("integration projections move to one data file with per-network and indexin
     "karma",
     "octant",
     "tokenbound",
+    "unlock",
   ]);
   assert.ok(
     payload.integrations.eas.networks.some((network) => network.recorded.includes("workApprovalResolver")),
@@ -514,6 +518,7 @@ test("command inventory reads root first, then packages in contributor order, th
   const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/commands.mdx");
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
+  assert.equal(rendered.includes("Removed command replacements"), false, "retired names stay out of the inventory");
   const headings = [...rendered.matchAll(/^## (.+?) \(\d+\)$/gm)].map((match) => match[1]);
   assert.deepEqual(headings, [
     "Repository root",
@@ -613,7 +618,11 @@ test("entity matrix derives integration status from the catalog and the artifact
   assert.equal(rendered.includes("Active integrations"), false);
   assert.match(rendered, /^\| Silvi \| Vocabulary mapping only, no code integration \|/m);
   assert.match(rendered, /^\| ENS \| \[ENS\]\(\/builders\/integrations\/ens\) \| [^|]*Sepolia Testnet \(Deployed\)/m);
-  assert.match(rendered, /^- \*\*Unlock\*\*: /m);
+  assert.match(rendered, /^\| Unlock \| \[Unlock Protocol\]\(\/builders\/integrations\/unlock\) \| Arbitrum One \(Deployed\) \| 1 \|$/m);
+  assert.match(rendered, /^- \*\*Silvi\*\*: /m);
+  assert.ok(rendered.indexOf("### Karma GAP") < rendered.indexOf("| Garden | Project | Entity |"));
+  assert.ok(rendered.indexOf("### Unlock") < rendered.indexOf("| Badges | Unlock NFT | Concept |"));
+  assert.equal(/^\| Green Goods \| Karma GAP \| Hypercerts \|/m.test(rendered), false, "the wide grid is gone");
 });
 
 test("workflow catalog covers every workflow file, only CI Gate is required, and the page explains each run", () => {
@@ -650,7 +659,7 @@ test("workflow inventory reads display name, sorted jobs, and triggers from the 
   assert.ok("workflow_dispatch" in workflow.triggers);
 });
 
-test("contract operations group by verb, factor common options, and keep sender addresses out of the ledger", () => {
+test("contract operations group by verb, factor common options, and carry no retired names", () => {
   const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/contract-operations.mdx");
   const rendered = renderProjection(REPO_ROOT, projection);
   const headings = [...rendered.matchAll(/^### (.+?) \(\d+\)$/gm)].map((match) => match[1]);
@@ -660,8 +669,8 @@ test("contract operations group by verb, factor common options, and keep sender 
   const deploySection = rendered.slice(rendered.indexOf("### Deploy ("), rendered.indexOf("### Upgrade ("));
   assert.ok((deploySection.match(/--first-support-metadata-uri/g) ?? []).length <= 2, "the deploy option list prints once per cluster");
   assert.doesNotMatch(rendered, /0x[a-fA-F0-9]{40}/);
-  assert.ok(rendered.includes("--sender &lt;sender&gt;"));
-  assert.ok(rendered.indexOf("<details>") < rendered.indexOf("| Previous manifest |"));
+  assert.equal(rendered.includes("Command migration"), false, "retired names stay out of the page");
+  assert.equal(rendered.includes("| Previous manifest |"), false);
   assert.throws(() => assignOperationGroups([{ command: "teleport garden" }]), /Commands without a group: teleport garden/);
 });
 
