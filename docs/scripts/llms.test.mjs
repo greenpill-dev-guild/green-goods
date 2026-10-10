@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {describe, test} from "node:test";
 
-import {leadSentence, markdownTwin, renderLlmsIndex, twinPath} from "./llms.mjs";
+import {leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
 
 describe("markdown twins", () => {
   test("serve each page at its URL plus .md", () => {
@@ -43,6 +43,30 @@ describe("markdown twins", () => {
 
   test("give a title to pages without their own heading", () => {
     assert.equal(markdownTwin("---\nslug: /x\n---\nJust text.\n", "Plain Page"), "# Plain Page\n\nJust text.\n");
+  });
+
+  test("render the deployment projection a page embeds, so the twin reads whole", () => {
+    const integrations = {
+      hats: {
+        display: "Hats Protocol",
+        definition: "Roles.",
+        networks: [{chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["hatsModule"]}],
+        totalNetworks: 4,
+        indexedContracts: ["HatsModule"],
+      },
+      ens: {display: "ENS", definition: "Names.", networks: [], totalNetworks: 4, indexedContracts: []},
+    };
+    const twin = markdownTwin("# Hats\n\n<IntegrationProjection id=\"hats\" />\n\nAfter.\n", "Hats", {integrations});
+    assert.doesNotMatch(twin, /<IntegrationProjection/);
+    assert.match(twin, /^## Checked-in deployment projection$/m);
+    assert.match(twin, /\| Arbitrum One \(`42161`\) \| Deployed \| `hatsModule` \|/);
+    assert.match(twin, /Networks without recorded components are omitted/);
+    assert.match(twin, /^## Indexer boundary\n\nConfigured indexer contracts: `HatsModule`\.$/m);
+    assert.match(twin, /regenerates from checked-in artifacts via `node scripts\/docs\/generate\.mjs`/);
+    assert.match(twin, /\nAfter\.\n$/);
+    assert.match(projectionMarkdown(integrations.ens), /No checked-in deployment artifact records components/);
+    assert.doesNotMatch(projectionMarkdown(integrations.ens), /Indexer boundary/);
+    assert.throws(() => markdownTwin("<IntegrationProjection id=\"nope\" />", "X", {integrations}), /Unknown integration projection id/);
   });
 });
 

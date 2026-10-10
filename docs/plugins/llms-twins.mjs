@@ -20,12 +20,19 @@ export default function llmsTwinsPlugin(context) {
         .filter((doc) => !doc.unlisted && !doc.draft);
     },
     async postBuild({outDir, siteConfig}) {
+      // The integration pages render their deployment facts through a component; the twins carry
+      // the same facts as Markdown so the page reads whole without rendering.
+      const projections = JSON.parse(
+        await readFile(path.join(context.siteDir, "src/data/integration-projections.json"), "utf8"),
+      );
       const pages = [];
       for (const doc of docs) {
         const source = path.join(context.siteDir, doc.source.replace(/^@site\//, ""));
         const twin = path.join(outDir, twinPath(doc.permalink));
         await mkdir(path.dirname(twin), {recursive: true});
-        const markdown = markdownTwin(await readFile(source, "utf8"), doc.title);
+        const markdown = markdownTwin(await readFile(source, "utf8"), doc.title, {
+          integrations: projections.integrations,
+        });
         await writeFile(twin, markdown);
         // Docusaurus's automatic excerpt can pick up a generated banner, so only a hand-written
         // frontmatter description is used as-is.

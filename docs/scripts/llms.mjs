@@ -13,6 +13,40 @@ const FENCED_CODE = /^(```|~~~)[^\n]*\n[\s\S]*?^\1[ \t]*$/gm;
 const IMPORT_STATEMENT =
   /^import\s+(?:(?:\{[^}]*\}|[\w$]+(?:\s*,\s*\{[^}]*\})?|\*\s+as\s+[\w$]+)\s+from\s+)?(["'])[^"'\n]+\1;?[ \t]*\n?/gm;
 
+const PROJECTION_TAG = /^[ \t]*<IntegrationProjection\s+id="([^"]+)"\s*\/>[ \t]*$/gm;
+
+/**
+ * The deployment projection as Markdown, carrying the same facts the IntegrationProjection
+ * component renders on the site, so an integration page's twin reads whole without the component.
+ */
+export function projectionMarkdown(integration) {
+  const deployments = "[deployment status projection](/builders/reference/deployments)";
+  const lines = ["## Checked-in deployment projection", ""];
+  if (integration.networks.length === 0) {
+    lines.push(
+      `No checked-in deployment artifact records components for this integration on any supported network. Per-network state lives in the ${deployments}.`,
+    );
+  } else {
+    lines.push("| Network | Status | Recorded components |", "|---|---|---|");
+    for (const network of integration.networks) {
+      const recorded = network.recorded.map((field) => `\`${field}\``).join(", ");
+      lines.push(`| ${network.name} (\`${network.chainId}\`) | ${network.status} | ${recorded} |`);
+    }
+    if (integration.networks.length < integration.totalNetworks) {
+      lines.push("", `Networks without recorded components are omitted; per-network state lives in the ${deployments}.`);
+    }
+  }
+  if (integration.indexedContracts.length > 0) {
+    const contracts = integration.indexedContracts.map((name) => `\`${name}\``).join(", ");
+    lines.push("", "## Indexer boundary", "", `Configured indexer contracts: ${contracts}.`);
+  }
+  lines.push(
+    "",
+    "A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. This projection regenerates from checked-in artifacts via `node scripts/docs/generate.mjs`.",
+  );
+  return lines.join("\n");
+}
+
 function outsideFencedCode(text, transform) {
   let result = "";
   let last = 0;
@@ -25,12 +59,21 @@ function outsideFencedCode(text, transform) {
 
 /**
  * A page's source as plain Markdown for agents: no frontmatter and no MDX import lines (code
- * examples keep theirs). Components stay as written, so a reader can tell where the site renders
- * something interactive. Pages without their own H1 get one from the title.
+ * examples keep theirs). Given the integration projections, each IntegrationProjection tag becomes
+ * the Markdown of the data it renders; other components stay as written, so a reader can tell
+ * where the site renders something interactive. Pages without their own H1 get one from the title.
  */
-export function markdownTwin(source, title) {
+export function markdownTwin(source, title, { integrations = null } = {}) {
   const withoutFrontmatter = source.replace(/^---\n[\s\S]*?\n---\n/, "");
-  const body = outsideFencedCode(withoutFrontmatter, (text) => text.replace(IMPORT_STATEMENT, ""))
+  const expandProjections = (text) =>
+    integrations
+      ? text.replace(PROJECTION_TAG, (tag, id) => {
+          const integration = integrations[id];
+          if (!integration) throw new Error(`Unknown integration projection id in a Markdown twin: ${id}`);
+          return projectionMarkdown(integration);
+        })
+      : text;
+  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(text.replace(IMPORT_STATEMENT, "")))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return `${/^#\s/m.test(body) ? "" : `# ${title}\n\n`}${body}\n`;
