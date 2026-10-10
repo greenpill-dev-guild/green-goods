@@ -16,6 +16,7 @@ import {
 } from "./generator-core.mjs";
 import { createProjections, projectionSourcePaths } from "./generate.mjs";
 import {
+  collectRenderableAddresses,
   deploymentAddressFields,
   isRecordedAddress,
   packageExports,
@@ -518,4 +519,80 @@ test("copyable commands encode the characters MDX attributes and table cells can
     '<CopyCommand command="bun run x -- --sender &lt;addr&gt; &amp;&amp; echo &quot;a&#124;b&quot;" />',
   );
   assert.throws(() => copyCommand("bun run a\nbun run b"), /cannot span lines/);
+});
+
+function jsonFilesUnder(directory) {
+  const files = [];
+  const visit = (relative) => {
+    for (const entry of readdirSync(path.join(REPO_ROOT, relative), { withFileTypes: true })) {
+      const child = `${relative}/${entry.name}`;
+      if (entry.isDirectory()) visit(child);
+      else if (entry.name.endsWith(".json")) files.push(child);
+    }
+  };
+  visit(directory);
+  return files;
+}
+
+test("deployments page links every recorded address and schema UID and keeps operator identities off it", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/reference/deployments.mdx");
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const arbitrum = readJson(REPO_ROOT, "packages/contracts/deployments/42161-latest.json");
+  assert.match(rendered, /^title: Deployments & Addresses$/m);
+  assert.ok(rendered.indexOf("## Arbitrum One (42161)") < rendered.indexOf("## Celo (42220)"));
+  assert.ok(rendered.includes(`<CopyCommand command="${arbitrum.workApprovalResolver}" />`));
+  assert.ok(rendered.includes(`[arbiscan.io](https://arbiscan.io/address/${arbitrum.workApprovalResolver})`));
+  assert.ok(rendered.includes(`https://arbitrum.easscan.org/schema/view/${arbitrum.schemas.workSchemaUID}`));
+  assert.ok(rendered.includes("| commitmentPoolingModule (proxy) |"));
+  assert.ok(rendered.includes("| commitmentPoolingModule (implementation) |"));
+  assert.match(rendered, /Recorded as the zero address on this network: [^\n]*`ensReceiver`/);
+
+  // Any hex value stored under an operator, receipt, or safe path must stay off the page unless
+  // the same value is also a listed contract.
+  const OPERATIONAL = /(owner|deployer|^manager|managers|safe|multisig|sender|signer|deploymentDefaults|releaseReceipts|boundaries|transactionHash|blockHash|validator|authorizedIssuer)/i;
+  const hidden = new Set();
+  const walk = (value, segments) => {
+    if (Array.isArray(value)) value.forEach((item) => walk(item, segments));
+    else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) walk(child, [...segments, key]);
+    else if (typeof value === "string" && /^0x[a-fA-F0-9]{40}$|^0x[a-fA-F0-9]{64}$/.test(value) && segments.some((segment) => OPERATIONAL.test(segment))) {
+      hidden.add(value.toLowerCase());
+    }
+  };
+  for (const file of jsonFilesUnder("packages/contracts/deployments")) walk(readJson(REPO_ROOT, file), []);
+  assert.ok(hidden.size > 0, "the artifacts carry operator data this test guards");
+  const listed = new Set(
+    projection.sources
+      .filter((source) => /deployments\/\d+-latest\.json$/.test(source))
+      .flatMap((source) => collectRenderableAddresses(readJson(REPO_ROOT, source)).map((entry) => entry.value.toLowerCase())),
+  );
+  const page = rendered.toLowerCase();
+  const leaks = [...hidden].filter((value) => !listed.has(value) && page.includes(value));
+  assert.deepEqual(leaks, []);
+  for (const receipt of Object.values(arbitrum.releaseReceipts ?? {})) assert.equal(page.includes(receipt.transactionHash.toLowerCase()), false);
+});
+
+test("renderable deployment addresses stop at the allowlist and the blocked field names", () => {
+  const entries = collectRenderableAddresses(readJson(REPO_ROOT, "packages/contracts/deployments/42161-latest.json"));
+  const keys = entries.map((entry) => entry.key);
+  assert.ok(keys.includes("eas.address"));
+  assert.ok(keys.includes("schemas.workSchemaUID"));
+  assert.ok(keys.includes("transferManager"));
+  assert.ok(keys.some((key) => key.startsWith("unlock.locks.")));
+  assert.equal(keys.some((key) => /greenWillConfig|managerDefaults|owner|deployer/i.test(key)), false);
+  assert.throws(() => selectSafeFields({ owner: "0x" }, ["owner"]), /Unsafe/);
+  assert.throws(() => selectSafeFields({ deployer: "0x" }, ["deployer"]), /Unsafe/);
+  assert.throws(() => selectSafeFields({ managerDefaults: "0x" }, ["managerDefaults"]), /Unsafe/);
+  assert.throws(() => selectSafeFields({ badgeLockManagers: "0x" }, ["badgeLockManagers"]), /Unsafe/);
+  assert.doesNotThrow(() => selectSafeFields({ transferManager: "x" }, ["transferManager"]));
+});
+
+test("entity matrix derives integration status from the catalog and the artifacts", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/architecture/entity-matrix.mdx");
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.equal(rendered.includes("Active integrations"), false);
+  assert.match(rendered, /^\| Silvi \| Vocabulary mapping only, no code integration \|/m);
+  assert.match(rendered, /^\| ENS \| \[ENS\]\(\/builders\/integrations\/ens\) \| [^|]*Sepolia Testnet \(Deployed\)/m);
+  assert.match(rendered, /^- \*\*Unlock\*\*: /m);
 });

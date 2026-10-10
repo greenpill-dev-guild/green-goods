@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
 
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
 import {
   renderApiIndex,
+  integrationNetworkRecords,
   renderCommands,
   renderContractOperations,
   renderDeploymentStatus,
@@ -115,7 +115,16 @@ export function createProjections(root = REPO_ROOT) {
     },
     { scope: "ontology", output: "docs/docs/builders/architecture/data-model.mdx", sources: [ONTOLOGY, PROJECTIONS, "packages/indexer/schema.graphql", "scripts/quality/ontology-render.mjs"], render: renderDataModel },
     { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs"], render: renderGlossary },
-    { scope: "ontology", output: "docs/docs/builders/architecture/entity-matrix.mdx", sources: [ONTOLOGY, "scripts/quality/ontology-render.mjs", "scripts/quality/check-ontology.mjs"], render: ({ root: renderRoot, sources, digest }) => renderEntityMatrixMdx(JSON.parse(readFileSync(path.join(renderRoot, ONTOLOGY), "utf8")), { sources, digest }) },
+    {
+      scope: "ontology",
+      output: "docs/docs/builders/architecture/entity-matrix.mdx",
+      sources: [...new Set([ONTOLOGY, ...integrationCommon, "scripts/quality/ontology-render.mjs", "scripts/quality/check-ontology.mjs"])],
+      render: ({ root: renderRoot, sources, digest }) => {
+        const sidecar = readJson(renderRoot, ONTOLOGY);
+        const integrations = integrationNetworkRecords({ root: renderRoot, sources, ontology: sidecar });
+        return renderEntityMatrixMdx(sidecar, { sources, digest, integrations });
+      },
+    },
     { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", ...workflows], render: renderGitHubActions },
     { scope: "qa", output: "docs/docs/builders/quality/test-cases.mdx", sources: ["package.json", "scripts/data/qa-test-catalog.json", "scripts/data/validation-policy.json", "playwright.config.ts", "packages/client/vitest.config.ts", "packages/admin/vitest.config.ts", "packages/shared/vitest.config.ts", "packages/agent/vitest.config.ts"], render: renderQaCatalog },
     { scope: "agentic", output: "docs/docs/builders/agentic/task-routing.mdx", sources: [TASK_ROUTING, ...routedSkillSources, "scripts/quality/task-routing-contract.mjs"], render: renderTaskRouting },

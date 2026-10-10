@@ -1,10 +1,11 @@
 import { GENERATOR_PATH, generatedFrontmatter, regenerationHint } from "./generator-core.mjs";
 import { OPERATIONS } from "../../packages/contracts/script/cli/operations.mjs";
 import {
-  deploymentAddressFields,
+  collectRenderableAddresses,
   deploymentInventory,
   indexerContracts,
   isRecordedAddress,
+  networkExplorers,
   networkNames,
   packageExports,
   parseStringObject,
@@ -148,28 +149,179 @@ function deploymentState(values, fields) {
   return "Not deployed";
 }
 
-export function renderDeploymentStatus({ root, sources, digest }) {
-  const deploymentSources = sources.filter((source) => /deployments\/\d+-latest\.json$/.test(source));
-  const fields = deploymentAddressFields(root, deploymentSources);
-  const rows = deploymentInventory(root, deploymentSources, fields);
-  const names = networkNames(root, declaredSource(sources, "packages/contracts/deployments/networks.json"));
-  let body = pageHeader(
-    { title: "Deployment Status", slug: "/builders/reference/deployments", sources, digest },
-    "Deployment Status",
-    "This page reports checked-in artifacts, not live RPC state. A nonzero address means an artifact records a deployment; activation and operational health require their own evidence."
-  );
-  body += "| Network | Recorded address fields | Zero or absent fields |\n|---|---|---|\n";
-  for (const row of rows) {
-    const recorded = fields.filter((field) => isRecordedAddress(row.values[field]));
-    const absent = fields.filter((field) => !isRecordedAddress(row.values[field]));
-    body += `| ${esc(names.get(Number(row.chainId)) ?? row.chainId)} (\`${row.chainId}\`) | ${recorded.length ? recorded.map((field) => `\`${esc(field)}\``).join(", ") : "none"} | ${absent.length} |\n`;
+// EAS runs one explorer per network. A network with recorded EAS data and no entry here fails
+// the generator rather than printing a UID nobody can open.
+const EAS_EXPLORERS = new Map([
+  [1, "https://easscan.org"],
+  [42161, "https://arbitrum.easscan.org"],
+  [42220, "https://celo.easscan.org"],
+  [11155111, "https://sepolia.easscan.org"],
+]);
+
+// Production networks first, then the testnet; a newly supported chain lands at the end by id.
+const NETWORK_ORDER = [42161, 42220, 1, 11155111];
+
+// Every top-level address field in an artifact must land in exactly one group, so a new
+// contract fails loudly here instead of appearing unlabelled or not at all.
+const ADDRESS_GROUPS = [
+  {
+    title: "Core protocol",
+    intro: "Gardens, their accounts, the registries, and the guardian.",
+    fields: [
+      "gardenToken",
+      "accountProxy",
+      "gardenAccountImpl",
+      "rootGarden.address",
+      "actionRegistry",
+      "deploymentRegistry",
+      "guardian",
+      "gardenerRegistry",
+      "gardenerAccountLogic",
+      "unifiedPowerRegistry",
+      "yieldSplitter",
+      "greenGoodsENS",
+      "ensReceiver",
+      "previousEnsReceiver",
+    ],
+  },
+  {
+    title: "EAS resolvers",
+    intro: "The contracts that check authorization before EAS records a Work, Work Approval, Assessment, or Testimony.",
+    fields: ["workResolver", "workApprovalResolver", "assessmentResolver", "testimonyResolver", "testimonyResolverImpl"],
+  },
+  {
+    title: "EAS core",
+    intro: "The Ethereum Attestation Service contracts this network's records live in.",
+    fields: ["eas.address", "eas.schemaRegistry"],
+  },
+  { title: "EAS schemas", intro: "The schema each record kind is written against.", kind: "schema", fields: [] },
+  {
+    title: "Modules and integrations",
+    intro: "Capabilities a garden opts into, and the partner contracts behind them.",
+    fields: [
+      "hatsModule",
+      "karmaGAPModule",
+      "gardensModule",
+      "octantModule",
+      "octantFactory",
+      "cookieJarModule",
+      "cookieJarFactory",
+      "hypercertsModule",
+      "hypercertMinter",
+      "hypercertExchange",
+      "marketplaceAdapter",
+      "transferManager",
+      "strategyHypercertFractionOffer",
+      "greenWill",
+      "greenWillBadges.implementation",
+      "unlock.factory",
+    ],
+    prefixes: ["unlock.locks."],
+  },
+  {
+    title: "Commitment pooling and settlement",
+    intro: "Pools, registries, settlement, and their upgradeable implementations.",
+    fields: [
+      "commitmentPoolingModule",
+      "commitmentPoolingModuleImpl",
+      "commitmentRegistry",
+      "commitmentRegistryImpl",
+      "creditRegistry",
+      "creditRegistryImpl",
+      "settlementModule",
+      "settlementModuleImpl",
+      "celoSettlementExecutor",
+      "celoSettlementExecutorImpl",
+    ],
+  },
+  {
+    title: "Linked libraries",
+    intro: "External libraries the pooling and settlement modules link against.",
+    fields: [],
+    prefixes: ["poolingLibraries.", "settlementLibraries."],
+    collapsed: true,
+  },
+];
+
+export function assignAddressGroups(entries, groups = ADDRESS_GROUPS) {
+  const groupOf = new Map();
+  const problems = [];
+  for (const entry of entries) {
+    const matches = groups.filter(
+      (group) => group.fields.includes(entry.key) || (group.prefixes ?? []).some((prefix) => entry.key.startsWith(prefix))
+    );
+    if (matches.length === 1) groupOf.set(entry.key, matches[0].title);
+    else problems.push(`${entry.key} (${matches.length} groups)`);
   }
-  body += "\nRegenerate after a checked-in deployment artifact, schema configuration, indexer configuration, or capability projection changes.\n";
+  if (problems.length > 0) throw new Error(`Deployment address grouping is out of date: ${problems.join(", ")}.`);
+  return groupOf;
+}
+
+const explorerHost = (url) => new URL(url).host;
+
+function contractLabel(entry, keys) {
+  if (entry.key.endsWith("Impl") && keys.has(entry.key.slice(0, -4))) return `${entry.key.slice(0, -4)} (implementation)`;
+  if (keys.has(`${entry.key}Impl`)) return `${entry.key} (proxy)`;
+  return entry.label;
+}
+
+export function renderDeploymentStatus({ root, sources, digest }) {
+  const networksSource = declaredSource(sources, "packages/contracts/deployments/networks.json");
+  const names = networkNames(root, networksSource);
+  const explorers = networkExplorers(root, networksSource);
+  const rank = (chainId) => (NETWORK_ORDER.includes(chainId) ? NETWORK_ORDER.indexOf(chainId) : NETWORK_ORDER.length + chainId);
+  const networks = sources
+    .filter((source) => /deployments\/\d+-latest\.json$/.test(source))
+    .map((source) => ({ chainId: Number(/(\d+)-latest\.json$/.exec(source)[1]), entries: collectRenderableAddresses(readJson(root, source)) }))
+    .sort((a, b) => rank(a.chainId) - rank(b.chainId));
+  let body = pageHeader(
+    { title: "Deployments & Addresses", slug: "/builders/reference/deployments", sources, digest },
+    "Deployments & Addresses",
+    "Every address below comes from the checked-in deployment artifacts (`packages/contracts/deployments/<chainId>-latest.json`), not from live RPC state. A recorded address means a deployment was written down; activation and operational health need their own evidence. The zero address is the artifacts' sentinel for no usable contract, and such fields are listed, not linked. Operator identities, lock managers, safes, and transaction receipts stay off this page by design.",
+    { imports: [COPY_COMMAND_IMPORT] }
+  );
+  for (const network of networks) {
+    const name = names.get(network.chainId) ?? String(network.chainId);
+    const explorer = explorers.get(network.chainId);
+    if (!explorer) throw new Error(`No block explorer configured for chain ${network.chainId} in networks.json`);
+    const addresses = network.entries.filter((entry) => entry.kind === "address");
+    const schemas = network.entries.filter((entry) => entry.kind === "schema" && entry.recorded);
+    const groupOf = assignAddressGroups(addresses);
+    const keys = new Set(addresses.map((entry) => entry.key));
+    const recorded = addresses.filter((entry) => entry.recorded);
+    const eas = EAS_EXPLORERS.get(network.chainId);
+    if ((schemas.length > 0 || recorded.some((entry) => entry.key.startsWith("eas."))) && !eas) {
+      throw new Error(`No EAS explorer known for chain ${network.chainId}; add it to EAS_EXPLORERS`);
+    }
+    body += `## ${esc(name)} (${network.chainId})\n\n`;
+    body += `${recorded.length} recorded contracts and ${schemas.length} schemas. Addresses open on [${explorerHost(explorer)}](${explorer})${eas ? `; schema UIDs open on [${explorerHost(eas)}](${eas})` : ""}.\n\n`;
+    for (const group of ADDRESS_GROUPS) {
+      if (group.kind === "schema") {
+        if (schemas.length === 0) continue;
+        body += `### ${group.title}\n\n${group.intro}\n\n| Schema | UID | Explorer |\n|---|---|---|\n`;
+        for (const entry of schemas) body += `| ${esc(entry.label)} | ${copyCommand(entry.value)} | [${explorerHost(eas)}](${eas}/schema/view/${entry.value}) |\n`;
+        body += "\n";
+        continue;
+      }
+      const members = recorded.filter((entry) => groupOf.get(entry.key) === group.title);
+      if (members.length === 0) continue;
+      body += `### ${group.title}\n\n${group.intro}\n\n`;
+      if (group.collapsed) body += `<details>\n<summary>${members.length} linked libraries</summary>\n\n`;
+      body += "| Contract | Address | Explorer |\n|---|---|---|\n";
+      for (const entry of members) {
+        body += `| ${esc(contractLabel(entry, keys))} | ${copyCommand(entry.value)} | [${explorerHost(explorer)}](${explorer}/address/${entry.value}) |\n`;
+      }
+      body += group.collapsed ? "\n</details>\n\n" : "\n";
+    }
+    const zero = addresses.filter((entry) => !entry.recorded);
+    if (zero.length > 0) body += `Recorded as the zero address on this network: ${zero.map((entry) => `\`${esc(entry.key)}\``).join(", ")}.\n\n`;
+  }
+  body += "Regenerate after a checked-in deployment artifact, schema configuration, indexer configuration, or capability projection changes.\n";
   return body;
 }
 
-export function renderIntegrationProjections({ root, sources, digest }) {
-  const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
+/** Per-integration deployment state from the artifacts: the same records the projection JSON carries. */
+export function integrationNetworkRecords({ root, sources, ontology }) {
   const deploymentSources = sources.filter((source) => /deployments\/\d+-latest\.json$/.test(source));
   const names = networkNames(root, declaredSource(sources, "packages/contracts/deployments/networks.json"));
   const indexed = indexerContracts(root, declaredSource(sources, "packages/indexer/config.yaml"));
@@ -192,6 +344,12 @@ export function renderIntegrationProjections({ root, sources, digest }) {
       indexedContracts: integration.indexer_contracts.filter((name) => indexed.includes(name)),
     };
   }
+  return integrations;
+}
+
+export function renderIntegrationProjections({ root, sources, digest }) {
+  const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
+  const integrations = integrationNetworkRecords({ root, sources, ontology });
   const payload = {
     $generated: `GENERATED FILE: do not edit. ${regenerationHint("integration")}`,
     generator: GENERATOR_PATH,

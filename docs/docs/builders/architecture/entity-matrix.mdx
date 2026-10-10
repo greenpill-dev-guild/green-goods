@@ -3,16 +3,34 @@ title: Entity Matrix
 slug: /builders/architecture/entity-matrix
 audience: developer
 owner: docs
-feature_status: Planned
+feature_status: Live
 generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/check-ontology.mjs
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:e4d508a3b27012dfa5bed55fdbf7c0c0482e7c02658b7299d96c96678b9da7fa"
+source_digest: "sha256:062fc5fd37175999c8d208347c0f0f9aa782c947ec8771723b9c168bb0bf91fa"
 source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/check-ontology.mjs
   - scripts/quality/ontology-render.mjs
 sidebar_position: 2
@@ -20,13 +38,11 @@ sidebar_position: 2
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
 # Entity Matrix
 
-<StatusBadge status="Planned" />
-
-This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). Cell mappings remain a draft vocabulary aid until each integration ships — a cell is a naming translation, not a shipped integration contract. The planned status keeps that maturity visible without hiding the reference from navigation or the sitemap.
+This matrix is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section). A cell is a naming translation between Green Goods and a partner protocol, not a shipped integration contract; the status table below says which columns have code behind them and where their components are recorded.
 
 ## How to read this table
 
@@ -69,28 +85,30 @@ This matrix is generated from the tracked ontology sidecar (`packages/shared/src
 | Impact | — | Hypercert Token | — | — | — | — | — | — | — | — | — |
 | Badges | — | — | — | — | — | — | — | Unlock NFT | — | — | — |
 
-## Protocol integration notes
+## Protocol integration status
 
-### Active integrations
+A column is a vocabulary mapping. Whether code stands behind it is a separate fact: the integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A column without a catalog entry is a mapping only.
 
-These protocols have draft entity mappings and active or planned code integrations:
+| Protocol | Code integration | Networks with recorded components | Mapped rows |
+|---|---|---|---|
+| Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 10 |
+| Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 11 |
+| Octant | [Octant](/builders/integrations/octant) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 5 |
+| Gardens V2 | [Gardens](/builders/integrations/gardens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
+| Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
+| Silvi | Vocabulary mapping only, no code integration | — | 1 |
+| Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 1 |
+| Unlock | Vocabulary mapping only, no code integration | — | 1 |
+| ENS | [ENS](/builders/integrations/ens) | Ethereum Mainnet (Partial), Sepolia Testnet (Deployed), Arbitrum One (Partial) | 0 |
+| Lido | Vocabulary mapping only, no code integration | — | 0 |
+| FTC | Vocabulary mapping only, no code integration | — | 0 |
 
-- **Karma GAP**: Project reporting and milestone tracking. Maps all 5 core entities (Garden through Work Approval) and all role types.
-- **Hypercerts**: Impact certification tokens. Maps core entities to Hypercert Data and roles to Creator/Funder/Evaluator.
-- **Octant**: Vault and treasury management. Maps Garden to Vault Owner, with role mappings for admin, proposer, voter, and depositor flows.
-- **Gardens V2**: Community governance primitives. Maps Garden to Community, with role mappings for council and community membership.
-- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Steward Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst).
-- **Silvi**: Forestry and agroforestry partner. Currently maps only Garden to Project.
-- **Cookie Jar**: Payout and reward primitive. Currently maps only Garden to Jar.
-- **Unlock**: Credential and badge primitive. Currently maps only Badges to Unlock NFT.
+Columns without a code integration:
 
-### Integration planned
-
-These protocols appear in the matrix but have no entity mappings yet:
-
-- **ENS**: Ethereum Name Service — name resolution integration planned.
-- **Lido**: Liquid staking — yield integration planned.
-- **FTC**: Integration scope to be defined.
+- **Silvi**: Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
+- **Unlock**: Credential and badge primitive. The Arbitrum One artifact records badge locks under its unlock key and the matrix maps Badges to Unlock NFT, but the integration catalog has no entry yet.
+- **Lido**: Liquid staking. A yield integration is an idea with no entity mappings and no code.
+- **FTC**: Integration scope to be defined; no entity mappings and no code.
 
 ## Using the matrix
 
@@ -104,7 +122,7 @@ When a task involves a partner protocol, use this matrix to translate between vo
 
 ### Maintenance
 
-The mapping data lives in the ontology sidecar's `integration_matrix` section. When a new protocol partnership is established, add a column only after its source-backed implementation or specification exists — edit the sidecar and run `node scripts/quality/check-ontology.mjs --generate`. `bun run check --only ontology` fails CI whenever this page drifts from the sidecar.
+The mapping data lives in the ontology sidecar's `integration_matrix` section, and each catalog integration names its column through `matrix_column`. Add a column only after its source-backed implementation or specification exists, give it a catalog entry or a column note (the ontology check refuses a column with neither), then run `node scripts/docs/generate.mjs --scope ontology` for this page and `node scripts/quality/check-ontology.mjs --generate` for the reference pages. `bun run check --only docs-generated` fails CI whenever this page drifts from its sources.
 
 <NextBestAction
   title="Next best action"

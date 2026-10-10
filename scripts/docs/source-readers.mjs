@@ -42,9 +42,74 @@ export function indexerContracts(root, source) {
   return [...text.matchAll(/^\s{2}- name:\s*([^\s#]+)\s*$/gm)].map((match) => match[1]).sort();
 }
 
-const BLOCKED_FIELD = /(secret|private.?key|password|mnemonic|api.?key|auth.?token|access.?token)/i;
+// Secrets never belong in an artifact, and operator identities (owners, deployers, lock
+// managers, safes, signers) never belong on a public page. `transferManager` is a contract,
+// hence the anchored manager forms.
+const BLOCKED_FIELD = /(secret|private.?key|password|mnemonic|api.?key|auth.?token|access.?token|owner|deployer|^manager|managers|safe|multisig|sender|signer)/i;
 const ADDRESS_VALUE = /^0x[a-fA-F0-9]{40}$/;
 const ZERO_ADDRESS = /^0x0{40}$/i;
+const SCHEMA_UID = /^0x[a-fA-F0-9]{64}$/;
+const ZERO_UID = /^0x0{64}$/i;
+
+function assertSafePath(key) {
+  for (const segment of key.split(".")) {
+    if (BLOCKED_FIELD.test(segment)) throw new Error(`Unsafe deployment field requested: ${key}`);
+  }
+}
+
+/**
+ * The addresses and schema UIDs a public page may print from one artifact: every top-level
+ * address field plus an explicit allowlist of nested records. Nothing else nested is read, so
+ * operator identities under `greenWillConfig`, `unlock.managerDefaults`, or `greenWillBadges.owner`
+ * never reach the page. Entries keep zero values flagged so a page can list them without linking.
+ */
+export function collectRenderableAddresses(artifact) {
+  const entries = [];
+  const addAddress = (key, value, label = key) => {
+    assertSafePath(key);
+    if (value === undefined || value === null) return;
+    if (typeof value !== "string" || !ADDRESS_VALUE.test(value)) {
+      throw new Error(`Malformed deployment address for ${key}: ${String(value)}`);
+    }
+    entries.push({ key, label, kind: "address", value, recorded: !ZERO_ADDRESS.test(value) });
+  };
+  for (const [field, value] of Object.entries(artifact)) {
+    if (BLOCKED_FIELD.test(field)) continue;
+    if (typeof value === "string" && ADDRESS_VALUE.test(value)) addAddress(field, value);
+  }
+  addAddress("eas.address", artifact.eas?.address, "EAS");
+  addAddress("eas.schemaRegistry", artifact.eas?.schemaRegistry, "EAS schema registry");
+  addAddress("rootGarden.address", artifact.rootGarden?.address, "rootGarden");
+  addAddress("unlock.factory", artifact.unlock?.factory, "unlock.factory");
+  for (const [name, lock] of Object.entries(artifact.unlock?.locks ?? {})) {
+    addAddress(`unlock.locks.${name}.address`, lock?.address, `Unlock lock: ${typeof lock?.name === "string" ? lock.name : name}`);
+  }
+  addAddress("greenWillBadges.implementation", artifact.greenWillBadges?.implementation, "greenWillBadges (implementation)");
+  for (const group of ["poolingLibraries", "settlementLibraries"]) {
+    for (const [name, value] of Object.entries(artifact[group] ?? {})) addAddress(`${group}.${name}`, value, name);
+  }
+  for (const [field, value] of Object.entries(artifact.schemas ?? {})) {
+    const match = /^(.*)SchemaUID$/.exec(field);
+    if (!match) continue;
+    const key = `schemas.${field}`;
+    assertSafePath(key);
+    if (typeof value !== "string" || !SCHEMA_UID.test(value)) throw new Error(`Malformed schema UID for ${key}: ${String(value)}`);
+    const name = artifact.schemas[`${match[1]}Name`];
+    entries.push({ key, label: typeof name === "string" && name ? name : match[1], kind: "schema", value, recorded: !ZERO_UID.test(value) });
+  }
+  return entries;
+}
+
+export function networkExplorers(root, source) {
+  const config = readJson(root, source);
+  const explorers = new Map();
+  for (const network of Object.values(config.networks ?? {})) {
+    if (Number.isInteger(network?.chainId) && typeof network?.blockExplorer === "string" && network.blockExplorer) {
+      explorers.set(Number(network.chainId), network.blockExplorer.replace(/\/+$/, ""));
+    }
+  }
+  return explorers;
+}
 
 export function selectSafeFields(value, allowlist) {
   const selected = {};
