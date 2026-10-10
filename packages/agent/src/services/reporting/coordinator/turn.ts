@@ -47,7 +47,7 @@ import {
 } from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
-import { answeredGarden, asksToLookAgain, readOwnGardens } from "./garden-step";
+import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
@@ -117,19 +117,12 @@ function reportGarden(
 }
 
 /**
- * The commands whose reply can show or use a report's gardens or activities: linking an account,
- * the garden step's own words, and CONFIRM, which puts the open question again when no summary is
- * showing. Every other command, STOP, DELETE and HELP among them, is answered without waiting on
- * the indexer.
+ * The commands that can carry a report on, and so may have to offer its garden's activities: the
+ * pairing code, which resumes it under the account just linked, and CONFIRM, which puts the open
+ * question again when no summary is showing. Every other command, STOP, DELETE and HELP among
+ * them, is answered without waiting on the indexer.
  */
-const REPORT_COMMANDS = new Set<ChatCommand["kind"]>([
-  "pair",
-  "connect",
-  "start",
-  "garden",
-  "join",
-  "confirm",
-]);
+const REPORT_COMMANDS = new Set<ChatCommand["kind"]>(["pair", "confirm"]);
 
 /** A report's questions that offer a list of choices. */
 const REPORT_CHOICES = new Set([
@@ -169,6 +162,11 @@ async function gatherExternal(
       .eligibleActions(place, core.clock.now())
       .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
   const account = turnAccount(core, ctx, plan);
+  // A story or correction is read by the model, and so are words sent to a list of choices that
+  // pick none of them: they may be a question, a correction or the answer in other words.
+  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
+  const forModel = said && ctx.modelEnabled && ctx.binding ? said : null;
+  if (account) await readGardensForTurn(core, ctx, plan, forModel !== null);
   // A tap on a button of an earlier question puts the report's open question again.
   const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
   const reportPlan =
@@ -176,15 +174,6 @@ async function gatherExternal(
     plan.kind === "answer" ||
     (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
     reasks;
-  // Any of these may show or use a linked account's gardens: the garden question and its
-  // answers, a garden a model reads in a correction, a reply that names them.
-  if (account && reportPlan) {
-    // A reply that puts a garden question with no garden to offer again is asking to look again,
-    // whether it answers that question or taps a button of an earlier one.
-    const lookAgain =
-      (plan.kind === "answer" || reasks) && ctx.prompt !== null && asksToLookAgain(ctx.prompt);
-    await readOwnGardens(core, lookAgain);
-  }
   const scope = gardenScope(core.gardens, account);
   let garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has
@@ -199,17 +188,14 @@ async function gatherExternal(
     garden !== null && reportPlan && (choosing || plan.kind === "answer" || changing);
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
-  // A story or correction is read by the model, and so are words sent to a list of choices that
-  // pick none of them: they may be a question, a correction or the answer in other words.
-  const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
-  if (said && ctx.modelEnabled && ctx.binding) {
+  if (forModel) {
     const content = ctx.draft?.content;
     interpretation = await interpretWithDeadline(
       deps.interpreter,
       {
         locale: ctx.locale,
         draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: said },
+        message: { sourceEntryId: ctx.event.id, text: forModel },
         content: {
           actionUID: content?.actionUID ?? null,
           title: content?.title ?? null,

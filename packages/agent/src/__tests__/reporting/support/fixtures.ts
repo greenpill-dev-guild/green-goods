@@ -40,9 +40,10 @@ export const AIYELOJA: ReportingGarden = {
 /** A fixed directory whose reads of an account's gardens a test can make fail or go stale. */
 export interface FixedGardens extends GardenDirectory {
   /**
-   * While true the indexer is down: no account's gardens can be read. A read that failed is left
-   * alone for as long as the live directory leaves it, so they stay unreadable afterwards until
-   * a read goes through.
+   * While true the indexer is down and every read fails. As with the live directory, an account
+   * the last good read placed in a garden keeps its gardens meanwhile, and one that read placed
+   * nowhere cannot be read. A failed read is left alone for as long as the live directory leaves
+   * it, and only a read that goes through ends that state.
    */
   unavailable: boolean;
   /**
@@ -63,6 +64,7 @@ export function fixedGardens(
   gardens: ReportingGarden[] = [TAS, AIYELOJA],
   chain?: Pick<FakeChain, "roles">
 ): FixedGardens {
+  /** The roles as the last good read found them. */
   let read = new Map(chain?.roles);
   let readAt: number | null = null;
   let failedAt: number | null = null;
@@ -72,18 +74,24 @@ export function fixedGardens(
     reads: 0,
     list: () => gardens,
     membershipsOf(account) {
-      if (directory.unavailable || failedAt !== null) return { ok: false, reason: "unavailable" };
-      const granted = directory.cached ? read : chain?.roles;
-      const reportsTo = (garden: ReportingGarden): boolean => {
+      // With no current read the last good one answers, and only for an account it placed.
+      const down = directory.unavailable || failedAt !== null;
+      const granted = down || directory.cached ? read : chain?.roles;
+      const own = gardens.filter((garden) => {
         const roles = granted?.get(`${garden.address}:${account.toLowerCase()}`);
         return Boolean(roles && (roles.gardener || roles.operator || roles.owner));
-      };
-      return { ok: true, gardens: gardens.filter(reportsTo) };
+      });
+      return own.length > 0 || !down
+        ? { ok: true, gardens: own }
+        : { ok: false, reason: "unavailable" };
     },
     async refresh(nowMs, maxAgeMs = 5 * 60 * 1000, retryAfterMs = 30_000) {
       if (failedAt !== null && nowMs - failedAt < retryAfterMs) return;
       if (directory.unavailable) {
+        // An uncached list followed the chain until now, so that is what its last read held.
+        if (failedAt === null && !directory.cached) read = new Map(chain?.roles);
         failedAt = nowMs;
+        readAt = null;
         throw new Error("indexer unavailable");
       }
       failedAt = null;

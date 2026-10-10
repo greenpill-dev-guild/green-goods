@@ -5,7 +5,7 @@ import type { ReportingGarden } from "../../services/reporting/gardens";
 import { TestBrowser } from "./support/browser";
 import { AIYELOJA, TAS } from "./support/fixtures";
 import { adaAccount, bolaAccount, latestLink } from "./support/flows";
-import { ADA, BOLA, Harness, type Person, summaryToken } from "./support/harness";
+import { ADA, BOLA, Harness, type Person } from "./support/harness";
 
 /**
  * Which gardens a linked chat may report to: its account's own, read from the garden directory.
@@ -35,6 +35,8 @@ const OWN_GARDENS =
   "Which of your gardens is this report for?\n1. TAS\n2. Aiyeloja Family Garden\n3. Join another garden";
 const TAS_ACTIVITIES =
   "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding";
+const CANNOT_LOAD =
+  "I can't load your gardens right now. That's a problem on my side, and your report is saved. Tap Try again or send any message.\n1. Try again";
 
 const joins = (account: PrivateKeyAccount, ...gardens: ReportingGarden[]) => {
   for (const garden of gardens)
@@ -147,23 +149,26 @@ describe("a linked account's reporting gardens", () => {
 
   it("says it cannot load an account's gardens, and never reads that as an account with none", async () => {
     harness = new Harness({ settings: { communityGarden: TAS.address } });
-    joins(adaAccount, TAS);
+    joins(bolaAccount, TAS);
     await linked();
+    await linked(bolaAccount, BOLA);
     harness.gardens.unavailable = true;
-    const failed =
-      "I can't load your gardens right now. That's a problem on my side, and your report is saved. Tap Try again or send any message.\n1. Try again";
-    expect(await harness.say(ADA, STORY)).toEqual([failed]);
-    // Neither the invitation to join nor the list of every garden stands in for the failed read.
-    expect(await harness.say(ADA, "TAS")).toEqual([failed]);
+    // The last good read placed Ada in no garden. Neither the invitation to join nor the list of
+    // every garden stands in for the read that failed.
+    expect(await harness.say(ADA, STORY)).toEqual([CANNOT_LOAD]);
+    expect(await harness.say(ADA, "TAS")).toEqual([CANNOT_LOAD]);
     expect(harness.transport.last().message.link).toBeUndefined();
     expect(await harness.say(ADA, "CONNECT")).toEqual([
       `This chat is connected to ${ada}.\nI can't load your gardens right now.\nTo use a different account, send SWITCH.`,
     ]);
+    // It placed Bola in TAS, and that still counts while the indexer is down.
+    expect(await harness.say(BOLA, STORY)).toEqual([`TAS ${ONLY_GARDEN}`, TAS_ACTIVITIES]);
 
-    // The indexer is back. A failed read is left alone for half a minute, but not by the person
-    // asking: a few seconds on, Try again reads the list, even tapped on the question's first copy.
+    // A steward adds Ada to TAS and the indexer comes back. A failed read is left alone for half
+    // a minute, but never by the person asking: Try again reads at once, even tapped on the
+    // question's first copy.
+    joins(adaAccount, TAS);
     harness.gardens.unavailable = false;
-    harness.clock.advance(5_000);
     const first = harness.transport.sent
       .flatMap((sent) => sent.message.choices ?? [])
       .find((choice) => choice.label === "Try again");
@@ -171,6 +176,27 @@ describe("a linked account's reporting gardens", () => {
       `TAS ${ONLY_GARDEN}`,
       TAS_ACTIVITIES,
     ]);
+  });
+
+  it("holds a report at the garden question when its new account's gardens cannot be read", async () => {
+    harness = new Harness();
+    await harness.say(ADA, "START");
+    await harness.say(ADA, "yes");
+    await harness.say(ADA, STORY);
+    expect(await harness.say(ADA, "1")).toEqual([TAS_ACTIVITIES]);
+    await harness.say(ADA, "CONNECT");
+    // The indexer is down when Ada links, so the garden her report names cannot be checked
+    // against hers. The activity question gives way to the garden question, which says so.
+    harness.gardens.unavailable = true;
+    expect(await pair(adaAccount)).toEqual([`Your account ${ada} is now linked.`, CANNOT_LOAD]);
+    // A steward has added her to TAS by the time it is back, and the report carries on from her
+    // gardens.
+    joins(adaAccount, TAS);
+    harness.gardens.unavailable = false;
+    expect(await harness.press(ADA, "Try again")).toEqual([
+      "Which of your gardens is this report for?\n1. TAS\n2. Join another garden",
+    ]);
+    expect(await harness.say(ADA, "1")).toEqual([TAS_ACTIVITIES]);
   });
 
   it("asks again within the next account's gardens after a switch, dropping a garden it is not in", async () => {
@@ -267,14 +293,23 @@ describe("a linked account's reporting gardens", () => {
     joins(adaAccount, TAS);
     await linked();
     await harness.say(ADA, STORY);
+    // The report has its garden. Nothing it asks from here waits on the garden list, however old
+    // that has become, and neither does Confirm.
+    harness.clock.advance(60_000);
+    const reads = harness.gardens.reads;
     await harness.press(ADA, "Tree planting");
     await harness.say(ADA, "12");
     await harness.say(ADA, "2");
-    const summary = await harness.say(ADA, "3 hours");
+    await harness.say(ADA, "3 hours");
     // The role is gone by the time the report is confirmed. Having been offered the garden, and
     // even having had it chosen for the report, is no authority to publish there.
     harness.chain.grantRole(TAS.address, adaAccount.address, {});
-    const reply = await harness.say(ADA, `CONFIRM ${summaryToken(summary)}`);
+    // A tap carries no words; sent with its label, Confirm would be read as the command.
+    const confirm = harness.transport
+      .last()
+      .message.choices?.find((choice) => choice.label === "Confirm");
+    const reply = await harness.say(ADA, "", { text: undefined, replyId: confirm?.id });
+    expect(harness.gardens.reads).toBe(reads);
     expect(reply.join("\n")).toContain("Your account isn't a gardener in TAS");
     expect(harness.core.db.query("SELECT count(*) AS n FROM execution_operations").get()).toEqual({
       n: 0,
@@ -304,21 +339,19 @@ describe("a linked account's reporting gardens", () => {
         "Não consigo carregar suas hortas agora. O problema é do meu lado e seu relato está guardado. Toque em Tentar de novo ou envie qualquer mensagem.\n1. Tentar de novo",
       retry: "Tentar de novo",
     },
-  ])("answers in $locale for no garden, one, several and a failed read", async (copy) => {
+  ])("answers in $locale for no garden, a failed read, one garden and several", async (copy) => {
     harness = new Harness({ settings: { communityGarden: TAS.address } });
     const person: Person = { ...ADA, locale: copy.locale };
     await linked(adaAccount, person);
     expect((await harness.say(person, STORY))[0]?.startsWith(copy.join)).toBe(true);
+    harness.gardens.unavailable = true;
+    expect(await harness.press(person, copy.again)).toEqual([copy.failed]);
 
+    // Typed out, the one choice is an answer in each language, never a command word.
     joins(adaAccount, AIYELOJA);
-    expect((await harness.press(person, copy.again))[0]).toBe(copy.taken);
+    harness.gardens.unavailable = false;
+    expect((await harness.say(person, copy.retry))[0]).toBe(copy.taken);
     joins(adaAccount, TAS);
     expect(await harness.say(person, "GARDEN")).toEqual([copy.own]);
-    harness.gardens.unavailable = true;
-    expect(await harness.say(person, "GARDEN")).toEqual([copy.failed]);
-    // Typed out, the one choice is an answer in each language, never a command word.
-    harness.gardens.unavailable = false;
-    harness.clock.advance(5_000);
-    expect(await harness.say(person, copy.retry)).toEqual([copy.own]);
   });
 });

@@ -7,6 +7,7 @@ import type { PromptOption, PromptRecord } from "../prompts";
 import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
 import { accountLink } from "./account-link";
+import type { TurnContext, TurnPlan } from "./context";
 import type { ConversationWriter } from "./writer";
 
 const log = createLogger("reporting");
@@ -27,9 +28,10 @@ const log = createLogger("reporting");
 const OWN_GARDENS_MAX_AGE_MS = 10_000;
 
 /**
- * The same, when the person has asked to look again. Their reply gets a read of its own even
- * while a failed one is waiting to be repeated, so Try again does try, as it does for a garden's
- * activities. Replies moments apart, in one chat or several, share a read.
+ * The same, when the person has asked to look again. A list read this recently still serves, so
+ * replies moments apart, in one chat or several, share a read. A read that failed never does:
+ * their reply reads again at once, whatever wait the directory is keeping, so Try again does try,
+ * as it does for a garden's activities.
  */
 const LOOK_AGAIN_MAX_AGE_MS = 3_000;
 
@@ -43,7 +45,7 @@ const LOOK_AGAIN_MAX_AGE_MS = 3_000;
 export async function readOwnGardens(core: ReportingCore, lookAgain = false): Promise<void> {
   const now = core.clock.now();
   const read = lookAgain
-    ? core.gardens.refresh(now, LOOK_AGAIN_MAX_AGE_MS, LOOK_AGAIN_MAX_AGE_MS)
+    ? core.gardens.refresh(now, LOOK_AGAIN_MAX_AGE_MS, 0)
     : core.gardens.refresh(now, OWN_GARDENS_MAX_AGE_MS);
   await read.catch((err) =>
     log.warn({ err }, "Could not read the garden list for a linked account")
@@ -94,8 +96,84 @@ export function offeredGardens(prompt: PromptRecord): boolean {
  * question with no garden to offer has that one choice (Try again, Check again or Show my
  * gardens), and any other words sent to it are taken the same way.
  */
-export function asksToLookAgain(prompt: PromptRecord): boolean {
+function asksToLookAgain(prompt: PromptRecord): boolean {
   return prompt.kind === "select_garden" && !offeredGardens(prompt);
+}
+
+/**
+ * The report's own questions, with the one about voice notes, which puts the open question again
+ * when it is declined. An answer to any of them carries the report on.
+ */
+const REPORT_QUESTIONS = new Set([
+  "select_garden",
+  "select_action",
+  "field",
+  "time",
+  "time_unit",
+  "title",
+  "feedback",
+  "conflict",
+  "edit_field",
+  "voice_consent",
+]);
+
+/**
+ * Whether a turn's reply can show or use the linked account's gardens. A report with no garden
+ * yet takes or asks for one whenever it is carried on. One that has its garden meets the
+ * account's gardens again only at the garden question, on linking, and where a model reads the
+ * words and may find a garden named in them.
+ */
+function usesOwnGardens(ctx: TurnContext, plan: TurnPlan, modelReads: boolean): boolean {
+  const gardenless = !ctx.draft?.content.garden;
+  switch (plan.kind) {
+    case "command":
+      switch (plan.command.kind) {
+        case "pair":
+        case "connect":
+        case "garden":
+        case "join":
+          return true;
+        // START welcomes an idle chat with its account's gardens; otherwise it lists the commands.
+        case "start":
+          return !ctx.draft && !ctx.review;
+        // CONFIRM with no summary showing puts the report's open question again.
+        case "confirm":
+          return ctx.draft !== null && gardenless;
+        default:
+          return false;
+      }
+    case "answer": {
+      const { kind } = plan.prompt;
+      // The garden question, and the edit menu that can open it.
+      if (kind === "select_garden" || kind === "edit_field") return true;
+      return REPORT_QUESTIONS.has(kind) && (gardenless || modelReads);
+    }
+    case "message":
+      return gardenless || modelReads;
+    // A tap on a button of an earlier question puts the report's open question again.
+    case "stale_reply":
+      return ctx.draft !== null && gardenless;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Reads the linked account's gardens before a turn whose reply can show or use them. Every other
+ * turn, Confirm and STOP among them, is answered without waiting on that read. `modelReads` says
+ * a model will read the turn's words.
+ */
+export async function readGardensForTurn(
+  core: ReportingCore,
+  ctx: TurnContext,
+  plan: TurnPlan,
+  modelReads: boolean
+): Promise<void> {
+  if (!usesOwnGardens(ctx, plan, modelReads)) return;
+  // A reply that puts a garden question with no garden to offer again is asking to look again,
+  // whether it answers that question or taps a button of an earlier one.
+  const reply = plan.kind === "answer" || plan.kind === "stale_reply";
+  await readOwnGardens(core, reply && ctx.prompt !== null && asksToLookAgain(ctx.prompt));
 }
 
 function ask(

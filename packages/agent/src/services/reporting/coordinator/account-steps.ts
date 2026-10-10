@@ -6,7 +6,7 @@ import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
 import { issueContinuation } from "../continuations";
 import { commitDraft, type DraftRecord } from "../drafts";
-import type { ReportingGarden } from "../gardens";
+import { gardenScope, type ReportingGarden } from "../gardens";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
@@ -222,8 +222,10 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
  * Carries a report that is still being put together on under the account just linked. A garden
  * that account does not report to comes off the report: the gardener changed the account
  * themselves, so the clearing is recorded as theirs and their earlier choice does not stand
- * against it. Then the report asks whatever it now needs, taking the account's only garden or
- * naming the account in its summary. A report already confirmed is left to the account checks.
+ * against it. When the account's gardens cannot be read, a garden the report names cannot be
+ * checked against them, so the report waits at the garden question, which says so. Otherwise the
+ * report asks whatever it now needs, taking the account's only garden or naming the account in
+ * its summary. A report already confirmed is left to the account checks.
  */
 function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: TurnExternal): void {
   const { core, ctx } = writer;
@@ -237,6 +239,9 @@ function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: Tu
     ]);
     writer.say("report.gardenDropped", { garden: dropped.label });
   }
+  // There is nothing to check the report's garden against, so it waits at the garden question.
+  if (work.content.garden && gardenScope(core.gardens, account).kind === "unavailable")
+    return askGarden(writer, draft, account);
   // A report waiting on its garden, showing its summary or left with no question asks what it
   // needs now. An open garden question is put again within this account's gardens, and a
   // question about the report's details stays open as it was.
