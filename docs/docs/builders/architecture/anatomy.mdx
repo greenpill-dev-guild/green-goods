@@ -9,6 +9,8 @@ feature_status: Live
 source_of_truth:
   - packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts
   - packages/shared/src/modules/job-queue
+  - packages/shared/src/modules/job-queue/work-executor.ts
+  - packages/shared/src/utils/eas/encoders.ts
   - packages/shared/src/modules/work/upload-preparation.ts
   - packages/shared/src/providers/JobQueue.tsx
   - packages/shared/src/modules/data/eas.ts
@@ -62,8 +64,9 @@ step. Nothing is sent on their behalf.
 
 ## 3. Attest
 
-When the gardener taps Upload all, the shared EAS module (`packages/shared/src/modules/data/eas.ts`)
-encodes the submission against the
+When the gardener taps Upload all, the queue's work executor
+(`packages/shared/src/modules/job-queue/work-executor.ts`) builds the contract call from the
+encoded submission (`encodeWorkData` in `packages/shared/src/utils/eas/encoders.ts`) against the
 [Green Goods Work Submission schema](https://arbitrum.easscan.org/schema/view/0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4)
 and writes the attestation. The write succeeds only if
 [`Work.sol`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/src/resolvers/Work.sol)

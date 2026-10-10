@@ -27,8 +27,12 @@ can actually own and retro-fund.
 
 ## How it flows
 
-A certificate starts from work that's already approved, so every claim traces back to real
-records.
+In the admin wizard a certificate starts from work that's already approved, so a claim minted
+there traces back to real records. The contract does not enforce that rule: `registerHypercert`
+checks operator authority, pause state, and that the claim is minted, and
+`createAllowlistAndRegister` takes a metadata URI with no Work or Work Approval UID, so an operator
+calling the module directly can register any minted claim. Treat approved work as the
+application's constraint, not the contract's.
 
 ```mermaid
 flowchart LR

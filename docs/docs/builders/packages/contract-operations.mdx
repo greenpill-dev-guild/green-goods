@@ -36,7 +36,7 @@ Only the modes listed for each operation are accepted. Read-only operations do n
 
 ## Operations
 
-Commands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked.
+Commands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries `--network <network>` when the operation is network-scoped and `--mode <mode>` when a mode is required; replace the placeholders with one of the networks and modes listed on its row.
 
 ### Deploy (18)
 
@@ -46,34 +46,34 @@ Options: `--save-artifacts`, `--update-schemas`, `--force`, `--finalize-communit
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- deploy core" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy goods" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy juicebox" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy octant-factory" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy garden &lt;input&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy actions &lt;input&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy hats-tree" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
-| <CopyCommand command="bun run contracts -- deploy badge-locks" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy greenwill" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
-| <CopyCommand command="bun run contracts -- deploy badge-schemas" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy commitment-schemas" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy pooling-configure" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
-| <CopyCommand command="bun run contracts -- deploy ownership-transfer" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy core --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy goods --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy juicebox --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy octant-factory --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy garden &lt;input&gt; --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy actions &lt;input&gt; --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy hats-tree --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- deploy badge-locks --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy greenwill --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- deploy badge-schemas --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy commitment-schemas --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy pooling-configure --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight |
+| <CopyCommand command="bun run contracts -- deploy ownership-transfer --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast, preflight, plan |
 
 Options: `--save-artifacts`, `--update-schemas`, `--force`, `--finalize-community-testimony`, `--skip-envio`, `--skip-verification`, `--start-indexer`, `--save-report`, `--override-sepolia-gate`, `--sender <value>`, `--salt <value>`, `--stage <value>`, `--step <value>`, `--expected-nonce <value> (required)`, `--receipt <value>`, `--artifact <value>`, `--owner-phase <value>`, `--owner <value>`, `--genesis-hat-id <value>`, `--genesis-lock <value>`, `--first-work-lock <value>`, `--first-support-lock <value>`, `--genesis-metadata-uri <value>`, `--first-work-metadata-uri <value>`, `--first-support-metadata-uri <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- deploy pooling" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy settlement-module" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy credit-registry" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy settlement-executor" /> | celo | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy pooling --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy settlement-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy credit-registry --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy settlement-executor --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | simulate, broadcast, preflight, plan |
 
 Options: `--sender <value>`, `--expected-nonce <value>`, `--plan <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- deploy single-attestation-policy" /> | localhost, sepolia, arbitrum | preflight, plan, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- deploy single-attestation-policy --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum | preflight, plan, simulate, broadcast |
 
 ### Upgrade (18)
 
@@ -83,24 +83,24 @@ Options: `--override-sepolia-gate`, `--sender <value>`, `--expected-nonce <value
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- upgrade action-registry" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade garden-token" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade yield-resolver" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade gardens-module" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade signal-pool-yield-wiring" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade yield-gardens-wiring" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade octant-module" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade hats-module" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade cookie-jar-module" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade karma-gap-module" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade work-resolver" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade work-approval-resolver" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade assessment-resolver" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade testimony-resolver" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade deployment-registry" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade greenwill" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade commitment-pooling" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
-| <CopyCommand command="bun run contracts -- upgrade all" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade action-registry --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade garden-token --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade yield-resolver --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade gardens-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade signal-pool-yield-wiring --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade yield-gardens-wiring --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade octant-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade hats-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade cookie-jar-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade karma-gap-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade work-resolver --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade work-approval-resolver --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade assessment-resolver --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade testimony-resolver --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade deployment-registry --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade greenwill --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade commitment-pooling --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
+| <CopyCommand command="bun run contracts -- upgrade all --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, plan, broadcast |
 
 ### Verify (4)
 
@@ -110,20 +110,20 @@ No options beyond the command itself.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- verify arbitrum-fork" /> | arbitrum | none |
-| <CopyCommand command="bun run contracts -- verify reporting-kernel" /> | arbitrum | simulate |
+| <CopyCommand command="bun run contracts -- verify arbitrum-fork --network &lt;network&gt;" /> | arbitrum | none |
+| <CopyCommand command="bun run contracts -- verify reporting-kernel --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate |
 
 Options: `--check-etherscan`, `--check-indexer-runtime`, `--check-steward-upgrade`, `--skip-indexer`, `--skip-indexer-runtime`, `--skip-local-indexer-start`, `--start-local-indexer`, `--stop-local-indexer-after-check`, `--no-octant`, `--no-cookiejar`, `--ack-product-copy`, `--require-product-copy`, `--rpc-url <value>`, `--chain-id <value>`, `--community-slug <value>`, `--expected-hats-implementation <value>`, `--indexer-poll-seconds <value>`, `--indexer-timeout-seconds <value>`, `--indexer-url <value>`, `--steward-baseline <value>`, `--steward-probe-account <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- verify" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- verify --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
 Options: `--publish-source`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- verify single-attestation-policy" /> | localhost, sepolia, arbitrum | none |
+| <CopyCommand command="bun run contracts -- verify single-attestation-policy --network &lt;network&gt;" /> | localhost, sepolia, arbitrum | none |
 
 ### Status (1)
 
@@ -133,7 +133,7 @@ No options beyond the command itself.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- status" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
 ### Release (6)
 
@@ -143,11 +143,11 @@ Options: `--save-artifacts`, `--sender <value>`, `--salt <value>`, `--stage <val
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- release manifest" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
-| <CopyCommand command="bun run contracts -- release core" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
-| <CopyCommand command="bun run contracts -- release recover" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) |
-| <CopyCommand command="bun run contracts -- release verify" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) |
-| <CopyCommand command="bun run contracts -- release indexer-handoff" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
+| <CopyCommand command="bun run contracts -- release manifest --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
+| <CopyCommand command="bun run contracts -- release core --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
+| <CopyCommand command="bun run contracts -- release recover --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) |
+| <CopyCommand command="bun run contracts -- release verify --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate (optional) |
+| <CopyCommand command="bun run contracts -- release indexer-handoff --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight (optional) |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 
@@ -163,10 +163,10 @@ Options: `--plan <value>`, `--safe-plan <value>`, `--step <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-roles plan" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-roles verify" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-routes plan" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-routes verify" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-roles plan --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-roles verify --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-routes plan --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-routes verify --network &lt;network&gt;" /> | celo | none |
 
 No options beyond the command itself.
 
@@ -180,67 +180,67 @@ Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-roles deploy" /> | celo | broadcast |
-| <CopyCommand command="bun run contracts -- settlement garden-roles enable" /> | celo | broadcast |
-| <CopyCommand command="bun run contracts -- settlement garden-routes configure" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-roles deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-roles enable --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-routes configure --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--raw-bundle <value>`, `--step <value>`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-accounts plan" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-accounts verify" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-accounts plan --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-accounts verify --network &lt;network&gt;" /> | celo | none |
 
 Options: `--plan <value>`, `--safe-plan <value>`, `--step <value>`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-relay plan" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-relay verify" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-relay plan --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-relay verify --network &lt;network&gt;" /> | celo | none |
 
 Options: `--plan <value>`, `--inventory <value>`, `--step <value>`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-safes plan" /> | celo | none |
-| <CopyCommand command="bun run contracts -- settlement garden-safes verify" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-safes plan --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-safes verify --network &lt;network&gt;" /> | celo | none |
 
 Options: `--save-artifacts`, `--sender <value>`, `--salt <value>`, `--stage <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value>`, `--artifact <value>`, `--owner-phase <value>`, `--owner <value>`, `--genesis-hat-id <value>`, `--genesis-lock <value>`, `--first-work-lock <value>`, `--first-support-lock <value>`, `--genesis-metadata-uri <value>`, `--first-work-metadata-uri <value>`, `--first-support-metadata-uri <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement safe" /> | celo | preflight, simulate (optional) |
-| <CopyCommand command="bun run contracts -- settlement peer" /> | arbitrum | preflight (optional) |
+| <CopyCommand command="bun run contracts -- settlement safe --network &lt;network&gt;" /> | celo | preflight, simulate (optional) |
+| <CopyCommand command="bun run contracts -- settlement peer --network &lt;network&gt;" /> | arbitrum | preflight (optional) |
 
 Options: `--plan <value>`, `--raw-bundle <value>`, `--step <value> (required)`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-accounts deploy" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-accounts deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`, `--receipt <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-relay adopt" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-relay adopt --network &lt;network&gt;" /> | celo | none |
 
 Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-relay deploy" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-relay deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--inventory <value>`, `--step <value> (required)`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-safes deploy" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-safes deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
 
 Options: `--save-artifacts`, `--sender <value>`, `--salt <value>`, `--stage <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value> (required)`, `--artifact <value>`, `--owner-phase <value>`, `--owner <value>`, `--genesis-hat-id <value>`, `--genesis-lock <value>`, `--first-work-lock <value>`, `--first-support-lock <value>`, `--genesis-metadata-uri <value>`, `--first-work-metadata-uri <value>`, `--first-support-metadata-uri <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement peer-verify" /> | arbitrum | none |
+| <CopyCommand command="bun run contracts -- settlement peer-verify --network &lt;network&gt;" /> | arbitrum | none |
 
 ### Commitment pooling (1)
 
@@ -250,7 +250,7 @@ Options: `--override-sepolia-gate`, `--authority <value>`, `--plan <value>`, `--
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- pooling backfill" /> | arbitrum | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- pooling backfill --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast |
 
 ### Migrate (3)
 
@@ -260,19 +260,19 @@ Options: `--force`, `--rpc-url <value>`, `--chain-id <value>`, `--slug <value>`,
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- migrate action-instructions-v2" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, upload, broadcast |
+| <CopyCommand command="bun run contracts -- migrate action-instructions-v2 --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, upload, broadcast |
 
 Options: `--rpc-url <value>`, `--chain-id <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- migrate action-instructions-v2 check" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate |
+| <CopyCommand command="bun run contracts -- migrate action-instructions-v2 check --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate |
 
 Options: `--sender <value>`, `--rpc-url <value>`, `--chain-id <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- migrate vaults" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- migrate vaults --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
 
 ### Repair (1)
 
@@ -282,7 +282,7 @@ Options: `--sender <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- repair octant-assets" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- repair octant-assets --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | preflight, simulate, broadcast |
 
 ### ENS (7)
 
@@ -292,23 +292,23 @@ Options: `--new-receiver <value>`, `--sender <value>`, `--registrations-file <va
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- ens deploy-mainnet" /> | mainnet | preflight, simulate, broadcast |
-| <CopyCommand command="bun run contracts -- ens deploy-sepolia" /> | sepolia | preflight, simulate, broadcast |
-| <CopyCommand command="bun run contracts -- ens update-l1-receiver" /> | arbitrum | preflight, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- ens deploy-mainnet --network &lt;network&gt; --mode &lt;mode&gt;" /> | mainnet | preflight, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- ens deploy-sepolia --network &lt;network&gt; --mode &lt;mode&gt;" /> | sepolia | preflight, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- ens update-l1-receiver --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | preflight, simulate, broadcast |
 
 Options: `--account <value>`, `--amount <value>`, `--min-sponsored-claims <value>`, `--sample-owner <value>`, `--sample-slug <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- ens sponsor status" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
-| <CopyCommand command="bun run contracts -- ens sponsor monitor" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
-| <CopyCommand command="bun run contracts -- ens sponsor top-up" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast |
+| <CopyCommand command="bun run contracts -- ens sponsor status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- ens sponsor monitor --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- ens sponsor top-up --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | broadcast |
 
 Options: `--sender <value>`, `--registrations-file <value>`, `--new-receiver <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- ens migrate" /> | mainnet | preflight, simulate, broadcast |
+| <CopyCommand command="bun run contracts -- ens migrate --network &lt;network&gt; --mode &lt;mode&gt;" /> | mainnet | preflight, simulate, broadcast |
 
 ### Hypercert marketplace (2)
 
@@ -318,8 +318,8 @@ Options: `--rpc-url <value>`, `--chain-id <value>`, `--expected-owner <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- marketplace status" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
-| <CopyCommand command="bun run contracts -- marketplace configure" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
+| <CopyCommand command="bun run contracts -- marketplace status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- marketplace configure --network &lt;network&gt; --mode &lt;mode&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | simulate, broadcast |
 
 ### Minting (1)
 
@@ -329,7 +329,7 @@ No options beyond the command itself.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- minting open" /> | sepolia, arbitrum | broadcast |
+| <CopyCommand command="bun run contracts -- minting open --network &lt;network&gt; --mode &lt;mode&gt;" /> | sepolia, arbitrum | broadcast |
 
 ### IPFS (2)
 
@@ -363,4 +363,4 @@ No options beyond the command itself.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- fork" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
+| <CopyCommand command="bun run contracts -- fork --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |

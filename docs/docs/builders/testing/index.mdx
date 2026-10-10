@@ -25,7 +25,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Testing Guide
 
-Five runners cover the stack, and one selector decides which of them your change actually needs.
+Six runners cover the stack, and one selector decides which of them your change actually needs.
 This page is the map, the everyday loop, and the commands per surface; the runners' own excellent
 docs cover everything deeper.
 
@@ -38,6 +38,7 @@ docs cover everything deeper.
 | Playwright | End-to-end flows and authentication across client and admin | `tests/` at the root, projects in `playwright.config.ts` | [playwright.dev](https://playwright.dev) |
 | Mocha | Indexer handlers and contract events | `packages/indexer/test/` | [mochajs.org](https://mochajs.org) |
 | Foundry (forge) | Contract behavior, invariants, gas, and upgrade safety | `packages/contracts/test/` and its subfolders | [getfoundry.sh](https://getfoundry.sh) |
+| Node test runner | The docs generators and audits, the search index, the ontology checks, and the validation selector, all with Node's built-in `node --test` | `scripts/docs/*.test.mjs`, `docs/scripts/*.test.mjs`, and `scripts/quality/*.test.mjs` | [nodejs.org/api/test](https://nodejs.org/api/test.html) |
 
 ## The everyday loop
 
@@ -66,6 +67,7 @@ copy any single line on its own.
 | Shared | <CopyCommand command="bun run --cwd packages/shared test" /> and <CopyCommand command="bun run --cwd packages/shared typecheck" /> | <CopyCommand command="bun run --cwd packages/shared check:stories" /> when UI foundations move |
 | Indexer | <CopyCommand command="bun run --cwd packages/indexer check:indexing-boundary" /> and <CopyCommand command="bun run --cwd packages/indexer test" /> | <CopyCommand command="bun run --cwd packages/indexer codegen" /> first after schema or config changes, then <CopyCommand command="bun run --cwd packages/indexer build" /> |
 | Contracts | <CopyCommand command="bun run --cwd packages/contracts test --suite solidity --profile match test/E2EWorkflow.t.sol" /> for one behavior (swap in your test file) | <CopyCommand command="bun run --cwd packages/contracts test" /> for the package, <CopyCommand command="bun run --cwd packages/contracts test:audit full" /> for the audit suite |
+| Docs | <CopyCommand command="bun run --cwd docs test" /> for the site scripts and components, and <CopyCommand command="node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/developer-guides.test.mjs" /> for the generators and audits | <CopyCommand command="bun run --cwd docs build" /> when pages, generators, or the site config change; it runs the search-index check too |
 
 For end-to-end work, run the CI-parity Playwright project that matches your surface. This is the
 exact command CI runs:

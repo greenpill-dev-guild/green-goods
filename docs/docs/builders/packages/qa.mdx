@@ -7,6 +7,7 @@ owner: docs
 last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
+  - packages/qa/AGENTS.md
   - packages/qa/README.md
   - packages/qa/package.json
 keywords:
@@ -74,6 +75,9 @@ The catalog source is `scripts/data/qa-test-catalog.json`, shared with the gener
 
 ## Go deeper
 
+- [`packages/qa/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/qa/AGENTS.md)
+  is the package contract: catalog ID retention, the public and private evidence boundary,
+  fail-closed authentication, locale alignment, and the validation path a change has to run.
 - [`packages/qa/README.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/qa/README.md)
   explains the concurrency design in full, including the caching and retry details that look like
   bugs if you don't know them.

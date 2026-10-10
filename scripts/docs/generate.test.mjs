@@ -669,6 +669,9 @@ test("contract operations group by verb, factor common options, and carry no ret
   assert.ok(headings.includes("Deploy") && headings.includes("Settlement"), headings.join(", "));
   assert.equal((rendered.match(/<CopyCommand command="bun run contracts -- /g) ?? []).length >= 92, true);
   assert.match(rendered, /^Options: `--save-artifacts`/m);
+  assert.ok(rendered.includes('<CopyCommand command="bun run contracts -- deploy greenwill --network &lt;network&gt; --mode &lt;mode&gt;" />'), "network-scoped, mode-required commands carry both placeholders");
+  assert.match(rendered, /<CopyCommand command="bun run contracts -- release operator[^"]*" \/>/, "an operation without a network stays listed");
+  assert.doesNotMatch(rendered, /bun run contracts -- release operator[^"]*--network/, "an operation without a network carries no network placeholder");
   const deploySection = rendered.slice(rendered.indexOf("### Deploy ("), rendered.indexOf("### Upgrade ("));
   assert.ok((deploySection.match(/--first-support-metadata-uri/g) ?? []).length <= 2, "the deploy option list prints once per cluster");
   assert.doesNotMatch(rendered, /0x[a-fA-F0-9]{40}/);

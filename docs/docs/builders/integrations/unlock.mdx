@@ -47,8 +47,8 @@ flowchart LR
 ```
 
 The three rule kinds read three other parts of the protocol: a [hat](./hats) proves membership, a
-work attestation on [EAS](./eas) proves approved work, and vault shares through
-[Octant](./octant) prove support. The registry also lets an authorized issuer grant a badge
+work attestation on [EAS](./eas) proves submitted work (the Work schema, unrevoked, attested by the
+claimant; no approval is checked), and vault shares through [Octant](./octant) prove support. The registry also lets an authorized issuer grant a badge
 directly, for the cases a rule cannot express.
 
 ## Where it lives in the code
@@ -75,8 +75,10 @@ tree but is not deployed; GreenWill replaced it.
 
 The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
 Arbitrum One with the registry and the three locks present, so claims can be exercised without
-real funds. `bun run contracts -- deploy badge-locks` and `bun run contracts -- deploy greenwill`
-are the [contract operations](../packages/contract-operations) that put them on a network.
+real funds. `bun run contracts -- deploy badge-locks --network <network> --mode <mode>` and
+`bun run contracts -- deploy greenwill --network <network> --mode <mode>` are the
+[contract operations](../packages/contract-operations) that put them on a network; the operations
+page lists the networks and modes each accepts.
 
 ## Canonical upstream docs
 

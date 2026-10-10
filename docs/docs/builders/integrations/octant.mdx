@@ -23,8 +23,10 @@ import {IntegrationProjection} from "@site/src/components/docs";
 [Octant](https://docs.octant.app) provides the vault mechanics that let a garden hold an
 endowment. Funders deposit into a garden vault and keep a claim on what they put in, while the
 yield it earns flows to the garden's work. The deposit sits in a yield strategy, so like any
-on-chain investment, a strategy loss or a contract bug could reduce what can be withdrawn. The
-Octant module owns vault creation, deposits, withdrawals, and that yield-donation routing.
+on-chain investment, a strategy loss or a contract bug could reduce what can be withdrawn.
+Funders deposit and redeem directly on the ERC-4626 vaults; the Octant module owns vault
+creation, configuration, strategies, and the yield-donation routing, and has no deposit or
+withdrawal entrypoint of its own.
 
 ## How it flows
 

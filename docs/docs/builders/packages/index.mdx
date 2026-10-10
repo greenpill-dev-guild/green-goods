@@ -34,8 +34,11 @@ with a map of its `src` folders, its commands, and the conventions that actually
 
 Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
 emit the events the indexer projects into read models, shared wraps both for the apps, and nothing
-points back. That is the data flow; in package terms the indexer imports nothing, and shared's
-indexer types are generated from the indexer's schema. If your change crosses that arrow, validate
+points back. The agent is the one exception on the read side: its reporting services
+(`packages/agent/src/services/reporting/`) query the indexer directly rather than through shared,
+which is why the Architecture diagram draws `indexer → agent`. That is the data flow; in package
+terms the indexer imports nothing, and shared's indexer types are generated from the indexer's
+schema. If your change crosses that arrow, validate
 from the repo root rather than inside one package.
 
 ## Generated references

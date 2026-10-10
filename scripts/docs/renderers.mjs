@@ -986,7 +986,7 @@ export function renderContractOperations({ root, sources, digest }) {
   body += "`--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.\n\n";
   body += "## Execution modes\n\n| Mode | Meaning |\n|---|---|\n| preflight | Compile/artifact checks without RPC |\n| simulate | RPC simulation without broadcasting |\n| plan | Produce transaction-plan artifacts |\n| broadcast | Execute transactions |\n| upload | Upload content and write associated artifacts |\n\n";
   body += "Only the modes listed for each operation are accepted. Read-only operations do not require a mode. Release sessions retain the existing operator's stage, commit, credential, and transaction-boundary checks.\n\n";
-  body += "## Operations\n\nCommands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked.\n\n";
+  body += "## Operations\n\nCommands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries `--network <network>` when the operation is network-scoped and `--mode <mode>` when a mode is required; replace the placeholders with one of the networks and modes listed on its row.\n\n";
   for (const group of OPERATION_GROUPS) {
     const operations = grouped.get(group.verb);
     body += `### ${group.title} (${operations.length})\n\n${group.intro}\n\n`;
@@ -1002,7 +1002,7 @@ export function renderContractOperations({ root, sources, digest }) {
       body += options.length ? `Options: ${options.map(code).join(", ")}.\n\n` : "No options beyond the command itself.\n\n";
       body += "| Command | Networks | Modes |\n|---|---|---|\n";
       for (const operation of cluster) {
-        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}`;
+        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}${operation.network ? " --network <network>" : ""}${operation.modes && !operation.modeOptional ? " --mode <mode>" : ""}`;
         const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
         body += `| ${copyCommand(command)} | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} |\n`;
       }

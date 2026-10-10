@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import path from "node:path";
 
 export const GENERATOR_PATH = "scripts/docs/generate.mjs";
-export const SCOPES = ["package", "integration", "ontology", "workflow", "qa", "agentic"];
+export const SCOPES = ["package", "integration", "ontology", "workflow", "qa", "agentic", "design"];
 
 /** The regeneration commands every generated banner quotes; readers copy these, so they must run. */
 export function regenerationHint(scope = "<scope>") {

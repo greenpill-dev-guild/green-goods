@@ -10,6 +10,9 @@ source_of_truth:
   - packages/shared/src/config/passkeyServer.ts
   - packages/shared/src/hooks/auth
   - packages/client/src/routes/WalletRuntimeProviders.tsx
+  - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/public-protection.ts
+  - packages/agent/src/services/passkey-directory.ts
 keywords:
   - passkeys
   - webauthn
@@ -83,8 +86,12 @@ filter, not the list.
 
 You rarely need a real passkey ceremony in development. The dev-only bypass from
 [Getting Started](../getting-started#path-a-run-against-hosted-services)
-(`?mockAuth=steward&presentation=pwa`) signs you in as a test identity; real passkey flows are
-exercised in the Playwright authentication projects.
+(`?mockAuth=steward&presentation=pwa`) signs you in as a test identity. The Playwright passkey
+project (`tests/specs/client.passkey.spec.ts`) drives a virtual authenticator and expects the
+directory to reject its substitute, which proves the ceremony wiring rather than a signed-in
+session; the real Pimlico cases in `tests/specs/client.auth.spec.ts` run only with
+`RUN_REAL_PASSKEY_E2E=true` and are otherwise skipped or marked fixme. The authenticated path,
+account creation, and the sponsored transaction are proven on a device, not in CI.
 
 Local development keeps passkeys local-only unless `VITE_PASSKEY_SERVER_ENABLED=true` enables the
 local agent directory. `VITE_PASSKEY_RP_ID` is a local-development override; deployed sites,

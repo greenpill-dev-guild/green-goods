@@ -122,9 +122,11 @@ what the garden keeps and what its contributors are paid, through a payout plan 
 before anything is dispatched; when that payout happens in G$ on Celo, the settlement lane only
 carries the instruction and never holds the money. [Cookie jars](./integrations/cookie-jar) cover
 small, capped allowances, and [hypercerts](./integrations/hypercerts) turn a season of approved
-work into an impact claim a funder can hold a fraction of. The common thread is the record: every
-flow starts from attested work and ends in state a funder can inspect, which is what lets capital
-form around contribution without a treasury anyone has to trust.
+work into an impact claim a funder can hold a fraction of. The common thread is the record.
+Deposits, jar funding, and new commitments are open doors; the payouts are what is gated: a
+hypercert bundles approved work, and a commitment pays out against confirmed, evidenced work.
+Every flow ends in state a funder can inspect, which is what lets capital form around
+contribution without a treasury anyone has to trust.
 
 <figure className="gg-figure">
   <img src="/img/builders/admin-garden-promises.webp" alt="The admin cockpit's Garden workspace on the Promises tab: a season with its commitments and a campaign, offers and requests waiting for review, and the pool's status with its per-person commitment limit" loading="lazy" width="2000" height="1250" />
@@ -156,8 +158,11 @@ and where it runs in production; the shape to remember is the arrow.
 
 Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
 emit the events the indexer projects into read models, shared wraps both for the apps, and nothing
-points back. That is the data flow; in package terms the indexer imports nothing, and shared's
-indexer types are generated from the indexer's schema. Apps import shared code only through its
+points back. The agent is the one exception on the read side: its reporting services
+(`packages/agent/src/services/reporting/`) query the indexer directly rather than through shared,
+which is why the Architecture diagram draws `indexer → agent`. That is the data flow; in package
+terms the indexer imports nothing, and shared's indexer types are generated from the indexer's
+schema. Apps import shared code only through its
 [declared package exports](./packages/api-index), never `src/` paths, which is what keeps seven
 packages refactorable by a small team (and its agents) without fear.
 

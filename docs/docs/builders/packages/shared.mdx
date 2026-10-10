@@ -71,10 +71,11 @@ rather than only inside this package.
 ## Conventions that will bite you
 
 - All reusable hooks live here. A hook created in `client` or `admin` is a bug by convention.
-- **The Tailwind v4 trap**: utility classes written in shared JSX are invisible to the apps'
-  content scans, so a component looks perfect in Storybook and breaks in the running app. Use
-  inline styles or CSS custom properties for layout in shared components, or apply the class in
-  the consumer's JSX.
+- **Tailwind classes in shared ship in both apps.** Each app's `index.css` scans shared source
+  (`@source "../../shared/src/**/*.{ts,tsx}"`, minus tests, mocks, and stories), so a utility
+  written in a shared component is in both bundles. The trap is narrower: a class that appears
+  only in a story or a test is not scanned, and a class assembled from strings at runtime is never
+  seen, so verify a new utility in the running app, not only in Storybook.
 - Query keys come from the central `queryKeys`; ad-hoc query arrays break invalidation.
 - Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
 - Prefer event-driven invalidation over polling.

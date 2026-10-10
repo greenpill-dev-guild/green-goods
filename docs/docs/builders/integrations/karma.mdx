@@ -21,18 +21,22 @@ import {IntegrationProjection} from "@site/src/components/docs";
 # Karma GAP
 
 [Karma GAP](https://gap.karmahq.xyz) (the Grantee Accountability Protocol) connects garden
-activity to project reporting and milestone records. When the module is active, a garden's
-assessment mirrors to a GAP milestone, so grant programs that already track accountability
-through GAP see Green Goods work in the format they trust.
+activity to project reporting and milestone records. When the module is active, the assessment
+resolver tries to mirror each assessment to a GAP milestone, so grant programs that already track
+accountability through GAP see Green Goods work in the format they trust. The mirror is
+best-effort: a GAP failure is caught so the assessment still succeeds, which means a valid
+assessment can exist without its milestone, and anything that correlates the two has to tolerate
+or reconcile the missing record.
 
 ## How it flows
 
-Stewards record the assessment once in Green Goods, and the module carries it over to GAP.
+Evaluators and stewards (and the garden's owner, through the inclusive role checks) record the
+assessment once in Green Goods, and the module carries it over to GAP when it can.
 
 ```mermaid
 flowchart LR
-  steward([Steward]) -->|records| assessment["Garden assessment"]
-  assessment -->|Karma module mirrors| milestone["Karma GAP milestone"]
+  author([Evaluator or steward]) -->|records| assessment["Garden assessment"]
+  assessment -->|Karma module mirrors, best-effort| milestone["Karma GAP milestone"]
   milestone --> programs["Grant programs<br/>that track GAP"]
 ```
 
