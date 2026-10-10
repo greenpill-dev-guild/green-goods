@@ -12,7 +12,7 @@ import { matchReply, openPrompt, type PromptOption, type PromptRecord } from "..
 import { openReviewFor, type ReviewRecord } from "../reviews";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaReference, InboundMessageEvent } from "../transport";
-import { type ChatCommand, consentAnswer, parseCommand } from "./commands";
+import { type ChatCommand, consentAnswer, parseCommand, replyCommand } from "./commands";
 
 export interface TurnContext {
   event: InboxEventRow;
@@ -77,7 +77,7 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
       draftUnavailable = true;
     }
   }
-  const parsed = parseCommand(message.text);
+  const parsed = parseCommand(message.text) ?? replyCommand(message.replyId);
   const bareCode = message.text?.trim();
   // Only a chat with its own live, verified browser challenge treats six digits as a code.
   // pairFromChat still compares the hash and counts every wrong attempt.

@@ -217,7 +217,7 @@ describe("an amount that needs a choice to mean anything", () => {
 
 const GARDEN_QUESTION = "Which garden is this report for?\n1. TAS\n2. Aiyeloja Family Garden";
 const GARDEN_HELP =
-  "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and see your own gardens first.";
+  "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and choose from your own gardens.";
 const ACTIVITY_HELP =
   "These are the kinds of work TAS is tracking right now. Pick the closest match to what you did; the details come next.";
 
@@ -295,6 +295,10 @@ const PAIR_HINT = "When the page shows a code, send the six digits alone here.";
 const OTHER_ACCOUNT_HINT =
   "The page opens with the account your browser last used. To link another, tap “Use a different account” there.";
 const STORY = "Today I planted twelve baobab seedlings by the fence";
+const ONLY_GARDEN =
+  "is your only garden, so I'll use it for this report. Send GARDEN to change it, or JOIN to join another garden.";
+const OWN_GARDEN_QUESTION =
+  "Which of your gardens is this report for?\n1. TAS\n2. Aiyeloja Family Garden\n3. Join another garden";
 const OFFER =
   "Hi! I help you report garden work on Green Goods. Want to connect your account first, so I can show your gardens? You can also just tell me what you did, and I'll ask you to connect when you publish.\n1. Connect account";
 const disconnected = (account: string) =>
@@ -315,7 +319,7 @@ async function pairAda(): Promise<string[]> {
 }
 
 describe("linking an account before reporting", () => {
-  it("offers linking on START, then asks about the account's own gardens first", async () => {
+  it("offers linking on START, then reports within the account's own gardens", async () => {
     harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
     const welcome = await started();
     expect(welcome[1]).toBe(OFFER);
@@ -324,16 +328,15 @@ describe("linking an account before reporting", () => {
       `Your account ${ada} is now linked.\nYour gardens: Aiyeloja Family Garden.`,
     ]);
 
+    // The account's only garden is taken without a question, and so is that garden's one activity.
     expect(await harness.say(ADA, STORY)).toEqual([
-      "Which of your gardens is this report for?\n1. Aiyeloja Family Garden\n2. Other gardens",
+      `Aiyeloja Family Garden ${ONLY_GARDEN}`,
+      "Got it: Tree planting at Aiyeloja Family Garden. 3 quick questions, then a summary to check.",
+      "1 of 3 · Seedlings planted? Send just the number (seedlings).",
     ]);
-    // The list only orders the choice: a garden the indexer does not show the account in stays open,
-    // and "Other gardens" answers to its number like the gardens above it.
-    expect(await harness.say(ADA, "2")).toEqual(["Which garden is this report for?\n1. TAS"]);
-    expect((await harness.press(ADA, "TAS"))[0]).toContain("Which activity in TAS");
     // START no longer offers linking, and must not replace the report's open question.
     expect((await harness.say(ADA, "START"))[0]).toContain("Green Goods reporting:");
-    expect((await harness.say(ADA, "1"))[0]).toMatch(/^Got it: Tree planting at TAS\./);
+    expect((await harness.say(ADA, "12"))[0]).toContain("2 of 3 · Main species?");
   });
 
   it("takes a typed address as a request to link that account, and trusts nothing until it is proven", async () => {
@@ -356,10 +359,11 @@ describe("linking an account before reporting", () => {
     expect((await browser.prove(bolaAccount)).status).toBe(403);
     const proof = await browser.prove(adaAccount);
     expect(proof.status).toBe(200);
-    // Linked mid-report, the open garden question is asked again with the account's own gardens.
+    // Linked mid-report, the report takes the account's only garden and moves on to its activities.
     expect(await harness.say(ADA, `PAIR ${proof.body.pairingCode}`)).toEqual([
       `Your account ${ada} is now linked.`,
-      "Which of your gardens is this report for?\n1. TAS\n2. Other gardens",
+      `TAS ${ONLY_GARDEN}`,
+      "Which activity in TAS best matches your work?\n1. Tree planting\n2. Weeding",
     ]);
 
     expect(await harness.say(ADA, bolaAccount.address)).toEqual([
@@ -371,6 +375,8 @@ describe("linking an account before reporting", () => {
   });
 
   it("welcomes a hello instead of starting a report, and reads a request to log in at any point", async () => {
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    harness.chain.grantRole(AIYELOJA.address, adaAccount.address, { gardener: true });
     expect((await harness.say(ADA, "hello"))[0]).toContain("Do you agree?");
     // The held hello gets the welcome and the offer to link; it is not taken for a report.
     expect((await harness.press(ADA, "I agree")).at(-1)).toBe(OFFER);
@@ -379,11 +385,12 @@ describe("linking an account before reporting", () => {
     expect((await harness.say(ADA, STORY))[0]).toBe(GARDEN_QUESTION);
     // With the garden question open, a request to log in is never read as a garden.
     expect(await harness.say(ADA, "I would like to log in")).toEqual([CONNECT_LINK, PAIR_HINT]);
-    expect(await pairAda()).toEqual([`Your account ${ada} is now linked.`, GARDEN_QUESTION]);
+    // Linked, the open garden question is asked again within the account's own gardens.
+    expect(await pairAda()).toEqual([`Your account ${ada} is now linked.`, OWN_GARDEN_QUESTION]);
     // A hello in the middle of a report says so and asks the open question again.
     expect(await harness.say(ADA, "hi")).toEqual([
       "Hi! Your report is still open, so here's where we were.",
-      GARDEN_QUESTION,
+      OWN_GARDEN_QUESTION,
     ]);
   });
 
@@ -392,8 +399,8 @@ describe("linking an account before reporting", () => {
     await started();
     await harness.say(ADA, "CONNECT");
     await pairAda();
+    // TAS is the account's only garden, so the report starts at its activities.
     await harness.say(ADA, STORY);
-    await harness.say(ADA, "1");
     await harness.press(ADA, "Tree planting");
     await harness.say(ADA, "12");
     await harness.say(ADA, "2");

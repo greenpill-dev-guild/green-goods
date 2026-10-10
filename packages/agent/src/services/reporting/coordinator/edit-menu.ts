@@ -1,6 +1,7 @@
 import { findInput } from "@green-goods/shared/modules/agent-reporting";
 import type { DraftRecord } from "../drafts";
-import { askAction, askField, askGarden, type CatalogView } from "./prompting";
+import { askGarden } from "./garden-step";
+import { askAction, askField, type CatalogView } from "./prompting";
 import type { TurnWriter } from "./writer";
 
 /**
@@ -9,7 +10,9 @@ import type { TurnWriter } from "./writer";
  */
 export function askEditMenu(writer: TurnWriter, draft: DraftRecord): void {
   const labels: Array<[string, string]> = [];
-  if (writer.core.gardens.list().length > 1) labels.push(["garden", writer.text("edit.garden")]);
+  // A linked chat can always change garden or join another; one with no account needs a choice.
+  if (writer.ctx.account || writer.core.gardens.list().length > 1)
+    labels.push(["garden", writer.text("edit.garden")]);
   labels.push(
     ["action", writer.text("edit.action")],
     ["title", writer.text("edit.title")],

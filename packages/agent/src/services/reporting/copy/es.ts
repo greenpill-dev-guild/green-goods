@@ -17,9 +17,9 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.disconnectHint":
     "Para desconectar este chat de tu cuenta, envía DISCONNECT. Para usar otra cuenta, envía SWITCH.",
   "report.explainGarden":
-    "Un huerto es la comunidad o el lugar al que pertenece tu trabajo. Elige aquel donde hiciste este trabajo.",
+    "Estos son los huertos en los que está tu cuenta. Elige aquel donde hiciste este trabajo, o únete a otro huerto.",
   "report.explainGardenUnlinked":
-    "Un huerto es la comunidad o el lugar al que pertenece tu trabajo. Elige aquel donde hiciste este trabajo, o envía CONNECT para vincular tu cuenta y ver primero tus huertos.",
+    "Un huerto es la comunidad o el lugar al que pertenece tu trabajo. Elige aquel donde hiciste este trabajo, o envía CONNECT para vincular tu cuenta y elegir entre tus propios huertos.",
   "report.explainAction":
     "Estos son los tipos de trabajo que {garden} registra ahora. Elige el que más se parezca a lo que hiciste; los detalles vienen después.",
   "report.explainField": "{title}: {hint}. Elige la opción que mejor encaje.",
@@ -39,7 +39,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Detuviste el asistente. No leeré mensajes nuevos hasta que envíes START. Los reportes publicados siguen siendo públicos; los borradores sin publicar se están eliminando. Soporte: {support}",
   "consent.deleted":
     "Se están eliminando tus borradores y archivos sin publicar. Los reportes publicados siguen públicos en la cadena e IPFS y no se pueden borrar. Soporte: {support}",
-  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• DISCONNECT desvincula tu cuenta de este chat, y SWITCH vincula otra.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
+  help: "Reportes de Green Goods:\n• Describe tu trabajo y envía fotos para iniciar un reporte.\n• NEW inicia un reporte nuevo, STATUS muestra dónde vas, CANCEL cancela el reporte actual.\n• GARDEN cambia el huerto de tu reporte, y JOIN muestra cómo unirte a otro huerto.\n• Responsables: envíen REVIEW para ver trabajos pendientes de revisión.\n• CONNECT, o la dirección de tu cuenta sola, vincula tu cuenta de Green Goods: abre el enlace de verificación que te envío y envía aquí solo el código de seis dígitos. Puedes conectar Telegram y WhatsApp a la misma cuenta. RECOVER vuelve a conectar una cuenta si pierdes acceso al chat.\n• DISCONNECT desvincula tu cuenta de este chat, y SWITCH vincula otra.\n• STOP detiene el procesamiento, DELETE borra los datos no publicados.\nSoporte: {support}",
   "intake.paused":
     "Los reportes están en pausa por mantenimiento. Tu mensaje está guardado y responderé cuando se reanuden. Soporte: {support}",
   "media.photoAdded": "Foto agregada a tu reporte.",
@@ -83,9 +83,26 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "Leí las celdas visibles de la hoja de cálculo, pero no pude leer sus imágenes ni gráficos. Revisa el resumen antes de confirmar.",
   "report.askGarden": "¿Para qué huerto es este reporte?",
   "report.askOwnGarden": "¿Para cuál de tus huertos es este reporte?",
-  "report.otherGardens": "Otros huertos",
+  "report.joinAnother": "Unirse a otro huerto",
+  "report.changeGarden": "Cambiar de huerto",
+  "report.gardenTaken": "{garden} es tu único huerto, así que lo usaré para este reporte.{how}",
+  "report.gardenTakenWords": " Envía GARDEN para cambiarlo, o JOIN para unirte a otro huerto.",
+  "report.gardenDropped":
+    "Esta cuenta no está en {garden}, así que tu reporte necesita otro huerto.",
+  "report.joinFirst":
+    "Aún no veo {account} en ningún huerto, así que no hay adónde enviar este reporte. Está guardado.\n\nÚnete al Huerto Comunitario aquí abajo, o pide a un administrador de tu huerto que agregue esta cuenta. Un huerto al que acabas de unirte puede tardar unos minutos en aparecer aquí.",
+  "report.joinFirstSteward":
+    "Aún no veo {account} en ningún huerto, así que no hay adónde enviar este reporte. Está guardado.\n\nPide a un administrador de tu huerto que agregue esta cuenta. Puede tardar unos minutos en aparecer aquí después de que lo haga.",
+  "report.joinAnotherHow":
+    "Tu cuenta {account} puede reportar en los huertos en los que está.\n\nPara sumar uno, únete al Huerto Comunitario aquí abajo, o pide a un administrador de otro huerto que agregue esta cuenta. Un huerto al que acabas de unirte puede tardar unos minutos en aparecer aquí.",
+  "report.joinAnotherSteward":
+    "Tu cuenta {account} puede reportar en los huertos en los que está. Para sumar uno, pide a un administrador de ese huerto que agregue esta cuenta. Puede tardar unos minutos en aparecer aquí después de que lo haga.",
+  "report.checkAgain": "Revisar de nuevo",
+  "report.showMyGardens": "Ver mis huertos",
   "report.gardensUnavailable":
     "No puedo cargar la lista de huertos en este momento. Tu mensaje está guardado; escríbeme de nuevo en unos minutos. Soporte: {support}",
+  "report.ownGardensUnavailable":
+    "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Reintentar o envía cualquier mensaje.",
   "report.questionPosition": "{position} de {total} · ",
   "report.actionAdoptedOne":
     "Entendido: {action} en {garden}. Una pregunta rápida y luego un resumen para revisar.",
@@ -180,6 +197,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "link.paired": "Tu cuenta {account} ya está vinculada.{gardens}",
   "link.gardens": "\nTus huertos: {gardens}.",
   "link.gardensMore": "{gardens} y {count} más",
+  "link.gardensUnknown": "\nNo puedo cargar tus huertos en este momento.",
   "link.joinCommunity": "Abre este enlace para unirte al Huerto Comunitario con {account}.",
   "link.joinCommunityQuestion":
     "Aún no veo tu cuenta en este huerto. Únete al Huerto Comunitario y luego toca Ya me uní.",

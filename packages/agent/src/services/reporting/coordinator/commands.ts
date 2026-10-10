@@ -25,6 +25,8 @@ export type ChatCommand =
   | { kind: "connect"; account: Address | null }
   | { kind: "disconnect" }
   | { kind: "switch" }
+  | { kind: "garden" }
+  | { kind: "join" }
   | { kind: "review"; index: number | null }
   | { kind: "locale"; locale: "en" | "es" | "pt" };
 
@@ -75,9 +77,36 @@ const WORDS: Record<string, ChatCommand["kind"]> = {
   switch: "switch",
   reconnect: "switch",
   reconectar: "switch",
+  garden: "garden",
+  gardens: "garden",
+  huerto: "garden",
+  huertos: "garden",
+  horta: "garden",
+  hortas: "garden",
+  join: "join",
+  unirme: "join",
+  participar: "join",
   review: "review",
   revisar: "review",
 };
+
+/** Marks the reply ID of a button that sends a command instead of answering the open question. */
+const COMMAND_REPLY = "cmd:";
+
+/**
+ * The reply ID for a button that stands for a command word. Such a button stays good after the
+ * conversation has moved on to another question, which a choice of one question does not.
+ */
+export function commandReplyId(word: string): string {
+  return `${COMMAND_REPLY}${word}`;
+}
+
+/** The command a tapped command button stands for; null for any other reply. */
+export function replyCommand(replyId: string | undefined): ChatCommand | null {
+  return replyId?.startsWith(COMMAND_REPLY)
+    ? parseCommand(replyId.slice(COMMAND_REPLY.length))
+    : null;
+}
 
 const LOCALES = new Set(["en", "es", "pt"]);
 const ACCOUNT = /^0x[0-9a-f]{40}$/;

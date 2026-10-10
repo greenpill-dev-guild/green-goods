@@ -9,12 +9,14 @@ import {
   lifecycleState,
   StaleDraftError,
 } from "../coordinator/draft-commit";
+import { announceGarden } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
+import { takeSoleGarden, type Working } from "../coordinator/report-work";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
-import { findGarden } from "../gardens";
+import { findGarden, gardenScope, soleGarden } from "../gardens";
 import type { ReportingCore } from "../runtime";
 import type { JobOutcome } from "../worker";
 import type { MediaExtraction, MediaSource } from "./extract";
@@ -80,7 +82,12 @@ export async function applyProcessedAsset(
   result: ProcessingResult
 ): Promise<JobOutcome> {
   const garden = safeDraft(core, asset.draftId)?.content.garden;
-  const listed = findGarden(core.gardens, garden?.address);
+  // A report with no garden yet takes its chat's only one below, so that garden's activities are
+  // the ones to read.
+  const account = activeAccount(core, asset.participantId, core.settings.chainId);
+  const listed = garden
+    ? findGarden(core.gardens, garden.address)
+    : soleGarden(gardenScope(core.gardens, account?.address ?? null));
   const catalog: CatalogView = {
     garden: listed,
     result: listed ? await catalogFor(listed) : null,
@@ -182,15 +189,27 @@ function commitInTransaction(
       ...changes.filter((change) => change.field !== "feedback"),
     ];
   }
-  content = applyReportChanges(content, changes, draft.snapshot).content;
+  const account = activeAccount(core, asset.participantId, core.settings.chainId);
+  const work: Working = {
+    content: applyReportChanges(content, changes, draft.snapshot).content,
+    snapshot: draft.snapshot,
+    changed: false,
+  };
+  takeSoleGarden(
+    work,
+    gardenScope(core.gardens, account?.address ?? null),
+    () => asset.sourceEntryId
+  );
   const next =
-    content === draft.content
+    work.content === draft.content
       ? draft
       : commitContentChange(core, draft, {
-          content,
+          content: work.content,
           cause: `media:${asset.id}`,
           sourceEventId: asset.sourceEventId,
         });
+  // Said with the file that caused it: the question that follows waits for the batch's last file.
+  if (work.taken) announceGarden(writer, work.taken);
   if (result.transcript) writer.say("voice.heard", { transcript: clip(result.transcript.text) });
   if (result.warnings.includes("hidden_content_excluded")) writer.say("media.hiddenExcluded");
   if (result.extraction && result.warnings.includes("docx_visuals_not_read"))
@@ -227,7 +246,6 @@ function commitInTransaction(
             ? "media.fileRead"
             : "media.fileKept"
       );
-    const account = activeAccount(core, asset.participantId, core.settings.chainId);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }
   return done;

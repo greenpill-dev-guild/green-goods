@@ -5,62 +5,50 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { pairFromChat } from "../channel-pairing";
 import { issueContinuation } from "../continuations";
-import { commitDraft } from "../drafts";
+import { commitDraft, type DraftRecord } from "../drafts";
+import type { ReportingGarden } from "../gardens";
 import { enqueueJob } from "../jobs";
 import { conversationRealm } from "../notify";
 import { upsertOperation } from "../operations";
-import { activeAccount, audit, bindingForSubject, type ParticipantBinding } from "../participants";
+import { activeAccount, audit, bindingForSubject } from "../participants";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { endRecognition } from "../recognition";
 import { revokeParticipantSessions } from "../sessions";
+import { accountLink } from "./account-link";
 import { commitLifecycle, lifecycleState } from "./draft-commit";
-import { askConfirmation, askGarden } from "./prompting";
+import { askGarden } from "./garden-step";
+import { askConfirmation } from "./prompting";
 import { recordDraftConfirmation } from "./report-commands";
-import type { ConversationWriter, TurnWriter } from "./writer";
+import {
+  apply,
+  finish,
+  gardenerFact,
+  gardenToDrop,
+  type TurnExternal,
+  type Working,
+} from "./report-work";
+import type { TurnWriter } from "./writer";
 
 /** How many garden names a reply lists before it counts the rest. */
 const NAMED_GARDENS = 5;
 
-/**
- * The link on which an account is proven for this chat. Naming an account limits the link to it:
- * a proof from any other account is refused.
- */
-export function accountLink(
-  writer: ConversationWriter,
-  binding: ParticipantBinding,
-  expectedAccount: Address | null
-): string {
-  const { core, target } = writer;
-  return issueContinuation(core, {
-    purpose: "link_account",
-    participantId: binding.participantId,
-    subjectId: target.subjectId,
-    bindingId: binding.bindingId,
-    conversationId: target.conversationId,
-    providerRealm: conversationRealm(core, target.conversationId),
-    resourceKind: "account",
-    resourceId: null,
-    resourceRevision: null,
-    resourceDigest: `account:${binding.participantId}`,
-    expectedAccount,
-    identityEpoch: binding.identityEpoch,
-  }).url;
-}
-
-/** The names of the gardens the indexer shows an account in, or null when it shows none. */
-function gardenNames(writer: TurnWriter, account: Address): string | null {
-  const labels = writer.core.gardens.gardensOf(account).map((garden) => garden.label);
-  if (labels.length === 0) return null;
-  const named = labels.slice(0, NAMED_GARDENS).join(", ");
-  return labels.length > NAMED_GARDENS
-    ? writer.text("link.gardensMore", { gardens: named, count: labels.length - NAMED_GARDENS })
+function gardenNames(writer: TurnWriter, gardens: readonly ReportingGarden[]): string {
+  const named = gardens
+    .slice(0, NAMED_GARDENS)
+    .map((garden) => garden.label)
+    .join(", ");
+  return gardens.length > NAMED_GARDENS
+    ? writer.text("link.gardensMore", { gardens: named, count: gardens.length - NAMED_GARDENS })
     : named;
 }
 
 /** The sentence a linked chat gets about its account's gardens. */
 function linkedGardens(writer: TurnWriter, account: Address): string {
-  const gardens = gardenNames(writer, account);
-  return gardens ? writer.text("link.gardens", { gardens }) : writer.text("link.noGardens");
+  const memberships = writer.core.gardens.membershipsOf(account);
+  if (!memberships.ok) return writer.text("link.gardensUnknown");
+  return memberships.gardens.length > 0
+    ? writer.text("link.gardens", { gardens: gardenNames(writer, memberships.gardens) })
+    : writer.text("link.noGardens");
 }
 
 /**
@@ -108,7 +96,8 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
   const linked = ctx.account?.address ?? null;
   if (linked) {
     if (named && named !== linked) return writer.say("link.accountMismatch", { account: linked });
-    if (core.settings.communityGarden && core.gardens.gardensOf(linked).length === 0) {
+    const memberships = core.gardens.membershipsOf(linked);
+    if (core.settings.communityGarden && memberships.ok && memberships.gardens.length === 0) {
       return writer.say(
         "link.joinCommunity",
         { account: linked },
@@ -125,11 +114,13 @@ export function requestConnection(writer: TurnWriter, named: Address | null): vo
     );
   }
   const link = { url: accountLink(writer, ctx.binding, named), label: writer.text("link.label") };
-  if (named) {
-    const gardens = gardenNames(writer, named);
+  // What the indexer shows a named account in is said only when it could be read.
+  const memberships = named ? core.gardens.membershipsOf(named) : null;
+  if (named && memberships?.ok) {
+    const gardens = gardenNames(writer, memberships.gardens);
     writer.say(
       gardens ? "link.connectNamed" : "link.connectNamedNoGardens",
-      { account: named, gardens: gardens ?? "" },
+      { account: named, gardens },
       link
     );
   } else {
@@ -211,7 +202,10 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
     .run({ participant: binding.participantId });
   revokeParticipantSessions(core, binding.participantId);
   endRecognition(core, binding.participantId);
-  if (ctx.prompt && ACCOUNT_PROMPTS.has(ctx.prompt.kind))
+  const gardenQuestion = ctx.prompt?.kind === "select_garden";
+  // A garden question listed this account's gardens. The account that is linked next gets its own
+  // list when it pairs, so until then the question is closed and not left to be answered.
+  if (ctx.prompt && (ACCOUNT_PROMPTS.has(ctx.prompt.kind) || (gardenQuestion && thenConnect)))
     closeConversationPrompt(core, ctx.conversationId);
   audit(core, "account_disconnected", { kind: "participant", id: binding.participantId });
   ctx.account = null;
@@ -219,7 +213,36 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
   // An open summary named this account. It is put again without it, so its Confirm can no longer
   // be pressed for a publication from an account that summary never named.
   if (ctx.draft && ctx.prompt?.kind === "confirm_report") askConfirmation(writer, ctx.draft, null);
+  // A chat that stays without an account chooses from every garden again.
+  if (ctx.draft && gardenQuestion && !thenConnect) askGarden(writer, ctx.draft, null);
   if (thenConnect) requestConnection(writer, null);
+}
+
+/**
+ * Carries a report that is still being put together on under the account just linked. A garden
+ * that account does not report to comes off the report: the gardener changed the account
+ * themselves, so the clearing is recorded as theirs and their earlier choice does not stand
+ * against it. Then the report asks whatever it now needs, taking the account's only garden or
+ * naming the account in its summary. A report already confirmed is left to the account checks.
+ */
+function resumeUnderAccount(writer: TurnWriter, draft: DraftRecord, external: TurnExternal): void {
+  const { core, ctx } = writer;
+  const account = ctx.account?.address ?? null;
+  if (!["collecting", "review"].includes(lifecycleState(draft))) return;
+  const work: Working = { content: draft.content, snapshot: draft.snapshot, changed: false };
+  const dropped = gardenToDrop(core.gardens, draft, account);
+  if (dropped) {
+    apply(work, [
+      { field: "garden", value: null, provenance: gardenerFact(writer.sourceEntryId()) },
+    ]);
+    writer.say("report.gardenDropped", { garden: dropped.label });
+  }
+  // A report waiting on its garden, showing its summary or left with no question asks what it
+  // needs now. An open garden question is put again within this account's gardens, and a
+  // question about the report's details stays open as it was.
+  if (!work.content.garden || !ctx.prompt || ctx.prompt.kind === "confirm_report")
+    finish(writer, draft, work, external, "account");
+  else if (ctx.prompt.kind === "select_garden") askGarden(writer, draft, account);
 }
 
 /**
@@ -227,7 +250,7 @@ export function disconnectAccount(writer: TurnWriter, thenConnect: boolean): voi
  * verifying browser arrives from this chat. A confirmation made before the account was linked is
  * replaced by a new one that names the account, recorded with publication consent for that digest.
  */
-export function handlePairing(writer: TurnWriter, code: string): void {
+export function handlePairing(writer: TurnWriter, code: string, external: TurnExternal): void {
   const { core, ctx } = writer;
   if (!ctx.binding) return writer.say("link.pairFailed");
   const result = pairFromChat(core, ctx.subjectId, ctx.binding.participantId, code);
@@ -245,13 +268,10 @@ export function handlePairing(writer: TurnWriter, code: string): void {
     { gardens: draft || !ctx.account ? "" : linkedGardens(writer, ctx.account.address) },
     result.account
   );
-  // A garden question still open is asked again, now with the account's own gardens first.
-  if (draft && ctx.account && ctx.prompt?.kind === "select_garden")
-    askGarden(writer, draft, ctx.account.address);
-  // An open summary is put again naming the account just linked, so what is confirmed next is
-  // the publication as it will be made.
-  if (draft && ctx.account && ctx.prompt?.kind === "confirm_report")
-    askConfirmation(writer, draft, ctx.account.address);
+  // A report waiting on its garden asks again within the account's own gardens, and an open
+  // summary is put again naming the account, so what is confirmed next is the publication as it
+  // will be made.
+  if (draft && ctx.account) resumeUnderAccount(writer, draft, external);
   if (draft && lifecycleState(draft) === "authority") {
     enqueueJob(core, {
       kind: "resolve_authority",

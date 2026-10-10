@@ -11,13 +11,9 @@ import {
 import type { Address, WorkInput } from "@green-goods/shared/types/domain";
 import { type CatalogResult, orderActions } from "../catalog";
 import type { DraftRecord } from "../drafts";
-import { findGarden, type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
-import {
-  closeConversationPrompt,
-  type PromptOption,
-  type PromptRecord,
-  promptsAsked,
-} from "../prompts";
+import { findGarden, type GardenDirectory, type ReportingGarden } from "../gardens";
+import { closeConversationPrompt, type PromptOption, promptsAsked } from "../prompts";
+import { askGarden } from "./garden-step";
 import type { ConversationWriter, TurnWriter } from "./writer";
 
 export interface CatalogView {
@@ -27,24 +23,6 @@ export interface CatalogView {
 
 export function gardenLabel(gardens: GardenDirectory, address: string | undefined): string {
   return findGarden(gardens, address)?.label ?? "your garden";
-}
-
-/**
- * The garden a garden question's answer names: the chosen option, its number, or a name that
- * matches exactly one garden. Names are steward-editable and need not be unique.
- */
-export function answeredGarden(
-  gardens: GardenDirectory,
-  prompt: PromptRecord,
-  chosen: PromptOption | null | undefined,
-  text: string | null | undefined
-): ReportingGarden | null {
-  const presented = prompt.options.filter((choice) => !choice.value.startsWith("page:"));
-  const key = chosen?.value ?? presented[Number(text) - 1]?.value;
-  if (key) return gardenByKey(gardens, key);
-  const name = text?.trim().toLowerCase();
-  const named = name ? gardens.list().filter((garden) => garden.label.toLowerCase() === name) : [];
-  return named.length === 1 ? (named[0] as ReportingGarden) : null;
 }
 
 export function formatMinutes(minutes: number): string {
@@ -216,74 +194,6 @@ export function askAction(
   );
 }
 
-interface GardenPage {
-  gardens: readonly ReportingGarden[];
-  /** Gardens the indexer shows the linked account in. */
-  own: boolean;
-}
-
-function chunks<T>(items: readonly T[], size: number): T[][] {
-  const pages: T[][] = [];
-  for (let start = 0; start < items.length; start += size)
-    pages.push(items.slice(start, start + size));
-  return pages;
-}
-
-/**
- * The garden question's pages. Every garden accepts reports, so the list is paged like Actions;
- * a linked account's own gardens come first, on pages of their own, and the rest follow.
- */
-function gardenPages(
-  directory: GardenDirectory,
-  account: Address | null,
-  size: number
-): GardenPage[] {
-  const own = account ? directory.gardensOf(account) : [];
-  const ownKeys = new Set(own.map((garden) => garden.key));
-  const rest = directory.list().filter((garden) => !ownKeys.has(garden.key));
-  return [
-    ...chunks(own, size).map((gardens) => ({ gardens, own: true })),
-    ...chunks(rest, size).map((gardens) => ({ gardens, own: false })),
-  ];
-}
-
-/** Asks which garden a report is for. `account` is the chat's linked account, when it has one. */
-export function askGarden(
-  writer: ConversationWriter,
-  draft: DraftRecord,
-  account: Address | null,
-  page = 0
-): void {
-  const pages = gardenPages(writer.core.gardens, account, writer.core.settings.choicePageSize);
-  // A page that no longer exists, because the list changed since it was offered, starts over.
-  const index = pages[page] ? page : 0;
-  const shown = pages[index];
-  if (!shown) {
-    // The list only comes back empty when the indexer could not be read.
-    writer.say("report.gardensUnavailable");
-    return;
-  }
-  const next = pages[index + 1];
-  const options = shown.gardens.map((garden, position) =>
-    option(`${position}`, garden.label, garden.key)
-  );
-  if (next) {
-    const label = shown.own && !next.own ? "report.otherGardens" : "report.moreChoices";
-    options.push(option("more", writer.text(label), `page:${index + 1}`));
-  }
-  writer.ask(
-    {
-      subjectKind: "draft",
-      resourceId: draft.id,
-      resourceRevision: draft.revision,
-      kind: "select_garden",
-      options,
-      page: index,
-    },
-    () => writer.text(shown.own ? "report.askOwnGarden" : "report.askGarden")
-  );
-}
-
 function askRequirement(
   writer: ConversationWriter,
   draft: DraftRecord,
@@ -327,7 +237,7 @@ function askRequirement(
     case "garden":
       return askGarden(writer, draft, account);
     case "action":
-      return askAction(writer, draft, view);
+      return askAction(writer, draft, activitiesOf(writer, draft, view));
     case "unsupported_input":
       writer.say("report.unsupportedInput", {
         action: snapshot?.definition.title ?? "",
@@ -368,6 +278,22 @@ function askRequirement(
       writer.say("report.evidenceLimit", { maximum: requirement.maximum });
       return;
   }
+}
+
+/**
+ * The activities to offer for the report's garden. A turn reads one garden's activities before it
+ * knows how it will end, so a report that ends up naming another garden has none read yet and
+ * asks to try again, never offering the first garden's activities under the second's name.
+ */
+function activitiesOf(
+  writer: ConversationWriter,
+  draft: DraftRecord,
+  view: CatalogView
+): CatalogView {
+  const address = draft.content.garden?.address;
+  return view.garden?.address === address
+    ? view
+    : { garden: findGarden(writer.core.gardens, address), result: null };
 }
 
 function conflictValue(draft: DraftRecord, field: string): unknown {

@@ -37,6 +37,12 @@ export const AIYELOJA: ReportingGarden = {
   label: "Aiyeloja Family Garden",
 };
 
+/** A fixed directory whose reads of an account's gardens a test can make fail. */
+export interface FixedGardens extends GardenDirectory {
+  /** While true the indexer is down: no account's gardens can be read. */
+  unavailable: boolean;
+}
+
 /**
  * A fixed garden list; the live directory reads every garden from the indexer. Given the fake
  * chain, an account's gardens follow the roles granted there, as the indexer follows the real
@@ -45,16 +51,23 @@ export const AIYELOJA: ReportingGarden = {
 export function fixedGardens(
   gardens: ReportingGarden[] = [TAS, AIYELOJA],
   chain?: Pick<FakeChain, "roles">
-): GardenDirectory {
+): FixedGardens {
   const reportsTo = (garden: ReportingGarden, account: string): boolean => {
     const roles = chain?.roles.get(`${garden.address}:${account.toLowerCase()}`);
     return Boolean(roles && (roles.gardener || roles.operator || roles.owner));
   };
-  return {
+  const directory: FixedGardens = {
+    unavailable: false,
     list: () => gardens,
-    gardensOf: (account) => gardens.filter((garden) => reportsTo(garden, account)),
-    refresh: async () => undefined,
+    membershipsOf: (account) =>
+      directory.unavailable
+        ? { ok: false, reason: "unavailable" }
+        : { ok: true, gardens: gardens.filter((garden) => reportsTo(garden, account)) },
+    refresh: async () => {
+      if (directory.unavailable) throw new Error("indexer unavailable");
+    },
   };
+  return directory;
 }
 
 export const ACTION_REGISTRY = "0x00000000000000000000000000000000000000b0" as const;
