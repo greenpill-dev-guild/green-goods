@@ -5,12 +5,12 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Node.js 22 and Git. Docker only for the team stack."
+prereqs: "Node.js 22.19 or later on the 22 line, and Git. Docker only for the team stack."
 next_steps: "./architecture"
 persona_context: "Developers running Green Goods for the first time, as a public contributor against hosted services or as a team member on the connected local stack."
 source_of_truth:
@@ -20,17 +20,20 @@ source_of_truth:
   - scripts/dev/setup.js
   - scripts/dev/stack.js
   - scripts/lib/dev-modes.mjs
+  - .mise.toml
 keywords:
   - developer quickstart
   - green goods monorepo
   - local development
 ---
 
+import {OnboardingProcedure} from "@site/src/components/docs";
+
 # Getting Started
 
 By the end of this page you'll have Green Goods running on your machine: the public site and
-installed-app experience, the steward cockpit, this docs site, and Storybook, with a clear check
-at each step so you know it worked.
+installed-app experience and the steward cockpit, with this docs site and Storybook beside them on
+the hosted path, and a clear check at each step so you know it worked.
 
 Green Goods is a [Bun](https://bun.sh) monorepo with seven packages spanning a React PWA, Solidity
 contracts, and an [Envio](https://envio.dev) indexer. You don't need to understand the whole
@@ -38,12 +41,15 @@ system to run it. When you're curious, the [Architecture](./architecture) page h
 
 ## Before you start
 
-- **Node.js 22** and **Git**. Setup installs Bun when it's missing.
+- **Node.js 22.19 or later, on the 22 line** (CI runs 22.22.1; setup refuses another major), and
+  **Git**.
+- **Bun 1.4.2**, the version `package.json` declares. Setup installs the current Bun when none is
+  found; mise installs the exact one.
 - **Docker**, only for the team path below. [OrbStack](https://orbstack.dev) and Docker Desktop
   both work.
 - On Windows, work inside [WSL2](https://learn.microsoft.com/windows/wsl/install).
-- Optional: if you use [mise](https://mise.jdx.dev), `mise install` in the repo pins the exact
-  Node, Bun, and Foundry versions CI uses. They live in `.mise.toml`.
+- Optional: if you use [mise](https://mise.jdx.dev), `mise install` in the repo installs Node
+  22.22.1, Bun 1.4.2, and Foundry 1.7.1, the versions CI uses. They live in `.mise.toml`.
 
 ## Choose your path
 
@@ -87,7 +93,8 @@ confirm is a real production transaction, so don't confirm one while you're expl
    bun run dev -- prod
    ```
 
-5. **Checkpoint**: open the surfaces. The launcher prints these same links when it starts.
+5. **Checkpoint**: open the surfaces. The launcher prints these same links when it starts, and
+   this mode also opens a browser tab for you.
 
    | Surface | URL |
    |---|---|
@@ -96,8 +103,8 @@ confirm is a real production transaction, so don't confirm one while you're expl
    | Docs (this site) | [http://localhost:3003](http://localhost:3003) |
    | Storybook | [http://localhost:3004](http://localhost:3004) |
 
-   <figure>
-     <img src="/img/builders/green-goods-client-home.webp" alt="The Green Goods home page, with the headline From good intentions to green outcomes and an Explore Gardens button over a photo of a garden at sunset" loading="lazy" style={{maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+   <figure className="gg-figure">
+     <img src="/img/builders/green-goods-client-home.webp" alt="The Green Goods home page, with the headline From good intentions to green outcomes and an Explore Gardens button over a photo of a garden at sunset" loading="lazy" />
      <figcaption>The client opens on the public home page. If you see this at localhost:3001, you're up and running.</figcaption>
    </figure>
 
@@ -111,7 +118,8 @@ confirm is a real production transaction, so don't confirm one while you're expl
    and it never signs a transaction. The same `?mockAuth=steward` opens the admin at
    [https://localhost:3002/?mockAuth=steward](https://localhost:3002/?mockAuth=steward).
 
-6. Confirm the services respond. The smoke check submits no transactions:
+6. Confirm the services respond. The launcher runs this smoke check itself once the services are
+   up; rerun it by hand whenever you want. It submits no transactions:
 
    ```bash
    bun run dev:smoke -- prod
@@ -169,7 +177,13 @@ admin, so you can change them and see the result end to end.
 Each mode takes the same name in all three commands, for example `bun run dev -- full` with
 `bun run dev:health -- full` and `bun run dev:smoke -- full`:
 
-- **`full`** adds this docs site and Storybook to the default stack.
+- **`full`** adds this docs site and Storybook to the default stack, and opens a browser tab.
+- **`web`** starts only the browser surfaces (client, admin, docs, Storybook) against the live
+  chain and local APIs that must already be running. Its readiness check is
+  `bun run dev:health -- --profile web`; a profile stands in for the mode name, so pass one or the
+  other, never both.
+- **`prod-mirror`** runs a local live-data indexer next to the hosted agent, for indexer work
+  against production data.
 - **`fork`** swaps live Arbitrum for a local [Anvil](https://getfoundry.sh/anvil/overview) fork on
   port 3009, for contract work you want off the live chain. The local indexer still reads live
   Arbitrum, so it won't show what you do on the fork. Restarting Anvil resets the fork, and
@@ -186,11 +200,21 @@ the package manifests.
 ## Bring an AI agent
 
 Green Goods is built with AI agents as a core practice, and the repository is set up so yours can
-onboard itself: paste
-[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
-into your agent and it will check your setup and walk you through the rest. The
-[Bring an agent](./how-to-contribute#bring-an-agent) section of First Contribution has the full
-picture.
+onboard itself. Copy the procedure below into your agent (the copy button sits in the block's
+corner) and it will check your setup, pick the right path, and finish with a short report of what
+it verified and what is still missing. It is the repository's own
+[`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md),
+embedded here from a generated copy so the two cannot drift.
+
+<details>
+<summary>ONBOARDING.md, ready to copy</summary>
+
+<OnboardingProcedure />
+
+</details>
+
+The [Bring an agent](./how-to-contribute#bring-an-agent) section of First Contribution places
+this in the wider contribution flow.
 
 ## About the environment {#environment}
 
@@ -200,7 +224,11 @@ Green Goods uses one `.env` at the repository root. Packages never carry their o
   `bun run env:check` validates your `.env` against it.
 - **`env.template` holds references, not secrets.** Team members resolve those references from
   1Password with `bun run env:sync`, which needs the 1Password CLI and access to the shared
-  vault. If the template is missing, `node scripts/dev/env-template-init.js` recreates its shape.
+  vault. If the template is missing, `node scripts/dev/env-template-init.js` recreates its shape;
+  fill in the team references, then sync.
+- **Some capabilities need their own credentials.** `ENVIO_API_TOKEN` keeps indexer replay
+  reliable on the team stack, uploads and messaging need their service keys, and passkeys and
+  wallets bring their own. Personal credentials stay in your `.env`, never in the shared template.
 - **Setup never overwrites your `.env`.** A rerun keeps the file as it is; it doesn't merge in new
   keys or repair old ones. The sync is an explicit write to it, so check what it would change
   before you run it on an existing file.
@@ -220,6 +248,9 @@ uploads, or transactions work; each of those needs its own credentials and its o
   mode.
 - **Path B fails early.** Make sure OrbStack or Docker Desktop is actually running; the local
   indexer needs it.
+- **You need to stop or reset.** `Ctrl-C` stops the services a launcher started. `bun run dev -- stop`
+  stops a detached launcher (it needs the same owner identity the launcher started with), and
+  `bun run dev:clean` clears stale local state; its `--dry-run` flag shows what it would remove.
 - **Anything else.** [Ask us on Telegram or Discord](./how-to-contribute#join-the-guild) if the
   health output doesn't get you unstuck.
 

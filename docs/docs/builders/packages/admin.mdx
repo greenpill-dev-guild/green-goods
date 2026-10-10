@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-10-09
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/admin/AGENTS.md
@@ -30,13 +30,23 @@ items: Hub, Garden, Community, Actions. Every workspace overlay is a centered `A
 profile, settings, and notifications render in a right-docked `AdminSideSheet` (bottom sheet on
 mobile). The `/hub` route is the reference surface for new page composition.
 
-## Map
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-work-queue.png" alt="The admin cockpit's work queue: the app bar with the garden chip, the workspace canvas listing submitted work, and the four-item navigation bar" loading="lazy" />
+  <figcaption>The canvas shell on the work queue: AppBar, workspace canvas, MainSheet, and the four-item NavigationBar.</figcaption>
+</figure>
+
+## Inside `src`
+
+A route resolves in `router.tsx`, passes the role guards in `routes/`, and renders inside
+`CanvasLayout`. Each workspace under `views/` composes the `Admin*` wrappers in `components/`
+over shared hooks; the Material 3 tokens in `styles/` are the only place color and type scale
+live.
 
 | Directory | What lives there |
 |---|---|
 | `src/router.tsx` and `src/routes/` | Route definitions, the canvas shell, and role guards like `RequireRole.tsx` |
 | `src/views/` | One folder per workspace: Hub, Garden, Community, Actions, Cookies, and Profile |
-| `src/components/` | Admin-owned building blocks such as `AdminButton`, `AdminCard`, and `AdminDialog`, each with a story |
+| `src/components/` | Admin-owned building blocks such as `AdminButton`, `AdminCard`, and `AdminDialog`, each with a story, plus `Shell/` for the AppBar, NavigationBar, MainSheet, and FAB |
 | `src/styles/` | The admin's Material 3 tokens, component styles, and type scale |
 | `src/__tests__/` | Vitest suites for views and components |
 

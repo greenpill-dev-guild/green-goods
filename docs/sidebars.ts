@@ -121,7 +121,7 @@ const sidebars: SidebarsConfig = {
       label: 'Testing & QA',
       link: {type: 'doc', id: 'builders/testing/index'},
       items: [
-        {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product Experience QA'},
+        {type: 'doc', id: 'builders/quality/product-experience-qa', label: 'Product QA'},
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
         {type: 'doc', id: 'builders/quality/gh-actions', label: 'CI & GitHub Actions'},
       ],

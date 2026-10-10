@@ -4,7 +4,7 @@ sidebar_label: Integrations
 slug: /builders/integrations
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -15,6 +15,8 @@ keywords:
   - deployments
 ---
 
+import {IntegrationStatusTable} from "@site/src/components/docs";
+
 # Integrations
 
 Green Goods composes existing protocols instead of reinventing them: attestations from
@@ -24,24 +26,6 @@ Green Goods composes existing protocols instead of reinventing them: attestation
 rails from Octant, Gardens, Hypercerts, and 1Hive's Cookie Jar. Each
 integration page explains why Green Goods uses the protocol, where it lives in the code, and what
 the checked-in artifacts say is deployed where.
-
-## Who owns which fact
-
-Each integration touches several layers, and changing the right one starts with knowing which
-layer owns the fact you need:
-
-| Concern | Authority |
-|---|---|
-| Contract behavior | Contract source and tests |
-| Recorded deployment | Chain deployment artifact |
-| Schema identity | Schema configuration and deployment artifact |
-| Indexed events | `packages/indexer/config.yaml` and handlers |
-| Application access | Shared modules, hooks, and package exports |
-| Semantic mapping | The ontology and the [entity matrix](/builders/architecture/entity-matrix) |
-
-Deployment tables on these pages regenerate from checked-in artifacts. An address proves a
-deployment was recorded, never that a feature is live and healthy; the
-[deployment status page](/builders/reference/deployments) is the canonical per-chain record.
 
 ## The integrations
 
@@ -58,10 +42,40 @@ deployment was recorded, never that a feature is live and healthy; the
 - [Cookie Jar](/builders/integrations/cookie-jar): small, capped allowances from 1Hive's Cookie Jar,
   one jar per garden asset.
 
+## Status by network
+
+The table below is generated from the checked-in deployment artifacts and the indexer
+configuration: for each catalogued integration, where its components are recorded and which of its
+contracts the indexer follows. Passkeys are not in it because they have no on-chain deployment. A
+recorded address proves a deployment was written down, never that a feature is live and healthy;
+the [Deployments & Addresses](/builders/reference/deployments) page lists every address.
+
+<IntegrationStatusTable />
+
+## Who owns which fact
+
+An integration crosses several layers, and each fact about it has exactly one home. Contract
+behavior lives in the contract source and its tests. Where something is deployed lives in the
+chain's deployment artifact, and a schema's identity in the schema configuration that artifact
+records. Which events are indexed lives in `packages/indexer/config.yaml` and its handlers. How an
+app reaches the integration lives in shared's modules, hooks, and package exports. What a
+partner's concepts mean in Green Goods terms lives in the ontology and the
+[entity matrix](/builders/architecture/entity-matrix). When you change an integration, change the
+layer that owns the fact; each integration page links its layers.
+
+| Concern | Authority |
+|---|---|
+| Contract behavior | Contract source and tests |
+| Recorded deployment | Chain deployment artifact |
+| Schema identity | Schema configuration and deployment artifact |
+| Indexed events | `packages/indexer/config.yaml` and handlers |
+| Application access | Shared modules, hooks, and package exports |
+| Semantic mapping | The ontology and the [entity matrix](/builders/architecture/entity-matrix) |
+
 ## Next steps
 
 - [EAS](/builders/integrations/eas) is the best place to start: work, approvals, and assessments
   all live there.
 - [Anatomy of a Work Submission](/builders/architecture/anatomy) shows several integrations working
   together in one flow.
-- [Deployment Status](/builders/reference/deployments) lists what is recorded on each chain.
+- [Deployments & Addresses](/builders/reference/deployments) lists every recorded address per chain.

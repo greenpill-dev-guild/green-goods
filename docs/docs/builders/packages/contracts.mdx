@@ -4,7 +4,7 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
@@ -21,9 +21,14 @@ keywords:
 `packages/contracts` is the Solidity protocol, built with [Foundry](https://getfoundry.sh). It
 owns everything the chain enforces: garden accounts, authorization, attestation schemas and their
 resolvers, and the deployment artifacts that record what exists where. The
-[deployment status page](/builders/reference/deployments) is the generated view of those artifacts.
+[Deployments & Addresses](/builders/reference/deployments) page is the generated view of those
+artifacts.
 
-## Map
+## Inside the package
+
+Solidity lives under `src/`, grouped by what it is to the protocol; the TypeScript around it
+lives beside it. Deploys, upgrades, and verifications run through the CLI in `script/cli/`, tests
+sit in `test/` by area, and `deployments/` records the outcome.
 
 | Directory | What lives there |
 |---|---|
@@ -32,8 +37,14 @@ resolvers, and the deployment artifacts that record what exists where. The
 | `src/modules/` | Opt-in integrations plus the pooling and settlement control planes |
 | `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
 | `src/tokens/` | The Garden and Goods tokens |
-| `src/Schemas.sol` | EAS schema definitions |
-| `deployments/` | Per-chain artifacts, the canonical record of what is deployed |
+| `src/libraries/` | The pooling and settlement libraries the modules link against at deploy time |
+| `src/lib/` and `src/interfaces/` | Shared Solidity helpers (EAS, strings, token-bound accounts) and the interfaces every contract speaks |
+| `src/markets/` and `src/strategies/` | Hypercert marketplace adapters and their strategies |
+| `src/vendor/` and `src/mocks/` | Vendored partner contracts (Gardens, Octant) and the test doubles |
+| `src/Schemas.sol` and `src/CommonErrors.sol` | EAS schema definitions and the shared error set |
+| `script/` | The TypeScript operations: deploy, upgrade, verify, and the CLI that fronts them |
+| `test/` | Foundry suites by area, plus the script tests Vitest runs |
+| `config/`, `abis/`, `deployments/` | Schema and migration config, exported ABIs, and the per-chain artifacts that are the canonical record of what is deployed |
 
 ## Run and test
 
@@ -78,5 +89,5 @@ meaning. The [Architecture page](../architecture) shows the whole loop.
 
 - [`packages/contracts/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/contracts/AGENTS.md)
   is the full package contract, deployment lanes included.
-- [Deployment Status](/builders/reference/deployments) for what's recorded per chain.
+- [Deployments & Addresses](/builders/reference/deployments) for every recorded address per chain.
 - [Data Model & Ontology](../architecture/data-model) for how contract records relate.

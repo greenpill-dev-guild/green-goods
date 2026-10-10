@@ -992,6 +992,27 @@ export function renderContractOperations({ root, sources, digest }) {
   return body;
 }
 
+/** The core DesignMD tokens as data for the docs design page: colors, type, radii, spacing. */
+export function renderDesignTokens({ root, sources, digest }) {
+  declaredSource(sources, "DESIGN.md");
+  const tokens = readJson(root, declaredSource(sources, "packages/shared/src/styles/design-md.generated.json"));
+  for (const key of ["colors", "typography", "rounded", "spacing"]) {
+    if (!tokens[key] || typeof tokens[key] !== "object") throw new Error(`Design tokens are missing ${key}`);
+  }
+  const payload = {
+    $generated: `GENERATED FILE: do not edit. ${regenerationHint("design")}`,
+    generator: GENERATOR_PATH,
+    digest,
+    source: tokens.source ?? "DESIGN.md",
+    name: tokens.name,
+    colors: tokens.colors,
+    typography: tokens.typography,
+    rounded: tokens.rounded,
+    spacing: tokens.spacing,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
 /** The repository's onboarding procedure as data, so a page can embed it with a copy button. */
 export function renderOnboardingData({ root, sources, digest }) {
   const text = readText(root, declaredSource(sources, "ONBOARDING.md"));

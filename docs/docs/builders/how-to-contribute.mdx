@@ -5,7 +5,7 @@ slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
@@ -20,6 +20,8 @@ keywords:
   - ai agents
   - git workflow
 ---
+
+import {OnboardingProcedure} from "@site/src/components/docs";
 
 # First Contribution
 
@@ -57,11 +59,18 @@ repository is instrumented for it: an
 at the root and in most packages, a [catalog of packaged skills](./agentic/skills) for common
 workflows, and a validation selector that keeps agent-made changes honest.
 
-The fastest start: open
+The fastest start is below: copy the repository's
 [`ONBOARDING.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/ONBOARDING.md)
-and paste it into your agent. It's written to be read by one: your agent becomes an onboarding
-buddy that checks your setup, picks the right path, and finishes with a short report of what it
-verified, what's still missing, and which package owns your first task.
+into your agent. It's written to be read by one: your agent becomes an onboarding buddy that
+checks your setup, picks the right path, and finishes with a short report of what it verified,
+what's still missing, and which package owns your first task.
+
+<details>
+<summary>ONBOARDING.md, ready to copy</summary>
+
+<OnboardingProcedure />
+
+</details>
 
 Agents get no shortcuts. Their changes pass the same review, the same CI Gate, and the same
 [repo rules](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#repo-rules)
@@ -80,7 +89,8 @@ as anyone else's, and that's exactly why the practice works.
 A few repo-wide rules worth knowing before your first diff: React hooks live in
 `@green-goods/shared`, Ethereum addresses use the shared `Address` type, logging goes through the
 shared `logger` (never `console.log`), user-facing strings ship in `en`, `es`, and `pt` together,
-and there's exactly one `.env`, at the root. The full list lives in
+and the environment lives in one root `.env`
+([Getting Started](./getting-started#environment) explains it). The full list lives in
 [CONTRIBUTING.md § Repo Rules](https://github.com/greenpill-dev-guild/green-goods/blob/develop/CONTRIBUTING.md#repo-rules).
 
 ## Prove it
@@ -93,19 +103,19 @@ bun run check --plan -- --intent qa
 ```
 
 Run the focused test that proves your change first, then the package checks the plan selects.
-When you push, the pre-push hook runs the ready-for-CI gate for you. To run the same gate by hand,
-name the test that proves your change. This example uses a client test; swap in your own package
-and test file:
+When you push, the pre-push hook runs the ready-for-CI gate for you; the
+[Testing Guide](/builders/testing#reproducing-ci-locally) shows how to run that same gate by hand
+and which Playwright project matches your surface. CI covers broad regression across the repo, so
+you don't need to run everything locally. Two habits help: always `bun run test`, never
+`bun test`, and `bun run format` before you push.
 
-```bash
-bun run check -- --intent push --reuse-passing-receipts --test-path client:src/__tests__/bootFallback.test.tsx
-```
+When a change is visible, include rendered proof in the pull request and say where it came from:
+mock auth on localhost, Storybook, CI Playwright, or a real signed-in browser.
 
-CI covers broad regression across the repo, so you don't need to run everything locally. Two
-habits help: always `bun run test`, never `bun test`, because the repo's test orchestration
-depends on it; and `bun run format` fixes formatting, while `bun run format --check` only reports
-it. For end-to-end or authentication changes, run the matching Playwright project from the
-[Testing Guide](/builders/testing#commands-per-surface).
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-work-detail.png" alt="The admin cockpit's work detail view, showing a submitted piece of work with its evidence and the review actions" loading="lazy" />
+  <figcaption>A screenshot like this one, from mock auth on localhost, is enough proof for most interface changes.</figcaption>
+</figure>
 
 ## Open the pull request
 

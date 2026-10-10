@@ -4,7 +4,7 @@ sidebar_label: Shared
 slug: /builders/packages/shared
 audience: developer
 owner: docs
-last_verified: 2026-09-02
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/AGENTS.md
@@ -23,17 +23,27 @@ providers, stores, protocol data modules, domain types, translations, and the St
 foundations. If logic could ever serve two surfaces, it lives here first; the client, admin, and
 agent packages stay thin on purpose.
 
-## Map
+## Inside `src`
+
+Shared is layered. Modules talk to the protocol and the network; stores and workflows hold state
+and state machines; hooks and providers expose both to React; components render on top. Nothing in
+a lower layer imports from a higher one. [`src/MODULES.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/shared/src/MODULES.md) is the folder-by-folder map and the
+authority on where a new piece goes.
 
 | Directory | What lives there |
 |---|---|
+| `src/modules/` | Protocol and platform modules, one folder each: `data/` (EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients), `job-queue/` (the offline-first work queue), `app/` (logger, environment), and the rest |
+| `src/stores/` and `src/workflows/` | Client state stores and the XState machines behind multi-step flows |
 | `src/hooks/` | Domain hooks by area: auth, garden, work, assessment, vault, cookie-jar, hypercerts, conviction, and more |
-| `src/modules/data/` | Protocol data access: EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients |
-| `src/modules/job-queue/` | The offline-first work queue |
 | `src/providers/` | App-level providers (auth, chain, query) |
-| `src/components/` | Shared UI primitives with Storybook coverage |
+| `src/components/` | Shared UI primitives with Storybook coverage, including the token stories |
+| `src/styles/` | The theme and the generated DesignMD tokens every surface reads |
+| `src/utils/`, `src/types/`, `src/config/` | Pure helpers (addresses, errors, explorers), the domain types, and the query keys and chain config |
+| `src/public-contracts/` and `src/lib/` | The public API contracts the agent serves, and the Hypercerts library bindings |
+| `src/commitment-pooling/` and `src/profile-avatar/` | Feature modules too large for one folder family |
 | `src/i18n/` | `en.json`, `es.json`, `pt.json`; every user-facing string ships in all three |
 | `src/ontology/` | The domain ontology the docs and guards project from |
+| `src/__tests__/` | Vitest suites and the test support the apps import through `@green-goods/shared/testing` |
 
 ## Run and test
 

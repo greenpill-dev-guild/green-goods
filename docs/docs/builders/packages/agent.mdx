@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
@@ -22,15 +22,22 @@ them through handlers, and serves the public HTTP API. It's how people interact 
 from messaging platforms without installing anything, and how external systems read public garden
 data.
 
-## Map
+## Inside `src`
+
+`index.ts` boots the runtime, which starts the platform adapters and the HTTP API in order and
+drains them on shutdown. A message arrives through a platform adapter, is matched to a handler,
+and the handler talks to the services; the API routes read the same services for public data.
 
 | Directory | What lives there |
 |---|---|
 | `src/index.ts` | The entry point: starts the Telegram bot and the HTTP API |
+| `src/runtime/` | Startup and shutdown wiring, with the reporting that says what came up and what did not |
 | `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
 | `src/platforms/` | Messaging platform adapters (Telegram today) |
-| `src/api/` | Public HTTP routes (inventoried in the [API Index](./api-index)) |
-| `src/services/` | Service dependencies behind stable helper APIs |
+| `src/api/` | Public HTTP routes (inventoried in the [API Index](./api-index)), including funding and the route table |
+| `src/services/` | Service dependencies behind stable helper APIs: the database, reporting, and the protocol clients |
+| `src/config.ts`, `src/i18n.ts`, `src/types.ts` | Configuration, message translations, and the shared types the handlers speak |
+| `src/__tests__/` | Vitest suites for handlers, adapters, and services |
 
 ## Run and test
 

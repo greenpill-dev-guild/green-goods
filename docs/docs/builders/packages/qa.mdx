@@ -4,7 +4,7 @@ sidebar_label: QA
 slug: /builders/packages/qa
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/qa/README.md
@@ -21,6 +21,11 @@ keywords:
 a deployed checklist where two people can record the same test case at the same time, each keeping
 their own verdict and notes. It exists because a shared artifact checklist could only ever have one
 writer; this is the same interface with a real store behind it.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/qa-app-recorded-issues.webp" alt="Synthetic QA app data filtered to Issues: one case recorded as Fail with a reproduction note and one as Blocked with the reason it could not proceed" loading="lazy" />
+  <figcaption>Two testers' verdicts side by side on the Issues filter. This example uses synthetic data.</figcaption>
+</figure>
 
 ## How it stays correct with two writers
 
@@ -48,7 +53,8 @@ an allowlisted address. Display names are labels, never authority.
 | `api/runs.ts` and `runs.ts` | QA runs: one team pass over the catalog, versioned in the store |
 | `api/auth.ts` and `auth.ts` | Sign-In With Ethereum, checked against the allowlist |
 | `store.ts` | The Vercel Blob side of the store, shared by both endpoints |
-| `build.mjs` | Copies the page and pins the test-case catalog beside it |
+| `build.mjs` and `dev.mjs` | The build that copies the page and pins the test-case catalog beside it, and the local rehearsal server (`node dev.mjs`) |
+| `locales/` | The interface strings in every supported language |
 
 ## Run and build
 
@@ -64,7 +70,7 @@ redeploy the QA app and regenerate the docs page; CI rejects a stale copy.
 
 The catalog source is `scripts/data/qa-test-catalog.json`, shared with the generated
 [Test Cases](../quality/test-cases) page, and the app is the recording half of the
-[Product Experience QA](../quality/product-experience-qa) practice.
+[Product QA](../quality/product-experience-qa) practice.
 
 ## Go deeper
 

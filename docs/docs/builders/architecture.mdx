@@ -5,7 +5,7 @@ sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -76,9 +76,10 @@ themselves, and EAS stays outside our indexer on purpose, so the attestation and
 paths stay independent. And writes have exactly one door: everything that becomes protocol truth
 goes through the contracts.
 
-## Three ideas carry the protocol
+## The ideas that carry the protocol
 
-The contract layer is small, and its elegance is that three ideas do most of the work.
+The contract layer is small on purpose. Five ideas do most of the work, and once you hold them
+you can predict how the rest of the system behaves.
 
 ### A garden is an account
 
@@ -108,28 +109,33 @@ and the owner can do all of it. Because hats are on-chain tokens, the resolvers 
 them directly, and because they're a tree, a garden's whole authority structure is inspectable at
 once.
 
-Everything else is a module a garden opts into per chain: vaults through
-[Octant](./integrations/octant), distributions through [Cookie Jar](./integrations/cookie-jar),
-impact certificates through [Hypercerts](./integrations/hypercerts), milestone reporting through
-[Karma GAP](./integrations/karma), names through [ENS](./integrations/ens). A module exists where
-its deployment artifact says it does, and nowhere else; the
-[deployment status page](/builders/reference/deployments) is the canonical record, and no page in these docs
-claims a module is live anywhere without it.
+### Capabilities are modules a garden opts into
+
+Vaults through [Octant](./integrations/octant), distributions through [Cookie Jar](./integrations/cookie-jar), impact certificates
+through [Hypercerts](./integrations/hypercerts), milestone reporting through [Karma GAP](./integrations/karma), names through
+[ENS](./integrations/ens), and commitment pooling with its settlement lane are modules a garden turns on per
+chain, not features baked into every garden. A module exists where its deployment artifact says it
+does, and nowhere else: the [Deployments & Addresses](/builders/reference/deployments) page is the
+canonical record, and no page in these docs claims a module is live anywhere without it.
+
+### Capture is local-first; reads are indexed
+
+The field is the other half of the protocol. The client keeps a submission on the device, in the
+shared job queue, until the gardener is back online, and only then does it travel to the
+contracts; nothing is lost to a dropped signal. On the way back, apps never crawl the chain: the
+[indexer](./packages/indexer) projects contract events into GraphQL read models, attestations come
+straight from EAS, and current values come from the contracts. Three read paths, one write door,
+and the truth stays where anyone can verify it.
 
 ## The monorepo that serves it
 
-| Package | What it owns | In production |
-|---|---|---|
-| [`contracts`](./packages/contracts) | Protocol state, authorization, attestation resolvers, deployment artifacts | [Arbitrum One and others](/builders/reference/deployments) |
-| [`shared`](./packages/shared) | Cross-app hooks, providers, protocol modules, UI foundations | Inside every app bundle |
-| [`indexer`](./packages/indexer) | Envio handlers projecting contract events into GraphQL read models | Envio hosted service |
-| [`client`](./packages/client) | Public website and the installed PWA | [greengoods.app](https://greengoods.app) |
-| [`admin`](./packages/admin) | The steward cockpit | [admin.greengoods.app](https://admin.greengoods.app) |
-| [`agent`](./packages/agent) | Messaging bots and the public HTTP API | Hosted service |
-| `qa` | The team's two-writer QA checklist app | [qa.greengoods.app](https://qa.greengoods.app) |
+Seven packages serve that loop. The [Monorepo Map](./packages) lists each one with what it owns
+and where it runs in production; the shape to remember is the arrow.
 
-Dependencies point one way: `contracts → shared → client / admin / agent`, with `indexer` fed by
-contract events. Apps import shared code only through its
+Dependencies point one way: `contracts → indexer → shared → client / admin / agent`. Contracts
+emit the events the indexer projects into read models, shared wraps both for the apps, and nothing
+points back. That is the data flow; in package terms the indexer imports nothing, and shared's
+indexer types are generated from the indexer's schema. Apps import shared code only through its
 [declared package exports](./packages/api-index), never `src/` paths, which is what keeps seven
 packages refactorable by a small team (and its agents) without fear.
 
@@ -167,4 +173,4 @@ Five tests guide the tradeoffs, in the spirit of the Ethereum ecosystem Green Go
 
 - [Anatomy of a Work Submission](./architecture/anatomy) follows one real record through every stage.
 - [Data Model & Ontology](./architecture/data-model) maps the entities and lifecycles, layer by layer.
-- [Deployment Status](/builders/reference/deployments) shows what's actually deployed where.
+- [Deployments & Addresses](/builders/reference/deployments) lists every recorded contract per network.

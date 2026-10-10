@@ -7,6 +7,7 @@ import {
   renderApiIndex,
   integrationNetworkRecords,
   renderCommands,
+  renderDesignTokens,
   renderOnboardingData,
   renderContractOperations,
   renderDeploymentStatus,
@@ -131,6 +132,7 @@ export function createProjections(root = REPO_ROOT) {
     { scope: "agentic", output: "docs/docs/builders/agentic/task-routing.mdx", sources: [TASK_ROUTING, ...routedSkillSources, "scripts/quality/task-routing-contract.mjs"], render: renderTaskRouting },
     { scope: "agentic", output: "docs/docs/builders/agentic/skills.mdx", sources: skillCatalogSources(root), render: renderSkills },
     { scope: "agentic", output: "docs/src/data/onboarding.json", sources: ["ONBOARDING.md"], render: renderOnboardingData },
+    { scope: "design", output: "docs/src/data/design-tokens.json", sources: ["DESIGN.md", "packages/shared/src/styles/design-md.generated.json"], render: renderDesignTokens },
   ];
 }
 

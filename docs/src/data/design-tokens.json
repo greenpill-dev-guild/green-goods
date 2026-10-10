@@ -1,0 +1,65 @@
+{
+  "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope design`.",
+  "generator": "scripts/docs/generate.mjs",
+  "digest": "sha256:d7ba1cd581c61e07ecaf9ea15915513e7a1ac1cf6baf8b11062c5a9573839598",
+  "source": "DESIGN.md",
+  "name": "Green Goods Warm Earth Core",
+  "colors": {
+    "amber": "#D97706",
+    "neutral": "#FAF8F5",
+    "neutral-dark": "#1C1917",
+    "on-tertiary": "#0B4627",
+    "on-tertiary-action": "#FFFFFF",
+    "on-tertiary-dark": "#0C0A09",
+    "primary": "#292524",
+    "primary-inverse": "#F5F5F4",
+    "secondary": "#78716C",
+    "secondary-inverse": "#A8A29E",
+    "sky": "#3B82F6",
+    "tertiary": "#1FC16B",
+    "tertiary-action": "#1A7544",
+    "tertiary-action-hover": "#16643B",
+    "tertiary-dark": "#C2F5DA",
+    "tertiary-dark-hover": "#84EBB4"
+  },
+  "typography": {
+    "app-title": {
+      "fontFamily": "Inter",
+      "fontSize": "22px",
+      "fontWeight": 600,
+      "lineHeight": "28px"
+    },
+    "body-md": {
+      "fontFamily": "Inter",
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "lineHeight": 1.5
+    },
+    "editorial": {
+      "fontFamily": "Fraunces",
+      "fontSize": "48px",
+      "fontWeight": 700,
+      "lineHeight": 1.1
+    },
+    "label-md": {
+      "fontFamily": "Inter",
+      "fontSize": "12px",
+      "fontWeight": 500,
+      "lineHeight": "16px"
+    }
+  },
+  "rounded": {
+    "2xl": "24px",
+    "full": "9999px",
+    "lg": "16px",
+    "md": "8px",
+    "none": "0px",
+    "squircle": "12px",
+    "xl": "20px"
+  },
+  "spacing": {
+    "lg": "24px",
+    "md": "16px",
+    "sm": "8px"
+  }
+}

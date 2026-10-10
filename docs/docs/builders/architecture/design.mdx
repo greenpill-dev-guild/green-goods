@@ -4,19 +4,22 @@ sidebar_label: Design
 slug: /builders/architecture/design
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - DESIGN.md
   - docs/DESIGN.md
   - packages/admin/DESIGN.md
   - .claude/skills/design/SKILL.md
+  - docs/src/data/design-tokens.json
 keywords:
   - design system
   - warm earth
   - storybook
   - surfaces
 ---
+
+import {DesignTokens} from "@site/src/components/docs";
 
 # Design
 
@@ -32,6 +35,22 @@ that names the work plainly. The [ontology](./data-model) supplies the names for
 personas, and lifecycle states; the design system decides how those concepts look and move on each
 surface. The [generated glossary](/glossary) is the public bridge between the two.
 
+<figure className="gg-figure">
+  <img src="/img/design/design-system-overview-three-systems.webp" alt="Three surface systems side by side in Storybook: the installed app, the public website, and the admin cockpit, each with its button specimens and the metrics measured in the browser" loading="lazy" width="1200" height="800" />
+  <figcaption>Three surfaces, one token set. The overview story measures the real components in the browser and marks each one on spec. <a href="https://design.greengoods.app/?path=/story/design-system-overview--three-systems">Open in Storybook</a>.</figcaption>
+</figure>
+
+## Tokens at a glance {#tokens}
+
+Every value below comes from the root `DESIGN.md` through a generated projection
+(`docs/src/data/design-tokens.json`), so this page cannot disagree with the file that governs the
+product. The [Colors](https://design.greengoods.app/?path=/story/shared-tokens-colors--gallery),
+[Typography](https://design.greengoods.app/?path=/story/shared-tokens-typography--default), and
+[Shadows](https://design.greengoods.app/?path=/story/shared-tokens-shadows--gallery) token stories
+in Storybook show the same values on real components, in both themes.
+
+<DesignTokens />
+
 ## Four surfaces, one language {#surfaces}
 
 - **The client's public pages** speak in an editorial voice: storytelling layouts, generous
@@ -41,12 +60,28 @@ surface. The [generated glossary](/glossary) is the public bridge between the tw
 - **The admin cockpit** stays restrained and operational: utility copy, one dominant workspace
   per route, restrained color, strong typography.
 - **This docs site** is a quiet reading space: a plain document shell, short sections with
-  concrete steps, community green on community pages and builder teal here. Its rules live in
+  concrete steps, and one primary green for active navigation everywhere. Its rules live in
   [`docs/DESIGN.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/DESIGN.md).
 
 The dialects share tokens and terminology without pretending every audience has the same needs.
 The [client](../packages/client) and [admin](../packages/admin) package pages describe the shells
 that enforce the split.
+
+<div className="gg-figure-grid">
+  <figure className="gg-figure">
+  <img src="/img/design/design-system-app-foundations-tokens.webp" alt="App foundations story: the installed PWA's color roles, type ramp, corner radii, and spacing steps" loading="lazy" width="1200" height="800" />
+  <figcaption>The installed app's foundations: roles, type, radii, and spacing on one sheet. <a href="https://design.greengoods.app/?path=/story/design-system-app-foundations--tokens">Open in Storybook</a>.</figcaption>
+</figure>
+  <figure className="gg-figure">
+  <img src="/img/design/design-system-admin-foundations-tokens.webp" alt="Admin foundations story: the Material 3 color roles, elevation levels, and type scale the steward cockpit uses" loading="lazy" width="1200" height="800" />
+  <figcaption>The admin cockpit's foundations: Material 3 roles, elevation, and type scale. <a href="https://design.greengoods.app/?path=/story/design-system-admin-foundations--tokens">Open in Storybook</a>.</figcaption>
+</figure>
+</div>
+
+<figure className="gg-figure">
+  <img src="/img/design/design-system-app-components-in-phone-frame.webp" alt="Shared buttons inside a phone frame, showing emphasis and tone variants with their measured heights, corners, and hit areas" loading="lazy" width="1200" height="816" />
+  <figcaption>The field journal at phone width: emphasis and tone variants of the shared buttons, with the hit areas measured. <a href="https://design.greengoods.app/?path=/story/design-system-app-components--in-phone-frame">Open in Storybook</a>.</figcaption>
+</figure>
 
 ## How the system is governed {#governance}
 
@@ -61,6 +96,23 @@ token usage and shell composition honest in CI, so drift is caught by machines, 
 
 When you change UI: reuse a shared primitive before composing raw layouts, keep new strings in all
 three locales, and check the matching Storybook story in the same pass.
+
+### From token to component {#token-to-component}
+
+A token becomes a material role, a role becomes a surface, and a component sits on that surface.
+The role map shows the stack in both themes; the button catalog shows one primitive carrying every
+emphasis and size from the same tokens.
+
+<div className="gg-figure-grid">
+  <figure className="gg-figure">
+  <img src="/img/design/shared-tokens-materialroles-role-map.webp" alt="Material role map story: how the canvas, sheet, glass, and chrome roles stack, shown in light and dark" loading="lazy" width="1200" height="1052" />
+  <figcaption>The material role map: canvas, sheet, glass, and chrome, light and dark side by side. <a href="https://design.greengoods.app/?path=/story/shared-tokens-materialroles--role-map">Open in Storybook</a>.</figcaption>
+</figure>
+  <figure className="gg-figure">
+  <img src="/img/design/shared-primitives-button-emphasis-catalog.webp" alt="Button emphasis catalog story: primary, secondary, tertiary, and danger buttons at large, medium, small, and compact sizes" loading="lazy" width="1200" height="280" />
+  <figcaption>One Button primitive, four emphases, four sizes. <a href="https://design.greengoods.app/?path=/story/shared-primitives-button--emphasis-catalog">Open in Storybook</a>.</figcaption>
+</figure>
+</div>
 
 ## Seven regenerative principles {#seven-principles}
 
@@ -119,7 +171,13 @@ These principles synthesize several traditions rather than claiming a new formal
 
 ## Design resources {#resources}
 
-- The live [Storybook](https://design.greengoods.app) for every shared primitive and its states.
+- The live [Storybook](https://design.greengoods.app) for every shared primitive and its states,
+  with the token stories
+  ([Colors](https://design.greengoods.app/?path=/story/shared-tokens-colors--gallery),
+  [Typography](https://design.greengoods.app/?path=/story/shared-tokens-typography--default),
+  [Shadows](https://design.greengoods.app/?path=/story/shared-tokens-shadows--gallery),
+  [Material roles](https://design.greengoods.app/?path=/story/shared-tokens-materialroles--role-map))
+  as the visual reference for the values on this page.
 - The [Figma design system](https://www.figma.com/design/aNmqUjGZ5wR4eNaRqfhbQZ/Green-Goods) for
   exploration; checked-in DesignMD and code remain the implementation authorities.
 - The [product vision post](https://paragraph.com/@greenpilldevguild/green-goods-simplifying-impact-capture-and-exchange)
