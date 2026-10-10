@@ -238,6 +238,23 @@ describe("a reply that is not one of the choices", () => {
     ]);
   });
 
+  it("puts the activity question again when a button of an earlier question is tapped", async () => {
+    harness.catalog.actions.set(AIYELOJA.key, harness.catalog.actions.get(TAS.key) ?? []);
+    await consented();
+    const activitiesIn = (garden: string) =>
+      `Which activity in ${garden} best matches your work?\n1. Tree planting\n2. Weeding`;
+    expect(await harness.say(ADA, "1")).toEqual([activitiesIn("TAS")]);
+    // The garden question's button answers nothing now. Its tap must not read as a failed load.
+    expect(await harness.press(ADA, "TAS")).toEqual([activitiesIn("TAS")]);
+
+    // The same once the garden is changed, when the report has to choose its activity again.
+    await harness.press(ADA, "Tree planting");
+    await harness.say(ADA, "EDIT");
+    await harness.say(ADA, "1");
+    expect(await harness.say(ADA, "2")).toEqual([activitiesIn("Aiyeloja Family Garden")]);
+    expect(await harness.press(ADA, "TAS")).toEqual([activitiesIn("Aiyeloja Family Garden")]);
+  });
+
   it("says how to answer and shows the choices again when no model can read the words", async () => {
     await consented();
     expect(await harness.say(ADA, "Which one is mine?")).toEqual([GARDEN_HELP, GARDEN_QUESTION]);

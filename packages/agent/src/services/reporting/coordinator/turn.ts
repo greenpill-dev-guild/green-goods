@@ -185,11 +185,20 @@ async function gatherExternal(
   await readOwnGardens(core, ctx, plan, account);
   const scope = gardenScope(core.gardens, account);
   let garden = reportGarden(core, ctx, plan, scope, account);
-  const reportPlan = plan.kind === "message" || plan.kind === "answer" || plan.kind === "command";
+  // A tap on a button of an earlier question puts the report's open question again.
+  const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
+  const reportPlan =
+    plan.kind === "message" || plan.kind === "answer" || plan.kind === "command" || reasks;
+  // The activities are read whenever the reply may have to offer them: while the report has
+  // still to choose one, which a changed garden asks of it again, and for any answer.
+  const draft = ctx.draft;
+  const choosing =
+    !draft ||
+    outstandingRequirements(draft.content, draft.snapshot).some((need) => need.kind === "action");
   // A report that is about to name another garden has to choose its activity again.
-  const changing = garden?.address !== ctx.draft?.content.garden?.address;
+  const changing = garden?.address !== draft?.content.garden?.address;
   const needsCatalog =
-    garden !== null && reportPlan && (!ctx.draft?.snapshot || plan.kind === "answer" || changing);
+    garden !== null && reportPlan && (choosing || plan.kind === "answer" || changing);
   let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
   let interpretation: InterpretationResult | null = null;
   // A story or correction is read by the model, and so are words sent to a list of choices that
