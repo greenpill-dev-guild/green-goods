@@ -40,7 +40,6 @@ const config: Config = {
   onBrokenLinks: 'throw',
 
   clientModules: [
-    './src/clientModules/buildersAccent.ts',
     './src/clientModules/mermaidExpand.ts',
   ],
 
@@ -545,53 +544,13 @@ const config: Config = {
     colorMode: {
       respectPrefersColorScheme: true,
     },
+    // Colors live in src/theme/Mermaid/palettes.ts, one palette per color mode. The two theme
+    // names here only tell the swizzled component which mode is active; it renders both modes
+    // on mermaid's `base` theme with the matching palette.
     mermaid: {
       theme: {
         light: 'base',
-        dark: 'base',
-      },
-      options: {
-        themeVariables: {
-          // Typography — match docs site font
-          fontFamily: '"Manrope", "Avenir Next", "Segoe UI", sans-serif',
-
-          // Primary (green) — nodes, default elements
-          primaryColor: '#dcfce7',
-          primaryTextColor: '#14532d',
-          primaryBorderColor: '#16a34a',
-          lineColor: '#16a34a',
-
-          // Secondary (blue) — alternate nodes
-          secondaryColor: '#dbeafe',
-          secondaryTextColor: '#1e3a5f',
-          secondaryBorderColor: '#1d4ed8',
-
-          // Tertiary (purple) — decision nodes, highlights
-          tertiaryColor: '#ede9fe',
-          tertiaryTextColor: '#4c1d95',
-          tertiaryBorderColor: '#7c3aed',
-
-          // Notes (amber)
-          noteBkgColor: '#fffbeb',
-          noteTextColor: '#92400e',
-          noteBorderColor: '#f59e0b',
-
-          // Subgraph / cluster styling
-          clusterBkg: '#f0fdf4',
-          clusterBorder: '#bbf7d0',
-
-          // Edge labels
-          edgeLabelBackground: '#f5f5f5',
-
-          // Sequence diagram actors
-          actorBkg: '#dcfce7',
-          actorBorder: '#16a34a',
-          actorTextColor: '#14532d',
-          signalColor: '#16a34a',
-          signalTextColor: '#14532d',
-          activationBkgColor: '#dbeafe',
-          activationBorderColor: '#1d4ed8',
-        },
+        dark: 'dark',
       },
     },
     navbar: {
@@ -616,32 +575,26 @@ const config: Config = {
           label: 'Builders',
         },
         {
-          to: '/brand',
-          label: 'Brand kit',
-          position: 'left',
-        },
-        {
           href: 'https://greengoods.app',
           label: 'App',
           position: 'right',
         },
         {
           href: 'https://admin.greengoods.app',
-          label: 'Dashboard',
+          label: 'Admin',
           position: 'right',
         },
       ],
     },
     footer: {
-      style: 'dark',
+      // Four links per column; the footer follows the page surface in both color modes.
+      style: 'light',
       links: [
         {
           title: 'Community',
           items: [
-            { label: 'Welcome to Green Goods', to: '/' },
             { label: 'How It Works', to: '/community/how-it-works' },
-            { label: 'Why We Build', to: '/community/why-we-build' },
-            { label: 'Gardener Guide', to: '/community/gardener-guide/joining-a-garden' },
+            { label: 'Gardener Guide', to: '/community/gardener-guide/' },
             { label: 'Steward Guide', to: '/community/steward-guide/' },
             { label: 'Funder Guide', to: '/community/funder-guide/' },
           ],
@@ -652,7 +605,7 @@ const config: Config = {
             { label: 'Getting Started', to: '/builders/getting-started' },
             { label: 'Architecture', to: '/builders/architecture' },
             { label: 'Integrations', to: '/builders/integrations' },
-            { label: 'How To Contribute', to: '/builders/how-to-contribute' },
+            { label: 'First Contribution', to: '/builders/how-to-contribute' },
           ],
         },
         {
@@ -667,10 +620,9 @@ const config: Config = {
         {
           title: 'Resources',
           items: [
-            { label: 'Brand kit', to: '/brand' },
             { label: 'FAQ', to: '/reference/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Product History', to: '/reference/product-history' },
+            { label: 'Brand kit', to: '/brand' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },

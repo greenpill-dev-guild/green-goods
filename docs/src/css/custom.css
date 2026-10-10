@@ -6,7 +6,7 @@
   --radius-full: 999px;
   --blur-material-thick: 8px;
 
-  /* Primary green — matches shared theme green-500 */
+  /* Primary green: the shared theme's green-800 (tertiary-action) on light surfaces */
   --ifm-color-primary: #1a7544;
   --ifm-color-primary-dark: #176539;
   --ifm-color-primary-darker: #145a33;
@@ -28,6 +28,13 @@
   --ifm-link-hover-color: #145a33;
   --ifm-code-font-size: 93%;
 
+  /* One active-navigation look on every page: primary text on a light primary tint.
+     Infima reads these for the current page; the rules under "Sidebar" below extend the
+     same look to a category whose own page is open. */
+  --ifm-menu-color-active: var(--ifm-color-primary);
+  --ifm-menu-color-background-active: color-mix(in srgb, var(--ifm-color-primary) 12%, transparent);
+  --ifm-footer-background-color: var(--ifm-background-surface-color);
+
   --ifm-font-family-base: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
   --ifm-font-family-display: "Bricolage Grotesque", "Manrope", sans-serif;
   --ifm-font-family-monospace: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
@@ -36,7 +43,8 @@
   --ifm-h2-font-size: 1.85rem;
   --ifm-h3-font-size: 1.4rem;
 
-  /* Section color accents — Community (warm green) vs Builders (cool teal) */
+  /* Section accents. builder-accent stays defined for DESIGN.md parity and the Builder
+     role card; active navigation and diagram controls use --ifm-color-primary. */
   --docs-accent-community: #1a7544;
   --docs-accent-builders: #0f766e;
 
@@ -77,6 +85,7 @@
   --docs-role-builder: #2dd4bf;
 }
 
+/* One flat canvas. html carries the color so no body-height seam can appear. */
 html,
 body {
   background: var(--ifm-background-color);
@@ -91,14 +100,22 @@ body {
   font-weight: 700;
 }
 
-.menu__link {
-  border-radius: 8px;
+/* ── Sidebar ─────────────────────────────────────────────────────────
+   Current page: primary text on the tint (Infima applies the variables above).
+   Parent category of the current page: primary text only (Infima clears the
+   background inside a collapsible). Category whose own page is open: the same
+   tint on its wrapper, which Infima would otherwise paint hover grey. */
+.menu__link,
+.menu__list-item-collapsible {
+  border-radius: var(--radius-md);
 }
 
 .menu__link--active {
   font-weight: 700;
-  background: color-mix(in srgb, var(--ifm-color-primary) 14%, transparent);
-  border-left: 3px solid var(--ifm-color-primary);
+}
+
+.menu__list-item-collapsible--active {
+  background: var(--ifm-menu-color-background-active);
 }
 
 main article {
@@ -132,7 +149,6 @@ table {
 
 .footer {
   border-top: 1px solid var(--ifm-color-emphasis-200);
-  background: var(--ifm-background-surface-color);
 }
 
 /* Hide external link icon on all links */
@@ -148,58 +164,17 @@ a svg[class*="iconExternalLink"] {
   line-height: 1.65;
 }
 
-/* ── Section color accents ────────────────────────────────────────────
-   Community routes (/community/*) use warm green; Builders routes
-   (/builders/*) use cool teal.  Docusaurus renders a single sidebar
-   container (same plugin instance, two sidebarIds) so we target the
-   active-link accent color via the doc wrapper's route-based class.
-   Docusaurus adds `docs-doc-id-*` classes on the doc page wrapper,
-   but the most reliable selector is the URL path.  We override the
-   primary color at the sidebar level using the doc wrapper that
-   Docusaurus generates for each route. */
-
-/* Builders section — override primary to teal when viewing /builders/* */
-[class*="docPage"] [class*="sidebar"] .menu__link--active,
-.theme-doc-sidebar-container .menu__link--active {
-  /* Default: community green (matches --ifm-color-primary) */
+/* ── Code blocks ─────────────────────────────────────────────────────
+   The theme hides the copy and wrap buttons until hover; touch readers
+   never hover, so keep them visible at rest. */
+.theme-code-block [class*="buttonGroup"] button {
+  opacity: 0.55;
 }
 
-/* Because Docusaurus does not expose route-specific data attributes on
-   the sidebar, we use a targeted approach: override the active sidebar
-   styling for builders pages via the wrapper that has the doc ID. */
-[class*="docs-doc-id-builders"] .menu__link--active {
-  background: color-mix(in srgb, var(--docs-accent-builders) 14%, transparent);
-  border-left-color: var(--docs-accent-builders);
-  color: var(--docs-accent-builders);
-}
-
-[class*="docs-doc-id-builders"] .menu__link--active:hover {
-  color: var(--docs-accent-builders);
-}
-
-/* ── Subtle background texture ───────────────────────────────────────
-   A barely-visible radial gradient adds organic warmth to the content
-   area without competing with the text.  Uses fixed positioning so it
-   stays stable while scrolling.  pointer-events: none keeps it inert. */
-.main-wrapper {
-  position: relative;
-}
-
-.main-wrapper::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(26, 117, 68, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(15, 118, 110, 0.02) 0%, transparent 50%);
-  z-index: -1;
-}
-
-[data-theme="dark"] .main-wrapper::before {
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(46, 187, 107, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(45, 212, 191, 0.03) 0%, transparent 50%);
+@media (hover: none) {
+  .theme-code-block [class*="buttonGroup"] button {
+    opacity: 0.9;
+  }
 }
 
 @media (max-width: 768px) {
@@ -224,20 +199,6 @@ a svg[class*="iconExternalLink"] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Route-level accent fallback: category index pages (generated-index) render
-   without a docs-doc-id-* class, so a client module stamps
-   body.gg-builders-route on every builders route (including /category/* indexes) and this mirror of the
-   docs-doc-id override keeps the teal accent held there too. */
-body.gg-builders-route .menu__link--active {
-  background: color-mix(in srgb, var(--docs-accent-builders) 14%, transparent);
-  border-left-color: var(--docs-accent-builders);
-  color: var(--docs-accent-builders);
-}
-
-body.gg-builders-route .menu__link--active:hover {
-  color: var(--docs-accent-builders);
 }
 
 /* ── Diagram expand overlay ──────────────────────────────────────────
@@ -266,8 +227,8 @@ body.gg-builders-route .menu__link--active:hover {
 .gg-diagram-expand:hover,
 .gg-diagram-expand:focus-visible {
   opacity: 1;
-  color: var(--docs-accent-builders);
-  border-color: var(--docs-accent-builders);
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
 }
 
 .gg-diagram-overlay {
@@ -305,8 +266,8 @@ body.gg-builders-route .menu__link--active:hover {
 
 .gg-diagram-button:hover,
 .gg-diagram-button:focus-visible {
-  color: var(--docs-accent-builders);
-  border-color: var(--docs-accent-builders);
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
 }
 
 .gg-diagram-viewport {
@@ -322,7 +283,7 @@ body.gg-builders-route .menu__link--active:hover {
 }
 
 .gg-diagram-viewport:focus-visible {
-  outline: 2px solid var(--docs-accent-builders);
+  outline: 2px solid var(--ifm-color-primary);
   outline-offset: -2px;
 }
 
@@ -350,4 +311,31 @@ body.gg-builders-route .menu__link--active:hover {
   font-size: 0.85rem;
   color: var(--ifm-font-color-secondary);
   margin-top: -0.25rem;
+}
+
+/* ── Figures ─────────────────────────────────────────────────────────
+   One figure pattern for screenshots and captures: bordered image, a quiet
+   caption, and an optional grid for side-by-side frames. */
+.gg-figure {
+  margin: 1.25rem 0;
+}
+
+.gg-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--radius-md);
+}
+
+.gg-figure figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+.gg-figure-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }

@@ -59,7 +59,6 @@ const sidebars: SidebarsConfig = {
 
   buildersSidebar: [
     {type: 'doc', id: 'builders/getting-started', label: 'Getting Started'},
-    {type: 'link', label: 'Brand kit', href: '/brand'},
     {type: 'doc', id: 'builders/how-to-contribute', label: 'First Contribution'},
     {
       type: 'category',
