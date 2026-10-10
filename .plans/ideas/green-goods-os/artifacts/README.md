@@ -20,18 +20,18 @@ The 26-slide and 18-slide deck files below are prior drafts. The user rejected t
 
 ## Prior draft: Green Goods Warm Earth design
 
-- [Editable pitch deck](green-goods-os-pitch-warm-earth.pptx): the revised 26-slide narrative in the public Green Goods editorial style.
+- Editable pitch deck (`green-goods-os-pitch-warm-earth.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68): the revised 26-slide narrative in the public Green Goods editorial style.
 - [Design references and editor handoff](design-reference.md), [speaker notes](speaker-notes-warm-earth.md), [source-to-claim index](pitch-source-index.md) and [verification](verification-warm-earth.json).
-- [Cover preview (in retained deck)](green-goods-os-pitch-warm-earth.pptx); the retained deck contains all slides.
+- Cover preview (in retained deck) (`green-goods-os-pitch-warm-earth.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68); the retained deck contains all slides.
 - [Brand font bundle](green-goods-pitch-fonts.zip): unchanged repository font files and their license/provenance. Fonts are referenced, not embedded in the PPTX; no software or fonts were installed.
 
 This prior draft uses Fraunces and Inter, warm linen and charcoal, restrained green, the official mark and square editorial layouts. All research text and notes are preserved from the narrative revision. Every slide was rendered and inspected; native PowerPoint/Google Slides behavior was not tested. Earlier versions below are retained for history.
 
 ## Previous narrative revision
 
-- [Revised editable pitch](green-goods-os-pitch-revised.pptx): 18 core pitch slides and eight appendix slides; 201 native text/shape objects, nine native tables, two embedded concept illustrations and 26 speaker-note parts.
+- Revised editable pitch (`green-goods-os-pitch-revised.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68): 18 core pitch slides and eight appendix slides; 201 native text/shape objects, nine native tables, two embedded concept illustrations and 26 speaker-note parts.
 - [Revised speaker notes](speaker-notes-revised.md) and [source-to-claim index](pitch-source-index.md).
-- [Revised verification receipt](verification-revised.json) and [rendered cover (in retained deck)](green-goods-os-pitch-revised.pptx). All slides remain in the retained editable deck.
+- [Revised verification receipt](verification-revised.json) and rendered cover (in retained deck) (`green-goods-os-pitch-revised.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68). All slides remain in the retained editable deck.
 - [Market model](../market-sizing.md) and [revised strategic framing](../pitch-revision.md).
 
 This version replaces the earlier deck's research-review narrative. It leads with the vision, problem, solution, user/buyer, value proposition, reciprocal network, market, competition, revenue, go-to-market and proposed partner/funder ask. Technical and legal detail is retained in the appendix and notes. Market prices, qualified share, acquisition and margins remain assumptions. This is a proposal, not an implemented OS or a record of customer traction.
@@ -42,11 +42,11 @@ The two new images are fictional editorial concepts generated with the built-in 
 
 ## Superseded first version
 
-- [Green Goods OS pitch](green-goods-os-pitch.pptx): 18 editable slides, native text, eight native tables and speaker notes with source references.
+- Green Goods OS pitch (`green-goods-os-pitch.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68): 18 editable slides, native text, eight native tables and speaker notes with source references.
 - [Speaker notes](speaker-notes.md): readable editable Markdown copy extracted from the final PPTX.
 - [Verification receipt](verification.json): file hash, package/layout/reimport checks and visual-inspection coverage.
-- [Rendered cover (in retained deck)](green-goods-os-pitch.pptx): the retained deck contains every slide.
-- [Nursery illustration (in retained deck)](green-goods-os-pitch.pptx): generated conceptual artwork, not field or pilot evidence.
+- Rendered cover (in retained deck) (`green-goods-os-pitch.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68): the retained deck contains every slide.
+- Nursery illustration (in retained deck) (`green-goods-os-pitch.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68): generated conceptual artwork, not field or pilot evidence.
 
 The presentation was rendered with Artifact Tool after importing the finalized PPTX. Every slide was inspected individually. Native PowerPoint and Google Slides application behavior was not tested. Text and tables are editable; the cover illustration is a replaceable bitmap. The renderer's first image-path export issue was repaired by embedding the image bytes before final validation.
 
@@ -61,3 +61,7 @@ No private community images, personnel information or live field data were used.
 ## Draft PR packaging
 
 All five editable decks, research, notes, source indexes, image prompts and both three-slide checkpoints are retained. Historical full-deck PNG previews and three standalone images duplicated inside those decks are omitted from this branch to keep the unchanged repository validation gate within its binary-diff buffer. Original files remain in the source checkout at `/Users/afo/Code/greenpill/green-goods/.plans/ideas/green-goods-os/artifacts/`. Their earlier render checks remain historical; this packaging pass did not alter any PPTX. Historical preview/image links now point to the corresponding retained deck.
+
+## Removed from the branch tree
+
+On 10 October 2026 the three rejected decks (`green-goods-os-pitch.pptx`, `green-goods-os-pitch-revised.pptx`, `green-goods-os-pitch-warm-earth.pptx`) and the superseded v1 visual checkpoint folder (`visual-direction/`, whose face-containing images must not be reused) were removed from the branch tree. The pre-push selector fingerprints the whole binary patch against develop within a 64 MiB buffer, and the branch had outgrown it. The files remain in this branch's history at commit dc6d62d68 and in the original checkout; their notes, source indexes and verification receipts stay here as text. No validation rule or hook was changed.

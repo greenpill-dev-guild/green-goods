@@ -8,7 +8,7 @@
 
 **Pitch handoff:** follow [the accepted direction and revised flow](../pitch-revision.md). Pillars and sequence are aligned; final copy, visual concepts, first cohort and commercial inputs remain open. All prior decks are rejected drafts. Their editable files and render checks remain historical artifacts, not accepted pitch outputs. The [three-slide visual checkpoint](../artifacts/visual-direction-v2/README.md) awaits feedback before full-deck expansion. No product implementation or external outreach is authorized.
 
-Completed the requested sequence: [research](../research.md), [PRD](../spec.md), [strategy](../strategy.md), [editable pitch](../artifacts/green-goods-os-pitch.pptx), with [stage reviews](../eval.md) and a [source-to-claim index](../evidence-register.md). Markdown documents are editable; the PPTX has editable text/tables, embedded artwork, source notes and rendered previews.
+Completed the requested sequence: [research](../research.md), [PRD](../spec.md), [strategy](../strategy.md), editable pitch (`green-goods-os-pitch.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68), with [stage reviews](../eval.md) and a [source-to-claim index](../evidence-register.md). Markdown documents are editable; the PPTX has editable text/tables, embedded artwork, source notes and rendered previews.
 
 Recommendation: a supported community workspace for one nursery inspection question, with manual/offline participation, optional local assistance and deliberate public sharing. Treat the first user/buyer and commercial model as hypotheses. Retain existing licenses, resolve rights separately and learn from Coop without assuming code reuse. Prototype and pilot budget envelopes are proposed, not authorized.
 

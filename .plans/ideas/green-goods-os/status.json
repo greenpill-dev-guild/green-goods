@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-08T16:08:51Z",
-    "updated_at": "2026-10-10T09:19:59Z"
+    "updated_at": "2026-10-10T09:51:54Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,7 +58,8 @@
     "9 October 2026 Pacific / 10 October UTC: cover typography and copy decided (Fraunces upright, no italic or green accent; 18-word land-stewards subtitle over three lines at 20 pt; composition C1). artifacts/visual-direction-v3 holds Regular 400 and Medium 500 cover variants; the weight choice is open. Fraunces Medium static fetched from Google Fonts into the bundle with approval; nothing installed. Renders are browser replicas, not native PPTX output.",
     "9 October 2026 Pacific / 10 October UTC: title weight Medium 500 and the website accent green on the second title line chosen; the v3 checkpoint is the agreed one-slide cover. User authorized committing and pushing this work to the existing research/green-goods-pitch-handoff branch (draft PR #1055). Next: the solution-slide sample.",
     "10 October 2026 UTC: solution-slide sample built from the v2 composition on the agreed rules (Fraunces Medium headings, one green accent on the title, status labels from the capability ledger, spec-driven PPTX and render); awaiting review before full-deck expansion.",
-    "10 October 2026 UTC: sixteen-slide core deck built from the agreed narrative with the spec-driven build (Fraunces Medium headings, one green accent, status labels, website imagery on two slides, no withdrawn figures); renders, PDF preview, notes and receipt in artifacts/visual-direction-v3; awaiting review before appendices and tailored asks."
+    "10 October 2026 UTC: sixteen-slide core deck built from the agreed narrative with the spec-driven build (Fraunces Medium headings, one green accent, status labels, website imagery on two slides, no withdrawn figures); renders, PDF preview, notes and receipt in artifacts/visual-direction-v3; awaiting review before appendices and tailored asks.",
+    "10 October 2026 UTC: rejected decks and the v1 checkpoint removed from the branch tree so the push gate's 64 MiB binary-patch buffer holds the branch; files remain in history at dc6d62d68. Core deck pushed to research/green-goods-pitch-handoff for review."
   ],
   "lanes": {
     "ui": {

@@ -20,7 +20,7 @@ Use the [root design system](../../../../../DESIGN.md), [browser dialect](../../
 
 **No AI-generated human faces or heads in deck imagery.** Check background figures, screens, photographs and reflections as well as the main subject. Prefer landscapes, practical infrastructure, tools, notebooks and cropped hands where they explain an activity. Keep images on the right of split compositions. Do not add fake product interfaces, invented metrics, testimonials or customer scenes.
 
-The earlier [v1 checkpoint](../visual-direction/README.md) is historical. Its face-containing images and prompts are superseded and must not be reused.
+The earlier v1 checkpoint (`README.md`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68) is historical. Its face-containing images and prompts are superseded and must not be reused.
 
 ## New assets and exact prompts
 

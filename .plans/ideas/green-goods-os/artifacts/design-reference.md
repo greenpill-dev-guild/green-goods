@@ -1,6 +1,6 @@
 # Green Goods pitch: design reference and handoff
 
-This document records the prior [Warm Earth edition](green-goods-os-pitch-warm-earth.pptx), whose generated imagery and narrative were rejected. The current [three-slide visual checkpoint](visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx) and [image briefs](visual-direction-v2/README.md) supersede its visual treatment. The historical record follows. It retains the revised 18-slide pitch and eight-slide appendix, including the problem, workflow, buyer, value propositions, reciprocal network, market model, competition, business model, go-to-market and proposed ask. This pass changes visual presentation, not research conclusions.
+This document records the prior Warm Earth edition (`green-goods-os-pitch-warm-earth.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68), whose generated imagery and narrative were rejected. The current [three-slide visual checkpoint](visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx) and [image briefs](visual-direction-v2/README.md) supersede its visual treatment. The historical record follows. It retains the revised 18-slide pitch and eight-slide appendix, including the problem, workflow, buyer, value propositions, reciprocal network, market model, competition, business model, go-to-market and proposed ask. This pass changes visual presentation, not research conclusions.
 
 ## References used
 
@@ -23,6 +23,6 @@ All 26 slides were rendered and inspected individually at 1280×720 using Artifa
 
 The final package contains 202 editable text/shape objects, nine native tables, three embedded images (two illustrations and the official mark), and 26 substantive speaker-note parts. Slide text matches the preceding revised deck after cover-case and repeated-footer normalization. All 26 speaker notes match exactly. Sources, numerical assumptions and caveats therefore remain intact.
 
-[Verification receipt](verification-warm-earth.json) · [Source-to-claim index](pitch-source-index.md) · [Speaker notes](speaker-notes-warm-earth.md) · [Cover preview (in retained deck)](green-goods-os-pitch-warm-earth.pptx).
+[Verification receipt](verification-warm-earth.json) · [Source-to-claim index](pitch-source-index.md) · [Speaker notes](speaker-notes-warm-earth.md) · Cover preview (in retained deck) (`green-goods-os-pitch-warm-earth.pptx`, removed from the branch tree on 10 October 2026 and kept in history at dc6d62d68).
 
 Final SHA-256: `026b520dcf4bdadbb5ba0043931905cc68451da951bd21ee163072ce996c46b3`.
