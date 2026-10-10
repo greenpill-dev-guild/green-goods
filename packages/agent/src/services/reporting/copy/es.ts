@@ -248,8 +248,11 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
     "La firma fue rechazada, así que no se publicó nada. Aquí está tu reporte otra vez; confírmalo cuando quieras.",
   "publish.reverted":
     "La publicación falló en la cadena. Tu reporte está guardado; revísalo y confírmalo de nuevo para reintentar.",
-  "publish.viewReport": "Ver tu reporte",
-  "publish.published": "Tu reporte está publicado ✅\nTrabajo: {uid}\nTransacción: {tx}",
+  "publish.confirmed":
+    "La transacción está confirmada. Estoy revisando los detalles de la atestación y te enviaré el enlace cuando lo tenga. No necesitas firmar ni enviar nada otra vez.",
+  "publish.viewAttestation": "Ver atestación",
+  "publish.viewTransaction": "Ver transacción",
+  "publish.published": "Tu reporte está publicado ✅",
   "grant.active":
     "Los reportes desde el chat están activos para {garden} hasta {until}. Igual te pediré que confirmes cada reporte.",
   "grant.unavailable":
@@ -274,7 +277,7 @@ export const ES_REPORTING_COPY: Record<ReportingCopyKey, string> = {
   "review.notSteward": "Tu cuenta no administra {garden}, así que no puedes revisar este trabajo.",
   "review.notOperator":
     "Tu cuenta no administra ningún huerto, así que no tienes trabajos para revisar.",
-  "review.recorded": "Tu revisión quedó registrada ✅\nTransacción: {tx}",
+  "review.recorded": "Tu revisión quedó registrada ✅",
   "review.viewWork": "Ver el trabajo",
   "account.wallet": "billetera",
   "account.passkey": "llave de acceso",

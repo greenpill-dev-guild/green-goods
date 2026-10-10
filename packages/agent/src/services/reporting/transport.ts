@@ -49,10 +49,20 @@ export interface OutboundChoice {
   label: string;
 }
 
+export interface OutboundLink {
+  url: string;
+  label: string;
+}
+
 export interface OutboundMessage {
   text: string;
   choices?: OutboundChoice[];
-  link?: { url: string; label: string; copyLabel?: string };
+  link?: OutboundLink & { copyLabel?: string };
+  /**
+   * Public records to read, in the order to offer them. Nothing is signed there, so a channel
+   * draws them however it can (buttons, a list, lines of text) and none needs a copy control.
+   */
+  records?: OutboundLink[];
   /** A value the reader may want to paste elsewhere, such as their account address. */
   copy?: { label: string; text: string };
 }

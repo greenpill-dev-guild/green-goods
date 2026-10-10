@@ -246,8 +246,11 @@ export const EN_REPORTING_COPY = {
     "The signature was declined, so nothing was published. Here is your report again; confirm it when you're ready.",
   "publish.reverted":
     "The publication failed on chain. Your report is saved; check it and confirm again to retry.",
-  "publish.viewReport": "View your report",
-  "publish.published": "Your report is published ✅\nWork: {uid}\nTransaction: {tx}",
+  "publish.confirmed":
+    "The transaction is confirmed. I'm checking the attestation details and will send the link when I have it. You don't need to sign or send anything again.",
+  "publish.viewAttestation": "View attestation",
+  "publish.viewTransaction": "View transaction",
+  "publish.published": "Your report is published ✅",
   "grant.active":
     "Reporting in chat is on for {garden} until {until}. I'll still ask you to confirm each report.",
   "grant.unavailable":
@@ -273,7 +276,7 @@ export const EN_REPORTING_COPY = {
   "review.notSteward": "Your account isn't a steward of {garden}, so you can't review this work.",
   "review.notOperator":
     "Your account isn't a steward of any garden, so there's no work for you to review.",
-  "review.recorded": "Your review is recorded ✅\nTransaction: {tx}",
+  "review.recorded": "Your review is recorded ✅",
   "review.viewWork": "View the work",
   "account.wallet": "wallet",
   "account.passkey": "passkey",

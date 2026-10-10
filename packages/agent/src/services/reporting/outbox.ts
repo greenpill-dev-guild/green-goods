@@ -86,6 +86,7 @@ const CONSENT_EXEMPT = new Set([
   "consent.stopped",
   "consent.deleted",
   "help",
+  "publish.confirmed",
   "publish.published",
   "publish.unknown",
   "publish.uncertain",

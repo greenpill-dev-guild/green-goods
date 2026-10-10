@@ -1,4 +1,15 @@
-import { decodeAbiParameters, type Hex, keccak256, pad, parseAbiParameters, toHex } from "viem";
+import {
+  decodeAbiParameters,
+  encodeAbiParameters,
+  encodeEventTopics,
+  type Hex,
+  keccak256,
+  pad,
+  parseAbiParameters,
+  toHex,
+  zeroAddress,
+} from "viem";
+import { entryPoint07Abi, entryPoint07Address } from "viem/account-abstraction";
 import {
   decodeAttestCall,
   resolveReportingDeployment,
@@ -34,6 +45,8 @@ export class FakeChain implements ReportingChain {
   readonly kernels = new Set<string>();
   readonly receipts = new Map<Hex, TransactionReceiptView>();
   readonly hidden = new Set<Hex>();
+  /** While true the node returns receipts and events, but no attestation record yet. */
+  attestationsUnread = false;
   readonly attestations = new Map<Hex, AttestationView>();
   readonly events: AttestedEvent[] = [];
   readonly userOperations = new Map<Hex, Hex>();
@@ -93,7 +106,7 @@ export class FakeChain implements ReportingChain {
 
   async attestation(_chainId: number, uid: Hex): Promise<AttestationView | null> {
     this.guard();
-    return this.attestations.get(uid) ?? null;
+    return this.attestationsUnread ? null : (this.attestations.get(uid) ?? null);
   }
 
   async attestedEvents(
@@ -242,8 +255,11 @@ export class FakeChain implements ReportingChain {
     return hash;
   }
 
-  /** A UserOperation bundled into a transaction sent by a bundler; the attester is the account. */
-  submitUserOperation(input: { account: string; to: string; data: Hex }): {
+  /**
+   * A UserOperation bundled into a transaction sent by a bundler; the attester is the account.
+   * As in a real bundle, the receipt also carries the EntryPoint's event for the operation.
+   */
+  submitUserOperation(input: { account: string; to: string; data: Hex; userOperationHash?: Hex }): {
     userOperationHash: Hex;
     transactionHash: Hex;
   } {
@@ -252,8 +268,32 @@ export class FakeChain implements ReportingChain {
       to: input.to,
       data: input.data,
     });
-    const userOperationHash = keccak256(toHex(`userop-${transactionHash}`));
+    const userOperationHash =
+      input.userOperationHash ?? keccak256(toHex(`userop-${transactionHash}`));
     this.userOperations.set(userOperationHash, transactionHash);
+    const receipt = this.receipts.get(transactionHash);
+    if (receipt?.status === "success") {
+      const executed = {
+        address: lower(entryPoint07Address),
+        topics: encodeEventTopics({
+          abi: entryPoint07Abi,
+          eventName: "UserOperationEvent",
+          args: {
+            userOpHash: userOperationHash,
+            sender: lower(input.account),
+            paymaster: zeroAddress,
+          },
+        }) as Hex[],
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool, uint256, uint256"), [
+          0n,
+          true,
+          0n,
+          0n,
+        ]),
+        logIndex: receipt.logs.length,
+      };
+      this.receipts.set(transactionHash, { ...receipt, logs: [...receipt.logs, executed] });
+    }
     return { userOperationHash, transactionHash };
   }
 
