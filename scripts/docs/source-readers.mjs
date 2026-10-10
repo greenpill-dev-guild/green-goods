@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import * as yaml from "js-yaml";
 
 export function readJson(root, source) {
   try {
@@ -217,15 +218,26 @@ export function publicRouteRegistrations(root, sources) {
 }
 
 export function workflowInventory(root, sources = workflowSourcePaths(root)) {
-  return sources
-    .map((source) => {
-      const name = path.basename(source);
-      const text = readFileSync(path.join(root, source), "utf8");
-      const display = /^name:\s*(.+)$/m.exec(text)?.[1]?.trim() ?? name;
-      const jobsSection = text.split(/^jobs:\s*$/m)[1] ?? "";
-      const jobs = [...jobsSection.matchAll(/^  ([A-Za-z0-9_-]+):\s*$/gm)].map((match) => match[1]).sort();
-      return { source, name, display, jobs };
-    });
+  return sources.map((source) => {
+    const name = path.basename(source);
+    const parsed = yaml.load(readFileSync(path.join(root, source), "utf8")) ?? {};
+    const display = typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : name;
+    const jobs = Object.keys(parsed.jobs ?? {}).sort();
+    // `on` may be a string, a list of event names, or a map of event to options.
+    const declared = parsed.on ?? {};
+    const events = typeof declared === "string" ? { [declared]: null } : Array.isArray(declared) ? Object.fromEntries(declared.map((event) => [event, null])) : declared;
+    const triggers = {};
+    for (const [event, options] of Object.entries(events)) {
+      const config = options && typeof options === "object" && !Array.isArray(options) ? options : {};
+      triggers[event] = {
+        branches: Array.isArray(config.branches) ? config.branches : [],
+        tags: Array.isArray(config.tags) ? config.tags : [],
+        paths: Array.isArray(config.paths) ? config.paths : [],
+        crons: event === "schedule" && Array.isArray(options) ? options.map((entry) => entry?.cron).filter(Boolean) : [],
+      };
+    }
+    return { source, name, display, jobs, triggers };
+  });
 }
 
 export function deploymentInventory(root, sources, fields) {

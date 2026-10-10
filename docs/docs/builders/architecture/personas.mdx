@@ -1,6 +1,6 @@
 ---
-title: Persona Surfaces Matrix
-slug: /builders/reference/persona-surfaces
+title: Personas and Surfaces
+slug: /builders/architecture/personas
 audience: developer
 owner: docs
 feature_status: Live
@@ -22,9 +22,9 @@ source_of_truth:
 ---
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
-# Persona Surfaces Matrix
+# Personas and Surfaces
 
-The ontology owns persona meaning. Route definitions own navigable paths. Paths below are literals as declared and may be nested under a parent route.
+Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means; the route definitions own the paths it navigates. Read this page before the work-submission trace, which names these actors at every step.
 
 ## Personas
 
@@ -36,7 +36,24 @@ The ontology owns persona meaning. Route definitions own navigable paths. Paths 
 | Funder | `funder` | admin, client, public, docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | Community Member | `community` | client, public, docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
-## Declared route literals
+## Where each persona works
+
+**Gardener** holds the `gardener` hat. A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. This persona works in the admin cockpit, the client app, the messaging agent, the public site and these docs.
+
+**Steward** holds the `steward` hat. A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). This persona works in the admin cockpit, the client app, the messaging agent, the public site and these docs.
+
+**Evaluator** holds the `evaluator` hat. A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. This persona works in the admin cockpit, the client app, the public site and these docs.
+
+**Funder** holds the `funder` hat. A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. This persona works in the admin cockpit, the client app, the public site and these docs.
+
+**Community Member** holds the `community` hat. A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. This persona works in the client app, the public site and these docs.
+
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+
+<details>
+<summary>Declared route literals</summary>
+
+Paths below are literals as declared in the route definitions and may be nested under a parent route.
 
 | Authority | Paths or segments |
 |---|---|
@@ -44,3 +61,5 @@ The ontology owns persona meaning. Route definitions own navigable paths. Paths 
 | Client canonical PWA routes | `/home/garden`, `/home`, `/home/login`, `/home/profile` |
 | Admin shell route tree | `*`, `gardens`, `gardens/:gardenId`, `gardens/:gardenId/*`, `login` |
 | Admin canvas route segments | `:assessmentId`, `:commitmentId`, `:historyEventId`, `:id`, `:id/edit`, `:workId`, `actions`, `activity`, `assess`, `assess/create`, `certify`, `certify/create`, `community`, `confirm`, `cookies`, `coordination`, `create`, `deploy`, `endowment`, `garden`, `governance`, `health`, `history`, `hub`, `hypercerts/:hypercertId`, `impact`, `members`, `overview`, `payouts`, `pool`, `pools`, `profile`, `resources`, `seed`, `settings`, `signal-pool/:poolType`, `strategies`, `treasury`, `vault`, `vault/deposit`, `vault/withdraw`, `work`, `work/submit` |
+
+</details>

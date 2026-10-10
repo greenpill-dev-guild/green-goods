@@ -65,6 +65,7 @@ const sidebars: SidebarsConfig = {
       label: 'Architecture',
       link: {type: 'doc', id: 'builders/architecture'},
       items: [
+        {type: 'doc', id: 'builders/architecture/personas', label: 'Personas and Surfaces'},
         {type: 'doc', id: 'builders/architecture/anatomy', label: 'Anatomy of a Work Submission'},
         {type: 'doc', id: 'builders/architecture/data-model', label: 'Data Model & Ontology'},
         {type: 'doc', id: 'builders/architecture/entity-matrix', label: 'Entity Matrix'},
@@ -131,7 +132,6 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
-        {type: 'doc', id: 'builders/reference/persona-surfaces', label: 'Persona Surfaces'},
         {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
         {type: 'doc', id: 'builders/reference/license', label: 'License'},
       ],

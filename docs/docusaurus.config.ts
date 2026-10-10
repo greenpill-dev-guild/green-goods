@@ -113,7 +113,10 @@ const config: Config = {
             ],
             to: '/builders/architecture/anatomy',
           },
-          {from: ['/builders/journeys/persona-surfaces'], to: '/builders/reference/persona-surfaces'},
+          {
+            from: ['/builders/journeys/persona-surfaces', '/builders/reference/persona-surfaces'],
+            to: '/builders/architecture/personas',
+          },
           {from: ['/builders/env-management'], to: '/builders/getting-started'},
           {
             from: [

@@ -15,6 +15,19 @@ const IMPORT_STATEMENT =
 
 const PROJECTION_TAG = /^[ \t]*<IntegrationProjection\s+id="([^"]+)"\s*\/>[ \t]*$/gm;
 const COPY_COMMAND_TAG = /<CopyCommand\s+command=(["'])(.*?)\1[^>]*\/>/g;
+const STATUS_TABLE_TAG = /^[ \t]*<IntegrationStatusTable\s*\/>[ \t]*$/gm;
+const ONBOARDING_TAG = /^[ \t]*<OnboardingProcedure\s*\/>[ \t]*$/gm;
+
+/** The per-integration status table as Markdown, the same facts the IntegrationStatusTable renders. */
+export function integrationStatusMarkdown(integrations) {
+  const lines = ["| Integration | Networks with recorded components | Indexed contracts |", "|---|---|---|"];
+  for (const [id, record] of Object.entries(integrations).sort(([a], [b]) => a.localeCompare(b))) {
+    const networks = record.networks.length ? record.networks.map((network) => `${network.name} (${network.status})`).join(", ") : "None recorded";
+    const indexed = record.indexedContracts.length ? record.indexedContracts.map((name) => `\`${name}\``).join(", ") : "none";
+    lines.push(`| [${record.display}](/builders/integrations/${id}) | ${networks} | ${indexed} |`);
+  }
+  return lines.join("\n");
+}
 
 // The generator encodes these five characters inside a CopyCommand attribute (scripts/docs/renderers.mjs).
 const decodeAttribute = (text) =>
@@ -73,16 +86,23 @@ function outsideFencedCode(text, transform) {
  * the Markdown of the data it renders; other components stay as written, so a reader can tell
  * where the site renders something interactive. Pages without their own H1 get one from the title.
  */
-export function markdownTwin(source, title, { integrations = null } = {}) {
+export function markdownTwin(source, title, { integrations = null, onboarding = null } = {}) {
   const withoutFrontmatter = source.replace(/^---\n[\s\S]*?\n---\n/, "");
-  const expandProjections = (text) =>
-    integrations
-      ? text.replace(PROJECTION_TAG, (tag, id) => {
+  const expandProjections = (text) => {
+    let result = text;
+    if (integrations) {
+      result = result
+        .replace(PROJECTION_TAG, (tag, id) => {
           const integration = integrations[id];
           if (!integration) throw new Error(`Unknown integration projection id in a Markdown twin: ${id}`);
           return projectionMarkdown(integration);
         })
-      : text;
+        .replace(STATUS_TABLE_TAG, () => integrationStatusMarkdown(integrations));
+    }
+    // ONBOARDING.md carries its own triple-backtick fences, so the twin wraps it in four.
+    if (onboarding) result = result.replace(ONBOARDING_TAG, () => `\`\`\`\`markdown\n${onboarding.trimEnd()}\n\`\`\`\``);
+    return result;
+  };
   const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))
     .replace(/\n{3,}/g, "\n\n")
     .trim();

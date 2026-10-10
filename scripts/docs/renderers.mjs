@@ -16,6 +16,7 @@ import {
   workflowInventory,
 } from "./source-readers.mjs";
 import {
+  EXPECTED_MUTATION_BOUNDARIES,
   readTaskRouting,
   validateTaskRouting,
 } from "../quality/task-routing-contract.mjs";
@@ -117,6 +118,18 @@ export function renderApiIndex({ root, sources, digest }) {
   return body;
 }
 
+// Where a persona's surface id lands in prose. Throws on an id the ontology check does not know.
+const SURFACE_LABELS = {
+  admin: "the admin cockpit",
+  client: "the client app",
+  agent: "the messaging agent",
+  community: "community channels",
+  public: "the public site",
+  docs: "these docs",
+};
+
+const listInProse = (items) => (items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
+
 export function renderPersonaSurfaces({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const clientRoutes = routeLiterals(root, declaredSource(sources, "packages/client/src/config/routes.tsx"));
@@ -128,17 +141,28 @@ export function renderPersonaSurfaces({ root, sources, digest }) {
   const adminShellRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/router.tsx"));
   const adminCanvasRoutes = routeLiterals(root, declaredSource(sources, "packages/admin/src/routes/views.tsx"));
   let body = pageHeader(
-    { title: "Persona Surfaces Matrix", slug: "/builders/reference/persona-surfaces", sources, digest },
-    "Persona Surfaces Matrix",
-    "The ontology owns persona meaning. Route definitions own navigable paths. Paths below are literals as declared and may be nested under a parent route."
+    { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
+    "Personas and Surfaces",
+    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means; the route definitions own the paths it navigates. Read this page before the work-submission trace, which names these actors at every step."
   );
   body += "## Personas\n\n| Persona | Hat | Surfaces | Definition |\n|---|---|---|---|\n";
   for (const persona of ontology.personas) body += `| ${esc(persona.display)} | \`${esc(persona.hat)}\` | ${persona.surfaces.map(esc).join(", ")} | ${esc(persona.definition)} |\n`;
-  body += "\n## Declared route literals\n\n| Authority | Paths or segments |\n|---|---|\n";
+  body += "\n## Where each persona works\n\n";
+  for (const persona of ontology.personas) {
+    const surfaces = persona.surfaces.map((surface) => {
+      const label = SURFACE_LABELS[surface];
+      if (!label) throw new Error(`Persona ${persona.id} names a surface without a prose label: ${surface}`);
+      return label;
+    });
+    body += `**${persona.display}** holds the \`${persona.hat}\` hat. ${persona.definition} This persona works in ${listInProse(surfaces)}.\n\n`;
+  }
+  if (ontology.personas_note) body += `${ontology.personas_note}\n\n`;
+  body += "<details>\n<summary>Declared route literals</summary>\n\nPaths below are literals as declared in the route definitions and may be nested under a parent route.\n\n| Authority | Paths or segments |\n|---|---|\n";
   body += `| Client route tree | ${clientRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
   body += `| Client canonical PWA routes | ${clientPwaRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
   body += `| Admin shell route tree | ${adminShellRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
   body += `| Admin canvas route segments | ${adminCanvasRoutes.map((value) => `\`${esc(value)}\``).join(", ")} |\n`;
+  body += "\n</details>\n";
   return body;
 }
 
@@ -517,20 +541,32 @@ export function renderSkills({ root, sources, digest }) {
     entry[match[2] === "README" ? "readme" : "skill"] = source;
     byName.set(match[1], entry);
   }
+  const skills = [...byName.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, entry]) => {
+      if (!entry.skill) throw new Error(`Skill ${name} is missing SKILL.md`);
+      const { purpose, fields } = entry.readme
+        ? readSkillReadme(root, declaredSource(sources, entry.readme))
+        : { purpose: skillFrontmatterDescription(root, declaredSource(sources, entry.skill)), fields: {} };
+      return { name, purpose, fields };
+    });
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    "Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. Each entry below comes from the skill's own folder, where its README and SKILL.md stay the source of truth."
+    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
   );
-  for (const [name, entry] of [...byName.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    if (!entry.skill) throw new Error(`Skill ${name} is missing SKILL.md`);
-    const { purpose, fields } = entry.readme
-      ? readSkillReadme(root, declaredSource(sources, entry.readme))
-      : { purpose: skillFrontmatterDescription(root, declaredSource(sources, entry.skill)), fields: {} };
-    body += `## ${name} {#${name}}\n\n${purpose}\n\n`;
-    const fieldLines = SKILL_README_FIELDS.filter((label) => fields[label]).map((label) => `- **${label}:** ${fields[label]}`);
+  // Table cells keep inline code but cannot carry a pipe.
+  const cell = (value) => String(value).replaceAll("|", "\\|");
+  body += "## Catalog\n\n| Skill | Use it when | How to invoke |\n|---|---|---|\n";
+  for (const skill of skills) {
+    body += `| [${skill.name}](#${skill.name}) | ${cell(skill.fields["When to use it"] ?? skill.purpose)} | ${cell(skill.fields["How to invoke"] ?? "See the entry below")} |\n`;
+  }
+  body += "\n";
+  for (const skill of skills) {
+    body += `## ${skill.name} {#${skill.name}}\n\n${skill.purpose}\n\n`;
+    const fieldLines = SKILL_README_FIELDS.filter((label) => skill.fields[label]).map((label) => `- **${label}:** ${skill.fields[label]}`);
     if (fieldLines.length) body += `${fieldLines.join("\n")}\n\n`;
-    body += `[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/${name})\n\n`;
+    body += `[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/${skill.name})\n\n`;
   }
   return body;
 }
@@ -592,22 +628,77 @@ export function renderGlossary({ root, sources, digest }) {
   return body;
 }
 
+// Reader-facing names for the mutation boundaries the routing contract declares. Every token in
+// the contract needs one, so an added boundary fails here instead of rendering as a raw token.
+const MUTATION_BOUNDARY_LABELS = {
+  "direct-bounded": "Direct, bounded edits",
+  "read-only-unless-persistence-requested": "Read only unless you ask it to persist",
+  "plan-artifacts-before-implementation": "Plan artifacts first; implementation after approval",
+  "diagnose-first-fix-when-requested": "Diagnose first; fix when asked",
+  "read-only-pinned-diff": "Read only, pinned to the diff under review",
+  "read-only-until-human-selection": "Read only until a person picks an option",
+  "read-only-pinned-proof": "Read only, pinned to the proof it certifies",
+  "read-only-numbered-findings": "Read only; returns numbered findings",
+  "approved-finding-ids-only": "Edits only the finding ids you approved",
+  "session-bounded-fix-and-revalidate": "Fixes bounded to the QA session, then revalidates",
+  "authorized-product-records-and-private-qa-rows": "Writes only authorized product records and private QA rows",
+  "current-actionable-feedback-and-bounded-siblings": "Current, actionable review feedback plus bounded sibling fixes",
+  "readiness-and-user-authorized-publish-actions": "Readiness checks; publishes only what you authorize",
+  "advisory-until-explicit-polish-scope": "Advisory until you name a polish scope",
+  "triage-then-scope-locked-edits": "Triage first, then edits locked to the agreed scope",
+};
+
+// Reading order for the task table. Every core task must appear in exactly one group.
+const TASK_GROUPS = [
+  { title: "Everyday work", intro: "Where most sessions start: answer, research, plan, or debug.", tasks: ["lookup-or-bounded-edit", "research", "planning", "debugging"] },
+  { title: "Review and readiness", intro: "Getting a change reviewed, answering review feedback, and deciding whether it can ship.", tasks: ["change-review", "pr-feedback", "pre-merge-readiness"] },
+  { title: "Architecture and repository health", intro: "Larger questions about structure, and the audits and cleanups that keep the repository honest.", tasks: ["architecture-discovery", "architecture-certification", "repository-audit", "approved-cleanup"] },
+  { title: "Product QA", intro: "Walking the product with a tester and turning what they find into records.", tasks: ["live-product-qa", "qa-notes-and-backlog"] },
+  { title: "Design and documents", intro: "Design direction and documentation feedback, both advisory until a scope is agreed.", tasks: ["design-direction", "doc-review-feedback"] },
+];
+
+export function assignTaskGroups(taskIds, groups = TASK_GROUPS) {
+  const seen = new Map();
+  const duplicated = [];
+  for (const group of groups) for (const id of group.tasks) { if (seen.has(id)) duplicated.push(id); seen.set(id, group.title); }
+  const unassigned = taskIds.filter((id) => !seen.has(id));
+  const unknown = [...seen.keys()].filter((id) => !taskIds.includes(id));
+  if (unassigned.length || unknown.length || duplicated.length) {
+    throw new Error(`Task routing grouping is out of date. Unassigned tasks: ${unassigned.join(", ") || "none"}. Unknown group members: ${unknown.join(", ") || "none"}. Listed twice: ${duplicated.join(", ") || "none"}.`);
+  }
+  return seen;
+}
+
+export function mutationBoundaryLabel(token) {
+  const label = MUTATION_BOUNDARY_LABELS[token];
+  if (!label) throw new Error(`Mutation boundary has no reader-facing label: ${token}`);
+  return label;
+}
+
 export function renderTaskRouting({ root, sources, digest }) {
   declaredSource(sources, ".claude/context/task-routing.json");
   const contract = readTaskRouting(root);
   const errors = validateTaskRouting(root, contract);
   if (errors.length) throw new Error(`Invalid task-routing authority:\n${errors.map((error) => `- ${error}`).join("\n")}`);
+  for (const token of Object.values(EXPECTED_MUTATION_BOUNDARIES)) mutationBoundaryLabel(token);
+  assignTaskGroups(contract.tasks.map((task) => task.id));
+  const byId = new Map(contract.tasks.map((task) => [task.id, task]));
 
   let body = pageHeader(
     { title: "Agent Task Routing", slug: "/builders/agentic/task-routing", sources, digest },
     "Agent Task Routing",
-    "Use the smallest workflow that matches the task. Skill frontmatter decides activation; this projection explains the boundary, expected output, and handoff for each core task."
+    "Routing is how a coding agent picks the right workflow for a request and stays inside it. Each core task below names the skill that handles it, what the agent may change while doing so (its mutation boundary), what it hands back, and where it sends work that turns out to be something else. The skills' own frontmatter decides activation; this page is the map."
   );
-  body += "| Task | Skill | Mutation boundary | Output | Handoff |\n|---|---|---|---|---|\n";
-  for (const task of contract.tasks) {
-    body += `| ${esc(task.label)} | ${task.skill ? `\`${esc(task.skill)}\`` : "No skill"} | \`${esc(task.mutationBoundary)}\` | ${esc(task.output)} | ${esc(task.handoff)} |\n`;
+  body += "## How an agent uses this\n\n1. Match the request to one task below; the smallest workflow that fits wins.\n2. Stay inside that task's mutation boundary. A read-only task reports; a bounded task edits only what the boundary names.\n3. Produce the task's output, and route anything else through its handoff instead of absorbing it.\n\n## Core tasks\n\n";
+  for (const group of TASK_GROUPS) {
+    body += `### ${group.title}\n\n${group.intro}\n\n| Task | Skill | What the agent may change | Output | Handoff |\n|---|---|---|---|---|\n`;
+    for (const id of group.tasks) {
+      const task = byId.get(id);
+      body += `| ${esc(task.label)} | ${task.skill ? `[\`${esc(task.skill)}\`](/builders/agentic/skills#${task.skill})` : "No skill"} | ${esc(mutationBoundaryLabel(task.mutationBoundary))} (\`${esc(task.mutationBoundary)}\`) | ${esc(task.output)} | ${esc(task.handoff)} |\n`;
+    }
+    body += "\n";
   }
-  body += "\n## Authority order\n\n";
+  body += "## Authority order\n\nWhen sources disagree, the earlier one wins.\n\n";
   for (const [index, authority] of contract.authorityOrder.entries()) body += `${index + 1}. ${esc(authority)}\n`;
   body += "\n## Ownership and synchronization\n\n";
   body += "The upstream surface owns truth. Public documentation explains or projects that truth; it does not publish live Plan Hub state, Linear status, or private QA evidence.\n\n";
@@ -627,18 +718,59 @@ export function renderTaskRouting({ root, sources, digest }) {
   return body;
 }
 
+function describeTriggers(triggers) {
+  const code = (value) => `\`${esc(value)}\``;
+  const parts = [];
+  if (triggers.pull_request) {
+    parts.push(triggers.pull_request.paths.length ? `pull requests that touch its paths (${triggers.pull_request.paths.length} path filters)` : "every pull request");
+  }
+  if (triggers.push) {
+    const { branches, tags, paths } = triggers.push;
+    if (tags.length) parts.push(`pushed tags matching ${tags.map(code).join(", ")}`);
+    else parts.push(`pushes to ${branches.map(code).join(" and ") || "any branch"}${paths.length ? " that touch its paths" : ""}`);
+  }
+  if (triggers.schedule) parts.push(`a schedule (${triggers.schedule.crons.map((cron) => `${code(cron)} UTC`).join(", ")})`);
+  if (triggers.workflow_dispatch) parts.push("manual dispatch");
+  if (triggers.workflow_call) parts.push("a call from another workflow");
+  return parts.length ? parts.join("; ") : "no declared trigger";
+}
+
 export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
+  const catalog = readJson(root, declaredSource(sources, "scripts/data/workflow-catalog.json")).workflows ?? {};
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
+  const missing = workflows.filter((workflow) => !catalog[workflow.source]).map((workflow) => workflow.source);
+  const orphaned = Object.keys(catalog).filter((source) => !workflows.some((workflow) => workflow.source === source));
+  if (missing.length || orphaned.length) {
+    throw new Error(`Workflow catalog is out of date. Missing entries: ${missing.join(", ") || "none"}. Entries without a workflow: ${orphaned.join(", ") || "none"}.`);
+  }
+  const required = workflows.filter((workflow) => catalog[workflow.source].required);
   let body = pageHeader(
-    { title: "GitHub Actions", slug: "/builders/quality/gh-actions", sources, digest },
-    "GitHub Actions",
-    "Workflow files own CI triggers and jobs. Root package scripts own reusable local commands. This projection is an inventory, not a claim that a workflow is currently passing."
+    { title: "CI & GitHub Actions", slug: "/builders/quality/gh-actions", sources, digest },
+    "CI & GitHub Actions",
+    `${workflows.length} workflows run the repository's continuous integration. Only ${required.map((workflow) => workflow.display).join(", ") || "none"} is a required status: the per-package workflows are path-filtered, so each runs only when its files change and the gate waits for exactly the set a pull request should trigger. Scheduled and manual workflows cover the slow or operator-driven checks that do not belong on every pull request. Purpose and use case come from \`scripts/data/workflow-catalog.json\`; triggers and jobs are read from the workflow files, and this page says nothing about whether a run is currently passing.`,
+    { imports: [COPY_COMMAND_IMPORT] }
   );
-  body += "## Workflows\n\n| Workflow | File | Jobs |\n|---|---|---|\n";
-  for (const workflow of workflows) body += `| ${esc(workflow.display)} | \`${workflow.source}\` | ${workflow.jobs.map((job) => `\`${job}\``).join(", ") || "none"} |\n`;
-  body += "\n## Root quality and build scripts\n\n| Script | Command |\n|---|---|\n";
-  for (const [name, command] of Object.entries(rootManifest.scripts).filter(([name]) => /^(build|check|test|lint|format)/.test(name)).sort(([a], [b]) => a.localeCompare(b))) body += `| \`${esc(name)}\` | \`${esc(command)}\` |\n`;
+  body += "## Workflows\n\n| Workflow | Purpose | Runs on | Required |\n|---|---|---|---|\n";
+  for (const workflow of workflows) {
+    const entry = catalog[workflow.source];
+    body += `| [${esc(workflow.display)}](#${workflow.name.replace(/\.ya?ml$/, "")}) | ${esc(entry.purpose)} | ${describeTriggers(workflow.triggers)} | ${entry.required ? "Yes" : "No"} |\n`;
+  }
+  body += "\n";
+  for (const workflow of workflows) {
+    const entry = catalog[workflow.source];
+    const anchor = workflow.name.replace(/\.ya?ml$/, "");
+    body += `### ${esc(workflow.display)} {#${anchor}}\n\n${entry.purpose}\n\n`;
+    body += `- **Use it when:** ${entry.useCase}\n`;
+    body += `- **Runs on:** ${describeTriggers(workflow.triggers)}.\n`;
+    body += `- **Jobs:** ${workflow.jobs.map((job) => `\`${esc(job)}\``).join(", ") || "none"}.\n`;
+    body += `- **Required status:** ${entry.required ? "yes, branch protection waits for it" : "no, the CI Gate waits for it only when its paths change"}.\n`;
+    body += `- **File:** [${esc(workflow.source)}](https://github.com/greenpill-dev-guild/green-goods/blob/develop/${workflow.source})\n\n`;
+  }
+  body += "## Root quality and build scripts\n\nThe workflows call these root scripts, so running one locally reproduces that step.\n\n| Script | Run it | What it runs |\n|---|---|---|\n";
+  for (const [name, command] of Object.entries(rootManifest.scripts).filter(([name]) => /^(build|check|test|lint|format)/.test(name)).sort(([a], [b]) => a.localeCompare(b))) {
+    body += `| \`${esc(name)}\` | ${copyCommand(`bun run ${name}`)} | \`${esc(command)}\` |\n`;
+  }
   return body;
 }
 
@@ -773,26 +905,102 @@ export function renderCommands({ root, sources, digest }) {
   return body;
 }
 
+// Every operation lands in the group of its first command word, so a new verb fails here
+// instead of rendering without a heading.
+const OPERATION_GROUPS = [
+  { verb: "deploy", title: "Deploy", intro: "Bring contracts, modules, and garden fixtures onto a network." },
+  { verb: "upgrade", title: "Upgrade", intro: "Move an upgradeable module to a new implementation." },
+  { verb: "verify", title: "Verify", intro: "Check that what a network records matches the source and the recorded policy." },
+  { verb: "status", title: "Status", intro: "Read-only reports; no mode needed." },
+  { verb: "release", title: "Release", intro: "Run a release session step by step with its transaction boundaries." },
+  { verb: "settlement", title: "Settlement", intro: "Operate the settlement lane." },
+  { verb: "pooling", title: "Commitment pooling", intro: "Operate the commitment pooling module." },
+  { verb: "migrate", title: "Migrate", intro: "Move recorded state to a newer contract version." },
+  { verb: "repair", title: "Repair", intro: "Reconcile a deployment with its artifact." },
+  { verb: "ens", title: "ENS", intro: "Manage garden names across the ENS registry and receiver." },
+  { verb: "marketplace", title: "Hypercert marketplace", intro: "Manage the marketplace adapter and its strategies." },
+  { verb: "minting", title: "Minting", intro: "Mint from approved work." },
+  { verb: "ipfs", title: "IPFS", intro: "Upload content and record its identifiers." },
+  { verb: "indexer", title: "Indexer", intro: "Coordinate the Envio indexer around a deployment." },
+  { verb: "fork", title: "Fork", intro: "Prepare a local Arbitrum fork for rehearsal." },
+];
+
+export function assignOperationGroups(operations, groups = OPERATION_GROUPS) {
+  const grouped = new Map(groups.map((group) => [group.verb, []]));
+  const unknown = [];
+  for (const operation of operations) {
+    const verb = operation.command.split(" ")[0];
+    if (grouped.has(verb)) grouped.get(verb).push(operation);
+    else unknown.push(operation.command);
+  }
+  const empty = groups.filter((group) => grouped.get(group.verb).length === 0).map((group) => group.verb);
+  if (unknown.length || empty.length) {
+    throw new Error(`Contract operation grouping is out of date. Commands without a group: ${unknown.join(", ") || "none"}. Groups without a command: ${empty.join(", ") || "none"}.`);
+  }
+  return grouped;
+}
+
+const operationOptions = (operation) => [
+  ...operation.flags.map((flag) => `--${flag}`),
+  ...operation.values.map((flag) => `--${flag} <value>${operation.required?.includes(flag) ? " (required)" : ""}`),
+];
+
 export function renderContractOperations({ root, sources, digest }) {
   declaredSource(sources, "packages/contracts/script/cli/operations.mjs");
   const migration = readJson(root, declaredSource(sources, "packages/contracts/config/command-migration.json"));
+  const grouped = assignOperationGroups(OPERATIONS);
+  const code = (value) => `\`${esc(value)}\``;
   let body = pageHeader(
     { title: "Contract operations", slug: "/builders/packages/contract-operations", sources, digest },
     "Contract operations",
-    "Generated from the package-owned CLI definitions. Use `bun run contracts -- help` for discovery, or append `--help` to a command. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode."
+    `Generated from the package-owned CLI definitions: ${OPERATIONS.length} operations in ${OPERATION_GROUPS.length} groups. Every command runs as \`bun run contracts -- <command>\` from the repository root; \`bun run contracts -- help\` lists them and \`--help\` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.`,
+    { imports: [COPY_COMMAND_IMPORT] }
   );
   body += "`--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.\n\n";
   body += "## Execution modes\n\n| Mode | Meaning |\n|---|---|\n| preflight | Compile/artifact checks without RPC |\n| simulate | RPC simulation without broadcasting |\n| plan | Produce transaction-plan artifacts |\n| broadcast | Execute transactions |\n| upload | Upload content and write associated artifacts |\n\n";
   body += "Only the modes listed for each operation are accepted. Read-only operations do not require a mode. Release sessions retain the existing operator's stage, commit, credential, and transaction-boundary checks.\n\n";
-  body += "## Operations\n\n| Command after `bun run contracts --` | Networks | Modes | Additional options |\n|---|---|---|---|\n";
-  for (const operation of OPERATIONS) {
-    const command = `${operation.command}${operation.positional ? " <input>" : ""}`;
-    const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
-    const options = [...operation.flags.map((flag) => `--${flag}`), ...operation.values.map((flag) => `--${flag} <value>${operation.required?.includes(flag) ? " (required)" : ""}`)].join(", ") || "none";
-    body += `| <code>${esc(command).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} | <code>${esc(options).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> |\n`;
+  body += "## Operations\n\nCommands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked.\n\n";
+  for (const group of OPERATION_GROUPS) {
+    const operations = grouped.get(group.verb);
+    body += `### ${group.title} (${operations.length})\n\n${group.intro}\n\n`;
+    const clusters = new Map();
+    for (const operation of operations) {
+      const key = operationOptions(operation).join("\u0000");
+      if (!clusters.has(key)) clusters.set(key, []);
+      clusters.get(key).push(operation);
+    }
+    const ordered = [...clusters.values()].sort((a, b) => b.length - a.length || a[0].command.localeCompare(b[0].command));
+    for (const cluster of ordered) {
+      const options = operationOptions(cluster[0]);
+      body += options.length ? `Options: ${options.map(code).join(", ")}.\n\n` : "No options beyond the command itself.\n\n";
+      body += "| Command | Networks | Modes |\n|---|---|---|\n";
+      for (const operation of cluster) {
+        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}`;
+        const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
+        body += `| ${copyCommand(command)} | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} |\n`;
+      }
+      body += "\n";
+    }
   }
-  body += "\n## Command migration\n\nOld names below are historical labels. Replacements run from the repository root. Explicit network and execution mode replace implicit defaults; operation-owned safeguards still apply.\n\n";
-  body += "| Previous manifest | Retired name | Replacement |\n|---|---|---|\n";
-  for (const entry of migration.entries) body += `| ${esc(entry.scope)} | <code>${esc(entry.name)}</code> | <code>${esc(entry.replacement).replaceAll("<", "&lt;").replaceAll(">", "&gt;")}</code> |\n`;
+  body += `## Command migration\n\nThe ${migration.entries.length} retired script names below are historical labels, kept so an old runbook still resolves. Replacements run from the repository root with an explicit network and execution mode; a recorded \`--sender\` address is shown as \`<sender>\`, so supply your own.\n\n`;
+  body += `<details>\n<summary>Command migration ledger (${migration.entries.length} retired names)</summary>\n\n| Previous manifest | Retired name | Replacement |\n|---|---|---|\n`;
+  for (const entry of migration.entries) {
+    const replacement = String(entry.replacement).replace(/--sender 0x[a-fA-F0-9]{40}/g, "--sender <sender>");
+    body += `| ${esc(entry.scope)} | \`${esc(entry.name)}\` | ${copyCommand(replacement)} |\n`;
+  }
+  body += "\n</details>\n";
   return body;
+}
+
+/** The repository's onboarding procedure as data, so a page can embed it with a copy button. */
+export function renderOnboardingData({ root, sources, digest }) {
+  const text = readText(root, declaredSource(sources, "ONBOARDING.md"));
+  const payload = {
+    $generated: `GENERATED FILE: do not edit. ${regenerationHint("agentic")}`,
+    generator: GENERATOR_PATH,
+    digest,
+    source: "ONBOARDING.md",
+    text,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
 }

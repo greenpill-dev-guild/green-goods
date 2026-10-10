@@ -211,4 +211,4 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 - Spatial patterns: [surfaces.md](./surfaces.md)
 - Ecosystem archetypes: [ecosystem.md](./ecosystem.md)
 - Implementation details: [implementation.md](./implementation.md)
-- Green Goods personas: `docs/docs/builders/reference/persona-surfaces.mdx#personas`
+- Green Goods personas: `docs/docs/builders/architecture/personas.mdx#personas`

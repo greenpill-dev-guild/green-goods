@@ -26,9 +26,21 @@ import {
   selectSafeFields,
   supportedChainIds,
   sourcePathsContaining,
+  workflowInventory,
   workflowSourcePaths,
 } from "./source-readers.mjs";
-import { COMMAND_MANIFEST_ORDER, assignDataModelGroups, copyCommand, orderCommandManifests, renderSkills, stateLabel } from "./renderers.mjs";
+import {
+  COMMAND_MANIFEST_ORDER,
+  assignDataModelGroups,
+  assignOperationGroups,
+  assignTaskGroups,
+  copyCommand,
+  mutationBoundaryLabel,
+  orderCommandManifests,
+  renderSkills,
+  stateLabel,
+} from "./renderers.mjs";
+import { EXPECTED_MUTATION_BOUNDARIES } from "../quality/task-routing-contract.mjs";
 import { selectExpectedWorkflows } from "../quality/select-validation.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -286,12 +298,17 @@ test("every projection source is routed to the Docs workflow", () => {
   }
 });
 
-test("persona surfaces consume the PWA and admin canvas route authorities", () => {
+test("personas page leads with who the actors are and keeps the route literals as an appendix", () => {
   const projection = createProjections(REPO_ROOT).find(
-    (item) => item.output === "docs/docs/builders/reference/persona-surfaces.mdx",
+    (item) => item.output === "docs/docs/builders/architecture/personas.mdx",
   );
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /^title: Personas and Surfaces$/m);
+  assert.match(rendered, /^slug: \/builders\/architecture\/personas$/m);
+  assert.ok(rendered.indexOf("## Personas") < rendered.indexOf("## Where each persona works"));
+  assert.ok(rendered.indexOf("## Where each persona works") < rendered.indexOf("<details>"));
+  assert.match(rendered, /\*\*Gardener\*\* holds the `gardener` hat\./);
   assert.match(rendered, /Client canonical PWA routes[^\n]*`\/home`/);
   assert.match(rendered, /Admin canvas route segments[^\n]*`hub`/);
 });
@@ -402,7 +419,9 @@ test("skills catalog projects every repository skill", () => {
       assert.ok(entry.includes(`- **${label}:**`), `${skill} must say ${label} (add it to its README)`);
     }
   }
-  assert.match(rendered, /tree\/main\/\.claude\/skills\/research/);
+  assert.match(rendered, /tree\/develop\/\.claude\/skills\/research/);
+  assert.ok(rendered.indexOf("## Catalog") < rendered.indexOf(`## ${skills[0]} {#`));
+  assert.equal((rendered.match(/^\| \[[a-z-]+\]\(#[a-z-]+\) \| /gm) ?? []).length, skills.length);
 });
 
 test("integration projections move to one data file with per-network and indexing facts", () => {
@@ -595,4 +614,67 @@ test("entity matrix derives integration status from the catalog and the artifact
   assert.match(rendered, /^\| Silvi \| Vocabulary mapping only, no code integration \|/m);
   assert.match(rendered, /^\| ENS \| \[ENS\]\(\/builders\/integrations\/ens\) \| [^|]*Sepolia Testnet \(Deployed\)/m);
   assert.match(rendered, /^- \*\*Unlock\*\*: /m);
+});
+
+test("workflow catalog covers every workflow file, only CI Gate is required, and the page explains each run", () => {
+  const catalog = readJson(REPO_ROOT, "scripts/data/workflow-catalog.json").workflows;
+  assert.deepEqual(Object.keys(catalog).sort(), workflowSourcePaths(REPO_ROOT));
+  assert.deepEqual(Object.entries(catalog).filter(([, entry]) => entry.required).map(([source]) => source), [".github/workflows/ci-gate.yml"]);
+  for (const [source, entry] of Object.entries(catalog)) {
+    assert.ok(entry.purpose.trim().length > 20, `${source} purpose`);
+    assert.ok(entry.useCase.trim().length > 10, `${source} use case`);
+  }
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/quality/gh-actions.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /^\| \[CI Gate\]\(#ci-gate\) \| [^|]+\| every pull request \| Yes \|$/m);
+  assert.match(rendered, /^### Contracts Nightly \{#contracts-nightly\}$/m);
+  assert.ok(rendered.includes("`17 3 * * *` UTC"));
+  assert.ok(rendered.includes('<CopyCommand command="bun run test" />'));
+});
+
+test("workflow inventory reads display name, sorted jobs, and triggers from the YAML", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), "green-goods-workflow-inventory-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(path.join(root, ".github/workflows"), { recursive: true });
+  writeFileSync(
+    path.join(root, ".github/workflows/x.yml"),
+    'name: Example\non:\n  push:\n    branches: [main]\n    paths:\n      - "a/**"\n  pull_request:\n  schedule:\n    - cron: "1 2 * * *"\n  workflow_dispatch: {}\njobs:\n  b:\n    runs-on: ubuntu-latest\n  a:\n    runs-on: ubuntu-latest\n',
+  );
+  const [workflow] = workflowInventory(root, [".github/workflows/x.yml"]);
+  assert.equal(workflow.display, "Example");
+  assert.deepEqual(workflow.jobs, ["a", "b"]);
+  assert.deepEqual(workflow.triggers.push.branches, ["main"]);
+  assert.deepEqual(workflow.triggers.push.paths, ["a/**"]);
+  assert.deepEqual(workflow.triggers.pull_request.paths, []);
+  assert.deepEqual(workflow.triggers.schedule.crons, ["1 2 * * *"]);
+  assert.ok("workflow_dispatch" in workflow.triggers);
+});
+
+test("contract operations group by verb, factor common options, and keep sender addresses out of the ledger", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/contract-operations.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const headings = [...rendered.matchAll(/^### (.+?) \(\d+\)$/gm)].map((match) => match[1]);
+  assert.ok(headings.includes("Deploy") && headings.includes("Settlement"), headings.join(", "));
+  assert.equal((rendered.match(/<CopyCommand command="bun run contracts -- /g) ?? []).length >= 92, true);
+  assert.match(rendered, /^Options: `--save-artifacts`/m);
+  const deploySection = rendered.slice(rendered.indexOf("### Deploy ("), rendered.indexOf("### Upgrade ("));
+  assert.ok((deploySection.match(/--first-support-metadata-uri/g) ?? []).length <= 2, "the deploy option list prints once per cluster");
+  assert.doesNotMatch(rendered, /0x[a-fA-F0-9]{40}/);
+  assert.ok(rendered.includes("--sender &lt;sender&gt;"));
+  assert.ok(rendered.indexOf("<details>") < rendered.indexOf("| Previous manifest |"));
+  assert.throws(() => assignOperationGroups([{ command: "teleport garden" }]), /Commands without a group: teleport garden/);
+});
+
+test("task routing labels every mutation boundary and places every core task in one group", () => {
+  for (const token of Object.values(EXPECTED_MUTATION_BOUNDARIES)) assert.ok(mutationBoundaryLabel(token).length > 5);
+  assert.throws(() => mutationBoundaryLabel("teleport-only"), /no reader-facing label/);
+  const ids = Object.keys(EXPECTED_MUTATION_BOUNDARIES);
+  assert.equal(assignTaskGroups(ids).size, ids.length);
+  assert.throws(() => assignTaskGroups([...ids, "new-task"]), /Unassigned tasks: new-task/);
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/agentic/task-routing.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  assert.match(rendered, /^## How an agent uses this$/m);
+  assert.match(rendered, /^### Everyday work$/m);
+  assert.ok(rendered.includes("Direct, bounded edits (`direct-bounded`)"));
+  assert.ok(rendered.indexOf("## Core tasks") < rendered.indexOf("## Authority order"));
 });

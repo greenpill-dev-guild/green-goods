@@ -8,3 +8,5 @@ export {NextBestAction} from "./NextBestAction";
 export {ProtocolRevenueExplorer} from "./ProtocolRevenueExplorer";
 export {IntegrationProjection} from "./IntegrationProjection";
 export {CopyCommand} from "./CopyCommand";
+export {IntegrationStatusTable} from "./IntegrationStatusTable";
+export {OnboardingProcedure} from "./OnboardingProcedure";

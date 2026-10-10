@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {describe, test} from "node:test";
 
-import {inlineCopyCommands, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
+import {inlineCopyCommands, integrationStatusMarkdown, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
 
 describe("markdown twins", () => {
   test("serve each page at its URL plus .md", () => {
@@ -118,5 +118,26 @@ describe("copy-command tags", () => {
   test("stay literal inside fenced code", () => {
     const source = '---\ntitle: T\n---\n\n# T\n\n```md\n<CopyCommand command="bun run dev" />\n```\n';
     assert.ok(markdownTwin(source, "T").includes('<CopyCommand command="bun run dev" />'));
+  });
+});
+
+describe("status table and onboarding expansions", () => {
+  const integrations = {
+    karma: {display: "Karma GAP", networks: [{chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["karmaGAPModule"]}], totalNetworks: 4, indexedContracts: ["KarmaGAPModule"]},
+    ens: {display: "ENS", networks: [], totalNetworks: 4, indexedContracts: []},
+  };
+
+  test("render the integration status table the overview embeds", () => {
+    const twin = markdownTwin("---\ntitle: I\n---\n\n# I\n\n<IntegrationStatusTable />\n", "I", {integrations});
+    assert.ok(twin.includes("| [ENS](/builders/integrations/ens) | None recorded | none |"), twin);
+    assert.ok(twin.includes("| [Karma GAP](/builders/integrations/karma) | Arbitrum One (Deployed) | `KarmaGAPModule` |"), twin);
+    assert.equal(integrationStatusMarkdown(integrations).split("\n").length, 4);
+  });
+
+  test("render the onboarding procedure in a four-backtick fence so its own fences survive", () => {
+    const text = "# Onboarding\n\n```bash\nbun run dev\n```\n";
+    const twin = markdownTwin("---\ntitle: G\n---\n\n# G\n\n<OnboardingProcedure />\n", "G", {onboarding: text});
+    assert.ok(twin.includes("````markdown\n# Onboarding\n\n```bash\nbun run dev\n```\n````"), twin);
+    assert.ok(markdownTwin("# G\n\n<OnboardingProcedure />\n", "G").includes("<OnboardingProcedure />"));
   });
 });

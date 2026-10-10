@@ -25,6 +25,7 @@ export default function llmsTwinsPlugin(context) {
       const projections = JSON.parse(
         await readFile(path.join(context.siteDir, "src/data/integration-projections.json"), "utf8"),
       );
+      const onboarding = JSON.parse(await readFile(path.join(context.siteDir, "src/data/onboarding.json"), "utf8"));
       const pages = [];
       for (const doc of docs) {
         const source = path.join(context.siteDir, doc.source.replace(/^@site\//, ""));
@@ -32,6 +33,7 @@ export default function llmsTwinsPlugin(context) {
         await mkdir(path.dirname(twin), {recursive: true});
         const markdown = markdownTwin(await readFile(source, "utf8"), doc.title, {
           integrations: projections.integrations,
+          onboarding: onboarding.text,
         });
         await writeFile(twin, markdown);
         // Docusaurus's automatic excerpt can pick up a generated banner, so only a hand-written

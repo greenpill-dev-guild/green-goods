@@ -7,6 +7,7 @@ import {
   renderApiIndex,
   integrationNetworkRecords,
   renderCommands,
+  renderOnboardingData,
   renderContractOperations,
   renderDeploymentStatus,
   renderDataModel,
@@ -99,7 +100,7 @@ export function createProjections(root = REPO_ROOT) {
     ], render: renderCommands },
     { scope: "package", output: "docs/docs/builders/packages/contract-operations.mdx", sources: ["packages/contracts/script/cli/operations.mjs", "packages/contracts/config/command-migration.json"], render: renderContractOperations },
     { scope: "package", output: "docs/docs/builders/packages/api-index.mdx", sources: [...PACKAGE_MANIFESTS, "packages/shared/src/public-contracts/routes.ts", ...publicAgentRoutes], render: renderApiIndex },
-    { scope: "package", output: "docs/docs/builders/reference/persona-surfaces.mdx", sources: [ONTOLOGY, "packages/client/src/config/routes.tsx", "packages/client/src/config/pwaRouting.ts", "packages/admin/src/router.tsx", "packages/admin/src/routes/views.tsx"], render: renderPersonaSurfaces },
+    { scope: "package", output: "docs/docs/builders/architecture/personas.mdx", sources: [ONTOLOGY, "packages/client/src/config/routes.tsx", "packages/client/src/config/pwaRouting.ts", "packages/admin/src/router.tsx", "packages/admin/src/routes/views.tsx"], render: renderPersonaSurfaces },
     { scope: "integration", output: "docs/docs/builders/reference/deployments.mdx", sources: integrationCommon, render: renderDeploymentStatus },
     {
       scope: "integration",
@@ -125,10 +126,11 @@ export function createProjections(root = REPO_ROOT) {
         return renderEntityMatrixMdx(sidecar, { sources, digest, integrations });
       },
     },
-    { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", ...workflows], render: renderGitHubActions },
+    { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", "scripts/data/workflow-catalog.json", ...workflows], render: renderGitHubActions },
     { scope: "qa", output: "docs/docs/builders/quality/test-cases.mdx", sources: ["package.json", "scripts/data/qa-test-catalog.json", "scripts/data/validation-policy.json", "playwright.config.ts", "packages/client/vitest.config.ts", "packages/admin/vitest.config.ts", "packages/shared/vitest.config.ts", "packages/agent/vitest.config.ts"], render: renderQaCatalog },
     { scope: "agentic", output: "docs/docs/builders/agentic/task-routing.mdx", sources: [TASK_ROUTING, ...routedSkillSources, "scripts/quality/task-routing-contract.mjs"], render: renderTaskRouting },
     { scope: "agentic", output: "docs/docs/builders/agentic/skills.mdx", sources: skillCatalogSources(root), render: renderSkills },
+    { scope: "agentic", output: "docs/src/data/onboarding.json", sources: ["ONBOARDING.md"], render: renderOnboardingData },
   ];
 }
 

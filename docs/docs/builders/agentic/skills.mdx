@@ -66,7 +66,25 @@ source_of_truth:
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Skills Catalog
 
-Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. Each entry below comes from the skill's own folder, where its README and SKILL.md stay the source of truth.
+Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. 13 skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.
+
+## Catalog
+
+| Skill | Use it when | How to invoke |
+|---|---|---|
+| [audit](#audit) | When you want to know whether the repo is healthy, what has drifted, or whether a cleanup pass is worth running. | Type `/audit` (or `/audit drift` for the quick drift classifier). |
+| [clean](#clean) | After an audit, once you've agreed which cleanup work is worth doing across the codebase. | Type `/clean` after audit findings are accepted; `--dry-run` and `--scope` bound it. |
+| [debug](#debug) | Whenever something is broken: a bug report, an error or stack trace, a failing test or build, or an incident. | No command needed; describing the problem activates it. |
+| [design](#design) | Before you build a new view or component, during a UI polish pass, or when you're preparing prompts for an AI design tool. | Loads by context for design-direction questions and UI work. |
+| [doc-feedback](#doc-feedback) | When the team has finished reviewing a Google Doc and you have its .docx export. | Type `/doc-feedback` once the team has finished reviewing a doc. |
+| [module-seams-review](#module-seams-review) | For import-boundary or barrel migrations, testability reviews, or checking how modules depend on each other. It isn't meant for ordinary small diffs. | Describe a modules-and-seams review intent to activate it. |
+| [plan](#plan) | When work needs a plan before code: a new feature, an architecture improvement, or a change that spans several packages. | No slash command; planning intent ("plan this", "break down X") activates it. |
+| [qa-session](#qa-session) | While you walk the product live, with a partner, or from a recorded transcript, and want issues fixed as you find them. | Type `/qa-session` or announce a QA walk. |
+| [qa-triage](#qa-triage) | After a QA call or Build Sync, or when a qa-session hands over findings it deferred. | Type `/qa-triage` after a QA call or handoff. |
+| [research](#research) | When a product, architecture, or implementation question needs evidence before anyone decides. | Describe the bounded question; research intent activates it. |
+| [resolve-pr-comments](#resolve-pr-comments) | When a pull request has review threads or requested changes to work through. | Ask to address or resolve a PR's review comments. |
+| [review](#review) | Before merging, or any time you want to know whether a PR, branch, or set of changes is ready. | Type `/review [package\|PR\|path]`. |
+| [ship](#ship) | When your change is ready to commit, push, or open as a pull request. | Commit, push, or PR intent activates it. |
 
 ## audit {#audit}
 
@@ -76,7 +94,7 @@ The repo-health check. Audit sweeps Green Goods for drift and decay: dead code, 
 - **What you get:** Findings sorted by where they should go next: a quick fix, a cleanup run, or a Linear issue.
 - **How to invoke:** Type `/audit` (or `/audit drift` for the quick drift classifier).
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/audit)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/audit)
 
 ## clean {#clean}
 
@@ -86,7 +104,7 @@ Scope-locked cleanup at scale. Clean runs eight focused assessment lanes over th
 - **What you get:** Cleanup changes limited to the scope you locked, worked one assessment lane at a time.
 - **How to invoke:** Type `/clean` after audit findings are accepted; `--dry-run` and `--scope` bound it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/clean)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/clean)
 
 ## debug {#debug}
 
@@ -96,7 +114,7 @@ The bug entry point. Describe a bug, paste a stack trace, or report a failing bu
 - **What you get:** A diagnosis grounded in evidence and a fix through the lane that fits the problem.
 - **How to invoke:** No command needed; describing the problem activates it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/debug)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/debug)
 
 ## design {#design}
 
@@ -106,7 +124,7 @@ The keeper of the Warm Earth design language. Design holds the direction for sha
 - **What you get:** Direction grounded in the Warm Earth system: which paradigm and materials a view should use, and the lenses to review the result against.
 - **How to invoke:** Loads by context for design-direction questions and UI work.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/design)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/design)
 
 ## doc-feedback {#doc-feedback}
 
@@ -116,7 +134,7 @@ Turns a reviewed Google Doc into tracked work. Point it at a .docx export carryi
 - **What you get:** A markdown record of every comment and tracked change, then a guided pass that addresses each one.
 - **How to invoke:** Type `/doc-feedback` once the team has finished reviewing a doc.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/doc-feedback)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/doc-feedback)
 
 ## module-seams-review {#module-seams-review}
 
@@ -126,7 +144,7 @@ A deep, read-only review of module boundaries: public exports, dependency direct
 - **What you get:** A read-only report on boundaries, exports, dependency direction, test seams, and mock fidelity.
 - **How to invoke:** Describe a modules-and-seams review intent to activate it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/module-seams-review)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/module-seams-review)
 
 ## plan {#plan}
 
@@ -136,7 +154,7 @@ Planning and execution for Green Goods. Plan creates structured implementation p
 - **What you get:** A plan hub in `.plans/` with the spec, lanes, and validation proof, mirrored to Linear so everyone can follow along.
 - **How to invoke:** No slash command; planning intent ("plan this", "break down X") activates it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/plan)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/plan)
 
 ## qa-session {#qa-session}
 
@@ -146,7 +164,7 @@ Live product QA with fixes in the loop. Run it during a walk of the product (pai
 - **What you get:** Stable records of what you saw, fixes for small issues on the spot, and a clean handoff to qa-triage for the rest.
 - **How to invoke:** Type `/qa-session` or announce a QA walk.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-session)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/qa-session)
 
 ## qa-triage {#qa-triage}
 
@@ -156,7 +174,7 @@ Turns QA notes into tracked records. After a Build Sync or a qa-session handoff,
 - **What you get:** Scope-locked Linear issues and QA sheet rows, filed only after you confirm them.
 - **How to invoke:** Type `/qa-triage` after a QA call or handoff.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/qa-triage)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/qa-triage)
 
 ## research {#research}
 
@@ -166,7 +184,7 @@ Evidence-first answers before decisions. Research reconciles repository and prim
 - **What you get:** A short brief that says how well established each conclusion is, ready for the decision it informs.
 - **How to invoke:** Describe the bounded question; research intent activates it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/research)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/research)
 
 ## resolve-pr-comments {#resolve-pr-comments}
 
@@ -176,7 +194,7 @@ Works a pull request's review feedback to done. It validates each unresolved thr
 - **What you get:** Proven fixes for every valid comment, pushed through the gate. It replies on GitHub or resolves threads only when you say so.
 - **How to invoke:** Ask to address or resolve a PR's review comments.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/resolve-pr-comments)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/resolve-pr-comments)
 
 ## review {#review}
 
@@ -186,7 +204,7 @@ The full change review. Review hunts regressions, remaining gaps, and production
 - **What you get:** Findings ordered by severity, the gaps against what was intended, validation evidence, and a verdict.
 - **How to invoke:** Type `/review [package|PR|path]`.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/review)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/review)
 
 ## ship {#ship}
 
@@ -196,4 +214,4 @@ Publication without ceremony. Ship proves the changed behavior locally, runs the
 - **What you get:** Your change published with targeted local proof and a green push gate, with GitHub CI as the final check.
 - **How to invoke:** Commit, push, or PR intent activates it.
 
-[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/main/.claude/skills/ship)
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/ship)
