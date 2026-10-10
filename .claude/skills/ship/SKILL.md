@@ -119,11 +119,20 @@ run a broad local fallback and call the PR approved.
 Critical surfaces require both the complete local override and current-head CI. Ordinary work needs
 the targeted local contract and current-head CI.
 
+## 7. Close out Linear after a merge
+
+Publication does not authorize a merge, and a merge does not finish the Linear record. When the
+user asks for the merge or reports one, run the closeout in
+[After a merge](../../context/linear-routing-rules.md#after-a-merge): read the named issue's state
+history, write only what Linear's integration left undone, and add the one comment. That section
+owns what the closeout may write; `Done` waits for a person's review.
+
 ## Output
 
 Report the resolved base, branch and head SHA, targeted proof, Push Gate status and elapsed time,
-whether the full local gate was required, commit and push result, PR URL, and current-head CI state.
-Use one of these outcomes:
+whether the full local gate was required, commit and push result, PR URL, current-head CI state,
+and the Linear line: the issue the PR names with its observed state, `no Linear issue linked`, or
+`not checked`. The Linear line reports; it does not change the outcome. Use one of these outcomes:
 
 - `READY`: current-head required CI is green and every applicable local contract passed.
 - `BLOCKED`: local proof, push budget, publication, or current-head CI is pending/unavailable.

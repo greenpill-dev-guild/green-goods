@@ -172,7 +172,9 @@ branch = one PR, and the posture is repair, not feature building.
    invented fixed suite (the selector owns criticality overrides and stop conditions).
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
    slice per PR.
-9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
+9. **Hand back**: issue → `In Review` with the PR linked. Once the PR merges, run the closeout in
+   [`linear-routing-rules.md § After a merge`](../../context/linear-routing-rules.md#after-a-merge):
+   read the slice's state history before writing it. It reaches `Done` only when its Test
    IDs re-record as pass in the QA app (whoever recorded the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
@@ -311,9 +313,10 @@ After debugging provide:
 
 ## Linear Routing
 
-This skill is read-only on Linear while debugging. The one exception is the QA Slice Fix
-Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back) — and only on
-the slice being worked. The shared routing core (team routing,
+This skill is read-only on Linear while debugging. The exceptions are the QA Slice Fix
+Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back), only on
+the slice being worked, and the merge closeout the routing rules authorize. The shared routing
+core (team routing,
 `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 

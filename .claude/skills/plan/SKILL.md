@@ -317,9 +317,11 @@ A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Lin
    `preserve_existing`, verify each read-only `preserve` entry against live Linear without
    changing its fields; verify any separately authorized forward advancement. Never move Done
    backward or reopen Canceled scope.
-2. After a human merges delivered implementation, move its nonterminal implementation issues
-   and parent to `Done` with a one- or two-sentence comment on what shipped and anything still
-   open. Preserve already-Done bodies and Canceled scope. Research-only reconciliation does
+2. After a human merges delivered implementation, run the closeout in
+   [After a merge](../../context/linear-routing-rules.md#after-a-merge) for its nonterminal
+   implementation issues and parent: they belong in `In Review`, with a one- or two-sentence
+   comment on what shipped and anything still open, and reach `Done` only after a person's review.
+   Preserve already-Done bodies and Canceled scope. Research-only reconciliation does
    not mark research Done; verify its independently owned live status without advancing it.
 3. Run `node scripts/harness/plan-hub.mjs confirm-linear-sync --feature <slug> --actor <actor>` as
    the last hub edit before the closeout-record commit, only after the writes and live verification
@@ -328,8 +330,9 @@ A mirrored hub closes through [Closing a Plan Hub](#closing-a-plan-hub). Its Lin
 
 ### PR Linkage
 
-PR descriptions may link the `.plans` hub and the Linear issue. Use neutral references such as
-`Refs PRD-123` or a Links section. Do not use issue-closing footers for backlog closure.
+PR descriptions may link the `.plans` hub and the Linear issue, using the single reference line
+the [routing rules](../../context/linear-routing-rules.md#after-a-merge) define. No reference line
+closes a mirrored record: a merge leaves it `In Review`, and `Done` follows a person's review.
 
 ---
 
