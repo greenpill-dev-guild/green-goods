@@ -4,7 +4,7 @@ sidebar_label: Testing Guide
 slug: /builders/testing
 audience: developer
 owner: docs
-last_verified: 2026-09-23
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
@@ -21,6 +21,8 @@ keywords:
   - foundry
 ---
 
+import {CopyCommand} from "@site/src/components/docs";
+
 # Testing Guide
 
 Five runners cover the stack, and one selector decides which of them your change actually needs.
@@ -31,11 +33,11 @@ docs cover everything deeper.
 
 | Runner | What it proves | Where it lives | Learn it |
 |---|---|---|---|
-| Vitest | Unit and component behavior in `shared`, `client`, `admin`, and `agent` | `src/__tests__/` in each package | [vitest.dev](https://vitest.dev) |
-| Playwright | End-to-end flows and authentication across client and admin | `tests/` at the root, projects in `playwright.config.ts` | [playwright.dev](https://playwright.dev) |
 | Storybook | Shared UI states, variants, and interactions in isolation | Stories beside shared components; live at [design.greengoods.app](https://design.greengoods.app) | [storybook.js.org/docs](https://storybook.js.org/docs) |
-| Foundry (forge) | Contract behavior, invariants, gas, and upgrade safety | `packages/contracts/test/*.t.sol` | [getfoundry.sh](https://getfoundry.sh) |
+| Vitest | Unit and component behavior in `shared`, `client`, `admin`, and `agent`, plus the contracts package's script tests | `src/__tests__/` in each package | [vitest.dev](https://vitest.dev) |
+| Playwright | End-to-end flows and authentication across client and admin | `tests/` at the root, projects in `playwright.config.ts` | [playwright.dev](https://playwright.dev) |
 | Mocha | Indexer handlers and contract events | `packages/indexer/test/` | [mochajs.org](https://mochajs.org) |
+| Foundry (forge) | Contract behavior, invariants, gas, and upgrade safety | `packages/contracts/test/` and its subfolders | [getfoundry.sh](https://getfoundry.sh) |
 
 ## The everyday loop
 
@@ -58,12 +60,12 @@ copy any single line on its own.
 
 | Surface | Everyday proof | When you need more |
 |---|---|---|
-| Shared | `bun run --cwd packages/shared test` and `bun run --cwd packages/shared typecheck` | `bun run --cwd packages/shared check:stories` when UI foundations move |
-| Client | `bun run --cwd packages/client test` | `bun run --cwd packages/client build` when routes, rendering, or PWA packaging change |
-| Admin | `bun run --cwd packages/admin test` | `bun run --cwd packages/admin test --coverage` for the fuller pass |
-| Contracts | `bun run --cwd packages/contracts test --suite solidity --profile match test/E2EWorkflow.t.sol` for one behavior (swap in your test file) | `bun run --cwd packages/contracts test` for the package, `bun run --cwd packages/contracts test:audit full` for the audit suite |
-| Indexer | `bun run --cwd packages/indexer check:indexing-boundary` and `bun run --cwd packages/indexer test` | `bun run --cwd packages/indexer codegen` first after schema or config changes, then `bun run --cwd packages/indexer build` |
-| Agent | `bun run --cwd packages/agent test` and `bun run --cwd packages/agent typecheck` | Both, whenever a response shape changes |
+| Client | <CopyCommand command="bun run --cwd packages/client test" /> | <CopyCommand command="bun run --cwd packages/client build" /> when routes, rendering, or PWA packaging change |
+| Admin | <CopyCommand command="bun run --cwd packages/admin test" /> | <CopyCommand command="bun run --cwd packages/admin test --coverage" /> for the fuller pass |
+| Agent | <CopyCommand command="bun run --cwd packages/agent test" /> and <CopyCommand command="bun run --cwd packages/agent typecheck" /> | Both, whenever a response shape changes |
+| Shared | <CopyCommand command="bun run --cwd packages/shared test" /> and <CopyCommand command="bun run --cwd packages/shared typecheck" /> | <CopyCommand command="bun run --cwd packages/shared check:stories" /> when UI foundations move |
+| Indexer | <CopyCommand command="bun run --cwd packages/indexer check:indexing-boundary" /> and <CopyCommand command="bun run --cwd packages/indexer test" /> | <CopyCommand command="bun run --cwd packages/indexer codegen" /> first after schema or config changes, then <CopyCommand command="bun run --cwd packages/indexer build" /> |
+| Contracts | <CopyCommand command="bun run --cwd packages/contracts test --suite solidity --profile match test/E2EWorkflow.t.sol" /> for one behavior (swap in your test file) | <CopyCommand command="bun run --cwd packages/contracts test" /> for the package, <CopyCommand command="bun run --cwd packages/contracts test:audit full" /> for the audit suite |
 
 For end-to-end work, run the CI-parity Playwright project that matches your surface. This is the
 exact command CI runs:

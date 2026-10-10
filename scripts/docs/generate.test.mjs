@@ -27,7 +27,7 @@ import {
   sourcePathsContaining,
   workflowSourcePaths,
 } from "./source-readers.mjs";
-import { assignDataModelGroups, renderSkills } from "./renderers.mjs";
+import { COMMAND_MANIFEST_ORDER, assignDataModelGroups, copyCommand, orderCommandManifests, renderSkills, stateLabel } from "./renderers.mjs";
 import { selectExpectedWorkflows } from "../quality/select-validation.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -319,6 +319,30 @@ test("data model projects layered diagrams, every relationship, and all lifecycl
   assert.match(flowcharts[0], /garden\[[^\]]*\]:::member/);
   assert.doesNotMatch(flowcharts[0], /commitment_pool\[[^\]]*\]:::member/);
   assert.match(flowcharts[2], /commitment_pool\[[^\]]*\]:::member/);
+  // Mermaid ends a state-diagram label at `;` or `:`; a long label is unreadable on the arrow.
+  const arrowLines = machines.flatMap((block) => block.split("\n").filter((line) => line.includes("-->")));
+  const expectedArrows = ontology.state_machines.reduce(
+    (sum, machine) => sum + machine.transitions.reduce((inner, t) => inner + t.from.length * t.to.length, 0),
+    0,
+  );
+  assert.equal(arrowLines.length, expectedArrows);
+  for (const line of arrowLines) assert.match(line, /^ {2}\w+ --> \w+: [^;:]{1,61}$/, line);
+  for (const machine of ontology.state_machines) {
+    const section = rendered.slice(rendered.indexOf(`### ${machine.id} {#${machine.id}}`));
+    const table = section.slice(section.indexOf("| From | To | Layer | Mechanism |"), section.indexOf("\n\n", section.indexOf("| From |")));
+    assert.equal(table.split("\n").length - 2, machine.transitions.length, `${machine.id} mechanism rows`);
+  }
+});
+
+test("state labels keep the first clause, drop detail past the cap, and never carry `;` or `:`", () => {
+  assert.equal(stateLabel("claimCommitment → CommitmentAccepted; the pool records the claim"), "claimCommitment → CommitmentAccepted");
+  assert.equal(stateLabel("recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal"), "recordRepayment clearing the balance → LoanRepaid");
+  assert.equal(stateLabel("a label with a colon: detail"), "a label with a colon- detail");
+  const long = stateLabel("x".repeat(80));
+  assert.equal(long.length, 60);
+  assert.ok(long.endsWith("…"));
+  assert.equal(stateLabel("first sentence. second sentence"), "first sentence");
+  assert.equal(stateLabel("one — two"), "one");
 });
 
 test("skills catalog prefers a skill README and falls back to the SKILL.md description", () => {
@@ -464,4 +488,34 @@ test("task routing projects public ownership and one-way synchronization", () =>
   assert.match(rendered, /plan_hubs -->\|mirrors visibility\| linear/);
   assert.match(rendered, /qa_catalog -->\|defines runs\| private_qa_evidence/);
   assert.doesNotMatch(rendered, /PRD-\d+|In Progress|authenticated Vercel/);
+});
+
+test("command inventory reads root first, then packages in contributor order, then docs, with copyable cells", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/commands.mdx");
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const headings = [...rendered.matchAll(/^## (.+?) \(\d+\)$/gm)].map((match) => match[1]);
+  assert.deepEqual(headings, [
+    "Repository root",
+    "packages/client",
+    "packages/admin",
+    "packages/agent",
+    "packages/shared",
+    "packages/indexer",
+    "packages/contracts",
+    "packages/qa",
+    "docs",
+  ]);
+  assert.equal((rendered.match(/^import \{CopyCommand\} from "@site\/src\/components\/docs";$/gm) ?? []).length, 1);
+  assert.ok(rendered.includes('<CopyCommand command="bun run --cwd docs build" />'));
+  assert.throws(() => orderCommandManifests(COMMAND_MANIFEST_ORDER.slice(1)), /Missing manifests: package.json/);
+  assert.throws(() => orderCommandManifests([...COMMAND_MANIFEST_ORDER, "packages/new/package.json"]), /Unlisted manifests/);
+});
+
+test("copyable commands encode the characters MDX attributes and table cells cannot carry", () => {
+  assert.equal(
+    copyCommand('bun run x -- --sender <addr> && echo "a|b"'),
+    '<CopyCommand command="bun run x -- --sender &lt;addr&gt; &amp;&amp; echo &quot;a&#124;b&quot;" />',
+  );
+  assert.throws(() => copyCommand("bun run a\nbun run b"), /cannot span lines/);
 });

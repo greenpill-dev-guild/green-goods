@@ -9,6 +9,7 @@ import { resolvePackageCommand as resolveContractPackage } from "../../packages/
 import { resolveBrowser } from "../../scripts/dev/browser.js";
 import { resolveQa } from "../../scripts/agents/qa.mjs";
 import { resolveTests } from "../../scripts/dev/test.js";
+import { inlineCopyCommands } from "./llms.mjs";
 
 function commandWords(value) {
   return (value.match(/"(?:[^"\\]|\\.)*"|'[^']*'|[^\s]+/g) ?? []).map((word) => word.replace(/^(['"])(.*)\1$/, "$2"));
@@ -78,8 +79,10 @@ export async function auditDeveloperGuides(root, paths, { resolveContracts } = {
   }
   for (const filePath of paths ?? await developerGuidePaths(root)) {
     const file = path.join(root, filePath);
-    const text = await readOptional(file);
-    if (text === null) continue;
+    const raw = await readOptional(file);
+    if (raw === null) continue;
+    // A CopyCommand tag in a guide table is the command it renders; audit that command.
+    const text = inlineCopyCommands(raw);
     const fail = (message) => issues.push({ filePath, message });
     const prose = text.replace(/```[\s\S]*?```/g, "");
     for (const match of (filePath.endsWith(".mdx") ? "" : prose).matchAll(/\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+"[^"]*")?\)/g)) {

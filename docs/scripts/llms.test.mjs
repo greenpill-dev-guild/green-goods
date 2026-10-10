@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {describe, test} from "node:test";
 
-import {leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
+import {inlineCopyCommands, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
 
 describe("markdown twins", () => {
   test("serve each page at its URL plus .md", () => {
@@ -103,5 +103,20 @@ describe("llms.txt index", () => {
     assert.match(index, /## Community\n\n- \[Welcome\]\(https:\/\/docs\.example\/community\/welcome\.md\)\n/);
     assert.match(index, /## Reference\n\n- \[Glossary\]\(https:\/\/docs\.example\/glossary\.md\): Terms\./);
     assert.equal(index.match(/^- \[/gm).length, 3);
+  });
+});
+
+describe("copy-command tags", () => {
+  test("become the code span they render, with the generator's encoding undone", () => {
+    const row = '| dev | <CopyCommand command="bun run dev" /> | <CopyCommand command="bun run contracts -- deploy core --sender &lt;sender&gt; &amp;&amp; echo &quot;done&quot; &#124; cat" /> |';
+    const twin = markdownTwin(`---\ntitle: T\n---\n\n# T\n\n${row}\n`, "T");
+    assert.ok(twin.includes("| dev | `bun run dev` |"), twin);
+    assert.ok(twin.includes('`bun run contracts -- deploy core --sender <sender> && echo "done" | cat`'), twin);
+    assert.equal(inlineCopyCommands("<CopyCommand command='bun run test' />"), "`bun run test`");
+  });
+
+  test("stay literal inside fenced code", () => {
+    const source = '---\ntitle: T\n---\n\n# T\n\n```md\n<CopyCommand command="bun run dev" />\n```\n';
+    assert.ok(markdownTwin(source, "T").includes('<CopyCommand command="bun run dev" />'));
   });
 });

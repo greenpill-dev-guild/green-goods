@@ -14,6 +14,16 @@ const IMPORT_STATEMENT =
   /^import\s+(?:(?:\{[^}]*\}|[\w$]+(?:\s*,\s*\{[^}]*\})?|\*\s+as\s+[\w$]+)\s+from\s+)?(["'])[^"'\n]+\1;?[ \t]*\n?/gm;
 
 const PROJECTION_TAG = /^[ \t]*<IntegrationProjection\s+id="([^"]+)"\s*\/>[ \t]*$/gm;
+const COPY_COMMAND_TAG = /<CopyCommand\s+command=(["'])(.*?)\1[^>]*\/>/g;
+
+// The generator encodes these five characters inside a CopyCommand attribute (scripts/docs/renderers.mjs).
+const decodeAttribute = (text) =>
+  text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#124;", "|").replaceAll("&amp;", "&");
+
+/** Each CopyCommand tag as the code span it renders, so a twin or an audit sees the command itself. */
+export function inlineCopyCommands(text) {
+  return text.replace(COPY_COMMAND_TAG, (_tag, _quote, command) => `\`${decodeAttribute(command)}\``);
+}
 
 /**
  * The deployment projection as Markdown, carrying the same facts the IntegrationProjection
@@ -73,7 +83,7 @@ export function markdownTwin(source, title, { integrations = null } = {}) {
           return projectionMarkdown(integration);
         })
       : text;
-  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(text.replace(IMPORT_STATEMENT, "")))
+  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return `${/^#\s/m.test(body) ? "" : `# ${title}\n\n`}${body}\n`;

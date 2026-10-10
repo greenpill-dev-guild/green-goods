@@ -25,8 +25,51 @@ const declaredSource = (sources, source) => {
   return source;
 };
 
-function pageHeader(meta, heading, intro) {
-  return `${generatedFrontmatter(meta)}# ${heading}\n\n${intro}\n\n`;
+function pageHeader(meta, heading, intro, { imports = [] } = {}) {
+  const importBlock = imports.length ? `${imports.join("\n")}\n\n` : "";
+  return `${generatedFrontmatter(meta)}${importBlock}# ${heading}\n\n${intro}\n\n`;
+}
+
+export const COPY_COMMAND_IMPORT = 'import {CopyCommand} from "@site/src/components/docs";';
+
+/**
+ * A command a reader can copy from a table cell. The attribute form keeps the text literal in
+ * MDX; the five encoded characters are decoded again by the Markdown twins and the guide audit.
+ */
+export function copyCommand(command) {
+  if (/\n/.test(command)) throw new Error(`A copyable command cannot span lines: ${command}`);
+  const attribute = String(command)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("|", "&#124;");
+  return `<CopyCommand command="${attribute}" />`;
+}
+
+// The command inventory reads root first, then the packages a contributor meets in order, then
+// docs. Throws when a manifest joins or leaves so the order is a decision, not an accident.
+export const COMMAND_MANIFEST_ORDER = [
+  "package.json",
+  "packages/client/package.json",
+  "packages/admin/package.json",
+  "packages/agent/package.json",
+  "packages/shared/package.json",
+  "packages/indexer/package.json",
+  "packages/contracts/package.json",
+  "packages/qa/package.json",
+  "docs/package.json",
+];
+
+export function orderCommandManifests(manifestSources) {
+  const missing = COMMAND_MANIFEST_ORDER.filter((source) => !manifestSources.includes(source));
+  const unlisted = manifestSources.filter((source) => !COMMAND_MANIFEST_ORDER.includes(source));
+  if (missing.length || unlisted.length) {
+    throw new Error(
+      `Command inventory order is out of date. Missing manifests: ${missing.join(", ") || "none"}. Unlisted manifests: ${unlisted.join(", ") || "none"}.`
+    );
+  }
+  return [...COMMAND_MANIFEST_ORDER];
 }
 
 export function renderMcpGuide({ root, sources, digest }) {
@@ -213,6 +256,19 @@ export function assignDataModelGroups(entityIds, groups) {
   return groupOf;
 }
 
+/**
+ * The arrow label for a lifecycle transition: the mechanism's first clause, kept short enough to
+ * read on a diagram. Mermaid ends a state-diagram label at `;` and `:`, so neither may survive; the
+ * full mechanism text belongs in the table under the diagram.
+ */
+export function stateLabel(mechanism, max = 60) {
+  const flat = String(mechanism).replaceAll("\n", " ").replace(/\s+/g, " ").trim();
+  let clause = flat.split(/;|\s—\s|\.\s/)[0].trim();
+  if (clause.length > max) clause = clause.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+  if (clause.length > max) clause = `${clause.slice(0, max - 1).trimEnd()}…`;
+  return clause.replaceAll(";", ",").replaceAll(":", "-");
+}
+
 export function renderDataModel({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const byId = new Map(ontology.entities.map((entity) => [entity.id, entity]));
@@ -248,13 +304,20 @@ export function renderDataModel({ root, sources, digest }) {
     }
     body += "\n";
   }
-  body += "## Lifecycles\n\nThese state machines project lifecycle transitions from the ontology. Mechanism labels point back to the code or configuration that enforces each transition.\n\n";
+  body += "## Lifecycles\n\nThese state machines project lifecycle transitions from the ontology. Each arrow carries the first clause of its mechanism; the table under the diagram carries the full text, which points back to the code or configuration that enforces the transition.\n\n";
   for (const machine of ontology.state_machines) {
     body += `### ${machine.id} {#${machine.id}}\n\n${machine.note ? `${machine.note}\n\n` : ""}\`\`\`mermaid\nstateDiagram-v2\n`;
+    // Declare every state up front so a state no transition reaches yet still appears.
+    for (const state of machine.states) body += `  ${state.name.replaceAll("-", "_")}\n`;
     for (const transition of machine.transitions) {
-      for (const from of transition.from) for (const to of transition.to) body += `  ${from.replaceAll("-", "_")} --> ${to.replaceAll("-", "_")}: ${transition.mechanism.replaceAll("\n", " ").replaceAll(":", "-")}\n`;
+      const label = stateLabel(transition.mechanism);
+      for (const from of transition.from) for (const to of transition.to) body += `  ${from.replaceAll("-", "_")} --> ${to.replaceAll("-", "_")}: ${label}\n`;
     }
-    body += "```\n\n";
+    body += "```\n\n| From | To | Layer | Mechanism |\n|---|---|---|---|\n";
+    for (const transition of machine.transitions) {
+      body += `| ${transition.from.map(esc).join(", ")} | ${transition.to.map(esc).join(", ")} | ${esc(transition.layer ?? "—")} | ${esc(transition.mechanism.replaceAll("\n", " "))} |\n`;
+    }
+    body += "\n";
   }
   return body;
 }
@@ -516,14 +579,15 @@ function migrationRows(migration, status) {
 }
 
 export function renderCommands({ root, sources, digest }) {
-  const manifestSources = sources.filter((source) => source.endsWith("package.json"));
+  const manifestSources = orderCommandManifests(sources.filter((source) => source.endsWith("package.json")));
   const migration = readJson(root, declaredSource(sources, "scripts/data/command-migration.json"));
   const validation = readJson(root, declaredSource(sources, "scripts/data/validation-policy.json"));
   const implementationSources = sources.filter((source) => /(?:scripts\/(?:dev|agents)|packages\/contracts\/script)\/.+\.(?:mjs|js)$/.test(source));
   let body = pageHeader(
     { title: "Command inventory", slug: "/builders/packages/commands", sources, digest },
     "Command inventory",
-    "Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them."
+    "Generated from package manifests and owning command definitions. Start with the getting-started guide for everyday commands. Operational scripts can write to live networks; read the owning runbook before using them.",
+    { imports: [COPY_COMMAND_IMPORT] }
   );
   let total = 0;
   for (const source of manifestSources) {
@@ -534,7 +598,7 @@ export function renderCommands({ root, sources, digest }) {
     body += `## ${esc(directory || "Repository root")} (${names.length})\n\n`;
     body += "| Script | Invocation from repository root |\n|---|---|\n";
     for (const name of names) {
-      body += `| ${esc(name)} | \`bun run ${directory ? `--cwd ${directory} ` : ""}${esc(name)}\` |\n`;
+      body += `| ${esc(name)} | ${copyCommand(`bun run ${directory ? `--cwd ${directory} ` : ""}${name}`)} |\n`;
     }
     body += "\n";
   }
@@ -546,12 +610,7 @@ export function renderCommands({ root, sources, digest }) {
   body += "\n## Removed command replacements\n\nThe former names below are not runnable aliases. Use the replacement exactly as shown, including its working directory and flags.\n\n";
   body += "| Previous manifest | Previous name | Replacement |\n|---|---|---|\n";
   for (const entry of migrationRows(migration, "replacement")) {
-    const replacement = esc(entry.replacement)
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll("{", "&#123;")
-      .replaceAll("}", "&#125;");
-    body += `| \`${esc(entry.manifest)}\` | \`${esc(entry.name)}\` | <code>${replacement}</code> |\n`;
+    body += `| \`${esc(entry.manifest)}\` | \`${esc(entry.name)}\` | ${copyCommand(entry.replacement)} |\n`;
   }
   return body;
 }
