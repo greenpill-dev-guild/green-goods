@@ -1252,3 +1252,41 @@ it("allows an uninitialized surface and safely saved drafts but blocks active ex
     useWorkFlowStore.setState(original);
   }
 });
+
+// The installed app's root never remounts, so the guard has to hear each change itself.
+it("tells a mounted page when saving or sending work starts and ends", async () => {
+  const { claimWorkJobs } = await import("../../../modules/work/execution-state");
+  const { jobQueueEventBus } = await import("../../../modules/job-queue/event-bus");
+  const queued = { jobId: "guard-send", job: {} as never };
+  const original = useWorkFlowStore.getState();
+  try {
+    useWorkFlowStore.setState({ draftScope: null, activeDraftId: null, draftSaveState: "saved" });
+    const { result, unmount } = renderHook(() => useWorkUpdateGuard());
+    expect(result.current).toBe(false);
+
+    act(() =>
+      useWorkFlowStore.setState({
+        draftScope: "account:chain",
+        activeDraftId: "draft",
+        draftSaveState: "saving",
+      })
+    );
+    expect(result.current).toBe(true);
+    act(() => useWorkFlowStore.setState({ draftSaveState: "saved" }));
+    expect(result.current).toBe(false);
+
+    const release = claimWorkJobs([queued.jobId]);
+    act(() => jobQueueEventBus.emit("job:processing", queued));
+    expect(result.current).toBe(true);
+    release?.();
+    act(() => jobQueueEventBus.emit("job:completed", { ...queued, txHash: "0x" }));
+    expect(result.current).toBe(false);
+
+    // Once unmounted it hears nothing, and leaves no listener behind.
+    unmount();
+    act(() => useWorkFlowStore.setState({ draftSaveState: "saving" }));
+    expect(result.current).toBe(false);
+  } finally {
+    useWorkFlowStore.setState(original);
+  }
+});
