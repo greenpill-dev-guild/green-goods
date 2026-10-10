@@ -11,8 +11,9 @@ routine limits; this file owns interactive routing and issue execution.
 1. **Read-only until acceptance.** Producing a report/audit/review never
    creates or mutates Linear records. Create records only after the user
    authorizes the write. An explicit request to create or update records is authorization;
-   if it is absent, present the concrete records and ask before writing. The one standing
-   authorization is the forward-only closeout in [After a merge](#after-a-merge).
+   if it is absent, present the concrete records and ask before writing. A request to merge, or
+   a reported merge, also authorizes the forward-only closeout in [After a merge](#after-a-merge)
+   and nothing beyond it.
 2. **Team routing.**
    - Accepted implementation, refactor, QA, maintenance, regression, bug-fix,
      or cleanup work (an accepted delivery outcome) → Linear **Issue**,
@@ -229,25 +230,32 @@ moves nothing. Treat the table as what to expect, not as proof: the issue's stat
 only evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
-names:
+names and no other:
 
-1. Read the issue's `stateHistory` a few seconds after the merge, not only its current status.
+1. Read the issue's `stateHistory`, not only its current status. The integration usually lands
+   within seconds of the merge but can land later, so treat this first reading as provisional.
 2. Write only the gap. A PR that completes the issue leaves it `In Review`: write nothing when it
    is already there, and set it when the integration left it in an earlier state. Partial work
    stays `In Progress`. Judge completion against the issue's `Done when`, not the keyword: the
    last PR of a multi-PR issue completes it even when it says `Refs`.
-3. When the issue reaches `In Review`, add one short comment: what changed for the person using
-   the product, and what the review should check or what remains open.
-4. Report the issue, its observed state, and whether the integration or a hand write set it. For
-   a PR with no reference line, report `no Linear issue linked`.
+3. When the issue reaches `In Review`, add one short comment that names the PR: what changed for
+   the person using the product, and what the review should check or what remains open. Read the
+   issue's comments first and post nothing when one already closes out that PR, so a retried or
+   repeated closeout never comments twice.
+4. Read the issue again before reporting. A state that changed since step 2 means the integration
+   landed late: repeat step 2 once, then read once more. Report the issue, its last observed
+   state, and whether the integration or a hand write set it, and say so if it still had not
+   settled. For a PR with no reference line, report `no Linear issue linked`.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
 named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and
-posting that one comment. `Done`, moving an issue backward, editing a description, and touching
-an issue the PR does not implement still need the user's request. If the integration moved the
-issue to `Done`, leave it and report that the team's merge setting no longer matches this rule.
-Cloud routines keep the limits in their own specs.
+posting that one comment. `Done`, moving an issue backward, editing a description, and any write
+to another issue, a parent or sibling included, are outside it and need their own authorization.
+If the integration moved the issue to `Done`, leave it and report that the team's merge setting
+no longer matches this rule. Cloud routines keep the limits in their own specs.
 
 **Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
-their plain confirmation. Set it when the user says the review passed, with a comment naming the
-check. A merge, green CI, or your own proof never makes an issue `Done`.
+their plain confirmation. It is a separate write under the first
+[invariant rule](#invariant-rules): set it when the user asks, with a comment naming the check.
+When the user reports a passing review without asking for the write, offer it and wait. A merge,
+green CI, or your own proof never makes an issue `Done`.
