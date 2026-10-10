@@ -6,7 +6,15 @@ export function setAssessmentFieldTransition<K extends keyof CreateAssessmentFor
   state: CreateAssessmentStore,
   input: { field: K; value: CreateAssessmentFormState[K] }
 ): Partial<CreateAssessmentStore> {
-  return { form: { ...state.form, [input.field]: input.value } };
+  const form: CreateAssessmentFormState = { ...state.form, [input.field]: input.value };
+  // Actions and metrics are picked from the domain's own lists, so a new
+  // domain, or none, drops the old one's picks. A restored draft sets its
+  // domain before its picks, so restoring keeps them.
+  if (input.field === "domain" && input.value !== state.form.domain) {
+    form.selectedActionUIDs = [];
+    form.smartOutcomes = form.smartOutcomes.map((outcome) => ({ ...outcome, metric: "" }));
+  }
+  return { form };
 }
 
 export function addSmartOutcomeTransition(
@@ -100,6 +108,8 @@ export function selectAssessmentDirtyState({
       form.description.trim().length > 0 ||
       form.location.trim().length > 0 ||
       form.diagnosis.trim().length > 0 ||
+      // No domain is preselected (DL-047), so choosing one is an edit.
+      form.domain !== null ||
       hasMeaningfulSmartOutcome ||
       form.selectedActionUIDs.length > 0 ||
       form.sdgTargets.length > 0 ||

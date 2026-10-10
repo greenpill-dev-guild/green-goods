@@ -184,9 +184,8 @@ Green Goods builds on the work of:
 
 ### Logo & Identity
 
-Green Goods brand assets available in:
-- `packages/client/public/` (logo files)
-- Color palette in theme system
+Download logos, transparent square assets, favicons, and app icons from the
+[Brand kit](/brand). The page also explains the available colors, file sizes, and usage guidance.
 
 **Usage Guidelines**:
 - Feel free to use in integrations

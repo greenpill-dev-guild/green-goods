@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import {
   dehydrate,
   hydrate,
@@ -18,6 +18,7 @@ import {
 } from "../../config/query-persistence";
 import { attachQueryPersistence } from "../../providers/QueryPersistence";
 import { GC_TIMES, queryClient } from "../../config/react-query";
+import { agentReportingKeys } from "../../config/query-keys/agent-reporting";
 import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
 import { worksKeys } from "../../config/query-keys/work";
 
@@ -55,11 +56,12 @@ describe("durable offline reads", () => {
     source.clear();
   });
 
-  it("omits never-loaded queries, other namespaces and queue projections", () => {
+  it("omits never-loaded queries, other namespaces, queue projections and ceremony state", () => {
     const source = new QueryClient();
     source.getQueryCache().build(source, { queryKey: gardensKeys.byChain(11155111) });
     source.setQueryData(["wallet", "secret"], "session");
     source.setQueryData(["greengoods", "queue"], [{ id: "job" }]);
+    source.setQueryData(agentReportingKeys.challenge("challenge-1"), "proof_verified");
     expect(dehydrate(source, { shouldDehydrateQuery }).queries).toEqual([]);
     source.clear();
   });

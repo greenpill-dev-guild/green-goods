@@ -12,8 +12,13 @@
    * other sanctioned shadow is the warm ambient chrome shadow on the floating
    * navigation (--admin-chrome-shadow). Levels 3–5 and the parallel
    * --elevation-* / --e* ladders are deleted — do not reintroduce them.
+   *
+   * Level 0 is a transparent zero shadow (what Tailwind's shadow-none sets),
+   * never `none`: Tailwind joins shadow and ring utilities into one box-shadow
+   * list, and `none` inside a list voids the whole declaration, so a focus
+   * ring or an outlined card's ring on the same element would never draw.
    * -------------------------------------------------------------------------- */
-  --m3-elevation-0: none;
+  --m3-elevation-0: 0 0 transparent;
   --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --m3-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
 
@@ -175,8 +180,9 @@
    * black drop shadows that are invisible on near-black). In M3-dark, depth is a
    * warm-white RING that scales with elevation; a small black blur is retained
    * only to help glass/sheets that float OVER content read as lifted. Paired with
-   * the lightness STEP in the surface ladder, this restores card separation. */
-  --m3-elevation-0: none;
+   * the lightness STEP in the surface ladder, this restores card separation.
+   * Level 0 stays a transparent zero shadow, never `none` (see the light ladder). */
+  --m3-elevation-0: 0 0 transparent;
   --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
 
@@ -268,6 +274,11 @@
     opacity: var(--m3-state-pressed);
   }
 
+  .m3-state-layer[aria-disabled="true"]:hover::after,
+  .m3-state-layer[aria-disabled="true"]:active::after {
+    opacity: 0;
+  }
+
   /* M3 expanded touch target: a ≥44px effective hit area around the 32px-visual
    * compact controls (AdminButton sm, AdminFilterChip). The block margin
    * reserves the pseudo-element's 6px reach above and below, so wrapped rows
@@ -324,7 +335,7 @@
  * Shell chrome — Navigation dock material
  *
  * Geometry, typography, and states live in the forked Shell/NavigationBar.tsx
- * JSX (admin's Tailwind scan reaches them). The translucent material + blur
+ * JSX (admin's own copy of the shared bar). The translucent material + blur
  * must stay in an approved chrome file per the Controlled Chrome contract in
  * scripts/design/check-tokens.sh; it lives HERE (not index.css) so the shared
  * Storybook — which imports this file but not the admin app entrypoint —
@@ -437,19 +448,19 @@
   --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
 
-/* Actions — Red */
+/* Actions — Purple (DL-045). Off the error red, so the workspace no longer
+ * reads as an alarm; purple-700 is dual-safe at 7.93:1 as a white-text fill
+ * and as accent text on white. */
 [data-tone="actions"] {
-  /* red-500 (handoff 224 56 53) measured 4.39 as a white-text fill and as
-   * accent text on white — red-700 is dual-safe at 6.4 both directions. */
-  --tone-primary: var(--red-700);
+  --tone-primary: var(--purple-700);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-800);
+  --tone-action: var(--purple-700);
+  --tone-action-hover: var(--purple-800);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--red-100);
-  --tone-on-primary-container: var(--red-900);
-  --tone-on-surface-accent: var(--red-700);
-  --tone-surface-tint-color: rgb(var(--red-500) / 5%);
+  --tone-primary-container: var(--purple-100);
+  --tone-on-primary-container: var(--purple-900);
+  --tone-on-surface-accent: var(--purple-700);
+  --tone-surface-tint-color: rgb(var(--purple-500) / 5%);
 }
 
 /* Home — Stone/Neutral (unauthenticated) */
@@ -547,16 +558,16 @@
 
 [data-theme="dark"][data-tone="actions"],
 [data-theme="dark"] [data-tone="actions"] {
-  --tone-primary: var(--red-200);
-  --tone-on-primary: var(--red-900);
-  /* DL-009 tonal: fill 6.04:1 · hover 7.00:1 */
-  --tone-action: var(--red-200);
-  --tone-action-hover: var(--red-100);
-  --tone-on-action: var(--red-900);
-  --tone-primary-container: var(--red-900);
-  --tone-on-primary-container: var(--red-100);
-  --tone-on-surface-accent: var(--red-200);
-  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+  --tone-primary: var(--purple-200);
+  --tone-on-primary: var(--purple-900);
+  /* DL-009 tonal: fill 7.27:1 · hover 8.73:1 (DL-045) */
+  --tone-action: var(--purple-200);
+  --tone-action-hover: var(--purple-100);
+  --tone-on-action: var(--purple-900);
+  --tone-primary-container: var(--purple-900);
+  --tone-on-primary-container: var(--purple-100);
+  --tone-on-surface-accent: var(--purple-200);
+  --tone-surface-tint-color: rgb(var(--purple-200) / 10%);
 }
 
 [data-theme="dark"][data-tone="home"],

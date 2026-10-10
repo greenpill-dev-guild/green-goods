@@ -176,3 +176,18 @@ describe("preparing a queued item for Upload all", () => {
     });
   });
 });
+
+it("retains the published bytes and previews while merging upload progress with a newer send", () => {
+  const published = {
+    data: "0x1234" as const,
+    metadata: { clientWorkId: "published-work" },
+    media: ["uploaded-photo"],
+  };
+  const broadcast = { kind: "transaction" as const, hash: `0x${"ac".repeat(32)}` as const };
+  expect(
+    mergeUploadProgress(
+      { submittedAt: "2026-10-06", files: {}, broadcast },
+      { submittedAt: "2026-10-06", files: {}, published }
+    )
+  ).toMatchObject({ published, broadcast });
+});

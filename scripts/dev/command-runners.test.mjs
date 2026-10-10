@@ -30,11 +30,10 @@ function recorder({ failure = -1, signalHost, signalAt = -1 } = {}) {
 
 test('all browser presets preserve project, environment, and startup selection', () => {
   const expected = {
-    all: { stack: true, args: ['test', '--project=client-full', '--project=chromium', '--project=performance'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
-    smoke: { stack: true, args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
+    all: { args: ['test', '--project=client-full', '--project=chromium', '--project=performance'], env: { PLAYWRIGHT_PWA_PREVIEW: 'false', SKIP_WEBSERVER: 'false', SKIP_HEALTH_CHECK: 'false', SKIP_INDEXER: 'true' } },
+    smoke: { args: ['test', 'tests/specs/client.smoke.spec.ts', 'tests/specs/admin.smoke.spec.ts', '--project=client-ci', '--project=admin-ci'], env: { PLAYWRIGHT_PWA_PREVIEW: 'false', SKIP_WEBSERVER: 'false', SKIP_HEALTH_CHECK: 'false', SKIP_INDEXER: 'true' } },
     ui: { args: ['test', '--ui'], env: { SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true' } },
-    fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true' } },
-    passkey: { args: ['test', '--project=passkey-mock'], env: {} },
+    fork: { args: ['test', '--project=anvil-fork'], env: { RUN_FORK_TESTS: 'true', SKIP_WEBSERVER: 'true', SKIP_HEALTH_CHECK: 'true', SKIP_INDEXER: 'true' } },
     testnet: { args: ['test', '--project=testnet'], env: { TESTNET: 'true' } },
   };
   for (const [preset, wanted] of Object.entries(expected)) {
@@ -42,7 +41,7 @@ test('all browser presets preserve project, environment, and startup selection',
     assert.equal(selected.stack, Boolean(wanted.stack));
     assert.deepEqual(selected.args, [...wanted.args, '--grep', 'focus']);
     assert.deepEqual(selected.env, { APP_ENV: 'test', ...wanted.env });
-    assert.deepEqual(resolveBrowser(['e2e', '--preset', preset])[0].env, { APP_ENV: 'test' });
+    assert.deepEqual(resolveBrowser(['e2e', '--preset', preset])[0].env, { APP_ENV: 'test', ...wanted.env });
   }
   assert.equal(resolveE2e([]).preset, 'all');
 });
@@ -128,28 +127,23 @@ test('cancellation stays terminal when interrupted process handles signal and ex
 
 test('nonstack browser preset never starts or stops services', async () => {
   const fake = recorder();
-  assert.equal(await executeE2e(resolveE2e(['--preset', 'passkey']), { ...fake, systemNode: 'node' }), 0);
+  assert.equal(await executeE2e(resolveE2e(['--preset', 'passkey', '--', '--list']), { ...fake, systemNode: 'node' }), 0);
   assert.equal(fake.calls.length, 1);
   assert.ok(fake.calls[0].args[0].endsWith('@playwright/test/cli.js'));
   assert.equal(fake.calls[0].env.APP_ENV, 'test');
 });
 
-test('web stack startup failure stops only its unique owner and does not run Playwright', async () => {
-  const calls = [];
-  let stack;
-  const spawnImpl = (command, args, options) => {
-    const child = fakeChild(); calls.push({ command, args, ...options });
-    if (args.includes('web')) stack = child;
-    else queueMicrotask(() => { child.exitCode = 0; child.emit('close', 0, null); });
-    return child;
-  };
-  assert.equal(await executeE2e(resolveE2e([]), { spawnImpl, wait: async () => ({ ok: false }), systemNode: 'node' }), 1);
-  assert.equal(stack.signalCode, 'SIGTERM');
-  assert.equal(calls.length, 2);
-  assert.deepEqual(calls[1].args, ['run', 'dev', '--', 'stop']);
-  assert.match(calls[0].env.GREEN_GOODS_DEV_OWNER, /^e2e-/);
-  assert.equal(calls[0].env.GREEN_GOODS_DEV_OWNER, calls[1].env.GREEN_GOODS_DEV_OWNER);
-  assert.equal(calls[0].env.VITE_ENABLE_SW_DEV, 'true');
+test('deterministic presets delegate startup and cleanup to Playwright without launching PM2', async () => {
+  for (const preset of ['all', 'smoke']) {
+    const fake = recorder({ failure: 0 });
+    assert.equal(await executeE2e(resolveE2e(['--preset', preset]), {
+      ...fake, systemNode: 'node', env: { SKIP_WEBSERVER: 'true', VITE_CHAIN_ID: '42161' },
+    }), 19);
+    assert.equal(fake.calls.length, 1);
+    assert.ok(fake.calls[0].args[0].endsWith('@playwright/test/cli.js'));
+    assert.equal(fake.calls[0].env.SKIP_WEBSERVER, 'false');
+    assert.equal(fake.calls[0].env.SKIP_INDEXER, 'true');
+  }
 });
 
 test('E2E rejects unknown flags and preset overrides before startup', () => {
@@ -168,15 +162,50 @@ test('QA pull preserves valid run selector limits and rejects zero stale days', 
   assert.ok(resolveQa(['status', '--stale-days', '30.0']));
 });
 
-test('reused healthy web services permit tests without acquiring cleanup rights to another owner', async () => {
-  const calls = [];
-  const spawnImpl = (command, args, options) => {
-    const child = fakeChild(); calls.push({ command, args, ...options });
-    queueMicrotask(() => { child.exitCode = 0; child.emit('close', 0, null); });
-    return child;
+test('E2E cancellation reaches only its Playwright child and stays terminal', async () => {
+  const host = new EventEmitter();
+  const fake = recorder({ signalHost: host, signalAt: 0 });
+  assert.equal(await executeE2e(resolveE2e(['--preset', 'smoke']), {
+    ...fake, signalHost: host, systemNode: 'node',
+  }), 130);
+  assert.equal(fake.calls.length, 1);
+  assert.equal(host.listenerCount('SIGINT'), 0);
+});
+
+test('qualified browser presets reject partial, empty, retried, and unbounded proof', () => {
+  for (const preset of ['passkey', 'explore', 'pwa-preview']) {
+    for (const args of [['--grep', 'missing'], ['--pass-with-no-tests'], ['--retries=1'], ['--shard=1/2'], ['--timeout=0'], ['--last-failed'], ['missing.spec.ts']]) {
+      assert.throws(() => resolveE2e(['--preset', preset, '--', ...args]), /qualified proof/);
+    }
+  }
+});
+
+test('exploration accepts only a replayable unsigned seed and preserves it through browser dispatch', () => {
+  for (const seed of ['0', '-1', '1.5', '4294967296', 'random']) {
+    assert.throws(() => resolveE2e(['--preset', 'explore', '--seed', seed]), /seed/);
+  }
+  const selection = resolveE2e(['--preset', 'explore', '--seed', '42']);
+  assert.equal(selection.env.GG_BROWSER_SEED, '42');
+  assert.equal(resolveBrowser(['e2e', '--preset', 'explore', '--seed', '42'])[0].env.GG_BROWSER_SEED, '42');
+  assert.throws(() => resolveE2e(['--preset', 'smoke', '--seed', '42']), /seed/);
+});
+
+test('qualified reports reject missing, skipped, failed, stale and retried scenarios', async () => {
+  const { assertQualifiedReport } = await import('./test-e2e.js');
+  // The passkey preset needs the server-rejection case and both account-step journeys.
+  const passkeyCase = () => ({ projectName: 'passkey-mock', results: [{ status: 'passed', retry: 0 }] });
+  const passed = {
+    stats: { startTime: '2026-10-05T00:00:00Z', expected: 3, skipped: 0, unexpected: 0, flaky: 0 },
+    errors: [], suites: [{ specs: [{ tests: Array.from({ length: 3 }, passkeyCase) }] }],
   };
-  assert.equal(await executeE2e(resolveE2e([]), { spawnImpl, wait: async () => ({ ok: true }), systemNode: 'node' }), 0);
-  assert.equal(calls.length, 3);
-  assert.ok(calls[1].args[0].endsWith('@playwright/test/cli.js'));
-  assert.equal(calls[2].env.GREEN_GOODS_DEV_OWNER, calls[0].env.GREEN_GOODS_DEV_OWNER);
+  assert.doesNotThrow(() => assertQualifiedReport(passed, 'passkey', 0));
+  for (const patch of [{ expected: 0 }, { skipped: 1 }, { unexpected: 1 }, { flaky: 1 }]) {
+    assert.throws(() => assertQualifiedReport({ ...passed, stats: { ...passed.stats, ...patch } }, 'passkey', 0), /incomplete/);
+  }
+  assert.throws(() => assertQualifiedReport({ ...passed, suites: [] }, 'passkey', 0), /incomplete/);
+  assert.throws(() => assertQualifiedReport(passed, 'passkey', Date.parse('2026-10-06')), /stale/);
+  assert.throws(() => assertQualifiedReport(passed, 'explore', 0), /incomplete/);
+  const retried = structuredClone(passed);
+  retried.suites[0].specs[0].tests[0].results[0].retry = 1;
+  assert.throws(() => assertQualifiedReport(retried, 'passkey', 0), /incomplete/);
 });

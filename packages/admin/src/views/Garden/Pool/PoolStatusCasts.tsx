@@ -2,7 +2,7 @@ import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/p
 import { RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 function SkeletonRail() {
   return (
@@ -36,13 +36,13 @@ export function PoolStatusCasts({
   if (!canManage) {
     return (
       <AdminCard variant="elevated" data-component="GardenPoolTab" className="space-y-2">
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.garden.pool.stewardOnly.title",
             defaultMessage: "The pool console is for this garden's stewards",
           })}
-        </p>
-        <p className="text-sm text-text-soft">
+        </AdminCardTitle>
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.stewardOnly.body",
             defaultMessage:
@@ -82,13 +82,13 @@ export function PoolStatusCasts({
         className="flex min-h-56 flex-col items-center justify-center gap-3 text-center"
       >
         <RiWifiOffLine className="h-6 w-6 text-text-soft" aria-hidden />
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.garden.pool.readError.title",
             defaultMessage: "Couldn’t load this pool",
           })}
-        </p>
-        <p className="max-w-md text-sm text-text-soft">
+        </AdminCardTitle>
+        <p className="max-w-md body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.readError.body",
             defaultMessage:
@@ -115,13 +115,13 @@ export function PoolStatusCasts({
   if (pool.availability.status !== "available" && pool.pool === null) {
     return (
       <AdminCard variant="elevated" data-component="GardenPoolTab" className="space-y-2">
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.garden.pool.unavailable.title",
             defaultMessage: "Commitment pooling isn't switched on in this app yet",
           })}
-        </p>
-        <p className="text-sm text-text-soft">
+        </AdminCardTitle>
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.unavailable.body",
             defaultMessage:
@@ -135,13 +135,13 @@ export function PoolStatusCasts({
   if (pool.model.status === "unregistered") {
     return (
       <AdminCard variant="elevated" data-component="GardenPoolTab" className="space-y-2">
-        <p className="label-md text-text-strong">
+        <AdminCardTitle>
           {formatMessage({
             id: "cockpit.garden.pool.unregistered.title",
             defaultMessage: "This garden has no commitment pool",
           })}
-        </p>
-        <p className="text-sm text-text-soft">
+        </AdminCardTitle>
+        <p className="body-sm text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.unregistered.body",
             defaultMessage:

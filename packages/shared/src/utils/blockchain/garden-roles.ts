@@ -1,10 +1,11 @@
 /**
  * Garden role definitions shared across hooks and utilities.
  *
- * Role keys are the in-repo name; the deployed Solidity enum and its access
- * functions keep the older `Operator` wire name, which is why `steward` maps to
- * `isOperator` below. The sidecar records the divergence under
- * `garden-role.canonical.display_labels`.
+ * Role keys are the in-repo name, and the Solidity enum member is `Steward`
+ * too. The deployed access functions keep the older operator name, which is
+ * why `steward` maps to `isOperator` and `isOperatorOf` below. Garden accounts
+ * already deployed cannot be upgraded, so `isOperator` stays the name to call
+ * on them.
  *
  * Centralized configuration for all 6 garden roles:
  * - Role IDs (for contract calls)
@@ -25,6 +26,11 @@ export const GARDEN_ROLE_IDS = {
 
 export type GardenRole = keyof typeof GARDEN_ROLE_IDS;
 
+/**
+ * GardenAccount permission views. They apply the inclusive hierarchy
+ * (owner → steward → evaluator → gardener), so a steward reads as a gardener
+ * even without the gardener hat. Use them for "may this account act as X".
+ */
 export const GARDEN_ROLE_FUNCTIONS = {
   gardener: "isGardener",
   evaluator: "isEvaluator",
@@ -33,6 +39,21 @@ export const GARDEN_ROLE_FUNCTIONS = {
   owner: "isOwner",
   funder: "isFunder",
   community: "isCommunity",
+} as const;
+
+/**
+ * HatsModule exact-membership views, `(garden, account) → wears this role's
+ * hat`. This is the test `grantRole` uses to decide whether to mint, so use
+ * these for "would granting X change anything".
+ */
+export const GARDEN_ROLE_HAT_FUNCTIONS = {
+  gardener: "isGardenerOf",
+  evaluator: "isEvaluatorOf",
+  // Every deployed HatsModule has isOperatorOf; isStewardOf arrived with the relabel upgrade.
+  steward: "isOperatorOf",
+  owner: "isOwnerOf",
+  funder: "isFunderOf",
+  community: "isCommunityOf",
 } as const;
 
 /**

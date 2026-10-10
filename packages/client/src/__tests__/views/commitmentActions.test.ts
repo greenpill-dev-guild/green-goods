@@ -80,11 +80,29 @@ describe("selectCommitmentAct", () => {
 
   it("offers withdrawal to whoever made it, on either direction", () => {
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "OFFERED" }, seat: "provider" })
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "OFFERED" },
+        seat: "provider",
+        isCreator: true,
+      })
     ).toMatchObject({ kind: "withdraw", destructive: true });
     expect(
-      selectCommitmentAct({ commitment: { ...base, derivedState: "REQUESTED" }, seat: "confirmer" })
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "REQUESTED" },
+        seat: "confirmer",
+        isCreator: true,
+      })
     ).toMatchObject({ kind: "withdraw", destructive: true });
+  });
+
+  it("does not offer withdrawal to a named confirmer who did not create it", () => {
+    expect(
+      selectCommitmentAct({
+        commitment: { ...base, derivedState: "OFFERED" },
+        seat: "confirmer",
+        isCreator: false,
+      })
+    ).toBeNull();
   });
 
   it("asks rather than takes when the garden reviews who takes things up", () => {
@@ -92,14 +110,28 @@ describe("selectCommitmentAct", () => {
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED", claimMode: "APPROVAL_GATED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("askToTakeUp");
     expect(
       selectCommitmentAct({
         commitment: { ...base, derivedState: "OFFERED" },
         seat: "bystander",
+        isMember: true,
       })?.kind
     ).toBe("takeUp");
+  });
+
+  it("offers a visitor nothing to take up, and nothing while membership is still being read", () => {
+    for (const isMember of [false, undefined]) {
+      expect(
+        selectCommitmentAct({
+          commitment: { ...base, derivedState: "OFFERED" },
+          seat: "bystander",
+          isMember,
+        })
+      ).toBeNull();
+    }
   });
 
   it("offers nothing once a commitment has stopped moving", () => {
@@ -238,13 +270,30 @@ describe("canLinkWork", () => {
 });
 
 describe("selectStatusBand", () => {
+  it.each([
+    "provider",
+    "contributor",
+    "confirmer",
+  ] as const)("explains garden work approvals to the %s without instructing a manual send", (seat) => {
+    const band = selectStatusBand({
+      commitment: { derivedState: "EVIDENCE_SUBMITTED", commitmentType: "DOMAIN_IMPACT" },
+      seat,
+    });
+    expect(band?.bodyId).toBe(
+      seat === "confirmer"
+        ? "app.commitment.band.work.reviewer"
+        : "app.commitment.band.work.required"
+    );
+    expect(band?.named).toBeUndefined();
+  });
+
   it("tells the provider they cannot confirm, rather than asking them to", () => {
     const band = selectStatusBand({
       commitment: { derivedState: "READY_FOR_CONFIRMATION" },
       seat: "provider",
     });
-    expect(band?.titleId).toBe("app.commitment.band.provider.ready.t");
-    expect(band?.titleId).not.toBe("app.commitment.band.confirmer.ready.t");
+    expect(band?.bodyId).toBe("app.commitment.band.provider.ready.b");
+    expect(band?.bodyId).not.toBe("app.commitment.band.confirmer.ready.b");
   });
 
   it("credits the confirmer with confirming, never with doing the work", () => {
@@ -256,9 +305,9 @@ describe("selectStatusBand", () => {
       commitment: { derivedState: "FULFILLED" },
       seat: "provider",
     });
-    expect(confirmer?.titleId).toBe("app.commitment.band.confirmer.fulfilled.t");
-    expect(provider?.titleId).toBe("app.commitment.band.provider.fulfilled.t");
-    expect(confirmer?.titleId).not.toBe(provider?.titleId);
+    expect(confirmer?.bodyId).toBe("app.commitment.band.confirmer.fulfilled.b");
+    expect(provider?.bodyId).toBe("app.commitment.band.provider.fulfilled.b");
+    expect(confirmer?.bodyId).not.toBe(provider?.bodyId);
   });
 
   it("gives each seat its own sentence on the same stage", () => {
@@ -266,14 +315,14 @@ describe("selectStatusBand", () => {
     for (const seat of ["provider", "confirmer", "contributor"] as const) {
       const band = selectStatusBand({ commitment: { derivedState: "ACTIVE" }, seat });
       expect(band).not.toBeNull();
-      seen.add(band?.titleId ?? "");
+      seen.add(band?.bodyId ?? "");
     }
     expect(seen.size).toBe(3);
   });
 
   it("falls back to a neutral fact rather than another seat's sentence", () => {
     const band = selectStatusBand({ commitment: { derivedState: "EXPIRED" }, seat: "contributor" });
-    expect(band?.titleId).toBe("app.commitment.band.any.expired.t");
+    expect(band?.bodyId).toBe("app.commitment.band.any.expired.b");
   });
 
   it("only tells a provider they can offer it again when that act is theirs", () => {

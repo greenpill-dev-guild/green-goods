@@ -57,6 +57,18 @@ export function truncate(str: string, n: number) {
 export const capitalize = (s: string): string =>
   (s && String(s[0]).toUpperCase() + String(s).slice(1)) || "";
 
+const utf8 = new TextEncoder();
+
+/**
+ * The length a contract's `bytes(text).length` measures: UTF-8 bytes, as the
+ * text is encoded when it is sent. A plain letter is one byte, an accented
+ * letter two, a dash like "—" three and an emoji four, so text can fit a
+ * character limit and still be too long for a byte limit of the same number.
+ */
+export function utf8ByteLength(text: string): number {
+  return utf8.encode(text).length;
+}
+
 /**
  * Whether a passkey username was generated rather than chosen (`user_1234567890`).
  * A generated name is not something to show, send, or suggest as someone's name.

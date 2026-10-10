@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import * as devShared from "./dev-shared.js";
 
 import {
   REPOSITORY_LOCAL_GIT_VARIABLES,
@@ -26,6 +27,48 @@ import {
 } from "./dev-shared.js";
 
 const GIBIBYTE = 1024 ** 3;
+
+test("personal skill readiness reports files and discovery symlinks without claiming loading", (t) => {
+  const home = mkdtempSync(path.join(tmpdir(), "personal-skills-"));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const claudeConfigDir = path.join(home, "custom-claude");
+  mkdirSync(path.join(claudeConfigDir, "skills"), { recursive: true });
+  for (const skill of ["pragmatic-programming", "domain-driven-design"]) {
+    const directory = path.join(home, ".agents/skills", skill);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(path.join(directory, "SKILL.md"), `# ${skill}\n`);
+    symlinkSync(directory, path.join(claudeConfigDir, "skills", skill));
+  }
+  const results = devShared.inspectPersonalSkills({ home, claudeConfigDir });
+  assert.equal(results.length, 4);
+  for (const row of results) {
+    assert.equal(row.level, "pass");
+    assert.match(row.title, /skill file available/);
+    assert.equal(row.resolvedPath, realpathSync(row.path));
+    assert.doesNotMatch(row.title, /loaded|compliant|followed/i);
+  }
+});
+
+test("missing, broken, unreadable, and non-file personal skills only warn", (t) => {
+  const home = mkdtempSync(path.join(tmpdir(), "missing-skills-"));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const claudeConfigDir = path.join(home, ".claude");
+  mkdirSync(path.join(claudeConfigDir, "skills"), { recursive: true });
+  symlinkSync(path.join(home, "absent"), path.join(claudeConfigDir, "skills/pragmatic-programming"));
+  const notFile = path.join(home, ".agents/skills/domain-driven-design/SKILL.md");
+  mkdirSync(notFile, { recursive: true });
+  const results = devShared.inspectPersonalSkills({ home, claudeConfigDir });
+  assert.equal(results.length, 4);
+  for (const row of results) {
+    assert.equal(row.level, "warn");
+    assert.match(row.fix, /repository guidance/i);
+  }
+  const denied = devShared.inspectPersonalSkills({
+    home, claudeConfigDir,
+    access: () => { throw Object.assign(new Error("fixture permission denied"), { code: "EACCES" }); },
+  });
+  assert.ok(denied.every((row) => row.level === "warn" && row.detail.includes("EACCES")));
+});
 
 test("Docker repairs a missing local socket without overriding an intentional endpoint", () => {
   const home = "/home/dev";
@@ -560,4 +603,109 @@ test("settings a run changed in the shared git config are reported with the comm
       ],
     },
   );
+});
+
+function hookFixture(t) {
+  const directory = realpathSync(mkdtempSync(path.join(tmpdir(), "worktree-hooks-")));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const cwd = path.join(directory, "main");
+  mkdirSync(cwd);
+  const env = { ...fixtureGitEnvironment(), XDG_CONFIG_HOME: path.join(directory, "config"), HUSKY: "1" };
+  const git = (root, ...args) => execFileSync("git", args, { cwd: root, env, encoding: "utf8" }).trim();
+  git(cwd, "init", "--quiet");
+  git(cwd, "commit", "--quiet", "--allow-empty", "-m", "fixture");
+  const write = (root, file, text, mode = 0o644) => {
+    const target = path.join(root, file);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, text, { mode });
+    return target;
+  };
+  const install = (root) => {
+    write(root, ".husky/_/pre-push", '#!/usr/bin/env sh\n. "$(dirname "$0")/h"\n', 0o755);
+    write(root, ".husky/_/h", readFileSync(new URL("../../node_modules/husky/husky", import.meta.url), "utf8"));
+    write(root, ".husky/pre-push", '#!/usr/bin/env sh\nnode scripts/dev/node-cli.js scripts/dev/ci-local.js\n');
+    write(root, "scripts/dev/node-cli.js", 'process.exit(require("node:child_process").spawnSync(process.execPath, process.argv.slice(2), {stdio:"inherit"}).status ?? 1);\n');
+    write(root, "scripts/dev/ci-local.js", 'require("node:fs").writeFileSync(process.env.SF_HOOK_MARKER, process.cwd());\n');
+  };
+  const inspect = () => devShared.inspectWorktreeHooks({ cwd, env });
+  return { directory, cwd, env, git, write, install, inspect };
+}
+
+test("hook inspection resolves relative and absolute Husky paths without changing config", (t) => {
+  const f = hookFixture(t);
+  f.install(f.cwd);
+  for (const hooksPath of [".husky/_", path.join(f.cwd, ".husky/_")]) {
+    f.git(f.cwd, "config", "core.hooksPath", hooksPath);
+    const before = f.git(f.cwd, "config", "--local", "--list");
+    const [row] = f.inspect();
+    assert.equal(row.state, "available");
+    assert.equal(row.hookPath, path.join(f.cwd, ".husky/_/pre-push"));
+    assert.match(row.detail, /not.*execution/i);
+    assert.equal(f.git(f.cwd, "config", "--local", "--list"), before);
+  }
+});
+
+test("hook inspection distinguishes missing dispatcher, helper, target, and branch tooling", (t) => {
+  const f = hookFixture(t);
+  f.git(f.cwd, "config", "core.hooksPath", ".husky/_");
+  assert.equal(f.inspect()[0].state, "missing-dispatcher");
+  f.install(f.cwd);
+  for (const [file, state] of [[".husky/_/h", "missing-helper"], [".husky/pre-push", "missing-target"], ["scripts/dev/ci-local.js", "missing-tooling"]]) {
+    rmSync(path.join(f.cwd, file));
+    assert.equal(f.inspect()[0].state, state);
+    f.install(f.cwd);
+  }
+});
+
+test("hook inspection refuses nonexecutable dispatch and does not certify custom scripts", (t) => {
+  const f = hookFixture(t);
+  f.install(f.cwd);
+  f.git(f.cwd, "config", "core.hooksPath", ".husky/_");
+  chmodSync(path.join(f.cwd, ".husky/_/pre-push"), 0o644);
+  assert.equal(f.inspect()[0].state, "nonexecutable-dispatcher");
+  chmodSync(path.join(f.cwd, ".husky/_/pre-push"), 0o755);
+  f.write(f.cwd, ".husky/_/h", "exit 0\n");
+  assert.equal(f.inspect()[0].state, "unverified-hook");
+  f.write(f.cwd, "custom-hooks/pre-push", "#!/bin/sh\nexit 0\n", 0o755);
+  f.git(f.cwd, "config", "core.hooksPath", "custom-hooks");
+  assert.equal(f.inspect()[0].state, "unverified-hook");
+});
+
+test("absolute dispatch still checks tooling in the linked checkout and reports inactive worktrees", (t) => {
+  const f = hookFixture(t);
+  f.install(f.cwd);
+  f.git(f.cwd, "config", "core.hooksPath", path.join(f.cwd, ".husky/_"));
+  const linked = path.join(f.directory, "older branch");
+  f.git(f.cwd, "worktree", "add", "--quiet", "--detach", linked, "HEAD");
+  let row = f.inspect().find((entry) => entry.checkout === linked);
+  assert.equal(row.state, "missing-tooling");
+  assert.match(row.detail, /node-cli/);
+  rmSync(linked, { recursive: true });
+  row = f.inspect().find((entry) => entry.checkout === linked);
+  assert.equal(row.state, "inactive");
+  assert.match(row.fix, /owner/i);
+});
+
+test("a disposable linked checkout dispatches through real Git and Husky to its own gate", (t) => {
+  const f = hookFixture(t);
+  f.install(f.cwd);
+  const linked = path.join(f.directory, "linked");
+  f.git(f.cwd, "worktree", "add", "--quiet", "--detach", linked, "HEAD");
+  f.install(linked);
+  f.git(f.cwd, "config", "core.hooksPath", ".husky/_");
+  assert.ok(f.inspect().every((row) => row.state === "available"));
+  const marker = path.join(f.directory, "dispatched");
+  execFileSync("git", ["hook", "run", "pre-push"], { cwd: linked, env: { ...f.env, SF_HOOK_MARKER: marker } });
+  assert.equal(readFileSync(marker, "utf8"), linked);
+  f.write(linked, "scripts/dev/ci-local.js", "process.exit(17);\n");
+  assert.throws(() => execFileSync("git", ["hook", "run", "pre-push"], { cwd: linked, env: f.env, stdio: "pipe" }), { status: 17 });
+  assert.equal(f.git(linked, "status", "--porcelain", "--untracked-files=no"), "");
+});
+
+test("a Git lookup failure is diagnostic rather than an empty healthy inventory", () => {
+  for (const result of [{ status: 128, stderr: "fixture lookup failed" }, { status: 0, stdout: "" }]) {
+    const rows = devShared.inspectWorktreeHooks({ run: () => result });
+    assert.equal(rows[0].state, "git-error");
+    assert.equal(rows[0].level, "warn");
+  }
 });

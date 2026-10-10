@@ -1,5 +1,4 @@
 import { Alert } from "@green-goods/shared/components/Alert";
-import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import {
   getMinRequiredWorkImages,
   type SubmitWorkAuthSnapshot,
@@ -10,17 +9,19 @@ import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { FlowSendFooter, flowSendPhase, SingleSendNote } from "@/components/Layout/FlowSendFooter";
 import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
 import { SubmitWorkStepContent } from "./SubmitWorkStepContent";
+import { submitWorkSendStatus } from "./submitWorkStatus";
 
 export type SubmitWorkLayout = "page" | "dialog";
 
 export interface SubmitWorkFlowProps {
   layout?: SubmitWorkLayout;
-  onSuccess?: () => void;
+  /** The steward leaves the done state: the work is sent and the flow can close. */
+  onDone?: () => void;
   onCancel?: () => void;
   auth: SubmitWorkAuthSnapshot;
   onDirtyChange?: (dirty: boolean) => void;
@@ -29,7 +30,7 @@ export interface SubmitWorkFlowProps {
 
 export function SubmitWorkFlow({
   layout = "page",
-  onSuccess,
+  onDone,
   onCancel,
   onDirtyChange,
   onBusyChange,
@@ -40,7 +41,6 @@ export function SubmitWorkFlow({
   const controller = useSubmitWorkController({
     auth,
     localizeAction: localizeActionForDisplay,
-    onSuccess,
     onDirtyChange,
     onBusyChange,
   });
@@ -61,9 +61,9 @@ export function SubmitWorkFlow({
     mutation,
     phaseRef,
     progressMessage,
-    resetMutation,
     selectedAction,
-    submitValidatedDraft,
+    sent,
+    submitAnother,
   } = controller;
   const title = formatMessage({ id: "app.admin.work.submit.title" });
   const exitLabel = formatMessage({ id: "app.admin.work.submit.backToGarden" });
@@ -125,10 +125,10 @@ export function SubmitWorkFlow({
       >
         <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
           <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
-          <p className="text-sm font-semibold text-text-strong">
+          <p className="body-sm font-semibold text-text-strong">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
           </p>
-          <p className="max-w-sm text-xs text-text-sub">
+          <p className="max-w-sm body-xs text-text-sub">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
           </p>
           <AdminButton
@@ -184,61 +184,46 @@ export function SubmitWorkFlow({
       }),
     },
   ];
-  const isFirstStep = currentStep === 1;
-  const isLastStep = currentStep === stepConfigs.length;
-  const nextDisabled = busy || (activeStepId === "action" && !selectedAction);
+  const awaitingConfirmation = mutation.lastSubmissionOutcome?.kind === "awaiting-confirmation";
+  // One reading of the send, so the status row and the footer never disagree.
+  const status = submitWorkSendStatus({
+    awaitingConfirmation,
+    phase: flowSendPhase({ sending: mutation.isPending, sent, failed: mutation.isError }),
+    progressMessage,
+    formatMessage,
+  });
+  const { phase } = status;
   const footer = (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <div className="min-w-0 space-y-1.5 sm:flex-1" aria-live="polite">
-        {busy ? (
-          <AdminLinearProgress
-            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
-          />
-        ) : null}
-        {progressMessage ? (
-          <p className="truncate text-sm text-text-sub" title={progressMessage}>
-            {progressMessage}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <AdminButton
-          type="button"
-          variant={isFirstStep ? "text" : "outlined"}
-          onClick={isFirstStep ? () => onCancel?.() : goBack}
-          disabled={busy}
-          className="self-start sm:self-auto"
-        >
-          {isFirstStep
-            ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
-            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-        </AdminButton>
-        {isLastStep ? (
-          <AdminButton
-            type="submit"
-            form={formId}
-            variant="filled"
-            loading={busy}
-            disabled={busy}
-            onClick={armSubmitIntent}
-            leadingIcon={<RiUploadCloudLine />}
-            className="w-full sm:w-auto"
-          >
-            {formatMessage({ id: "app.admin.work.submit.submit" })}
-          </AdminButton>
-        ) : (
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={() => void goNext()}
-            disabled={nextDisabled}
-            className="w-full sm:w-auto"
-          >
-            {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-          </AdminButton>
-        )}
-      </div>
-    </div>
+    <FlowSendFooter
+      stepIndex={currentStep - 1}
+      isLast={currentStep === stepConfigs.length}
+      phase={phase}
+      sendLabel={
+        awaitingConfirmation
+          ? formatMessage({
+              id: "app.admin.work.submit.checkConfirmation",
+              defaultMessage: "Check confirmation",
+            })
+          : formatMessage({ id: "app.admin.work.submit.submit" })
+      }
+      // The Review's primary submits the form, which validates once more before it sends.
+      sendButtonProps={{ type: "submit", form: formId, leadingIcon: <RiUploadCloudLine /> }}
+      note={awaitingConfirmation ? status.description : <SingleSendNote phase={phase} />}
+      nextDisabled={activeStepId === "action" && !selectedAction}
+      held={busy}
+      another={{
+        label: formatMessage({
+          id: "app.admin.work.submit.another",
+          defaultMessage: "Submit Another",
+        }),
+        onClick: submitAnother,
+      }}
+      onCancel={() => onCancel?.()}
+      onBack={goBack}
+      onNext={() => void goNext()}
+      onSend={armSubmitIntent}
+      onDone={() => onDone?.()}
+    />
   );
 
   return (
@@ -248,7 +233,9 @@ export function SubmitWorkFlow({
       context={garden.name}
       steps={stepConfigs}
       currentStep={currentStep}
-      onStepClick={handleStepJump}
+      complete={sent}
+      // Once the work is sent no step reopens: the way on is Done.
+      onStepClick={sent ? undefined : handleStepJump}
       footer={footer}
     >
       <form id={formId} onSubmit={handleFormSubmit}>
@@ -258,40 +245,10 @@ export function SubmitWorkFlow({
           key={activeStepId}
           className="action-flow-fade space-y-4 outline-none"
         >
-          {mutation.isError ? (
-            <TxInlineFeedback
-              visible
-              severity="error"
-              title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
-              message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
-              reserveClassName="min-h-0"
-              action={
-                <div className="flex flex-wrap gap-2">
-                  <AdminButton
-                    type="button"
-                    variant="outlined"
-                    size="sm"
-                    onClick={() => void submitValidatedDraft()}
-                    disabled={busy}
-                  >
-                    {formatMessage({ id: "app.admin.work.submit.retry" })}
-                  </AdminButton>
-                  <AdminButton
-                    type="button"
-                    variant="text"
-                    size="sm"
-                    onClick={resetMutation}
-                    disabled={busy}
-                  >
-                    {formatMessage({ id: "app.admin.work.submit.editDetails" })}
-                  </AdminButton>
-                </div>
-              }
-            />
-          ) : null}
           <SubmitWorkStepContent
             controller={controller}
             photoRequirementText={photoRequirementText}
+            reviewStatus={status}
           />
         </div>
       </form>

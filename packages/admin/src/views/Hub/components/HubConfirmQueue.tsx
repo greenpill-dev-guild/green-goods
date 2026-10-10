@@ -1,3 +1,4 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
@@ -9,7 +10,7 @@ import type {
 import { useHubConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
-import { RiShakeHandsLine } from "@remixicon/react";
+import { RiCheckLine, RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -19,11 +20,8 @@ import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
 import { ConfirmKeptDialog } from "@/views/Garden/Pool/CommitmentDialog/ConfirmKeptDialog";
 import { GardenPoolTarget } from "@/views/Garden/Pool/PoolTarget";
-import {
-  confirmEligibilityChip,
-  otherPoolGardenLabel,
-  shortAddress,
-} from "@/views/Garden/Pool/poolPresentation";
+import { confirmEligibilityChip, otherPoolGardenLabel } from "@/views/Garden/Pool/poolPresentation";
+import { clockTime, exactTime, isoTime } from "@/views/Garden/Pool/poolTime";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 export interface HubConfirmQueueProps {
@@ -56,7 +54,8 @@ export function HubConfirmQueue({
   onOpenCommitment,
   onCloseCommitment,
 }: HubConfirmQueueProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const queue = useHubConfirmQueueController({ chainId, toConfirm, search: normalizedSearch });
   const [notYet, setNotYet] = useState<ConfirmQueueRow | null>(null);
   const [confirming, setConfirming] = useState<ConfirmQueueRow | null>(null);
@@ -131,6 +130,7 @@ export function HubConfirmQueue({
           const disputed = commitment.onchainState === "DISPUTED";
           const eligibility = disputed ? null : badge(row.eligibility);
           const otherPool = otherPoolGardenLabel(row);
+          const committedBy = commitment.leadProvider ?? commitment.creator;
           const id = commitment.commitmentId.toString();
           const selectedRow = selectedCommitmentId === id;
           const progressLabel = formatMessage(
@@ -158,27 +158,46 @@ export function HubConfirmQueue({
                   >
                     {title}
                   </span>
-                  <span
-                    className="block text-xs text-text-soft"
-                    title={commitment.leadProvider ?? undefined}
-                  >
-                    {[
-                      shortAddress(commitment.leadProvider ?? commitment.creator),
-                      // The acting garden is the one in the header; a commitment that
-                      // lives in another garden's pool says whose.
-                      otherPool
-                        ? formatMessage(
-                            {
-                              id: "cockpit.hub.confirm.inPool",
-                              defaultMessage: "in {garden}’s pool",
-                            },
-                            { garden: otherPool }
-                          )
-                        : null,
-                      `${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim(),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                  {/* Who committed, by name, then where and how much. */}
+                  <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
+                    {committedBy ? (
+                      <AddressDisplay
+                        address={committedBy}
+                        interactive={false}
+                        className="body-xs"
+                      />
+                    ) : null}
+                    {/* The acting garden is the one in the header; a commitment that
+                        lives in another garden's pool says whose. */}
+                    {otherPool ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "cockpit.hub.confirm.inPool",
+                            defaultMessage: "in {garden}’s pool",
+                          },
+                          { garden: otherPool }
+                        )}
+                      </span>
+                    ) : null}
+                    <span>
+                      ·{" "}
+                      {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
+                    </span>
+                    {/* A copy from a group is confirmed on its own; the group only names it. */}
+                    {row.groupSize ? (
+                      <span>
+                        ·{" "}
+                        {formatMessage(
+                          {
+                            id: "cockpit.hub.confirm.fromGroup",
+                            defaultMessage: "from a group of {count}",
+                          },
+                          { count: row.groupSize }
+                        )}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
                 <StatusBadge variant={eligibility?.variant ?? "warning"} size="sm">
@@ -195,10 +214,13 @@ export function HubConfirmQueue({
                   ariaLabel={progressLabel}
                   className="flex-1"
                 />
-                <span className="text-xs text-text-soft">{progressLabel}</span>
+                <span className="body-xs text-text-soft">{progressLabel}</span>
               </div>
-              <div className="mt-2 flex flex-wrap justify-end gap-2">
-                {disputed ? (
+              {/* One height through every state: the outcome takes the buttons' place. */}
+              <div className="mt-2 flex min-h-8 flex-wrap items-center justify-end gap-2">
+                {row.state.status !== "waiting" ? (
+                  <ConfirmOutcome state={row.state} />
+                ) : disputed ? (
                   <AdminButton
                     type="button"
                     variant="filled"
@@ -268,7 +290,7 @@ export function HubConfirmQueue({
   return (
     <div data-component="HubConfirmQueue" data-region="hub-confirm">
       {!queue.isOnline && queue.rows.length > 0 ? (
-        <p className="mb-2 text-xs text-warning-dark" role="status">
+        <p className="mb-2 body-xs text-warning-dark" role="status">
           {formatMessage({
             id: "cockpit.hub.confirm.offline",
             defaultMessage:
@@ -373,7 +395,7 @@ export function HubConfirmQueue({
               tone="hub"
             />
           ) : (
-            <p className="p-4 text-sm text-text-soft">
+            <p className="p-4 body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.hub.confirm.notInQueue",
                 defaultMessage: "This commitment is not in your confirmation queue any more.",
@@ -383,5 +405,51 @@ export function HubConfirmQueue({
         ) : null}
       </AdminDialog>
     </div>
+  );
+}
+
+/**
+ * A row's outcome this visit, in place of its buttons, the way Waiting for
+ * approval keeps its decisions: confirmed here with its time, queued on this
+ * device, or settled elsewhere.
+ */
+function ConfirmOutcome({
+  state,
+}: {
+  state: Exclude<ConfirmQueueRow["state"], { status: "waiting" }>;
+}) {
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  if (state.status === "confirmed") {
+    return (
+      <span className="flex items-center gap-2" role="status">
+        <time
+          dateTime={isoTime(state.at)}
+          title={exactTime(intl, state.at)}
+          className="body-xs text-text-soft"
+        >
+          {clockTime(intl, state.at)}
+        </time>
+        <StatusBadge variant="success" size="sm" icon={<RiCheckLine className="h-3 w-3" />}>
+          {formatMessage({
+            id: "cockpit.hub.confirm.outcome.confirmed",
+            defaultMessage: "Confirmed",
+          })}
+        </StatusBadge>
+      </span>
+    );
+  }
+  return (
+    <StatusBadge variant="neutral" size="sm" showIcon={false}>
+      {state.status === "queued"
+        ? formatMessage({
+            id: "cockpit.hub.confirm.outcome.queued",
+            defaultMessage: "Queued on this device",
+          })
+        : formatMessage({
+            id: "cockpit.garden.pool.approvals.gone",
+            defaultMessage: "No longer waiting",
+          })}
+    </StatusBadge>
   );
 }

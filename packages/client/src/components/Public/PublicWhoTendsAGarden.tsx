@@ -83,7 +83,8 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.funder.name",
     defaultName: "Funders",
     roleId: "public.home.personas.funder.role",
-    defaultRole: "Resource the work. Endow a Garden Vault or give directly to its shared fund.",
+    defaultRole:
+      "Help communities continue their work through donations, grants, or longer-term support.",
     bodyId: "public.home.personas.funder.body",
     defaultBody:
       "Funders make seasons possible. Some give directly to a Garden's shared fund for the work at hand. Others endow a vault whose yield supports the Garden season after season. Every path lands with a Garden, not a platform.",
@@ -256,7 +257,7 @@ export function PublicWhoTendsAGarden() {
             {formatMessage({
               id: "public.home.personas.lede",
               defaultMessage:
-                "Healthy places grow when many hands and eyes meet around the same record. Five people show up here, each making the proof true in their own way.",
+                "Participants do the work, stewards review it, and supporters help make the next steps possible. Communities and evaluators bring local knowledge and help interpret the evidence.",
             })}
           </EditorialLede>
         </header>

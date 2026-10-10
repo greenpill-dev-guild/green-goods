@@ -19,6 +19,7 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
+export { hasActionEnded, msUntilActionWindowChange } from "./action/window";
 export {
   ACTION_INSTRUCTIONS_SCHEMA_VERSION,
   ACTION_TRANSLATION_LOCALES,
@@ -349,14 +350,14 @@ export {
 export {
   aggregateBadges,
   DOMAIN_LABEL_IDS,
-  getMedian,
   getSeverityRank,
-  hoursSince,
   parseGardenDetailTab,
   parseGardenRange,
   RANGE_TO_MS,
+  summarizeReviewQueue,
   toMs,
 } from "./garden-detail";
+export type { ReviewQueueSummary, ReviewQueueWork } from "./garden-detail";
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,
@@ -447,7 +448,6 @@ export {
   // Core utilities (backward compatible)
   filterByTimeRange,
   formatDate,
-  formatDateRange,
   formatDateTime,
   formatDuration,
   fromDateInputValue,

@@ -4,10 +4,11 @@ import { trackWorkApprovalPresentationFailed } from "@green-goods/shared/modules
 import { logger } from "@green-goods/shared/modules/app/logger";
 import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -60,7 +61,7 @@ function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${config.color}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 label-xs ${config.color}`}
     >
       <StatusIcon className="h-3 w-3" />
       {config.label}
@@ -185,19 +186,13 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   const displayAction = action
     ? localizeActionForDisplay(action, { formatMessage, locale })
     : undefined;
-  const localizedActionTitle = displayAction?.title;
-  const localizedWorkTitle = work.title
-    ? localizeCanonicalActionTitle(work.title, formatMessage)
-    : undefined;
+  // Action titles can carry generated stamps; show them without.
+  const localizedActionTitle = toWorkDisplayTitle(displayAction?.title, "") || undefined;
 
+  // The dialog title already names the work, so the topline carries only its status.
   const sheetTopline = (
     <div className="flex flex-wrap items-center gap-2 px-1">
       <WorkDetailStatusBadge status={work.status} />
-      <span className="text-xs text-text-soft">
-        {localizedActionTitle ??
-          localizedWorkTitle ??
-          formatMessage({ id: "app.work.detail.title" })}
-      </span>
     </div>
   );
 
@@ -283,17 +278,22 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
 
 export default function WorkDetail() {
   const { workId } = useParams<{ workId: string }>();
+  const { search } = useLocation();
   const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const displayAction = resolved.action
     ? localizeActionForDisplay(resolved.action, { formatMessage, locale })
     : undefined;
-  const localizedActionTitle = displayAction?.title;
-  const localizedWorkTitle = resolved.work?.title
-    ? localizeCanonicalActionTitle(resolved.work.title, formatMessage)
+  // Action titles can carry generated stamps; show them without.
+  const localizedActionTitle = toWorkDisplayTitle(displayAction?.title, "") || undefined;
+  const workTitle = toWorkDisplayTitle(resolved.work?.title, "");
+  const localizedWorkTitle = workTitle
+    ? localizeCanonicalActionTitle(workTitle, formatMessage)
     : undefined;
-  const hubContext =
-    typeof window === "undefined" ? undefined : parseHubContext(window.location.search);
+  // The Hub's filters come from the router, which says when they change. Read from
+  // window.location while rendering they name no reactive value, so the compiled app would keep
+  // the first work's filters for as long as this view stays mounted.
+  const hubContext = parseHubContext(search);
 
   const baseHeaderProps = {
     backLink: {

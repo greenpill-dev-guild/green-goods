@@ -15,6 +15,7 @@ import {
 import {
   mapClaim,
   mapCommitmentsWithCycleState,
+  mapCommitmentsWithRequirements,
   mapWorkAttribution,
   rowsByIds,
   WORK_ATTRIBUTION_FIELDS,
@@ -84,8 +85,9 @@ export async function getCommitments(
         reader
       )
     ).map((row) => String(row.commitmentEntityId));
-    declarations.push("$account: String!");
+    declarations.push("$account: String!", "$confirmerAccounts: [String!]!");
     variables.account = account;
+    variables.confirmerAccounts = [account];
     const partyClauses = [
       "{ creator: { _eq: $account } }",
       "{ leadProvider: { _eq: $account } }",
@@ -93,8 +95,10 @@ export async function getCommitments(
       // Named confirmers are a party too. selectCommitmentSeat seats them, so
       // without this their own commitment never reaches the sheet that exists
       // to tell them something is waiting, and they could only find it by
-      // browsing the garden it lives in.
-      "{ confirmers: { _contains: [$account] } }",
+      // browsing the garden it lives in. The list is one variable, not
+      // `[$account]`: the hosted indexer reads a variable nested in a list
+      // literal as null on some requests and rejects the whole query.
+      "{ confirmers: { _contains: $confirmerAccounts } }",
     ];
     // An empty roster is not an empty result — the party clauses stand alone.
     if (rosteredIds.length > 0) {
@@ -105,12 +109,8 @@ export async function getCommitments(
     clauses.push(`_or: [${partyClauses.join(", ")}]`);
   }
   const query = `query Commitments(${declarations.join(", ")}) { Commitment(where: { ${clauses.join(", ")} }, order_by: { commitmentId: desc }) { ${COMMITMENT_FIELDS} } }`;
-  return (
-    await mapCommitmentsWithCycleState(
-      await queryRows(query, variables, "Commitment", "getCommitments", reader),
-      reader
-    )
-  ).filter((row) => row.creationSeen);
+  const rows = await queryRows(query, variables, "Commitment", "getCommitments", reader);
+  return mapCommitmentsWithRequirements(rows, input.chainId, reader);
 }
 
 export async function getCommitmentDetail(

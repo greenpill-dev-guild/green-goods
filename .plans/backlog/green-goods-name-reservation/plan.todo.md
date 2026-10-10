@@ -4,9 +4,13 @@
 **Linear Source**: source:plans
 **Feature Slug**: `green-goods-name-reservation`
 **Stage**: `backlog`
-**Status**: `BLOCKED` — awaiting founder decisions 1, 2, and 3 in [`spec.md` § Human Judgment Points](./spec.md#human-judgment-points)
+**Status**: `BLOCKED — enforcement, expiry and normalization decisions remain open`
 **Created**: `2026-09-22T00:26:22Z`
-**Last Updated**: `2026-09-22`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+PRD-949 is Todo in Linear, but the first three founder decisions in `spec.md` are still unanswered here: app-level versus onchain enforcement, reservation lifetime/refresh, and username normalization. Scheduling remains blocked despite the Linear Todo label. Keep garden-name collision and reserved-name decisions visible; this review does not decide them.
 
 ## Decision Log
 

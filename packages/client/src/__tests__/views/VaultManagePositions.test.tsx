@@ -1,7 +1,7 @@
 /**
  * Route-local vault position management (`/vaults?manage=positions`) tests.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";

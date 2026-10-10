@@ -2,21 +2,25 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `backlog`
-**Status**: `BACKLOG: moved 2026-09-10 because Needs is deferred and September is QA only. The four-schema/two-resolver/refUID architecture stays locked (2026-07-27). The join-request queue shipped in PR #779 and is switched on for QA, but its production gates are not recorded as met; every other lane keeps its named gate`
+**Status**: `BACKLOG — Needs deferred; shipped join requests are separate`
 **Created**: 2026-07-04
-**Last Updated**: 2026-09-10
+**Last Updated**: `2026-10-06`
 
-Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-needs-and-signals-083dd7e556c2). Milestones: Needs substrate (2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The Product Commitment Pooling cycle runs 2026-07-16 through 2026-07-30; Research alignment runs through 2026-07-30. Active September delivery tracker PRD-682 stays in [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354); canceled PRD-683 remains historical traceability only. Artifacts: `spec.md`, `corrections-log.md`, `diagrams.md`, `wireframes.md`, `journeys.md`, `research-plan.md`.
+Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-needs-and-signals-083dd7e556c2). Milestones: Needs substrate (2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The Product Commitment Pooling cycle runs 2026-07-16 through 2026-07-30; Research alignment runs through 2026-07-30. Historical September delivery tracker PRD-682, canceled as superseded on 2026-09-11, remains traceability in [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354); canceled PRD-683 remains historical traceability only. Artifacts: `spec.md`, `corrections-log.md`, `diagrams.md`, `wireframes.md`, `journeys.md`, `research-plan.md`.
 
-> **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs historical PRD-688 indexer, PRD-689 paymaster, and PRD-690 shared) and **PRD-691** September needs app (absorbs historical PRD-692 funder lens, PRD-693 docs, and PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696**, scoping record **RESR-64**, and active cross-project delivery tracker **PRD-682**. Canceled **PRD-683** remains historical only. Dispatch reads an active tracker plus this plan and its handoffs, never a closed child issue.
+> **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs historical PRD-688 indexer, PRD-689 paymaster, and PRD-690 shared) and **PRD-691** September needs app (absorbs historical PRD-692 funder lens, PRD-693 docs, and PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696**, scoping record **RESR-64**, and historical cross-project delivery tracker **PRD-682** (canceled as superseded on 2026-09-11). Canceled **PRD-683** remains historical only. Dispatch reads an active tracker plus this plan and its handoffs, never a closed child issue.
 > **Plan-hub sync (2026-07-07).** `status.json` records **PRD-687** as the single `linear.parentIssue` because plan-hub supports one parent mirror in `parent_only` mode. **PRD-691** remains the active September needs app tracker in `consolidatedTrackers` and the table below; no lane-child issues should be recreated without explicit approval.
+
+## Status reconciliation (2026-10-06)
+
+PRD-687 remains Backlog. Keep Needs substrate, membership/privacy/pilot gates and Community PWA scope deferred. Join-request delivery and the later PRD-1017 repair are separate; neither establishes every production/pilot gate in this hub. Re-read the current join-request owners before rescoping any overlap. Do not reopen delivered work or promote the broader Needs lanes from this status review.
 
 ## Decision Log (locked 2026-07-04 through 2026-07-27, full rationale in spec.md §1)
 
 | # | Decision |
 |---|---|
 | 1 | Vocabulary is **Need** (never "problem") in code and copy: schemas Need/NeedSignal/NeedStatus, field `needUID`, tab Needs, es Necesidades / pt Necessidades. |
-| 2 | Community Needs & Signals is the build home; active delivery tracker PRD-682 stays in Commitment Pooling and canceled PRD-683 is historical only. PRD-687 blocking PRD-691 is the live cross-project execution relation. |
+| 2 | Community Needs & Signals is the build home; historical delivery tracker PRD-682 (canceled as superseded on 2026-09-11) remains in Commitment Pooling and canceled PRD-683 is historical only. PRD-687 blocking PRD-691 is the live cross-project execution relation. |
 | 3 | Spec home is this hub; the commitment-pooling hub carries only the `needUID` amendment + §8 supersession note (+ decision-register addendum #28). |
 | 4 | App IA: Needs / Create (center, voice-first) / Profile; pool story folds into the board header + detail threads; solution-proposal objects dropped. |
 | 5 | Fund action: embedded donate + endowment (the /fund paths) in need context; `FundingAttribution` attestation in v1; funded-toward on detail only, never a sort key; no per-need escrow. |
@@ -27,7 +31,7 @@ Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-
 | 10 | Join requests use the minimal encrypted garden-scoped service queue specified in `join-queue-spec.md`. Local implementation was authorized on 2026-08-27; production collection remains blocked until its encryption, backup-operator, recovery, and authenticated-Brave gates are complete. |
 | 11 | `packages/community` is an independent PWA at `community.greengoods.app` / local 3010; a prerequisite shared-foundation lane extracts generic runtime/auth/offline/install/update/error/shell primitives for both client and Community without sharing routes, manifests, service-worker scope, telemetry identity, or copy. |
 | 12 | Need moderation and progress are separate axes; declined is author/operator-only, hidden is operator-only, merge redirects, acknowledgement with rationale reopens, and author retraction leaves a content-free lineage tombstone. |
-| 13 | PRD-758 is the Community Needs architecture gate for PRD-682. It must close before PRD-682 implementation, but it does not block PRD-721/722/723 or the core Commitment Pooling backend. |
+| 13 | Historical gate: PRD-758 closed on 2026-08-29; PRD-682 was canceled as superseded on 2026-09-11. Neither is a live dispatch target or blocker for PRD-721/722/723 or the core Commitment Pooling backend. |
 | 14 | Keep four EAS schemas but deploy two resolvers: `NeedsResolver` for Need/NeedSignal/NeedStatus and a separate `FundingAttributionResolver`; `recipient` is the garden and child `refUID` is the Need UID. |
 | 15 | NeedSignal carries only `bool support`. Latest unsigned `(timeCreated, uid)` per `(refUID, attester)` wins before revocation/expiry filtering; support/non-support display separately; switching writes a newer attestation; clearing revokes the winner; pending queue intents coalesce by Need/member/chain/garden. |
 
@@ -50,7 +54,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatu
 | needUID on commitment entities + need-keyed aggregates | `indexer` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-688](https://linear.app/greenpill-dev-guild/issue/PRD-688) | ⏳ |
 | Pimlico sponsorship policy for need/signal/testimony writes | `ops_paymaster` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-689](https://linear.app/greenpill-dev-guild/issue/PRD-689) | ⏳ |
 | Shared substrate: job kinds, needs hooks + derivation join, voice dictation & transcription | `state_api` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-690](https://linear.app/greenpill-dev-guild/issue/PRD-690) | ⏳ |
-| Shared foundations: runtime/auth/passkey/offline/install/update/error/shell extraction and client migration proof | `shared_foundation` | [PRD-682](https://linear.app/greenpill-dev-guild/issue/PRD-682) | none | MANUALLY BLOCKED on authorization, reviewer, and accepted RED characterization targets |
+| Shared foundations: runtime/auth/passkey/offline/install/update/error/shell extraction and client migration proof | `shared_foundation` | [PRD-682 (historical, canceled)](https://linear.app/greenpill-dev-guild/issue/PRD-682) | none | MANUALLY BLOCKED on a new accepted tracker, authorization, reviewer, and RED characterization targets |
 | Admin: need triage, moderation, gathering view; locally implemented membership queue with production collection still gated | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | none (parent tracker) | join queue local ✅ / production gate |
 | Funder lens: global needs gallery + donate/endowment embed + FundingAttribution | `funder_lens` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-692](https://linear.app/greenpill-dev-guild/issue/PRD-692) | ⏳ |
 | Docs: community guide + operator triage guide + glossary entries | `docs` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-693](https://linear.app/greenpill-dev-guild/issue/PRD-693) | ⏳ |
@@ -58,7 +62,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatu
 | Hardening (parked): on-chain eligibility module | `hardening` | [PRD-695](https://linear.app/greenpill-dev-guild/issue/PRD-695) | none | 🅿️ |
 | Hardening (parked): deeper on-chain funding attribution | `hardening` | [PRD-696](https://linear.app/greenpill-dev-guild/issue/PRD-696) | none | 🅿️ |
 
-Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `needUID`, historical PRD-673 persisted it, and historical PRD-679 added Hypercert lineage. Active PRD-682 owns the independent Community PWA delivery prerequisite. Canceled PRD-683 is traceability for the operator-seeding scope now owned by PRD-691 and `handoffs/claude-ui-admin.md`; none of the historical children are dispatch targets.
+Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `needUID`, historical PRD-673 persisted it, and historical PRD-679 added Hypercert lineage. Historical PRD-682 covered the independent Community PWA prerequisite; it was canceled as superseded on 2026-09-11 and cannot dispatch work. Canceled PRD-683 is traceability for the operator-seeding scope now owned by PRD-691 and `handoffs/claude-ui-admin.md`; none of the historical children are dispatch targets.
 
 ## Tracks and Sequencing
 

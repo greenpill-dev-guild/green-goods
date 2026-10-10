@@ -1,9 +1,13 @@
 # Yield to Impact Codification Plan
 
 **Feature Slug**: yield-to-impact-codification
-**Stage**: ideas
-**Status**: IDEA - research only, not dispatchable
-**Last Updated**: 2026-07-19
+**Stage**: `ideas`
+**Status**: `IDEA — measurement proposal; funder-language research is a separate boundary`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+[RESR-8](https://linear.app/greenpill-dev-guild/issue/RESR-8) is Backlog and produces defensible funder-facing language, not hooks, indexer fields, curves or Hypercert schema implementation. This retained idea describes the broader measurement proposal and depends on a stable dimension model. Link the narrower research rather than claiming it owns or approves this whole build. The May/June scheduling is historical.
 
 ## Next steps
 

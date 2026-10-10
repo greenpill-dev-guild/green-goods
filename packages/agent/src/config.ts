@@ -48,6 +48,10 @@ export interface Config {
   joinRequestsEncryptionKey?: string;
   joinRequestsProductionReady: boolean;
 
+  // Passkey directory
+  /** The hosted passkey server that predates the directory; its names stay taken. */
+  passkeyHostedDirectoryUrl?: string;
+
   // API
   botApiToken?: string;
   publicAllowedOrigins?: string;
@@ -91,6 +95,8 @@ export function loadConfig(): Config {
   const nodeEnv = process.env.NODE_ENV || "development";
   const networkConfig = getDefaultChain();
   const chain = CHAIN_MAP[networkConfig.chainId] || sepolia;
+  const pimlicoApiKey =
+    process.env.PIMLICO_API_KEY?.trim() || process.env.VITE_PIMLICO_API_KEY?.trim();
 
   const telegramRuntimeDisabled = process.env.AGENT_DISABLE_TELEGRAM_RUNTIME === "true";
   const telegramToken =
@@ -173,6 +179,11 @@ export function loadConfig(): Config {
     joinRequestsEnabled: process.env.JOIN_REQUESTS_ENABLED === "true",
     joinRequestsEncryptionKey: process.env.JOIN_REQUESTS_ENCRYPTION_KEY,
     joinRequestsProductionReady: process.env.JOIN_REQUESTS_PRODUCTION_READY === "true",
+
+    // Passkey directory
+    passkeyHostedDirectoryUrl: pimlicoApiKey
+      ? `https://api.pimlico.io/v2/${networkConfig.chainId}/rpc?apikey=${encodeURIComponent(pimlicoApiKey)}`
+      : undefined,
 
     // Analytics
     posthogApiKey,
@@ -349,6 +360,13 @@ export function validateConfig(config: Config): void {
   if (config.isProduction && config.joinRequestsEnabled && !config.joinRequestsProductionReady) {
     errors.push(
       "JOIN_REQUESTS_PRODUCTION_READY=true is required after every production activation gate is recorded."
+    );
+  }
+
+  if (config.isProduction && !config.passkeyHostedDirectoryUrl) {
+    errors.push(
+      "PIMLICO_API_KEY or VITE_PIMLICO_API_KEY is required in production, " +
+        "so names registered on the hosted passkey server stay taken."
     );
   }
 

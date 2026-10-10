@@ -1,23 +1,20 @@
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolFundingControllerView } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
-import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
-import {
-  RiAlertLine,
-  RiCheckLine,
-  RiExternalLinkLine,
-  RiInformationLine,
-  RiRefreshLine,
-} from "@remixicon/react";
+import { useGoodDollarPrice } from "@green-goods/shared/hooks/blockchain/useGoodDollarPrice";
+import { goodDollarWeiToUsdCents } from "@green-goods/shared/modules/wallet/good-dollar-price";
+import { RiAlertLine, RiCheckLine, RiInformationLine, RiRefreshLine } from "@remixicon/react";
 import { type RefObject, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
+import { AdminCardTitle } from "@/components/AdminCard";
 import {
   formatGdollar,
+  fundingReadIssueMessage,
   fundingStateMessage,
   primaryUnavailableReason,
   readinessReasonMessage,
-  shortAddress,
 } from "./poolFundingPresentation";
+import { formatGoodDollarsCompact, formatUsdSummary } from "./poolPresentation";
 
 export interface PoolFundingSectionProps {
   funding: PoolFundingControllerView;
@@ -33,6 +30,14 @@ function fundingVariant(state: NonNullable<PoolFundingControllerView["snapshot"]
   return "neutral" as const;
 }
 
+/**
+ * Pool Funding, as its own compact card at the foot of the Promises tab's right
+ * column (PRD-1025 D9): what is available for new promises first, in dollars
+ * with the G$ amount beside, then one line for the Safe and what is committed,
+ * the funding and settlement chips, and the read time with View Details. The
+ * Safe's address lives in the details dialog. Dollars come from the same G$
+ * price the rewards use; without it the G$ amounts stand alone.
+ */
 export function PoolFundingSection({
   funding,
   protocolContext = false,
@@ -41,11 +46,13 @@ export function PoolFundingSection({
 }: PoolFundingSectionProps) {
   const intl = useIntl();
   const { formatMessage, locale, formatTime } = intl;
+  const price = useGoodDollarPrice();
   const [manualRefresh, setManualRefresh] = useState<"idle" | "running" | "done">("idle");
   const snapshot = funding.snapshot;
   const stale = (funding.isError || funding.hasStaleBalance) && snapshot !== null;
+  const readIssue = fundingReadIssueMessage(funding, intl);
   const derivedUnavailable = stale || snapshot?.fundingState === "unavailable";
-  // A chip that only says "unavailable" is a dead end; the rail names what is
+  // A chip that only says "unavailable" is a dead end; the card names what is
   // in the way, the same words the details dialog lists in full.
   const blockedBy =
     snapshot && (derivedUnavailable || snapshot.settlementReadiness !== "ready")
@@ -57,27 +64,31 @@ export function PoolFundingSection({
     setManualRefresh("done");
   };
 
+  /** Dollars at today's G$ price, or null while there is no price to read them at. */
+  const dollars = (wei: bigint | null | undefined) =>
+    wei === null || wei === undefined || price.state.status !== "ready"
+      ? null
+      : formatUsdSummary(goodDollarWeiToUsdCents(wei, price.state.price), locale);
+  /** An amount as the card reads it: dollars first, G$ when dollars can't be read. */
+  const amount = (wei: bigint | null | undefined) =>
+    dollars(wei) ?? formatGdollar(wei ?? null, locale);
+
+  const available = derivedUnavailable ? null : (snapshot?.available ?? null);
+  const availableDollars = dollars(available);
+
   return (
     <section
-      className="space-y-3 border-t border-stroke-soft pt-4"
+      className="space-y-2"
       aria-labelledby="pool-funding-title"
       data-component="PoolFundingSection"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h4 id="pool-funding-title" className="label-md text-text-strong">
-            {formatMessage({
-              id: "cockpit.garden.pool.funding.title",
-              defaultMessage: "Pool Funding",
-            })}
-          </h4>
-          <p className="mt-1 text-xs text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.pool.funding.description",
-              defaultMessage: "Live G$ in the registered Celo Safe.",
-            })}
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <AdminCardTitle as="h3" id="pool-funding-title">
+          {formatMessage({
+            id: "cockpit.garden.pool.funding.title",
+            defaultMessage: "Pool Funding",
+          })}
+        </AdminCardTitle>
         <AdminIconButton
           size="lg"
           label={formatMessage({
@@ -100,82 +111,57 @@ export function PoolFundingSection({
             defaultMessage: "Loading pool funding",
           })}
         >
-          <div className="h-5 rounded-[var(--m3-shape-xs)] skeleton-shimmer" aria-hidden />
           <div className="h-12 rounded-[var(--m3-shape-sm)] skeleton-shimmer" aria-hidden />
+          <div className="h-5 rounded-[var(--m3-shape-xs)] skeleton-shimmer" aria-hidden />
         </div>
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-            <div className="col-span-2">
-              <dt className="text-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.funding.safe",
-                  defaultMessage: "Celo Safe",
-                })}
-              </dt>
-              <dd className="mt-0.5 font-medium text-text-strong">
-                {snapshot?.safe ? (
-                  <a
-                    className="inline-flex min-h-11 items-center gap-1 underline decoration-stroke-soft underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
-                    href={`${getBlockExplorer(42220)}/address/${snapshot.safe}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {shortAddress(snapshot.safe)}
-                    <RiExternalLinkLine className="h-4 w-4" aria-hidden />
-                    <span className="sr-only">
-                      {formatMessage({
-                        id: "cockpit.garden.pool.funding.opensExplorer",
-                        defaultMessage: "Opens in Celo Explorer",
-                      })}
-                    </span>
-                  </a>
-                ) : funding.isError && !snapshot ? (
-                  fundingStateMessage("unavailable", intl)
-                ) : (
-                  formatMessage({
+          <div className="space-y-0.5">
+            <p className="body-xs text-text-soft">
+              {formatMessage({
+                id: "cockpit.garden.pool.funding.availablePromises",
+                defaultMessage: "Available for new promises",
+              })}
+            </p>
+            <p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
+              <span className="text-title-md font-semibold text-text-strong">
+                {availableDollars ?? formatGdollar(available, locale)}
+              </span>
+              {available !== null && availableDollars !== null ? (
+                <span className="body-sm text-text-sub">
+                  {formatMessage(
+                    {
+                      id: "cockpit.garden.pool.funding.aboutGoodDollars",
+                      defaultMessage: "about {amount} G$",
+                    },
+                    { amount: formatGoodDollarsCompact(available, locale) }
+                  )}
+                </span>
+              ) : null}
+            </p>
+          </div>
+
+          <p className="body-xs text-text-sub tabular-nums" data-slot="funding-safe-line">
+            {snapshot?.safe
+              ? formatMessage(
+                  {
+                    id: "cockpit.garden.pool.funding.safeLine",
+                    defaultMessage: "{balance} in the Safe · {committed} committed",
+                  },
+                  {
+                    balance: amount(snapshot.balance?.value ?? null),
+                    committed: amount(derivedUnavailable ? null : snapshot.committed),
+                  }
+                )
+              : funding.isError && !snapshot
+                ? fundingStateMessage("unavailable", intl)
+                : formatMessage({
                     id: "cockpit.garden.pool.funding.noSafe",
                     defaultMessage: "No settlement Safe configured",
-                  })
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.funding.balance",
-                  defaultMessage: "Onchain balance",
-                })}
-              </dt>
-              <dd className="mt-0.5 font-semibold text-text-strong">
-                {formatGdollar(snapshot?.balance?.value ?? null, locale)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.funding.committed",
-                  defaultMessage: "Committed",
-                })}
-              </dt>
-              <dd className="mt-0.5 font-semibold text-text-strong">
-                {formatGdollar(derivedUnavailable ? null : (snapshot?.committed ?? null), locale)}
-              </dd>
-            </div>
-            <div className="col-span-2 rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3">
-              <dt className="text-xs text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.funding.available",
-                  defaultMessage: "Available for new commitments",
-                })}
-              </dt>
-              <dd className="mt-1 text-title-md font-semibold text-text-strong">
-                {formatGdollar(derivedUnavailable ? null : (snapshot?.available ?? null), locale)}
-              </dd>
-            </div>
-          </dl>
+                  })}
+          </p>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <StatusBadge
               variant={fundingVariant(
                 derivedUnavailable ? "unavailable" : (snapshot?.fundingState ?? "unavailable")
@@ -183,12 +169,12 @@ export function PoolFundingSection({
               size="sm"
               icon={
                 derivedUnavailable ? (
-                  <RiAlertLine />
+                  <RiAlertLine className="h-3 w-3" />
                 ) : snapshot?.fundingState === "healthy" ||
                   snapshot?.fundingState === "no-demand" ? (
-                  <RiCheckLine />
+                  <RiCheckLine className="h-3 w-3" />
                 ) : (
-                  <RiInformationLine />
+                  <RiInformationLine className="h-3 w-3" />
                 )
               }
             >
@@ -213,28 +199,14 @@ export function PoolFundingSection({
             </StatusBadge>
           </div>
 
-          {blockedBy ? (
-            <p className="text-xs text-text-sub" data-slot="funding-blocked-by">
-              {readinessReasonMessage(blockedBy, intl)}
+          {readIssue || blockedBy ? (
+            <p className="body-xs text-text-sub" data-slot="funding-blocked-by">
+              {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 
-          <p className="text-xs text-text-soft">
-            {funding.isRefetching
-              ? formatMessage({
-                  id: "cockpit.garden.pool.funding.refreshing",
-                  defaultMessage: "Refreshing…",
-                })
-              : snapshot?.balance?.readAt
-                ? `${stale ? formatMessage({ id: "cockpit.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "cockpit.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit", second: "2-digit" })}`
-                : formatMessage({
-                    id: "cockpit.garden.pool.funding.notRead",
-                    defaultMessage: "No current balance read",
-                  })}
-          </p>
-
           {protocolContext ? (
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.protocolNote",
                 defaultMessage:
@@ -243,19 +215,34 @@ export function PoolFundingSection({
             </p>
           ) : null}
 
-          <AdminButton
-            ref={detailsButtonRef}
-            type="button"
-            variant="outlined"
-            size="sm"
-            className="w-full"
-            onClick={onOpenDetails}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.funding.viewDetails",
-              defaultMessage: "View Funding Details",
-            })}
-          </AdminButton>
+          <p className="flex flex-wrap items-center gap-x-1 body-xs text-text-sub">
+            <span>
+              {funding.isRefetching
+                ? formatMessage({
+                    id: "cockpit.garden.pool.funding.refreshing",
+                    defaultMessage: "Refreshing…",
+                  })
+                : snapshot?.balance?.readAt
+                  ? `${stale ? formatMessage({ id: "cockpit.garden.pool.funding.lastRead", defaultMessage: "Last read" }) : formatMessage({ id: "cockpit.garden.pool.funding.readAt", defaultMessage: "Read" })} ${formatTime(snapshot.balance.readAt * 1_000, { hour: "numeric", minute: "2-digit" })}`
+                  : formatMessage({
+                      id: "cockpit.garden.pool.funding.notRead",
+                      defaultMessage: "No current balance read",
+                    })}
+            </span>
+            <span aria-hidden>·</span>
+            <AdminButton
+              ref={detailsButtonRef}
+              type="button"
+              variant="text"
+              size="sm"
+              onClick={onOpenDetails}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.funding.openDetails",
+                defaultMessage: "View Details",
+              })}
+            </AdminButton>
+          </p>
         </>
       )}
 

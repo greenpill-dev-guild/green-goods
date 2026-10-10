@@ -1,5 +1,5 @@
-import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
@@ -8,13 +8,13 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
-import { CommunityYieldStatus } from "./CommunityYieldStatus";
-import { CommunityPools } from "./CommunityPools";
 import { CommunityCoordinationTab } from "./CommunityCoordinationTab";
 import { CommunityEndowmentTab } from "./CommunityEndowmentTab";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import { CommunityPayoutsTab } from "./CommunityPayoutsTab";
+import { CommunityPools } from "./CommunityPools";
 import { CommunityTabSkeleton } from "./CommunityTabSkeleton";
+import { CommunityYieldStatus } from "./CommunityYieldStatus";
 
 interface CommunityWorkspaceContentProps {
   workspace: CommunityWorkspace;
@@ -75,6 +75,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         canManage={workspace.canManage}
         closeMembersModal={workspace.closeMembersModal}
+        memberCount={workspace.memberCount}
         memberSearch={workspace.memberSearch}
         roleMembers={workspace.roleMembers}
         roleSummary={workspace.roleSummary}
@@ -112,12 +113,13 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={workspace.garden}
         hasVaults={workspace.hasVaults}
         treasurySeverity={workspace.treasurySeverity}
-        vaultNetDeposited={workspace.vaultNetDeposited}
+        endowmentByAsset={workspace.endowmentByAsset}
       />
     ) : (
       <CommunityPayoutsTab
         garden={workspace.garden}
         allocations={workspace.allocations}
+        allocationsAtLimit={workspace.allocationsAtLimit}
         selectedItem={workspace.selectedItem}
       />
     );

@@ -1,6 +1,7 @@
 import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
 import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
+import { AdminTooltip } from "./AdminTooltip";
 
 interface AdminViewActionsProps {
   items: ViewAction[];
@@ -47,18 +48,32 @@ function AdminViewActionButton({ action }: { action: ViewAction }) {
   const { formatMessage } = useIntl();
   const adminVariant = VARIANT_TO_ADMIN_BUTTON[action.variant ?? "secondary"];
   const Icon = action.icon;
-  return (
+  const reason =
+    action.disabled && action.disabledReasonId
+      ? formatMessage({ id: action.disabledReasonId, defaultMessage: action.disabledReason })
+      : undefined;
+  // A natively disabled button takes neither hover nor focus, so its reason
+  // would reach no one. With a reason, the action stays focusable and inert.
+  const button = (
     <AdminButton
       type="button"
       variant={adminVariant}
       size="md"
-      onClick={action.onClick}
-      disabled={action.disabled}
+      onClick={action.disabled ? undefined : action.onClick}
+      disabled={action.disabled && !reason}
+      aria-disabled={reason ? true : undefined}
       leadingIcon={<Icon />}
       data-action-id={action.id}
       data-action-variant={action.variant ?? "secondary"}
     >
       {formatMessage({ id: action.labelId, defaultMessage: action.shortLabel ?? action.label })}
     </AdminButton>
+  );
+  return reason ? (
+    <AdminTooltip content={reason} placement="bottom">
+      {button}
+    </AdminTooltip>
+  ) : (
+    button
   );
 }

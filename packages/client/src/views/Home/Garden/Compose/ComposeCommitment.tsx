@@ -6,6 +6,11 @@ import {
 } from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
 import { Button } from "@green-goods/shared/components/Button";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import {
+  COMMITMENT_NOTE_MAX_LENGTH,
+  COMMITMENT_TITLE_MAX_LENGTH,
+  COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+} from "@green-goods/shared/modules/commitment-pooling/metadata";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
 import { useCallback, useRef, useState } from "react";
@@ -20,12 +25,25 @@ import { ComposeWhat } from "./ComposeWhat";
 
 type Direction = "OFFER" | "REQUEST";
 
-const BLOCKED_REASON_IDS: Record<Exclude<ComposerBlockedReason, null>, string> = {
+type BlockedReason = Exclude<ComposerBlockedReason, null>;
+
+const BLOCKED_REASON_IDS: Record<BlockedReason, string> = {
   title: "app.compose.blocked.title",
+  titleTooLong: "app.compose.blocked.titleTooLong",
   unit: "app.compose.blocked.unit",
+  unitTooLong: "app.compose.blocked.unitTooLong",
   count: "app.compose.blocked.count",
   action: "app.compose.blocked.action",
   rowCount: "app.compose.blocked.rowCount",
+  closedAction: "app.compose.blocked.closedAction",
+  noteTooLong: "app.compose.blocked.noteTooLong",
+};
+
+/** The limit each too-long reason names, from the constant the composer holds it to. */
+const BLOCKED_REASON_LIMITS: Partial<Record<BlockedReason, number>> = {
+  titleTooLong: COMMITMENT_TITLE_MAX_LENGTH,
+  unitTooLong: COMMITMENT_UNIT_LABEL_MAX_LENGTH,
+  noteTooLong: COMMITMENT_NOTE_MAX_LENGTH,
 };
 
 function directionFromRoute(value: string | null): Direction | null {
@@ -77,8 +95,10 @@ function ComposeCommitmentForm({
 
   const beatIndex = COMPOSER_BEATS.indexOf(beat);
   const isReview = beat === "review";
-  const validity = selectBeatValidity(beat, controller.values);
+  const validity = selectBeatValidity(beat, controller.values, controller.closedActionUIDs);
   const blockingReasonId = validity.reason ? BLOCKED_REASON_IDS[validity.reason] : null;
+  const blockingLimit = validity.reason ? BLOCKED_REASON_LIMITS[validity.reason] : undefined;
+  const closedActionUID = controller.closedActionUIDs[0];
   const actTitle = formatMessage({
     id: direction === "REQUEST" ? "app.compose.title.request" : "app.compose.title.offer",
   });
@@ -117,7 +137,11 @@ function ComposeCommitmentForm({
           <p className="max-w-sm text-sm text-text-sub-600">
             {formatMessage(
               {
-                id: controller.isOnline ? "app.compose.done.body" : "app.compose.done.offlineBody",
+                id: controller.isOnline
+                  ? "app.compose.done.body"
+                  : controller.sendsFromTap
+                    ? "app.compose.done.offlineBodyUnsent"
+                    : "app.compose.done.offlineBody",
               },
               { direction }
             )}
@@ -147,7 +171,13 @@ function ComposeCommitmentForm({
           <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {!validity.canAdvance && blockingReasonId ? (
               <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
-                {formatMessage({ id: blockingReasonId })}
+                {formatMessage(
+                  { id: blockingReasonId },
+                  {
+                    max: blockingLimit,
+                    action: closedActionUID ? actionTitle(closedActionUID) : undefined,
+                  }
+                )}
               </p>
             ) : null}
             {isReview && !readToEnd ? (
@@ -195,6 +225,8 @@ function ComposeCommitmentForm({
             form={controller.form}
             chainId={DEFAULT_CHAIN_ID}
             actions={controller.actions}
+            openActions={controller.openActions}
+            closedActionUIDs={controller.closedActionUIDs}
           />
         ) : null}
         {beat === "details" ? <ComposeDetails form={controller.form} /> : null}
@@ -202,6 +234,7 @@ function ComposeCommitmentForm({
           <ComposeReview
             values={controller.values}
             isOnline={controller.isOnline}
+            sendsFromTap={controller.sendsFromTap}
             hasPool={controller.hasPool}
             gardenName={controller.gardenName}
             openCycles={controller.openCycles}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -16,16 +16,63 @@ import {
   resolveGitInputs,
   selectExpectedWorkflows,
   selectValidation,
+  SHARED_CRITICAL_RULE_ID,
 } from "./select-validation.mjs";
+import { analyzeSharedMutationSurface, mutationPathsAmong } from "./shared-mutation-surface.mjs";
 
 function ids(plan) {
   return plan.checks.map((check) => check.id);
 }
 
-function turboTestCommand(surface) {
+function turboTestCommand(surface, intent = "push") {
   const binary = surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo";
-  return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
+  // The strict gates skip Turbo's cache, so a package suite there always runs.
+  const force = ["readiness", "ship", "merge"].includes(intent) ? " --force" : "";
+  return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only${force}`;
 }
+
+test("hook and doctor edits select their behavioral proof", () => {
+  const cases = [
+    ["review-guardrails-test", [
+      ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+      ".codex/hooks/pre_tool_policy.sh", ".claude/settings.json", ".codex/hooks.json",
+      "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    ]],
+    ["validation-system-test", [
+      "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/dev/package-commands.mjs",
+      "scripts/dev/package-commands.test.mjs", "scripts/dev/test-lease.mjs", "turbo.json",
+      // Each implementation file behind a validation-system-test suite selects that suite.
+      "scripts/data/validation-policy.json", "scripts/quality/select-validation.mjs",
+      "scripts/quality/shared-mutation-surface.mjs", "scripts/dev/ci-local.js",
+      "scripts/quality/ci-gate.mjs", "scripts/quality/check-source-structure.js",
+      "scripts/quality/check-staged-modules.mjs", "scripts/quality/check-commit-identity.mjs",
+      "scripts/dev/surface-leases.mjs", "scripts/dev/stack.js", "scripts/dev/smoke-full.js",
+      "scripts/lib/dev-modes.mjs", "scripts/lib/setup-env.mjs", "scripts/lib/command-runner.mjs",
+      "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
+      "scripts/lib/vitest-shared-graph.mjs", "scripts/quality/check-shared-graph-tests.mjs",
+      "scripts/quality/check-small-test-files.mjs", "scripts/quality/check-test-utils-barrel.mjs",
+    ]],
+  ];
+  for (const intent of ["qa", "review", "push"]) {
+    for (const [checkId, paths] of cases) {
+      for (const changedPath of paths) {
+        const plan = selectValidation({ intent, changedPaths: [changedPath] });
+        assert.ok(ids(plan).includes(checkId), `${intent}: ${changedPath}`);
+      }
+    }
+  }
+  // The Shared Vitest config reads this helper to decide which tests share a module graph. Review
+  // selects no package suite, so the Shared suite runs for it in qa and push.
+  for (const intent of ["qa", "push"]) {
+    const plan = selectValidation({ intent, changedPaths: ["scripts/lib/vitest-shared-graph.mjs"] });
+    assert.ok(ids(plan).includes("shared-test"), `${intent}: scripts/lib/vitest-shared-graph.mjs`);
+  }
+  // shared.yml runs for it too, so CI Gate must expect that workflow.
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths: ["scripts/lib/vitest-shared-graph.mjs"], intent: "merge", ci: true }),
+    ["Shared", "Supply Chain Guardrails"],
+  );
+});
 
 // A hook's GIT_DIR outranks `cwd`, so without this the selector under test reads the repository
 // being pushed instead of the fixture a test just built.
@@ -416,10 +463,11 @@ test("validation tooling paths escalate to sensitive risk", () => {
     changedPaths: ["scripts/dev/ci-local.js"],
   });
   assert.equal(plan.risk, "sensitive");
-  assert.deepEqual(plan.checks, []);
+  // Evidence intents select only the direct suite for the changed tooling, nothing broader.
+  assert.deepEqual(ids(plan), ["validation-system-test"]);
 });
 
-test("isolated client behavior accepts focused proof without forcing a package build", () => {
+test("work inspection adds qualified browser proof without forcing a package build", () => {
   const plan = selectValidation({
     intent: "qa",
     changedPaths: ["packages/client/src/views/Home/Garden/Work.tsx"],
@@ -432,6 +480,7 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "client-test",
     "staged-modules",
     "ontology",
+    "browser-work-exploration",
   ]);
   assert.equal(
     plan.checks.find((check) => check.id === "client-test").command,
@@ -442,7 +491,9 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "bun --bun run oxlint 'packages/client/src/views/Home/Garden/Work.tsx' --deny-warnings",
   );
   assert.equal(plan.budget.targetSeconds, 90);
+  // The qualified browser journey adds a measured cost; QA warns without dropping proof.
   assert.equal(plan.budget.withinTarget, false);
+  assert.ok(plan.budget.estimatedWallSeconds > plan.budget.targetSeconds);
   assert.equal(plan.budget.rule, "Budgets warn and profile; they never skip selected or mandatory checks.");
   assert.equal(plan.checks.at(-1).state, "pending");
 });
@@ -585,6 +636,7 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   const changedPaths = [
     "packages/client/src/components/Panel.tsx",
     "packages/shared/src/components/Button/Button.tsx",
+    "packages/admin/src/components/AdminCard.tsx",
   ];
   const focused = selectValidation({
     intent: "push",
@@ -592,6 +644,7 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
     testPaths: {
       client: ["src/components/Panel.test.tsx"],
       shared: ["src/components/Button/Button.test.tsx"],
+      admin: ["src/components/AdminCard.test.tsx"],
     },
   });
   assert.equal(focused.budget.enforced, true);
@@ -605,7 +658,10 @@ test("a focused push plan runs even when its static estimate exceeds the budget"
   const unfocused = selectValidation({
     intent: "push",
     changedPaths,
-    testPaths: { client: ["src/components/Panel.test.tsx"] },
+    testPaths: {
+      client: ["src/components/Panel.test.tsx"],
+      admin: ["src/components/AdminCard.test.tsx"],
+    },
     checkIds: ["shared-test"],
   });
   assert.ok(unfocused.budget.estimatedWallSeconds > unfocused.budget.hardLimitSeconds);
@@ -665,7 +721,7 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   });
 
   assert.equal(plan.status, "ready");
-  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "source-structure"]);
+  assert.deepEqual(ids(plan), ["format", "lint", "shared-test", "docs-authority", "source-structure"]);
   assert.equal(
     plan.checks.find((check) => check.id === "format").command,
     `bunx @biomejs/biome format --no-errors-on-unmatched '${changedPath}'`,
@@ -691,6 +747,20 @@ test("routine push uses focused owner proof inside the hard 90-second limit", ()
   ]) {
     assert.ok(!ids(plan).includes(broadCheck), broadCheck);
   }
+});
+
+test("push judges source structure against the plan's comparison base", () => {
+  const plan = selectValidation({
+    intent: "push",
+    base: "base-sha",
+    changedPaths: ["packages/shared/src/utils/calendar-date.ts"],
+    testPaths: { shared: ["src/__tests__/utils/calendar-date.test.ts"] },
+  });
+
+  assert.equal(
+    plan.checks.find((check) => check.id === "source-structure").command,
+    "node scripts/quality/check-source-structure.js --base 'base-sha'",
+  );
 });
 
 test("routine push without focused behavior proof stops before execution", () => {
@@ -729,7 +799,8 @@ test("critical push keeps mandatory checks uncapped", () => {
   assert.equal(plan.status, "ready");
   assert.equal(plan.budget.hardLimitSeconds, null);
   assert.equal(plan.budget.enforced, false);
-  assert.equal(plan.receiptPolicy.criticalReuseAllowed, false);
+  // A rerun of the same critical push may reuse exact passes; the strict gates never do.
+  assert.equal(plan.receiptPolicy.reuseAllowed, true);
   for (const checkId of [
     "shared-typecheck",
     "shared-test",
@@ -798,6 +869,15 @@ test("focused Solidity tests use the contracts match-path wrapper", () => {
   assert.deepEqual(contractsTest.focusedPaths, ["test/unit/Garden.t.sol"]);
 });
 
+test("focused indexer proof selects the handler scope accepted by its package wrapper", () => {
+  const plan = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/indexer/test/hypercerts.test.ts"],
+  });
+  const check = plan.checks.find((candidate) => candidate.id === "indexer-test");
+  assert.equal(check?.command, "bun run test --scope handlers test/hypercerts.test.ts");
+});
+
 test("multiple focused Solidity tests invoke the contracts wrapper once per path", () => {
   const plan = selectValidation({
     intent: "qa",
@@ -820,8 +900,8 @@ test("multiple focused Solidity tests invoke the contracts wrapper once per path
 
 test("mutation-rich shared hooks retain the critical override", () => {
   for (const changedPath of [
-    "packages/shared/src/hooks/garden/useCreateGarden.ts",
-    "packages/shared/src/hooks/assessment/useAssessment.ts",
+    "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts",
+    "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
     "packages/shared/src/modules/work/submit.ts",
     "packages/shared/src/workflows/approve.ts",
   ]) {
@@ -885,7 +965,7 @@ test("eligible local package tests route through Turbo with package-relative bin
     for (const surface of expectedSurfaces) {
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent}:${surface}`,
       );
     }
@@ -980,13 +1060,14 @@ test("diagnose and review classify critical risk without inventing broad proof",
 
     const requested = selectValidation({
       intent,
-      changedPaths: ["packages/shared/src/hooks/garden/useCreateGarden.ts"],
-      testPaths: { shared: ["src/hooks/garden/useCreateGarden.test.ts"] },
+      changedPaths: ["packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts"],
+      testPaths: { shared: ["src/hooks/garden/useCreateGardenWorkflow.test.ts"] },
     });
+    assert.equal(requested.risk, "critical");
     assert.deepEqual(ids(requested), ["shared-test"]);
     assert.equal(
       requested.checks[0].command,
-      "bun run test src/hooks/garden/useCreateGarden.test.ts",
+      "bun run test src/hooks/garden/useCreateGardenWorkflow.test.ts",
     );
   }
 });
@@ -1017,7 +1098,7 @@ test("CLI capability detection reports pinned submodule readiness", () => {
   });
 
   assert.deepEqual(calls, [{ cwd: "/workspace" }]);
-  assert.deepEqual(capabilities, { contractSubmodules: false });
+  assert.deepEqual(capabilities, { contractSubmodules: false, playwrightChromium: false });
 });
 
 test("conditional validation rules honor their declared intents", () => {
@@ -1168,6 +1249,7 @@ test("push requires focused client proof while ship retains the full local surfa
   assert.deepEqual(ids(push), [
     "format",
     "lint",
+    "docs-authority",
     "staged-modules",
     "source-structure",
   ]);
@@ -1182,6 +1264,7 @@ test("push requires focused client proof while ship retains the full local surfa
     "format",
     "lint",
     "client-test",
+    "docs-authority",
     "staged-modules",
     "source-structure",
   ]);
@@ -1218,7 +1301,9 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
     assert.deepEqual(ids(push), [
       "format",
       "lint",
+      "test-quality",
       `${surface}-test`,
+      "docs-authority",
     ]);
     assert.equal(
       push.checks.find((check) => check.id === `${surface}-test`)?.command,
@@ -1242,7 +1327,7 @@ test("push keeps test-only proof focused while strict intents preserve owning ga
       const packageTest = plan.checks.find((check) => check.id === `${surface}-test`);
       assert.equal(
         packageTest.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent} must run the full ${surface} suite`,
       );
       assert.deepEqual(
@@ -1293,11 +1378,14 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
     )
       ? ["browser-proof"]
       : [];
+    // useWorkMutation is fingerprinted by a certified seam, so test-quality guards the registry.
+    const seamProof = changedPath.endsWith("hooks/work/useWorkMutation.ts") ? ["test-quality"] : [];
     assert.deepEqual(
       ids(plan),
       [
         "format",
         "lint",
+        ...seamProof,
         "shared-typecheck",
         "shared-test-typecheck",
         "shared-test",
@@ -1312,6 +1400,7 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         "agent-test-typecheck",
         "agent-test",
         "agent-build",
+        "docs-authority",
         "source-structure",
         ...advisoryProof,
       ],
@@ -1394,7 +1483,7 @@ test("local merge and merge --ci select identical checks while preserving CI pac
   assert.equal(ci.checks.find((check) => check.id === "format").command, "bunx @biomejs/biome format .");
   assert.equal(
     local.checks.find((check) => check.id === "admin-test").command,
-    turboTestCommand("admin"),
+    turboTestCommand("admin", "merge"),
   );
   assert.equal(ci.checks.find((check) => check.id === "admin-test").command, "bun run test");
   assert.deepEqual(
@@ -1469,7 +1558,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "contracts", "docs"]) {
       const expected =
         intent === "readiness" && surface !== "contracts"
-          ? turboTestCommand(surface)
+          ? turboTestCommand(surface, intent)
           : "bun run test";
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
@@ -1495,7 +1584,7 @@ test("readiness and release remain full scope while empty ship falls back to ful
     for (const surface of ["shared", "client", "admin", "agent", "indexer", "docs"]) {
       assert.equal(
         plan.checks.find((check) => check.id === `${surface}-test`)?.command,
-        turboTestCommand(surface),
+        turboTestCommand(surface, intent),
         `${intent}:${surface}`,
       );
     }
@@ -1561,8 +1650,15 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
       environment: {},
       execFileSync(command, args) {
         assert.equal(command, "gh");
-        assert.deepEqual(args, ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"]);
-        return "release/1.4\n";
+        assert.deepEqual(args, [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ]);
+        return "release/1.4\tfeature/example\n";
       },
     },
   );
@@ -1581,6 +1677,29 @@ test("publication base resolution uses the live PR base and otherwise origin/dev
   assert.equal(
     resolveComparisonBase({ intent: "push" }, { environment: { GITHUB_BASE_REF: "staging" } }),
     "origin/staging",
+  );
+
+  // A develop-to-main promotion is judged against develop, in CI and through a live PR.
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "push" },
+      { environment: { GITHUB_BASE_REF: "main", GITHUB_HEAD_REF: "release/october-2-0-0" } },
+    ),
+    "origin/develop",
+  );
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "push" },
+      { environment: { GITHUB_BASE_REF: "main", GITHUB_HEAD_REF: "fix/hotfix" } },
+    ),
+    "origin/main",
+  );
+  assert.equal(
+    resolveComparisonBase(
+      { intent: "release" },
+      { environment: {}, execFileSync: () => "main\trelease/october-2-0-0\n" },
+    ),
+    "origin/develop",
   );
 });
 
@@ -1625,6 +1744,38 @@ test("git inputs include dirty and untracked paths and fingerprint their content
     changedTrailingWhitespace.workingCopyFingerprint,
     trailingWhitespace.workingCopyFingerprint,
   );
+});
+
+test("hook and readiness receipts expire when implementations or registrations change", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "hook-receipts-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = fixtureGit(directory);
+  git("init");
+  const paths = [
+    ".claude/settings.json", ".codex/hooks.json", ".codex/hooks/pre_tool_policy.sh",
+    ".claude/scripts/task-completion-gate.sh", ".claude/scripts/teammate-idle-gate.sh",
+    "scripts/harness/command-policy.mjs", "scripts/harness/agent-hooks.test.mjs",
+    "scripts/dev/doctor.js", "scripts/lib/dev-shared.js", "scripts/lib/dev-shared.test.mjs",
+    "scripts/data/validation-policy.json",
+  ];
+  for (const file of paths) {
+    mkdirSync(join(directory, file, ".."), { recursive: true });
+    writeFileSync(join(directory, file), "initial\n");
+  }
+  git("add", ".");
+  git("commit", "-m", "test: seed hook receipt fixture");
+  const receipt = (checkId, file) => {
+    const inputs = resolveGitInputs({ base: "HEAD", head: "HEAD", changedPaths: [file] }, { cwd: directory });
+    const plan = selectValidation({ intent: "qa", ...inputs });
+    return buildReceiptInputs(plan, plan.checks.find((check) => check.id === checkId)).fingerprint;
+  };
+  for (const [checkId, file] of [["review-guardrails-test", paths[0]], ["validation-system-test", "scripts/dev/doctor.js"]]) {
+    for (const dependency of paths) {
+      const before = receipt(checkId, file);
+      writeFileSync(join(directory, dependency), `changed for ${checkId}\n`);
+      assert.notEqual(receipt(checkId, file), before, dependency);
+    }
+  }
 });
 
 test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
@@ -1755,6 +1906,143 @@ test("workflow mapping follows observable contract artifacts", () => {
       "Supply Chain Guardrails",
     ],
   );
+});
+
+// The `paths` a workflow's push or pull_request trigger lists, in order, negations included.
+function workflowTriggerPaths(text, event) {
+  const paths = [];
+  let inOn = false;
+  let inEvent = false;
+  let inPaths = false;
+  for (const line of text.split("\n")) {
+    if (/^\S/.test(line)) inOn = /^on:\s*$/.test(line);
+    if (!inOn) continue;
+    const trigger = line.match(/^ {2}([a-z_]+):/);
+    if (trigger) {
+      inEvent = trigger[1] === event;
+      inPaths = false;
+    } else if (inEvent && /^ {4}paths:\s*$/.test(line)) {
+      inPaths = true;
+    } else if (inEvent && inPaths) {
+      const entry = line.match(/^ {6}- ["']?([^"']+?)["']?\s*$/);
+      if (entry) paths.push(entry[1]);
+      else if (/^ {4}\S/.test(line)) inPaths = false;
+    }
+  }
+  return paths;
+}
+
+// GitHub path filters: `**` crosses directories, `*` does not, and a later `!` pattern excludes.
+function filterGlob(pattern) {
+  const source = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*\//g, "\u0000")
+    .replace(/\*\*/g, "\u0001")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\?/g, "[^/]")
+    .replace(/\u0000/g, "(?:.*/)?")
+    .replace(/\u0001/g, ".*");
+  return new RegExp(`^${source}$`);
+}
+
+function filterRuns(patterns, path) {
+  let runs = false;
+  for (const pattern of patterns) {
+    if (pattern.startsWith("!")) {
+      if (filterGlob(pattern.slice(1)).test(path)) runs = false;
+    } else if (filterGlob(pattern).test(path)) runs = true;
+  }
+  return runs;
+}
+
+test("CI Gate expects exactly the workflows whose path filters start", () => {
+  const policy = loadPolicy();
+  const workflowsDirectory = join(repositoryRoot, ".github/workflows");
+  const problems = [];
+  const probeFor = (pattern) => pattern.replace(/\*\*/g, "probe/probe").replace(/\*/g, "probe");
+  for (const file of readdirSync(workflowsDirectory).filter((name) => name.endsWith(".yml")).sort()) {
+    const text = readFileSync(join(workflowsDirectory, file), "utf8");
+    const name = text.match(/^name:\s*["']?(.+?)["']?\s*$/m)?.[1];
+    const rule = policy.workflowRules[name];
+    if (!rule) continue;
+    const push = workflowTriggerPaths(text, "push");
+    const pullRequest = workflowTriggerPaths(text, "pull_request");
+    assert.deepEqual(push, pullRequest, `${file}: push and pull_request paths differ`);
+    const expects = (path) =>
+      selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true }).includes(name);
+    // A path that starts the workflow but that CI Gate does not expect is a failure nothing blocks.
+    for (const pattern of pullRequest.filter((entry) => !entry.startsWith("!"))) {
+      const probe = probeFor(pattern);
+      if (filterRuns(pullRequest, probe) && !expects(probe)) {
+        problems.push(`${file}: ${pattern} starts ${name}, but CI Gate does not expect it`);
+      }
+    }
+    // A path CI Gate expects that does not start the workflow leaves the gate waiting until it times out.
+    // A prefix that names a file stem (packages/client/DESIGN) is probed like the filter that shares it.
+    const prefixProbe = (prefix) => {
+      const shared = prefix.endsWith("/")
+        ? undefined
+        : pullRequest.find((entry) => !entry.startsWith("!") && entry.startsWith(prefix));
+      return shared ? probeFor(shared) : `${prefix}probe.ts`;
+    };
+    // Shared test support that a consumer's tests import reaches that consumer's workflow too.
+    const support = policy.sharedConsumerTestSupport;
+    const supportProbes = support?.surfaces.includes(name.toLowerCase())
+      ? [...support.exact, ...support.prefixes.map((prefix) => `${prefix}probe.ts`)]
+      : [];
+    for (const probe of [
+      ...(rule.exact ?? []),
+      ...(rule.prefixes ?? []).map(prefixProbe),
+      ...(rule.extensions ?? []).map((extension) => `probe/probe${extension}`),
+      ...supportProbes,
+    ]) {
+      if (expects(probe) && !filterRuns(pullRequest, probe)) {
+        problems.push(`${file}: CI Gate expects ${name} for ${probe}, which does not start it`);
+      }
+    }
+    // Shared also decides inside the run which jobs to start; that detector lists the same paths.
+    const detector = text.match(/const exact = new Set\(\[([\s\S]*?)\]\);[\s\S]*?const prefixes = \[([\s\S]*?)\];/);
+    if (detector) {
+      const quoted = (block) => [...block.matchAll(/"([^"]+)"/g)].map((match) => match[1]).sort();
+      const [exact, prefixes] = [quoted(detector[1]), quoted(detector[2])];
+      if (JSON.stringify(exact) !== JSON.stringify([...(rule.exact ?? [])].sort())) {
+        problems.push(`${file}: its detector's exact paths differ from workflowRules.${name}`);
+      }
+      if (JSON.stringify(prefixes) !== JSON.stringify([...(rule.prefixes ?? [])].sort())) {
+        problems.push(`${file}: its detector's prefixes differ from workflowRules.${name}`);
+      }
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("Shared test support that Client and Admin tests import reaches their suites and workflows", () => {
+  const consumerWorkflows = (changedPath) =>
+    selectExpectedWorkflows({ changedPaths: [changedPath], intent: "merge", ci: true }).filter((name) =>
+      ["Admin", "Agent", "Client"].includes(name),
+    );
+  for (const changedPath of [
+    "packages/shared/src/__tests__/test-utils/render-helpers.tsx",
+    "packages/shared/src/__tests__/setupTests.base.ts",
+    "packages/shared/src/__tests__/setupTests.core.ts",
+  ]) {
+    const checkpoint = ids(selectValidation({ intent: "checkpoint", changedPaths: [changedPath] }));
+    for (const checkId of [
+      "shared-test",
+      "client-test-typecheck",
+      "client-test",
+      "admin-test-typecheck",
+      "admin-test",
+    ]) {
+      assert.ok(checkpoint.includes(checkId), `${changedPath}: ${checkId}`);
+    }
+    assert.ok(!checkpoint.includes("agent-test"), changedPath);
+    assert.deepEqual(consumerWorkflows(changedPath), ["Admin", "Client"], changedPath);
+  }
+  // Shared's own tests stay Shared's.
+  const ownTest = "packages/shared/src/__tests__/hooks/app/useTheme.test.ts";
+  assert.ok(!ids(selectValidation({ intent: "checkpoint", changedPaths: [ownTest] })).includes("client-test"));
+  assert.deepEqual(consumerWorkflows(ownTest), []);
 });
 
 test("local ontology routing stays in parity with the Ontology workflow matcher", () => {
@@ -1893,4 +2181,630 @@ test("contract script changes retain the full critical test gate despite inferre
   assert.equal(check.mandatory, true);
   assert.equal(check.command, "bun run test");
   assert.deepEqual(check.focusedPaths, []);
+});
+
+const repositoryRoot = fileURLToPath(new URL("../..", import.meta.url));
+
+test("read-only Shared hooks are sensitive and keep direct proof, Shared types and consumer types", () => {
+  for (const changedPath of [
+    "packages/shared/src/hooks/garden/useFilteredGardens.ts",
+    "packages/shared/src/hooks/blockchain/useEnsName.ts",
+    "packages/shared/src/hooks/conviction/useConvictionProposalsForPool.ts",
+  ]) {
+    const unfocused = selectValidation({ intent: "push", changedPaths: [changedPath] });
+    assert.equal(unfocused.risk, "sensitive", changedPath);
+    assert.equal(unfocused.status, "needs-focus", changedPath);
+    assert.equal(unfocused.stopReason, "focused-proof-required", changedPath);
+
+    const focused = selectValidation({
+      intent: "push",
+      changedPaths: [changedPath],
+      testPaths: { shared: ["src/__tests__/hooks/placeholder.test.ts"] },
+    });
+    assert.equal(focused.status, "ready", changedPath);
+    for (const id of ["shared-test", "shared-typecheck", "client-typecheck", "admin-typecheck"]) {
+      assert.ok(ids(focused).includes(id), `${changedPath}: ${id}`);
+    }
+    assert.ok(!ids(focused).includes("client-test"), changedPath);
+  }
+});
+
+test("signing, sending, queue and session hooks stay critical", () => {
+  for (const changedPath of [
+    "packages/shared/src/hooks/work/useWorkApprovals.ts",
+    "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+    "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
+    "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+    "packages/shared/src/hooks/garden/useJoinGarden.ts",
+    "packages/shared/src/modules/transactions/wallet-sender.ts",
+    "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
+  ]) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath] });
+    assert.equal(plan.risk, "critical", changedPath);
+    assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
+  }
+  const routine = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"],
+  });
+  assert.equal(routine.risk, "routine");
+  assert.equal(routine.status, "needs-focus");
+});
+
+function mutationFixture(t, files) {
+  const root = mkdtempSync(join(tmpdir(), "shared-mutation-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const [path, source] of Object.entries(files)) {
+    const absolute = join(root, "packages/shared/src", path);
+    mkdirSync(join(absolute, ".."), { recursive: true });
+    writeFileSync(absolute, source);
+  }
+  return root;
+}
+
+test("a new hook that reaches a signing or sending primitive defaults to critical", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "hooks/blockchain/useTransactionSender.ts": [
+      'import { useWriteContract } from "wagmi";',
+      "export function useTransactionSender() {",
+      "  const { writeContractAsync } = useWriteContract();",
+      "  return writeContractAsync;",
+      "}",
+    ].join("\n"),
+    "hooks/blockchain/index.ts": 'export { useTransactionSender as useSender } from "./useTransactionSender";\n',
+    "hooks/tips/useSendTip.ts": [
+      'import { useSender } from "../blockchain";',
+      "export function useSendTip() {",
+      "  const send = useSender();",
+      "  return (amount: bigint) => send({ amount });",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useTipReceipt.ts": [
+      'import * as core from "@wagmi/core";',
+      "export async function sendTipReceipt(config: unknown) {",
+      "  return core.sendTransaction(config as never, { to: \"0x0\" } as never);",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLazyTip.ts": [
+      "export async function sendLazyTip(sender: { sendContractCall?: (call: unknown) => Promise<void> }) {",
+      "  await sender.sendContractCall?.({});",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLeaveTips.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useLeaveTips() {",
+      "  const { signOut } = useAuth();",
+      "  return signOut;",
+      "}",
+    ].join("\n"),
+    "hooks/auth/index.ts": "export function useAuth() { return {} as { signOut: () => void }; }\n",
+    "hooks/tips/useTipTotals.ts": [
+      'import { useReadContract } from "wagmi";',
+      "// Reads only: a comment saying writeContract( or sendTransaction( is not a call.",
+      "export function useTipTotals() {",
+      '  const label = "sendContractCall(";',
+      "  return useReadContract({ functionName: label });",
+      "}",
+    ].join("\n"),
+  });
+  const newHooks = [
+    "packages/shared/src/hooks/tips/useSendTip.ts",
+    "packages/shared/src/hooks/tips/useTipReceipt.ts",
+    "packages/shared/src/hooks/tips/useLazyTip.ts",
+    "packages/shared/src/hooks/tips/useLeaveTips.ts",
+  ];
+  const readOnly = "packages/shared/src/hooks/tips/useTipTotals.ts";
+  const mutationPaths = mutationPathsAmong([...newHooks, readOnly], { root, primitives });
+  assert.deepEqual(mutationPaths, [...newHooks].sort());
+
+  for (const changedPath of newHooks) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths });
+    assert.equal(plan.risk, "critical", changedPath);
+    const sharedTest = plan.checks.find((check) => check.id === "shared-test");
+    assert.ok(sharedTest?.mandatory, changedPath);
+    assert.ok(sharedTest.selectedBy.includes("critical-content"), changedPath);
+  }
+  const readPlan = selectValidation({ intent: "push", changedPaths: [readOnly], mutationPaths });
+  assert.notEqual(readPlan.risk, "critical");
+});
+
+test("account-abstraction signing keeps aliased callers critical without escalating operation readers", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "modules/reporting/activation.ts": [
+      "export async function activate(account: { signUserOperation: (operation: unknown) => Promise<string> }) {",
+      "  return account.signUserOperation({});",
+      "}",
+      "export function activationStatus() { return \"pending\"; }",
+    ].join("\n"),
+    "hooks/reporting/useActivation.ts": [
+      'import { activate as submit } from "../../modules/reporting/activation";',
+      "export const useActivation = (account: never) => submit(account);",
+    ].join("\n"),
+    "hooks/reporting/useActivationStatus.ts": [
+      'import { activationStatus } from "../../modules/reporting/activation";',
+      "export const useActivationStatus = () => activationStatus();",
+    ].join("\n"),
+  });
+  const signing = [
+    "packages/shared/src/modules/reporting/activation.ts",
+    "packages/shared/src/hooks/reporting/useActivation.ts",
+  ];
+  const reader = "packages/shared/src/hooks/reporting/useActivationStatus.ts";
+  const mutationPaths = mutationPathsAmong([...signing, reader], { root, primitives });
+  assert.deepEqual(mutationPaths, [...signing].sort());
+  for (const changedPath of signing) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths });
+    assert.equal(plan.risk, "critical", changedPath);
+    assert.ok(plan.checks.find((check) => check.id === "shared-test")?.mandatory, changedPath);
+  }
+  assert.notEqual(selectValidation({ intent: "push", changedPaths: [reader], mutationPaths }).risk, "critical");
+});
+
+test("mutation capability that travels by reference keeps a new file critical, in hooks and beyond", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    // The auth hub forwards its actions under their own names, so a reader that never touches one
+    // stays out of the critical tier.
+    "hooks/auth/index.ts": [
+      'import { useAuthContext } from "./context";',
+      "export function useAuth() {",
+      "  const auth = useAuthContext();",
+      "  return { isAuthenticated: auth.isAuthenticated, signOut: auth.signOut };",
+      "}",
+    ].join("\n"),
+    "hooks/auth/context.ts": "export function useAuthContext() { return {} as { isAuthenticated: boolean; signOut: () => void }; }\n",
+    "hooks/tips/useAliasedSend.ts": [
+      'import { writeContract } from "@wagmi/core";',
+      "const submit = writeContract;",
+      "export const send = () => submit({} as never, {} as never);",
+    ].join("\n"),
+    "hooks/tips/useCallbackSend.ts": [
+      'import { writeContract } from "@wagmi/core";',
+      "export const useCallbackSend = () => ({ mutationFn: writeContract });",
+    ].join("\n"),
+    "hooks/tips/useTipButton.ts": [
+      'import { useCallbackSend } from "./useCallbackSend";',
+      "export function useTipButton() {",
+      "  const { mutationFn } = useCallbackSend();",
+      "  return () => mutationFn({} as never, {} as never);",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useForwardedSignOut.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useForwardedSignOut() {",
+      "  const auth = useAuth();",
+      "  return { onLeave: auth.signOut };",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useLeaveButton.ts": [
+      'import { useForwardedSignOut } from "./useForwardedSignOut";',
+      "export function useLeaveButton() {",
+      "  const { onLeave } = useForwardedSignOut();",
+      "  return onLeave;",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useNamespaceCallback.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const useNamespaceCallback = () => ({ run: core.sendTransaction });",
+    ].join("\n"),
+    "hooks/tips/useNamespaceAlias.ts": [
+      'import * as core from "@wagmi/core";',
+      "const { writeContract: write } = core;",
+      "export const useNamespaceAlias = () => write;",
+    ].join("\n"),
+    "modules/tips/send.ts": [
+      'import { sendTransaction as transfer } from "@wagmi/core";',
+      "const go = transfer;",
+      "export async function sendTip() {",
+      "  return go({} as never, {} as never);",
+      "}",
+    ].join("\n"),
+    "utils/tips/leave.ts": [
+      "export function leaveHandler(auth: { signOut: () => void }) {",
+      "  return auth.signOut;",
+      "}",
+    ].join("\n"),
+    "components/tips/SignOutButton.tsx": [
+      "export function SignOutButton({ auth }: { auth: { signOut: () => void } }) {",
+      "  return <button type=\"button\" onClick={auth.signOut} />;",
+      "}",
+    ].join("\n"),
+    "hooks/tips/useReadsAuth.ts": [
+      'import { useAuth } from "../auth";',
+      "export function useReadsAuth() {",
+      "  const auth = useAuth();",
+      "  return auth.isAuthenticated;",
+      "}",
+    ].join("\n"),
+    "modules/tips/format.ts": [
+      'import { formatEther } from "viem";',
+      "const format = formatEther;",
+      "export const formatTip = (value: bigint) => format(value);",
+    ].join("\n"),
+  });
+  const escaping = [
+    "packages/shared/src/hooks/tips/useAliasedSend.ts",
+    "packages/shared/src/hooks/tips/useCallbackSend.ts",
+    "packages/shared/src/hooks/tips/useTipButton.ts",
+    "packages/shared/src/hooks/tips/useForwardedSignOut.ts",
+    "packages/shared/src/hooks/tips/useLeaveButton.ts",
+    "packages/shared/src/hooks/tips/useNamespaceCallback.ts",
+    "packages/shared/src/hooks/tips/useNamespaceAlias.ts",
+    "packages/shared/src/modules/tips/send.ts",
+    "packages/shared/src/utils/tips/leave.ts",
+    "packages/shared/src/components/tips/SignOutButton.tsx",
+  ];
+  const readers = [
+    "packages/shared/src/hooks/tips/useReadsAuth.ts",
+    "packages/shared/src/modules/tips/format.ts",
+  ];
+  assert.deepEqual(mutationPathsAmong([...escaping, ...readers], { root, primitives }), [...escaping].sort());
+  for (const changedPath of escaping) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths: escaping });
+    assert.equal(plan.risk, "critical", changedPath);
+  }
+});
+
+test("an import the analyzer cannot read keeps a new file critical instead of hiding its primitive", (t) => {
+  const { sharedMutationPrimitives: primitives } = loadPolicy();
+  const root = mutationFixture(t, {
+    "hooks/blockchain/useSender.ts": [
+      'import { useWriteContract } from "wagmi";',
+      "export function useSender() {",
+      "  const { writeContractAsync } = useWriteContract();",
+      "  return writeContractAsync;",
+      "}",
+    ].join("\n"),
+    "hooks/blockchain/index.ts": 'export { useSender } from "./useSender";\n',
+    "index.ts": 'export { useSender } from "./hooks/blockchain";\n',
+    "utils/time.ts": "export const formatTime = (value: number) => new Date(value).toISOString();\n",
+    "i18n/en.json": '{ "title": "Tips" }\n',
+    // Shared reached through its own package exports, its @shared/ alias, or an export it lacks.
+    "hooks/tips/useSelfImport.ts": [
+      'import { useSender } from "@green-goods/shared/hooks/blockchain";',
+      "export const useSelfImport = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useSelfRoot.ts": [
+      'import { useSender } from "@green-goods/shared";',
+      "export const useSelfRoot = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useUnexported.ts": [
+      'import { useSender } from "@green-goods/shared/hooks/secret";',
+      "export const useUnexported = () => useSender();",
+    ].join("\n"),
+    "hooks/tips/useAliasImport.ts": [
+      'import { useSender } from "@shared/hooks/blockchain";',
+      "export const useAliasImport = () => useSender();",
+    ].join("\n"),
+    // An entry point the primitive list does not name, a file that is not there, a computed import.
+    "modules/tips/actions.ts": [
+      'import { writeContract } from "wagmi/actions";',
+      "export const run = () => writeContract({} as never, {} as never);",
+    ].join("\n"),
+    "modules/tips/missing.ts": [
+      'import { mystery } from "./not-here";',
+      "export const run = () => mystery();",
+    ].join("\n"),
+    "modules/tips/lazy.ts": "export const load = (name: string) => import(`./plugins/${name}`);\n",
+    // A primitive module whose namespace escapes whole or is read by a computed key, and a default
+    // import of one.
+    "utils/tips/escape.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const library = core;",
+    ].join("\n"),
+    "utils/tips/computed.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const pick = (name: string) => (core as Record<string, unknown>)[name];",
+    ].join("\n"),
+    "utils/tips/defaultCore.ts": [
+      'import wagmiCore from "@wagmi/core";',
+      "export const send = () => wagmiCore.writeContract({} as never, {} as never);",
+    ].join("\n"),
+    // Readers stay routine: data, a chain constant, a read-only Shared leaf, a namespace read.
+    "modules/tips/copy.ts": [
+      'import messages from "../../i18n/en.json";',
+      "export const label = () => messages.title;",
+    ].join("\n"),
+    "modules/tips/chains.ts": [
+      'import { sepolia } from "viem/chains";',
+      "export const chain = () => sepolia;",
+    ].join("\n"),
+    "modules/tips/readSelf.ts": [
+      'import { formatTime } from "@green-goods/shared/utils/time";',
+      "export const stamp = () => formatTime(0);",
+    ].join("\n"),
+    "utils/tips/readCore.ts": [
+      'import * as core from "@wagmi/core";',
+      "export const read = (config: never) => core.readContract(config, {} as never);",
+    ].join("\n"),
+  });
+  writeFileSync(
+    join(root, "packages/shared/package.json"),
+    JSON.stringify({
+      exports: {
+        ".": "./src/index.ts",
+        "./hooks/blockchain": "./src/hooks/blockchain/index.ts",
+        "./utils/time": "./src/utils/time.ts",
+      },
+    }),
+  );
+  const critical = [
+    "packages/shared/src/hooks/tips/useSelfImport.ts",
+    "packages/shared/src/hooks/tips/useSelfRoot.ts",
+    "packages/shared/src/hooks/tips/useUnexported.ts",
+    "packages/shared/src/hooks/tips/useAliasImport.ts",
+    "packages/shared/src/modules/tips/actions.ts",
+    "packages/shared/src/modules/tips/missing.ts",
+    "packages/shared/src/modules/tips/lazy.ts",
+    "packages/shared/src/utils/tips/escape.ts",
+    "packages/shared/src/utils/tips/computed.ts",
+    "packages/shared/src/utils/tips/defaultCore.ts",
+  ];
+  const readers = [
+    "packages/shared/src/modules/tips/copy.ts",
+    "packages/shared/src/modules/tips/chains.ts",
+    "packages/shared/src/modules/tips/readSelf.ts",
+    "packages/shared/src/utils/tips/readCore.ts",
+  ];
+  assert.deepEqual(mutationPathsAmong([...critical, ...readers], { root, primitives }), [...critical].sort());
+});
+
+test("every Shared file that signs, sends, moves funds or changes auth, session or queue state is critical by policy", () => {
+  const policy = loadPolicy();
+  const { invoking } = analyzeSharedMutationSurface({
+    root: repositoryRoot,
+    primitives: policy.sharedMutationPrimitives,
+  });
+  const unclassified = [...invoking]
+    .filter(([file]) => selectValidation({ intent: "push", changedPaths: [file] }, { policy }).risk !== "critical")
+    .map(([file, reasons]) => `${file} (${reasons.join("; ")})`);
+  assert.deepEqual(
+    unclassified,
+    [],
+    "Add each file to the shared critical override's exact list in scripts/data/validation-policy.json",
+  );
+  const listed = policy.criticalOverrides.find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
+  const stale = listed.exact.filter((file) => !invoking.has(file));
+  assert.deepEqual(stale, [], "Remove exact entries that no longer sign, send or change auth, session or queue state");
+});
+
+test("receipt reuse follows the intent: readiness, ship, merge and release never reuse at any risk", () => {
+  const byRisk = {
+    routine: "docs/docs/builders/quality/test-cases.mdx",
+    sensitive: "packages/agent/src/services/analytics.ts",
+    critical: "packages/shared/src/hooks/work/useWorkMutation.ts",
+  };
+  const reuse = (intent, changedPath) => {
+    const plan = selectValidation({ intent, changedPaths: [changedPath] });
+    return [plan.risk, plan.receiptPolicy.reuseAllowed];
+  };
+  for (const [risk, changedPath] of Object.entries(byRisk)) {
+    for (const intent of ["readiness", "ship", "merge", "release"]) {
+      assert.deepEqual(reuse(intent, changedPath), [risk, false], `${intent}: ${changedPath}`);
+    }
+    // An ordinary push may reuse an exact pass at every risk, which is what keeps the pre-push
+    // hook after a passing manual run to seconds.
+    assert.deepEqual(reuse("push", changedPath), [risk, true], `push: ${changedPath}`);
+  }
+  // Lighter intents reuse too, except that a critical plan reuses only in push.
+  assert.deepEqual(reuse("checkpoint", byRisk.routine), ["routine", true]);
+  assert.deepEqual(reuse("checkpoint", byRisk.critical), ["critical", false]);
+  assert.equal(selectValidation({ intent: "release", cancelled: true }).receiptPolicy.reuseAllowed, false);
+});
+
+test("measured budgets keep routine and sensitive push decisions", () => {
+  const cases = [
+    [{ changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"] }, "routine", "needs-focus"],
+    [
+      {
+        changedPaths: ["packages/shared/src/hooks/app/useLoadingWithMinDuration.ts"],
+        testPaths: { shared: ["src/__tests__/hooks/app/useLoadingWithMinDuration.test.ts"] },
+      },
+      "routine",
+      "ready",
+    ],
+    // A deleted test leaves its suite unfocused: name the surviving proof, unless the whole suite
+    // is cheaper than a focused run.
+    [{ changedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"], deletedPaths: ["packages/admin/src/__tests__/components/AdminDialog.test.tsx"] }, "routine", "needs-focus"],
+    [{ changedPaths: ["packages/agent/src/__tests__/analytics.test.ts"], deletedPaths: ["packages/agent/src/__tests__/analytics.test.ts"] }, "sensitive", "ready"],
+    [{ changedPaths: ["docs/scripts/docs-audit.test.mjs"] }, "routine", "ready"],
+    [{ changedPaths: ["packages/agent/src/services/analytics.ts"] }, "sensitive", "needs-focus"],
+  ];
+  for (const [input, risk, status] of cases) {
+    const plan = selectValidation({ intent: "push", ...input });
+    assert.equal(plan.risk, risk, input.changedPaths[0]);
+    assert.equal(plan.status, status, input.changedPaths[0]);
+    if (status === "needs-focus") assert.equal(plan.stopReason, "focused-proof-required", input.changedPaths[0]);
+  }
+
+  const critical = selectValidation({
+    intent: "push",
+    changedPaths: ["packages/shared/src/hooks/work/useWorkApprovals.ts"],
+  });
+  const summed = critical.checks.reduce((total, check) => total + check.budgetSeconds, 0);
+  assert.equal(critical.budget.estimatedWallSeconds, summed);
+  assert.ok(summed < 300, `the critical estimate follows measured budgets, got ${summed}s`);
+});
+
+test("only a test file becomes a focused run; helpers and notes under a test directory do not", () => {
+  const packageTest = (plan, surface) => plan.checks.find((check) => check.id === `${surface}-test`);
+  const push = (changedPaths, testPaths = {}) => selectValidation({ intent: "push", changedPaths, testPaths });
+
+  // A runner handed a README finds no tests and fails, so notes select no test run in any intent.
+  const notes = "packages/agent/src/__tests__/reporting/driver/README.md";
+  for (const intent of ["push", "checkpoint", "qa"]) {
+    const plan = selectValidation({ intent, changedPaths: [notes] });
+    assert.equal(packageTest(plan, "agent"), undefined, intent);
+    assert.equal(plan.status, "ready", intent);
+  }
+  // Removing or renaming notes asks for no test either, even beside a suite too dear to run whole.
+  const oldNotes = "packages/shared/src/__tests__/NOTES.md";
+  for (const changedPaths of [[oldNotes], [oldNotes, "packages/shared/src/__tests__/README.md"]]) {
+    const plan = selectValidation({ intent: "push", changedPaths, deletedPaths: [oldNotes] });
+    assert.equal(plan.status, "ready", changedPaths.join(" + "));
+    assert.equal(packageTest(plan, "shared"), undefined, changedPaths.join(" + "));
+  }
+
+  // A helper is never the focus. A suite as cheap as a focused run runs whole.
+  const helper = "packages/agent/src/__tests__/reporting/driver/server.ts";
+  const whole = packageTest(push([helper]), "agent");
+  assert.deepEqual(whole.focusedPaths, []);
+  assert.equal(whole.command, turboTestCommand("agent"));
+  // Changed beside a test, the test alone is the focus.
+  const sqliteTest = "src/__tests__/reporting/driver.sqlite.test.ts";
+  assert.deepEqual(packageTest(push([helper, `packages/agent/${sqliteTest}`]), "agent").focusedPaths, [sqliteTest]);
+
+  // A dearer suite asks for the test that exercises the helper, whatever the runner.
+  for (const [path, surface, proof] of [
+    ["packages/shared/src/__tests__/test-utils/query-client.ts", "shared", "src/__tests__/hooks/garden/useFilteredGardens.test.ts"],
+    ["packages/client/src/__tests__/test-utils.tsx", "client", "src/__tests__/routes/SessionGate.test.tsx"],
+    ["packages/contracts/test/helpers/DeploymentBase.sol", "contracts", "test/unit/Garden.t.sol"],
+    ["packages/indexer/test/helpers/events.ts", "indexer", "test/garden.test.ts"],
+  ]) {
+    const alone = push([path]);
+    assert.equal(alone.status, "needs-focus", path);
+    assert.equal(alone.stopReason, "focused-proof-required", path);
+    assert.ok(alone.remediation.includes(`--test-path ${surface}:`), path);
+    const named = push([path], { [surface]: [proof] });
+    assert.equal(named.status, "ready", path);
+    assert.deepEqual(packageTest(named, surface).focusedPaths, [proof], path);
+  }
+
+  // The indexer's entry test is named test.ts, and a checkpoint runs a helper's suite whole.
+  assert.deepEqual(packageTest(push(["packages/indexer/test/test.ts"]), "indexer").focusedPaths, ["test/test.ts"]);
+  const checkpoint = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/shared/src/__tests__/test-utils/query-client.ts"],
+  });
+  assert.equal(checkpoint.status, "ready");
+  assert.equal(packageTest(checkpoint, "shared").command, turboTestCommand("shared", "checkpoint"));
+});
+
+test("the push gate routes test quality and generated or audited docs to the paths that break them", () => {
+  const push = (changedPath) => ids(selectValidation({ intent: "push", changedPaths: [changedPath] }));
+  for (const changedPath of [
+    "packages/shared/src/__tests__/hooks/garden/useFilteredGardens.test.ts",
+    "packages/shared/src/__tests__/test-utils/query-client.ts",
+    "packages/shared/src/__mocks__/eas-sdk.ts",
+    "packages/contracts/test/unit/CreditRegistry.t.sol",
+    "packages/indexer/test/credit-registry.test.ts",
+    "scripts/quality/select-validation.test.mjs",
+    "tests/specs/admin.smoke.spec.ts",
+    // test-quality checks which project each Shared test file lands in.
+    "packages/shared/vitest.config.ts",
+    "scripts/lib/vitest-shared-graph.mjs",
+    "scripts/quality/check-shared-graph-tests.mjs",
+    "scripts/quality/check-small-test-files.mjs",
+    "scripts/quality/check-test-utils-barrel.mjs",
+  ]) {
+    assert.ok(push(changedPath).includes("test-quality"), changedPath);
+  }
+  assert.ok(!push("packages/shared/src/hooks/app/useLoadingWithMinDuration.ts").includes("test-quality"));
+
+  for (const changedPath of ["docs/docs/community/green-goods-claims.generated.mdx", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
+    const selected = push(changedPath);
+    assert.ok(selected.includes("docs-generated"), changedPath);
+    assert.ok(selected.includes("docs-authority"), changedPath);
+  }
+  // The authority audit scans every script, config and guide outside Plan Hubs for retired
+  // command callers, so ordinary tooling selects it; plan history never does.
+  assert.ok(push("scripts/lib/dev-shared.js").includes("docs-authority"));
+  assert.ok(!push(".plans/active/test-budget-and-ci-speed/plan.todo.md").includes("docs-authority"));
+});
+
+test("every docs generator input selects docs-generated, and the policy lists nothing else", async () => {
+  const { projectionSourcePaths } = await import("../docs/generate.mjs");
+  const sources = projectionSourcePaths(repositoryRoot);
+  const unrouted = sources.filter(
+    (source) => !ids(selectValidation({ intent: "push", changedPaths: [source] })).includes("docs-generated"),
+  );
+  assert.deepEqual(unrouted, [], "Add each generator source to the docs-generated rule in scripts/data/validation-policy.json");
+
+  const rule = loadPolicy().conditionalRules.find(
+    (entry) => entry.check === "docs-generated" && entry.exact?.includes("scripts/data/validation-policy.json"),
+  );
+  assert.deepEqual(rule.exact.filter((path) => !sources.includes(path)), [], "Remove exact entries the generator no longer reads");
+});
+
+test("every file a certified seam fingerprints selects test-quality", () => {
+  const registry = JSON.parse(readFileSync(new URL("../data/module-seam-registry.json", import.meta.url), "utf8"));
+  const fingerprinted = new Set();
+  for (const entry of registry.entries) {
+    const proof = entry.proof ?? {};
+    for (const path of [entry.modulePath, ...(entry.compositionRoots ?? []), ...(entry.directConsumers ?? []), ...(proof.direct ?? []), ...(proof.conformance ?? []), ...(proof.integration ?? [])]) {
+      if (path) fingerprinted.add(path);
+    }
+    // The fingerprint also covers the manifest that declares the seam's public export.
+    fingerprinted.add(`packages/${entry.owner}/package.json`);
+  }
+  const unrouted = [...fingerprinted].filter(
+    (path) => !ids(selectValidation({ intent: "push", changedPaths: [path] })).includes("test-quality"),
+  );
+  assert.deepEqual(unrouted, [], "Add each fingerprinted seam file to the test-quality rule in scripts/data/validation-policy.json");
+});
+
+test("every dated plan report selects immutable-plan-reports in the push gate", async () => {
+  // CI's Guidance integrity job rejects an edit, deletion or rename of a dated report. The push gate
+  // must run the same check, or an appended section passes locally and fails after the push.
+  const { isDatedPlanReport } = await import("./check-immutable-plan-reports.mjs");
+  const push = (changedPath) => ids(selectValidation({ intent: "push", changedPaths: [changedPath] }));
+  const tracked = execFileSync("git", ["ls-files", ".plans"], { cwd: repositoryRoot, encoding: "utf8" })
+    .split("\n")
+    .filter(isDatedPlanReport);
+  assert.ok(tracked.length > 0, "the repository keeps dated plan reports");
+  const shapes = [
+    ".plans/active/example-hub/reports/2026-09-28-snapshot-08-follow-up.md",
+    ".plans/backlog/example-hub/reports/review-2026-08-10.md",
+    ".plans/archive/example-hub/reports/nested/audit-2026-08-09.md",
+    ".plans/ideas/example-hub/reports/2026-01-02.md",
+  ];
+  for (const path of shapes) assert.ok(isDatedPlanReport(path), `the check classifies ${path}`);
+  const unrouted = [...tracked, ...shapes].filter((path) => !push(path).includes("immutable-plan-reports"));
+  assert.deepEqual(unrouted, [], "Route each dated report to immutable-plan-reports in scripts/data/validation-policy.json");
+
+  // The check's own code runs it; a hub's living files and other scripts do not.
+  assert.ok(push("scripts/quality/check-immutable-plan-reports.mjs").includes("immutable-plan-reports"));
+  for (const path of [
+    ".plans/active/test-budget-and-ci-speed/plan.todo.md",
+    ".plans/active/test-budget-and-ci-speed/status.json",
+    "scripts/quality/select-validation.mjs",
+  ]) {
+    assert.ok(!push(path).includes("immutable-plan-reports"), path);
+  }
+});
+
+test("qualified browser checks follow their sources, block on missing Chromium and retain critical overrides", () => {
+  for (const [id, changedPath] of [
+    ['browser-passkey', 'packages/shared/src/workflows/authServices.ts'],
+    ['browser-work-exploration', 'packages/client/src/views/Home/Garden/Work.tsx'],
+    ['browser-pwa-preview', 'packages/client/src/sw/sw.ts'],
+  ]) {
+    const plan = selectValidation({ intent: 'qa', changedPaths: [changedPath], environment: { capabilities: { playwrightChromium: false } } });
+    const check = plan.checks.find(item => item.id === id);
+    assert.ok(check, `${id} selected for ${changedPath}`);
+    assert.ok(check.blockedBy.includes('playwrightChromium'));
+    assert.ok(!ids(selectValidation({ intent: 'qa', changedPaths: ['docs/README.md'] })).includes(id));
+    if (id === 'browser-passkey') assert.ok(plan.checks.some(item => item.mandatory && item.id === 'shared-test'));
+  }
+});
+
+test("browser entrypoint and lifecycle edits trigger the required Client workflow", () => {
+  for (const changedPath of ["scripts/dev/browser.js", "scripts/dev/test-e2e.js", "scripts/dev/node-cli.js", "scripts/lib/command-runner.mjs", "scripts/lib/dev-shared.js"]) {
+    assert.ok(selectExpectedWorkflows({ intent: "merge", ci: true, changedPaths: [changedPath] }).includes("Client"), changedPath);
+  }
+});
+
+test("browser proof fingerprints change with fixture, profile, toolchain and replay seed", () => {
+  const plan = selectValidation({ intent: 'qa', changedPaths: ['tests/specs/client.exploration.spec.ts'], workingCopyFingerprint: 'source-and-fixture-a' });
+  const check = plan.checks.find(item => item.id === 'browser-work-exploration');
+  assert.ok(check);
+  const original = buildReceiptInputs(plan, check, { environment: 'seed-17' }).fingerprint;
+  for (const changed of [
+    { ...plan, workingCopyFingerprint: 'source-and-fixture-b' },
+    { ...plan, environment: { ...plan.environment, profile: 'production' } },
+    { ...plan, environment: { ...plan.environment, toolchain: { playwright: 'different-revision' } } },
+  ]) assert.notEqual(buildReceiptInputs(changed, check, { environment: 'seed-17' }).fingerprint, original);
+  assert.notEqual(buildReceiptInputs(plan, check, { environment: 'seed-42' }).fingerprint, original);
 });

@@ -6,12 +6,13 @@
  * shortcut. The component uses the async `useIsBraveBrowser` signal to warn and
  * steer to Chrome before the install proceeds.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
+import { MemoryRouter, type NavigateFunction, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -65,6 +66,7 @@ import {
 } from "../../components/Public/PublicInstallAction";
 
 import { PublicInstallCta } from "../../components/Public/PublicInstallCta";
+import { PublicInstallDialog } from "../../components/Public/PublicInstallDialog";
 
 const CHROME_INTENT =
   "intent://www.greengoods.app/#Intent;scheme=https;package=com.android.chrome;end";
@@ -74,6 +76,34 @@ function setLocation(path: string) {
     configurable: true,
     value: new URL(path, "http://localhost:3000"),
   });
+}
+
+/** The route the public router is on for this document: the fragment under the hash router. */
+function documentRoute(): string {
+  const { hash, pathname } = window.location;
+  return hash.startsWith("#/") ? hash.slice(1) : pathname;
+}
+
+let navigate: NavigateFunction;
+function Navigator() {
+  navigate = useNavigate();
+  return null;
+}
+
+/** Inside a router that starts on the document's route, as the public site's does. */
+function routed(element: ReactElement) {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [documentRoute()] },
+    createElement(Navigator),
+    element
+  );
+}
+
+/** An in-site move: the router changes route and the document's address follows. */
+function moveTo(path: string) {
+  setLocation(path);
+  act(() => navigate(path));
 }
 
 function actionElement(destination?: string) {
@@ -123,7 +153,7 @@ function actionElement(destination?: string) {
 }
 
 function renderAction(destination?: string) {
-  return render(actionElement(destination));
+  return render(routed(actionElement(destination)));
 }
 
 describe("PublicInstallAction", () => {
@@ -149,6 +179,30 @@ describe("PublicInstallAction", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllEnvs();
+  });
+
+  it.each([
+    "desktopQr",
+    "mobileSteps",
+    "braveInstall",
+  ] as const)("keeps the %s install sheet full width on mobile with a desktop width cap", (mode) => {
+    render(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {}, onError: () => {} },
+        createElement(PublicInstallDialog, {
+          open: true,
+          mode,
+          launchUrl: "https://www.greengoods.app/",
+          guidance: mockUseInstallGuidance(),
+          onOpenChange: vi.fn(),
+        })
+      )
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("w-full", "max-w-none", "bottom-0");
+    expect(screen.getByRole("dialog")).toHaveClass(
+      mode === "desktopQr" ? "sm:max-w-[44rem]" : "sm:max-w-lg"
+    );
   });
 
   it("intercepts the install tap on Brave/Android and surfaces the Chrome dialog", () => {
@@ -360,10 +414,12 @@ describe("PublicInstallAction", () => {
     });
     const destination = `/home/0x${"1".repeat(40)}/work/0x${"2".repeat(64)}`;
     render(
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: {}, onError: () => {} },
-        createElement(PublicInstallCta, { variant: "compact", destination })
+      routed(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(PublicInstallCta, { variant: "compact", destination })
+        )
       )
     );
     expect(screen.getByRole("link", { name: "Open This Work in the App" })).toHaveAttribute(
@@ -393,10 +449,12 @@ describe("PublicInstallAction", () => {
       primaryAction: { type: "open-in-browser", label: "Open in Chrome" },
       openInBrowserUrl: "intent:stale-homepage",
     });
-    const view = renderAction();
+    renderAction();
     const destination = `/home/0x${"1".repeat(40)}/work/0x${"2".repeat(64)}`;
-    setLocation(destination.replace("/home/", "/gardens/"));
-    view.rerender(actionElement());
+    // Nothing renders the action again from outside: it hears the route change itself, as it
+    // must in the site header, which outlives every page.
+    moveTo(destination.replace("/home/", "/gardens/"));
+    expect(JSON.parse(localStorage.getItem("gg-pending-shared-link")!).path).toBe(destination);
     fireEvent.click(screen.getByTestId("cta"));
     expect(screen.getByRole("link", { name: "Open in Chrome" })).toHaveAttribute(
       "href",
@@ -418,10 +476,12 @@ describe("PublicInstallAction", () => {
     setLocation(`/ipfs/cid/?pwaLaunch=1#${destination.replace("/home/", "/gardens/")}`);
     const source = new URL(window.location.href);
     render(
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: {}, onError: () => {} },
-        createElement(PublicInstallCta, { variant: "compact", destination })
+      routed(
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {}, onError: () => {} },
+          createElement(PublicInstallCta, { variant: "compact", destination })
+        )
       )
     );
     for (const name of ["Open App", "Open This Work in the App"]) {

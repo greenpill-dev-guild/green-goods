@@ -3,13 +3,16 @@
  *
  * Provides functions to manage actions in the ActionRegistry.
  * Uses a shared executor to eliminate duplication across 6 operations.
- * Each operation follows: wallet check → simulation → execution → refetch.
+ * Each operation follows: account check → simulation → execution → refetch.
  */
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import { useIntl } from "react-intl";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { toastService } from "../../components/toast";
 import {
   type ActionOperationCommand,
@@ -47,8 +50,9 @@ export function useActionOperations(chainId: number) {
   const [isLoading, setIsLoading] = useState(false);
 
   const { executeWithToast } = useToastAction();
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const address = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const contracts = getNetworkContracts(chainId);
   const queryClient = useQueryClient();
 
@@ -62,17 +66,19 @@ export function useActionOperations(chainId: number) {
   );
 
   /**
-   * Wraps an operation with wallet check, loading tracking, and error parsing.
+   * Wraps an operation with account check, loading tracking, and error parsing.
    */
   async function withTracking(
     buildConfig: () => ActionOperationCommand
   ): Promise<ActionOperationResult> {
-    if (!walletClient || !address) {
+    if (!address || !sender) {
       return {
         success: false,
         error: {
-          name: "WalletNotConnected",
-          message: "Please connect your wallet to continue",
+          name: "AccountNotReady",
+          message: formatMessage({
+            id: !address ? "app.account.signInRequired" : "app.account.signerNotReady",
+          }),
         },
       };
     }
@@ -91,7 +97,7 @@ export function useActionOperations(chainId: number) {
     try {
       const result = await executeActionOperation(
         call,
-        createDefaultActionOperationPorts({ walletClient, executeWithToast })
+        createDefaultActionOperationPorts({ executeWithToast, transactionSender: sender })
       );
       if (!result.success) {
         toastService.error({
@@ -104,7 +110,14 @@ export function useActionOperations(chainId: number) {
       }
       return result;
     } catch (error) {
-      const parsed = parseContractError(error);
+      const parsed =
+        error instanceof TransactionConfirmationPendingError
+          ? {
+              name: error.name,
+              message: formatMessage({ id: "app.account.transactionPending" }),
+              action: undefined,
+            }
+          : parseContractError(error);
       return {
         success: false,
         error: {
@@ -216,7 +229,18 @@ export function useActionOperations(chainId: number) {
       },
     }));
 
+  const assertReady = async () => {
+    if (!address || !sender)
+      throw new Error(
+        formatMessage({
+          id: !address ? "app.account.signInRequired" : "app.account.signerNotReady",
+        })
+      );
+    await sender.assertOwnership?.(address, chainId);
+  };
+
   return {
+    assertReady,
     registerAction,
     updateActionStartTime,
     updateActionEndTime,

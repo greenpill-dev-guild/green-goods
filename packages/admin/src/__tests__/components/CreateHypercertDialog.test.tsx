@@ -1,7 +1,8 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
+import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
@@ -42,10 +43,25 @@ const SELECTED_GARDEN: Garden = {
   createdAt: 1,
 };
 
+// The wizard's attestations: loaded and empty unless a test says otherwise.
+const attestationsState = vi.hoisted(() => ({
+  isLoading: false,
+  hasError: false,
+  attestations: [] as unknown[],
+}));
+vi.mock("@green-goods/shared/hooks/hypercerts/useAttestations", () => ({
+  useAttestations: () => ({
+    attestations: attestationsState.attestations,
+    isLoading: attestationsState.isLoading,
+    error: null,
+    hasError: attestationsState.hasError,
+    refetch: async () => [],
+  }),
+}));
+
 vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
-  useWalletClient: () => ({ data: undefined }),
 }));
 
 const authContextValue: AuthContextValue = {
@@ -85,7 +101,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
     seedGarden ? [SELECTED_GARDEN] : []
   );
   queryClient.setQueryData(
-    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(normalizeAddress(OPERATOR), DEFAULT_CHAIN_ID),
     seedGarden ? [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }] : []
   );
   queryClient.setQueryData(
@@ -100,6 +116,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
     [
       { path: "/hub/certify/create", element: <CreateHypercert /> },
       { path: "/hub/*", element: <div /> },
+      { path: "/garden/*", element: <div /> },
     ],
     {
       initialEntries: [`/hub/certify/create?gardenId=${SELECTED_GARDEN.id}`],
@@ -121,6 +138,7 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
 
 describe("CreateHypercert dialog", () => {
   beforeEach(() => {
+    Object.assign(attestationsState, { isLoading: false, hasError: false, attestations: [] });
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
       selectedGarden: null,
@@ -158,6 +176,82 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
+  });
+
+  it("asks for an attestation only after Next is pressed with none selected", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    const next = await screen.findByRole("button", { name: "Next" });
+    expect(
+      screen.queryByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "app.hypercerts.wizard.step.attestations.title" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Next waiting while attestations load or fail to load", async () => {
+    for (const state of [
+      { isLoading: true, hasError: false },
+      { isLoading: false, hasError: true },
+    ]) {
+      Object.assign(attestationsState, state);
+      await act(async () => {
+        renderCreateHypercert();
+        await Promise.resolve();
+      });
+      // Nothing to pick yet, so Next cannot claim nothing was picked.
+      expect(await screen.findByRole("button", { name: "Next" })).toBeDisabled();
+      cleanup();
+    }
+  });
+
+  it("lets Next go on from loaded attestations when a later refresh fails", async () => {
+    const attestation = {
+      id: "0xattestation-1",
+      workUid: "0xwork-1",
+      gardenId: "0xgarden",
+      title: "Planting day",
+      workScope: ["planting"],
+      gardenerAddress: OPERATOR,
+      mediaUrls: [],
+      createdAt: 1,
+      approvedAt: 2,
+    };
+    Object.assign(attestationsState, { hasError: true, attestations: [attestation] });
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+    act(() => useHypercertWizardStore.setState({ selectedAttestationIds: [attestation.id] }));
+
+    expect(await screen.findByRole("button", { name: "Next" })).toBeEnabled();
+  });
+
+  it("asks for an attestation when a restored draft's picks no longer exist", async () => {
+    await act(async () => {
+      renderCreateHypercert();
+      await Promise.resolve();
+    });
+    const next = await screen.findByRole("button", { name: "Next" });
+    // A restored draft loads its picks after the wizard resets; picks that match
+    // no loaded attestation select nothing.
+    act(() => useHypercertWizardStore.setState({ selectedAttestationIds: ["0xattestation-gone"] }));
+
+    fireEvent.click(next);
+
+    expect(
+      await screen.findByText("app.hypercerts.wizard.validation.selectAttestation")
+    ).toBeInTheDocument();
   });
 
   it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
@@ -277,5 +371,197 @@ describe("CreateHypercert dialog", () => {
 
     expect(router?.state.location.pathname).toBe("/hub/certify/create");
     expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+  });
+
+  // DL-080: the flow ends on its Review, where the mint shows in the status row
+  // and a confirmed mint leaves Done; nothing asks to discard after it.
+  describe("the Review's mint", () => {
+    const HYPERCERT_ID = "0xhypercert-1";
+
+    async function onReview() {
+      attestationsState.attestations = [
+        {
+          id: "0xattestation-1",
+          workUid: "0xwork-1",
+          gardenId: SELECTED_GARDEN.id,
+          title: "Planting day",
+          workScope: ["planting"],
+          gardenerAddress: OPERATOR,
+          mediaUrls: [],
+          createdAt: 1,
+          approvedAt: 2,
+        },
+      ];
+      let router: ReturnType<typeof renderCreateHypercert> | undefined;
+      await act(async () => {
+        router = renderCreateHypercert();
+        await Promise.resolve();
+      });
+      await act(async () => {
+        const store = useHypercertWizardStore.getState();
+        store.setSelectedAttestations(["0xattestation-1"]);
+        store.setStep(4);
+        await Promise.resolve();
+      });
+      expect(
+        await screen.findByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
+      ).toBeInTheDocument();
+      return router;
+    }
+
+    it("shows what the mint will do on the Review before anything is sent", async () => {
+      await onReview();
+
+      expect(screen.getByText("Mints this hypercert on-chain")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "app.hypercerts.mint.submit" })).toBeEnabled();
+    });
+
+    it("ends a confirmed mint on the Review with Done, and never asks to discard", async () => {
+      const router = await onReview();
+
+      await act(async () => {
+        useHypercertWizardStore
+          .getState()
+          .setMintingState({ status: "confirmed", hypercertId: HYPERCERT_ID, txHash: "0xabc" });
+        await Promise.resolve();
+      });
+
+      expect(await screen.findByText("Hypercert minted")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+      expect(router?.state.location.pathname).toBe("/hub/certify/create");
+
+      const dialog = screen.getByRole("dialog", { name: "app.hypercerts.create.title" });
+      await act(async () => {
+        fireEvent.keyDown(dialog, { key: "Escape" });
+        await Promise.resolve();
+      });
+
+      // Closing a minted hypercert opens its record, as Done does, with no prompt.
+      await waitFor(() =>
+        expect(router?.state.location.pathname).toBe(`/garden/impact/hypercerts/${HYPERCERT_ID}`)
+      );
+      expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    });
+
+    it("opens the minted hypercert's record from Done", async () => {
+      const router = await onReview();
+      await act(async () => {
+        useHypercertWizardStore
+          .getState()
+          .setMintingState({ status: "confirmed", hypercertId: HYPERCERT_ID });
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(await screen.findByRole("button", { name: "Done" }));
+        await Promise.resolve();
+      });
+
+      await waitFor(() =>
+        expect(router?.state.location.pathname).toBe(`/garden/impact/hypercerts/${HYPERCERT_ID}`)
+      );
+      expect(router?.state.location.state).toMatchObject({
+        optimisticData: { id: HYPERCERT_ID },
+      });
+      expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    });
+
+    it("keeps a failed mint on the Review with its error, Try Again and Back", async () => {
+      const router = await onReview();
+
+      await act(async () => {
+        useHypercertWizardStore
+          .getState()
+          .setMintingState({ status: "failed", error: "User rejected the request." });
+        await Promise.resolve();
+      });
+
+      expect(await screen.findByRole("button", { name: "Try Again" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+      // A declined request reads as a warning, in the row that held the mint's progress.
+      const row = document.querySelector('[data-component="FlowStatusRow"]');
+      expect(row).toHaveAttribute("data-tone", "warning");
+      expect(row).toHaveTextContent("Transaction was cancelled");
+      expect(
+        screen.getByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Hypercert minted")).not.toBeInTheDocument();
+      expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    });
+
+    it("keeps a mint refused before the wallet on the Review with its error and Try Again", async () => {
+      await onReview();
+
+      // No allowlist is set, so the mint is refused before the wallet is asked.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "app.hypercerts.mint.submit" }));
+        await Promise.resolve();
+      });
+
+      const row = document.querySelector('[data-component="FlowStatusRow"]');
+      await waitFor(() => expect(row).toHaveAttribute("data-tone", "error"));
+      expect(row).toHaveTextContent("app.hypercerts.mint.error.generic.title");
+      expect(screen.getByRole("button", { name: "Try Again" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+    });
+
+    it("opens the record as it was minted, even if the wizard's answers change after", async () => {
+      const router = await onReview();
+      await act(async () => {
+        const store = useHypercertWizardStore.getState();
+        store.updateMetadata({ title: "As minted" });
+        store.setMintingState({ status: "confirmed", hypercertId: HYPERCERT_ID });
+        await Promise.resolve();
+      });
+      await screen.findByText("Hypercert minted");
+      await act(async () => {
+        useHypercertWizardStore.getState().updateMetadata({ title: "Changed later" });
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Done" }));
+        await Promise.resolve();
+      });
+
+      await waitFor(() =>
+        expect(router?.state.location.pathname).toBe(`/garden/impact/hypercerts/${HYPERCERT_ID}`)
+      );
+      expect(router?.state.location.state).toMatchObject({
+        optimisticData: { title: "As minted" },
+      });
+    });
+
+    it("keeps Try Again for a failed mint whose work the list now shows as bundled", async () => {
+      await onReview();
+      await act(async () => {
+        useHypercertWizardStore
+          .getState()
+          .setMintingState({ status: "failed", error: "Receipt polling timed out" });
+        await Promise.resolve();
+      });
+      // The mint may have landed: the work no longer reads as selectable.
+      act(() => useHypercertWizardStore.getState().setSelectedAttestations([]));
+
+      expect(await screen.findByRole("button", { name: "Try Again" })).toBeEnabled();
+    });
+
+    it("holds every button while the mint works", async () => {
+      await onReview();
+
+      await act(async () => {
+        useHypercertWizardStore.getState().setMintingState({ status: "awaiting_signature" });
+        await Promise.resolve();
+      });
+
+      expect(await screen.findByText("Approve in your wallet")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+      expect(
+        screen.getByText("The dialog stays open until your wallet answers.")
+      ).toBeInTheDocument();
+    });
   });
 });

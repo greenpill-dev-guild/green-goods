@@ -8,10 +8,10 @@
  * - Honest states: loading, empty, EAS error, partialData,
  *   sourceLimitReached.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -96,7 +96,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
-  "public.impact.heroTitle": "See how Garden work becomes evidence.",
+  "public.impact.heroTitle": "See how Garden work becomes evidence",
   "public.impact.heroLede":
     "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
   "public.impact.totalAssessments": "Assessments",
@@ -162,8 +162,8 @@ describe("ImpactPage", () => {
   it("renders confirmed proof markers from usePublicStats", () => {
     renderView();
     expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gardens with approved work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Approved submissions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("30")).toBeInTheDocument();
@@ -182,6 +182,20 @@ describe("ImpactPage", () => {
     expect(within(proof).queryByText("0")).toBeNull();
   });
 
+  it("dashes out only the count the stats read could not establish", () => {
+    mockUsePublicStats.mockReturnValue({
+      data: { ...mockStats, fieldNoteCount: null },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(1);
+    expect(within(proof).getByText("7")).toBeInTheDocument();
+    expect(within(proof).queryByText("30")).toBeNull();
+  });
+
   it("renders evidence cards with their titles in an image-forward grid", () => {
     renderView();
     expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();
@@ -189,6 +203,33 @@ describe("ImpactPage", () => {
     // Each card is an accessible button labelled by record.title.
     expect(screen.getByRole("button", { name: "Q3 Soil Renewal" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Composting Pilot" })).toBeInTheDocument();
+  });
+
+  it("titles a work record without the timestamps its stored title carries, and no other kind", () => {
+    const stamps = " - 2026-04-23T18:44:24.803Z - 2026-04-23T18:44:25.160Z";
+    const base = { gardenId: "0x1", gardenName: "Solar Garden", sourceAvailable: true };
+    const work = { ...base, id: "work:0x9", kind: "work" as const, createdAt: 1720000000 };
+    const certificate = { ...base, id: "certificate:0x7", kind: "certificate" as const };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        ...mockSliceReady,
+        records: [
+          { ...work, title: `Cleanup Event${stamps}`, easUid: "0x9" },
+          { ...certificate, title: `Harvest Record${stamps}`, createdAt: 1715000000 },
+          ...mockSliceReady.records,
+        ],
+      },
+      isLoading: false,
+    });
+    renderView();
+
+    const card = screen.getByRole("button", { name: "Cleanup Event" });
+    expect(within(card).getByRole("heading", { level: 3 })).toHaveTextContent(/^Cleanup Event$/);
+    // A certificate keeps the title it was minted with, whatever it ends in.
+    expect(screen.getByRole("button", { name: `Harvest Record${stamps}` })).toBeInTheDocument();
+
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog", { name: "Cleanup Event" })).toBeInTheDocument();
   });
 
   it("shows loading skeletons while evidence is loading", () => {

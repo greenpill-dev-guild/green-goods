@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
-import { ActionDetailPanel } from "./ActionDetail";
+import { ActionDetailPanel } from "./ActionDetailPanel";
 import CreateAction from "./CreateAction";
 import EditAction from "./EditAction";
 

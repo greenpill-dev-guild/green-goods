@@ -1,6 +1,6 @@
 /**
  * Empty State Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * The unauthenticated / no-eligible-gardens home shell now lives in
  * IndexRoute (mounted at "/"), not CanvasLayout. These tests render
@@ -12,6 +12,10 @@ import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
+
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
 
 interface EligibleGardenStub {
   id: string;
@@ -93,6 +97,15 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
     }
     return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
   },
+}));
+
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x1234567890123456789012345678901234567890",
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({

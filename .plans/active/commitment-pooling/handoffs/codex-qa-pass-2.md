@@ -1,5 +1,9 @@
 # Commitment Pooling - Codex QA Pass 2 Handoff
 
+## Status reconciliation (2026-10-06)
+
+The historical Linear QA issue is Done. The gates below describe the historical hub certification boundary and are not a request to reopen that issue. Current deployed acceptance belongs to [PRD-1009](https://linear.app/greenpill-dev-guild/issue/PRD-1009), paired with [PRD-1030](https://linear.app/greenpill-dev-guild/issue/PRD-1030). These updates record no new QA pass; the outstanding receipt reconciliation stays explicit in `status.json`.
+
 ## Status
 
 - Machine lane: qa_pass_2
@@ -137,3 +141,16 @@ called complete.
 
 The reviewed tree is the commit containing this section. Resolve its exact SHA with
 `git rev-parse HEAD`; the working tree is expected to be clean after that commit.
+
+## 2026-09-27 observations moved from the rehearsal follow-ups
+
+Three rendered checks that two rehearsal fixes could not take before they merged move to this pass.
+Walk each on staging with real accounts, and label it with the engine and session that produced it.
+
+- The commitment, proof and compose screens keep the top bar and the action bar fixed at phone
+  width on a real scroll (#926, PRD-991).
+- On a pool that is not ready, a member reads one sentence naming who acts next, and a steward reads
+  the setup checklist (#926, PRD-991).
+- After signing out of one account and into another on the same device, Home opens with default
+  filters and each garden opens fresh, while a reload of the same account keeps them (#929,
+  PRD-994).

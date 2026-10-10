@@ -9,7 +9,7 @@ import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { readWorkByUID } from "../../../modules/work/work-list";
 import { resolveGardenWorkRows } from "../../../modules/work/local-status-overlay";
 import { connectivityStore } from "../../../stores/connectivity";
-import { useUIStore } from "../../../stores/useUIStore";
+import { useDashboardNavigation } from "../useDashboardNavigation";
 import { isUserAddress } from "../../../utils/blockchain/address";
 import { isValidAttestationId, openEASExplorer } from "../../../utils/eas/explorers";
 import {
@@ -38,6 +38,7 @@ export function useWorkDetailController() {
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
   const navigateToTop = useNavigateToTop();
   const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const location = useLocation();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
@@ -90,7 +91,9 @@ export function useWorkDetailController() {
     gardenId: garden?.id,
     chainId,
     viewingMode,
-    onApprovalComplete: (id) => navigateToTop(`/home/${id || gardenIdParam || ""}`),
+    onApprovalComplete: (id) => {
+      if (!dashboardNavigation.back()) navigateToTop(`/home/${id || gardenIdParam || ""}`);
+    },
   });
   const isOfflineWork = Boolean(
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"))
@@ -244,10 +247,7 @@ export function useWorkDetailController() {
   };
   const back = () => {
     const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
-    if (state.from === "dashboard") {
-      useUIStore.getState().restoreWorkDashboard();
-      return navigateToTop("/home");
-    }
+    if (dashboardNavigation.back()) return;
     if (state.returnTo) return navigateToTop(state.returnTo);
     if (gardenId) return navigateToTop(`/home/${gardenId}`);
     if (window.history.length > 1) return navigate(-1);
@@ -268,7 +268,7 @@ export function useWorkDetailController() {
     workLoading: !listedWork && (workByUID.isLoading || worksLoading || queuedLoading),
     workLoadError: !listedWork && workByUID.isError,
     retryWorkLoad: workByUID.refetch,
-    isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false,
+    isActionExpired: matchedAction ? matchedAction.endTime <= Date.now() : false,
     isOfflineWork,
     isOnline,
     isRetrying,

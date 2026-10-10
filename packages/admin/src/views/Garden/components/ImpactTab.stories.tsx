@@ -13,12 +13,14 @@ const ASSESSMENTS = [
     id: "0xabc0000000000000000000000000000000000000000000000000000000000001",
     title: "Q1 restoration survey",
     assessmentType: "impact",
+    domain: 1,
     createdAt: daysAgo(4),
   },
   {
     id: "0xabc0000000000000000000000000000000000000000000000000000000000002",
     title: "Workshop cohort check-in",
     assessmentType: "education",
+    domain: 2,
     createdAt: daysAgo(10),
   },
 ];
@@ -71,6 +73,7 @@ const meta: Meta<typeof ImpactTab> = {
     assessments: ASSESSMENTS,
     fetchingAssessments: false,
     assessmentsError: null,
+    hypercertsError: null,
     hypercerts: HYPERCERTS,
     hypercertsLoading: false,
     domainLabels: ["Agroforestry", "Education"],
@@ -90,10 +93,12 @@ export const Loading: Story = {
   },
 };
 
+/** Nothing yet: no View All, and each list points to where its items are made in the Hub. */
 export const Empty: Story = {
   args: {
     assessments: [],
     hypercerts: [],
+    canCertify: true,
   },
 };
 

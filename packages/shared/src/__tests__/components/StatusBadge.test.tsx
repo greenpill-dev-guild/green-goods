@@ -5,7 +5,7 @@
  * indicators must not rely on colour alone (WCAG 1.4.1), so each tone is
  * asserted through both channels.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { RiCloseLine, RiTimeLine } from "@remixicon/react";

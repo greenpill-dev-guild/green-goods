@@ -8,10 +8,9 @@
  *   3. On-submit recheck — useENSClaim
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================================================
 // MOCKS
@@ -54,23 +53,6 @@ vi.mock("../../../hooks/utils/useDebouncedValue", () => ({
 import { useSlugAvailability } from "../../../hooks/ens/useSlugAvailability";
 
 // ============================================================================
-// TEST HELPERS
-// ============================================================================
-
-function createTestWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0, staleTime: 0 },
-    },
-  });
-  return {
-    queryClient,
-    wrapper: ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children),
-  };
-}
-
-// ============================================================================
 // TESTS
 // ============================================================================
 
@@ -90,25 +72,22 @@ describe("useSlugAvailability", () => {
 
   describe("disabled conditions", () => {
     it("does not fetch when slug is undefined", () => {
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability(undefined), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability(undefined));
 
       expect(result.current.fetchStatus).toBe("idle");
       expect(mockReadContract).not.toHaveBeenCalled();
     });
 
     it("does not fetch when slug is empty string", () => {
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability(""), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability(""));
 
       expect(result.current.fetchStatus).toBe("idle");
       expect(mockReadContract).not.toHaveBeenCalled();
     });
 
     it("does not fetch for invalid slug format", () => {
-      const { wrapper } = createTestWrapper();
       // "AB" is invalid: too short and uppercase
-      const { result } = renderHook(() => useSlugAvailability("AB"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("AB"));
 
       expect(result.current.fetchStatus).toBe("idle");
       expect(mockReadContract).not.toHaveBeenCalled();
@@ -120,8 +99,7 @@ describe("useSlugAvailability", () => {
         greenGoodsENS: ZERO_ADDRESS,
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability("alice"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("alice"));
 
       expect(result.current.fetchStatus).toBe("idle");
     });
@@ -129,8 +107,7 @@ describe("useSlugAvailability", () => {
 
   describe("availability results", () => {
     it("returns true when slug is available on L2 and L1", async () => {
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability("alice"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("alice"));
 
       await waitFor(() => expect(result.current.data).toBe(true));
     });
@@ -141,8 +118,7 @@ describe("useSlugAvailability", () => {
         return Promise.resolve(undefined);
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability("bob"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("bob"));
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
@@ -157,8 +133,7 @@ describe("useSlugAvailability", () => {
         return Promise.resolve(undefined);
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability("carol"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("carol"));
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
@@ -170,15 +145,13 @@ describe("useSlugAvailability", () => {
         return Promise.resolve(undefined);
       });
 
-      const { wrapper } = createTestWrapper();
-      const { result } = renderHook(() => useSlugAvailability("dave"), { wrapper });
+      const { result } = renderHookWithQueryClient(() => useSlugAvailability("dave"));
 
       await waitFor(() => expect(result.current.data).toBe(false));
     });
 
     it("calls both availability checks with the slug", async () => {
-      const { wrapper } = createTestWrapper();
-      renderHook(() => useSlugAvailability("my-garden"), { wrapper });
+      renderHookWithQueryClient(() => useSlugAvailability("my-garden"));
 
       await waitFor(() =>
         expect(mockReadContract).toHaveBeenCalledWith(

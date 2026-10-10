@@ -71,3 +71,12 @@ export const ArchiveSeason: Story = {
     await expect(dialog).toHaveTextContent(/no impact certificate can be made for this season/);
   },
 };
+
+export const EndSeasonOfflineDuringReview: Story = {
+  args: { pool: storyPoolConsole({ isOnline: false }) },
+  play: async () => {
+    const dialog = await screen.findByRole("dialog", { name: "End This Season" });
+    await expect(screen.getByRole("button", { name: "End Season" })).toBeDisabled();
+    await expect(dialog).toHaveTextContent("“Season of First Rains” in Rocinha’s pool");
+  },
+};

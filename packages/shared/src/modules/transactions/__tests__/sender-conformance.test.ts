@@ -1,12 +1,14 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import {
   createFakeSmartAccountClient,
   createFakeWagmiDeps,
   createMockContractCall,
+} from "../../../__tests__/test-utils/transaction-fakes";
+import {
   describeConformance,
   type ConformanceLaw,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/conformance";
 import { fakePreparedUserOperation } from "../../../__tests__/test-utils/transaction-fakes";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";
@@ -17,15 +19,22 @@ import type { ContractCall, TransactionSender } from "../types";
 import { WalletSender } from "../wallet-sender";
 
 const SECOND_TX_HASH = `0x${"b".repeat(64)}` as Hex;
+/** Who holds the connection when a scenario does not say. */
+const CONNECTED = "0x9999999999999999999999999999999999999999";
 const NON_CANONICAL_HASH = `0x${"c".repeat(130)}` as Hex;
 
 type SenderScenario = {
   hashes?: Hex[];
   receiptStatus?: string;
   transportFailure?: Error;
+  /** The account the wallet holds now, for senders that read it from wagmi. Named `undefined`, nobody is connected. */
+  connectedAccount?: `0x${string}`;
+  /** What happens while the guard reads the wallet, before it asks who signs. */
+  whileGuardReads?: () => void;
 };
 
 type ForwardedCall = {
+  account?: string;
   chainId?: number;
   clientChainId?: number;
   value?: bigint;
@@ -84,7 +93,13 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.ensureWalletChain.mockImplementation(async (chainId) => {
+      deps.getAccount = () => ({
+        address: "connectedAccount" in scenario ? scenario.connectedAccount : CONNECTED,
+      });
+      deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
+        // As the guard does for a wallet on another network.
+        scenario.whileGuardReads?.();
+        await beforeSwitch?.();
         trace.push("chain");
         guardedChains.push(chainId);
       });
@@ -93,7 +108,7 @@ const cases: SenderCase[] = [
       });
       deps.writeContractAsync.mockImplementation(async (call) => {
         trace.push("send");
-        forwarded.push({ chainId: call.chainId, value: call.value });
+        forwarded.push({ account: call.account, chainId: call.chainId, value: call.value });
         if (scenario.transportFailure) throw scenario.transportFailure;
         return hashes() as `0x${string}`;
       });
@@ -193,7 +208,13 @@ const cases: SenderCase[] = [
       const receiptHashes: Hex[] = [];
       const hashes = sequence(scenario.hashes ?? [], SECOND_TX_HASH);
       const deps = createFakeWagmiDeps({ receiptStatus: scenario.receiptStatus });
-      deps.ensureWalletChain.mockImplementation(async (chainId) => {
+      deps.getAccount = () => ({
+        address: "connectedAccount" in scenario ? scenario.connectedAccount : CONNECTED,
+      });
+      deps.ensureWalletChain.mockImplementation(async (chainId, _reason, beforeSwitch) => {
+        // As the guard does for a wallet on another network.
+        scenario.whileGuardReads?.();
+        await beforeSwitch?.();
         trace.push("chain");
         guardedChains.push(chainId);
       });
@@ -203,6 +224,7 @@ const cases: SenderCase[] = [
       deps.writeContract.mockImplementation(async (_config, call) => {
         trace.push("send");
         forwarded.push({
+          account: call.account as string | undefined,
           chainId: call.chainId as number,
           value: call.value as bigint | undefined,
         });
@@ -272,6 +294,76 @@ const laws: ConformanceLaw<SenderCase>[] = [
       const harness = make();
       await harness.sender.sendContractCall(createMockContractCall());
       expect(harness.trace).toEqual(expectations.guardOrder);
+    },
+  },
+  {
+    // An act can be prepared for minutes (uploads) before it is sent. A wallet
+    // that took the connection over meanwhile must be refused before it is
+    // asked to change network, not after. The guard asks at that moment.
+    name: "has the guard ask who signs before the wallet changes network, and asks again after",
+    applicable: ({ expectations }) =>
+      expectations.chainSource === "call" || "a passkey send has no wallet network to guard",
+    verify: async ({ make }) => {
+      const owner = "0x1111111111111111111111111111111111111111";
+      const harness = make();
+      const assertOwnership = vi.fn(async () => {
+        harness.trace.push("owner");
+      });
+      await harness.sender.sendContractCall(createMockContractCall(), { assertOwnership });
+      expect(harness.trace.slice(0, 4)).toEqual(["owner", "chain", "safety", "owner"]);
+
+      // The account is read last: one that changes while ownership is being
+      // checked is still caught before the switch.
+      const connection = { connectedAccount: owner } as SenderScenario;
+      const takenOver = make(connection);
+      await expect(
+        takenOver.sender.sendContractCall(createMockContractCall({ account: owner }), {
+          assertOwnership: async () => {
+            connection.connectedAccount = "0x2222222222222222222222222222222222222222";
+          },
+        })
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      const disowned = make();
+      await expect(
+        disowned.sender.sendContractCall(createMockContractCall(), {
+          assertOwnership: () => Promise.reject(new Error("submission-ownership-changed")),
+        })
+      ).rejects.toThrow("submission-ownership-changed");
+      expect([takenOver.trace, disowned.trace]).toEqual([[], []]);
+    },
+  },
+  {
+    // A send belongs to one address: the one its call names, or else the one
+    // connected when it starts. A wallet that takes the connection over after
+    // that is asked neither to change network nor to sign.
+    name: "pins a send that names no account to the address connected when it starts",
+    applicable: ({ expectations }) =>
+      expectations.chainSource === "call" || "a passkey send signs as its own smart account",
+    verify: async ({ make }) => {
+      const owner = "0x1111111111111111111111111111111111111111";
+      const steady = make({ connectedAccount: owner });
+      await steady.sender.sendContractCall(createMockContractCall());
+      expect(steady.forwarded[0]?.account).toBe(owner);
+
+      const connection: SenderScenario = {
+        connectedAccount: owner,
+        whileGuardReads: () => {
+          connection.connectedAccount = "0x2222222222222222222222222222222222222222";
+        },
+      };
+      const takenOver = make(connection);
+      await expect(
+        takenOver.sender.sendContractCall(createMockContractCall())
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      expect(takenOver.trace).toEqual([]);
+
+      // Started with no wallet connected, a send is for nobody. It is refused
+      // there, so a wallet that connects a moment later cannot sign it.
+      const nobody = make({ connectedAccount: undefined });
+      await expect(nobody.sender.sendContractCall(createMockContractCall())).rejects.toThrow(
+        "Connector not connected"
+      );
+      expect(nobody.trace).toEqual([]);
     },
   },
   {

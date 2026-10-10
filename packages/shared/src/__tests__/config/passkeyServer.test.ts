@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import type { P256Credential } from "viem/account-abstraction";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildPasskeyRecoveryContext,
   classifyPasskeyCeremonyContext,
+  createPasskeyDirectoryClient,
   getPasskeyRpId,
   isPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier,
 } from "../../config/passkeyServer";
+
+const DIRECTORY_URL = "https://agent.greengoods.app/public/passkeys/rpc";
+const DIRECTORY_ENV = { PROD: true };
 
 const locationFor = (origin: string): Pick<Location, "hostname" | "origin" | "protocol"> => {
   const url = new URL(origin);
@@ -27,13 +32,80 @@ describe("config/passkeyServer", () => {
       expect(isPasskeyServerEnabled({ DEV: true, PROD: false })).toBe(false);
     });
 
-    it("honors explicit env overrides", () => {
+    it("keeps production server-backed and honors local development overrides", () => {
       expect(isPasskeyServerEnabled({ PROD: true, VITE_PASSKEY_SERVER_ENABLED: "false" })).toBe(
-        false
+        true
       );
       expect(
         isPasskeyServerEnabled({ DEV: true, PROD: false, VITE_PASSKEY_SERVER_ENABLED: "true" })
       ).toBe(true);
+    });
+  });
+
+  describe("passkey directory client", () => {
+    it("keeps local-only development separate from the production directory", () => {
+      expect(createPasskeyDirectoryClient({})).toBeNull();
+      expect(createPasskeyDirectoryClient(DIRECTORY_ENV)).not.toBeNull();
+    });
+
+    it.each([
+      [DIRECTORY_ENV, DIRECTORY_URL],
+      [{ PROD: true, VITE_API_BASE_URL: "https://agent.greengoods.app/" }, DIRECTORY_URL],
+      [
+        {
+          DEV: true,
+          VITE_PASSKEY_SERVER_ENABLED: "true",
+          VITE_API_BASE_URL: "http://127.0.0.1:3005/",
+        },
+        "http://127.0.0.1:3005/public/passkeys/rpc",
+      ],
+    ])("uses the existing agent API address for lookup", async (env, expectedUrl) => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: [] }), {
+          headers: { "content-type": "application/json" },
+        })
+      );
+      await expect(
+        createPasskeyDirectoryClient(env)?.getCredentials({ context: { userName: "ana" } })
+      ).resolves.toEqual([]);
+      expect(fetchMock.mock.calls[0]?.[0]).toBe(expectedUrl);
+    });
+
+    // A registration answers one challenge. If the client sent it twice, the directory would
+    // store the first and refuse the second, and a sign-up that worked would read as failed.
+    it("asks again once for a lookup, but sends a registration once", async () => {
+      const methods: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+        methods.push(JSON.parse(String(init?.body)).method);
+        return new Response(
+          JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32603, message: "Not now." } }),
+          { headers: { "content-type": "application/json" } }
+        );
+      });
+      const client = createPasskeyDirectoryClient(DIRECTORY_ENV);
+      const buffer = new Uint8Array([1, 2, 3]).buffer;
+      const created = {
+        id: "AQID",
+        publicKey: "0x04",
+        raw: {
+          rawId: buffer,
+          type: "public-key",
+          authenticatorAttachment: "platform",
+          response: { clientDataJSON: buffer, attestationObject: buffer },
+          getClientExtensionResults: () => ({}),
+        },
+      } as unknown as P256Credential;
+
+      await expect(client?.getCredentials({ context: { userName: "ana" } })).rejects.toThrow();
+      await expect(
+        client?.verifyRegistration({ credential: created, context: { userName: "ana" } })
+      ).rejects.toThrow();
+
+      expect(methods).toEqual([
+        "pks_getCredentials",
+        "pks_getCredentials",
+        "pks_verifyRegistration",
+      ]);
     });
   });
 
@@ -116,10 +188,12 @@ describe("config/passkeyServer", () => {
       });
     });
 
-    // Pins the property the pending staging rollout depends on: with no RP
-    // override, a subdomain resolves the apex RP rather than its own hostname.
-    // Staging still sets an override today, so this describes the code, not the
-    // deployment. A narrower RP would not change the address formula (`rpId` is
+    // Pins the app's own default: with no RP override, a subdomain resolves the
+    // apex RP rather than its own hostname. This describes the code, not which
+    // domain a deployed passkey has: a passkey server names the domain of the
+    // passkeys it issues. The Green Goods directory issues the apex to every
+    // site; the hosted server issues each site its own hostname, whatever this
+    // default says. A narrower RP would not change the address formula (`rpId` is
     // a signing-ceremony parameter and never enters Kernel's validator data);
     // it would keep the browser from offering the existing credential at all,
     // so the gardener registers a new one and that new public key gives them a
@@ -129,7 +203,8 @@ describe("config/passkeyServer", () => {
       for (const origin of [
         "https://greengoods.app",
         "https://www.greengoods.app",
-        "https://staging.greengoods.app",
+        "https://beta.greengoods.app",
+        "https://beta.admin.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -144,16 +219,13 @@ describe("config/passkeyServer", () => {
       }
     });
 
-    // Characterization, not endorsement. The check trusts every subdomain, so
-    // hosts the spec does not approve pass it too. `staging-admin` is the live
-    // example: it is deliberately outside the rollout because `packages/admin`
-    // has no passkey entrypoint, yet the check still admits it. Closing that
-    // gap is an open decision (see the spec's "Approved origins versus enforced
-    // origins"), and these are the cases that will fail if it is closed.
-    it("currently trusts any production subdomain, approved or not", () => {
+    // This is domain compatibility, not site authorization. PRD-833 chose the directory's
+    // configured origin list as authoritative; the app remains a first filter, as documented
+    // in docs/docs/builders/integrations/passkey.mdx. Do not narrow the RP to a single hostname.
+    it("keeps the domain first filter separate from the directory's approved-origin list", () => {
       for (const origin of [
         "https://unapproved.greengoods.app",
-        "https://staging-admin.greengoods.app",
+        "https://beta.admin.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -181,8 +253,8 @@ describe("config/passkeyServer", () => {
       });
     });
 
-    it("enforces custom staging RP IDs", () => {
-      const env = { VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
+    it("enforces custom RP IDs only for development", () => {
+      const env = { DEV: true, VITE_PASSKEY_RP_ID: "staging.greengoods.app" };
 
       expect(
         classifyPasskeyCeremonyContext({
@@ -207,9 +279,22 @@ describe("config/passkeyServer", () => {
     });
 
     it("returns custom RP ID from env overrides", () => {
-      expect(getPasskeyRpId({ VITE_PASSKEY_RP_ID: " Staging.GreenGoods.App " })).toBe(
+      expect(getPasskeyRpId({ DEV: true, VITE_PASSKEY_RP_ID: " Staging.GreenGoods.App " })).toBe(
         "staging.greengoods.app"
       );
+    });
+
+    it("allows beta admin despite a retired production RP override", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { PROD: true, VITE_PASSKEY_RP_ID: "staging-admin.greengoods.app" },
+          location: locationFor("https://beta.admin.greengoods.app"),
+        })
+      ).toEqual({
+        supported: true,
+        rpId: "greengoods.app",
+        origin: "https://beta.admin.greengoods.app",
+      });
     });
   });
 });

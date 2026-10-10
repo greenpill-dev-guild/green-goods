@@ -4,10 +4,11 @@
  * Tests for offline detection, sync status, and queue metrics.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../test-utils/query-client";
+import { renderHookWithQueryClient } from "../test-utils/query-client-render";
 
 // Mock dependencies - use vi.hoisted to ensure mocks are available at hoist time
 const { queueState } = vi.hoisted(() => ({
@@ -30,17 +31,8 @@ beforeAll(async () => {
 describe("hooks/app/useOffline", () => {
   let queryClient: QueryClient;
 
-  const createWrapper = () => {
-    return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-
   beforeEach(() => {
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-      },
-    });
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
     queueState.isProcessing = false;
 
@@ -59,9 +51,7 @@ describe("hooks/app/useOffline", () => {
 
   describe("initial state", () => {
     it("returns online status based on navigator.onLine", () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
 
       expect(result.current.isOnline).toBe(true);
       expect(result.current.syncStatus).toBe("idle");
@@ -71,9 +61,7 @@ describe("hooks/app/useOffline", () => {
       Object.defineProperty(navigator, "onLine", { value: false });
       window.dispatchEvent(new Event("offline"));
 
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
 
       expect(result.current.isOnline).toBe(false);
     });
@@ -81,9 +69,7 @@ describe("hooks/app/useOffline", () => {
 
   describe("online/offline events", () => {
     it("updates to offline when offline event fires", async () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
 
       expect(result.current.isOnline).toBe(true);
 
@@ -102,9 +88,7 @@ describe("hooks/app/useOffline", () => {
       Object.defineProperty(navigator, "onLine", { value: false });
       window.dispatchEvent(new Event("offline"));
 
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
 
       expect(result.current.isOnline).toBe(false);
 
@@ -123,16 +107,14 @@ describe("hooks/app/useOffline", () => {
   describe("sync status", () => {
     it("derives syncing from the queue provider", () => {
       queueState.isProcessing = true;
-      const { result } = renderHook(() => useOffline(), { wrapper: createWrapper() });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
       expect(result.current.syncStatus).toBe("syncing");
     });
   });
 
   describe("pending counts", () => {
     it("returns pending count from query", () => {
-      const { result } = renderHook(() => useOffline(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useOffline(), { queryClient });
 
       expect(result.current.pendingCount).toBe(0);
     });

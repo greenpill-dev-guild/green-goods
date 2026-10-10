@@ -6,22 +6,15 @@
  * @module hooks/hypercerts/useCancelListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, encodeFunctionData } from "viem";
-import { useWalletClient } from "wagmi";
+import { type Address } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
-import { createPublicClientForChain } from "../../config/pimlico";
-import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
-import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { useAuth } from "../auth/useAuth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useIntl } from "react-intl";
 import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
@@ -32,16 +25,22 @@ export interface UseCancelListingResult {
 }
 
 export function useCancelListing(gardenAddress?: Address): UseCancelListingResult {
-  const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const signer = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async (orderId: number) => {
       if (!gardenAddress) throw new Error("Garden address required");
-      const signer = (smartAccountAddress || eoaAddress) as Address;
-      if (!signer) throw new Error("Connect a wallet first");
+      if (!signer || !sender)
+        throw new Error(
+          formatMessage({
+            id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      await sender.assertOwnership?.(signer, chainId);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -52,38 +51,20 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
         chainId,
       });
 
-      const callData = encodeFunctionData({
+      const call = {
+        address: moduleAddress,
+        account: signer,
+        chainId,
         abi: HYPERCERTS_MODULE_ABI,
         functionName: "delistFromYield",
         args: [gardenAddress, BigInt(orderId)],
+      };
+
+      const result = await sender.sendContractCall(call, {
+        assertOwnership: () => sender.assertOwnership?.(signer, chainId),
       });
-
-      if (smartAccountClient) {
-        assertLocalArbitrumForkSmartAccountsDisabled();
-
-        const hash = await smartAccountClient.sendUserOperation({
-          account: smartAccountClient.account,
-          calls: [{ to: moduleAddress, data: callData, value: 0n }],
-        });
-        await smartAccountClient.getUserOperationReceipt({ hash });
-      } else if (walletClient) {
-        const publicClient = createPublicClientForChain(chainId);
-        await ensureAppKitWalletChain(chainId);
-        await assertLocalArbitrumForkWallet();
-
-        const txHash = await walletClient.sendTransaction({
-          to: moduleAddress,
-          data: callData,
-          account: signer,
-          chain: getChain(chainId),
-        });
-        await publicClient.waitForTransactionReceipt({
-          hash: txHash,
-          timeout: TX_RECEIPT_TIMEOUT_MS,
-        });
-      } else {
-        throw new Error("No wallet available for transaction");
-      }
+      if (result.confirmation === "pending")
+        throw new Error(formatMessage({ id: "app.account.transactionPending" }));
 
       logger.info("[useCancelListing] Listing cancelled", { gardenAddress, orderId });
     },

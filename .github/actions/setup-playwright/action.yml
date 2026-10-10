@@ -41,7 +41,7 @@ runs:
           label="$1"
           shift
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
-            if timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$@"; then
+            if "$@"; then
               return 0
             fi
             # Only back off when another attempt actually follows.
@@ -50,8 +50,13 @@ runs:
               sleep "$RETRY_BACKOFF"
             fi
           done
-          echo "::error::${label} failed after ${MAX_ATTEMPTS} attempts"
+          echo "::error title=Playwright environment setup::${label} failed after ${MAX_ATTEMPTS} bounded attempts; browser tests have not started"
           return 1
         }
-        retry "playwright install-deps" bunx playwright install-deps chromium
-        retry "playwright install chromium" bunx playwright install chromium
+        PLAYWRIGHT_NODE_BINARY="$(command -v node)"
+        PLAYWRIGHT_CLI="$(node -p 'require("node:path").join(require("node:path").dirname(require.resolve("@playwright/test/package.json")), "cli.js")')"
+        # The timeout must own the same privilege as apt's children. With sudo
+        # inside an unprivileged timeout, timed-out root children can retain
+        # the dpkg lock. This targets only this attempt's process group.
+        retry "playwright install-deps" sudo timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$PLAYWRIGHT_NODE_BINARY" "$PLAYWRIGHT_CLI" install-deps chromium
+        retry "playwright install chromium" timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" bunx playwright install chromium

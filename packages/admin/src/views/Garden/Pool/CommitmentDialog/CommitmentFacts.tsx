@@ -3,6 +3,7 @@ import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin
 import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { exactTime, isoTime } from "../poolTime";
 import { railLabel } from "./commitmentDialogPresentation";
 
 /** One label/value line of the record's facts. */
@@ -31,7 +32,8 @@ export function CommitmentFacts({
   commitment: CommitmentReadModel;
   detail: CommitmentDialogController["detail"];
 }) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const rail = railLabel(commitment.considerationRail, formatMessage);
 
   return (
@@ -42,6 +44,18 @@ export function CommitmentFacts({
       })}
     >
       <dl className="space-y-1">
+        {/* An exact deadline: its date, time and zone (PRD-1025 D3). */}
+        {commitment.dueDate
+          ? fact(
+              formatMessage({
+                id: "cockpit.garden.pool.commitment.fact.due",
+                defaultMessage: "Due",
+              }),
+              <time dateTime={isoTime(Number(commitment.dueDate) * 1000)}>
+                {exactTime(intl, Number(commitment.dueDate) * 1000)}
+              </time>
+            )
+          : null}
         {fact(
           formatMessage({
             id: "cockpit.garden.pool.commitment.fact.kind",
@@ -50,7 +64,7 @@ export function CommitmentFacts({
           commitment.commitmentType === "DOMAIN_IMPACT"
             ? formatMessage({
                 id: "cockpit.garden.pool.seed.kind.gardenWork",
-                defaultMessage: "Garden work (impact)",
+                defaultMessage: "Garden work",
               })
             : commitment.commitmentType === "SEASON_CAMPAIGN"
               ? formatMessage({

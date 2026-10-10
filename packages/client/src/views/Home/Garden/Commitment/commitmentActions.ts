@@ -13,10 +13,11 @@ export { canJoinTeam } from "@green-goods/shared/commitment-pooling";
  * Which act exists is a domain question and lives in
  * `@green-goods/shared` — the inbox's "needs you" count asks the same table, so
  * the badge and the bar cannot disagree. What is left here is presentation:
- * the words, and whether the act reads as destructive.
+ * the words, whether the act reads as destructive, and promoting an eligible
+ * work link above optional proof when required work remains.
  */
 export interface CommitmentAct {
-  kind: CommitmentActKind;
+  kind: CommitmentActKind | "linkWork";
   labelId: string;
   /** Destructive acts read as such and confirm before they run. */
   destructive?: boolean;
@@ -44,6 +45,7 @@ export function selectCommitmentAct(input: {
   seat: CommitmentSeat | null;
   hasPendingJob?: boolean;
   isCreator?: boolean;
+  isMember?: boolean;
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
   return commitmentActForKind(kind);

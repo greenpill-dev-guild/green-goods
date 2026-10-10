@@ -12,7 +12,7 @@ import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceConten
 import { useIntl } from "react-intl";
 
 export default function CommunityView() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -42,15 +42,17 @@ export default function CommunityView() {
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        vaultNetDeposited: community.vaultNetDeposited,
+        endowmentByAsset: community.endowmentByAsset,
         distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
-      community.vaultNetDeposited,
+      community.endowmentByAsset,
       distributedAmountsByAsset,
+      locale,
       formatMessage,
     ]
   );
@@ -71,10 +73,6 @@ export default function CommunityView() {
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
-        description={formatMessage({
-          id: "cockpit.community.description",
-          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
@@ -101,22 +99,6 @@ export default function CommunityView() {
                 defaultMessage: "Members",
               }),
               count: community.derived.directoryEntries.length || undefined,
-            },
-            {
-              // No count, deliberately. The badge used to read
-              // `community.pools.length` — conviction pools, which only render
-              // through CommunityCoordinationTab and that tab sits behind
-              // GOVERNANCE_ENABLED. With governance off the body shows the yield
-              // status and the commitment-pool console instead, so the badge
-              // counted an entity the tab never displayed and reported "2"
-              // beside "no proposals registered" (PRD-774). The console carries
-              // its own per-tab counts and has no single total worth hoisting,
-              // so restore a count here only alongside the proposal list itself.
-              id: "coordination",
-              label: formatMessage({
-                id: "cockpit.community.coordination",
-                defaultMessage: "Coordination",
-              }),
             },
             {
               id: "endowment",

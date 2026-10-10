@@ -59,6 +59,10 @@ EXPECTED_TOKENS=(
   "material|--blur-material-regular"
   "material|--blur-material-thick"
   "material|--border-material"
+  # Contrast-safe colour roles (DL-053)
+  "color|--primary-on-surface"
+  "color|--error-action"
+  "color|--error-action-hover"
   # Runtime radius aliases
   "radius|--radius-md"
   "radius|--radius-squircle"
@@ -166,7 +170,7 @@ fi
 # Allowlist: token projection/definition files plus tests, where issue references
 # such as "#312" are not design values. Story and app style files are scanned;
 # existing intentional literals must be captured line-by-line in the baseline.
-USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-components\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
+USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-layout\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
 
 TW_PALETTE_FAMILIES='(gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)'
 TW_COLOR_UTILITY='(accent|bg|border(-[trblxy])?|caret|decoration|divide|fill|from|outline|placeholder|ring|shadow|stroke|text|to|via)'
@@ -246,6 +250,23 @@ validate_usage_baseline() {
   fi
 }
 
+check_collection_statuses() {
+  local grep_stages="$1" status index=0
+  shift
+  # Only grep uses status 1 for a complete scan with no matches.
+  for status in "$@"; do
+    if [[ "$index" -lt "$grep_stages" ]]; then
+      if [[ "$status" -gt 1 ]]; then return "$status"; fi
+    elif [[ "$status" -ne 0 ]]; then
+      # Do not let collect_optional_hits normalize a failed non-grep stage.
+      if [[ "$status" -eq 1 ]]; then return 2; fi
+      return "$status"
+    fi
+    index=$((index + 1))
+  done
+  return 0
+}
+
 collect_usage_hits() {
   grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
@@ -256,9 +277,11 @@ collect_usage_hits() {
     | grep -Ev 'duration-\[var\(' \
     | grep -Ev 'rounded-\[var\(' \
     | grep -Evi 'react error #[0-9]{3,8}' \
+    | node scripts/design/filter-comment-hits.mjs "$RAW_USAGE_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses 6 "${PIPESTATUS[@]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -267,7 +290,7 @@ collect_usage_hits() {
 #
 # Four invariants the raw-literal pattern cannot see because they ride semantic
 # aliases or bare utilities, found broken at scale by the 2026-08-29 admin
-# audit (.plans/backlog/design-system-alignment-review/reports/):
+# audit (design-system-alignment-review hub, closed 2026-09-27; see .plans/ARCHIVE.md):
 #   1. Shadows — the single elevation ladder (--m3-elevation-0/1/2 plus
 #      --admin-chrome-shadow) is the only depth source; bare Tailwind
 #      shadow-xs..2xl / shadow-regular-* utilities are off-ladder.
@@ -295,9 +318,11 @@ collect_admin_invariant_hits() {
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     "$ADMIN_INVARIANT_PATTERN" packages/admin/src 2>/dev/null \
     | grep -Ev "$USAGE_ALLOWLIST_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_INVARIANT_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
 
 # ----------------------------------------------------------------------------
@@ -305,7 +330,7 @@ collect_admin_invariant_hits() {
 #
 # The cockpit control surface is the 21-wrapper Admin* family. Three bypass
 # classes were found at scale by the post-DL-011/012 adoption audit
-# (.plans/backlog/design-system-alignment-review/reports/) and burn down
+# (design-system-alignment-review hub; see .plans/ARCHIVE.md) and burn down
 # through the same audited baseline as the raw sweep:
 #   1. Shared field primitives rendered directly (TextInput/Textarea/
 #      NativeSelect/FormField and local FormInput/FormTextarea re-wraps) —
@@ -332,13 +357,80 @@ collect_admin_wrapper_bypass_hits() {
     --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
     --exclude-dir=Shell \
     "$ADMIN_WRAPPER_BYPASS_PATTERN" packages/admin/src 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_WRAPPER_BYPASS_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses 1 "${PIPESTATUS[@]}"
+}
+
+# ----------------------------------------------------------------------------
+# Admin type-scale and view-colour sweep (steward-cockpit-ux D32, 2026-09-25)
+#
+# Two drifts the raw-literal pattern cannot see, burned down to zero by the
+# D32 migration and ratcheted here through the same audited baseline:
+#   1. Raw type sizes — admin text takes its size from the cockpit scale: the
+#      named label-*, body-*, and subheading-* classes and the text-title-*,
+#      text-body-*, and text-label-* aliases (packages/admin/DESIGN.md
+#      § Typography). A raw text-xs … text-9xl utility is a value outside the
+#      scale (root DESIGN.md Interface Principle 13). Stories are scanned too:
+#      they render the product's components.
+#   2. View-level M3 colours — views colour through the Warm Earth aliases
+#      (text-text-strong, text-text-sub, bg-bg-white, border-stroke-soft, …).
+#      Raw rgb(var(--m3-*)) colour stays inside the Admin* primitives (the
+#      field family included, with its CharacterCounter), the shell
+#      (components/Shell), and ActionFlowShell. Stories are scanned too.
+# Tests are excluded from both.
+# ----------------------------------------------------------------------------
+# Named Tailwind sizes, and arbitrary px/rem/em or `length:` sizes (text-[13px]).
+ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])${TW_CLASS_BOUNDARY}"
+ADMIN_VIEW_M3_COLOUR_PATTERN='rgb\(var\(--m3-'
+ADMIN_M3_COLOUR_OWNERS_REGEX='^packages/admin/src/(components/Admin[^/]*|components/CharacterCounter|components/Shell/.*|components/Layout/ActionFlowShell)\.tsx:'
+
+collect_admin_raw_type_size_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$ADMIN_RAW_TYPE_SIZE_PATTERN" packages/admin/src 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_RAW_TYPE_SIZE_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 1 "${PIPESTATUS[@]}"
+}
+
+collect_admin_view_m3_colour_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$ADMIN_VIEW_M3_COLOUR_PATTERN" packages/admin/src 2>/dev/null \
+    | grep -Ev "$ADMIN_M3_COLOUR_OWNERS_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_VIEW_M3_COLOUR_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
+}
+
+collect_optional_hits() {
+  local status
+  if "$@"; then return 0; else status=$?; fi
+  # grep's no-match status is expected; parser/IO failures must stop the guard.
+  if [[ "$status" -eq 1 ]]; then return 0; fi
+  return "$status"
 }
 
 validate_usage_baseline
-USAGE_HITS="$({ collect_usage_hits || true; collect_admin_invariant_hits || true; collect_admin_wrapper_bypass_hits || true; } | sort -u)"
+if ! USAGE_HITS="$(
+  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits; do
+    collect_optional_hits "$collector" || exit 2
+  done | sort -u
+)"; then
+  echo "❌ Token source collection failed; guard results are unavailable."
+  exit 2
+fi
 BASELINE_HITS=""
 if [[ -f "$USAGE_BASELINE" ]]; then
   BASELINE_HITS="$(awk -F '\t' '!/^[[:space:]]*(#|$)/ {print $1}' "$USAGE_BASELINE" | sort -u || true)"
@@ -372,7 +464,7 @@ if [[ -n "$STALE_BASELINE" ]]; then
   exit 1
 fi
 
-ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
+ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-layout\.css)'
 ADMIN_CHROME_PATTERN='glass-(ground|raised|floating|overlay|surface)|backdrop-blur|backdrop-filter|linear-gradient\('
 
 collect_admin_chrome_violations() {
@@ -383,17 +475,19 @@ collect_admin_chrome_violations() {
     --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
     "$ADMIN_CHROME_PATTERN" packages/admin/src 2>/dev/null \
     | grep -Ev "$ADMIN_CHROME_ALLOWLIST_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$ADMIN_CHROME_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
 
-ADMIN_CHROME_VIOLATIONS="$(collect_admin_chrome_violations || true)"
+if ! ADMIN_CHROME_VIOLATIONS="$(collect_optional_hits collect_admin_chrome_violations)"; then exit 2; fi
 if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
   echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, or admin-m3-components.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, admin-m3-components.css, or admin-layout.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
   echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
   exit 1
 fi
@@ -415,12 +509,14 @@ collect_admin_focus_ring_violations() {
     --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
     --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
     "$LEGACY_ADMIN_FOCUS_RING_PATTERN" packages/admin/src packages/shared/src/components/Canvas 2>/dev/null \
+    | node scripts/design/filter-comment-hits.mjs "$LEGACY_ADMIN_FOCUS_RING_PATTERN" \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
+  check_collection_statuses 1 "${PIPESTATUS[@]}"
 }
 
-ADMIN_FOCUS_RING_VIOLATIONS="$(collect_admin_focus_ring_violations || true)"
+if ! ADMIN_FOCUS_RING_VIOLATIONS="$(collect_optional_hits collect_admin_focus_ring_violations)"; then exit 2; fi
 if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
   echo "❌ Admin focus-ring token violation found:"
   echo "$ADMIN_FOCUS_RING_VIOLATIONS" | sed 's/^/  /'
@@ -559,7 +655,8 @@ fi
 # deleted 2026-08-29 (admin audit, PRD-644 round 2). Fail if any shadow-*
 # class definition reappears in admin-owned CSS.
 SHADOW_CLASS_REDEFINITION="$(grep -RnE '^[[:space:]]*(\[[^]]+\][[:space:]]*)*\.shadow-(xs|sm|md|lg|xl|2xl|elevation)' \
-  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css 2>/dev/null || true)"
+  "$ADMIN_INDEX_CSS" "$ADMIN_M3_TOKENS" packages/admin/src/styles/admin-m3-components.css \
+  packages/admin/src/styles/admin-layout.css 2>/dev/null || true)"
 if [[ -n "$SHADOW_CLASS_REDEFINITION" ]]; then
   echo "❌ Parallel shadow ladder reintroduced — .shadow-* class definitions found in admin CSS:"
   echo "$SHADOW_CLASS_REDEFINITION" | sed 's/^/  /'
@@ -579,6 +676,7 @@ echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitiv
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
 echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
+echo "✅ admin type-scale and view-colour sweep passed: no raw text sizes, and raw --m3-* colours stay in the Admin* primitives, the shell, and ActionFlowShell (D32)."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version declared in design skill (${DESIGN_VER})."

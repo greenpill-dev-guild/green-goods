@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  barPair, formCard, identityCard, imagePreview, mediaStack, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, searchField, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  barPair, formCard, identityCard, imagePreview, mediaStack, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, searchField, sectionCard, sectionTitle, sheetOver, skeleton, stateChip,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -479,16 +479,10 @@ function w1(state: W1State): string {
       );
   }
 
-  // Every queued cast carries the same offline chrome — a new queued state that
-  // forgets to join these two predicates draws a queued card with no sync bar.
+  // Queued commitments keep their status on the originating card.
   const queuedState =
     state === "queued" || state === "support-queued" || state === "request-queued" ||
     state === "request-work-queued" || state === "exchange-queued";
-  const sync = queuedState
-    ? syncBar("1 commitment waiting to send")
-    : state === "sync-failed"
-      ? syncBar("1 item needs attention")
-      : "";
   const offline = queuedState || state === "sync-failed";
 
   // Floating creation entry (2026-08-14): every live browse cast carries the
@@ -506,7 +500,7 @@ function w1(state: W1State): string {
       : fabStates.has(state)
         ? `<div class="fabwrap">${hot("w1.create", fabButton(false))}</div>`
         : "";
-  return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>${sync}`, { offline, overlay });
+  return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>`, { offline, overlay });
 }
 
 const W1_HOTS: HifiDef["hots"] = {
@@ -1102,7 +1096,7 @@ const w2Seat = (state: W2State): Seat => W2_SEAT[state] ?? "provider";
 // The offline overlays. Each of these was written out twice as a `state === "…"`
 // disjunction in two different scopes, and the two copies had already drifted:
 // `request-work-confirmation-pending` was missing from the confirmation list, so
-// a screen whose own band read "Confirmation waiting to send" drew no sync bar
+// a screen whose own band read "Confirmation waiting to send" lacked its queued status
 // and no offline chrome.
 const W2_EVIDENCE_QUEUED = new Set<W2State>([
   "evidence-queued", "support-evidence-queued", "request-evidence-queued",
@@ -2312,15 +2306,8 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
   const evidenceQueued = W2_EVIDENCE_QUEUED.has(state);
   const readinessQueued = W2_READINESS_QUEUED.has(state);
   const confirmationQueued = W2_CONFIRMATION_QUEUED.has(state);
-  const sync = evidenceQueued
-    ? syncBar("1 proof item waiting to send")
-    : readinessQueued
-      ? syncBar("1 readiness update waiting to send")
-      : confirmationQueued
-        ? syncBar("1 confirmation waiting to send")
-      : "";
   const bar = W2_BARS[state]?.html;
-  return phoneFrame(`${head}${status}${meta}${content}<div style="flex:1"></div>${sync}`, {
+  return phoneFrame(`${head}${status}${meta}${content}<div style="flex:1"></div>`, {
     appBar: bar ? actionBar(bar) : false,
     offline: evidenceQueued || readinessQueued || confirmationQueued,
     overlay: previewing
@@ -3469,7 +3456,7 @@ function w3(state: W3State): string {
         ),
         banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
         `<div class="t-meta">This is one ordinary Offer. Your saved details remain reusable, but this offer will not repeat or become ongoing.</div>`,
-      ) + syncBar("1 waiting to send");
+      );
       actions = hot("w3.saved-offer-done", btn("See It in the Pool", { kind: "ghost", full: true }));
       break;
     case "support-details":
@@ -4511,7 +4498,7 @@ function w34(state: W34State): string {
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }),
         ),
         sectionCard("Details", `${detailRow("Available now", "nothing open")}${detailRow("Waiting to send", "2 open")}${detailRow("Unit", "workshop sessions")}`),
-      )}${syncBar("2 waiting to send")}`;
+      )}`;
       break;
     case "places-partial":
       body = `${w34Head()}${pagepad(
@@ -4525,7 +4512,7 @@ function w34(state: W34State): string {
         ),
         sectionCard("Details", `${detailRow("Available now", "1 open")}${detailRow("Waiting to send", "1 open")}`),
         hot("w34.view-partial", btn("View Send Details", { kind: "ghost", full: true })),
-      )}${syncBar("1 waiting to send")}`;
+      )}`;
       break;
     case "places-partial-failed":
       body = `${w34Head()}${pagepad(
@@ -4786,7 +4773,7 @@ function w35(state: W35State): string {
         banner("Saved on this phone. They send when you are connected.", "amber", "time-line"),
         `<div class="t-meta">They show as available only once they have sent and your capacity is held for them. Until then nobody can take them up.</div>`,
         hot("w35.queued-done", btn("Back to This Offer", { kind: "ghost", full: true })),
-      )}${syncBar("2 waiting to send")}`;
+      )}`;
       break;
     case "mixed-queued":
       body = `${head}${pagepad(
@@ -4798,7 +4785,7 @@ function w35(state: W35State): string {
         ),
         card(`${kv("Available now", "1 open")}${kv("Waiting to send", "1 open")}`),
         hot("w35.mixed-queued-done", btn("Back to This Offer", { kind: "ghost", full: true })),
-      )}${syncBar("1 waiting to send")}`;
+      )}`;
       break;
     case "mixed-failed":
       body = `${head}${pagepad(

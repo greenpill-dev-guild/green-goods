@@ -1,7 +1,8 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GARDENS_HIDDEN_EVERYWHERE } from "../../config/garden-visibility";
 import {
   submitApprovalToQueue,
   submitWorkToQueue,
@@ -132,6 +133,12 @@ describe("modules/work-submission", () => {
       );
       expect(errors).toContain("Garden must be selected");
       expect(errors).toContain("Action must be selected");
+    });
+
+    it("refuses a garden hidden everywhere, whichever path selected it", () => {
+      // A saved draft, a commitment link, or navigation state can carry one past the picker.
+      const errors = validateWorkSubmissionContext(GARDENS_HIDDEN_EVERYWHERE[0].address, 1, []);
+      expect(errors).toEqual(["Garden must be selected"]);
     });
   });
 

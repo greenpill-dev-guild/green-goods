@@ -57,7 +57,7 @@ export function FormFlow({
   const sectionsBlock = (
     <>
       {intro ? (
-        <div data-region="form-flow-intro" className="text-sm text-text-sub">
+        <div data-region="form-flow-intro" className="body-sm text-text-sub">
           {intro}
         </div>
       ) : null}
@@ -77,7 +77,7 @@ export function FormFlow({
             className="overflow-hidden border border-stroke-soft-200"
           >
             <div className="flex items-start gap-3 border-b border-stroke-soft-200 px-4 py-3 sm:px-5 sm:py-4">
-              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-bg-weak px-2 text-xs font-semibold text-text-sub">
+              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-bg-weak px-2 body-xs font-semibold text-text-sub">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="min-w-0 flex-1">
@@ -88,7 +88,7 @@ export function FormFlow({
                   {section.title}
                 </h2>
                 {section.description ? (
-                  <p className="mt-0.5 text-sm text-text-sub">{section.description}</p>
+                  <p className="mt-0.5 body-sm text-text-sub">{section.description}</p>
                 ) : null}
               </div>
             </div>
@@ -133,12 +133,14 @@ export function FormFlow({
     );
   }
 
+  // Page layout: the reading column sits inside the route frame. Below 600px
+  // the shell's phone gutter is the only side inset, so the column adds none.
   return (
     <div
       data-component="FormFlow"
       data-layout={layout}
       aria-label={ariaLabel}
-      className={cn("mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6", className)}
+      className={cn("mx-auto w-full max-w-6xl py-4 min-[600px]:px-4 sm:px-6 sm:py-6", className)}
     >
       {sectionsBlock}
 

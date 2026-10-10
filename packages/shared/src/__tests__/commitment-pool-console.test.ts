@@ -178,6 +178,19 @@ describe("selectPoolConsoleModel", () => {
     expect(model.canStartCampaign).toBe(true);
   });
 
+  it("keeps the pool's open season in view when a newer season is only seeded", () => {
+    const model = selectPoolConsoleModel({
+      pool: pool({ openSeasonCycleId: 12n }),
+      cycles: [cycle({ id: "42161-13", cycleId: 13n, state: "SEEDED" }), cycle()],
+      commitments: [],
+      pendingClaimCount: 0,
+      now: NOW,
+    });
+
+    expect(model.season?.cycleId).toBe(12n);
+    expect(model.canSeedSeason).toBe(false);
+  });
+
   it("offers a season when the pool is set up and none is running", () => {
     const model = selectPoolConsoleModel({
       pool: pool({ state: "READY", openSeasonCycleId: null, nonTerminalCycleCount: 0n }),

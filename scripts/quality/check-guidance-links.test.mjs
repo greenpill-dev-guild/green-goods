@@ -9,6 +9,7 @@ import {
   checkDecisionLogCitations,
   filterPresentPaths,
   findBrokenRootCodePaths,
+  findMissingInstructionSections,
   findStaleLockedDecisions,
   findUntaggedFenceOpenings,
   parseNameStatus,
@@ -17,6 +18,18 @@ import {
 } from "./check-guidance-links.mjs";
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), "check-guidance-links.mjs");
+
+test("catches references to removed root sections after a compatibility-only Claude migration", () => {
+  const instructions = { "AGENTS.md": "## Validation\n### Browser Evidence\n", "CLAUDE.md": "@AGENTS.md\n" };
+  assert.deepEqual(findMissingInstructionSections(
+    "Read `AGENTS.md § Browser Evidence` and AGENTS.md § Validation before running checks.\n" +
+      "AGENTS.md § Browser Evidence; label the proof.\n**AGENTS.md § Validation** — required.",
+    "guide.md", instructions), []);
+  assert.deepEqual(findMissingInstructionSections(
+    "Read `CLAUDE.md § Validation Intent Ladder`.", "guide.md", instructions), [
+    "guide.md: missing instruction section -> CLAUDE.md § Validation Intent Ladder",
+  ]);
+});
 
 test("finds an untagged opening fence but accepts a tagged fence", () => {
   assert.deepEqual(findUntaggedFenceOpenings("```\ndiagram\n```", "guide.md"), [
@@ -84,6 +97,35 @@ test("finds source consumers of a deleted slash command", () => {
   );
   assert.equal(failures.length, 1);
   assert.match(failures[0], /deleted surface -> \/qa-triage/);
+});
+
+test("a deleted guide basename does not match a longer filename that merely starts with it", () => {
+  const deleted = [".claude/skills/testing/references/playwright.md"];
+  assert.deepEqual(
+    scanDeletedSurfaceReferences(
+      [
+        {
+          path: "scripts/quality/check-codex-docs.js",
+          text: 'const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");',
+        },
+      ],
+      deleted,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    scanDeletedSurfaceReferences(
+      [{ path: "docs/guide.mdx", text: "Keep `playwright.md.bak` and `playwright.md-notes` out of it." }],
+      deleted,
+    ),
+    [],
+  );
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "docs/guide.mdx", text: "See `playwright.md` for the rig." }],
+    deleted,
+  );
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /deleted surface -> playwright\.md/);
 });
 
 test("does not confuse status.json paths with the retired status command", () => {

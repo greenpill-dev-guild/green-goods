@@ -33,7 +33,7 @@ Resolve scope **before** inspecting code and state it in the Summary so the user
 2. **Natural language** — "review the shared package", "review PR 42".
 3. **Auto-inference** — no scope given: `git diff --name-only` against the merge-base, infer touched packages, print the inferred scope. Nothing modified → ask what to review.
 
-Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, client, admin, agent), `docs` → `docs/**`, and `guidance` → `.claude/**` + root `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md` (agent-guidance changes are reviewable scope like any other). Special scopes:
+Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, client, admin, agent, qa), `docs` → `docs/**`, and `guidance` → `.claude/**` + root `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md` (agent-guidance changes are reviewable scope like any other). Special scopes:
 
 - `--scope cross-package` — verify blast radius in dependency order (contracts → shared → indexer → apps → agent); only cross-boundary findings.
 - `--scope design-system` — delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md), read-only; return its sections directly, don't mix into diff findings. Fires only on explicit invocation, on DESIGN.md-dialect + theme/tokens co-changes, or when a change touches ≥2 visual surfaces at once.
@@ -54,8 +54,7 @@ Render the planned checks with `bun run check --plan -- --intent review`. For ex
 offline/full-local production readiness, use `--intent readiness` so the plan remains non-mutating
 while criticality can only add checks. For a live PR, use `--intent review` for direct local
 evidence and inspect required CI at the current head SHA; criticality may still escalate the local
-plan. Execute the returned plan. If the selector is unavailable or fails, follow CLAUDE.md's
-intent ladder and the shared validation
+plan. Execute the returned plan. If the selector is unavailable or fails, follow the shared validation
 pipeline directly, report the selector problem, and preserve every hard gate.
 
 ### Authoritative requirements
@@ -80,7 +79,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - retry, trust-boundary, migration, or destructive-operation changes
 - missing or misleading tests on changed behavior (bugfix with no regression test; public API change with no test update)
 
-**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check --only ontology` gates it (protocol: `.claude/context/ontology.md`).
+**Repo invariants** (the durable list lives in AGENTS.md § Essential rules and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check --only ontology` gates it (protocol: `.claude/context/ontology.md`).
 
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
@@ -91,7 +90,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
   the risk-triggered matrix from `.claude/context/testing.md` and apply the domain rules in
   `.claude/context/contracts.md`. Exercise material role overlaps, terminal cleanup, time boundaries,
   and dependency generations; a prose lifecycle summary is not proof.
-- *Critical surfaces* (CLAUDE.md § Criticality Matrix): contract source plus deploy, upgrade,
+- *Critical surfaces* (AGENTS.md § Change Criticality): contract source plus deploy, upgrade,
   migration, release, size, and storage-validation tooling → **contracts-security** lens (access
   control, UUPS/storage rules, CEI, transaction boundaries, and tooling failure safety); JobQueue,
   Work, and Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure
@@ -157,7 +156,7 @@ SHA. Green CI is the broad regression authority. Pending, missing, stale-SHA, or
 `COMMENT_ONLY`; a failure → `REQUEST_CHANGES`. Never replace pending CI with a local full-suite run
 and call the PR approved.
 
-For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder:
+For narrower explicit intents, pick the lightest honest rung per `.claude/context/validation-pipeline.md`:
 
 - isolated fix → targeted package-local test/proof
 - cross-package or shared-surface impact → Repo Quick Gate

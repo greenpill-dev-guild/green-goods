@@ -2,7 +2,7 @@
  * AdminFieldGroup — group-shaped field-family anatomy (fieldset+legend or
  * labelled div) sharing the family's --m3-error state and type roles.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { describe, expect, it } from "vitest";

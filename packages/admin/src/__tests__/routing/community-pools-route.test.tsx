@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import {
@@ -11,6 +11,11 @@ import { waitFor } from "../test-utils";
 import { findRoute, renderAdminCanvasRoute } from "./pooling-route-harness";
 
 vi.mock("@/routes/RequireRole", async () => {
+  const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { default: () => <Outlet /> };
+});
+
+vi.mock("@/routes/RequireCommunityAccess", async () => {
   const { Outlet } = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return { default: () => <Outlet /> };
 });

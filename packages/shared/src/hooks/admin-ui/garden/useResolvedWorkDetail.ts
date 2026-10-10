@@ -5,6 +5,7 @@ import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
 import { useWorks } from "../../work/useWorks";
+import { replaceEqualDeep } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 export type WorkDetailResolutionStatus =
@@ -18,6 +19,11 @@ interface ResolvedWorkSnapshot {
   workId: string;
   garden: Garden;
   work: Work;
+}
+
+/** Whether two reads carry the same record, whichever objects hold it. */
+function isSameRecord<T>(known: T, next: T): boolean {
+  return known === next || replaceEqualDeep(known, next) === known;
 }
 
 export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {
@@ -78,8 +84,13 @@ export function useResolvedWorkDetail(workId: string | undefined) {
       return;
     }
 
+    // Kept by content, not by object. A collection that hands back an equal
+    // copy must not be stored again: the state update re-renders, the next copy
+    // arrives, and the open detail never settles or closes.
     setLastResolved((current) =>
-      current?.workId === workId && current.garden === liveGarden && current.work === liveWork
+      current?.workId === workId &&
+      isSameRecord(current.garden, liveGarden) &&
+      isSameRecord(current.work, liveWork)
         ? current
         : { workId, garden: liveGarden, work: liveWork }
     );

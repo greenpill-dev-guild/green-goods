@@ -13,7 +13,7 @@ import { SeedCommitmentDialog } from "@/views/Garden/Pool/Seed";
 interface GardenSheetDescriptorProps {
   hypercertId: string | undefined;
   closeTo: string;
-  /** `/garden/pool/seed`: the seeding console, a flow dialog over the Pool tab. */
+  /** `/garden/pool/seed`: the seeding console, a flow dialog over the Promises tab. */
   poolSeedOpen?: boolean;
   /** `/garden/pool/:commitmentId`: one commitment in the left inspector. */
   poolCommitmentId?: string;
@@ -42,6 +42,8 @@ export function GardenSheetDescriptor({
   const chainId = useCurrentChain();
   // `/garden/pool/seed?from=<id>`: seed another like that commitment.
   const seedFrom = parseCommitmentRouteId(searchParams.get("from") ?? "");
+  // `/garden/pool/<id>?focus=waiting`: open the commitment at its waiting list.
+  const poolFocus = searchParams.get("focus") === "waiting" ? "waiting" : undefined;
 
   const config = useMemo<LeftSheetConfig | null>(() => {
     if (hypercertId) {
@@ -65,6 +67,7 @@ export function GardenSheetDescriptor({
             chainId={chainId}
             garden={gardenAddress as Address}
             commitmentId={poolCommitmentId}
+            focus={poolFocus}
             tone="garden"
             onSeedAnother={(from) =>
               navigate(adminRoutes.gardenPoolSeed({ gardenId: gardenAddress }, { from }))
@@ -87,6 +90,7 @@ export function GardenSheetDescriptor({
     navigate,
     poolCloseTo,
     poolCommitmentId,
+    poolFocus,
   ]);
 
   useLeftSheetConfig(config);

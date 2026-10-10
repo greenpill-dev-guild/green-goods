@@ -1,14 +1,31 @@
 /** @vitest-environment node */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreparationResult } from "../../../modules/work/prepare-queued-work";
-import {
-  createUploadPreparation,
-  uploadPreparationStore,
-  type UploadPreparation,
-  type UploadPreparationPorts,
+import type {
+  UploadPreparation,
+  UploadPreparationPorts,
 } from "../../../modules/work/upload-preparation";
 import type { Job } from "../../../types/job-queue";
 import { queuedWorkJob } from "../../test-utils/queued-jobs";
+
+type UploadPreparationModule = typeof import("../../../modules/work/upload-preparation");
+
+// The module keeps one snapshot for the page, including the Data Saver override that lasts the
+// session once someone asks, and the active preparation and open holds beside it. Each test loads a
+// fresh copy, so none inherits what an earlier one set.
+let createUploadPreparation: UploadPreparationModule["createUploadPreparation"];
+let setActiveUploadPreparation: UploadPreparationModule["setActiveUploadPreparation"];
+let suspendUploadPreparation: UploadPreparationModule["suspendUploadPreparation"];
+let uploadPreparationStore: UploadPreparationModule["uploadPreparationStore"];
+beforeEach(async () => {
+  vi.resetModules();
+  ({
+    createUploadPreparation,
+    setActiveUploadPreparation,
+    suspendUploadPreparation,
+    uploadPreparationStore,
+  } = await import("../../../modules/work/upload-preparation"));
+});
 
 const queued = (id: string, meta: Job["meta"] = {}): Job => queuedWorkJob({ id, meta });
 
@@ -73,6 +90,7 @@ async function settled(preparation: UploadPreparation) {
 let preparation: UploadPreparation | undefined;
 afterEach(() => {
   preparation?.stop();
+  setActiveUploadPreparation(undefined);
 });
 
 describe("preparing queued items in the background", () => {
@@ -107,25 +125,107 @@ describe("preparing queued items in the background", () => {
     }
   });
 
-  it("prepares under Data Saver once the person asks", async () => {
-    const { ports, order } = harness([queued("a")], { isDataSaverOn: () => true });
-    preparation = createUploadPreparation(ports);
+  it("prepares under Data Saver once the person asks, for their session only", async () => {
+    const first = harness([queued("a")], { isDataSaverOn: () => true });
+    preparation = createUploadPreparation(first.ports);
 
     await settled(preparation);
-    expect(order).toEqual([]);
+    expect(first.order).toEqual([]);
     preparation.prepareNow();
+    await vi.waitFor(() => expect(first.order).toEqual(["a"]));
 
-    await vi.waitFor(() => expect(order).toEqual(["a"]));
+    // Signing out stops that session's preparation; the next person on this page has not asked.
+    preparation.stop();
+    const next = harness([queued("b")], { isDataSaverOn: () => true, userAddress: "0xnext" });
+    preparation = createUploadPreparation(next.ports);
+    await settled(preparation);
+    expect(next.order).toEqual([]);
+    expect(uploadPreparationStore.getSnapshot()).toMatchObject({
+      paused: "data-saver",
+      dataSaverOverride: false,
+    });
   });
 
   it("holds back while an upload runs, and resumes when it ends", async () => {
     const { ports, order } = harness([queued("a")]);
     preparation = createUploadPreparation(ports);
-    const release = preparation.suspend();
+    const { release, ready } = preparation.suspend();
+    await ready;
 
     await settled(preparation);
     expect(order).toEqual([]);
     expect(uploadPreparationStore.getSnapshot().paused).toBe("uploading");
+
+    release();
+    await vi.waitFor(() => expect(order).toEqual(["a"]));
+  });
+
+  it.each([
+    "confirmOnline",
+    "acquire",
+    "prepare",
+  ] as const)("waits for an in-flight %s before granting a send hold", async (boundary) => {
+    const { ports, held } = harness([queued("a")]);
+    let enter!: () => void;
+    let finish!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const pause = async () => {
+      enter();
+      await gate;
+    };
+    if (boundary === "confirmOnline") {
+      let calls = 0;
+      ports.confirmOnline = async () => {
+        if (++calls === 2) await pause();
+        return true;
+      };
+    } else if (boundary === "acquire") {
+      const acquire = ports.acquire;
+      ports.acquire = async (ids) => {
+        await pause();
+        return acquire(ids);
+      };
+    } else {
+      const prepare = ports.prepare;
+      ports.prepare = async (...args) => {
+        await pause();
+        return prepare(...args);
+      };
+    }
+    preparation = createUploadPreparation(ports);
+    setActiveUploadPreparation(preparation);
+    preparation.schedule();
+    await entered;
+    let granted = false;
+    const pendingHold = Promise.resolve(suspendUploadPreparation()).then((release) => {
+      granted = true;
+      return release;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const grantedBeforeDrain = granted;
+    finish();
+    const release = await pendingHold;
+    try {
+      expect(grantedBeforeDrain).toBe(false);
+      expect(held.size).toBe(0);
+    } finally {
+      release();
+    }
+  });
+
+  it("starts held when a hold taken before it existed is still open", async () => {
+    const { ports, order } = harness([queued("a")]);
+    const release = await suspendUploadPreparation();
+    preparation = createUploadPreparation(ports);
+    setActiveUploadPreparation(preparation);
+
+    await settled(preparation);
+    expect(order).toEqual([]);
 
     release();
     await vi.waitFor(() => expect(order).toEqual(["a"]));

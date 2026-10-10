@@ -6,6 +6,7 @@ import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useAdminGardenContext } from "@green-goods/shared/hooks/garden/useAdminGardenContext";
 import { useEligibleAdminGardens } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
 import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
@@ -39,6 +40,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const permissions = useEffectiveToolbarPermissions();
   const { selectGarden } = useAdminGardenContext();
   const commandPaletteData = useMemo(
     () => ({
@@ -46,8 +48,9 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       actions: actions ?? [],
       assessments: assessments ?? [],
       role,
+      permissions,
     }),
-    [actions, assessments, eligibleGardens, role]
+    [actions, assessments, eligibleGardens, permissions, role]
   );
   const {
     activeIndex,
@@ -145,7 +148,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           })}
         >
           {results.length === 0 ? (
-            <p className="flex h-full items-center justify-center text-sm text-text-soft">
+            <p className="flex h-full items-center justify-center body-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -187,7 +190,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                       <div className="min-w-0 flex-1">
                         <span className="truncate">{result.label}</span>
                         {result.subtitle && (
-                          <span className="block truncate text-xs text-text-soft">
+                          <span className="block truncate body-xs text-text-soft">
                             {result.subtitle}
                           </span>
                         )}
@@ -201,7 +204,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 text-xs text-text-soft">
+        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 body-xs text-text-soft">
           <span className="flex items-center gap-1">
             <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />
             <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />

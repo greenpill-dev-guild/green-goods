@@ -1,6 +1,6 @@
 import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import type { Work, WorkMetadata } from "@green-goods/shared/types/domain";
-import { formatDate } from "@green-goods/shared/utils/time";
+import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiFileList3Line, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { DetailRow, renderMetadataDetails } from "./helpers";
@@ -24,7 +24,7 @@ export function SubmissionDetails({
 
   return (
     <section className="surface-inset sm:p-6">
-      <h3 className="text-sm font-semibold text-text-strong">
+      <h3 className="body-sm font-semibold text-text-strong">
         {formatMessage({ id: "app.work.detail.submissionDetails" })}
       </h3>
 
@@ -36,7 +36,7 @@ export function SubmissionDetails({
           value={
             <span>
               {actionTitle ?? `Action #${work.actionUID}`}
-              {actionSlug && <span className="ml-1.5 text-xs text-text-soft">({actionSlug})</span>}
+              {actionSlug && <span className="ml-1.5 body-xs text-text-soft">({actionSlug})</span>}
             </span>
           }
         />
@@ -59,7 +59,8 @@ export function SubmissionDetails({
         <DetailRow
           icon={<RiTimeLine className="h-4 w-4" />}
           label={formatMessage({ id: "app.work.detail.submitted" })}
-          value={formatDate(work.createdAt)}
+          // Explicit, so the fallback without Temporal also drops seconds.
+          value={formatDateTime(work.createdAt, { dateStyle: "medium", timeStyle: "short" })}
         />
 
         {/* Metadata details (v2) */}
@@ -68,10 +69,10 @@ export function SubmissionDetails({
         {/* Gardener feedback */}
         {work.feedback && (
           <div className="mt-3 rounded-md bg-bg-weak p-3">
-            <p className="text-xs font-medium text-text-soft">
+            <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.work.detail.gardenerNotes" })}
             </p>
-            <p className="mt-1 text-sm text-text-sub">{work.feedback}</p>
+            <p className="mt-1 body-sm text-text-sub">{work.feedback}</p>
           </div>
         )}
       </div>

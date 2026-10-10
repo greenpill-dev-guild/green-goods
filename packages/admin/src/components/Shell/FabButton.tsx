@@ -1,7 +1,7 @@
 import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RiAddLine, RiCloseLine } from "@remixicon/react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 // ----------------------------------------------------------------------------
@@ -12,8 +12,9 @@ import { useIntl } from "react-intl";
 // The FAB is the one tone-filled control in the floating chrome: circular
 // 48px (56px with a label when floating), --tone-action fill, warm chrome
 // shadow at rest, state-layer + elevation feedback — never a hue shift or
-// scale jump. Multi-action configs open the speed dial (the "+" rotates 45°);
-// single-action configs fire directly and show a hover tooltip instead.
+// scale jump. Multi-action configs open the speed dial (the "+" becomes a
+// close icon); single-action configs fire directly and show a hover tooltip
+// instead.
 // ----------------------------------------------------------------------------
 
 export interface FabButtonProps {
@@ -27,29 +28,30 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const reasonIdBase = useId();
   const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
-  const enabledSpeedDialActions = useMemo(
-    () => config.actions.filter((action) => !action.disabled),
-    [config.actions]
-  );
-  // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
-  // any one action's glyph — so the collapsed button reads as "open the menu",
-  // never as a duplicate of the primary action inside the dial. Single-action
-  // FABs keep their own action icon (direct-fire, no menu).
-  const FabIcon = isSingleAction ? config.icon : RiAddLine;
-  const floatingActionLabel =
-    isSingleAction && config.actions[0]
-      ? formatMessage({ id: config.actions[0].labelId })
-      : config.label;
+  // Every FAB shows "+" while closed, whether it fires one act or opens a
+  // dial: the workspace tone already says which tab this is, so the glyph
+  // stays one landmark across them (DL-078). A dial swaps it for a close icon
+  // while open, and its rows keep each act's own icon beside its label.
+  const FabIcon = !isSingleAction && speedDialOpen ? RiCloseLine : RiAddLine;
 
   const handleClick = useCallback(() => {
-    if (isSingleAction && config.actions[0]) {
-      config.onAction(config.actions[0].id);
-    } else {
+    if (!isSingleAction) {
       setSpeedDialOpen((prev) => !prev);
+      return;
     }
+    // A disabled sole action fires nothing; the FAB says why instead.
+    const sole = config.actions[0];
+    if (sole && !sole.disabled) config.onAction(sole.id);
   }, [isSingleAction, config]);
+  const sole = isSingleAction ? config.actions[0] : undefined;
+  const floatingActionLabel = sole ? formatMessage({ id: sole.labelId }) : undefined;
+  const soleReason =
+    sole?.disabled && sole.disabledReasonId
+      ? formatMessage({ id: sole.disabledReasonId, defaultMessage: sole.disabledReason })
+      : null;
 
   const closeSpeedDial = useCallback(() => {
     setSpeedDialOpen(false);
@@ -86,45 +88,51 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         return;
       }
 
-      const enabledActionIds = enabledSpeedDialActions.map((action) => action.id);
-      if (enabledActionIds.length === 0) return;
+      // Every action is reachable, disabled ones included, so a keyboard
+      // reaches the reason a disabled action gives.
+      const actionIds = config.actions.map((action) => action.id);
+      if (actionIds.length === 0) return;
 
       const currentActionId =
         (event.target as HTMLElement)
           .closest<HTMLElement>("[data-slot='speed-dial-item']")
           ?.getAttribute("data-item-id") ?? focusedSpeedDialActionId;
-      const currentIndex = currentActionId ? enabledActionIds.indexOf(currentActionId) : -1;
+      const currentIndex = currentActionId ? actionIds.indexOf(currentActionId) : -1;
       let nextIndex: number | null = null;
 
       if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % enabledActionIds.length;
+        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % actionIds.length;
       } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
         nextIndex =
           currentIndex === -1
-            ? enabledActionIds.length - 1
-            : (currentIndex - 1 + enabledActionIds.length) % enabledActionIds.length;
+            ? actionIds.length - 1
+            : (currentIndex - 1 + actionIds.length) % actionIds.length;
       } else if (event.key === "Home") {
         nextIndex = 0;
       } else if (event.key === "End") {
-        nextIndex = enabledActionIds.length - 1;
+        nextIndex = actionIds.length - 1;
       }
 
       if (nextIndex === null) return;
 
       event.preventDefault();
-      focusSpeedDialAction(enabledActionIds[nextIndex]!);
+      focusSpeedDialAction(actionIds[nextIndex]!);
     },
-    [closeSpeedDial, enabledSpeedDialActions, focusSpeedDialAction, focusedSpeedDialActionId]
+    [closeSpeedDial, config.actions, focusSpeedDialAction, focusedSpeedDialActionId]
   );
 
   useEffect(() => {
     if (!speedDialOpen || isSingleAction) return;
 
-    const firstEnabledAction = enabledSpeedDialActions[0];
-    if (!firstEnabledAction) return;
+    // With every action disabled, focus still lands in the dial, so a keyboard
+    // reaches the reasons.
+    const first = config.actions.find((action) => !action.disabled) ?? config.actions[0];
+    if (first) focusSpeedDialAction(first.id);
+  }, [config.actions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
-    focusSpeedDialAction(firstEnabledAction.id);
-  }, [enabledSpeedDialActions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
+  // A config with no actions has nothing to offer. useViewActions never
+  // publishes one, so this only covers a caller that does.
+  if (config.actions.length === 0) return null;
 
   return (
     <div
@@ -151,7 +159,9 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
         <div // eslint-disable-line jsx-a11y/interactive-supports-focus -- menu items are focusable <button role="menuitem"> children; focus moves to the first on open
-          className="speed-dial-list absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain py-0.5"
+          // w-max: an absolute list inside the FAB's 56px box would otherwise
+          // shrink to its narrowest word and wrap every label.
+          className="speed-dial-list absolute bottom-full right-0 mb-2 flex w-max flex-col-reverse items-end gap-2 overflow-y-auto overflow-x-hidden overscroll-contain py-0.5"
           style={{
             maxHeight:
               "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9.5rem)",
@@ -160,7 +170,8 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-slot="speed-dial"
           data-state="open"
           role="menu"
-          aria-label={config.label}
+          // Named for the whole set, in the reader's language, not for one act.
+          aria-label={formatMessage({ id: "cockpit.fab.actions" })}
           onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {
@@ -178,14 +189,20 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   }
                 }}
                 onClick={() => handleAction(action)}
-                disabled={action.disabled}
+                // Focusable though disabled, so a keyboard reaches its reason.
+                aria-disabled={action.disabled || undefined}
+                aria-describedby={
+                  action.disabled && action.disabledReasonId
+                    ? `${reasonIdBase}-${action.id}`
+                    : undefined
+                }
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-[color:var(--admin-speed-dial-border,rgb(var(--stroke-soft-200)))]",
                   "bg-[rgb(var(--admin-surface-0))]",
                   "text-body-md font-medium text-text-strong",
                   "focus-visible:outline-none",
-                  "disabled:cursor-not-allowed disabled:opacity-55",
+                  "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
@@ -210,6 +227,18 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 <ActionIcon className="h-4 w-4" />
                 <span className="min-w-0 whitespace-normal text-left leading-snug">
                   {formatMessage({ id: action.labelId })}
+                  {/* Touch has no hover, so a disabled action says why in place. */}
+                  {action.disabled && action.disabledReasonId ? (
+                    <span
+                      id={`${reasonIdBase}-${action.id}`}
+                      className="block text-body-sm font-normal text-text-sub"
+                    >
+                      {formatMessage({
+                        id: action.disabledReasonId,
+                        defaultMessage: action.disabledReason,
+                      })}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );
@@ -228,16 +257,23 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         // label and tooltip, so the accessible name has to be that same string
         // — speech input activates a control by what it says (WCAG 2.5.3).
         aria-label={
-          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction
+            ? floatingActionLabel
+            : formatMessage({
+                id: speedDialOpen ? "cockpit.fab.closeActions" : "cockpit.fab.openActions",
+              })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
         // Explicit false while collapsed: a menu control that drops the
         // attribute reads as non-expandable.
         aria-expanded={isSingleAction ? undefined : speedDialOpen}
+        aria-disabled={sole?.disabled || undefined}
+        aria-describedby={soleReason ? `${reasonIdBase}-fab` : undefined}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full",
+          "aria-disabled:cursor-not-allowed aria-disabled:opacity-55",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
           "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
           "shadow-[var(--admin-chrome-shadow)]",
@@ -245,15 +281,23 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2"
         )}
       >
-        <FabIcon
-          className={cn(
-            "h-5 w-5 transition-[rotate] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none",
-            speedDialOpen && "rotate-45"
-          )}
-        />
+        <FabIcon className="h-5 w-5" />
         {mobileFloating && isSingleAction && (
-          <span className="text-body-md font-semibold">{floatingActionLabel}</span>
+          <span className="text-left text-body-md font-semibold">
+            {floatingActionLabel}
+            {/* Touch has no hover, so a disabled sole action says why in place. */}
+            {soleReason ? (
+              <span id={`${reasonIdBase}-fab`} className="block text-body-sm font-normal">
+                {soleReason}
+              </span>
+            ) : null}
+          </span>
         )}
+        {!mobileFloating && soleReason ? (
+          <span id={`${reasonIdBase}-fab`} className="sr-only">
+            {soleReason}
+          </span>
+        ) : null}
       </button>
 
       {/* Dismiss backdrop when speed dial is open */}

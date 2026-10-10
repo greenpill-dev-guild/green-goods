@@ -1,3 +1,5 @@
+import { useActionsByUID } from "@green-goods/shared/hooks/action/useAction";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
 import {
   NotificationPanel,
   type NotificationPanelItem,
@@ -10,18 +12,23 @@ import {
 import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
 import { useGardenDerivedState } from "@green-goods/shared/hooks/garden/useGardenDerivedState";
 import { useGardenDetailData } from "@green-goods/shared/hooks/garden/useGardenDetailData";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import { useLocalizedEventTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
+import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
+import { localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
+
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
-  const { formatMessage } = useIntl();
-  const formatEventAge = useLocalizedRelativeTime();
+  const intl = useIntl();
+  const { formatMessage } = intl;
+  const formatEventTime = useLocalizedEventTime();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenAddress = selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
+  const { showCommunity, isLoading: permissionsLoading } = useEffectiveToolbarPermissions();
 
   const navigateFromNotification = useCallback(
     (path: string) => {
@@ -53,20 +60,30 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       chainId: selectedGarden?.chainId ?? 0,
     },
     works: workspace.works,
+    worksComplete: workspace.worksComplete,
+    gardenReviewQueue: workspace.gardenReviewQueue,
     assessments: workspace.assessments,
     hypercerts: workspace.hypercerts,
     allocations: workspace.allocations,
     gardenVaults: workspace.gardenVaults,
-    vaultNetDeposited: workspace.vaultNetDeposited,
+    hasEndowment: workspace.hasEndowment,
     cookieJars: workspace.cookieJars,
     roleMembers: workspace.roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
     memberSearch: "",
     section: undefined,
+    canAccessCommunity: showCommunity && !permissionsLoading,
     formatMessage,
     openSection,
   });
+
+  const actions = useActionsByUID(
+    derived.activityEvents
+      .slice(0, 8)
+      .flatMap((event) => (event.actionUID === undefined ? [] : [event.actionUID])),
+    workspace.garden?.chainId ?? selectedGarden?.chainId
+  );
 
   const sections = useMemo<NotificationPanelSection[]>(() => {
     if (!workspace.garden) return [];
@@ -85,9 +102,17 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
         const href = event.href;
         return {
           id: event.id,
-          title: event.title,
+          title:
+            event.category === "work"
+              ? localizeWorkActivityTitle(
+                  event.title,
+                  findActionByUID(actions, event.actionUID ?? null),
+                  intl,
+                  event.hasGeneratedTitle
+                )
+              : event.title,
           description: event.description,
-          meta: formatEventAge(event.timestamp),
+          meta: formatEventTime(event.timestamp),
           tone: "info" as const,
           onSelect: href ? () => navigateFromNotification(href) : undefined,
         };
@@ -112,9 +137,11 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
       },
     ];
   }, [
+    actions,
+    intl,
     derived.activityEvents,
     derived.overviewAlerts,
-    formatEventAge,
+    formatEventTime,
     formatMessage,
     navigateFromNotification,
     workspace.garden,

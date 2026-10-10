@@ -107,7 +107,7 @@ export function EvidencePreview({ evidence, isLoading, recordedCount = 0 }: Evid
                   href={link.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 text-xs text-primary underline-offset-2 hover:underline"
+                  className="flex items-center gap-2 text-xs text-primary-on-surface underline-offset-2 hover:underline"
                 >
                   <RiLink className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 truncate" title={link.url}>

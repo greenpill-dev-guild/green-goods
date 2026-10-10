@@ -1,12 +1,12 @@
 import { RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 
 /**
- * The pool tab before the pool takes commitments: what setting up gives the
- * garden, and the one act that starts it. Offline the act waits, and says why
- * beneath it rather than greying out in silence.
+ * The Promises tab before the pool takes commitments: what setting up gives
+ * the garden, and the one act that starts it. Offline the act waits, and says
+ * why beneath it rather than greying out in silence.
  */
 export function PoolNotReadyCard({
   isOnline,
@@ -23,13 +23,13 @@ export function PoolNotReadyCard({
       data-component="PoolNotReadyCard"
     >
       <RiSeedlingLine className="h-6 w-6 text-text-soft" aria-hidden />
-      <p className="label-md text-text-strong">
+      <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.notReady.title",
           defaultMessage: "This garden isn’t taking commitments yet",
         })}
-      </p>
-      <p className="max-w-md text-sm text-text-soft">
+      </AdminCardTitle>
+      <p className="max-w-md body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.notReady.body",
           defaultMessage:
@@ -43,7 +43,7 @@ export function PoolNotReadyCard({
         })}
       </AdminButton>
       {isOnline ? null : (
-        <p className="text-xs text-warning-dark" role="status">
+        <p className="body-xs text-warning-dark" role="status">
           {formatMessage({
             id: "cockpit.garden.pool.offline",
             defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",

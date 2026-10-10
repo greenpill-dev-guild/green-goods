@@ -66,7 +66,7 @@ export interface EditorialHeadingProps {
 
 const HEADING_SIZE_CLASS: Record<EditorialHeadingSize, string> = {
   display: "text-3xl leading-[1.04] tracking-[-0.018em] sm:text-4xl md:text-5xl lg:text-6xl",
-  section: "text-3xl leading-[1.04] tracking-[-0.02em] md:text-5xl",
+  section: "text-3xl leading-[1.04] tracking-[-0.02em] md:text-4xl xl:text-5xl",
   sub: "text-xl leading-[1.18] tracking-[-0.012em] md:text-2xl",
 };
 

@@ -1,6 +1,6 @@
 # Client Package Context
 
-Loaded when working in `packages/client/`. Extends CLAUDE.md.
+Loaded when working in `packages/client/`. Extends `packages/client/AGENTS.md`.
 
 **Primary persona**: Maria (Gardener). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 

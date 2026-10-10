@@ -29,6 +29,8 @@ export const worksKeys = {
     ["greengoods", "works", "online", gardenSegment(gardenId), chainId] as const,
   window: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "window", gardenSegment(gardenId), chainId] as const,
+  reviewQueue: (gardenId: string, chainId: number) =>
+    ["greengoods", "works", "reviewQueue", gardenSegment(gardenId), chainId] as const,
   byUID: (uid: string, chainId: number) =>
     ["greengoods", "works", "byUID", uid.toLowerCase(), chainId] as const,
   offline: (gardenId: string, chainId?: number, account?: string) =>

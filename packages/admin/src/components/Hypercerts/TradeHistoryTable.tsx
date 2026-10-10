@@ -45,7 +45,7 @@ export function TradeHistoryTable({
     return (
       <div className="flex items-center justify-center gap-2 py-6">
         <RiLoader4Line className="h-4 w-4 animate-spin text-text-soft" />
-        <span className="text-sm text-text-soft">
+        <span className="body-sm text-text-soft">
           {intl.formatMessage({
             id: "app.admin.tradeHistory.loading",
             defaultMessage: "Loading trade history...",
@@ -70,7 +70,7 @@ export function TradeHistoryTable({
     return (
       <div className="rounded-lg border border-dashed border-stroke-soft p-6 text-center">
         <RiHistoryLine className="mx-auto h-6 w-6 text-text-disabled" />
-        <p className="mt-2 text-sm text-text-soft">
+        <p className="mt-2 body-sm text-text-soft">
           {intl.formatMessage({
             id: "app.admin.tradeHistory.empty",
             defaultMessage: "No trades yet",
@@ -82,34 +82,34 @@ export function TradeHistoryTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
-            <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnDate",
                 defaultMessage: "Date",
               })}
             </th>
-            <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnUnits",
                 defaultMessage: "Units",
               })}
             </th>
-            <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnPayment",
                 defaultMessage: "Payment",
               })}
             </th>
-            <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-2.5 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.tradeHistory.columnRecipient",
                 defaultMessage: "Recipient",
               })}
             </th>
-            <th className="px-4 py-2.5 text-xs font-medium uppercase text-text-soft text-right">
+            <th className="px-4 py-2.5 label-xs uppercase text-text-soft text-right">
               {intl.formatMessage({ id: "app.admin.tradeHistory.columnTx", defaultMessage: "Tx" })}
             </th>
           </tr>
@@ -123,7 +123,7 @@ export function TradeHistoryTable({
               </td>
               <td className="px-4 py-2.5 text-text-sub">{formatEther(trade.payment)} ETH</td>
               <td className="px-4 py-2.5 text-text-soft">
-                <EnsAddressWithCopy address={trade.recipient} labelClassName="text-xs" />
+                <EnsAddressWithCopy address={trade.recipient} labelClassName="body-xs" />
               </td>
               <td className="px-4 py-2.5 text-right">
                 {explorerUrl && trade.txHash ? (
@@ -131,12 +131,12 @@ export function TradeHistoryTable({
                     href={`${explorerUrl}/tx/${trade.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 text-xs text-primary-base transition hover:text-primary-darker"
+                    className="inline-flex items-center gap-0.5 body-xs text-primary-base transition hover:text-primary-darker"
                   >
                     <RiExternalLinkLine className="h-3.5 w-3.5" />
                   </a>
                 ) : (
-                  <span className="text-xs text-text-disabled">{"\u2014"}</span>
+                  <span className="body-xs text-text-disabled">{"\u2014"}</span>
                 )}
               </td>
             </tr>

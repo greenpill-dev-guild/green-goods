@@ -1,13 +1,14 @@
-import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import { Button } from "@green-goods/shared/components/Button";
 import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
 import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { GOVERNANCE_ENABLED } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
 import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useGardenAssessmentRecords } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   useActions,
@@ -37,8 +38,7 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
-import { GardenErrorBoundary } from "@/components/Errors";
+import { AppErrorBoundary } from "@/components/Errors/AppErrorBoundary";
 import {
   GardenAssessments,
   GardenGardeners,
@@ -48,6 +48,7 @@ import {
   JoinGardenButton,
 } from "@/components/Features";
 import { StandardTabs, TopNav } from "@/components/Navigation";
+import { ConvictionSheet, EndowmentSheet } from "@/components/Sheets";
 import { buildGardenTabs } from "./gardenTabs";
 import { GardenPool } from "./Pool";
 import { shareGarden } from "./shareGarden";
@@ -87,11 +88,12 @@ export const Garden: React.FC = () => {
   // Addresses arrive in either case: the list is checksummed, the indexer's
   // pool and work rows are lowercase, and a link may be typed. One garden.
   const garden = allGardens.find((g) => g.id.toLowerCase() === gardenIdParam?.toLowerCase());
-  const gardenStatus: "error" | "success" | "pending" = gardensError
-    ? "error"
-    : garden
-      ? "success"
-      : "pending";
+  // Read only once the reader opens Insights: an EAS read, then two IPFS files
+  // per assessment, is too much to spend on a tab most visits never open.
+  const { records: assessmentRecords, status: assessmentStatus } = useGardenAssessmentRecords(
+    activeTab === GardenTab.Insights ? garden?.id : undefined,
+    chainId
+  );
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const workRead = useWorks(gardenIdParam || "", { offline: true });
@@ -113,8 +115,6 @@ export const Garden: React.FC = () => {
       }
     }
 
-    const fallbackRegisteredAt = garden.createdAt ?? Date.now();
-
     return orderedAddresses.map((address) => {
       const normalized = address.toLowerCase();
       const match = allGardeners.find((g) => g.account?.toLowerCase() === normalized);
@@ -126,7 +126,7 @@ export const Garden: React.FC = () => {
         email: match?.email || undefined,
         phone: match?.phone || undefined,
         avatar: match?.avatar || undefined,
-        registeredAt: match?.registeredAt ?? fallbackRegisteredAt,
+        registeredAt: match?.registeredAt ?? null,
         isSteward: stewardSet.has(normalized),
         isGardener: gardenerSet.has(normalized),
       };
@@ -261,7 +261,7 @@ export const Garden: React.FC = () => {
     );
   }
 
-  const { name, bannerImage, location, createdAt, assessments, description } = garden;
+  const { name, bannerImage, location, createdAt, description } = garden;
   const foundedLabel = `${intl.formatMessage({ id: "app.home.founded" })} ${new Date(createdAt).toLocaleDateString()}`;
 
   // Restore scroll position when switching tabs
@@ -288,8 +288,8 @@ export const Garden: React.FC = () => {
       case GardenTab.Insights:
         return (
           <GardenAssessments
-            assessmentFetchStatus={gardensLoading ? "pending" : gardenStatus}
-            assessments={assessments}
+            assessmentFetchStatus={assessmentStatus}
+            records={assessmentRecords}
             description={description}
           />
         );
@@ -307,7 +307,9 @@ export const Garden: React.FC = () => {
   // No custom scroll restoration; StandardTabs resets nearest scroll container
 
   return (
-    <GardenErrorBoundary>
+    // A garden's page hides the bottom bar, so a failure inside it is the screen state with Back.
+    // It stays mounted across its child pages, so the path tells the boundary when to let go.
+    <AppErrorBoundary view="screen" name="GardenErrorBoundary" resetKey={pathname}>
       <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
         {pathname.includes("work") ||
         pathname.includes("assessments") ||
@@ -354,14 +356,14 @@ export const Garden: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-                      <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <RiMapPin2Fill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
                       <span className="truncate" title={location}>
                         {location}
                       </span>
                     </div>
                     <span className="hidden sm:inline text-text-soft-400">•</span>
                     <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-                      <RiCalendarEventFill className="h-4 w-4 text-primary flex-shrink-0" />
+                      <RiCalendarEventFill className="h-4 w-4 text-primary-on-surface flex-shrink-0" />
                       <span className="truncate" title={foundedLabel}>
                         {foundedLabel}
                       </span>
@@ -434,6 +436,6 @@ export const Garden: React.FC = () => {
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>
-    </GardenErrorBoundary>
+    </AppErrorBoundary>
   );
 };

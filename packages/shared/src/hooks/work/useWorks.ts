@@ -4,6 +4,8 @@ import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { worksKeys } from "../../config/query-keys/work";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
+import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { type OverlayWork, resolveGardenWorkRows } from "../../modules/work/local-status-overlay";
@@ -12,11 +14,12 @@ import { WORK_LIST_PAGE_SIZE } from "../../modules/work/work-list";
 import type { Work, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { ZERO_ADDRESS } from "../../utils/blockchain/address-constants";
-import { extractClientWorkId } from "../../utils/work/deduplication";
+import { deduplicateById, extractClientWorkId } from "../../utils/work/deduplication";
+import { sortByCreatedAt } from "../../utils/time";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useLiveQuery } from "../utils/useLiveQuery";
-import { gardenWorkListQuery } from "./gardenWorkListQuery";
+import { gardenWorkListQuery, workSessionStartedAt } from "./gardenWorkListQuery";
 import { useQueuedWorkPreviews } from "./useQueuedWorkPreviews";
 import { useSendingWorkIds } from "./useSendingWorkIds";
 
@@ -106,6 +109,10 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   const queryClient = useQueryClient();
   const primaryAddress = usePrimaryAddress();
   const isOnline = useOnlineStatus();
+  const completions = useLiveQuery(
+    primaryAddress ? `${chainId}:${primaryAddress.toLowerCase()}` : null,
+    () => jobQueueDB.observeWorkCompletions(primaryAddress!, chainId)
+  );
   const sendingJobs = useSendingWorkIds(primaryAddress, chainId);
   const projectionKey = offline
     ? worksKeys.local(gardenId, chainId, primaryAddress ?? undefined)
@@ -123,9 +130,6 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   });
   const take = listWindow.data;
   const online = useQuery(gardenWorkListQuery(queryClient, gardenId, chainId));
-  // Offline, the restored screen read is the downloaded copy: background
-  // preparation fills this same query, so there is no second source to consult.
-  const remoteData = online.data?.slice(0, take);
   const hasOlderWork = (online.data?.length ?? 0) > take;
   const loadOlderWork = useCallback(() => {
     if (!isOnline) return;
@@ -170,25 +174,47 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // `combine` keeps one array identity until a metadata read actually changes;
   // without it every render rebuilt the list and re-rendered each work card.
   const metadataByWork = useQueries({
-    queries: (remoteData ?? []).map((work) => ({
+    queries: (online.data?.slice(0, take) ?? []).map((work) => ({
       queryKey: worksKeys.metadata(work.metadata.trim()),
       enabled: false,
     })),
     combine: (results) =>
       results.map((result) => result.data as { clientWorkId?: string } | undefined),
   });
-  const { works, unknownIds } = useMemo(() => {
+  const { remoteData, works, unknownIds, retainedIds } = useMemo(() => {
+    // Offline, the restored screen read is the downloaded copy: background
+    // preparation fills this same query, so there is no second source to consult.
+    // The window is cut here, inside the memo, so it and every row keep one
+    // identity until the read or its size changes. Cut during render, a fresh
+    // slice rebuilt each row on every render, and a screen that keeps a row in
+    // state from an effect, as the admin work detail does, re-rendered without end.
+    const remoteData = online.data?.slice(0, take);
+    const indexedIds = new Set(
+      (online.data ?? [])
+        .filter((work) => work.approval !== undefined)
+        .map((work) => work.id.toLowerCase())
+    );
     const metadataByKey = new Map(
       (remoteData ?? []).map((work, index) => [work.metadata.trim(), metadataByWork[index]])
     );
     // The approval stays in the stored read and leaves the projected row, whose
     // status already carries it.
+    const confirmed = (completions.data ?? []).flatMap((row) =>
+      row.chainId === chainId &&
+      row.userAddress === primaryAddress?.toLowerCase() &&
+      row.work?.gardenAddress.toLowerCase() === gardenId.toLowerCase() &&
+      !indexedIds.has(row.work.id.toLowerCase())
+        ? [row.work]
+        : []
+    );
     const resolved = resolveGardenWorkRows({
       remote: remoteData,
-      saved: projection.data ?? overlay.data,
+      saved: deduplicateById([...(projection.data ?? overlay.data ?? []), ...confirmed]),
       overlay: overlay.data,
     });
-    const rows: Work[] = resolved.rows;
+    // Confirmed previews and cached history share the indexed pagination window.
+    // Pending queue jobs are appended below and stay visible independently.
+    const rows: Work[] = sortByCreatedAt(resolved.rows).slice(0, take);
     // Identity must agree on submitter and clientWorkId. A CID whose metadata
     // has not been downloaded cannot prove a match, so retain the local work.
     const identities = new Set(
@@ -220,11 +246,18 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       );
     }
     return {
-      works: rows.sort((a, b) => b.createdAt - a.createdAt),
+      remoteData,
+      works: sortByCreatedAt(rows),
       unknownIds: resolved.unknownIds,
+      retainedIds: resolved.retainedIds,
     };
   }, [
-    remoteData,
+    completions.data,
+    primaryAddress,
+    gardenId,
+    chainId,
+    online.data,
+    take,
     projection.data,
     overlay.data,
     queuedJobs,
@@ -234,6 +267,17 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     sendingJobs,
     isOnline,
   ]);
+
+  useEffect(() => {
+    if (!primaryAddress || !online.data?.length) return;
+    // Wallet receipt previews share this cache; an embedded approval marks an indexed row.
+    void retireWorkCompletionSnapshots(
+      jobQueueDB,
+      primaryAddress,
+      chainId,
+      online.data.filter((work) => work.approval !== undefined).map((work) => work.id)
+    ).catch((error) => logger.error("Could not retire indexed work snapshots", { error }));
+  }, [primaryAddress, chainId, online.data]);
 
   useEffect(() => {
     if (remoteData !== undefined) {
@@ -306,6 +350,19 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     onlineCount: remoteData?.length ?? 0,
     /** Whether the garden may have work older than the loaded window. */
     hasOlderWork,
+    /**
+     * Some rows' approvals could not be read, so their status is cached or a
+     * fallback, or a pending row the read left out may have been reviewed
+     * since: queue health must not treat these as current.
+     */
+    hasUnknownStatuses:
+      (remoteData?.some((row) => row.approval === undefined) ?? false) ||
+      works.some((work) => retainedIds.has(work.id) && work.status === "pending"),
+    /**
+     * Whether this session has read the garden's rows. Until then they are a
+     * copy restored from an earlier session, however old.
+     */
+    readThisSession: online.dataUpdatedAt >= workSessionStartedAt(),
     /** Widen the window by one page and read it; a no-op offline. */
     loadOlderWork,
     isLoadingOlder: online.isFetching && take > WORK_LIST_PAGE_SIZE,

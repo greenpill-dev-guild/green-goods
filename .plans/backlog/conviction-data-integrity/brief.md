@@ -1,7 +1,7 @@
 # Conviction Data Integrity
 
 **Slug**: `conviction-data-integrity`  
-**Stage**: `backlog`  
+**Stage**: `backlog`
 **Priority**: `p2`
 
 ## Problem

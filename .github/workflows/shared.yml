@@ -8,10 +8,11 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -21,10 +22,11 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/shared.yml"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/lib/vitest-shared-graph.mjs"
       - "packages/shared/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
@@ -56,11 +58,12 @@ jobs:
               "package.json",
               "bun.lock",
               "biome.json",
-              ".env.schema",
+              "env.schema",
               ".github/actions/setup-js/action.yml",
               ".github/workflows/shared.yml",
               "scripts/dev/package-commands.mjs",
               "scripts/quality/check-source-structure.js",
+              "scripts/lib/vitest-shared-graph.mjs",
             ]);
             const prefixes = [
               "packages/contracts/abis/",
@@ -144,7 +147,7 @@ jobs:
 
       - name: Check source structure
         env:
-          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
       - name: Run shared lint

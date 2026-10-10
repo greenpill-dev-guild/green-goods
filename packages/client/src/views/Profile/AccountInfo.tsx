@@ -3,7 +3,6 @@ import { toastService } from "@green-goods/shared/components/Toast/toast.service
 import { isPasskeyServerEnabled } from "@green-goods/shared/config/passkeyServer";
 import { useAuthActions, useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
-import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import type { Address } from "@green-goods/shared/types/domain";
 import { debugError } from "@green-goods/shared/utils/debug";
 import { RiKeyLine, RiLogoutBoxRLine, RiUserLine, RiWalletLine } from "@remixicon/react";
@@ -21,7 +20,6 @@ export const AccountInfo: React.FC = () => {
   const passkeyServerEnabled = isPasskeyServerEnabled();
   const { signOut } = useAuthActions();
   const primaryAddress = usePrimaryAddress();
-  const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
   const intl = useIntl();
 
@@ -70,7 +68,7 @@ export const AccountInfo: React.FC = () => {
       <Card>
         <div className="flex items-center gap-3 w-full">
           <Avatar>
-            <div className="flex items-center justify-center text-center mx-auto text-primary">
+            <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
               {authMode === "passkey" ? (
                 <RiKeyLine className="w-4" />
               ) : (
@@ -79,7 +77,7 @@ export const AccountInfo: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="truncate text-label-md font-medium">
+            <div className="truncate text-sm font-medium">
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
@@ -112,24 +110,26 @@ export const AccountInfo: React.FC = () => {
         <Card>
           <div className="flex items-center gap-3 w-full">
             <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                 <RiUserLine className="w-4" />
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="truncate text-label-md font-medium">
+              {/* Named for what it's for, without Web3 terms (PRD-1026 D3). */}
+              <div className="text-sm font-medium">
                 {intl.formatMessage({
-                  id: "app.account.address",
-                  defaultMessage: "Address",
+                  id: "app.account.accountId",
+                  defaultMessage: "Account ID",
                 })}
               </div>
+              <div className="text-xs text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.account.accountIdLine",
+                  defaultMessage: "Support or a steward may ask for it.",
+                })}
+              </div>
+              <AddressCopy address={primaryAddress as Address} size="compact" />
             </div>
-            <AddressCopy
-              address={primaryAddress as Address}
-              ensName={primaryEnsName}
-              size="compact"
-              className="w-auto shrink-0"
-            />
           </div>
         </Card>
       )}

@@ -41,6 +41,7 @@ import type {
   GardenCommitmentController,
   GardenCommitmentStatus,
 } from "./controller.types";
+import { proofSendKey, useProofSend } from "./proofSend";
 
 const CLAIM_TYPE_GARDEN = 0;
 const CLAIM_TYPE_INDIVIDUAL = 1;
@@ -113,6 +114,9 @@ export function useGardenCommitmentController(input: {
   const queueKey = commitment?.commitmentId.toString() ?? "";
   const pending = Boolean(commitment && queueState.pendingCommitmentIds.has(queueKey));
   const sendFailed = Boolean(commitment && queueState.failedCommitmentIds.has(queueKey));
+  const proofSend = useProofSend(
+    commitmentId !== null && viewer ? proofSendKey(chainId, commitmentId, viewer) : null
+  );
   const ownRequest = viewer
     ? (claimsQuery.claimRequests
         .filter(
@@ -126,17 +130,52 @@ export function useGardenCommitmentController(input: {
     (request) => request.state === "PENDING"
   );
   const hasPendingClaimRequest = ownRequest?.state === "PENDING";
+  // Who may take this up. On a garden pool the chain gates a personal claim on
+  // a role in the route garden. On the protocol pool the claim goes through a
+  // garden of the reader's own, the host included for a personal claim, so any
+  // such garden counts. Until the pool record is read its type is unknown, and
+  // both who may claim and whether a claim needs a context turn on it, so
+  // eligibility stays unknown too.
+  const isProtocolPool = poolQuery.pool?.poolType === "PROTOCOL";
+  const hasClaimGarden =
+    roles.claimGardens.member.length > 0 || roles.claimGardens.stewarded.length > 0;
+  const canClaimHere: boolean | null = !poolQuery.pool
+    ? null
+    : isProtocolPool
+      ? hasClaimGarden
+        ? true
+        : roles.claimGardensKnown
+          ? false
+          : null
+      : roles.isMemberHere;
+  const membership = {
+    isMember: canClaimHere,
+    garden:
+      poolQuery.pool && !isProtocolPool && roles.garden
+        ? {
+            address: roles.garden.id as Address,
+            name: roles.garden.name,
+            openJoining: Boolean(roles.garden.openJoining),
+          }
+        : null,
+    unavailable: canClaimHere === null && (roles.membershipUnavailable || poolQuery.isError),
+    retry: () => {
+      roles.retryMembership();
+      if (poolQuery.isError) void poolQuery.refetch();
+    },
+  };
   const actKind = commitment
     ? selectCommitmentActKind({
         commitment,
         seat,
         hasPendingJob: pending || hasPendingClaimRequest || queueState.isUnavailable,
         isCreator: isCommitmentCreator({ commitment, viewer: viewer ?? undefined }),
+        isMember: canClaimHere === null ? undefined : canClaimHere,
       })
     : null;
   const actGarden = commitment ? (commitment.providerGarden as Address | null) : null;
   const joinable = commitment
-    ? canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere })
+    ? canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere === true })
     : false;
   const linkable = commitment
     ? canLinkWork({
@@ -295,13 +334,23 @@ export function useGardenCommitmentController(input: {
       commitment &&
         (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
         !pending &&
-        !queueState.isUnavailable
+        !queueState.isUnavailable &&
+        // Every take-up entry point honours the members-only rule, asking again included.
+        canClaimHere === true
     ),
-    claimNeedsContext: poolQuery.pool?.poolType === "PROTOCOL",
+    claimNeedsContext: isProtocolPool,
+    membership,
     queue: {
       hasPendingJob: pending,
       sendFailed,
       failedJob: queueState.failedJobs.get(queueKey) ?? null,
+      pendingAct: queueState.pendingActs.get(queueKey) ?? null,
+      proofSending: Boolean(proofSend && !proofSend.landed),
+      proofOnItsWay:
+        proofSend && (commitment?.evidenceCount ?? 0) <= proofSend.baseline
+          ? proofSend.contents
+          : null,
+      sendsFromTap: jobs.sendsFromTap,
       isUnavailable: queueState.isUnavailable,
       refresh: queueState.refresh,
     },

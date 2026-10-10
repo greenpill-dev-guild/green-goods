@@ -39,7 +39,7 @@ const meta: Meta<typeof CommunityCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination (governance and the pooling surface), endowment vaults, payouts, and route-backed detail entry points.",
+          "Seeded Community workspace coverage through the real CanvasLayout shell, including the Members, Endowment, and Payouts tabs, plus legacy coordination routes and route-backed detail entry points.",
       },
     },
   },
@@ -83,6 +83,9 @@ export const Endowment: Story = {
       await expect(
         await canvas.findByRole("heading", { name: "Community" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
       ).toBeVisible();
+      const tabs = within(canvas.getByRole("tablist", { name: "Community views" }));
+      await expect(tabs.getAllByRole("tab")).toHaveLength(3);
+      await expect(tabs.queryByRole("tab", { name: "Coordination" })).not.toBeInTheDocument();
       await expect(
         (
           await canvas.findAllByText(

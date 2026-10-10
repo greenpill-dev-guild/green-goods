@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
@@ -25,7 +25,7 @@ import {
   STEPS_BY_INTENT,
   type StepId,
 } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
-import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
@@ -379,6 +379,30 @@ describe("PoolSetupFlow (W11)", () => {
     expect(within(dialog()).getByRole("button", { name: /^next$/i })).toBeEnabled();
   });
 
+  it("stops the description at 420 characters and the name at 120, counting each", async () => {
+    const user = userEvent.setup();
+    // A charter pinned before the limit loads in full, and holds the step until it fits.
+    const older = { version: 1, purpose: "o".repeat(1500) };
+    renderFlow({
+      console: controller({ charter: { charter: older, isLoading: false, isUnavailable: false } }),
+    });
+    const purpose = within(dialog()).getByLabelText(/what this pool is for/i);
+    expect(within(dialog()).getByText("1,500 / 420")).toBeInTheDocument();
+    expect(within(dialog()).getByRole("button", { name: /^next$/i })).toBeDisabled();
+
+    await user.clear(purpose);
+    await user.paste("x".repeat(421));
+    expect(purpose).toHaveValue("x".repeat(420));
+    expect(within(dialog()).getByText("420 / 420")).toBeInTheDocument();
+
+    next();
+    const name = within(dialog()).getByLabelText(/^name/i);
+    await user.click(name);
+    await user.paste("y".repeat(121));
+    expect(name).toHaveValue("y".repeat(120));
+    expect(within(dialog()).getByText("120 / 120")).toBeInTheDocument();
+  });
+
   it("submits the six first-run writes in order, pinning the charter and the season name first", async () => {
     // The hook reports the finished run; the flow stays open on its done screen.
     mocks.run.mockImplementation(async (steps) => {
@@ -459,7 +483,8 @@ describe("PoolSetupFlow (W11)", () => {
 
   it("names the pool it writes to on every step, and sets the protocol pool apart", async () => {
     const first = renderFlow();
-    expect(within(dialog()).getByText("Rocinha’s pool")).toBeInTheDocument();
+    // At the foot of the step rail, and under the stepper on a narrow screen (PRD-1022 D11).
+    expect(within(dialog()).getAllByText("Rocinha’s pool")).toHaveLength(2);
     first.unmount();
 
     renderFlow({ target: { gardenName: "Green Goods Community Garden", isProtocol: true } });

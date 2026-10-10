@@ -91,7 +91,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
         aria-expanded={expanded}
         aria-controls={panelId}
         title={gardenName}
-        className="flex w-full items-center justify-between gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/20"
+        className="flex w-full items-center justify-between gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/20"
       >
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">

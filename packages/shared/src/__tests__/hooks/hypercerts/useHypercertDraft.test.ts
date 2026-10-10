@@ -1,6 +1,6 @@
 /**
  * useHypercertDraft Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests IndexedDB-backed draft persistence: load, save, clear, peek,
  * and meaningful progress detection.

@@ -15,18 +15,80 @@
  * party wherever its commitment lives, while a dispute is admitted only from
  * the pool garden's own steward, so `canDispute` answers that separately.
  *
+ * The rows hold steady for the visit (PRD-1045): a row confirmed here turns
+ * into its outcome in place and stays until the steward leaves the stage, and
+ * a copy from a group is its own row, named by the size of its group.
+ *
  * @module hooks/admin-ui/pool/useHubConfirmQueueController
  */
 
-import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
-import { selectConfirmQueueRows } from "../../../modules/commitment-pooling/confirm-queue";
+import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
+import {
+  type ConfirmDecision,
+  type ConfirmQueueProjectionRow,
+  type ConfirmVisitEntry,
+  confirmRowKey,
+  confirmRowState,
+  matchesConfirmSearch,
+  reconcileConfirmVisit,
+  selectConfirmQueueRows,
+} from "../../../modules/commitment-pooling/confirm-queue";
+import { getCommitments } from "../../../modules/commitment-pooling/data";
+import { groupCommitmentsForDisplay } from "../../../modules/commitment-pooling/display-groups";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
-import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
+import {
+  type CommitmentMetadataMap,
+  useCommitmentMetadata,
+} from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import type { CommitmentsToConfirm } from "../../commitment-pooling/useCommitmentsToConfirm";
 import type { ConfirmQueueRow, HubConfirmQueueController } from "./controller.types";
+
+/**
+ * How many published promises each grouped row's group holds, read from its
+ * pool's copies. Only pools with a grouped row are read; the rest cost nothing.
+ */
+function useConfirmGroupSizes(
+  chainId: number,
+  rows: readonly ConfirmQueueProjectionRow[],
+  byCID: CommitmentMetadataMap["byCID"]
+): ReadonlyMap<string, number> {
+  const poolIds = useMemo(() => {
+    const ids = new Set<bigint>();
+    for (const row of rows) {
+      const cid = row.commitment.metadataCID?.trim();
+      if (cid && byCID.get(cid)?.displayGroup && typeof row.commitment.poolId === "bigint") {
+        ids.add(row.commitment.poolId);
+      }
+    }
+    return [...ids].sort((left, right) => (left < right ? -1 : 1));
+  }, [rows, byCID]);
+  const pools = useQueries({
+    queries: poolIds.map((poolId) => ({
+      queryKey: commitmentPoolingKeys.commitments(chainId, { chainId, poolId }),
+      queryFn: () => getCommitments({ chainId, poolId }),
+      staleTime: STALE_TIME_MEDIUM,
+    })),
+  });
+  const copies = useMemo(() => pools.flatMap((pool) => pool.data ?? []), [pools]);
+  const { byCID: copiesByCID } = useCommitmentMetadata(copies);
+  return useMemo(() => {
+    const sizes = new Map<string, number>();
+    for (const entry of groupCommitmentsForDisplay({
+      commitments: copies,
+      metadataByCID: copiesByCID,
+    })) {
+      if (entry.kind !== "group") continue;
+      for (const copy of entry.children) sizes.set(copy.id, entry.counts.published);
+    }
+    return sizes;
+  }, [copies, copiesByCID]);
+}
 
 export function useHubConfirmQueueController(input: {
   chainId: number;
@@ -36,7 +98,7 @@ export function useHubConfirmQueueController(input: {
 }): HubConfirmQueueController {
   const { chainId, toConfirm, search } = input;
   const isOnline = useOnlineStatus();
-  const jobs = useCommitmentJobs({ chainId });
+  const jobs = useCommitmentJobs({ chainId, execution: "foreground" });
   const mutation = useCommitmentMutation({ chainId });
 
   const commitments = useMemo(
@@ -48,19 +110,56 @@ export function useHubConfirmQueueController(input: {
     [toConfirm.groups, toConfirm.fallback, toConfirm.disputed]
   );
   const metadata = useCommitmentMetadata(commitments);
+  const live = useMemo(
+    () => selectConfirmQueueRows({ toConfirm, byCID: metadata.byCID, search: "" }),
+    [toConfirm, metadata.byCID]
+  );
+  const groupSizes = useConfirmGroupSizes(chainId, live, metadata.byCID);
+
+  // Only a settled read moves the visit: rows keep their place, and new ones
+  // join the end. Taken while rendering, so a row never flashes in late. A
+  // failed read moves nothing for good: states are read from the queue anew.
+  const [visit, setVisit] = useState<{
+    read: string;
+    entries: ConfirmVisitEntry<ConfirmQueueProjectionRow>[];
+  }>({ read: "", entries: [] });
+  const read = live.map(confirmRowKey).join("|");
+  if (!toConfirm.isLoading && visit.read !== read) {
+    setVisit({ read, entries: reconcileConfirmVisit(visit.entries, live) });
+  }
+  const [decisions, setDecisions] = useState<Record<string, ConfirmDecision>>({});
 
   const rows = useMemo<ConfirmQueueRow[]>(() => {
-    return selectConfirmQueueRows({ toConfirm, byCID: metadata.byCID, search });
-  }, [toConfirm, metadata.byCID, search]);
+    const byKey = new Map(live.map((row) => [confirmRowKey(row), row]));
+    const liveKeys = new Set(byKey.keys());
+    return visit.entries
+      .map(({ key, row: seen }) => {
+        const row = byKey.get(key) ?? seen;
+        return {
+          ...row,
+          state: confirmRowState(key, { live: liveKeys, decisions }),
+          groupSize: groupSizes.get(row.commitment.id) ?? null,
+        };
+      })
+      .filter((row) => matchesConfirmSearch(row, search));
+  }, [visit.entries, live, decisions, groupSizes, search]);
 
   const acts = useMemo(
     () => ({
-      confirm: (row: ConfirmQueueRow) =>
-        jobs.enqueue({
+      confirm: async (row: ConfirmQueueRow) => {
+        let landed = false;
+        const jobId = await jobs.enqueue({
           act: "confirm",
           commitmentId: row.commitment.commitmentId,
           gardenAddress: row.garden,
-        }),
+          report: (event) => {
+            if (event.stage === "landed") landed = true;
+          },
+        });
+        const decision: ConfirmDecision = { kind: landed ? "confirmed" : "queued", at: Date.now() };
+        setDecisions((current) => ({ ...current, [confirmRowKey(row)]: decision }));
+        return jobId;
+      },
       notYet: (row: ConfirmQueueRow, reason: string) =>
         mutation.mutateAsync({
           action: "raiseDispute",

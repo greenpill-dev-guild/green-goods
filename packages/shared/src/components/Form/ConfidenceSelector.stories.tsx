@@ -96,7 +96,8 @@ export const Required: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Required state used for approval workflows — user must select Low or higher.",
+        story:
+          "Required state used for approval workflows: None is not offered, nothing is chosen until the reviewer picks Low or higher, and the hint appears once a level is chosen.",
       },
     },
   },

@@ -27,7 +27,10 @@ bun run check --plan -- --intent <intent>
 ```
 
 The selector combines intent, changed paths, dependency impact, and criticality. Agents execute the
-returned plan instead of inventing a broader command set. If the selector command is unavailable or
+returned plan instead of inventing a broader command set. Shared criticality follows
+`AGENTS.md § Change Criticality`: the policy lists the critical Shared paths, the selector also
+escalates any changed Shared file whose code reaches a signing, sending, queue or session primitive,
+and CI Gate fails when that list and the code disagree. If the selector command is unavailable or
 fails, fall back to the intent ladder and commands below and report the selector problem. A missing
 or failed selector never authorizes omitting a required check or critical override.
 
@@ -41,19 +44,26 @@ Every selected check states:
 
 - **Risk** — the concrete regression, invariant, or acceptance criterion it covers.
 - **Expected signal** — the observable pass/fail evidence the command provides.
-- **Freshness** — the source inputs, validated paths, validation entrypoint, policy, toolchain, and
-  environment profile that must remain identical before a passing receipt can be reused.
+- **Freshness** — the source inputs, validated paths, validation entrypoint, policy, toolchain,
+  environment profile, the variables the check inherits, and the git-ignored root `.env` files that
+  must remain identical before a passing receipt can be reused.
 - **Stop** — which dependent checks stop after a deterministic failure and which explicitly
   independent diagnostics may continue.
 
-Push plans also report a concurrency-aware `budget.estimatedWallSeconds`,
-`budget.hardLimitSeconds`, and `budget.enforced`. Routine pushes have a 90-second hard limit;
-sensitive pushes have 180 seconds. Critical checks are uncapped and cannot be suppressed by a
-budget, receipt, or compatibility flag. The manual `browser-proof` check is advisory: it is
-reported separately, never blocks a local plan, and is not part of the automated deadline.
+Push plans also report `budget.estimatedWallSeconds`, `budget.hardLimitSeconds`, and
+`budget.enforced`. Checks run one at a time, so the estimate is the sum of their budgets, which are
+cold measurements on a quiet machine; package suites get the whole machine through the test lease.
+Routine pushes have a 90-second hard limit; sensitive pushes have 180 seconds. Critical checks are
+uncapped and cannot be suppressed by a budget or compatibility flag. The manual `browser-proof`
+check is advisory: it is reported separately, never blocks a local plan, and is not part of the
+automated deadline.
 
 If a push plan lacks direct behavior proof, or its estimate exceeds the limit while a package
-suite is still unfocused, the selector returns `needs-focus` and executes nothing. A plan whose
+suite is still unfocused, the selector returns `needs-focus` and executes nothing. A deleted package
+test counts as missing proof unless its whole suite costs no more than a focused run; name the test
+that still proves the same failure. A changed helper, fixture or setup file under a test directory
+is judged the same way, because no runner can execute it: name a test that exercises it. Notes
+kept beside tests (Markdown) select no test run. A plan whose
 selected suites are all focused runs even when its static estimate exceeds the limit; the hard
 deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
@@ -64,8 +74,15 @@ checks.
 Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
 `node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store
 lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
-validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
-rather than trusted.
+validated paths, environment profile, root `.env` files, or a variable the check inherits
+invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
+git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
+out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
+and the toolchain versions already cover what `PATH` resolves.
+Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
+rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
+passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
+at any risk: they reuse no receipt, and their package suites run with Turbo's `--force`.
 
 `node scripts/dev/ci-local.js` renders and executes Ship intent by default. Prefer an explicit
 intent in agent workflows: `--intent push` for the ready-for-CI contract and `--intent ship` only
@@ -75,8 +92,9 @@ loop; keep the exact uncached `bun run test` for gates that name it.
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other
 capability produces `BLOCKED`, not passing; do not retry the identical check until that capability
-changes. Enforced push budgets never skip contract, deployment/release, authentication, JobQueue,
-Work-provider, mutation-hook, security, ontology, supply-chain, or release gates. Contracts use Bun
+changes. Enforced push budgets never skip contract, deployment/release, signing, sending,
+money-moving, authentication, session, JobQueue, Work-provider, security, ontology, supply-chain,
+or release gates. Contracts use Bun
 wrappers only, never raw Forge.
 
 ## Diagnosis and evidence review (non-mutating)
@@ -96,8 +114,8 @@ readiness without editing tracked files:
 bun run format --check && bun run lint && bun run test && VITE_CHAIN_ID=11155111 bun run build
 ```
 
-Run every selected stage fresh unless an exact matching receipt satisfies the freshness contract
-above. A required failure means `REQUEST_CHANGES`. A required check that cannot run means
+Run every selected stage fresh; the readiness gate reuses no receipt and no Turbo cache entry. A
+required failure means `REQUEST_CHANGES`. A required check that cannot run means
 `COMMENT_ONLY`; do not downgrade or replace the proof silently.
 
 For a PR readiness verdict, local evidence is necessary but not sufficient. Required GitHub CI
@@ -144,15 +162,28 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
 
-The focused path may be inferred when the changed file is itself a direct test. The push selector
+The focused path may be inferred when the changed file is itself a direct test (`*.test.*`,
+`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push selector
 chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
-an interface, route, generated artifact, or runtime composition moved. Ordinary Shared
+an interface, route, generated artifact, or runtime composition moved. It also runs the repository
+checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
+fingerprints; `docs-generated` for every input of `scripts/docs/generate.mjs` and `docs/`;
+`docs-authority` for any script, configuration or guide outside Plan Hubs; and
+`immutable-plan-reports` for Plan Hub reports, over the plan's own commits and working tree, because
+CI rejects any edit, deletion or rename of a dated report. Ordinary Shared
 implementation changes do not run complete Client, Admin, or Agent suites locally; those remain CI
 responsibilities.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
-successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
-command, policy, toolchain, or environment drift invalidates it.
+release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
+locally, because its history was already judged as it entered develop. A successful exact
+post-commit receipt is reusable by the pre-push hook. Commit, working-tree, command, policy,
+toolchain, or environment drift invalidates it.
+
+When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
+to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:
+`GREEN_GOODS_PUSH_TEST_PATHS="client:src/__tests__/views/PublicGardenDetail.test.tsx shared:src/__tests__/i18n/locale-coverage.test.ts" git push origin <branch>`.
+The hook forwards each entry as `--test-path` and retains every selected gate.
 
 Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
 critical-surface warnings may run during editing, but package-wide validation is owned by the

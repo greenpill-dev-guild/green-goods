@@ -1,6 +1,6 @@
 /**
  * Mobile Navigation Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type React from "react";
@@ -56,6 +56,15 @@ vi.mock("@/components/Shell", () => ({
 
 vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
   GardenChip: () => <div>Garden Chip</div>,
+}));
+
+// The shell aligns a phone wallet's network through wagmi; these shells have no wallet.
+vi.mock("@green-goods/shared/hooks/blockchain/useWalletNetworkAlignment", () => ({
+  useWalletNetworkAlignment: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0x1234567890123456789012345678901234567890",
 }));
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({

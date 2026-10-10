@@ -17,17 +17,32 @@ export function releaseStuckDialogArtifacts(doc: Document = document): void {
   );
   if (modalOpen) return;
 
-  if (doc.body.style.pointerEvents === "none") {
-    doc.body.style.pointerEvents = "";
+  const view = doc.defaultView;
+  if (!view) return;
+
+  let hasRunningExit = false;
+  for (const node of doc.querySelectorAll<HTMLElement>(
+    '[data-component="AdminDialog"][data-state="closed"],[data-component="AdminSideSheet"][data-state="closed"]'
+  )) {
+    if (
+      node
+        .getAnimations?.()
+        .some((animation) => animation.pending || animation.playState === "running")
+    ) {
+      hasRunningExit = true;
+      continue;
+    }
+
+    // Finish Presence's lifecycle instead of cancelling CSS through a DOM
+    // attribute mutation. React then unmounts the portal and releases focus,
+    // aria-hidden, and pointer locks together.
+    const names = view.getComputedStyle(node).animationName || "none";
+    for (const animationName of names.split(",").map((name) => name.trim())) {
+      node.dispatchEvent(new view.AnimationEvent("animationend", { animationName }));
+    }
   }
 
-  // A dialog whose exit animation froze (hidden tab) still sits in the DOM in
-  // its closed state. Marking it instant-exit removes its animation (the CSS
-  // also display:none's it), so Radix's presence tracking can resolve and the
-  // ghost never blocks or flashes.
-  for (const node of doc.querySelectorAll(
-    '[data-component="AdminDialog"][data-state="closed"]:not([data-instant-exit]),[data-component="AdminSideSheet"][data-state="closed"]:not([data-instant-exit])'
-  )) {
-    node.setAttribute("data-instant-exit", "");
+  if (!hasRunningExit && doc.body.style.pointerEvents === "none") {
+    doc.body.style.pointerEvents = "";
   }
 }

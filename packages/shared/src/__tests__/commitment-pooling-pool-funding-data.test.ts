@@ -227,6 +227,7 @@ function reader(
 function clientFactory(
   options: {
     failBalance?: boolean;
+    failBlock?: boolean;
     failFunctions?: Set<string>;
     blockTimestamp?: bigint;
     periodDuration?: bigint;
@@ -241,7 +242,9 @@ function clientFactory(
     chainIds.push(chainId);
     return {
       getBlockNumber: vi.fn().mockResolvedValue(50n),
-      getBlock: vi.fn().mockResolvedValue({ timestamp: options.blockTimestamp ?? 2_100n }),
+      getBlock: options.failBlock
+        ? vi.fn().mockRejectedValue(new Error("block unreadable"))
+        : vi.fn().mockResolvedValue({ timestamp: options.blockTimestamp ?? 2_100n }),
       readContract: vi.fn(
         async ({ address, functionName }: { address: string; functionName: string }) => {
           if (options.failFunctions?.has(functionName)) throw new Error(`${functionName} failed`);
@@ -330,6 +333,18 @@ describe("pool funding hybrid reader", () => {
     expect(snapshot.balance?.value).toBe(1_000n);
     expect(snapshot.available).toBeNull();
     expect(snapshot.fundingUnavailableReasons).toContain("ledger_stale");
+  });
+
+  it("calls an unreadable processed block unavailable, not stale", async () => {
+    const now = 2_050;
+    const snapshot = await getPoolFundingSnapshot(42161, GARDEN, {
+      reader: reader(now),
+      createClient: clientFactory({ failBlock: true }).createClient,
+      now,
+    });
+    expect(snapshot.available).toBeNull();
+    expect(snapshot.fundingUnavailableReasons).toContain("ledger_unavailable");
+    expect(snapshot.fundingUnavailableReasons).not.toContain("ledger_stale");
   });
 
   it("turns an RPC balance failure into unavailable data, never zero", async () => {

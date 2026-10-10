@@ -5,13 +5,17 @@ import type {
   ProtocolFundingOperationsController,
   ProtocolFundingRow,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import {
+  type PoolFundingTransferLimit,
+  selectExceededTransferLimit,
+} from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { AdminSelect, AdminTextField } from "@/components/AdminTextField";
@@ -20,6 +24,29 @@ import { type TransferAct, TransferReviewDialog } from "@/views/Garden/Pool/Tran
 import { ProtocolFundingRows } from "./ProtocolFundingRows";
 
 type GardenOption = { id: Address; name: string };
+
+/** What the amount field says for each limit, in the words of the facts listed under it. */
+const OVER_LIMIT_MESSAGES: Record<
+  PoolFundingTransferLimit,
+  { id: string; defaultMessage: string }
+> = {
+  transfer_cap: {
+    id: "cockpit.community.protocolFunding.amount.overTransferCap",
+    defaultMessage: "More than the per-transfer cap.",
+  },
+  period_allowance: {
+    id: "cockpit.community.protocolFunding.amount.overPeriodAllowance",
+    defaultMessage: "More than the period allowance left.",
+  },
+  roles_allowance: {
+    id: "cockpit.community.protocolFunding.amount.overSafeAllowance",
+    defaultMessage: "More than the Safe allowance left.",
+  },
+  balance: {
+    id: "cockpit.community.protocolFunding.amount.overBalance",
+    defaultMessage: "More than the protocol Safe holds.",
+  },
+};
 
 export function ProtocolFundingOperationsCard({
   operations,
@@ -51,7 +78,21 @@ export function ProtocolFundingOperationsCard({
   );
   const source = operations.sourceFunding.snapshot;
   const target = operations.targetFunding.snapshot;
-  const canReview = Boolean(targetGarden && amountValue);
+  // The Arbitrum queue takes any amount; these limits are enforced only on Celo,
+  // after the CCIP fee is spent. The review and its confirm both refuse on this.
+  const exceededLimit = amountValue
+    ? selectExceededTransferLimit(operations.sourceFunding, amountValue)
+    : null;
+  const amountError =
+    amount.length > 0 && amountValue === null
+      ? formatMessage({
+          id: "cockpit.community.protocolFunding.amount.invalid",
+          defaultMessage: "Enter an amount greater than zero.",
+        })
+      : exceededLimit
+        ? formatMessage(OVER_LIMIT_MESSAGES[exceededLimit])
+        : undefined;
+  const canReview = Boolean(targetGarden && amountValue && !exceededLimit);
 
   const gardenName = (garden: Address | null | undefined) =>
     garden
@@ -77,13 +118,13 @@ export function ProtocolFundingOperationsCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="label-md text-text-strong">
+          <AdminCardTitle>
             {formatMessage({
               id: "cockpit.community.protocolFunding.title",
               defaultMessage: "Protocol Funding",
             })}
-          </h3>
-          <p className="mt-1 max-w-2xl text-xs text-text-soft">
+          </AdminCardTitle>
+          <p className="mt-1 max-w-2xl body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
               defaultMessage:
@@ -148,19 +189,12 @@ export function ProtocolFundingOperationsCard({
               type="number"
               onChange={(event) => setAmount(event.target.value)}
               inputProps={{ min: "0.000000000000000001", step: "any", inputMode: "decimal" }}
-              error={
-                amount.length > 0 && amountValue === null
-                  ? formatMessage({
-                      id: "cockpit.community.protocolFunding.amount.invalid",
-                      defaultMessage: "Enter an amount greater than zero.",
-                    })
-                  : undefined
-              }
+              error={amountError}
             />
           </div>
-          <dl className="grid gap-3 rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container))] p-3 text-sm sm:grid-cols-2">
+          <dl className="grid gap-3 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 body-sm sm:grid-cols-2">
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.source",
                   defaultMessage: "Protocol Safe",
@@ -172,7 +206,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.recipient",
                   defaultMessage: "Receiving Safe",
@@ -183,7 +217,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.allowance",
                   defaultMessage: "Safe allowance remaining",
@@ -194,7 +228,18 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-text-soft">
+              <dt className="body-xs text-text-soft">
+                {formatMessage({
+                  id: "cockpit.community.protocolFunding.periodAllowance",
+                  defaultMessage: "Period allowance remaining",
+                })}
+              </dt>
+              <dd className="mt-1 font-medium text-text-strong">
+                {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
+              </dd>
+            </div>
+            <div>
+              <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.cap",
                   defaultMessage: "Per-transfer cap",
@@ -220,7 +265,7 @@ export function ProtocolFundingOperationsCard({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-text-soft" data-testid="protocol-funding-unavailable">
+        <p className="body-xs text-text-soft" data-testid="protocol-funding-unavailable">
           {formatMessage({
             id: "cockpit.community.protocolFunding.unavailable",
             defaultMessage:
@@ -240,8 +285,8 @@ export function ProtocolFundingOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "text-xs text-error-dark"
-              : "text-xs text-text-soft"
+              ? "body-xs text-error-dark"
+              : "body-xs text-text-soft"
           }
           role="status"
           data-testid="protocol-funding-status"
@@ -290,14 +335,17 @@ export function ProtocolFundingOperationsCard({
           defaultMessage: "Queue Seed or Top-Up",
         })}
         cancelLabel={formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        confirmDisabled={!targetGarden || !amountValue || !operations.canQueueFunding}
+        confirmDisabled={!canReview || !operations.canQueueFunding}
         isLoading={operations.isActing}
         onConfirm={async () => {
-          if (!targetGarden || !amountValue) return;
+          if (!targetGarden || !amountValue || exceededLimit) return;
           await submit(() => operations.queueFunding(targetGarden, amountValue));
           setConfirmQueue(false);
         }}
-      />
+      >
+        {/* A refresh can lower a limit while the review is open. */}
+        {exceededLimit ? <Alert variant="error">{amountError}</Alert> : null}
+      </AdminConfirmDialog>
 
       <TransferReviewDialog
         review={review ? { act: review.act, disbursementId: review.row.disbursementId } : null}

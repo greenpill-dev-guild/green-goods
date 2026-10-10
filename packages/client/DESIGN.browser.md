@@ -24,7 +24,8 @@ dialect: public-browser
 - **Browser `/`** renders the editorial homepage under `PublicShell`.
 - **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
-- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list.
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/vaults`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list, with one recorded exception: the chat reporting ceremony pages under `/agent/reporting/*` (see below).
+- **Unknown URLs redirect to `/`.** Only a Garden's page says "not found" (`/gardens/:id`); no other route renders a 404 (DL-083).
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
 ## SiteHeader
@@ -37,6 +38,42 @@ dialect: public-browser
 - **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
 - Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
 
+## Failure States
+
+A visitor who meets a failure still sees a website. The failure is drawn where it happened and only as large as what failed (DL-083):
+
+- **A page fails** (its code will not load, its loader throws, or it throws while rendering): the page is replaced by an ordinary editorial page inside the site's frame. `PublicPageError` is the banner hero with a title, one sentence, Reload and Browse Gardens, over the soil footer. `SiteHeader` stays, so the navigation still leads away. The public pages sit inside one route that carries `RouteErrorBoundary view="page"` (`errorFrame` in `config/routes.tsx`), which is what keeps `PublicShell` on screen. The state cannot sit on a page's own route: React Router renders nothing for a route whose code failed to load.
+- **The site's frame fails** (`PublicShell`, the root route, or a provider): `PublicSiteError` is one linen card on the walnut ground, where the boot shell's recovery card sits, with the title, one sentence and Reload. It reads no provider and no router, so it renders whatever failed.
+- **A reporting ceremony page fails** as the app does, inside its focused bar: see `DESIGN.pwa.md` § Failure states.
+- **Offline**: when a page's code cannot be fetched without a connection, the title says so and the page reloads itself when the connection returns. Reload waits with it, so the browser's own offline page never replaces the site.
+- **A new build**: a page whose code is from a build that is no longer served reloads itself once, and no error is shown.
+- **A failed read is not an empty one.** A section whose read failed renders `PublicReadUnavailable`: the serif italic sentence ("This public record is temporarily unavailable. Please try again.", or the surface's own) and a Try Again that asks the read again. `PublicSurfaceState` renders it by default; the homepage's Featured Gardens and the lists on `/gardens`, `/actions`, `/fund` and `/impact` use it. An empty state is only for a read that succeeded and found nothing.
+- **Never on the website**: an error message or code, a stack, "technical details", a copy-details action, a bug or warning illustration, or app chrome. Reports go to PostHog by themselves.
+
+## Reporting ceremony pages (`/agent/reporting/*`)
+
+The browser step of a chat report, review or account move: `/agent/reporting/:requestId`,
+`/agent/reporting/recover/:requestId`, and the static `/agent/reporting/permissions`. They are
+transactional pages that someone reaches from a chat link, usually on a phone, so they leave the
+editorial dialect on purpose:
+
+- **Focused shell.** `PublicShell` renders `FocusedSiteHeader` for this prefix: the mark on a solid
+  canvas and one Help control, with no navigation, no `Install App` CTA, no footer and no hero.
+  Nothing leads away from a signature in progress. Help opens in place and explains the page, what
+  becomes public and returning to the chat, and links the static permissions page and the support
+  contact. The boot skeleton uses the matching `focused` variant.
+- **App surface.** The shell omits `data-site="website"`, so shared buttons and fields keep the app
+  corner together. One narrow column, one step at a time, Inter throughout; no Fraunces.
+- **Website presentation even when installed.** The prefix is a public website prefix, so an
+  installed app that captures the link still renders the page, not the PWA shell.
+- **Wallet connect is allowed here**, at the proof step only, as in funding flows. The page connects
+  an existing wallet or passkey. Only a link that joins a chat to an account may create one, and
+  only when the person chooses to: no failed sign-in leads to a new account. A publish or review
+  says up front that it takes two signatures.
+- **Privacy.** Served `no-store`, `no-referrer` and `noindex`; analytics and error reports drop the
+  link locator, and replays and element captures are not taken on these pages. They are not WebMCP
+  routes.
+
 ## Homepage (`/`)
 
 Composed of eight sections in this exact order (pinned by the section-order test in `PublicHome.test.tsx`):
@@ -45,6 +82,7 @@ Composed of eight sections in this exact order (pinned by the section-order test
    - **Desktop CTAs:** `Explore Gardens` only (single primary). The `Install App` CTA already lives in the header on desktop, so the hero stays focused on the editorial gesture.
    - **Mobile CTAs:** `Install App` (or `Open App`) **first**, then `Explore Gardens` second. A phone visitor lands on the install path; the secondary keeps the editorial route open.
    - The CTAs land **above the fold** on standard browser viewports (1440 / 1024 / 768 / 375 px) because the card is contained inside the image, not protruding below it.
+   - **Short screens:** where the viewport is too short for the card (a phone held sideways, a short desktop window), the hero grows past the first screen and the card starts one gutter below the header. It never slides under the header or off the top.
    - **Never** stats, route grids, wallet connect, or waitlist forms in the hero.
 2. **`PublicFeaturedGardens`** — **four featured Gardens in an editorial masonry column flow** (not a fake stagger). Image-backed Gardens are preferred so the grid feels alive rather than placeholder-heavy. Curation comes from `packages/client/src/content/publicCuration.ts` keyed by Garden id/address (canonical) — slugs are display aliases. Falls back to recent active Gardens when curation is empty or unmatched. The section uses standard vertical rhythm — no oversized top padding to absorb a hero overlap, since the hero is now self-contained.
 3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden. Renders on the warm linen surface in light mode and a warm walnut surface in dark mode (both via `--editorial-warm-rgb`); body text uses semantic tokens that auto-flip.
@@ -66,18 +104,26 @@ Every public-browser page ends with `PublicFooter` — a single quiet row contai
 
 Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
 
+## Banner Hero
+
+Every public page but Home opens on `PublicEditorialHero variant="banner"`: a shorter image plate (340px, 420px from 640px, 500px from 1024px) with the linen card at its foot, spilling past it into the next section (64px, 80px from 640px). The section after a banner reserves top padding for the spill.
+
+- **The card never slides under `SiteHeader`.** The plate's height is a minimum, not a fixed height. A card too tall for it (a narrow phone, a longer Spanish or Portuguese title, a stacked action row) grows the plate, so the card starts one gutter below the header (88px, 104px from 640px) and still spills the same distance. This is the homepage hero's short-screen rule, applied to the banner.
+- Where the card fits, the plate keeps its height and nothing moves.
+- The boot skeleton in `index.html` mirrors both rules; `bootFallbackGeometry.test.ts` pins the pair.
+
 ## `/gardens`
 
 - Editorial header (kicker `Living Archive`, serif h1, lede).
 - Featured row reuses `PublicGardenCard` with a `lead` variant on the first card.
-- Browse section: search input over a structured Garden grid. Cards link to `/gardens/:slug` and render confirmed-only metadata (location, contributors, Work count). No fake metrics.
+- Browse section: search input over a structured Garden grid. Cards link to `/gardens/:slug` and render confirmed-only metadata (location, gardeners, entry count). No fake metrics.
 
 ## `/gardens/:id`
 
 An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog over the `/gardens` grid — an accident of an unrelated homepage-polish commit, not a decision — which cost the page its footer, gave an editorial long-read a nested scroll container, and left the return trip to the archive undefined.
 
-- `PublicEditorialHero variant="banner"`. Image is the Garden's own `bannerImage`, falling back to `getPublicHeroImage("gardens")`. Location is the kicker, name is the H1, description is the lede. A quiet `← All Gardens` sits in the hero's `actions` slot.
-- Four-cell record strip under the hero: **Entries · Hands at work · Assessments · Certificates**. Do not widen it — the commitment-pooling section brings its own counts.
+- `PublicEditorialHero variant="banner"`. Image is the Garden's own `bannerImage`, falling back to `getPublicHeroImage("gardens")`. The hero card shows the Garden name first, followed by the location in regular sentence-case body text with normal letter spacing. Reserve two lines for the location and let longer names wrap without clipping; never style it as a kicker or eyebrow. The hero contains these identity details only; it has no description preview or expansion controls. A quiet text link, `← All Gardens`, sits directly below the overlapping hero card, without extra section-top whitespace. The full description appears once, always visible in the page body under “About this garden,” before the record strip. Long text wraps naturally; it does not change the hero card.
+- Four-cell record strip under the hero: **Entries · Hands at work · Assessments · Certificates**. Do not widen it — the commitment-pooling section brings its own counts. **Hands at work** is the Garden's gardeners and stewards, each address once: the number its card and `/fund` row show as gardeners, and the home page's total is the same people across every listed Garden. All three read `publicGardenHelpers.gardenerAddresses`; do not count people from approved Work in a view.
 - Single-column numbered sections: **§ 01 Field notes → § 02 Commitments → § 03 Impact Certificates → § 04 Stewards**. No side rail; only the transactional `/fund` carries one, and the dialect treats boxed rails as chrome.
 - § 02 Commitments is the Garden's record across seasons and campaigns. Header and body both compose directly on the canvas in the page's own grammar — headers on linen, hairline dividers, § 01-style stat rows (the 2026-08-25 supersession of the PR-748 `EditorialPanel` body; no section on this page is card-wrapped). The record reads: the pool-state sentence beside the lifetime **Commitments made · Kept · Kept rate** (the rate only when `selectPublicPromiseKeptRate` publishes it), then the open Season and Campaigns beside the pool-wide exact-label units, then the finished cycles newest first, then the line that ties fulfilled commitments to § 03. A section body, not a rail. Never pause reasons, providers, addresses, cancelled or disputed counts, or rankings.
 - Field notes are an image-led grid in the `PublicGardenCard` restraint grammar — no border, radius, or shadow — twelve at a time with a local `Show more entries`. A tile opens the `PublicRecordDrawer` record view with the full media, the gardener's note, and an attestation link.
@@ -90,7 +136,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 ## `/impact`
 
 - Aggregate counts (`Total Assessments` / `Total Gardens` / `Total Contributors`).
-- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen (2026-08-25 panel supersession) — four protocol-wide aggregates — Gardens with open pools, commitments fulfilled (lifetime), commitments kept (a share only above the ≥ 5 due / ≥ 3 providers threshold, counts below it), and CCIP-confirmed G$ support — with the lifecycle sentence and `See the Gardens` as the record's hairline footer line. No per-garden table or ordering; a failed figure is an em dash, never `0`.
+- § 02 Commitments band between the proof markers and the cycle: header and record both on the linen. "Commitments within communities" introduces the community story before three lifetime figures: commitments made (offers plus requests), commitments kept (confirmed fulfilled count), and funding received in US dollars. Funding uses historical G$ prices near each confirmed transfer's Celo execution time, never the current rate; missing receipt evidence or reliable historical prices leaves that figure unavailable. The three figures stack on phones and sit side by side from `md`. `See the Gardens` closes the record. No open-pool count, percentage, per-garden table, or ordering. This band labels unavailable figures in words and uses no em dashes in its copy.
 - Evidence cards from `usePublicImpactEvidence`. Cards open `PublicEvidenceDialog` (a `PublicRecordDrawer` composition) with a readable Assessment summary and an EAS reference link when available.
 - Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
 - No Hypercert gallery placeholder, no Karma GAP claims.
@@ -123,7 +169,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 ## `/actions`
 
 - Domain filter chips (All / Solar / Agro / Education / Waste).
-- `PublicActionCard` grid; cards open `PublicSourceDialog` with media, description, and an `Install App` CTA in the dialog footer.
+- `PublicActionCard` grid; cards open `PublicSourceDialog` with media and description. The Install App CTA belongs in the site header, not action details.
 - No public create or edit controls.
 
 ## Typography
@@ -131,6 +177,7 @@ Manage Endowments is the only public withdrawal surface in v1. It is wallet-owne
 - **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and Garden story headings. Loaded via `packages/client/index.html`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
 - **Inter** carries body, nav, cards, buttons, and dialogs across both browser and installed PWA modes.
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
+- The home page and the four navigation pages (Gardens, Impact, Fund, Actions) open on a hero title of three lines at every width. Their English titles are written as three `<line>` segments in the catalog and rendered with `EditorialTitleLine`, because the card's measure alone lets a small copy edit change the count. Keep each line within the desktop card, 456px at 60px type. Spanish and Portuguese titles are longer and wrap on their own.
 
 ### Trying a different editorial serif
 
@@ -174,7 +221,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
   - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
   - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
-  - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+  - Every mobile bottom sheet spans the full viewport width, with padding inside the sheet. Width caps apply only to desktop dialogs and side panels.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.

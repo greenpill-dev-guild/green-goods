@@ -440,7 +440,7 @@ export function renderEntityMatrixMdx(
   lines.push("- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.");
   lines.push("- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.");
   lines.push(
-    "- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types."
+    "- **Role entities** (Garden Steward through Data Scientist/Researcher) map to protocol-specific role or permission types."
   );
   lines.push("");
   lines.push("## Integration Matrix");
@@ -484,7 +484,7 @@ export function renderEntityMatrixMdx(
     "- **Gardens V2**: Community governance primitives. Maps Garden to Community, with role mappings for council and community membership."
   );
   lines.push(
-    "- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Operator Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst)."
+    "- **Hats Protocol**: On-chain role management. Maps all 6 role types to protocol-specific hat levels (Top Hat, Steward Hat, Gardener Hat, Community Member, Garden Supporter, Garden Analyst)."
   );
   lines.push("- **Silvi**: Forestry and agroforestry partner. Currently maps only Garden to Project.");
   lines.push("- **Cookie Jar**: Payout and reward primitive. Currently maps only Garden to Jar.");

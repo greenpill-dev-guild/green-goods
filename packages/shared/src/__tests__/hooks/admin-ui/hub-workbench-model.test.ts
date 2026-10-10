@@ -1,17 +1,16 @@
 /**
- * buildHubStageModel — stageCounts source-of-truth test
+ * buildHubStageModel — stage counts and visibility
  *
- * Guards the Hub header "pipeline summary" (#563 review P2): the stage counts
- * that feed both the tab-rail badges and the header MetaStrip are derived from
- * the *unfiltered* works/assessments/hypercerts, independent of any active
- * search term. Reading the search-filtered queue lengths in the header made the
- * two disagree whenever a steward searched; this pins the unfiltered contract.
+ * A count on the rail means "waiting on you", so it reads the unfiltered
+ * queues: a search never shifts it (#563 review P2). Assessments and Hypercerts
+ * list records, which wait on no one, and carry no count (DL-082).
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
   buildHubStageModel,
+  hasHubStageDataError,
   resolveHubRouteState,
   resolveHubSheetSelection,
   selectHubStageContent,
@@ -20,38 +19,24 @@ import {
 const baseInput = {
   requestedStage: "work" as const,
   canManage: true,
-  canAssess: true,
-  canCertify: true,
+  canReview: true,
 };
 
 describe("buildHubStageModel stageCounts", () => {
-  it("derives unfiltered pipeline counts from raw works/assessments/hypercerts", () => {
+  it.each([
+    "work",
+    "certify",
+  ] as const)("counts pending work only, whichever stage is open (%s)", (requestedStage) => {
     const { stageCounts } = buildHubStageModel({
       ...baseInput,
+      requestedStage,
       works: [{ status: "pending" }, { status: "pending" }, { status: "approved" }],
-      assessments: [{ id: "a1" }, { id: "a2" }, { id: "a3" }],
-      hypercerts: [{ id: "a3" }], // a3 already certified → excluded from the certify queue
     });
 
-    expect(stageCounts.work).toBe(2); // two pending submissions
-    expect(stageCounts.assess).toBe(1); // one approved submission awaiting assessment
-    expect(stageCounts.certify).toBe(2); // three assessments minus one already certified
-  });
-
-  it("reports the full pipeline regardless of which stage is requested", () => {
-    // The header summary must report every stage even when the steward is
-    // viewing a single one — the counts are not scoped to requestedStage.
-    const { stageCounts } = buildHubStageModel({
-      ...baseInput,
-      requestedStage: "certify",
-      works: [{ status: "pending" }, { status: "approved" }, { status: "approved" }],
-      assessments: [{ id: "a1" }],
-      hypercerts: [],
-    });
-
-    expect(stageCounts.work).toBe(1);
-    expect(stageCounts.assess).toBe(2);
-    expect(stageCounts.certify).toBe(1);
+    expect(stageCounts.work).toBe(2);
+    // Approved work is a scope of the Work tab, not a queue of its own.
+    expect(stageCounts.assess).toBeUndefined();
+    expect(stageCounts.certify).toBeUndefined();
   });
 
   it("counts the Confirm stage from the confirmation queue and shows it only to a steward", () => {
@@ -60,14 +45,12 @@ describe("buildHubStageModel stageCounts", () => {
       canConfirm: true,
       confirmCount: 3,
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
     expect(steward.stageCounts.confirm).toBe(3);
     expect(steward.stageVisibility.confirm).toBe(true);
     expect(steward.stages.map((stage) => stage.id)).toEqual([
-      "confirm",
       "work",
+      "confirm",
       "assess",
       "certify",
     ]);
@@ -79,12 +62,85 @@ describe("buildHubStageModel stageCounts", () => {
       confirmCount: 3,
       requestedStage: "confirm",
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
     expect(evaluator.stageVisibility.confirm).toBe(false);
     // A stage the reader cannot see clamps to a visible one, never to an empty Confirm.
     expect(evaluator.stage).not.toBe("confirm");
+  });
+});
+
+describe("hasHubStageDataError", () => {
+  const failed = new Error("read failed");
+  const read = {
+    gardenError: null,
+    worksError: null,
+    assessmentsError: null,
+    assessmentCount: 0,
+    hypercertsError: null,
+    hypercertCount: 0,
+  };
+
+  // A failed read is not an empty list, and each tab answers for its own read:
+  // an outage in one source must not blank a tab whose records loaded.
+  it.each([
+    ["a garden that could not be read marks every stage", "assess", { gardenError: failed }, true],
+    ["a failed work read marks the Work tab", "work", { worksError: failed }, true],
+    [
+      "a failed work read leaves the Assessments tab alone",
+      "assess",
+      { worksError: failed },
+      false,
+    ],
+    [
+      "a failed work read leaves the Hypercerts tab alone",
+      "certify",
+      { worksError: failed },
+      false,
+    ],
+    [
+      "a failed assessment read with nothing to show marks the Assessments tab",
+      "assess",
+      { assessmentsError: failed },
+      true,
+    ],
+    [
+      "a failed refresh keeps the assessments already read",
+      "assess",
+      { assessmentsError: failed, assessmentCount: 2 },
+      false,
+    ],
+    [
+      "a failed assessment read leaves the Work tab reviewable",
+      "work",
+      { assessmentsError: failed },
+      false,
+    ],
+    [
+      "a failed hypercert read with nothing to show marks the Hypercerts tab",
+      "certify",
+      { hypercertsError: failed },
+      true,
+    ],
+    [
+      "a failed refresh keeps the hypercerts already read",
+      "certify",
+      { hypercertsError: failed, hypercertCount: 2 },
+      false,
+    ],
+    [
+      "a failed hypercert read leaves the Work tab reviewable",
+      "work",
+      { hypercertsError: failed },
+      false,
+    ],
+    [
+      "the Confirm stage answers for its own queue",
+      "confirm",
+      { worksError: failed, assessmentsError: failed, hypercertsError: failed },
+      false,
+    ],
+  ] as const)("%s", (_label, stage, overrides, expected) => {
+    expect(hasHubStageDataError(stage, { ...read, ...overrides })).toBe(expected);
   });
 });
 
@@ -109,18 +165,17 @@ describe("Hub workbench routing policy", () => {
     ).toEqual({ kind: "work", id: "route-work" });
   });
 
-  it("falls back from route work to the active work detail", () => {
+  it("closes the inspector after the detail route leaves, despite retained work selection", () => {
     expect(
       resolveHubSheetSelection({
         activeWorkDetailId: "active-work",
         hasSelectedCertification: true,
       })
-    ).toEqual({ kind: "work", id: "active-work" });
+    ).toBeNull();
   });
 
   it.each([
     ["certification route", { routeCertificationId: "certification" }, "certification"],
-    ["selected certification", { hasSelectedCertification: true }, "certification"],
   ] as const)("resolves a %s inspector", (_label, overrides, kind) => {
     expect(
       resolveHubSheetSelection({
@@ -129,6 +184,15 @@ describe("Hub workbench routing policy", () => {
         ...overrides,
       })
     ).toEqual({ kind });
+  });
+
+  it("does not reopen an assessment from retained selection after its route closes", () => {
+    expect(
+      resolveHubSheetSelection({
+        activeWorkDetailId: null,
+        hasSelectedCertification: true,
+      })
+    ).toBeNull();
   });
 
   it("returns no inspector without route or selection state", () => {
@@ -169,11 +233,8 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,
-      canAssess: true,
-      canCertify: true,
+      canReview: true,
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
     // stage === requestedStage → the effect's `requestedStage === stage` guard
     // returns early → no redirect. So a permitted steward does NOT hit the
@@ -181,15 +242,12 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
     expect(stage).toBe("assess");
   });
 
-  it("clamps stage to a visible fallback when the steward cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
+  it("clamps stage to a visible fallback when the viewer cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
     const { stage } = buildHubStageModel({
       requestedStage: "assess",
       canManage: true,
-      canAssess: false,
-      canCertify: true,
+      canReview: false,
       works: [],
-      assessments: [],
-      hypercerts: [],
     });
     expect(stage).not.toBe("assess");
     expect(stage).toBe("work"); // first visible stage

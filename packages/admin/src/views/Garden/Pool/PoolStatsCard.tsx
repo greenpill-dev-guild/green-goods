@@ -29,13 +29,13 @@ export function PoolStatsCard({ stats, label }: { stats: readonly PoolStat[]; la
             <>
               <span
                 className={cn(
-                  "block text-lg font-semibold tabular-nums",
+                  "block text-title-md font-semibold tabular-nums",
                   stat.count > 0 ? "text-text-strong" : "text-text-soft"
                 )}
               >
                 {stat.count}
               </span>
-              <span className="block text-xs text-text-soft">{stat.label}</span>
+              <span className="block body-xs text-text-soft">{stat.label}</span>
             </>
           );
           return (
@@ -44,7 +44,7 @@ export function PoolStatsCard({ stats, label }: { stats: readonly PoolStat[]; la
                 <button
                   type="button"
                   onClick={stat.onOpen}
-                  className="m3-state-layer block h-full w-full px-3 py-2 text-left [--state-layer-color:var(--m3-on-surface)]"
+                  className="m3-state-layer block h-full w-full px-3 py-2 text-left [--state-layer-color:var(--text-strong-950)]"
                 >
                   {body}
                 </button>

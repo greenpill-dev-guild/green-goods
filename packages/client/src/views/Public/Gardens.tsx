@@ -13,7 +13,7 @@ import {
   EditorialHeading,
   EditorialKicker,
   EditorialMediaCardSkeleton,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
@@ -33,7 +33,7 @@ import { focusRememberedGardenCard } from "./gardenReturnFocus";
  */
 export default function GardensGallery() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading, isError } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const [query, setQuery] = useState("");
   const navigationType = useNavigationType();
   const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
@@ -73,16 +73,15 @@ export default function GardensGallery() {
         title={formatMessage(
           {
             id: "public.gardens.heroTitle",
-            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record.",
+            defaultMessage:
+              "<line>Explore the</line> <line><accent>Gardens</accent> growing</line> <line>the public record</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Anyone can read the record they build.",
+            "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
         })}
       />
 
@@ -105,7 +104,7 @@ export default function GardensGallery() {
               <EditorialHeading id="public-gardens-archive-title">
                 {formatMessage({
                   id: "public.gardens.archiveTitle",
-                  defaultMessage: "Browse every Garden keeping a public record.",
+                  defaultMessage: "Meet the Gardens.",
                 })}
               </EditorialHeading>
             </div>
@@ -169,15 +168,7 @@ export default function GardensGallery() {
                   ))}
                 </div>
               }
-              error={
-                <p className="mt-12 font-serif text-2xl italic text-text-soft-400">
-                  {formatMessage({
-                    id: "public.surface.error",
-                    defaultMessage:
-                      "This public record is temporarily unavailable. Please try again.",
-                  })}
-                </p>
-              }
+              onRetry={() => void refetch()}
               empty={
                 <div className="mt-12">
                   <p className="font-serif text-2xl italic text-text-soft-400">

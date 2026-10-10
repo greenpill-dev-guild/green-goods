@@ -14,8 +14,8 @@
   mutation, or live Celo canary.
 
 The settlement contract lane is GREEN and its indexer entities are present, so the previously
-deferred settlement reads are included in this source implementation. Runtime reads still fail
-closed until the hosted Envio schema is manually deployed, fully synced, and read back.
+deferred settlement reads are included in this source implementation. Runtime reads opened on
+Arbitrum One once the hosted Envio schema was deployed, synced, and read back (live since 2026-08-27).
 
 ## Decisions this contract locks
 

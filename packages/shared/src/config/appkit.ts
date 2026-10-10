@@ -115,7 +115,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   if (!projectId) {
     logger.warn(
-      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in .env.template + run `bun run env:sync` for team-shared 1Password resolution)."
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in env.template + run `bun run env:sync` for team-shared 1Password resolution)."
     );
   }
 
@@ -198,6 +198,15 @@ function getAppKitSingleton() {
 /** Get the singleton AppKit instance (lazily initialized). Returns null only in SSR. */
 export function getAppKit() {
   return getAppKitSingleton().appKit;
+}
+
+/**
+ * The AppKit instance if the app has already created it. Unlike `getAppKit`, this never
+ * creates one, so code that only adapts to AppKit (the wallet network guard) stays inert
+ * in tests and hosts that never mounted `AppKitProvider`.
+ */
+export function peekAppKit() {
+  return appKitInstance;
 }
 
 /**

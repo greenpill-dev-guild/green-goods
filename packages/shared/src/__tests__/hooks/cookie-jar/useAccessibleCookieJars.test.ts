@@ -1,6 +1,6 @@
 /**
  * useAccessibleCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Verifies cookie-jar visibility is based on onchain garden-account access
  * checks and fails closed when eligibility cannot be confirmed.
@@ -8,7 +8,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_MODULE = "0x1000000000000000000000000000000000000000";

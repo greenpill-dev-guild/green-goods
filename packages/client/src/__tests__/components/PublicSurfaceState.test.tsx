@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PublicSurfaceState } from "../../components/Public/PublicSurfaceState";
-import { renderWithProviders, screen } from "../test-utils";
+import { fireEvent, renderWithProviders, screen } from "../test-utils";
 
 const slots = {
   loading: <p>Loading</p>,
@@ -18,6 +18,31 @@ describe("PublicSurfaceState", () => {
     renderWithProviders(<PublicSurfaceState state={state} {...slots} />);
     expect(screen.getByRole(role)).toHaveTextContent(copy);
     expect(screen.queryByText("Ready records")).not.toBeInTheDocument();
+  });
+
+  it("says a failed read is unavailable and asks it again, unless the surface replaces that", () => {
+    const { error: _replaced, ...standard } = slots;
+    const onRetry = vi.fn();
+    const { rerender } = renderWithProviders(
+      <PublicSurfaceState state="error" onRetry={onRetry} {...standard} />
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This public record is temporarily unavailable. Please try again."
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PublicSurfaceState
+        state="error"
+        onRetry={onRetry}
+        errorMessage="Evidence is temporarily unavailable."
+        {...standard}
+      />
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Evidence is temporarily unavailable.");
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
   });
 
   it("reserves the loading layout without announcing an interstitial status", () => {

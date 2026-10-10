@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { selectConfirmQueueRows } from "../modules/commitment-pooling/confirm-queue";
+import {
+  confirmRowKey,
+  confirmRowState,
+  reconcileConfirmVisit,
+  selectConfirmQueueRows,
+} from "../modules/commitment-pooling/confirm-queue";
 import { DEMO_GARDEN, MARIA, TUNDE } from "../modules/commitment-pooling/demo/demo-builders";
 import { commitmentFixture, toConfirmFixture } from "./test-utils/commitment-pooling-fixtures";
 
@@ -19,6 +24,7 @@ const input = toConfirmFixture({
           seat: "confirmer",
           needsYou: true,
           poolGarden: MARIA,
+          poolGardenName: "Meadow Pool",
           canDispute: false,
         },
       ],
@@ -68,6 +74,7 @@ describe("selectConfirmQueueRows", () => {
   it.each([
     ["repair", [41n]],
     [" ORCHARD ", [43n]],
+    ["meadow pool", [41n]],
     ["missing", []],
   ])("filters %s by title or garden name", (search, ids) => {
     expect(
@@ -86,5 +93,29 @@ describe("selectConfirmQueueRows", () => {
         include: ["ORDINARY"],
       }).map((row) => row.commitment.commitmentId)
     ).toEqual([41n]);
+  });
+});
+
+describe("the confirm queue's visit", () => {
+  it("keeps each row's place, adds new rows at the end, and reads a decision before the queue", () => {
+    const [first, second, third] = selectConfirmQueueRows({
+      toConfirm: input,
+      byCID: new Map(),
+      search: "",
+    });
+    const seen = reconcileConfirmVisit([], [first!, second!]);
+    // The next read drops the first row and brings a new one ahead of the second.
+    const next = reconcileConfirmVisit(seen, [third!, second!]);
+    const live = new Set([third!, second!].map(confirmRowKey));
+
+    expect(next.map((entry) => entry.row.commitment.commitmentId)).toEqual([41n, 42n, 43n]);
+    expect(
+      next.map((entry) =>
+        confirmRowState(entry.key, {
+          live,
+          decisions: { [confirmRowKey(second!)]: { kind: "queued", at: 5 } },
+        })
+      )
+    ).toEqual([{ status: "gone" }, { status: "queued", at: 5 }, { status: "waiting" }]);
   });
 });

@@ -11,6 +11,8 @@ import { useIntl } from "react-intl";
 export interface ComposeReviewProps {
   values: CommitmentComposerValues;
   isOnline: boolean;
+  /** Placing asks the reader's wallet to send it; nothing sends it for them later. */
+  sendsFromTap: boolean;
   hasPool: boolean;
   gardenName: string | null;
   openCycles: CommitmentCycleRecord[];
@@ -31,11 +33,13 @@ export interface ComposeReviewProps {
  * what has to be approved, who confirms, the team, the note. Then it says what
  * placing it does to other people, which is the part a summary of the form
  * cannot say, and, when the phone is offline, that it will wait rather than
- * quietly failing.
+ * quietly failing. What it says about sending follows who sends: a wallet
+ * reader's promise goes from their own tap, and never by itself.
  */
 export function ComposeReview({
   values,
   isOnline,
+  sendsFromTap,
   hasPool,
   gardenName,
   openCycles,
@@ -81,6 +85,12 @@ export function ComposeReview({
     : formatMessage({ id: "app.compose.review.whereNone" });
 
   const rows: { label: string; value: string }[] = [
+    {
+      label: formatMessage({ id: "app.compose.review.yourRole" }),
+      value: formatMessage({
+        id: isRequest ? "app.compose.review.roleRequest" : "app.compose.review.roleOffer",
+      }),
+    },
     {
       label: formatMessage({ id: "app.compose.review.garden" }),
       value: gardenName ?? formatMessage({ id: "app.compose.review.thisGarden" }),
@@ -208,12 +218,16 @@ export function ComposeReview({
 
       {!isOnline ? (
         <Alert variant="warning" className="p-3">
-          {formatMessage({ id: "app.compose.review.offline" })}
+          {formatMessage({
+            id: sendsFromTap ? "app.compose.review.offlineUnsent" : "app.compose.review.offline",
+          })}
         </Alert>
       ) : null}
 
       <p className="text-xs text-text-soft-400">
-        {formatMessage({ id: "app.compose.review.queues" })}
+        {formatMessage({
+          id: sendsFromTap ? "app.compose.review.queuesUnsent" : "app.compose.review.queues",
+        })}
       </p>
       <div ref={endRef} aria-hidden="true" data-component="ComposeReviewEnd" />
     </div>

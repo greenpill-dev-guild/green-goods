@@ -30,7 +30,12 @@ import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
 import { WalletConnectButton } from "@/components/Actions/WalletConnectButton";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
-import { EditorialSkeleton, EditorialStatSkeleton } from "@/components/Public/atoms";
+import {
+  EDITORIAL_COOKIE_JAR_CARD_FRAME,
+  EditorialCookieJarActionsSkeleton,
+  EditorialSkeleton,
+  EditorialStatSkeleton,
+} from "@/components/Public/atoms";
 import { classifyCookieJarStatus, type CookieJarStatus } from "@/components/Public/cookieJarStatus";
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 const STRICT_PURPOSE_MIN_LENGTH = 27;
@@ -231,9 +236,9 @@ export function PublicCookieJarCard({
       };
     }
     return {
-      value: isLoading ? <EditorialStatSkeleton className="h-9 w-24" /> : "?",
+      value: isLoading ? <EditorialStatSkeleton className="h-[1lh] w-24" /> : "?",
       label: isLoading ? (
-        <EditorialSkeleton className="h-3 w-32" />
+        <EditorialSkeleton className="h-[1lh] w-32" />
       ) : (
         intl.formatMessage({
           id: "public.cookies.metric.unknown",
@@ -274,7 +279,8 @@ export function PublicCookieJarCard({
       id={`cookie-jar-${campaign.slug}`}
       aria-label={title}
       className={cn(
-        "flex h-full flex-col gap-4 border-t border-stroke-soft-200 pt-5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
+        EDITORIAL_COOKIE_JAR_CARD_FRAME,
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
         isHighlighted && "ring-2 ring-primary-action ring-offset-2"
       )}
     >
@@ -285,7 +291,7 @@ export function PublicCookieJarCard({
             STATUS_PILL_CLASSES[status.kind]
           )}
         >
-          {isLoading ? <EditorialSkeleton className="h-3 w-20 rounded-full" /> : statusLabel}
+          {isLoading ? <EditorialSkeleton className="h-[1lh] w-20 rounded-full" /> : statusLabel}
         </span>
         {campaign.createdAt ? (
           <span className="text-xs text-text-soft-400">
@@ -346,6 +352,7 @@ export function PublicCookieJarCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-soft-400">
+        {isLoading && <EditorialSkeleton className="h-4 w-24" />}
         {accessLabel ? <span>{accessLabel}</span> : null}
         {accessLabel && partialReadHint ? (
           <span
@@ -379,19 +386,14 @@ export function PublicCookieJarCard({
 
       {jar ? (
         <CampaignCookieJarInlineActions jar={jar} />
+      ) : isLoading ? (
+        <EditorialCookieJarActionsSkeleton isConnected={isConnected} />
       ) : (
         <div className="mt-auto rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm text-text-sub-600">
-          {isLoading ? (
-            <div aria-hidden="true" className="space-y-2">
-              <EditorialSkeleton className="h-4 w-4/5" />
-              <EditorialSkeleton className="h-4 w-3/5" />
-            </div>
-          ) : (
-            intl.formatMessage({
-              id: "public.cookies.loadFailed",
-              defaultMessage: "This cookie jar could not be loaded. Check the link and try again.",
-            })
-          )}
+          {intl.formatMessage({
+            id: "public.cookies.loadFailed",
+            defaultMessage: "This cookie jar could not be loaded. Check the link and try again.",
+          })}
         </div>
       )}
     </article>
@@ -677,6 +679,7 @@ function CampaignCookieJarInlineActions({
 
         <Button
           onClick={handleDeposit}
+          emphasis="secondary"
           disabled={depositDisabled}
           loading={depositMutation.isPending}
           className="w-full"
@@ -708,66 +711,46 @@ function ClaimEligibilityNote({
 }) {
   const { formatMessage } = useIntl();
 
-  if (jar.isPaused) {
+  const restriction = !jar.isEligible
+    ? formatMessage({
+        id: "public.cookies.notEligible",
+        defaultMessage:
+          "This jar is for garden stewards on the campaign allowlist. Your wallet is not on the list yet.",
+      })
+    : jar.balance === 0n
+      ? formatMessage({
+          id: "public.cookies.needsFunding",
+          defaultMessage: "This jar needs funds before claims can go out.",
+        })
+      : jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n
+        ? formatMessage({
+            id: "public.cookies.alreadyClaimed",
+            defaultMessage: "This wallet has already claimed from this jar.",
+          })
+        : nextClaimLabel
+          ? formatMessage(
+              {
+                id: "public.cookies.nextClaim",
+                defaultMessage: "Next claim window opens at {time}.",
+              },
+              { time: nextClaimLabel }
+            )
+          : null;
+  if (jar.isPaused || !restriction) {
     return (
-      <Alert variant="warning" className="p-3">
+      <Alert variant={jar.isPaused ? "warning" : "success"} className="p-3">
         {formatMessage({
-          id: "public.cookies.paused",
-          defaultMessage: "Claims are paused for this jar.",
+          id: jar.isPaused ? "public.cookies.paused" : "public.cookies.ready",
+          defaultMessage: jar.isPaused
+            ? "Claims are paused for this jar."
+            : "You are on the list. Claim when you are ready.",
         })}
       </Alert>
     );
   }
-  if (!jar.isEligible) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.notEligible",
-          defaultMessage:
-            "This jar is for garden stewards on the campaign allowlist. Your wallet is not on the list yet.",
-        })}
-      </p>
-    );
-  }
-  if (jar.balance === 0n) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.needsFunding",
-          defaultMessage: "This jar needs funds before claims can go out.",
-        })}
-      </p>
-    );
-  }
-  if (jar.oneTimeWithdrawal && jar.totalWithdrawn > 0n) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.alreadyClaimed",
-          defaultMessage: "This wallet has already claimed from this jar.",
-        })}
-      </p>
-    );
-  }
-  if (nextClaimLabel) {
-    return (
-      <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
-        {formatMessage(
-          {
-            id: "public.cookies.nextClaim",
-            defaultMessage: "Next claim window opens at {time}.",
-          },
-          { time: nextClaimLabel }
-        )}
-      </p>
-    );
-  }
   return (
-    <Alert variant="success" className="p-3">
-      {formatMessage({
-        id: "public.cookies.ready",
-        defaultMessage: "You are on the list. Claim when you are ready.",
-      })}
-    </Alert>
+    <p className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-sub-600">
+      {restriction}
+    </p>
   );
 }

@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+// jsdom pin (happy-dom A/B): asserts group names such as "Species Planted*"; happy-dom's computed style gives a span no display, so Testing Library puts a space before the required marker.
 
 import { useWorkForm } from "@green-goods/shared/hooks/work/useWorkForm";
 import type { WorkInput } from "@green-goods/shared/types/domain";
@@ -44,36 +45,37 @@ function GateHarness({ inputs }: { inputs: WorkInput[] }) {
 }
 
 describe("WorkDetails Review gate", () => {
-  it("exposes every required field across all action templates", async () => {
-    const actionTemplates = Object.entries(instructionTemplates).filter(
-      ([slug]) => slug !== "default"
-    );
+  const actionTemplates = Object.entries(instructionTemplates).filter(
+    ([slug]) => slug !== "default"
+  );
 
+  it("covers all action templates", () => {
     expect(actionTemplates).toHaveLength(23);
-    for (const [slug, template] of actionTemplates) {
-      const view = render(<GateHarness inputs={template.uiConfig.details.inputs} />);
+  });
 
-      for (const input of template.uiConfig.details.inputs.filter((field) => field.required)) {
-        const label = input.unit ? `${input.title} (${input.unit})*` : `${input.title}*`;
+  it.each(actionTemplates)("exposes every required field for %s", async (slug, template) => {
+    const view = render(<GateHarness inputs={template.uiConfig.details.inputs} />);
 
-        if (input.type === "multi-select" || input.type === "repeater") {
-          expect(view.getByRole("group", { name: label }), `${slug}: ${input.key}`).toBeVisible();
-        } else if (input.type === "select" || input.type === "band") {
-          expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
-            "id",
-            input.key
-          );
-        } else {
-          expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
-            "name",
-            input.key
-          );
-        }
+    for (const input of template.uiConfig.details.inputs.filter((field) => field.required)) {
+      const label = input.unit ? `${input.title} (${input.unit})*` : `${input.title}*`;
+
+      if (input.type === "multi-select" || input.type === "repeater") {
+        expect(view.getByRole("group", { name: label }), `${slug}: ${input.key}`).toBeVisible();
+      } else if (input.type === "select" || input.type === "band") {
+        expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
+          "id",
+          input.key
+        );
+      } else {
+        expect(view.getByLabelText(label), `${slug}: ${input.key}`).toHaveAttribute(
+          "name",
+          input.key
+        );
       }
-
-      await act(async () => {});
-      view.unmount();
     }
+
+    await act(async () => {});
+    view.unmount();
   });
 
   it("unlocks Infrastructure Milestone after its required value and type are entered", async () => {

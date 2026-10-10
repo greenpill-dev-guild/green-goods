@@ -2,9 +2,13 @@
 
 **Feature Slug**: `public-supporters-band`
 **Stage**: `ideas`
-**Status**: `ACTIVE`
+**Status**: `CLOSED — canceled idea; closeout record ready for the archive sequence`
 **Created**: `2026-04-29T05:49:32.687Z`
-**Last Updated**: `2026-04-29T05:49:32.687Z`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+[PRD-347](https://linear.app/greenpill-dev-guild/issue/PRD-347) is Canceled in live Linear. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review. Uncertified lanes retain their original todo, n/a and blocked states; cancellation disables dispatch without claiming implementation passed. This hub stays on disk until its closeout record is committed and the normal archive sequence can preserve it in Git history. No Linear issue is reopened.
 
 ## Decision Log
 
@@ -65,3 +69,12 @@
 - [ ] `bun format && bun lint`
 - [ ] `bun run test`
 - [ ] `VITE_CHAIN_ID=11155111 bun run build`
+
+## Closeout (2026-10-06)
+
+Resolution: `cancelled`. No implementation is claimed shipped by this hub. The existing tracker was canceled; no implementation or retained partner-display scope was accepted in this review.
+
+Still open or dispositioned:
+
+- No implementation is retained. Any future supporter display requires a new scope decision and partner-content permission review; the historical candidate is dropped from dispatch.
+- Preserve the original unfinished lane states and keep dispatch disabled. The premature sync confirmation is invalidated. After the human merge, verify the read-only preservation entry (stateSyncMode=preserve_existing) against live Linear without mutation, confirm that the mirror remains Canceled, and only then record a fresh confirmation before archive. The earlier confirmation remains invalidated; this repair makes no external Linear write.

@@ -2,15 +2,20 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { inspectPinnedSubmodules } from "../lib/dev-shared.js";
+import { isSharedSourcePath, mutationPathsAmong } from "./shared-mutation-surface.mjs";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+// The critical override for Shared code that signs, sends, moves funds, or changes auth, session
+// or queue state. Its exact list is kept in step with the code by select-validation.test.mjs.
+export const SHARED_CRITICAL_RULE_ID = "shared-signing-money-queue-auth";
 // Documentation and asset migrations can legitimately produce binary patches larger than
 // Node's default child-process buffer. Keep enough headroom for a full working-copy
 // fingerprint without weakening the selector's path or content checks.
@@ -41,6 +46,20 @@ function validatePolicy(policy) {
     }
     if (!Number.isFinite(check.budgetSeconds) || check.budgetSeconds <= 0) {
       throw new Error(`Validation check ${check.id} must have a positive budgetSeconds`);
+    }
+  }
+
+  if (policy.sharedMutationPrimitives !== undefined) {
+    const { external, internal, members } = policy.sharedMutationPrimitives;
+    const namedLists = (value) =>
+      value && typeof value === "object" && Object.values(value).every(
+        (names) => Array.isArray(names) && names.every((name) => typeof name === "string" && name),
+      );
+    if (!namedLists(external) || !namedLists(internal) || !Array.isArray(members) || !members.every((name) => typeof name === "string" && name)) {
+      throw new Error("Validation policy sharedMutationPrimitives needs external, internal and members name lists");
+    }
+    if (!(policy.criticalOverrides ?? []).some((rule) => rule.id === SHARED_CRITICAL_RULE_ID)) {
+      throw new Error(`Validation policy sharedMutationPrimitives needs the ${SHARED_CRITICAL_RULE_ID} critical override`);
     }
   }
 
@@ -103,6 +122,26 @@ function isTestPath(path) {
   return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
 }
 
+// A test directory also holds what no runner can execute: helpers, fixtures, setup and notes.
+// Only a test file can be a focused run. Handing a runner anything else finds no tests, which
+// Vitest reports as a failure.
+function isRunnableTestPath(path) {
+  return (
+    isTestPath(path) &&
+    (/(^|[/.])(test|spec)\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".t.sol"))
+  );
+}
+
+// Notes kept beside tests change no test's outcome, so they select no test run.
+function isTestNotesPath(path) {
+  return isTestPath(path) && /\.mdx?$/i.test(path);
+}
+
+// A changed test, helper or fixture can change what its suite reports.
+function affectsTests(path) {
+  return isTestPath(path) && !isTestNotesPath(path);
+}
+
 function isStorybookConfigPath(path) {
   return path.includes("/.storybook/");
 }
@@ -120,6 +159,7 @@ function isValidationOnlyPath(path) {
 }
 
 const directRootTestChecks = new Map([
+  ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
@@ -148,17 +188,19 @@ function classifyChangedPath(path) {
     return "public-source";
   }
   if (/^packages\/[^/]+\/src\//.test(path)) return "runtime-source";
-  if (["biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
+  if (["biome.json", "env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
     return "root-config";
   }
   return "other";
 }
 
+// A changed helper or fixture is no focus, so its suite runs whole unless the author names the
+// test that exercises it or changed one alongside it.
 function inferChangedTestPaths(paths, deletedPaths = []) {
   const deleted = new Set(deletedPaths);
   const inferred = {};
   for (const path of paths) {
-    if (!isTestPath(path) || deleted.has(path)) continue;
+    if (!isRunnableTestPath(path) || deleted.has(path)) continue;
     const surface = owningSurface(path);
     if (!surface || surface === "docs") continue;
     const prefix = `packages/${surface}/`;
@@ -185,6 +227,14 @@ function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
     throw new Error("Lane checkpoint requires explicit changed paths");
   }
   return { requested, effective };
+}
+
+// The surfaces whose tests import this Shared test-support path, which for them is test
+// infrastructure rather than Shared's own tests.
+function consumersOfSharedTestSupport(policy, path) {
+  const support = policy.sharedConsumerTestSupport;
+  if (!support || !groupMatches(path, { exact: support.exact, prefixes: support.prefixes })) return [];
+  return support.surfaces;
 }
 
 function groupMatches(path, rule) {
@@ -237,6 +287,7 @@ function impactedSurfaces(policy, paths, fullRepository) {
       allSurfaces.forEach((surface) => surfaces.add(surface));
       continue;
     }
+    const testSupportConsumers = consumersOfSharedTestSupport(policy, path);
     for (const rule of policy.surfaceRules ?? []) {
       if (!groupMatches(path, rule)) continue;
       const owner = owningSurface(path);
@@ -244,7 +295,8 @@ function impactedSurfaces(policy, paths, fullRepository) {
         isValidationOnlyPath(path) &&
         owner &&
         rule.surface !== "all" &&
-        rule.surface !== owner
+        rule.surface !== owner &&
+        !testSupportConsumers.includes(rule.surface)
       ) {
         continue;
       }
@@ -290,7 +342,7 @@ function addValidationOnlyChecks(select, surface, paths, { includeTypecheck = tr
   if (includeTypecheck && testTypechecks[surface]) {
     select(testTypechecks[surface], `validation-only:${surface}:types`);
   }
-  if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
+  if (paths.some(affectsTests)) select(`${surface}-test`, `validation-only:${surface}:tests`);
   if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
   if (paths.some(isStorybookConfigPath)) {
     select("storybook-build", `validation-only:${surface}:storybook-config`);
@@ -321,7 +373,28 @@ function needsOwnerCompileProof(paths, surface) {
   });
 }
 
-function focusedProofMissing(changedPaths, testPaths, requestedChecks) {
+// A fast push budgets a focused package suite at this many seconds.
+const FOCUSED_PUSH_SUITE_SECONDS = 30;
+
+// The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
+// whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
+// Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
+// hook would otherwise repeat the manual run it follows.
+const FRESH_RUN_INTENTS = new Set(["readiness", "ship", "merge", "release"]);
+
+export function receiptPolicyFor(intent, risk) {
+  const reuseAllowed = !FRESH_RUN_INTENTS.has(intent) && (risk !== "critical" || intent === "push");
+  return {
+    reuseAllowed,
+    optInRequired: true,
+    failuresCacheable: false,
+    note: reuseAllowed
+      ? "Opt-in exact-fingerprint passing receipts may be reused."
+      : "Every check runs fresh: readiness, ship, merge and release never reuse receipts, and a critical plan reuses them only in push.",
+  };
+}
+
+function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
   if (requestedChecks.length > 0) return [];
   const missing = new Set();
   for (const path of changedPaths) {
@@ -329,6 +402,24 @@ function focusedProofMissing(changedPaths, testPaths, requestedChecks) {
     const surface = owningSurface(path);
     if (!surface || testPaths[surface]?.length > 0) continue;
     if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    missing.add(surface);
+  }
+  // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
+  // or fixture, which no runner can execute. Only the author can name the test that still proves
+  // the same failure, or that exercises the helper, so ask for it, unless the whole suite costs no
+  // more than a focused run would. Docs tests have no focused mode and always run whole.
+  const deleted = new Set(deletedPaths);
+  const unfocusable = [
+    ...deletedPaths.filter(affectsTests),
+    ...changedPaths.filter(
+      (path) => affectsTests(path) && !isRunnableTestPath(path) && !deleted.has(path),
+    ),
+  ];
+  for (const path of unfocusable) {
+    const surface = owningSurface(path);
+    if (!surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    const suite = policy.checks.find((check) => check.id === `${surface}-test`);
+    if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
     missing.add(surface);
   }
   return [...missing].sort();
@@ -354,6 +445,9 @@ export function selectValidation(input = {}, options = {}) {
   const intent = effectiveIntent(policy, requestedIntent, ci);
   const changedPaths = normalizePaths(input.changedPaths);
   const deletedPaths = normalizePaths(input.deletedPaths);
+  // Changed Shared files whose current code reaches a signing, sending, queue or session
+  // primitive (resolveGitInputs reads them); the policy's path lists cannot know a new file.
+  const mutationPaths = normalizePaths(input.mutationPaths).filter((path) => changedPaths.includes(path));
   const checkpointScope = checkpointScopes(
     input.checkpointScope,
     intent,
@@ -386,6 +480,7 @@ export function selectValidation(input = {}, options = {}) {
     })),
     testPaths,
     requestedChecks,
+    mutationPaths,
   };
 
   if (input.cancelled === true) {
@@ -399,16 +494,15 @@ export function selectValidation(input = {}, options = {}) {
       environment: normalizeEnvironment(input.environment),
       environmentBlockers: [],
       budget: summarizeBudget(intent, []),
-      receiptPolicy: {
-        cacheReuseAllowed: true,
-        optInRequired: true,
-        failuresCacheable: false,
-        note: "Only opt-in exact-fingerprint passing receipts may be reused.",
-      },
+      receiptPolicy: receiptPolicyFor(intent, maxRisk(policy, [baseRisk])),
     };
   }
 
   const hardRules = (policy.criticalOverrides ?? []).filter((rule) => ruleMatches(changedPaths, rule));
+  const sharedCriticalRule = (policy.criticalOverrides ?? []).find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
+  const contentCriticalPaths = sharedCriticalRule
+    ? mutationPaths.filter((path) => !groupMatches(path, sharedCriticalRule))
+    : [];
   const pathRiskRules = (policy.riskRules ?? []).filter((rule) => ruleMatches(changedPaths, rule));
   const risk = maxRisk(policy, [
     baseRisk,
@@ -420,6 +514,7 @@ export function selectValidation(input = {}, options = {}) {
       : "routine",
     ...pathRiskRules.map((rule) => rule.risk),
     ...hardRules.map((rule) => rule.risk),
+    ...(contentCriticalPaths.length > 0 ? [sharedCriticalRule.risk] : []),
   ]);
   const fastPush = intent === "push" && risk !== "critical";
   const localMerge = intent === "merge" && !ci;
@@ -506,7 +601,12 @@ export function selectValidation(input = {}, options = {}) {
     }
   } else {
     for (const surface of surfaces) {
-      const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
+      // Shared test support a consumer's tests import counts as that consumer's own test files.
+      const surfacePaths = changedPaths.filter(
+        (path) =>
+          owningSurface(path) === surface ||
+          consumersOfSharedTestSupport(policy, path).includes(surface),
+      );
       const validationOnly =
         surfacePaths.length > 0 && surfacePaths.every((path) => isValidationOnlyPath(path));
       if (includeBuilds) {
@@ -600,6 +700,12 @@ export function selectValidation(input = {}, options = {}) {
       mandatory.add(id);
     }
   }
+  if (!evidenceOnly && contentCriticalPaths.length > 0) {
+    for (const id of sharedCriticalRule.checks) {
+      select(id, "critical-content");
+      mandatory.add(id);
+    }
+  }
   if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
     for (const id of selected) mandatory.add(id);
   }
@@ -612,6 +718,7 @@ export function selectValidation(input = {}, options = {}) {
         intent,
         risk,
         ci,
+        base: planIdentity.base,
         changedPaths,
         deletedPaths,
         checkpointScope: checkpointScope.effective,
@@ -647,7 +754,7 @@ export function selectValidation(input = {}, options = {}) {
   );
   const budget = summarizeBudget(intent, checks, risk);
   const missingFocus = fastPush
-    ? focusedProofMissing(changedPaths, testPaths, requestedChecks)
+    ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
     : [];
   // Static budgets are ceilings, not measurements. A plan whose package suites are all
   // focused is not over-broad, so it runs and the hard deadline decides; only an
@@ -686,13 +793,7 @@ export function selectValidation(input = {}, options = {}) {
     environmentBlockers: toolchainBlockers,
     checks,
     budget,
-    receiptPolicy: {
-      cacheReuseAllowed: true,
-      optInRequired: true,
-      failuresCacheable: false,
-      criticalReuseAllowed: false,
-      note: "Only opt-in exact-fingerprint passing receipts may be reused; critical plans always run fresh.",
-    },
+    receiptPolicy: receiptPolicyFor(intent, risk),
   };
 }
 
@@ -743,12 +844,13 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     TURBO_TEST_INTENTS.has(context.intent) &&
     turboPackage
   ) {
-    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only`;
+    const force = FRESH_RUN_INTENTS.has(context.intent) ? " --force" : "";
+    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only${force}`;
   } else if (focusedPaths.length > 0) {
     command =
       check.id === "contracts-test"
         ? focusedPaths.map((path) => `bun run test --suite solidity --profile match ${path}`).join(" && ")
-        : `${check.command} ${focusedPaths.join(" ")}`;
+        : `${check.command}${check.id === "indexer-test" ? " --scope handlers" : ""} ${focusedPaths.join(" ")}`;
   }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
@@ -796,9 +898,14 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
           ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
           : `node -e "console.log('lint: no existing changed paths')"`;
   }
+  if (check.id === "source-structure" && context.base) {
+    // Judge the plan's own comparison scope, as CI judges the PR base. A structure run with no
+    // base of its own falls back to origin/develop, which is not the base of a stacked branch.
+    command = `${check.command} --base ${shellQuote(context.base)}`;
+  }
   let budgetSeconds =
     focusedPaths.length > 0
-      ? Math.min(check.budgetSeconds, fastPush ? 30 : 60)
+      ? Math.min(check.budgetSeconds, fastPush ? FOCUSED_PUSH_SUITE_SECONDS : 60)
       : check.budgetSeconds;
   if (
     check.id === "format" &&
@@ -820,27 +927,6 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   };
 }
 
-function estimatedWallSeconds(checks) {
-  const automated = checks.filter((check) => !check.manual);
-  let total = 0;
-  for (let index = 0; index < automated.length; ) {
-    const check = automated[index];
-    if (!check.concurrencyGroup) {
-      total += check.budgetSeconds;
-      index += 1;
-      continue;
-    }
-    const batch = [check];
-    for (let look = index + 1; look < automated.length; look += 1) {
-      if (automated[look].concurrencyGroup !== check.concurrencyGroup) break;
-      batch.push(automated[look]);
-    }
-    total += Math.max(...batch.map((member) => member.budgetSeconds));
-    index += batch.length;
-  }
-  return total;
-}
-
 export function summarizeBudget(intent, checks, risk = "routine") {
   const hardLimitSeconds =
     intent === "push" && risk !== "critical" ? (risk === "sensitive" ? 180 : 90) : null;
@@ -851,7 +937,8 @@ export function summarizeBudget(intent, checks, risk = "routine") {
   const manualSeconds = checks
     .filter((check) => check.manual)
     .reduce((total, check) => total + check.budgetSeconds, 0);
-  const wallSeconds = estimatedWallSeconds(checks);
+  // Checks run one at a time, so the wall estimate is the sum of their measured budgets.
+  const wallSeconds = automatedSeconds;
   return {
     targetSeconds,
     estimatedWallSeconds: wallSeconds,
@@ -878,12 +965,16 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
   return Object.entries(policy.workflowRules ?? {})
     .filter(([name, rule]) =>
       paths.some((path) => {
+        if (consumersOfSharedTestSupport(policy, path).includes(name.toLowerCase())) return true;
         if (!groupMatches(path, rule)) return false;
         if (rule.exact?.includes(path)) return true;
         if (!isValidationOnlyPath(path)) return true;
         if (name === "Supply Chain Guardrails") return true;
         if (name === "Design" && isStoryPath(path)) return true;
-        return name.toLowerCase() === owningSurface(path);
+        // A package's own tests expect only its workflow. A test no package owns, such as a root
+        // Playwright spec under tests/, is run by every workflow whose rule lists it.
+        const owner = owningSurface(path);
+        return owner === null || name.toLowerCase() === owner;
       }),
     )
     .map(([name]) => name)
@@ -902,7 +993,9 @@ function stableValue(value) {
   return value;
 }
 
-export function buildReceiptInputs(plan, check) {
+// `execution` carries digests of the environment the check runs with and of the git-ignored
+// configuration it reads, which the plan alone cannot see.
+export function buildReceiptInputs(plan, check, execution = {}) {
   const inputs = {
     policyVersion: plan.policyVersion,
     requestedIntent: plan.requestedIntent,
@@ -920,6 +1013,10 @@ export function buildReceiptInputs(plan, check) {
     command: check.command,
     cwd: check.cwd ?? ".",
     environment: plan.environment,
+    execution: {
+      environment: execution.environment ?? null,
+      ignoredConfiguration: execution.ignoredConfiguration ?? null,
+    },
     freshness: check.freshness,
     cacheReuse: {
       allowed: true,
@@ -1047,11 +1144,11 @@ function lines(value) {
   return value.split(/\r?\n/).filter(Boolean);
 }
 
-function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch, untrackedPaths) {
+function workingCopyFingerprint(cwd, committedRange, stagedPatch, unstagedPatch, untrackedPaths) {
   const hash = createHash("sha256");
-  hash.update("validation-working-copy-v1\0");
+  hash.update("validation-working-copy-v2\0");
   for (const [label, patch] of [
-    ["committed", committedPatch],
+    ["committed", committedRange],
     ["staged", stagedPatch],
     ["unstaged", unstagedPatch],
   ]) {
@@ -1076,19 +1173,39 @@ function workingCopyFingerprint(cwd, committedPatch, stagedPatch, unstagedPatch,
 
 const LIVE_PR_BASE_INTENTS = new Set(["push", "ship", "merge", "readiness", "release"]);
 
+// A release promotion carries develop's already-judged history into main. Judging it against
+// main would re-flag every file changed since the last release, so it compares against develop,
+// the base every change met on its way in. The workflows set the same rule for their own
+// diff-aware steps.
+function promotionAwareBase(baseRefName, headRefName) {
+  if (baseRefName === "main" && String(headRefName ?? "").startsWith("release/")) {
+    return "origin/develop";
+  }
+  return `origin/${baseRefName}`;
+}
+
 export function resolveComparisonBase(options = {}, dependencies = {}) {
   if (options.base) return options.base;
 
   const environment = dependencies.environment ?? process.env;
-  if (environment.GITHUB_BASE_REF) return `origin/${environment.GITHUB_BASE_REF}`;
+  if (environment.GITHUB_BASE_REF) {
+    return promotionAwareBase(environment.GITHUB_BASE_REF, environment.GITHUB_HEAD_REF);
+  }
   if (!LIVE_PR_BASE_INTENTS.has(options.intent)) return "origin/develop";
 
   const execute = dependencies.execFileSync ?? execFileSync;
   try {
-    const baseRefName = String(
+    const [baseRefName, headRefName] = String(
       execute(
         "gh",
-        ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"],
+        [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ],
         {
           cwd: dependencies.cwd ?? projectRoot,
           encoding: "utf8",
@@ -1097,12 +1214,26 @@ export function resolveComparisonBase(options = {}, dependencies = {}) {
           env: { ...environment, GH_PROMPT_DISABLED: "1" },
         },
       ),
-    ).trim();
-    if (baseRefName) return `origin/${baseRefName}`;
+    )
+      .trim()
+      .split("\t");
+    if (baseRefName) return promotionAwareBase(baseRefName, headRefName);
   } catch {
     // No live PR, no GitHub CLI, or no authenticated access: use the repository default base.
   }
   return "origin/develop";
+}
+
+// Shared files among `changedPaths` whose code on disk reaches a mutation primitive and that no
+// path rule already makes critical. Only their import closure is read.
+export function resolveMutationPaths(changedPaths, { cwd = projectRoot, policy = loadPolicy() } = {}) {
+  const rule = (policy.criticalOverrides ?? []).find((entry) => entry.id === SHARED_CRITICAL_RULE_ID);
+  if (!rule || !policy.sharedMutationPrimitives) return [];
+  const candidates = changedPaths.filter(
+    (path) => isSharedSourcePath(path) && !groupMatches(path, rule) && existsSync(resolve(cwd, path)),
+  );
+  if (candidates.length === 0) return [];
+  return mutationPathsAmong(candidates, { root: cwd, primitives: policy.sharedMutationPrimitives });
 }
 
 export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
@@ -1119,8 +1250,10 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     throw new Error("Lane checkpoint requires explicit changed paths");
   }
   const pathspec = laneCheckpoint ? ["--", ...explicitPaths] : [];
-  const committedPatch = gitRawOutput(
-    ["diff", "--binary", `${resolvedBase}...${resolvedHead}`, ...pathspec],
+  // Blob hashes identify the committed range exactly without materializing its patch: a
+  // develop-to-main promotion diff exceeds the git output buffer and died with ENOBUFS.
+  const committedRange = gitOutput(
+    ["diff", "--raw", "--no-abbrev", "--no-renames", `${resolvedBase}...${resolvedHead}`, ...pathspec],
     cwd,
   );
   const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
@@ -1157,9 +1290,10 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     head: resolvedHead,
     changedPaths,
     deletedPaths,
+    mutationPaths: resolveMutationPaths(changedPaths, { cwd }),
     workingCopyFingerprint: workingCopyFingerprint(
       cwd,
-      committedPatch,
+      committedRange,
       stagedPatch,
       unstagedPatch,
       fingerprintUntrackedPaths,
@@ -1191,10 +1325,22 @@ export function detectCliToolchain(options = {}) {
   };
 }
 
+export function inspectPlaywrightChromium(cwd = projectRoot) {
+  try {
+    const require = createRequire(resolve(cwd, 'package.json'));
+    const executable = require('@playwright/test').chromium.executablePath();
+    const stat = statSync(executable);
+    return { available: stat.isFile(), fingerprint: `${require('@playwright/test/package.json').version}:${stat.size}:${stat.mtimeMs}` };
+  } catch {
+    return { available: false, fingerprint: null };
+  }
+}
+
 export function detectCliCapabilities(options = {}) {
   const inspect = options.inspectPinnedSubmodules ?? inspectPinnedSubmodules;
   return {
     contractSubmodules: inspect({ cwd: options.cwd ?? projectRoot }).ready,
+    playwrightChromium: inspectPlaywrightChromium(options.cwd).available,
   };
 }
 

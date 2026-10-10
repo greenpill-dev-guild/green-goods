@@ -8,21 +8,40 @@ import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garde
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
+  type GardenJoinRequestKind,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/types/domain";
+import { formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
 import { isCancelledTxError } from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine, RiInbox2Line } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Address }) {
+  return (
+    <>
+      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="garden_membership" />
+      <CommunityJoinRequestQueue gardenAddress={gardenAddress} kind="steward_access" />
+    </>
+  );
+}
+
+function CommunityJoinRequestQueue({
+  gardenAddress,
+  kind,
+}: {
+  gardenAddress: Address;
+  kind: GardenJoinRequestKind;
+}) {
   const { formatDate, formatMessage } = useIntl();
-  const isAvailable = useGardenJoinRequestAvailability();
-  const join = useGardenJoinRequests(gardenAddress);
+  const stewardRequest = kind === "steward_access";
+  const isAvailable = useGardenJoinRequestAvailability(kind);
+  const join = useGardenJoinRequests(gardenAddress, { kind });
+  const queue = join.queue.filter((request) => (request.kind ?? "garden_membership") === kind);
   const operations = useGardenOperations(gardenAddress);
   const [loaded, setLoaded] = useState(false);
   const [activeId, setActiveId] = useState<string>();
@@ -44,23 +63,38 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const transaction = await operations.addGardener(request.accountAddress, {
+      const assignRole = stewardRequest ? operations.addSteward : operations.addGardener;
+      const transaction = await assignRole(request.accountAddress, {
         trackMemberAnalytics: false,
       });
+      if (!transaction.success) {
+        if (isCancelledTxError(transaction.error)) return;
+        throw new Error(
+          transaction.error?.message ??
+            formatMessage({
+              id: stewardRequest
+                ? "cockpit.community.stewardRequests.assignFailed"
+                : "app.garden.joinQueue.membershipAddFailed",
+            })
+        );
+      }
       const resolution = await join.resolveRequest(request.id, {
         action: "welcome",
         expectedRevision: request.revision,
       });
-      if (!transaction.success && resolution.pendingOnchainMembership) {
-        throw new Error(
-          transaction.error?.message ??
-            formatMessage({ id: "app.garden.joinQueue.membershipAddFailed" })
-        );
-      }
+      const pendingRole = stewardRequest
+        ? resolution.pendingOnchainRole === true
+        : resolution.pendingOnchainMembership;
       setNotice(
-        resolution.pendingOnchainMembership
-          ? formatMessage({ id: "cockpit.community.joinRequests.membershipPending" })
-          : formatMessage({ id: "cockpit.community.joinRequests.welcomed" })
+        formatMessage({
+          id: stewardRequest
+            ? pendingRole
+              ? "cockpit.community.stewardRequests.pending"
+              : "cockpit.community.stewardRequests.confirmed"
+            : pendingRole
+              ? "cockpit.community.joinRequests.membershipPending"
+              : "cockpit.community.joinRequests.welcomed",
+        })
       );
     } catch (caught) {
       // Declining the signature is a choice, not a failure; the request stays in the queue.
@@ -98,14 +132,26 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
 
   return (
     <>
-      <AdminCard variant="elevated" className="space-y-4" data-testid="community-join-requests">
+      <AdminCard
+        variant="elevated"
+        className="space-y-4"
+        data-testid={stewardRequest ? "community-steward-requests" : "community-join-requests"}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
-              {formatMessage({ id: "cockpit.community.joinRequests.title" })}
-            </h3>
-            <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage({ id: "cockpit.community.joinRequests.description" })}
+            <AdminCardTitle>
+              {formatMessage({
+                id: stewardRequest
+                  ? "cockpit.community.stewardRequests.title"
+                  : "cockpit.community.joinRequests.title",
+              })}
+            </AdminCardTitle>
+            <p className="mt-1 text-body-sm text-text-sub">
+              {formatMessage({
+                id: stewardRequest
+                  ? "cockpit.community.stewardRequests.description"
+                  : "cockpit.community.joinRequests.description",
+              })}
             </p>
           </div>
           <AdminButton
@@ -130,32 +176,42 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
           {error || localError ? (
             <Alert variant="error">
               {error ? formatMessage(gardenJoinRequestErrorMessage(error)) : localError}
+              {localError ? (
+                <p className="mt-2">
+                  {formatMessage({ id: "cockpit.community.joinRequests.assignmentRecovery" })}
+                </p>
+              ) : null}
             </Alert>
           ) : null}
         </div>
 
-        {loaded && join.queue.length === 0 && !join.queueState.isLoading ? (
-          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container))] p-4 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+        {loaded && queue.length === 0 && !join.queueState.isLoading ? (
+          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 text-body-sm text-text-sub">
             <RiInbox2Line className="h-5 w-5" />
-            {formatMessage({ id: "cockpit.community.joinRequests.empty" })}
+            {formatMessage({
+              id: stewardRequest
+                ? "cockpit.community.stewardRequests.empty"
+                : "cockpit.community.joinRequests.empty",
+            })}
           </div>
         ) : null}
 
         <AdminCard variant="outlined" density="none" className="divide-y divide-stroke-soft">
-          {join.queue.map((request) => (
+          {queue.map((request) => (
             <article
               key={request.id}
               className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between"
             >
               <div className="min-w-0 space-y-2">
                 <div>
-                  <h4 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
-                    {request.displayName}
-                  </h4>
+                  {/* A request sent under a Green Goods name reads as the username alone. */}
+                  <AdminCardTitle as="h4">
+                    {formatEnsNameForDisplay(request.displayName) ?? request.displayName}
+                  </AdminCardTitle>
                   <EnsAddressText address={request.accountAddress} />
                   <time
                     dateTime={request.requestedAt}
-                    className="mt-1 block text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+                    className="mt-1 block text-body-sm text-text-sub"
                   >
                     {formatMessage(
                       { id: "cockpit.community.joinRequests.requestedAt" },
@@ -169,7 +225,7 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
                   </time>
                 </div>
                 {request.note ? (
-                  <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-text-sub">
                     {request.note}
                   </p>
                 ) : null}
@@ -182,7 +238,11 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
                   loading={activeId === request.id || operations.isLoading}
                   onClick={() => void welcome(request)}
                 >
-                  {formatMessage({ id: "cockpit.community.joinRequests.welcome" })}
+                  {formatMessage({
+                    id: stewardRequest
+                      ? "cockpit.community.stewardRequests.approve"
+                      : "cockpit.community.joinRequests.welcome",
+                  })}
                 </AdminButton>
                 <AdminButton
                   variant="outlined"
@@ -228,10 +288,14 @@ export function CommunityJoinRequests({ gardenAddress }: { gardenAddress: Addres
               : formatMessage({ id: "cockpit.community.joinRequests.updateFailed" })
           );
         }}
-        title={formatMessage({ id: "cockpit.community.joinRequests.declineTitle" })}
+        title={formatMessage({
+          id: stewardRequest
+            ? "cockpit.community.stewardRequests.declineTitle"
+            : "cockpit.community.joinRequests.declineTitle",
+        })}
         description={formatMessage(
           { id: "cockpit.community.joinRequests.declineDescription" },
-          { name: declining?.displayName ?? "" }
+          { name: formatEnsNameForDisplay(declining?.displayName) ?? "" }
         )}
         confirmLabel={formatMessage({ id: "cockpit.community.joinRequests.confirmDecline" })}
         reasonLabel={formatMessage({ id: "cockpit.community.joinRequests.reason" })}

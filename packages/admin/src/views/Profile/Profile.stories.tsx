@@ -64,14 +64,14 @@ function ProfileCanvasStory({ initialPath = "/profile" }: ProfileCanvasStoryProp
 const meta: Meta<typeof ProfileCanvasStory> = {
   title: "Admin/Workspaces/Profile",
   component: ProfileCanvasStory,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   globals: { viewport: { value: "mobile" } },
   parameters: {
     layout: "fullscreen",
     docs: {
       description: {
         component:
-          "Mobile-only route-backed Profile coverage through the real CanvasLayout shell and account panels.",
+          "Mobile-only route-backed Profile coverage through the real CanvasLayout shell and account panels. The page and its first tab take the Profile nav item's name (D8).",
       },
     },
   },
@@ -99,10 +99,10 @@ export const ProfileRoute: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      await canvas.findByRole("heading", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("heading", { name: "Profile" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
     await expect(
-      await canvas.findByRole("tab", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("tab", { name: "Profile" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toHaveAttribute("aria-selected", "true");
   },
 };
@@ -113,7 +113,7 @@ export const SettingsRoute: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      await canvas.findByRole("heading", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("heading", { name: "Profile" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
     await expect(
       await canvas.findByRole("tab", { name: "Settings" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)

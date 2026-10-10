@@ -13,9 +13,10 @@ import type { Garden } from "@green-goods/shared/types/domain";
 import {
   aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
+  CAMPAIGN_DESCRIPTION_MAX_LENGTH,
   diffCampaignCookieJarAllowlist,
 } from "@green-goods/shared/utils/cookie-jar-campaign";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   canSyncCampaignCookieJarAllowlist,
@@ -32,7 +33,13 @@ import {
   PUBLIC_COOKIE_BASE_URL,
 } from "./helpers";
 
-export function CampaignCookieJarPanel() {
+export interface CampaignCookieJarPanelProps {
+  /** An action for the list's header, such as Create Cookie Jar. */
+  headerAction?: ReactNode;
+}
+
+/** The campaign cookie jars list and its manage dialog. */
+export function CampaignCookieJarPanel({ headerAction }: CampaignCookieJarPanelProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { isDeployer, loading: roleLoading } = useRole();
@@ -134,8 +141,19 @@ export function CampaignCookieJarPanel() {
     syncJar.jar,
     syncSourceGardens,
   ]);
+  // The builder refuses a description past the limit, and it runs during
+  // render here, so a description that does not fit is never handed to it.
+  const syncDescriptionFits = syncCampaignDescription.length <= CAMPAIGN_DESCRIPTION_MAX_LENGTH;
   const syncMetadataPayload = useMemo(() => {
-    if (!selectedCampaign || !syncJar.jar || !factoryAddress || !syncMetadataChanged) return null;
+    if (
+      !selectedCampaign ||
+      !syncJar.jar ||
+      !factoryAddress ||
+      !syncMetadataChanged ||
+      !syncDescriptionFits
+    ) {
+      return null;
+    }
     const currentMetadata = syncJar.jar.metadata ?? selectedCampaign.metadata;
 
     return JSON.stringify(
@@ -166,6 +184,7 @@ export function CampaignCookieJarPanel() {
     syncCampaignDescription,
     syncCampaignImage,
     selectedCampaignPublicUrl,
+    syncDescriptionFits,
     syncJar.jar,
     syncMetadataChanged,
     syncSourceGardens,
@@ -202,6 +221,7 @@ export function CampaignCookieJarPanel() {
     metadataChanged: syncMetadataChanged,
     canUpdateMetadata: Boolean(factoryAddress),
     metadataUrlsValid: syncMetadataUrlsValid,
+    metadataDescriptionFits: syncDescriptionFits,
   });
 
   const handleSync = () => {
@@ -287,6 +307,7 @@ export function CampaignCookieJarPanel() {
         syncDiff,
         selectedJarAddress: selectedJarAddress ?? null,
         syncJar,
+        headerAction,
       }}
     />
   );

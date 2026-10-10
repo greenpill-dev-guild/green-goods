@@ -59,3 +59,33 @@ export const BlockedOffline: Story = {
     blockedReason: "Needs a connection. Pool changes are sent straight to the chain.",
   },
 };
+
+/** Text typed elsewhere (a review's Feedback) seeds the field each time the dialog opens. */
+export const StartsFromTypedText: Story = {
+  args: { initialReason: "Photos show a different site" },
+  play: async () => {
+    const dialog = within(document.body);
+    await expect(await dialog.findByRole("textbox")).toHaveValue("Photos show a different site");
+    await expect(await dialog.findByRole("button", { name: "Pause Pool" })).toBeEnabled();
+  },
+};
+
+export const Submitting: Story = {
+  args: { initialReason: "Safety first", isLoading: true },
+};
+
+/** A failed submission leaves the dialog open with the words intact, so a retry costs nothing. */
+export const FailedSubmitKeepsReason: Story = {
+  args: {
+    onConfirm: async () => {
+      throw new Error("The wallet rejected the request");
+    },
+  },
+  play: async () => {
+    const dialog = within(document.body);
+    await userEvent.type(await dialog.findByRole("textbox"), "Heavy rain this week");
+    await userEvent.click(await dialog.findByRole("button", { name: "Pause Pool" }));
+    await expect(await dialog.findByRole("textbox")).toHaveValue("Heavy rain this week");
+    await expect(await dialog.findByRole("button", { name: "Pause Pool" })).toBeEnabled();
+  },
+};

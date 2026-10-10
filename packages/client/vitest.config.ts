@@ -12,7 +12,7 @@ const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setupTests.ts"],
     globals: true,
     server: {
@@ -91,7 +91,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "dom",
-          environment: "jsdom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.065T and 1.059T instructions against 1.544T and 1.538T
+          // with jsdom (-31%) and took 23.1 and 24.8 s against 30.7 and 35.9 s, with identical
+          // results. Files that need jsdom behaviour pin it with a docblock that says which.
+          environment: "happy-dom",
           include: [domTestFiles],
         },
       },
@@ -196,6 +200,22 @@ export default defineConfig({
       {
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import: 34 s of import
+      // across 28 files on 2026-09-28. An alias reaches Shared's own import of the adapter, which
+      // only Shared can resolve. Four alternating full runs retired 1.542T and 1.536T
+      // instructions with these against 1.660T and 1.694T without (-8.2%), identical results.
+      // viem stays external here: inlining it cost 5.8% more instructions in the same test.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(
+          __dirname,
+          "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"
+        ),
       },
     ],
   },

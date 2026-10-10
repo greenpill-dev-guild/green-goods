@@ -1,12 +1,16 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
-import type { ProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type {
+  PoolFundingControllerView,
+  ProtocolFundingOperationsController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { HexString } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { Address } from "@green-goods/shared/types/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProtocolFundingOperationsCard } from "@/views/Community/components/ProtocolFundingOperationsCard";
 import { ProtocolFundingOperationsPanel } from "@/views/Community/components/ProtocolFundingOperationsPanel";
 import { storyPoolFunding } from "@/views/Garden/Pool/poolStoryControllers";
+import { storyProtocolSafeFunding } from "@/views/Garden/Pool/poolStorySettlement";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const PROTOCOL = "0xf401f34378384713222d1d21f63359cc4e8a858a" as Address;
@@ -130,6 +134,47 @@ describe("ProtocolFundingOperationsCard", () => {
         expect.objectContaining({ title: "Transaction submitted" })
       )
     );
+  });
+
+  it("refuses a transfer over a known limit by name, at the review and at its confirm", async () => {
+    const queueFunding = vi.fn(async (): Promise<HexString> => TX_HASH);
+    const card = (sourceFunding: PoolFundingControllerView) => (
+      <ProtocolFundingOperationsCard
+        operations={controller({ queueFunding, sourceFunding })}
+        gardens={gardens}
+        targetGarden={AIYELOJA}
+        onTargetGardenChange={vi.fn()}
+      />
+    );
+    const { rerender } = renderWithProviders(card(storyProtocolSafeFunding()));
+    const amount = screen.getByLabelText("Amount (G$)");
+    const review = screen.getByRole("button", { name: "Review Seed or Top-Up…" });
+
+    // A 7.2M seed is over the 7M cap alone: the field says so and the review stays shut.
+    fireEvent.change(amount, { target: { value: "7200000" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("More than the per-transfer cap.");
+    expect(amount).toHaveAttribute("aria-invalid", "true");
+    expect(review).toBeDisabled();
+    expect(screen.getByText("Period allowance remaining").parentElement).toHaveTextContent(
+      "15,000,000 G$"
+    );
+
+    // A cap that could not be read does not block: the review opens as it did before.
+    rerender(card(storyProtocolSafeFunding({ cap: null })));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(review);
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/Queue 7,200,000 G\$.*Aiyeloja/)).toBeInTheDocument();
+
+    // A refresh that leaves the Safe short while the review is open shuts its confirm too.
+    rerender(card(storyProtocolSafeFunding({ cap: null, balance: 5_000_000n * G })));
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "More than the protocol Safe holds."
+    );
+    const confirm = within(dialog).getByRole("button", { name: "Queue Seed or Top-Up" });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(queueFunding).not.toHaveBeenCalled();
   });
 
   it("keeps deployer-only funding read-only", () => {

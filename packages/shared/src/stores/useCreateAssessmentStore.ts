@@ -27,7 +27,8 @@ export interface CreateAssessmentFormState {
   diagnosis: string;
   smartOutcomes: SmartOutcome[];
   cynefinPhase: CynefinPhase;
-  domain: Domain;
+  /** Null until the steward chooses one. */
+  domain: Domain | null;
   selectedActionUIDs: string[];
   sdgTargets: number[];
   reportingPeriodStart: string;
@@ -56,7 +57,8 @@ export interface CreateAssessmentStore {
   reset: () => void;
 }
 
-const TOTAL_STEPS = 3;
+// Domain & Context, Challenge & Goals, Actions & Reporting Period, then the Review that sends.
+const TOTAL_STEPS = 4;
 
 function createEmptyAssessmentForm(): CreateAssessmentFormState {
   const defaults = createDefaultAssessmentForm();

@@ -332,7 +332,7 @@ installed phone, `production` the deployed origin. The fix loop takes `local` fi
 - <each Test ID's expected result holds and is re-recorded as pass in the QA app>
 - <second observable outcome when the slice has two halves>
 
-Fix posture: `.claude/context/qa.md § Fix posture` (via `AGENTS.md § Linear-Spawned Issue Contract`).
+Fix posture: `.claude/context/qa.md § Fix posture` (via `.claude/context/linear-routing-rules.md § Issue-dispatched implementation`).
 Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 ```
 

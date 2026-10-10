@@ -1,7 +1,8 @@
 import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
 import type { Garden } from "@green-goods/shared/types/domain";
+import type { ReactNode } from "react";
 import type { IntlShape } from "react-intl";
-import { AdminCard } from "@/components/AdminCard";
+import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import { CampaignJarListRow } from "./CampaignJarListRow";
 
@@ -15,6 +16,7 @@ interface CampaignCookieJarPanelListProps {
   visibleCampaigns: readonly CampaignCookieJarCampaign[];
   gardensByAddress: Map<string, Garden>;
   onSelectCampaign: (campaign: CampaignCookieJarCampaign) => void;
+  headerAction?: ReactNode;
 }
 
 export function CampaignCookieJarPanelList({
@@ -27,47 +29,46 @@ export function CampaignCookieJarPanelList({
   visibleCampaigns,
   gardensByAddress,
   onSelectCampaign,
+  headerAction,
 }: CampaignCookieJarPanelListProps) {
   return (
-    <AdminCard
-      variant="outlined"
-      className="flex min-h-[32rem] flex-1 flex-col overflow-hidden p-0"
-    >
-      <div className="border-b border-[rgb(var(--m3-outline-variant))] p-4 sm:p-5">
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_16rem] md:items-end">
-          <div>
-            <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+    <AdminCard variant="outlined" className="flex flex-1 flex-col overflow-hidden p-0">
+      <div className="space-y-3 border-b border-stroke-soft p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <AdminCardTitle as="h2">
               {formatMessage({
                 id: "cockpit.community.cookies.listTitle",
-                defaultMessage: "Cookie jar campaigns",
+                defaultMessage: "Campaign Cookie Jars",
               })}
-            </h2>
-            <p className="mt-1 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            </AdminCardTitle>
+            <p className="mt-1 text-body-sm text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.community.cookies.listDescription",
                   defaultMessage:
-                    "{count, plural, one {# trusted campaign jar} other {# trusted campaign jars}} indexed for this network.",
+                    "{count, plural, one {# campaign jar on this network} other {# campaign jars on this network}}.",
                 },
                 { count: campaigns.length }
               )}
             </p>
           </div>
-          <AdminTextField
-            id="campaign-cookie-jar-search"
-            className="min-w-0"
-            label={formatMessage({
-              id: "cockpit.community.cookies.searchCampaigns",
-              defaultMessage: "Search cookie jars",
-            })}
-            value={campaignSearch}
-            onChange={(event) => setCampaignSearch(event.target.value)}
-            placeholder={formatMessage({
-              id: "cockpit.community.cookies.searchCampaignsPlaceholder",
-              defaultMessage: "Search by name, slug, or address",
-            })}
-          />
+          {headerAction}
         </div>
+        <AdminTextField
+          id="campaign-cookie-jar-search"
+          className="min-w-0 md:max-w-sm"
+          label={formatMessage({
+            id: "cockpit.community.cookies.searchCampaigns",
+            defaultMessage: "Search cookie jars",
+          })}
+          value={campaignSearch}
+          onChange={(event) => setCampaignSearch(event.target.value)}
+          placeholder={formatMessage({
+            id: "cockpit.community.cookies.searchCampaignsPlaceholder",
+            defaultMessage: "Search by name, slug, or address",
+          })}
+        />
       </div>
       {campaignsLoading ? (
         <div className="flex-1 space-y-3 p-4 sm:p-5" role="status" aria-live="polite">
@@ -86,7 +87,7 @@ export function CampaignCookieJarPanelList({
         </div>
       ) : null}
       {!campaignsLoading && campaignsError ? (
-        <div className="flex-1 p-5 text-body-sm text-[rgb(var(--m3-error))]">
+        <div className="flex-1 p-5 text-body-sm text-error-dark">
           {formatMessage({
             id: "cockpit.community.cookies.loadFailed",
             defaultMessage: "Could not load campaign cookie jars. Direct jar links still work.",
@@ -95,13 +96,13 @@ export function CampaignCookieJarPanelList({
       ) : null}
       {!campaignsLoading && !campaignsError && campaigns.length === 0 ? (
         <div className="flex flex-1 flex-col items-start justify-center gap-3 p-5">
-          <p className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+          <p className="text-title-sm font-semibold text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.emptyTitle",
               defaultMessage: "No campaign cookie jars yet",
             })}
           </p>
-          <p className="max-w-xl text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <p className="max-w-xl text-body-sm text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.emptyDescription",
               defaultMessage:
@@ -114,7 +115,7 @@ export function CampaignCookieJarPanelList({
       !campaignsError &&
       campaigns.length > 0 &&
       visibleCampaigns.length === 0 ? (
-        <div className="flex-1 p-5 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+        <div className="flex-1 p-5 text-body-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.noCampaignMatches",
             defaultMessage: "No cookie jars match that search.",

@@ -36,6 +36,18 @@
         "packages/agent/src/",
         "packages/indexer/src/"
       ]
+    },
+    {
+      "risk": "sensitive",
+      "note": "Shared hooks that left the critical tier because they only read (D1). They keep direct proof through needs-focus, and conditionalRules add the Shared and consumer typechecks.",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
     }
   ],
   "surfaceRules": [
@@ -97,10 +109,64 @@
     },
     {
       "surface": "all",
-      "exact": ["package.json", "biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"]
+      "exact": ["package.json", "biome.json", "env.schema", "tsconfig.json", "tsconfig.base.json"]
     }
   ],
   "conditionalRules": [
+    {
+      "check": "review-guardrails-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        ".claude/scripts/task-completion-gate.sh",
+        ".claude/scripts/teammate-idle-gate.sh",
+        ".codex/hooks/pre_tool_policy.sh",
+        ".claude/settings.json",
+        ".codex/hooks.json",
+        "scripts/harness/command-policy.mjs",
+        "scripts/harness/agent-hooks.test.mjs"
+      ]
+    },
+    {
+      "check": "validation-system-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        "scripts/dev/doctor.js",
+        "scripts/lib/dev-shared.js",
+        "scripts/dev/package-commands.mjs",
+        "scripts/dev/package-commands.test.mjs",
+        "scripts/dev/test-lease.mjs",
+        "turbo.json",
+        "scripts/data/validation-policy.json",
+        "scripts/quality/select-validation.mjs",
+        "scripts/quality/shared-mutation-surface.mjs",
+        "scripts/dev/ci-local.js",
+        "scripts/quality/ci-gate.mjs",
+        "scripts/quality/check-source-structure.js",
+        "scripts/quality/check-staged-modules.mjs",
+        "scripts/quality/check-commit-identity.mjs",
+        "scripts/dev/surface-leases.mjs",
+        "scripts/dev/stack.js",
+        "scripts/dev/smoke-full.js",
+        "scripts/lib/dev-modes.mjs",
+        "scripts/lib/setup-env.mjs",
+        "scripts/lib/command-runner.mjs",
+        "scripts/dev/test.js",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "scripts/lib/vitest-shared-graph.mjs",
+        "scripts/quality/check-shared-graph-tests.mjs",
+        "scripts/quality/check-small-test-files.mjs",
+        "scripts/quality/check-test-utils-barrel.mjs"
+      ]
+    },
+    {
+      "check": "shared-test",
+      "runInQa": true,
+      "note": "The Shared Vitest config reads this helper to decide which Node tests share a module graph.",
+      "exact": ["scripts/lib/vitest-shared-graph.mjs"]
+    },
     {
       "check": "source-structure",
       "match": "all",
@@ -338,6 +404,7 @@
         "packages/shared/src/modules/offline-content/",
         "packages/shared/src/modules/profile-avatar/",
         "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
         "packages/shared/src/hooks/offline/",
         "packages/shared/src/hooks/profile/",
         "packages/shared/src/hooks/app/useOffline",
@@ -389,6 +456,262 @@
         "packages/qa/auth.ts",
         "packages/qa/api/auth.ts"
       ]
+    },
+    {
+      "check": "shared-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
+    },
+    {
+      "check": "client-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
+    },
+    {
+      "check": "admin-typecheck",
+      "prefixes": [
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/blockchain/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/"
+      ]
+    },
+    {
+      "check": "test-quality",
+      "intents": ["push"],
+      "note": "Test files, test helpers and mocks, every non-test file a certified seam fingerprints (scripts/data/module-seam-registry.json), the checks it runs, and the files that decide which Shared test project each test file lands in. CI runs test-quality on every pull request.",
+      "prefixes": ["tests/"],
+      "contains": ["/__tests__/", "/__mocks__/", "/test/", "/tests/", ".test.", ".spec."],
+      "exact": [
+        "packages/client/src/views/Home/Garden/WorkFulfills.tsx",
+        "packages/client/src/views/Home/Garden/index.tsx",
+        "packages/shared/package.json",
+        "packages/shared/src/commitment-pooling/index.ts",
+        "packages/shared/src/config/passkeyServer.ts",
+        "packages/shared/src/hooks/auth/useIdentityChangeReset.ts",
+        "packages/shared/src/hooks/work/useWorkMutation.ts",
+        "packages/shared/src/modules/auth/session.ts",
+        "packages/shared/src/modules/job-queue/default-instance.ts",
+        "packages/shared/src/modules/job-queue/queue.ts",
+        "packages/shared/src/modules/work/submit-work-command.ts",
+        "packages/shared/src/providers/Auth.tsx",
+        "scripts/quality/check-test-quality.sh",
+        "scripts/quality/check-test-query-setup.mjs",
+        "scripts/contracts/check-solidity-test-names.mjs",
+        "packages/shared/vitest.config.ts",
+        "scripts/lib/vitest-shared-graph.mjs",
+        "scripts/quality/check-shared-graph-tests.mjs",
+        "scripts/quality/check-small-test-files.mjs",
+        "scripts/quality/check-test-utils-barrel.mjs"
+      ]
+    },
+    {
+      "check": "docs-generated",
+      "intents": ["push"],
+      "note": "Every source a projection in scripts/docs/generate.mjs digests, the generator itself, and docs/. select-validation.test.mjs fails when this list and projectionSourcePaths() drift apart.",
+      "prefixes": [
+        ".github/workflows/",
+        "docs/",
+        "packages/contracts/deployments/",
+        "scripts/docs/"
+      ],
+      "exact": [
+        ".claude/context/task-routing.json",
+        ".claude/skills/audit/SKILL.md",
+        ".claude/skills/clean/SKILL.md",
+        ".claude/skills/debug/SKILL.md",
+        ".claude/skills/design/SKILL.md",
+        ".claude/skills/doc-feedback/SKILL.md",
+        ".claude/skills/module-seams-review/SKILL.md",
+        ".claude/skills/plan/SKILL.md",
+        ".claude/skills/qa-session/SKILL.md",
+        ".claude/skills/qa-triage/SKILL.md",
+        ".claude/skills/research/SKILL.md",
+        ".claude/skills/resolve-pr-comments/SKILL.md",
+        ".claude/skills/review/SKILL.md",
+        ".claude/skills/ship/SKILL.md",
+        ".mcp.json",
+        "AGENTS.md",
+        "package.json",
+        "packages/admin/package.json",
+        "packages/admin/src/router.tsx",
+        "packages/admin/src/routes/views.tsx",
+        "packages/admin/vitest.config.ts",
+        "packages/agent/package.json",
+        "packages/agent/src/api/funding/routes.ts",
+        "packages/agent/src/api/http/public.ts",
+        "packages/agent/src/api/public-protection.ts",
+        "packages/agent/src/api/routes/passkey-directory.ts",
+        "packages/agent/src/api/routes/public-commitment-impact.ts",
+        "packages/agent/src/api/routes/public-garden-impact.ts",
+        "packages/agent/src/api/routes/subscribe.ts",
+        "packages/agent/src/api/routes/upload-sign.ts",
+        "packages/agent/vitest.config.ts",
+        "packages/client/package.json",
+        "packages/client/src/config/pwaRouting.ts",
+        "packages/client/src/config/routes.tsx",
+        "packages/client/vitest.config.ts",
+        "packages/contracts/config/command-migration.json",
+        "packages/contracts/config/schemas.json",
+        "packages/contracts/package.json",
+        "packages/contracts/script/cli/operations.mjs",
+        "packages/contracts/script/utils/package-commands.mjs",
+        "packages/contracts/src/modules/CookieJar.sol",
+        "packages/contracts/src/modules/Gardens.sol",
+        "packages/contracts/src/modules/Hats.sol",
+        "packages/contracts/src/modules/Hypercerts.sol",
+        "packages/contracts/src/modules/Karma.sol",
+        "packages/contracts/src/modules/Octant.sol",
+        "packages/contracts/src/registries/ENS.sol",
+        "packages/indexer/config.yaml",
+        "packages/indexer/package.json",
+        "packages/indexer/schema.graphql",
+        "packages/qa/package.json",
+        "packages/shared/package.json",
+        "packages/shared/src/config/chains.ts",
+        "packages/shared/src/config/gardens-subgraph.ts",
+        "packages/shared/src/ontology/green-goods-ontology.json",
+        "packages/shared/src/ontology/green-goods-projections.json",
+        "packages/shared/src/public-contracts/routes.ts",
+        "packages/shared/src/utils/blockchain/ens.ts",
+        "packages/shared/vitest.config.ts",
+        "playwright.config.ts",
+        "scripts/agents/qa.mjs",
+        "scripts/data/banned-vocabulary.json",
+        "scripts/data/command-migration.json",
+        "scripts/data/command-policy.json",
+        "scripts/data/qa-test-catalog.json",
+        "scripts/data/validation-policy.json",
+        "scripts/dev/browser.js",
+        "scripts/dev/package-commands.mjs",
+        "scripts/dev/test.js",
+        "scripts/mcp/brave-devtools.mjs",
+        "scripts/quality/check-ontology.mjs",
+        "scripts/quality/ontology-render.mjs",
+        "scripts/quality/task-routing-contract.mjs"
+      ]
+    },
+    {
+      "check": "docs-authority",
+      "intents": ["push"],
+      "note": "docs/scripts/docs-audit.mjs reads docs/, root and package guides, and scans every tracked script, config and guide outside Plan Hubs for retired command callers.",
+      "extensions": [
+        ".md",
+        ".mdx",
+        ".json",
+        ".yml",
+        ".yaml",
+        ".toml",
+        ".sh",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".jsx"
+      ],
+      "excludePrefixes": [".plans/"]
+    },
+    {
+      "check": "immutable-plan-reports",
+      "intents": ["push"],
+      "note": "Dated Plan Hub reports never change once they exist; CI's Guidance integrity job rejects an edit, deletion or rename of one. ci-local hands the check the plan's base, as CI hands it the push's previous head or the pull request's base. select-validation.test.mjs fails when a dated report the check classifies does not select it.",
+      "match": "all",
+      "prefixes": [".plans/"],
+      "contains": ["/reports/"]
+    },
+    {
+      "check": "immutable-plan-reports",
+      "intents": ["push"],
+      "note": "The check's own code and the base resolution it shares with the other diff-aware guidance checks.",
+      "exact": [
+        "scripts/quality/check-immutable-plan-reports.mjs",
+        "scripts/lib/git-guardrails.mjs"
+      ]
+    },
+    {
+      "check": "browser-passkey",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.passkey.spec.ts",
+        "tests/specs/client.reporting-account.passkey.spec.ts",
+        "tests/helpers/reporting-ceremony.ts",
+        "packages/agent/src/__tests__/reporting/driver/server.ts",
+        "packages/shared/src/config/passkeyServer.ts"
+      ],
+      "prefixes": [
+        "packages/shared/src/workflows/auth",
+        "packages/shared/src/providers/Auth",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/client-ui/auth/",
+        "packages/shared/src/hooks/admin-ui/auth/",
+        "packages/client/src/views/Login/"
+      ]
+    },
+    {
+      "check": "browser-pwa-preview",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.pwa-preview.spec.ts",
+        "packages/client/vite.config.ts",
+        "packages/client/src/main.tsx"
+      ],
+      "prefixes": ["packages/client/src/sw/", "packages/client/vite/"]
+    },
+    {
+      "check": "fork-fixtures-test",
+      "runInQa": true,
+      "exact": ["playwright.config.ts", "tests/helpers/mock-backend.ts"],
+      "prefixes": ["tests/fixtures/"]
+    },
+    {
+      "check": "browser-work-exploration",
+      "runInQa": true,
+      "exact": [
+        "playwright.config.ts",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/browser.js",
+        "tests/fixtures/playwright-services.ts",
+        "tests/global-setup.ts",
+        "tests/helpers/test-utils.ts",
+        "tests/specs/client.exploration.spec.ts",
+        "tests/fixtures/work-exploration.ts",
+        "tests/fixtures/work-exploration.test.ts",
+        "tests/helpers/mock-backend.ts",
+        "packages/shared/src/modules/work/work-list.ts",
+        "packages/shared/src/hooks/work/useWorks.ts",
+        "packages/shared/src/hooks/work/useWorkMetadata.ts"
+      ],
+      "prefixes": [
+        "packages/client/src/views/Home/Garden/Work",
+        "packages/shared/src/hooks/client-ui/work/"
+      ]
     }
   ],
   "checks": [
@@ -398,7 +721,7 @@
       "risk": "unformatted tracked files produce misleading package failures",
       "expectedSignal": "repository formatting is unchanged",
       "freshness": "exact-inputs",
-      "budgetSeconds": 15,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -408,7 +731,7 @@
       "risk": "static defects cross package boundaries",
       "expectedSignal": "repository lint rules pass",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -428,7 +751,7 @@
       "risk": "direct-test seams, registry evidence, or test architecture can drift behind passing suites",
       "expectedSignal": "test-quality and certified seam guardrails pass without baseline debt",
       "freshness": "exact-test-guidance-registry-inputs-and-toolchain",
-      "budgetSeconds": 30,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -460,7 +783,7 @@
       "risk": "shared type contracts no longer compile",
       "expectedSignal": "shared TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 45,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -471,7 +794,7 @@
       "risk": "shared tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "shared test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -482,9 +805,8 @@
       "risk": "shared behavior regresses direct consumers",
       "expectedSignal": "shared unit and integration tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 90,
+      "budgetSeconds": 84,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {
@@ -494,7 +816,18 @@
       "risk": "shared exports or emitted declarations are invalid",
       "expectedSignal": "shared package builds successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 1,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "client-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/client",
+      "risk": "client source no longer compiles against the Shared contracts it consumes",
+      "expectedSignal": "client source TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -505,7 +838,7 @@
       "risk": "client tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "client test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -516,9 +849,8 @@
       "risk": "client behavior regresses",
       "expectedSignal": "client tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 90,
+      "budgetSeconds": 46,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -528,7 +860,18 @@
       "risk": "client routing, exports, or runtime wiring do not bundle",
       "expectedSignal": "client production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 75,
+      "budgetSeconds": 21,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/admin",
+      "risk": "admin source no longer compiles against the Shared contracts it consumes",
+      "expectedSignal": "admin source TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -539,7 +882,7 @@
       "risk": "admin tests and stories no longer satisfy their strict TypeScript contract",
       "expectedSignal": "admin test and story TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -550,9 +893,8 @@
       "risk": "admin behavior regresses",
       "expectedSignal": "admin tests pass",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 180,
+      "budgetSeconds": 73,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -564,7 +906,6 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -574,7 +915,7 @@
       "risk": "admin routing, exports, or runtime wiring do not bundle",
       "expectedSignal": "admin production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 75,
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -585,7 +926,7 @@
       "risk": "agent runtime types no longer compile",
       "expectedSignal": "agent TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 45,
+      "budgetSeconds": 3,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -596,7 +937,7 @@
       "risk": "agent tests no longer satisfy their strict TypeScript contract",
       "expectedSignal": "agent test TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -607,9 +948,8 @@
       "risk": "agent or SQLite behavior regresses",
       "expectedSignal": "agent test lanes pass",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 90,
+      "budgetSeconds": 4,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -619,7 +959,7 @@
       "risk": "agent runtime does not build",
       "expectedSignal": "agent production build succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
-      "budgetSeconds": 60,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -701,7 +1041,7 @@
       "risk": "documentation authorities, generated sources, or committed projections drift",
       "expectedSignal": "generator fixtures, authority links, navigation targets, and committed projections are current",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 5,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -714,7 +1054,6 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
       "stopRule": "stop-dependent-checks",
-      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {
@@ -742,9 +1081,9 @@
       "id": "source-structure",
       "command": "node scripts/quality/check-source-structure.js",
       "risk": "changed package source violates repository structure policy",
-      "expectedSignal": "changed source structure is accepted",
+      "expectedSignal": "package source changed since the comparison base, committed or not, passes structure policy",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 2,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -764,7 +1103,7 @@
       "risk": "domain ontology and generated references diverge",
       "expectedSignal": "ontology source and projections agree",
       "freshness": "exact-inputs",
-      "budgetSeconds": 20,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": []
     },
@@ -808,7 +1147,9 @@
       "stopRule": "advisory",
       "capabilities": ["authenticatedBrave"],
       "manual": true,
-      "attestation": { "engines": ["authenticated Brave"] }
+      "attestation": {
+        "engines": ["authenticated Brave"]
+      }
     },
     {
       "id": "story-quality",
@@ -999,7 +1340,7 @@
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "docs-generated completes successfully",
       "freshness": "exact-inputs-and-toolchain",
-      "budgetSeconds": 60,
+      "budgetSeconds": 1,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -1015,7 +1356,7 @@
     },
     {
       "id": "review-guardrails-test",
-      "command": "node scripts/dev/node-cli.js node --test scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
+      "command": "node scripts/dev/node-cli.js node --test scripts/harness/agent-hooks.test.mjs scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/task-routing-contract.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/quality/check-qa-id-ledger.test.mjs scripts/quality/lint-linear-issue.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
       "risk": "Independently selectable repository verification must retain its behavior.",
       "expectedSignal": "review-guardrails-test completes successfully",
       "freshness": "exact-inputs-and-toolchain",
@@ -1102,6 +1443,36 @@
       "budgetSeconds": 60,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
+    },
+    {
+      "id": "browser-passkey",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "A real virtual-authenticator credential reaches verification; server rejection remains signed out and retryable. On the chat link's Account step a newcomer and a returning account each reach Sign to Continue, and a refused name or a closed prompt leaves no passkey and no account.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 130,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-pwa-preview",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-pwa-preview/results.json bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json --output=.cache/validation/browser-pwa-preview/artifacts",
+      "risk": "Browser wiring can pass shallow assertions while the user journey is broken.",
+      "expectedSignal": "Fresh production shell reloads offline; deleting its navigation cache defeats the same reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 100,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
+    },
+    {
+      "id": "browser-work-exploration",
+      "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-work-exploration/results.json bun run browser e2e --preset explore --seed 17 -- --workers=1 --reporter=line,json --output=.cache/validation/browser-work-exploration/artifacts",
+      "risk": "Read and recovery wiring can silently lose a work record across roles or viewports.",
+      "expectedSignal": "Both seeded work inspection and outage-recovery cases display the same synthetic record before and after reload.",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "playwrightChromium"]
     }
   ],
   "criticalOverrides": [
@@ -1111,6 +1482,8 @@
       "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
     },
     {
+      "id": "shared-signing-money-queue-auth",
+      "note": "Critical means signing, money, queue and auth (D1, 2026-09-28). The prefixes are critical as a whole. exact lists every other Shared source file whose code reaches a primitive in sharedMutationPrimitives. The selector also escalates any changed Shared file that reaches one, and select-validation.test.mjs fails when exact drifts from the code.",
       "prefixes": [
         "packages/shared/src/providers/Auth.tsx",
         "packages/shared/src/providers/JobQueue.tsx",
@@ -1119,15 +1492,135 @@
         "packages/shared/src/modules/job-queue/",
         "packages/shared/src/modules/work/",
         "packages/shared/src/workflows/",
-        "packages/shared/src/hooks/assessment/",
         "packages/shared/src/hooks/auth/",
-        "packages/shared/src/hooks/conviction/",
-        "packages/shared/src/hooks/ens/",
-        "packages/shared/src/hooks/garden/",
-        "packages/shared/src/hooks/greenwill/",
         "packages/shared/src/hooks/work/",
-        "packages/shared/src/hooks/vault/",
-        "packages/shared/src/hooks/blockchain/"
+        "packages/shared/src/hooks/vault/"
+      ],
+      "exact": [
+        "packages/shared/src/config/passkeyServer.ts",
+        "packages/shared/src/hooks/action/useActionOperations.ts",
+        "packages/shared/src/hooks/admin-ui/actions/useActionEditorController.ts",
+        "packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts",
+        "packages/shared/src/hooks/admin-ui/auth/useAdminLoginController.ts",
+        "packages/shared/src/hooks/admin-ui/community/useCommunityWorkspaceController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useGardenWorkspaceController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useManageMembersController.ts",
+        "packages/shared/src/hooks/admin-ui/garden/useSubmitWorkController.ts",
+        "packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts",
+        "packages/shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/useWizardData.ts",
+        "packages/shared/src/hooks/admin-ui/layout/useAccountProfileController.ts",
+        "packages/shared/src/hooks/admin-ui/layout/useStewardAccessRequestController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useAddToGroup.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useCommitmentDialogController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useCommitmentSettlementController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useEditReward.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useFinishCreating.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useHubConfirmQueueController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useSeedTray.ts",
+        "packages/shared/src/hooks/admin-ui/pool/useSettlementOperationsController.ts",
+        "packages/shared/src/hooks/admin-ui/useAdminAccessState.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingCeremony.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingPermissions.ts",
+        "packages/shared/src/hooks/agent-reporting/useAgentReportingRecovery.ts",
+        "packages/shared/src/hooks/agent-reporting/useCeremonyAccount.ts",
+        "packages/shared/src/hooks/agent-reporting/useGrantInstallation.ts",
+        "packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts",
+        "packages/shared/src/hooks/blockchain/useContractTxSender.ts",
+        "packages/shared/src/hooks/blockchain/useSendToken.ts",
+        "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+        "packages/shared/src/hooks/blockchain/useWalletNetworkAlignment.ts",
+        "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useCommitmentComposerController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts",
+        "packages/shared/src/hooks/client-ui/commitment/usePendingProof.ts",
+        "packages/shared/src/hooks/client-ui/commitment/useProofComposerController.ts",
+        "packages/shared/src/hooks/client-ui/pool/useGardenPoolController.ts",
+        "packages/shared/src/hooks/client-ui/pool/useGroupTakeUp.ts",
+        "packages/shared/src/hooks/client-ui/pool/usePromiseGroupController.ts",
+        "packages/shared/src/hooks/client-ui/profile/useUsernameController.ts",
+        "packages/shared/src/hooks/client-ui/work/useCommunityGardenOnramp.ts",
+        "packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts",
+        "packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentJobs.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentPoolMutations.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts",
+        "packages/shared/src/hooks/commitment-pooling/useCredit.ts",
+        "packages/shared/src/hooks/commitment-pooling/useSettlement.ts",
+        "packages/shared/src/hooks/conviction/useAllocateHypercertSupport.ts",
+        "packages/shared/src/hooks/conviction/useConvictionWeightAllocator.ts",
+        "packages/shared/src/hooks/conviction/useCreateGardenPools.ts",
+        "packages/shared/src/hooks/conviction/useDeregisterHypercert.ts",
+        "packages/shared/src/hooks/conviction/useRegisterHypercert.ts",
+        "packages/shared/src/hooks/conviction/useSetConvictionStrategies.ts",
+        "packages/shared/src/hooks/conviction/useSetDecay.ts",
+        "packages/shared/src/hooks/conviction/useSetPointsPerVoter.ts",
+        "packages/shared/src/hooks/conviction/useSetRoleHatIds.ts",
+        "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts",
+        "packages/shared/src/hooks/ens/useENSClaim.ts",
+        "packages/shared/src/hooks/ens/useENSReleaseName.ts",
+        "packages/shared/src/hooks/garden/createGardenOperation.ts",
+        "packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts",
+        "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts",
+        "packages/shared/src/hooks/garden/useGardenDetailData.ts",
+        "packages/shared/src/hooks/garden/useGardenInvites.ts",
+        "packages/shared/src/hooks/garden/useGardenJoinRequests.ts",
+        "packages/shared/src/hooks/garden/useGardenOperations.ts",
+        "packages/shared/src/hooks/garden/useJoinGarden.ts",
+        "packages/shared/src/hooks/garden/useKarmaIntegration.ts",
+        "packages/shared/src/hooks/garden/useOpenMinting.ts",
+        "packages/shared/src/hooks/garden/useSetGardenDomains.ts",
+        "packages/shared/src/hooks/garden/useUpdateGarden.ts",
+        "packages/shared/src/hooks/gardener/useGardenerProfile.ts",
+        "packages/shared/src/hooks/greenwill/useClaimGreenWillBadge.ts",
+        "packages/shared/src/hooks/hypercerts/services/build-and-sign.ts",
+        "packages/shared/src/hooks/hypercerts/services/register-in-signal-pool.ts",
+        "packages/shared/src/hooks/hypercerts/useBatchListForYield.ts",
+        "packages/shared/src/hooks/hypercerts/useCancelListing.ts",
+        "packages/shared/src/hooks/hypercerts/useCreateListing.ts",
+        "packages/shared/src/hooks/hypercerts/useMarketplaceApprovals.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
+        "packages/shared/src/hooks/profile/useProfileAvatar.ts",
+        "packages/shared/src/hooks/yield/useAllocateYield.ts",
+        "packages/shared/src/hooks/yield/useHarvestDistribution.ts",
+        "packages/shared/src/modules/action/action-operation-command.ts",
+        "packages/shared/src/modules/agent-reporting/browser-grant-activation.ts",
+        "packages/shared/src/modules/agent-reporting/ceremony-send.ts",
+        "packages/shared/src/modules/agent-reporting/garden-join.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-activation.ts",
+        "packages/shared/src/modules/agent-reporting/kernel-executor.ts",
+        "packages/shared/src/modules/agent-reporting/owner-validator.ts",
+        "packages/shared/src/modules/assessment/create-assessment-command.ts",
+        "packages/shared/src/modules/commitment-pooling/creation-send.ts",
+        "packages/shared/src/modules/commitment-pooling/reward-edit.ts",
+        "packages/shared/src/modules/garden/create-garden-command.ts",
+        "packages/shared/src/modules/garden/join-garden-command.ts",
+        "packages/shared/src/modules/marketplace/client.ts",
+        "packages/shared/src/modules/marketplace/signing.ts",
+        "packages/shared/src/modules/transactions/bundling-sender.ts",
+        "packages/shared/src/modules/transactions/chain-guard.ts",
+        "packages/shared/src/modules/transactions/embedded-sender.ts",
+        "packages/shared/src/modules/transactions/factory.ts",
+        "packages/shared/src/modules/transactions/passkey-sender.ts",
+        "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/providers/AuthGate.tsx"
+      ],
+      "risk": "critical",
+      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+    },
+    {
+      "id": "reporting-permission-payloads",
+      "note": "These data-only builders define the owner's Kernel permission install and independent revoke calls. Their authorization payloads are critical even though they do not themselves invoke a signing or sending primitive.",
+      "exact": [
+        "packages/shared/src/modules/agent-reporting/kernel-permissions.ts",
+        "packages/shared/src/modules/agent-reporting/permission-management.ts"
       ],
       "risk": "critical",
       "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
@@ -1140,13 +1633,123 @@
       "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
     }
   ],
+  "sharedMutationPrimitives": {
+    "note": "Calls that sign, send a transaction, move funds, or change auth, session or queue state, read from the Shared code (scripts/quality/shared-mutation-surface.mjs). external and internal name the functions, hooks and classes whose call is the act, and passing one on as a value carries it; members name methods whose call, read or destructuring is the act, such as sender.sendContractCall(), onClick={auth.signOut} or const { signOut } = useAuth(). A member forwarded under its own name, as useAuth() does, keeps only its own file critical.",
+    "external": {
+      "wagmi": [
+        "useWriteContract",
+        "useWriteContracts",
+        "useSendTransaction",
+        "useSendCalls",
+        "useSignMessage",
+        "useSignTypedData",
+        "useDeployContract",
+        "useWalletClient",
+        "useConnect",
+        "useDisconnect",
+        "useReconnect",
+        "useSwitchChain",
+        "useSwitchAccount"
+      ],
+      "@wagmi/core": [
+        "writeContract",
+        "sendTransaction",
+        "sendCalls",
+        "signMessage",
+        "signTypedData",
+        "deployContract",
+        "getWalletClient",
+        "connect",
+        "disconnect",
+        "reconnect",
+        "switchChain",
+        "switchAccount"
+      ],
+      "viem": ["createWalletClient"],
+      "viem/actions": [
+        "writeContract",
+        "sendTransaction",
+        "sendRawTransaction",
+        "signMessage",
+        "signTypedData",
+        "signTransaction",
+        "deployContract",
+        "sendCalls"
+      ],
+      "viem/account-abstraction": [
+        "createWebAuthnCredential",
+        "toWebAuthnAccount",
+        "createBundlerClient",
+        "sendUserOperation"
+      ],
+      "permissionless": ["createSmartAccountClient"],
+      "permissionless/accounts": [
+        "toKernelSmartAccount",
+        "toSafeSmartAccount",
+        "toSimpleSmartAccount"
+      ],
+      "permissionless/clients/passkeyServer": ["createPasskeyServerClient"],
+      "@reown/appkit/react": ["useAppKit", "useDisconnect"],
+      "@ethereum-attestation-service/eas-sdk": ["EAS"],
+      "@hypercerts-org/marketplace-sdk": ["HypercertExchangeClient"],
+      "@hypercerts-org/sdk": ["HypercertClient"]
+    },
+    "internal": {
+      "modules/transactions/factory.ts": ["createTransactionSender"],
+      "modules/transactions/wallet-sender.ts": ["WalletSender"],
+      "modules/transactions/passkey-sender.ts": ["PasskeySender"],
+      "modules/transactions/embedded-sender.ts": ["EmbeddedSender"],
+      "providers/Auth.tsx": ["useAuthActions"]
+    },
+    "members": [
+      "sendTransaction",
+      "sendUserOperation",
+      "signUserOperation",
+      "writeContract",
+      "writeContractAsync",
+      "signMessage",
+      "signMessageAsync",
+      "signTypedData",
+      "signTransaction",
+      "sendCalls",
+      "sendRawTransaction",
+      "sendContractCall",
+      "sendBatch",
+      "sendAtomicBatch",
+      "deployContract",
+      "createAccount",
+      "loginWithPasskey",
+      "loginWithWallet",
+      "loginWithEmbedded",
+      "signOut",
+      "switchToWallet",
+      "switchToPasskey",
+      "clearPasskey",
+      "disconnectWallet",
+      "addJob",
+      "processJob",
+      "flush",
+      "retryJob",
+      "discardJob",
+      "retryAndSend"
+    ]
+  },
+  "sharedConsumerTestSupport": {
+    "note": "Shared test support that Client and Admin tests import: @green-goods/shared/testing and the base test setup. For those consumers it is test infrastructure rather than Shared's own tests, so a change reaches their suites and workflows as Shared source does.",
+    "surfaces": ["client", "admin"],
+    "exact": [
+      "packages/shared/src/__tests__/setupTests.base.ts",
+      "packages/shared/src/__tests__/setupTests.core.ts"
+    ],
+    "prefixes": ["packages/shared/src/__tests__/test-utils/"]
+  },
   "workflowRules": {
     "Admin": {
       "exact": [
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "playwright.config.ts",
         "scripts/ops/upload-sourcemaps.js",
         "scripts/lib/env-schema.mjs",
@@ -1156,7 +1759,9 @@
         "scripts/dev/env-check.js",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/admin.yml"
+        ".github/workflows/admin.yml",
+        "scripts/dev/package-commands.mjs",
+        ".github/actions/setup-playwright/action.yml"
       ],
       "prefixes": [
         "packages/admin/",
@@ -1172,10 +1777,11 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/agent.yml"
+        ".github/workflows/agent.yml",
+        "scripts/dev/package-commands.mjs"
       ],
       "prefixes": ["packages/agent/", "packages/shared/"],
       "excludeValidationOnlyFrom": ["shared"]
@@ -1185,7 +1791,7 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "playwright.config.ts",
         "scripts/ops/upload-sourcemaps.js",
         "scripts/lib/env-schema.mjs",
@@ -1195,7 +1801,16 @@
         "scripts/dev/env-check.js",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/client.yml"
+        ".github/workflows/client.yml",
+        "scripts/dev/package-commands.mjs",
+        ".github/actions/setup-playwright/action.yml",
+        "scripts/quality/check-staged-modules.mjs",
+        "scripts/quality/check-staged-modules.test.mjs",
+        "scripts/dev/browser.js",
+        "scripts/dev/test-e2e.js",
+        "scripts/dev/node-cli.js",
+        "scripts/lib/command-runner.mjs",
+        "scripts/lib/dev-shared.js"
       ],
       "prefixes": [
         "packages/client/",
@@ -1210,7 +1825,7 @@
       "exact": [
         "package.json",
         "bun.lock",
-        ".env.schema",
+        "env.schema",
         "scripts/lib/git-guardrails.mjs",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
@@ -1227,6 +1842,7 @@
         "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
         "docs/docs/builders/testing/storybook.mdx",
+        "docs/src/css/custom.css",
         "scripts/data/banned-vocabulary.json",
         "packages/admin/AGENTS.md",
         "packages/admin/DESIGN.md",
@@ -1234,11 +1850,15 @@
         "packages/shared/package.json",
         "packages/shared/vitest.storybook.config.ts",
         "scripts/data/design-token-usage-baseline.tsv",
+        "scripts/quality/check-docs-design-parity.mjs",
         "scripts/quality/check-story-coverage.ts",
         "scripts/quality/check-story-quality.ts",
         "vercel.json",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/design.yml"
+        ".github/workflows/design.yml",
+        "packages/shared/src/hooks/app/useTheme.ts",
+        ".github/actions/setup-playwright/action.yml",
+        "scripts/dev/playwright-setup.test.mjs"
       ],
       "prefixes": [
         ".claude/skills/design/",
@@ -1331,10 +1951,11 @@
       "exact": [
         "package.json",
         "bun.lock",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/indexer.yml"
+        ".github/workflows/indexer.yml",
+        "scripts/dev/package-commands.mjs"
       ],
       "prefixes": [
         "packages/indexer/",
@@ -1443,10 +2064,12 @@
         "package.json",
         "bun.lock",
         "biome.json",
-        ".env.schema",
+        "env.schema",
         "scripts/quality/check-source-structure.js",
+        "scripts/lib/vitest-shared-graph.mjs",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/shared.yml"
+        ".github/workflows/shared.yml",
+        "scripts/dev/package-commands.mjs"
       ],
       "prefixes": [
         "packages/shared/",
@@ -1465,7 +2088,8 @@
         "AGENTS.md",
         "CLAUDE.md",
         ".github/actions/setup-js/action.yml",
-        ".github/workflows/supply-chain-guardrails.yml"
+        ".github/workflows/supply-chain-guardrails.yml",
+        "yarn.lock"
       ],
       "prefixes": [
         ".github/workflows/",

@@ -32,8 +32,16 @@ type WorkViewProps = {
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
-  /** The commitment this work fulfils, drawn after the details when there is one. */
-  fulfills?: React.ReactNode;
+  /**
+   * What follows the heading card: why queued work is still on this phone
+   * (D24), or the promise Submit Work is for, pinned as the page scrolls (O9).
+   */
+  afterHeading?: React.ReactNode;
+  /**
+   * What follows the details: the promise this work counts toward, on its page,
+   * or where Submit Work's work waits until it lands.
+   */
+  afterDetails?: React.ReactNode;
   /** When true, shows skeleton placeholders for details instead of the actual cards */
   isDetailsLoading?: boolean;
   headerIcon?: IconComponent | null;
@@ -64,7 +72,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
   mediaTypes = [],
   audioNoteCids,
   details,
-  fulfills = null,
+  afterHeading = null,
+  afterDetails = null,
   isDetailsLoading = false,
   headerIcon: HeaderIcon,
   primaryActions = [],
@@ -98,6 +107,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <FormInfo title={title} info={info} Icon={HeaderIcon ?? undefined} />
+      {afterHeading}
 
       <h6 className="text-base font-semibold">
         {intl.formatMessage({ id: "app.home.workApproval.garden", defaultMessage: "Garden" })}
@@ -239,7 +249,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           ))
       )}
 
-      {fulfills}
+      {afterDetails}
 
       {feedbackSection}
 

@@ -1,16 +1,21 @@
-/** @vitest-environment jsdom */
-import { onlineManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { createElement } from "react";
+/** @vitest-environment happy-dom */
+import { onlineManager, QueryClient } from "@tanstack/react-query";
+import { cleanup, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const seams = vi.hoisted(() => ({
+  completions: vi.fn(() => [] as unknown[]),
+  retire: vi.fn(async () => {}),
   list: vi.fn(),
   approvals: vi.fn(),
   jobs: vi.fn(),
   mine: vi.fn(),
   images: vi.fn(),
   preview: vi.fn((_file: File, _owner: string, _identity: string) => "blob:restored-evidence"),
+}));
+vi.mock("../../../modules/job-queue/work-completions", () => ({
+  retireWorkCompletionSnapshots: seams.retire,
 }));
 // The garden read is one bounded page plus the approvals for the works on it.
 vi.mock("../../../modules/data/eas", () => ({
@@ -34,7 +39,15 @@ vi.mock("../../../modules/job-queue/event-bus", () => ({
   useJobQueueEvents: () => {},
 }));
 vi.mock("../../../modules/job-queue/db", () => ({
-  jobQueueDB: { getImagesForJob: seams.images },
+  jobQueueDB: {
+    getImagesForJob: seams.images,
+    observeWorkCompletions: () => ({
+      subscribe: (observer: { next: (rows: unknown[]) => void }) => {
+        queueMicrotask(() => observer.next(seams.completions()));
+        return { unsubscribe() {} };
+      },
+    }),
+  },
 }));
 vi.mock("../../../modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: { getOrCreateUrl: seams.preview, cleanupUrls: () => {} },
@@ -86,8 +99,8 @@ const queuedJob = {
 };
 let client: QueryClient;
 function mount() {
-  return renderHook(() => useWorks(garden, { offline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  return renderHookWithQueryClient(() => useWorks(garden, { offline: true }), {
+    queryClient: client,
   });
 }
 beforeEach(() => {
@@ -99,6 +112,7 @@ beforeEach(() => {
       queries: { networkMode: "offlineFirst", retry: 2, retryDelay: 0, gcTime: Infinity },
     },
   });
+  seams.completions.mockReturnValue([]);
   seams.list.mockResolvedValue([]);
   seams.approvals.mockResolvedValue([]);
   seams.jobs.mockResolvedValue([]);
@@ -221,14 +235,50 @@ it("opens personal work offline from downloaded garden lists scoped to the accou
   client.setQueryData(worksKeys.mine(queuedJob.userAddress, 11155111, true, undefined, 50), [
     { ...own, id: "legacy-local", media: ["blob:expired"] },
   ]);
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
   expect(result.current.data).toMatchObject([{ id: own.id, status: "approved" }]);
   expect(result.current.lastSuccessfulRefresh).toBe(1000);
   expect(result.current.isLoading).toBe(false);
   expect(seams.mine).not.toHaveBeenCalled();
 });
+it("reconciles confirmed garden work with a stale empty personal read, then prefers the indexed row", async () => {
+  const own = {
+    ...cachedWork,
+    gardenerAddress: queuedJob.userAddress,
+    media: ["bafy-confirmed-photo"],
+    metadata: JSON.stringify({ clientWorkId: "sent" }),
+  };
+  const personalKey = worksKeys.mine(queuedJob.userAddress, 11155111, false, undefined, 50);
+  client.setQueryData(personalKey, []);
+  client.setQueryData(worksKeys.online(garden, 11155111), [
+    own,
+    { ...cachedWork, id: "other-owner" },
+  ]);
+  client.setQueryData(worksKeys.online(garden, 42161), [{ ...own, id: "other-chain" }]);
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
+  });
+  await waitFor(() =>
+    expect(result.current.data).toMatchObject([{ id: own.id, media: own.media }])
+  );
+  client.setQueryData(worksKeys.merged(garden, 11155111), [own]);
+  client.setQueryData(worksKeys.online(garden, 11155111), []);
+  await waitFor(() =>
+    expect(result.current.data).toMatchObject([{ id: own.id, media: own.media }])
+  );
+  client.setQueryData(personalKey, [
+    { ...own, title: "Indexed title", media: ["bafy-indexed-photo"] },
+  ]);
+  await waitFor(() =>
+    expect(result.current.data).toMatchObject([
+      { id: own.id, title: "Indexed title", media: ["bafy-indexed-photo"] },
+    ])
+  );
+  expect(result.current.data).toHaveLength(1);
+});
+
 it("keeps a legacy reviewed status when the downloaded row predates embedded approvals", async () => {
   const own = { ...cachedWork, gardenerAddress: queuedJob.userAddress, status: "pending" as const };
   client.setQueryData(worksKeys.online(garden, 11155111), [own], { updatedAt: 1000 });
@@ -236,8 +286,8 @@ it("keeps a legacy reviewed status when the downloaded row predates embedded app
     { ...own, status: "rejected" as const, _txHash: "0xdecision" },
   ]);
 
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
 
   expect(result.current.data).toMatchObject([{ id: own.id, status: "rejected" }]);
@@ -252,8 +302,8 @@ it("renders queued personal work before media finishes and recreates previews fr
         finishImages = resolve;
       })
   );
-  const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-    wrapper: ({ children }) => createElement(QueryClientProvider, { client }, children),
+  const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+    queryClient: client,
   });
   await waitFor(() => expect(result.current.data[0]?.id).toBe(queuedJob.id));
   expect(result.current.data[0].media).toEqual([]);
@@ -282,4 +332,103 @@ it("does not restore abandoned queue rows from legacy merged garden snapshots", 
   ]);
   const { result } = mount();
   await waitFor(() => expect(result.current.works.map((work) => work.id)).toEqual([cachedWork.id]));
+});
+
+describe("confirmed queue cards after a fresh reading cache", () => {
+  it("keeps indexed historical snapshots outside the garden window until Load older", async () => {
+    const rows = Array.from({ length: 100 }, (_, index) => ({
+      ...cachedWork,
+      id: `indexed-${index}`,
+      createdAt: now - index,
+      gardenerAddress: queuedJob.userAddress,
+      approval: null,
+    }));
+    seams.completions.mockReturnValue(
+      rows.map((row) => ({
+        userAddress: queuedJob.userAddress,
+        chainId: 11155111,
+        work: row,
+      }))
+    );
+    client.setQueryData(worksKeys.online(garden, 11155111), rows.slice(0, 51));
+    client.setQueryData(worksKeys.local(garden, 11155111, queuedJob.userAddress), rows);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works).toHaveLength(50));
+    expect(result.current.hasOlderWork).toBe(true);
+    expect(result.current.works.some((row) => row.id === "indexed-50")).toBe(false);
+    expect(seams.retire).toHaveBeenCalledWith(
+      expect.anything(),
+      queuedJob.userAddress,
+      11155111,
+      rows.slice(0, 51).map((row) => row.id)
+    );
+    client.setQueryData(worksKeys.window(garden, 11155111), 100);
+    await waitFor(() => expect(result.current.works).toHaveLength(100));
+    expect(result.current.hasOlderWork).toBe(false);
+  });
+
+  it("does not resurrect a retired snapshot from an older saved projection", async () => {
+    seams.completions.mockReturnValue([
+      {
+        userAddress: queuedJob.userAddress,
+        chainId: 11155111,
+        workUID: cachedWork.id,
+        indexedAt: now,
+      },
+    ]);
+    client.setQueryData(
+      worksKeys.online(garden, 11155111),
+      Array.from({ length: 51 }, (_, index) => ({
+        ...cachedWork,
+        id: `newer-${index}`,
+        createdAt: now + 100 - index,
+        approval: null,
+      }))
+    );
+    client.setQueryData(worksKeys.local(garden, 11155111, queuedJob.userAddress), [cachedWork]);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works).toHaveLength(50));
+    expect(result.current.works.some((row) => row.id === cachedWork.id)).toBe(false);
+  });
+  const owner = "0x1111111111111111111111111111111111111111";
+  const work = {
+    ...cachedWork,
+    id: `0x${"ac".repeat(32)}`,
+    gardenerAddress: owner,
+    metadata: '{"clientWorkId":"durable-confirmed"}',
+    media: ["uploaded-photo"],
+    title: "Confirmed planting",
+  };
+  const completion = { userAddress: owner, chainId: 11155111, work };
+  it("opens Your Work with confirmed photos before its first indexed result", async () => {
+    seams.completions.mockReturnValue([completion]);
+    const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+      queryClient: client,
+    });
+    await waitFor(() => expect(result.current.data).toEqual([work]));
+    client.setQueryData(worksKeys.mine(owner, 11155111, false, undefined, 50), [
+      { ...work, title: "Indexed planting" },
+    ]);
+    await waitFor(() =>
+      expect(result.current.data).toEqual([{ ...work, title: "Indexed planting" }])
+    );
+  });
+  it("keeps the same confirmed card in a garden with an empty indexed page", async () => {
+    seams.completions.mockReturnValue([completion]);
+    client.setQueryData(worksKeys.online(garden, 11155111), []);
+    const { result } = mount();
+    await waitFor(() => expect(result.current.works).toEqual([work]));
+  });
+  it.each([
+    { userAddress: garden },
+    { chainId: 42161 },
+  ])("rejects a completion from another account or chain", async (scope) => {
+    seams.completions.mockReturnValue([{ ...completion, ...scope }]);
+    client.setQueryData(worksKeys.mine(owner, 11155111, false, undefined, 50), []);
+    const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+      queryClient: client,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
+  });
 });

@@ -1,14 +1,13 @@
 /**
  * useBatchWorkApproval Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the batch work approval mutation hook including auth mode branching,
  * optimistic updates, error rollback, and query invalidation.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Work } from "../../../types/domain";
 import {
@@ -17,6 +16,7 @@ import {
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../../test-utils/mock-factories";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 import {
   createFakeSmartAccountClient,
   type FakeSmartAccountClient,
@@ -110,12 +110,6 @@ import { useBatchWorkApproval } from "../../../hooks/work/useBatchWorkApproval";
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = MOCK_ADDRESSES.gardener;
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -162,9 +156,7 @@ describe("useBatchWorkApproval", () => {
 
   describe("input validation", () => {
     it("throws when submitting empty items array", async () => {
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         try {
@@ -192,9 +184,7 @@ describe("useBatchWorkApproval", () => {
     it("submits batch approvals via wallet submission module", async () => {
       const items = createBatchItems(3);
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         await result.current.mutateAsync(items);
@@ -211,9 +201,7 @@ describe("useBatchWorkApproval", () => {
     it("maps items to approval format with garden/gardener addresses", async () => {
       const items = createBatchItems(2);
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         await result.current.mutateAsync(items);
@@ -240,9 +228,7 @@ describe("useBatchWorkApproval", () => {
     it("submits batch approvals via passkey submission module", async () => {
       const items = createBatchItems(2);
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         await result.current.mutateAsync(items);
@@ -256,9 +242,7 @@ describe("useBatchWorkApproval", () => {
     it("submits with the active smart account client", async () => {
       const items = createBatchItems(1);
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         await result.current.mutateAsync(items);
@@ -274,9 +258,7 @@ describe("useBatchWorkApproval", () => {
       mockSmartAccountClient = null;
       const items = createBatchItems(1);
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         try {
@@ -318,9 +300,7 @@ describe("useBatchWorkApproval", () => {
         })
       );
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       // Start mutation (don't await)
       const mutationPromise = act(async () => {
@@ -345,6 +325,37 @@ describe("useBatchWorkApproval", () => {
       });
 
       await mutationPromise;
+    });
+
+    it("gives each work its own decision's feedback once the batch lands", async () => {
+      const [rejected, silent] = createBatchItems(2, false);
+      rejected.draft.feedback = "  Photos show a different site  ";
+      silent.draft.feedback = "";
+      const mergedKey = queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID);
+      queryClient.setQueryData(mergedKey, [
+        createMockWork({
+          id: rejected.draft.workUID,
+          gardenAddress: TEST_GARDEN,
+          status: "pending",
+        }),
+        // A cached reason from an earlier decision must not outlive this one.
+        {
+          ...createMockWork({ id: silent.draft.workUID, gardenAddress: TEST_GARDEN }),
+          reviewFeedback: "An older reason",
+        },
+      ]);
+
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
+
+      await act(async () => {
+        await result.current.mutateAsync([rejected, silent]);
+      });
+
+      const [first, second] = queryClient.getQueryData<Work[]>(mergedKey) ?? [];
+      expect(first?.status).toBe("rejected");
+      expect(first?.reviewFeedback).toBe("Photos show a different site");
+      expect(second?.status).toBe("rejected");
+      expect(second?.reviewFeedback).toBeUndefined();
     });
   });
 
@@ -373,9 +384,7 @@ describe("useBatchWorkApproval", () => {
       // Make submission fail
       mockSubmitBatchDirectly.mockRejectedValue(new Error("Wallet rejected"));
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         try {
@@ -398,9 +407,7 @@ describe("useBatchWorkApproval", () => {
       mockSubmitBatchDirectly.mockRejectedValue(new Error("Gas estimation failed"));
 
       const items = createBatchItems(2);
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         try {
@@ -426,9 +433,7 @@ describe("useBatchWorkApproval", () => {
       const items = createBatchItems(1);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-      const { result } = renderHook(() => useBatchWorkApproval(), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(() => useBatchWorkApproval(), { queryClient });
 
       await act(async () => {
         await result.current.mutateAsync(items);

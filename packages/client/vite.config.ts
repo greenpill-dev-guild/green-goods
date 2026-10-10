@@ -9,7 +9,11 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA } from "vite-plugin-pwa";
-import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import {
+  assertEnvParity,
+  assertSentryDsnResolvable,
+  dropVercelFrameworkVariables,
+} from "../../scripts/lib/env-parity.mjs";
 import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
@@ -213,11 +217,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveClientSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
+  // The PWA flavor and the Sentry environment above are the last readers of Vercel's
+  // VITE_-prefixed copies. Vite collects what it exposes after this function returns.
+  dropVercelFrameworkVariables(process.env);
   if (command === "build") {
     assertEnvParity({
       app: "client",
       env: process.env,
-      schemaPath: resolve(rootDir, ".env.schema"),
+      schemaPath: resolve(rootDir, "env.schema"),
     });
     assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
@@ -289,20 +296,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         // Build-time VITE_ flags come from the same env files.
         envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        // No JavaScript is precached here: the worker installs it from the
+        // shell tiers listed in pwa-shell-assets.json.
         globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
         globIgnores: [
           "**/*.map",
-          "assets/Actions-*.js",
-          "assets/Cookies-*.js",
-          "assets/EditorialReadDeeper-*.js",
-          "assets/Fund-*.js",
-          "assets/Gardens-*.js",
-          "assets/Glossary-*.js",
-          "assets/Impact-*.js",
-          "assets/Public*.js",
-          "assets/TopNav-*.js",
-          "assets/index-*.js",
-          "assets/socials-*.js",
           "social/**",
           "social-*.png",
           "actions/index.html",
@@ -443,6 +441,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           ],
         },
         output: {
+          // Keep lazy chunk URLs opaque, as admin does. Privacy filters block a
+          // site's own files by name under Brave's Aggressive blocking and in
+          // uBlock Origin: EasyPrivacy's `/analytics-events-` rule blocks the
+          // chunk every auth-importing lazy route loads, and the browser reports
+          // that against the route's chunk. Keep the `-<hash>` suffix: the worker
+          // reuses an unchanged shell file only when its name is content-addressed.
+          // scripts/check-pwa-precache-budget.mjs fails a build that drifts and
+          // expects exactly this 8-character hash.
+          chunkFileNames: "assets/chunk-[hash:8].js",
           codeSplitting: {
             groups: [
               // Keep Vite's dynamic-import helper neutral. If it is assigned to a feature
@@ -540,7 +547,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // runtime dep surface up front — otherwise a cold cache discovers these
       // at request time and broadcasts "optimized dependencies changed.
       // reloading", a full-page reload that kills in-flight lazy-route
-      // navigation. Keep in sync with packages/admin/vite.config.ts.
+      // navigation, and in a browser run takes the page from every other
+      // case on the server. Keep in sync with packages/admin/vite.config.ts.
+      // To check after adding a bare import to shared: delete
+      // node_modules/.vite, start the server with DEBUG=vite:deps and load
+      // the routes; "new dependencies found" names what this list lacks.
       include: [
         "@hookform/resolvers/zod",
         "react",
@@ -560,17 +571,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
+        "@green-goods/shared > @tanstack/query-persist-client-core",
         "@green-goods/shared > @use-gesture/react",
         "@green-goods/shared > @wagmi/core",
         "@green-goods/shared > @xstate/react",
+        "@green-goods/shared > @zerodev/permissions",
+        "@green-goods/shared > @zerodev/permissions/policies",
+        "@green-goods/shared > @zerodev/permissions/signers",
+        "@green-goods/shared > @zerodev/sdk",
+        "@green-goods/shared > @zerodev/sdk/constants",
         "@green-goods/shared > browser-image-compression",
         "@green-goods/shared > clsx",
+        "@green-goods/shared > dexie",
         "ethers",
         "gql.tada",
         "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
         "idb",
         "idb-keyval",
+        "multiformats/cid",
         "@green-goods/shared > permissionless",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
@@ -581,11 +600,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "tailwind-merge",
         "tailwind-variants",
         "viem/account-abstraction",
+        "viem/accounts",
         "viem/chains",
         "@green-goods/shared > xstate",
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── the service worker (src/sw/sw.ts) ──
+        // It is not reached from index.html, so the scan misses its imports too. A page that
+        // registers the dev worker, as the browser suite's do, asks for them at request time.
+        "workbox-background-sync",
+        "workbox-cacheable-response",
+        "workbox-expiration",
+        "workbox-precaching",
+        "workbox-routing",
+        "workbox-strategies",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
@@ -600,6 +629,19 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
       watch,
       proxy: {
+        // Reporting ceremony API, as the Vercel rewrite serves it in production. Locally it
+        // reaches the loopback reporting driver (packages/agent reporting:driver), or, with
+        // REPORTING_AGENT_URL set, a running Agent, which serves the API under /messaging.
+        "/api/messaging": process.env.REPORTING_AGENT_URL
+          ? {
+              target: process.env.REPORTING_AGENT_URL,
+              changeOrigin: false,
+              rewrite: (path) => path.replace(/^\/api\/messaging/, "/messaging"),
+            }
+          : {
+              target: process.env.REPORTING_DRIVER_URL || "http://127.0.0.1:8787",
+              changeOrigin: false,
+            },
         "/api/graphql": {
           target: indexerProxyTarget,
           changeOrigin: true,

@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import {
   isGardenMember,
   usePendingJoinsVersion,
@@ -25,6 +26,7 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
+  const setGardenFilters = useUIStore((state) => state.setGardenFilters);
   const {
     data: gardens = [],
     isError: gardensError,
@@ -94,7 +96,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 className={cn(cardVariants(), "w-full items-center gap-3 text-left")}
               >
                 <Avatar>
-                  <div className="flex items-center justify-center text-center mx-auto text-primary">
+                  <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                     <RiPlantLine className="w-4" />
                   </div>
                 </Avatar>
@@ -142,7 +144,10 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             </div>
             <Button
               type="button"
-              onClick={() => navigate("/home")}
+              onClick={() => {
+                setGardenFilters((current) => ({ scope: "open", sort: current.sort }));
+                navigate("/home");
+              }}
               leadingIcon={<RiPlantLine className="h-4 w-4" aria-hidden="true" />}
             >
               {intl.formatMessage({

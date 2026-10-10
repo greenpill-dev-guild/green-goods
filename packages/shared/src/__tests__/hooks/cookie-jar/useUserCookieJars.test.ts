@@ -1,6 +1,6 @@
 /**
  * useUserCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the aggregation of cookie jars across all gardens where the user is a steward.
  * This hook layers on top of useGardenCookieJars' multicall chain, adding:
@@ -10,7 +10,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_MODULE = "0x1000000000000000000000000000000000000000";

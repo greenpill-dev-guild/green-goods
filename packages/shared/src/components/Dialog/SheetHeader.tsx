@@ -15,9 +15,12 @@
  * `titleAs` / `descriptionAs` so Radix keeps naming the dialog.
  *
  * Layout lives in shared `utilities.css` as `[data-component="SheetHeader"]`
- * attribute rules (Tailwind does not scan `packages/shared/src/` from the app
- * builds). The title and description sizes sit in `@layer components`, which
- * is why consumers must not carry unlayered element type rules.
+ * attribute rules that adapt the header to its host: the PwaSheet drag rules
+ * lock touch scrolling and text selection on the title block while it serves
+ * as grab area, and `data-standalone` adds top padding when the header starts
+ * a centered dialog. The title and
+ * description sizes sit in `@layer components`, which is why consumers must
+ * not carry unlayered element type rules.
  *
  * @module components/Dialog/SheetHeader
  */

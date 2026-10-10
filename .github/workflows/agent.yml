@@ -8,7 +8,7 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - "packages/agent/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
@@ -25,7 +25,7 @@ on:
       - "scripts/dev/package-commands.mjs"
       - "bun.lock"
       - "biome.json"
-      - ".env.schema"
+      - "env.schema"
       - "packages/agent/**"
       - "packages/shared/**"
       - "!packages/shared/**/__tests__/**"
@@ -64,6 +64,14 @@ jobs:
           TELEGRAM_BOT_TOKEN: "test-bot-token"
           VITE_RPC_URL_11155111: "http://localhost:3009"
 
+      - name: Run agent SQLite integration tests
+        working-directory: packages/agent
+        run: bun run test --scope sqlite
+        env:
+          CI: true
+          ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars"
+          TELEGRAM_BOT_TOKEN: "test-bot-token"
+
   lint-typecheck-build:
     name: Lint Typecheck And Build
     runs-on: ubuntu-latest
@@ -78,7 +86,7 @@ jobs:
 
       - name: Check source structure
         env:
-          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
       - name: Run agent lint

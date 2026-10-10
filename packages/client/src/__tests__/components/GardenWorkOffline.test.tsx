@@ -17,6 +17,7 @@ vi.mock("@/components/Communication", async () => ({
   Loader: () => <div>Loading</div>,
 }));
 
+import enMessages from "@green-goods/shared/i18n/en";
 import type { Work } from "@green-goods/shared/types/domain";
 import { GardenWork } from "../../components/Features/Garden/Work";
 
@@ -42,7 +43,7 @@ function savedWork(index: number): Work {
 
 const renderList = (props: Partial<Parameters<typeof GardenWork>[0]>) =>
   render(
-    <IntlProvider locale="en" messages={{}}>
+    <IntlProvider locale="en" messages={enMessages}>
       <GardenWork works={[]} actions={[]} {...props} />
     </IntlProvider>
   );
@@ -55,7 +56,9 @@ it("says nothing about offline content while online", () => {
     lastSuccessfulRefresh: Date.now(),
   });
 
-  expect(screen.queryByRole("status")).toBeNull();
+  // Online, the header's status line is the count, never a saved-copy line.
+  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  expect(screen.queryByText(/Offline/)).toBeNull();
   expect(offline.useActiveOfflineGarden).toHaveBeenCalledWith("0xgarden");
 });
 
@@ -69,7 +72,8 @@ it("keeps saved work visible without an online refresh-failure accent", () => {
   });
 
   expect(screen.getByTestId("cached-work")).toBeInTheDocument();
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("status")).toHaveTextContent("1 submission");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("labels a saved copy while offline on one line", () => {
@@ -80,9 +84,10 @@ it("labels a saved copy while offline on one line", () => {
     lastSuccessfulRefresh: new Date(2026, 8, 13, 16, 5).getTime(),
   });
 
+  // The saved copy's line takes the count's place in the header row, on one line.
   const status = screen.getByRole("status");
   expect(status).toHaveTextContent("Offline · Saved Sep 13");
-  expect(status.querySelector("p")).toHaveClass("truncate");
+  expect(status).toHaveClass("whitespace-nowrap");
 });
 
 it("explains an offline cache miss without a network spinner or empty-garden claim", () => {
@@ -151,6 +156,37 @@ it("offers no older work once the read has reached the end of the garden", () =>
   });
 
   expect(screen.queryByRole("button", { name: "Show older work" })).toBeNull();
+});
+
+it("reads the rest of the garden's history before listing it oldest first", () => {
+  const loadOlderWork = vi.fn();
+  const read = (hasOlderWork: boolean) => loadedRead({ hasOlderWork, loadOlderWork });
+  const view = renderList({
+    works: [savedWork(3), savedWork(2)],
+    gardenId: "0xgarden",
+    readState: read(true),
+  });
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Sort" }), {
+    target: { value: "oldest" },
+  });
+  // The newest page's oldest work is not the garden's, so none is listed yet.
+  expect(loadOlderWork).toHaveBeenCalledTimes(1);
+  expect(screen.queryByTestId("cached-work")).toBeNull();
+  expect(screen.getByRole("status")).toHaveTextContent("Gathering…");
+
+  view.rerender(
+    <IntlProvider locale="en" messages={enMessages}>
+      <GardenWork
+        works={[savedWork(3), savedWork(2), savedWork(1)]}
+        actions={[]}
+        gardenId="0xgarden"
+        readState={read(false)}
+      />
+    </IntlProvider>
+  );
+  expect(screen.getAllByTestId("cached-work")[0]).toHaveTextContent("work 1");
+  expect(loadOlderWork).toHaveBeenCalledTimes(1);
 });
 
 it("hides older work offline, where a wider window cannot be read", () => {

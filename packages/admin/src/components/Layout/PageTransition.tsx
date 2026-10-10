@@ -49,6 +49,10 @@ export function PageTransition() {
   // values at the time of the pathname change, not stale closure values.
   const orchestratorRef = useRef(orchestrator);
   orchestratorRef.current = orchestrator;
+  // The arrival reads the query it lands with; a ref keeps a query-only change
+  // from re-running (and cancelling) a transition.
+  const searchRef = useRef(location.search);
+  searchRef.current = location.search;
 
   useEffect(() => {
     const prevPath = prevPathRef.current;
@@ -78,12 +82,18 @@ export function PageTransition() {
         if (isCancelled || transitionTokenRef.current !== transitionToken) return;
         prevPathRef.current = newPath;
         if (isViewChange) {
-          // Every workspace switch lands at the top. The canvas scroll
-          // container persists across outlet swaps, so without this reset it
-          // would retain the previous view's scroll. (Per-view scroll memory
-          // was removed from the workspace controllers — QA: all views should
-          // start at the top on switch.)
-          document.getElementById("main-content")?.scrollTo({ top: 0 });
+          // Every workspace switch lands at the top, or on the element the URL's
+          // `item` names (`data-route-item`), such as Payouts' campaign cookie
+          // jars. The canvas scroll container persists across outlet swaps, so
+          // without this it would retain the previous view's scroll. (Per-view
+          // scroll memory was removed from the workspace controllers — QA: all
+          // views should start at the top on switch.)
+          const item = new URLSearchParams(searchRef.current).get("item");
+          const target = item
+            ? document.querySelector(`[data-route-item="${CSS.escape(item)}"]`)
+            : null;
+          if (target) target.scrollIntoView({ block: "start" });
+          else document.getElementById("main-content")?.scrollTo({ top: 0 });
         }
       };
 

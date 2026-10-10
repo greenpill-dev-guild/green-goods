@@ -95,6 +95,28 @@ describe("createJobQueue", () => {
     ).rejects.toThrow("offline_job_identity_conflict");
   });
 
+  it("joins a repeated act whose first send is already on record", async () => {
+    // The record is the queue's, not the act's: a second tap on the same
+    // take-up is the same job, not a conflicting one.
+    const claim = {
+      commitmentId: 1n,
+      kind: 1,
+      gardenContext: "0x2222222222222222222222222222222222222222",
+    } as JobKindMap["claim"];
+    const { deps, queue } = setup();
+    const first = await queue.addJob("claim", claim, USER);
+    const stored = await deps.store.getJob(first);
+    await deps.store.updateJob({
+      ...stored!,
+      payload: {
+        ...(stored!.payload as object),
+        sendCheckpoint: { broadcastPending: false, transactionHash: `0x${"44".repeat(32)}` },
+      },
+    });
+
+    await expect(queue.addJob("claim", { ...claim }, USER)).resolves.toBe(first);
+  });
+
   it("emits an empty sync result", async () => {
     const { deps, queue } = setup();
     await expect(queue.flush({ transactionSender: null, userAddress: USER })).resolves.toEqual({
@@ -231,6 +253,77 @@ describe("createJobQueue", () => {
       lastError: "identity_conflict:source-work-terminal",
     });
   });
+
+  describe("Add and Send's send, queued behind its proof", () => {
+    const proof = () =>
+      queuedJob({ id: "proof", kind: "evidence", payload: { commitmentId: 1n } as never });
+    const sendAfterProof = () =>
+      queuedJob({
+        id: "send",
+        kind: "confirmation",
+        payload: { action: "submit", commitmentId: 1n, afterEvidenceJobId: "proof" } as never,
+      });
+
+    it("goes after its proof in one pass, and is left untried while the proof has not landed", async () => {
+      // The store keeps no order: the send comes back first.
+      const store = createInMemoryJobQueueStore([sendAfterProof(), proof()]);
+      const clock = createFakeJobQueueClock();
+      let proofLands = false;
+      const executors = {
+        execute: vi.fn(async (jobId: string) =>
+          jobId === "proof" && !proofLands
+            ? ({ status: "waiting", reason: "evidence-not-published" } as const)
+            : ({ status: "complete", txHash: "0x1" } as const)
+        ),
+      };
+      const { queue } = setup({ store, clock, executors });
+      const context = { transactionSender: {} as never, userAddress: USER };
+
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 0, failed: 0, skipped: 2 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof"]);
+      // Untried, so nothing holds it back once its proof goes.
+      expect((await store.getJob("send"))?.meta?.waitingForDependency).toBeUndefined();
+
+      proofLands = true;
+      executors.execute.mockClear();
+      clock.advance(60_000);
+      await expect(queue.flush(context)).resolves.toEqual({ processed: 2, failed: 0, skipped: 0 });
+      expect(executors.execute.mock.calls.map(([jobId]) => jobId)).toEqual(["proof", "send"]);
+    });
+
+    it("is discarded with its proof, since nothing of it was ever sent", async () => {
+      const store = createInMemoryJobQueueStore([proof(), sendAfterProof()]);
+      const { deps, queue } = setup({ store });
+
+      await expect(queue.discardJob("proof")).resolves.toBe(true);
+      expect(await store.getJob("send")).toBeUndefined();
+      expect(deps.events.emit).toHaveBeenCalledWith(
+        "job:failed",
+        expect.objectContaining({ jobId: "send", error: "discarded" })
+      );
+    });
+  });
+});
+
+describe("discardJob and execution claims", () => {
+  it("refuses to discard a job while a send holds its execution claim", async () => {
+    // A tap, a background flush or another tab can be mid-send: deleting the
+    // record then would orphan a transaction that may still broadcast.
+    const acquire = vi.fn().mockResolvedValue(null);
+    const { queue } = setup({ executionClaims: { acquire } });
+    const id = await queue.addJob("work", {} as JobKindMap["work"], USER);
+
+    await expect(queue.discardJob(id)).resolves.toBe(false);
+    expect(acquire).toHaveBeenCalledWith(id);
+    expect(await queue.getPendingCount(USER)).toBe(1);
+
+    // Free: the discard holds the claim while it deletes, then lets it go.
+    const release = vi.fn().mockResolvedValue(undefined);
+    acquire.mockResolvedValue({ release });
+    await expect(queue.discardJob(id)).resolves.toBe(true);
+    expect(await queue.getPendingCount(USER)).toBe(0);
+    expect(release).toHaveBeenCalledOnce();
+  });
 });
 
 describe("processJob", () => {
@@ -267,6 +360,32 @@ describe("processJob", () => {
       error: "transaction_sender_unavailable",
       skipped: true,
     });
+  });
+
+  it("reopens a commitment act on its Check Again without sending it in the same tap", async () => {
+    // The tap was a check: the person sees that the act never landed, and is asked
+    // to clear any request their wallet still shows, before anything sends.
+    const reopening = () => ({
+      execute: vi.fn().mockResolvedValue({ status: "waiting", reason: "send-intent-expired" }),
+    });
+    const act = reopening();
+    const { queue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob({ kind: "claim" })]),
+      executors: act,
+    });
+    expect(
+      await queue.processJob("job-1", { transactionSender: {} as never, explicit: true })
+    ).toMatchObject({ error: "send-intent-expired", skipped: true });
+    expect(act.execute).toHaveBeenCalledTimes(1);
+
+    // Work keeps its one-tap send: its button said Send.
+    const work = reopening();
+    const { queue: workQueue } = setup({
+      store: createInMemoryJobQueueStore([queuedJob()]),
+      executors: work,
+    });
+    await workQueue.processJob("job-1", { transactionSender: {} as never, explicit: true });
+    expect(work.execute).toHaveBeenCalledTimes(2);
   });
 
   it("still reconciles a persisted UserOperation at the retry ceiling", async () => {

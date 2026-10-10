@@ -31,16 +31,6 @@ const ensureDiagnosticsChannel = () => {
 
 ensureDiagnosticsChannel();
 
-// Client-specific: Mock Reown AppKit
-vi.mock("@reown/appkit", () => ({
-  AppKit: class {
-    initialize() {
-      return Promise.resolve();
-    }
-    destroy() {}
-  },
-}));
-
 // JSDOM does not implement scrollTo, but several client views call it during
 // interaction flows. Stub it once here so package-wide test runs stay quiet.
 if (typeof window !== "undefined") window.scrollTo = vi.fn();

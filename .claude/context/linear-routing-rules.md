@@ -2,17 +2,18 @@
 
 Single source of truth for how repo skills route accepted findings into Linear
 (workspace `greenpill-dev-guild`). Skills reference this file and keep only
-their skill-specific deltas inline. Workspace shape (teams, records, label
-families, routine ownership) is documented in `CLAUDE.md § Linear Workspace`;
-this file is the operational contract for skills that create records.
+their skill-specific evidence requirements inline. Query live teams, states, labels, and
+projects before using them. [Routine documentation](../../docs/routines/README.md) owns cloud
+routine limits; this file owns interactive routing and issue execution.
 
 ## Invariant rules
 
 1. **Read-only until acceptance.** Producing a report/audit/review never
    creates or mutates Linear records. Create records only after the user
-   accepts a finding for tracking — and always prompt first (e.g. "Found N
-   findings ready to track in Linear. Create Issues for these accepted
-   findings? [y/n]"). Never auto-write.
+   authorizes the write. An explicit request to create or update records is authorization;
+   if it is absent, present the concrete records and ask before writing. A request to merge, or
+   a reported merge, also authorizes the forward-only closeout in [After a merge](#after-a-merge)
+   and nothing beyond it.
 2. **Team routing.**
    - Accepted implementation, refactor, QA, maintenance, regression, bug-fix,
      or cleanup work (an accepted delivery outcome) → Linear **Issue**,
@@ -22,6 +23,8 @@ this file is the operational contract for skills that create records.
      **Research** team, using the *Accepted Research Task* structure.
    - Raw customer or telemetry signal → Linear **Customer Need** (Product
      team), not a product Issue, until accepted.
+   - Explicitly scoped community coordination → **Community**. Do not route
+     engineering or product delivery there merely because a community reported it.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
    `.plans/**` item, include the `.plans` link in the body and label the
    record `source:plans`. Never use GitHub Issues for backlog work.
@@ -36,7 +39,11 @@ this file is the operational contract for skills that create records.
    label `ai:claude` must not be reintroduced. `activity:qa` marks the
    validation pass itself, never a defect it found; in `package:*` the client
    splits into `package:pwa`, `package:editorial`, and `package:client` for
-   what both surfaces share.
+   what both surfaces share. Interactive writes carry no `ai:*` label; `ai:codex`
+   identifies an assigned Codex queue and `ai:routine` identifies routine writes.
+   Use `session:<YYYY-MM-DD>` for the working session when applicable. Resolve labels
+   by ID or bare child name (such as `green-goods`), not display shorthand
+   such as `protocol:green-goods`; one unresolved label rejects the whole write.
 6. **Privacy boundary.** Keep private, security-sensitive, exploit-enabling,
    replay, session, wallet, email, and user-identifying details out of public
    Linear bodies (error message + hash + counts are OK; replay URLs, session
@@ -51,8 +58,11 @@ this file is the operational contract for skills that create records.
 
 Both structures are the same shape. Research issues ask a question and end in a
 decision-ready artifact; Product issues name a defect or outcome and end in
-shipped work. Voice rules live in `AGENTS.md § Linear Workspace`; this section
-owns the shape and the length backstops.
+shipped work. Use `humanize-writing` when available: lead with the useful point, write
+coherent sentences for a teammate opening the issue cold, and preserve evidence and uncertainty.
+This section owns issue-specific structure and length backstops. Comments explain what changed
+and what it means; a Done issue's description stays intact, with updates in comments or a linked
+successor. Use native `<issue>` mentions for issue references.
 
 **Title** — what a person would say broke, or what should exist. A plain
 sentence fragment, no trailing period.
@@ -173,3 +183,87 @@ Linear's own issue templates cannot help — `save_issue` exposes no template
 parameter, so templates only reach the composer, Slack and email intake, and
 `?template=` URLs. Creating them in Linear's UI is still worth doing for
 teammates filing by hand; it does nothing for agents.
+
+## Issue-dispatched implementation
+
+Read the complete issue and its linked Plan Hub before implementing. The issue must provide
+acceptance criteria, an owning surface or `package:*`, and explicit or inferable validation.
+If scope or a consequential product decision is missing, report the gap instead of guessing.
+Comment back only within the authorized dispatch workflow. Implement the assigned unit without
+pulling in sibling lanes; the owning hub retains dependencies and execution order.
+
+For defects, follow [the QA fix posture](qa.md#fix-posture). For publication, use `ship` and
+[the validation pipeline](validation-pipeline.md). Link the issue in the PR body with
+`Fixes PRD-NNN` for completed work, `Refs PRD-NNN` for partial work, or `Relates to PRD-NNN`
+for context. [After a merge](#after-a-merge) says what each line does to the issue and what
+the agent owes once the PR merges. Keep one issue per PR and require extra human review for
+critical contract work.
+
+### Branch and PR naming
+
+When the user authorizes a branch action, use `<type>/<work-description>` with type `feature`,
+`fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, or `research`. Describe the
+outcome, not the agent, issue number, or orchestration lane. Run the repository branch-name
+check before publication. An inherited nonconforming branch requires the user's approval
+before renaming; never change it underneath concurrent sessions. Stay on the current branch
+otherwise, per [repository safety](../../AGENTS.md#multi-agent-repo-safety).
+
+## After a merge
+
+A merge does not finish the Linear record. Work that a pull request completes belongs in
+`In Review` once it merges, and it reaches `Done` only after a person has reviewed the merged
+work. No workflow, hook, or script in this repository writes Linear when a pull request merges:
+the named issue moves only through Linear's own GitHub integration or the closeout below.
+
+**What Linear does by itself.** The integration acts on the PR's reference line. The outcome
+depends on the keyword and on a per-team setting this repository cannot read:
+
+| Reference line | At the merge |
+|---|---|
+| `Fixes PRD-NNN` | Applies the team's merge status. |
+| `Refs PRD-NNN` | Never applies it, and can return an `In Review` issue to `In Progress`. |
+| `Relates to PRD-NNN` | Attaches the PR and changes no status. Use it for an issue that is already `Done`. |
+
+Legacy lines on existing PRs still name the issue: Linear treats `Closes PRD-NNN` and its other
+closing words like `Fixes`, and a `Linear: PRD-NNN` line counts whatever the integration does
+with it. An issue ID that follows any linking word is linked, so name an issue that way only on
+the reference line. The integration never posts a comment, and a PR that names no issue moves
+nothing. Treat the table as what to expect, not as proof: the issue's state history is the only
+evidence of what happened.
+
+**Closeout.** After a merge the user asked for or reported, for the issue the reference line
+names and no other. A line that names several issues is outside this closeout: report it and ask.
+
+1. Read the issue's `stateHistory`, not only its current status. An entry dated shortly after the
+   merge that matches what the table predicts is the integration's; any other change after the
+   merge is someone's decision. The integration can land after this first read, so treat it as
+   provisional.
+2. Write only the gap, and only for completed work. When the PR completes the issue, it belongs
+   in `In Review`: write nothing when it is already there, and set it when the integration left
+   it in an earlier state. Write nothing for partial work, for an issue the PR only relates to,
+   for one that is already `Done` or `Canceled`, or over a state someone decided after the merge.
+   Judge completion against the issue's `Done when`, not the keyword: the last PR of a multi-PR
+   issue completes it even when it says `Refs`.
+3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
+   what changed for the person using the product, and what the review should check or what
+   remains open. Read the issue's comments first and post nothing when one already closes out
+   that PR, so a retried or repeated closeout never comments twice.
+4. Read the issue again before reporting. If the state changed since step 2 and the new entry is
+   the integration's, it landed late: repeat step 2 once, then read once more. Leave any other
+   change as it is. Report the issue, its last observed state, and what set it (the integration,
+   your write, or someone else), and say so if it still had not settled. For a PR that names no
+   issue in any of these forms, report `no Linear issue linked`.
+
+**Authority.** This closeout is the only Linear write a merge implies. It covers moving the
+named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and
+posting that one comment. `Done`, moving an issue backward, editing a description, and any write
+to another issue, a parent or sibling included, are outside it and need their own authorization.
+If the issue is `Done` after the merge, leave it; when the integration put it there, report that
+the team's merge setting no longer matches this rule. Cloud routines keep the limits in their own
+specs.
+
+**Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
+their plain confirmation. It is a separate write under the first
+[invariant rule](#invariant-rules): set it when the user asks, with a comment naming the check.
+When the user reports a passing review without asking for the write, offer it and wait. A merge,
+green CI, or your own proof never makes an issue `Done`.

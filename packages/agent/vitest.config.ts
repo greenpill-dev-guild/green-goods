@@ -9,7 +9,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: sqliteIntegration ? [] : ["./src/__tests__/setup.ts"],
     include: sqliteIntegration
-      ? ["src/__tests__/storage.sqlite.test.ts"]
+      ? ["src/__tests__/**/*.sqlite.test.ts"]
       : ["src/__tests__/**/*.test.ts"],
     exclude: [
       "node_modules/",

@@ -88,12 +88,6 @@ export type {
   UseAssessmentDraftResult,
 } from "./assessment/useAssessmentDraft";
 export { useAssessmentDraft } from "./assessment/useAssessmentDraft";
-export type { AssessmentFormData, UseAssessmentFormReturn } from "./assessment/useAssessmentForm";
-export {
-  assessmentFormSchema,
-  createDefaultAssessmentFormData,
-  useAssessmentForm,
-} from "./assessment/useAssessmentForm";
 export type {
   AssessmentStepId,
   CreateAssessmentFormData,
@@ -386,7 +380,6 @@ export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
 // PUBLIC READ-SIDE (Living Archive journal)
 export type {
   PublicFieldNote,
-  PublicGardenContributor,
   PublicGardenDetail,
   UsePublicGardenDetailOptions,
 } from "./public/usePublicGardenDetail";
@@ -599,3 +592,4 @@ export {
 export { useSplitConfig } from "./yield/useSplitConfig";
 export { useYieldAllocations } from "./yield/useYieldAllocations";
 export * from "./offline/useOfflineContent";
+export { useAgentReportingPermissions } from "./agent-reporting/useAgentReportingPermissions";

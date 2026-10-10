@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind scans from this package's Vite root, which leaves out the shared
+ * components this app renders. Scan the shared TypeScript source too, without
+ * tests, mocks or stories, so utilities written in shared components ship. */
+@source "../../shared/src/**/*.{ts,tsx}";
+@source not "../../shared/src/**/{__tests__,__mocks__}";
+@source not "../../shared/src/**/*.{test,stories}.{ts,tsx}";
+
 /* Configure dark mode to use data-theme attribute (matching shared theme system) */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

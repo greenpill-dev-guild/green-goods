@@ -41,6 +41,7 @@ function FieldsStory() {
         control={form.control}
         register={form.register}
         errors={{}}
+        showValidation={false}
       />
     </div>
   );

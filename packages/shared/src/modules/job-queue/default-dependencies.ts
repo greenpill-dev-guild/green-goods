@@ -15,6 +15,7 @@ import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selec
 import { StrandedSendReopened } from "../work/stranded-intent";
 import { InvalidWorkAttachmentError, PendingHeicConversionError } from "../work/work-attachments";
 import {
+  acquireWorkJobs,
   AwaitingWorkConfirmation,
   isWorkSubmissionCancelled,
   WorkTransactionReverted,
@@ -31,7 +32,8 @@ import {
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob } from "./approval-executor";
-import { executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import { executeCommitmentQueueJob } from "./job-executors";
+import { executeWorkJob } from "./work-executor";
 import { createBrowserJobQueueLifecycle } from "./lifecycle";
 import { mediaResourceManager } from "./media-resource-manager";
 import type { JobExecution, JobQueueDependencies } from "./ports";
@@ -98,6 +100,7 @@ function createDefaultExecutorRegistry() {
 export function createDefaultJobQueueDependencies(): JobQueueDependencies {
   return {
     store: jobQueueDB,
+    executionClaims: { acquire: (jobId) => acquireWorkJobs([jobId]) },
     events: jobQueueEventBus,
     executors: createDefaultExecutorRegistry(),
     admission: createCommitmentQueueAdmission({

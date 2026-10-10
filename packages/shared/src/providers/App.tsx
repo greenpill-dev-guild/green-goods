@@ -9,8 +9,8 @@ import {
   installToastFallbacks,
   installToastIds,
   type Locale,
-  loadLocaleMessages,
-  type LocaleMessages,
+  loadLocaleCatalogue,
+  type LocaleCatalogue,
   supportedLanguages,
 } from "../modules/app/locale-messages";
 import { track } from "../modules/app/posthog";
@@ -50,6 +50,12 @@ export interface AppDataProps {
   presentationMode: ClientPresentationMode;
   wasInstalled: boolean;
   platform: Platform;
+  /**
+   * The language the reader asked for: their stored choice, or else the browser's. It picks the
+   * catalogue to load and fills the language picker. The page can trail it while that catalogue
+   * loads, and stays English when it cannot load, so anything shown beside the copy (stored
+   * translations, amounts, dates) reads the language on screen from `useIntl().locale` instead.
+   */
   locale: Locale;
   availableLocales: readonly Locale[];
   deferredPrompt: InstallPromptEvent | null;
@@ -113,7 +119,9 @@ export const AppProvider = ({
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  const [localeMessages, setLocaleMessages] = useState<LocaleMessages>({});
+  // Until a catalogue lands, components show their English fallback copy.
+  const [catalogue, setCatalogue] = useState<LocaleCatalogue>({ locale: "en", messages: {} });
+  const localeMessages = catalogue.messages;
   const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   // Chromium fires `beforeinstallprompt` only while the app is not installed, so
   // observing it is a verified negative that outlives the prompt itself: consuming
@@ -181,9 +189,9 @@ export const AppProvider = ({
 
   useEffect(() => {
     let cancelled = false;
-    void loadLocaleMessages(locale).then(
-      (nextMessages) => {
-        if (!cancelled) setLocaleMessages(nextMessages);
+    void loadLocaleCatalogue(locale).then(
+      (nextCatalogue) => {
+        if (!cancelled) setCatalogue(nextCatalogue);
       },
       (error: unknown) => {
         logger.error("[App] Locale messages could not be loaded", { locale, error });
@@ -193,6 +201,12 @@ export const AppProvider = ({
       cancelled = true;
     };
   }, [locale]);
+
+  // The page declares the language of the copy on screen, so assistive technology reads it in
+  // that language. It is English until a reader's own catalogue lands.
+  useEffect(() => {
+    document.documentElement.lang = catalogue.locale;
+  }, [catalogue.locale]);
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
@@ -428,7 +442,9 @@ export const AppProvider = ({
 
   const appContent = (
     <AppContext.Provider value={contextValue}>
-      <IntlProvider locale={locale} messages={localeMessages}>
+      {/* The locale here is the language of the catalogue on screen, not the one requested:
+          react-intl formats the copy with it, and display code reads it as the language to show. */}
+      <IntlProvider locale={catalogue.locale} messages={localeMessages}>
         {children}
       </IntlProvider>
     </AppContext.Provider>

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Materialize .env from .env.template via `op inject`.
+ * Materialize .env from env.template via `op inject`.
  *
  * Replaces varlock as the env-loading mechanism. Run this when:
- *   - First clone (after creating .env.template via `node scripts/dev/env-template-init.js`)
+ *   - First clone (after creating env.template via `node scripts/dev/env-template-init.js`)
  *   - Secrets rotated in 1Password
- *   - .env.template changed (added/removed keys)
+ *   - env.template changed (added/removed keys)
  *
  * Once .env exists, Bun, Vite, and node --env-file= read it natively.
  * No per-command 1Password fetch, no Touch ID interruption mid-session.
@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const templatePath = path.join(projectRoot, ".env.template");
+const templatePath = path.join(projectRoot, "env.template");
 const envPath = path.join(projectRoot, ".env");
 const backupPath = path.join(projectRoot, ".env.bak");
 const fallbackBackupPath = path.join(os.tmpdir(), `green-goods-env-${process.pid}.bak`);
@@ -59,8 +59,8 @@ function backupEnv() {
 
 if (!fs.existsSync(templatePath)) {
   fail(
-    ".env.template not found",
-    "Run `node scripts/dev/env-template-init.js` to generate one from .env.schema, then edit it."
+    "env.template not found",
+    "Run `node scripts/dev/env-template-init.js` to generate one from env.schema, then edit it."
   );
 }
 
@@ -70,7 +70,7 @@ if (!fs.existsSync(templatePath)) {
 
 const restorePath = backupEnv();
 
-console.log("Running `op inject` to resolve .env.template -> .env...");
+console.log("Running `op inject` to resolve env.template -> .env...");
 const inject = spawnSync("op", ["inject", "-i", templatePath, "-o", envPath, "--force"], {
   cwd: projectRoot,
   stdio: ["inherit", "inherit", "inherit"],
@@ -91,10 +91,10 @@ if (inject.status !== 0) {
   }
   fail(
     "op inject failed",
-    "Check the 1Password desktop app integration and confirm every op://... reference in .env.template points to a valid Vault/Item/field."
+    "Check the 1Password desktop app integration and confirm every op://... reference in env.template points to a valid Vault/Item/field."
   );
 }
 
 console.log("");
-console.log("Wrote .env from .env.template.");
+console.log("Wrote .env from env.template.");
 console.log("Restart your owning dev launcher with Ctrl-C and the same mode so it picks up the new environment. Do not stop another session or silently change modes.");

@@ -2,7 +2,12 @@ import { useIntl } from "react-intl";
 
 import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
+import { FixedBar } from "../FixedBar";
 
+/**
+ * The composer's chrome: back, the four-beat progress, a body, a bar. The top
+ * nav and the bar are fixed to the viewport, as on the work view.
+ */
 export function ComposeShell({
   children,
   onBack,
@@ -25,17 +30,15 @@ export function ComposeShell({
   ];
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack}>
+    <div className="w-full">
+      <TopNav onBackClick={onBack} overlay>
         {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
       </TopNav>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">{title}</p>
-          {children}
-        </div>
+      <div className="flex flex-col gap-4 p-4 pt-20">
+        <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">{title}</p>
+        {children}
       </div>
-      {bar}
+      {bar ? <FixedBar>{bar}</FixedBar> : null}
     </div>
   );
 }

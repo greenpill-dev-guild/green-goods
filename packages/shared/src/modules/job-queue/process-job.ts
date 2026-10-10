@@ -19,7 +19,13 @@ import type {
   ProcessJobContext,
   ProcessJobResult,
 } from "./ports";
-import { createOfflineTxHash, hasRecordedSend, isWaitingReprobeThrottled } from "./queue-policy";
+import {
+  createOfflineTxHash,
+  hasRecordedSend,
+  isWaitingReprobeThrottled,
+  sendsOnReopen,
+} from "./queue-policy";
+import { holdWorkClaims } from "./work-claims";
 
 interface ProcessJobDependencies {
   store: JobQueueStore;
@@ -215,8 +221,14 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
           jobId,
           job: { ...job, meta: { ...meta, waitingReason: execution.reason } },
         });
-        // An earlier send never landed and was just cleared; the person's tap sends it now.
-        if (execution.reason === "send-intent-expired" && context.explicit && !reopened)
+        // An earlier send never landed and was just cleared; where the tap said
+        // Send, it sends now.
+        if (
+          execution.reason === "send-intent-expired" &&
+          context.explicit &&
+          !reopened &&
+          sendsOnReopen(job.kind)
+        )
           return processJob(jobId, context, true);
         return { success: false, error: execution.reason, skipped: true };
       }
@@ -295,6 +307,10 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
   return async (jobId: string, context: ProcessJobContext): Promise<ProcessJobResult> => {
     const claim = await acquireWorkJobs([jobId]);
     if (!claim) return { success: false, skipped: true, error: "already-processing" };
+    // Keep the claim alive for the whole send. A wallet or passkey prompt can
+    // stay open past the claim's lifetime, and a claim that lapsed there would
+    // let another tab discard or resend a job whose transaction may still go out.
+    const stopHolding = holdWorkClaims([claim]);
     try {
       return await processJob(jobId, {
         ...context,
@@ -304,6 +320,7 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         },
       });
     } finally {
+      stopHolding();
       await claim.release();
     }
   };

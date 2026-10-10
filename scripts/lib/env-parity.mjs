@@ -50,6 +50,17 @@ export function assertEnvParity({ app, env = process.env, schemaPath, logger = c
     return { checked: true, missing, empty };
   }
 
+  // Beta runs real authentication too. Shipping without these keys makes login fail
+  // before the browser can request a passkey or connect a wallet.
+  const missingAuthKeys = [...missing, ...empty].filter((key) =>
+    ["VITE_PIMLICO_API_KEY", "VITE_WALLETCONNECT_PROJECT_ID"].includes(key)
+  );
+  if (env.VERCEL && missingAuthKeys.length > 0) {
+    throw new Error(
+      `[env-parity] ${app} authentication keys are incomplete (${missingAuthKeys.sort().join(", ")}). Refusing to ship a deployment with broken sign-in.`
+    );
+  }
+
   const labels = [
     missing.length > 0 ? `missing: ${missing.sort().join(", ")}` : null,
     empty.length > 0 ? `empty: ${empty.sort().join(", ")}` : null,
@@ -79,4 +90,17 @@ export function assertSentryDsnResolvable({ app, sentryDsn, env = process.env, l
     "set the DSN for this environment.",
   );
   return false;
+}
+
+/**
+ * Vercel's Vite preset copies its system variables under the `VITE_` prefix (commit message,
+ * commit author, deployment and project ids). Vite exposes every `VITE_*` key on
+ * `import.meta.env` and inlines the whole object wherever code reads it whole, so the copies
+ * would ship in the browser bundle. No shipped code reads them. Call this once the config has
+ * finished its own reads of them; the unprefixed `VERCEL_*` variables stay for the build.
+ */
+export function dropVercelFrameworkVariables(env = process.env) {
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("VITE_VERCEL_")) delete env[key];
+  }
 }

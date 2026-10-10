@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
+import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
@@ -49,11 +50,12 @@ export function FieldNotesSection({
       })}
       heading={formatMessage({
         id: "public.gardenDetail.notes.heading",
-        defaultMessage: "Latest field notes",
+        defaultMessage: "Recent approved work",
       })}
       helper={formatMessage({
         id: "public.gardenDetail.notes.helper",
-        defaultMessage: "What gardeners have logged from the field, most recent first.",
+        defaultMessage:
+          "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
       })}
     >
       {loading ? (
@@ -69,7 +71,7 @@ export function FieldNotesSection({
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.notes.empty",
-            defaultMessage: "No field notes yet. They appear when Work is submitted.",
+            defaultMessage: "No field notes yet. They appear when Work is approved.",
           })}
         />
       ) : (
@@ -117,14 +119,16 @@ export function FieldNotesSection({
         </>
       )}
 
-      <FieldNoteDialog
-        chainId={chainId}
-        note={openNote}
-        onClose={() => {
-          setOpenNote(null);
-          triggerRef.current?.focus();
-        }}
-      />
+      {openNote ? (
+        <FieldNoteDialog
+          chainId={chainId}
+          note={openNote}
+          onClose={() => {
+            setOpenNote(null);
+            triggerRef.current?.focus();
+          }}
+        />
+      ) : null}
     </Section>
   );
 }
@@ -138,12 +142,14 @@ function FieldNoteTile({
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const title =
-    note.title ||
+  // A stored title can end in timestamps older submissions appended; readers see the title alone.
+  const title = toWorkDisplayTitle(
+    note.title,
     formatMessage({
       id: "public.gardenDetail.notes.untitled",
       defaultMessage: "Untitled entry",
-    });
+    })
+  );
   const cover = note.media[0];
 
   return (

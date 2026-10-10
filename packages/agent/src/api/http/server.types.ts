@@ -2,6 +2,7 @@ import type {
   createProviderProofRegistry,
   Address,
   PublicGardenImpactResponseV1,
+  PublicCommitmentImpactRecord,
   PublicUploadSignRequest,
 } from "@green-goods/shared/public-contracts";
 import type { Hono } from "hono";
@@ -30,6 +31,8 @@ import type {
   GardenJoinRequestStore,
 } from "../../services/garden-join-requests";
 import type { GardenJoinRequestChainReader } from "../../services/garden-join-requests-chain";
+import type { PasskeyDirectory } from "../../services/passkey-directory";
+import type { MessagingRouteDeps } from "../routes/messaging";
 
 export interface ServerConfig {
   port: number;
@@ -63,6 +66,7 @@ export interface ServerDeps {
   chatMessageRetentionMs?: number;
   publicRateLimiter?: InMemoryPublicRateLimiter;
   publicGardenImpactChainSupported?: (chainId: number) => boolean;
+  publicCommitmentImpactLoader?: (chainId: number) => Promise<PublicCommitmentImpactRecord>;
   publicGardenImpactLoader?: (input: {
     chainId: number;
     gardenAddress: Address;
@@ -105,7 +109,11 @@ export interface ServerDeps {
   gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
   /** Defaults to 24 hours; zero disables the retention sweep. */
   gardenJoinRequestSweepIntervalMs?: number;
+  /** Issues passkeys under one domain for every site; absent unless the directory is enabled. */
+  passkeyDirectory?: PasskeyDirectory;
   now?: () => number;
+  /** Browser ceremony API for agent reporting; absent unless reporting is configured. */
+  messaging?: MessagingRouteDeps;
 }
 
 export type AgentServer = Hono & {

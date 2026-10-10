@@ -1,4 +1,5 @@
 import type { Address } from "../../types/domain";
+import { isZeroAddress } from "../blockchain/address";
 
 export type AdminWorkspaceId =
   | "home"
@@ -15,6 +16,8 @@ export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
 export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
+/** The Work tab's scope: work waiting for review, or work already approved. */
+export type AdminHubWorkScope = "pending" | "approved";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
 
@@ -23,6 +26,8 @@ export interface AdminHubRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   sort?: AdminHubSort;
+  /** Pending is the default and stays out of the URL; only "approved" is written. */
+  scope?: AdminHubWorkScope;
 }
 
 export interface AdminGardenRouteContext {
@@ -39,6 +44,7 @@ export interface AdminCommunityRouteContext {
   /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   item?: string;
+  member?: Address;
 }
 
 export const ADMIN_GARDEN_ID_PARAM = "gardenId";
@@ -85,6 +91,7 @@ function buildHubContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
+    scope: context.scope === "approved" ? "approved" : undefined,
   };
 }
 
@@ -119,6 +126,7 @@ function buildCommunityContextSearch(
   return {
     [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     item: context.item,
+    member: context.member,
   };
 }
 
@@ -156,9 +164,9 @@ export const adminRoutes = {
   hubAssessCreate(context?: AdminHubRouteContext) {
     return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));
   },
-  hubCertifyDetail(assessmentId: string, context?: AdminHubRouteContext) {
+  hubAssessDetail(assessmentId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(
-      `/hub/certify/${encodeSegment(assessmentId)}`,
+      `/hub/assess/${encodeSegment(assessmentId)}`,
       buildHubContextSearch(context)
     );
   },
@@ -203,12 +211,19 @@ export const adminRoutes = {
       from: options?.from,
     });
   },
-  /** One commitment, opened in the pool tab's inspector (§6.7). */
-  gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {
-    return buildAdminHref(
-      `/garden/pool/${encodeSegment(commitmentId)}`,
-      buildGardenContextSearch(context)
-    );
+  /**
+   * One commitment, opened in the pool tab's inspector (§6.7); `focus: "waiting"`
+   * opens it at its waiting list, as a Waiting for approval row does (PRD-1025 D4).
+   */
+  gardenPoolCommitment(
+    commitmentId: string,
+    context?: AdminGardenRouteContext,
+    options?: { focus?: "waiting" }
+  ) {
+    return buildAdminHref(`/garden/pool/${encodeSegment(commitmentId)}`, {
+      ...buildGardenContextSearch(context),
+      focus: options?.focus,
+    });
   },
   gardenCreate() {
     return "/garden/create";
@@ -306,11 +321,9 @@ export const adminRoutes = {
   actions(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/actions", search);
   },
+  /** The alias that lands on the protocol garden's campaign cookie jars. */
   cookies(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/cookies", search);
-  },
-  cookiesDeploy(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/cookies/deploy", search);
   },
   profile(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/profile", search);
@@ -350,4 +363,24 @@ export function getAdminWorkspaceForPath(pathname: string): AdminWorkspaceId {
 
 export function getAdminWorkspaceRoot(pathname: string): string {
   return ADMIN_WORKSPACE_ROOTS[getAdminWorkspaceForPath(pathname)];
+}
+
+/** Community → Payouts items for the protocol garden's campaign cookie jars (DL-046). */
+export const CAMPAIGN_JARS_ROUTE_ITEM = "campaigns";
+export const CREATE_CAMPAIGN_JAR_ROUTE_ITEM = "create-campaign-jar";
+
+/**
+ * Where the campaign cookie jar URLs land: the protocol garden's Community →
+ * Payouts, on its campaign jars or with Create Cookie Jar open. A chain that
+ * names no root garden lands on Community.
+ */
+export function resolveCampaignCookieJarsRoute(
+  rootGarden: string | null | undefined,
+  options: { create?: boolean } = {}
+): string {
+  if (!rootGarden || isZeroAddress(rootGarden)) return adminRoutes.community();
+  return adminRoutes.communityPayouts({
+    gardenId: rootGarden,
+    item: options.create ? CREATE_CAMPAIGN_JAR_ROUTE_ITEM : CAMPAIGN_JARS_ROUTE_ITEM,
+  });
 }

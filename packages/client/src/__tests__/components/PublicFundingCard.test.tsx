@@ -1,7 +1,7 @@
 /**
  * PublicFundingCard interaction regressions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -25,6 +25,7 @@ const {
   mockVaultMutate,
   mockVaultReset,
   mockLoginWithWallet,
+  mockJarRead,
   authState,
 } = vi.hoisted(() => ({
   mockCookieJarMutate: vi.fn(),
@@ -32,6 +33,7 @@ const {
   mockVaultMutate: vi.fn(),
   mockVaultReset: vi.fn(),
   mockLoginWithWallet: vi.fn(),
+  mockJarRead: vi.fn(),
   authState: {
     primaryAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as string | null,
   },
@@ -135,17 +137,7 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
-  useGardenCookieJars: () => ({
-    isLoading: false,
-    jars: [
-      {
-        assetAddress: TEST_DAI,
-        decimals: 18,
-        jarAddress: TEST_COOKIE_JAR,
-        minDeposit: 0n,
-      },
-    ],
-  }),
+  useGardenCookieJars: mockJarRead,
 }));
 
 vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
@@ -194,6 +186,7 @@ vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", async () => {
   };
 });
 
+import messages from "@green-goods/shared/i18n/en";
 import { PublicFundingCard } from "../../components/Public/PublicFundingCard";
 
 const garden = {
@@ -204,7 +197,7 @@ const garden = {
   description: "A solar-powered community garden",
   location: "Austin, TX",
   bannerImage: "",
-  contributorCount: 2,
+  gardenerCount: 2,
   actionCount: 1,
   lastActivityAt: 1700000000,
   stewards: [],
@@ -214,7 +207,7 @@ const garden = {
 function createCard(intent: "donate" | "endow") {
   return createElement(
     IntlProvider,
-    { locale: "en", messages: {} },
+    { locale: "en", messages },
     createElement(PublicFundingCard, {
       open: true,
       garden,
@@ -232,6 +225,41 @@ describe("PublicFundingCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.primaryAddress = TEST_OWNER;
+    mockJarRead.mockReturnValue({
+      isLoading: false,
+      jars: [
+        {
+          assetAddress: TEST_DAI,
+          decimals: 18,
+          jarAddress: TEST_COOKIE_JAR,
+          minDeposit: 0n,
+        },
+      ],
+    });
+  });
+
+  it.each([
+    { error: new Error("read failed") },
+    { isPaused: true },
+    { hasDetailReadFailure: true },
+    { hasDecimalsReadFailure: true },
+  ])("offers retry for unavailable donation options: %j", async (failure) => {
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mockJarRead.mockReturnValue({ jars: [], isLoading: false, refetch, ...failure });
+    const user = userEvent.setup();
+    renderCard("donate");
+    expect(screen.getByText(/couldn’t load payment options/)).toBeInTheDocument();
+    expect(screen.queryByText(/no donation fund configured/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+  });
+
+  it("shows a missing donation fund only after a successful empty read", () => {
+    mockJarRead.mockReturnValue({ jars: [], isLoading: false, hasNoJar: true });
+    renderCard("donate");
+    expect(screen.getByText(/no donation fund configured/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
   });
 
   it("connects via wallet auth (loginWithWallet), not the bare AppKit modal, when no wallet is connected (PRD-497)", async () => {
@@ -246,12 +274,22 @@ describe("PublicFundingCard", () => {
   });
 
   it.each([
-    ["donate", "Shared fund support"],
-    ["endow", "Garden Vault endowment"],
+    ["donate", "Contribution to this Garden’s shared fund"],
+    ["endow", "Longer-term support through an endowment"],
   ] as const)("labels the %s funding path in the card header", (intent, pathLabel) => {
     renderCard(intent);
 
     expect(screen.getByText(pathLabel)).toBeInTheDocument();
+  });
+
+  it.each(["donate", "endow"] as const)("opens %s as a full-width mobile sheet", (intent) => {
+    renderCard(intent);
+
+    const panel = document.querySelector('[data-component="PublicFundingCard"]');
+    expect(panel).toHaveClass("w-full", "max-w-none", "sm:max-w-md");
+    expect(screen.getByRole("dialog")).toHaveClass("items-end", "p-0", "sm:p-4");
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+    expect(mockVaultMutate).not.toHaveBeenCalled();
   });
 
   it.each([

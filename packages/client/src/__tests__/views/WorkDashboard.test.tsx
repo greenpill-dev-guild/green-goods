@@ -1,3 +1,6 @@
+import type { PendingProof } from "@green-goods/shared/hooks/client-ui/commitment/usePendingProof";
+import en from "@green-goods/shared/i18n/en.json";
+import type { WorkDashboardReturnState } from "@green-goods/shared/stores/useUIStore";
 import type { Work } from "@green-goods/shared/types/domain";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
@@ -9,6 +12,13 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
+let mockProofs: PendingProof[] = [];
+let mockQueueUnreadable = false;
+let mockInitialPendingFilter: string | undefined;
+let mockReturnState: WorkDashboardReturnState | undefined;
+const mockQueueRefresh = vi.fn();
+let mockOnPhone = 0;
+const mockDiscardWork = vi.fn(async () => true);
 let mockIsOnline = true;
 const ok = async () => ({ status: "success" });
 let mockNeedsReviewState: {
@@ -164,7 +174,43 @@ vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOrigi
 });
 
 vi.mock("@green-goods/shared/hooks/work/useDrafts", () => ({
-  useDrafts: () => ({ draftCount: 0 }),
+  useDrafts: () => ({ drafts: [], draftCount: 0, deleteDraft: vi.fn(), isDeleting: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/client-ui/commitment/usePendingProof", () => ({
+  usePendingProof: () => ({ items: mockProofs, isUnavailable: mockQueueUnreadable }),
+  discardPendingProof: vi.fn(async () => true),
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => ({ sendsFromTap: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState", () => ({
+  useCommitmentQueueState: () => ({
+    linkedWorkIds: new Set<string>(),
+    refresh: mockQueueRefresh,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling", () => ({
+  useLinkedWorkUIDs: () => ({ linked: new Set<string>() }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useActions: () => ({ data: [] }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useYourWorkCount", () => ({
+  useYourWorkCount: () => ({ count: mockOnPhone }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => "0xabc",
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useQueuedWorkActions", () => ({
+  useQueuedWorkActions: () => ({ discard: mockDiscardWork, isDiscarding: false }),
 }));
 
 vi.mock("@green-goods/shared/hooks/utils/useFocusTrap", () => ({
@@ -196,6 +242,8 @@ const mockRegisterOpenSheet = vi.fn(() => () => undefined);
 vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (
     selector: (s: {
+      dashboardNavigationId: string;
+      workDashboardReturnState?: WorkDashboardReturnState;
       workDashboardInitialTab?: string;
       workDashboardInitialPendingFilter?: string;
       rememberWorkDashboard: () => void;
@@ -203,8 +251,10 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
     }) => unknown
   ) =>
     selector({
-      workDashboardInitialTab: undefined,
-      workDashboardInitialPendingFilter: undefined,
+      dashboardNavigationId: "dashboard-session",
+      workDashboardReturnState: mockReturnState,
+      workDashboardInitialTab: mockReturnState?.tab,
+      workDashboardInitialPendingFilter: mockInitialPendingFilter,
       rememberWorkDashboard: vi.fn(),
       registerOpenSheet: mockRegisterOpenSheet,
     }),
@@ -252,10 +302,6 @@ vi.mock("../../components/Cards", () => ({
     ),
 }));
 
-vi.mock("../../views/Home/WorkDashboard/Drafts", () => ({
-  DraftsTab: () => createElement("div", null, "Drafts panel"),
-}));
-
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { WorkDashboard } from "../../views/Home/WorkDashboard";
 
@@ -263,10 +309,10 @@ function renderDashboard(onClose = vi.fn()) {
   const view = render(
     createElement(
       MemoryRouter,
-      null,
+      { initialEntries: ["/home"] },
       createElement(
         IntlProvider,
-        { locale: "en", messages: { "app.common.loading": "Loading" } },
+        { locale: "en", messages: en },
         createElement(WorkDashboard, { onClose })
       )
     )
@@ -278,6 +324,11 @@ describe("WorkDashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReviewerGardenIds = [];
+    mockProofs = [];
+    mockQueueUnreadable = false;
+    mockInitialPendingFilter = undefined;
+    mockReturnState = undefined;
+    mockOnPhone = 0;
     mockIsOnline = true;
     mockUploads = idleUploads();
     mockNeedsReviewState = {
@@ -339,7 +390,8 @@ describe("WorkDashboard", () => {
   it("opens on Pending and shows offline-included submitted work after submission", () => {
     renderDashboard();
 
-    expect(screen.getByTestId("tab-drafts")).toBeInTheDocument();
+    // Drafts fold into Pending (D3).
+    expect(screen.queryByTestId("tab-drafts")).not.toBeInTheDocument();
     expect(screen.getByTestId("tab-pending")).toBeInTheDocument();
     expect(screen.getByTestId("tab-completed")).toBeInTheDocument();
     expect(screen.queryByTestId("tab-recent")).not.toBeInTheDocument();
@@ -398,13 +450,22 @@ describe("WorkDashboard", () => {
     expect(screen.getByText("Just approved planting")).toBeInTheDocument();
   });
 
-  it("offers Upload all only in Pending while online", () => {
+  it("offers Upload all only in Pending while online, and only with All and To upload", () => {
     mockUploads = { ...idleUploads(), readyCount: 2, queuedCount: 2 };
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({ id: "job-1", title: "Queued tree planting", gardenerAddress: "0xabc" }),
+        work({ id: "0xsent", title: "Sent planting", gardenerAddress: "0xabc" }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
 
     renderDashboard();
 
     const uploadAll = screen.getByTestId("upload-all");
-    expect(uploadAll).toHaveTextContent("Upload all (2)");
+    expect(uploadAll).toHaveTextContent("Upload all");
     const actions = screen.getByTestId("work-list-actions");
     expect(within(actions).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
     expect(within(actions).getByTestId("upload-all")).toBe(uploadAll);
@@ -414,19 +475,21 @@ describe("WorkDashboard", () => {
 
     fireEvent.click(screen.getByTestId("tab-completed"));
     expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("tab-drafts"));
-    expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("tab-pending"));
-    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all");
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
-      target: { value: "mySubmissions" },
-    });
+    const filter = screen.getByRole("combobox", { name: "Pending work filter" });
+    expect([...filter.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "All",
+      "To upload",
+      "In review",
+    ]);
+    fireEvent.change(filter, { target: { value: "review" } });
+    expect(screen.getByText("1 in review")).toBeInTheDocument();
     expect(screen.queryByTestId("upload-all")).not.toBeInTheDocument();
-    fireEvent.change(screen.getByRole("combobox", { name: "Pending work filter" }), {
-      target: { value: "all" },
-    });
-    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all (2)");
+    fireEvent.change(filter, { target: { value: "upload" } });
+    expect(screen.getByText("1 to upload")).toBeInTheDocument();
+    expect(screen.getByTestId("upload-all")).toHaveTextContent("Upload all");
   });
 
   it("does not offer an upload control while offline", () => {
@@ -460,14 +523,15 @@ describe("WorkDashboard", () => {
     };
 
     renderDashboard();
-    const queued = screen.getByRole("button", { name: /Queued approval/ });
-    expect(within(queued).getByText("Reviewed by you")).toBeInTheDocument();
+    const queued = screen.getByText("Queued approval").closest("[data-component='PendingCard']");
+    if (!(queued instanceof HTMLElement)) throw new Error("The queued review has no row");
+    expect(within(queued).getByText("Your review")).toBeInTheDocument();
     expect(within(queued).getByText("To upload")).toBeInTheDocument();
-    expect(within(queued).getByText("Approval saved on this device")).toBeInTheDocument();
+    expect(within(queued).getByText("Your review isn't sent yet")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("tab-completed"));
     expect(screen.queryByRole("button", { name: /Queued approval/ })).not.toBeInTheDocument();
     const sent = screen.getByRole("button", { name: /Sent approval/ });
-    expect(within(sent).queryByText("Approval saved on this device")).not.toBeInTheDocument();
+    expect(within(sent).queryByText("Your review isn't sent yet")).not.toBeInTheDocument();
   });
 
   it("keeps an on-chain submission out of Pending until its review read lands", () => {
@@ -506,6 +570,7 @@ describe("WorkDashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
     await waitFor(() => expect(mockNeedsReviewState.refetch).toHaveBeenCalledOnce());
+    expect(mockQueueRefresh).toHaveBeenCalledOnce();
     expect(refetchMyWorks).toHaveBeenCalledOnce();
     expect(mockWorkApprovalsState.refetch).toHaveBeenCalledOnce();
     expect(mockMyApprovalsRefetch).toHaveBeenCalledOnce();
@@ -535,8 +600,7 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
-  it("shows the My submissions view without waiting for Needs review to load", () => {
-    mockNeedsReviewState = { ...mockNeedsReviewState, isLoading: true, isFetching: true };
+  it("says nothing is pending, with the count and no filter, once every read is in", () => {
     mockUseMyWorks.mockReturnValue({
       data: [],
       isLoading: false,
@@ -545,10 +609,117 @@ describe("WorkDashboard", () => {
     });
 
     renderDashboard();
-    fireEvent.change(screen.getByDisplayValue("All"), { target: { value: "mySubmissions" } });
 
-    expect(screen.queryByText("Loading your work...")).not.toBeInTheDocument();
-    expect(screen.getByText("No pending work")).toBeInTheDocument();
+    expect(screen.getByText("0 items")).toHaveAttribute("role", "status");
+    expect(screen.getByText("Nothing pending")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Pending work filter" })).toBeNull();
+  });
+
+  it("asks before discarding unsent work from its row", async () => {
+    mockUseMyWorks.mockReturnValue({
+      data: [
+        work({
+          id: "job-1",
+          title: "Queued tree planting",
+          gardenerAddress: "0xabc",
+          status: "offline",
+          metadata: JSON.stringify({ submissionState: "ready" }),
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: "Discard Queued tree planting" }));
+    expect(mockDiscardWork).not.toHaveBeenCalled();
+
+    const dialog = await screen.findByTestId("confirm-dialog");
+    expect(dialog).toHaveTextContent("Discard this work?");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Discard" }));
+    await waitFor(() => expect(mockDiscardWork).toHaveBeenCalledOnce());
+  });
+
+  it("lists unsent proof by its promise and opens the promise from its row", async () => {
+    const onClose = vi.fn();
+    mockOnPhone = 2;
+    mockProofs = [
+      {
+        id: "proof-job",
+        source: "queued",
+        commitmentId: 7n,
+        garden: "0x00000000000000000000000000000000000000a1",
+        commitment: null,
+        title: "Repair the north fence panel",
+        savedAt: Date.now(),
+        contents: { photos: 2, videos: 0, voiceNotes: 0, links: 0, words: false },
+        waitingReason: null,
+        failed: false,
+        sending: false,
+        discardable: true,
+        firstPhoto: null,
+      },
+    ];
+
+    renderDashboard(onClose);
+
+    expect(screen.getByTestId("tab-pending")).toHaveTextContent("2");
+    const row = screen
+      .getByText("Repair the north fence panel")
+      .closest("[data-component='PendingCard']");
+    if (!(row instanceof HTMLElement)) throw new Error("The proof has no row");
+    expect(within(row).getByText("Proof")).toBeInTheDocument();
+    expect(within(row).getByText("Nothing sent yet")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Repair the north fence panel"));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/home/0x00000000000000000000000000000000000000a1/commitments/7",
+      {
+        state: {
+          from: "dashboard",
+          dashboardOrigin: expect.any(Object),
+          dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+        },
+        viewTransition: false,
+      }
+    );
+  });
+
+  it("reopens a proof draft where it was left, with Back leading to Your Work", async () => {
+    mockProofs = [
+      {
+        id: "proof-draft",
+        source: "draft",
+        commitmentId: 7n,
+        garden: "0x00000000000000000000000000000000000000a1",
+        commitment: null,
+        title: "Repair the north fence panel",
+        savedAt: Date.now(),
+        contents: { photos: 1, videos: 0, voiceNotes: 0, links: 0, words: false },
+        waitingReason: null,
+        failed: false,
+        sending: false,
+        discardable: true,
+        firstPhoto: null,
+      },
+    ];
+
+    renderDashboard();
+    fireEvent.click(screen.getByText("Repair the north fence panel"));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/home/0x00000000000000000000000000000000000000a1/commitments/7/proof",
+      {
+        state: {
+          from: "dashboard",
+          dashboardOrigin: expect.any(Object),
+          dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+        },
+        viewTransition: false,
+      }
+    );
   });
 
   it("offers no Retry on a failed load while offline", () => {
@@ -568,6 +739,40 @@ describe("WorkDashboard", () => {
     expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["needsReview", { isLoading: true }, "Loading your work..."],
+    ["needsReview", { isError: true }, "Unable to load work"],
+    // Drafts are on this phone, so their filter never waits on the record.
+    ["editing", { isLoading: true }, "Nothing pending"],
+  ] as const)("answers an empty %s filter by its own reads, whatever else is listed", (filter, read, expected) => {
+    // Your own queued work is listed meanwhile, under another filter.
+    mockInitialPendingFilter = filter;
+    mockNeedsReviewState = { ...mockNeedsReviewState, ...read, ready: false };
+
+    renderDashboard();
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  it("says the list could not load when this phone's queue can't be read, and reads it again offline", () => {
+    // The record answered with nothing, but queued proof may still be on this phone.
+    mockIsOnline = false;
+    mockQueueUnreadable = true;
+    mockUseMyWorks.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(ok),
+    });
+
+    renderDashboard();
+
+    expect(screen.getByText("Unable to load work")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing pending")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockQueueRefresh).toHaveBeenCalledOnce();
+  });
+
   it("keeps Completed loading while the gardener's own work is still being read", () => {
     mockUseMyWorks.mockReturnValue({
       data: undefined,
@@ -584,8 +789,11 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("No completed work")).not.toBeInTheDocument();
   });
 
-  it("opens the original work route from the My work reviewed completed filter", () => {
-    const onClose = vi.fn();
+  it("opens the original work route from the My work reviewed completed filter", async () => {
+    const onClose = vi.fn(() => {
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (scroller) scroller.scrollTop = 0;
+    });
     mockUseMyWorks.mockReturnValue({
       data: [
         {
@@ -631,16 +839,118 @@ describe("WorkDashboard", () => {
     fireEvent.change(screen.getByRole("combobox", { name: /completed work filter/i }), {
       target: { value: "myWorkReviewed" },
     });
+    const scroller = document.getElementById("work-dashboard-scroll");
+    if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+    scroller.scrollTop = 217;
     fireEvent.click(screen.getByText("Reviewed planting"));
+    expect(onClose).not.toHaveBeenCalled();
 
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
-      state: { from: "dashboard", returnTo: "/home", workStatus: "approved" },
-      viewTransition: true,
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/home", {
+      replace: true,
+      state: {
+        dashboardEntry: expect.objectContaining({
+          snapshot: expect.objectContaining({
+            tab: "completed",
+            completedFilter: "myWorkReviewed",
+            scrollTop: 217,
+          }),
+        }),
+      },
     });
-    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
-      mockNavigate.mock.invocationCallOrder[0]
-    );
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden-42/work/reviewed-work", {
+      state: {
+        from: "dashboard",
+        returnTo: "/home",
+        workStatus: "approved",
+        dashboardOrigin: expect.any(Object),
+        dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
+      },
+      viewTransition: false,
+    });
+  });
+
+  it("restores scroll when late content fits, then lets the reader scroll freely", async () => {
+    mockReturnState = {
+      tab: "pending",
+      pendingFilter: "all",
+      completedFilter: "all",
+      timeFilter: "month",
+      scrollTop: 420,
+    };
+    // Model browser clamping while this sheet's child lists are still loading.
+    let capacity = 0;
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(
+          this,
+          this.id === "work-dashboard-scroll" ? Math.min(value, capacity) : value
+        );
+      },
+    });
+    try {
+      const view = renderDashboard();
+      expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-entry-motion", "instant");
+      expect(screen.getByTestId("app-sheet-overlay").style.viewTransitionName).toBe(
+        "work-dashboard"
+      );
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+      expect(scroller.scrollTop).toBe(0);
+      capacity = 800;
+      scroller.append(document.createElement("p"));
+      await waitFor(() => expect(scroller.scrollTop).toBe(420));
+      scroller.scrollTop = 170;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(170);
+      view.unmount();
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
+  });
+
+  it("hands clamped scroll restoration to the reader before later row updates", async () => {
+    mockReturnState = {
+      tab: "pending",
+      pendingFilter: "all",
+      completedFilter: "all",
+      timeFilter: "month",
+      scrollTop: 420,
+    };
+    const positions = new WeakMap<Element, number>();
+    const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop");
+    Object.defineProperty(Element.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return positions.get(this) ?? 0;
+      },
+      set(value: number) {
+        positions.set(this, this.id === "work-dashboard-scroll" ? Math.min(value, 150) : value);
+      },
+    });
+    try {
+      const view = renderDashboard();
+      const scroller = document.getElementById("work-dashboard-scroll");
+      if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
+      expect(scroller.scrollTop).toBe(150);
+      fireEvent.wheel(scroller, { deltaY: -80 });
+      scroller.scrollTop = 70;
+      scroller.append(document.createElement("p"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(scroller.scrollTop).toBe(70);
+      view.unmount();
+    } finally {
+      if (original) Object.defineProperty(Element.prototype, "scrollTop", original);
+      else Reflect.deleteProperty(Element.prototype, "scrollTop");
+    }
   });
 
   it("owns dashboard scrolling explicitly and resets that owner on tab changes", () => {
@@ -664,6 +974,7 @@ describe("WorkDashboard", () => {
     // A tabbed workspace holds the full sheet tier so tab switches never resize
     // it (DL-014), and it registers as open so the AppBar steps aside (DL-015).
     expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-sheet-size", "full");
+    expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-entry-motion", "slide");
     expect(mockRegisterOpenSheet).toHaveBeenCalled();
   });
 

@@ -10,7 +10,13 @@ import type { CommitmentPoolingAvailability } from "../../../modules/commitment-
 import type { Action, Address, Work } from "../../../types/domain";
 import type { CommitmentViewerRoles } from "../../commitment-pooling/useCommitmentViewerRoles";
 import type { CommitmentWorkDecision } from "../../../modules/commitment-pooling/work-decisions";
-import type { FailedCommitmentJob } from "../../commitment-pooling/useCommitmentQueueState";
+import type {
+  FailedCommitmentJob,
+  PendingCommitmentAct,
+} from "../../commitment-pooling/useCommitmentQueueState";
+import type { ProofContents } from "./proofContents";
+
+export type { ProofContents };
 
 export type GardenCommitmentStatus = "unavailable" | "notFound" | "loading" | "error" | "ready";
 
@@ -69,10 +75,37 @@ export interface GardenCommitmentController {
   pendingClaimRequests: CommitmentClaimRequestRecord[];
   canAskAgain: boolean;
   claimNeedsContext: boolean;
+  /**
+   * Whether the reader may take this commitment up, and the garden they would
+   * join to be allowed. On a garden pool that is the route garden; on the
+   * protocol pool a claim goes through a garden of the reader's own, so no one
+   * garden is named. Null membership means it is still being read.
+   */
+  membership: {
+    isMember: boolean | null;
+    garden: { address: Address; name: string; openJoining: boolean } | null;
+    /** A read the answer depends on failed, so the screen offers a retry instead. */
+    unavailable: boolean;
+    retry: () => void;
+  };
   queue: {
     hasPendingJob: boolean;
     sendFailed: boolean;
     failedJob: FailedCommitmentJob | null;
+    /** The act still on this phone for this commitment, when the queue can name it. */
+    pendingAct: PendingCommitmentAct | null;
+    /**
+     * A proof from this phone is being sent right now (Add This Proof, and Add
+     * and Send's second act). Its notice waits: Send Now or Discard would race it.
+     */
+    proofSending: boolean;
+    /** What that proof carries, until the promise's own record counts it. */
+    proofOnItsWay: ProofContents | null;
+    /**
+     * A queued act goes only when the reader sends it (a wallet sign-in). No
+     * background flush runs for them, so no notice may promise it sends itself.
+     */
+    sendsFromTap: boolean;
     isUnavailable: boolean;
     refresh: () => void;
   };

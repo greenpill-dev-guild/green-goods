@@ -1,6 +1,6 @@
 # Shared Package Context
 
-Loaded when working in `packages/shared/`. Extends CLAUDE.md.
+Loaded when working in `packages/shared/`. Extends `packages/shared/AGENTS.md`.
 
 ## Quick Reference
 
@@ -266,12 +266,12 @@ declared version ×10, so these open the `idb`-era databases in place. `jobQueue
 
 ### Error Utilities
 
-Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (CLAUDE.md § Key Patterns), `utils/errors/` (barrel) provides:
+Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandler` (the mutation error helpers in this package), `utils/errors/` (barrel) provides:
 
 - `categorizeError(error) → ErrorCategory` = `network | validation | auth | permission | blockchain | storage | unknown` (`categorize-error.ts`, message pattern-matched)
 - `extractErrorMessage(error)` / `extractErrorMessageOr(error, fallback)` (`extract-message.ts`)
 - `ValidationError` — throw for precondition/programming-error checks (`validation-error.ts`)
-- `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`
+- `createMutationErrorHandler` config: `{ source, toastContext, toastId?, trackError?, getFallbackMessage?, getFallbackDescription?, formatMessage? }`; returned handler takes `(error, { authMode, gardenAddress, metadata?, showToast? })`. Pass a hook's `formatMessage` and a known error whose parser names its copy (`titleKey`, `messageKey`, `messageValues`) shows in the reader's language: a wallet on another network, an earlier version still queued, and offline (`unsent-failures.ts`). Every other known error still shows the parser's English.
 - `USER_FRIENDLY_ERRORS` lives in `contract-errors.ts`; blockchain/tx specifics in `blockchain-errors.ts` + `tx-error-classifier.ts`
 
 ### React Compiler

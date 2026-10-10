@@ -67,6 +67,7 @@ vi.mock("@/components/Display", () => ({
 }));
 
 import { GardensList } from "../../views/Profile/GardensList";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 
 const wrap = (el: React.ReactElement) =>
   createElement(
@@ -80,6 +81,7 @@ const MOCK_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 describe("GardensList", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useUIStore.getState().resetGardenFilters();
     mockGardensState.data = [];
     mockGardensState.isError = false;
     mockGardensState.isLoading = false;
@@ -126,8 +128,12 @@ describe("GardensList", () => {
     expect(mockGardensState.refetch).toHaveBeenCalledOnce();
   });
 
-  it("navigates to home when Open Gardens is clicked from empty state", async () => {
+  it("applies the open scope and clears restrictive filters before opening home", async () => {
     mockGardensState.data = [];
+    useUIStore.getState().setGardenFilters(() => ({ scope: "mine", sort: "recent", domains: [0] }));
+    mockNavigate.mockImplementationOnce(() => {
+      expect(useUIStore.getState().gardenFilters).toEqual({ scope: "open", sort: "recent" });
+    });
     const user = userEvent.setup();
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));

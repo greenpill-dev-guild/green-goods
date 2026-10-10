@@ -25,6 +25,7 @@ import {
 import type { ToolbarSlot } from "../../../components/Canvas/NavigationBar";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { useAuth } from "../../auth/useAuth";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useEligibleAdminGardens } from "../../garden/useEligibleAdminGardens";
 import { useGardenUrlSync } from "../../navigation/useGardenUrlSync";
@@ -84,7 +85,8 @@ export function useCanvasShellController({
 }: CanvasShellControllerOptions) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, eoaAddress, isReady, authMode } = useAuth();
+  const { isAuthenticated, isReady, authMode } = useAuth();
+  const primaryAddress = usePrimaryAddress();
   const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { avatarUri: profileImageSrc } = useResolvedProfileAvatar();
@@ -224,14 +226,14 @@ export function useCanvasShellController({
   }, [isDesktop, openRightSheetContent, routeChrome.rawWorkspaceId]);
 
   useEffect(() => {
-    if (!isReady || authMode === "embedded" || !isAuthenticated || !eoaAddress) return;
+    if (!isReady || authMode === "embedded" || !isAuthenticated || !primaryAddress) return;
     if (!eligibleGardensLoaded) return;
     if (eligibleGardens.length === 0 && isCoreWorkspace) navigate("/", { replace: true });
   }, [
     authMode,
     eligibleGardens.length,
     eligibleGardensLoaded,
-    eoaAddress,
+    primaryAddress,
     isAuthenticated,
     isCoreWorkspace,
     isReady,

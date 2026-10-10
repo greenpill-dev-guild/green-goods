@@ -18,12 +18,13 @@ const canonicalMarkers = [
   { pattern: /--attest browser-proof/, label: 'the release attestation command' },
 ];
 const pointerFiles = [
-  'CLAUDE.md',
   'ONBOARDING.md',
   'packages/admin/AGENTS.md',
   'packages/client/AGENTS.md',
   'packages/shared/AGENTS.md',
 ];
+// Older Claude installations need the compatibility import; AGENTS-only repositories do not.
+if (existsSync(join(repoRoot, 'CLAUDE.md'))) pointerFiles.push('CLAUDE.md');
 const pointerPattern = /AGENTS\.md(#browser-evidence| § Browser Evidence)/;
 // The first version of this guard matched two exact sentences and passed while all three
 // package guides still said "report browser QA as `BLOCKED`" in another section. Match the
@@ -51,7 +52,9 @@ for (const relPath of pointerFiles) {
     failures.push(`${relPath}: missing browser-evidence pointer file`);
     continue;
   }
-  if (!pointerPattern.test(read(relPath))) {
+  const text = read(relPath);
+  const importsRoot = relPath === 'CLAUDE.md' && /^@(?:\.\/)?AGENTS\.md\s*$/m.test(text);
+  if (!importsRoot && !pointerPattern.test(text)) {
     failures.push(`${relPath}: must point at AGENTS.md § Browser Evidence instead of restating it`);
   }
 }

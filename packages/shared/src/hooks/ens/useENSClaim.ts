@@ -18,14 +18,15 @@ import {
   type PublicClient,
   zeroAddress,
 } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
+import { useIntl } from "react-intl";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
 import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -105,10 +106,10 @@ export interface ENSClaimResult {
 }
 
 export function useENSClaim() {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const { authMode, smartAccountClient } = useAuth();
   const { address: walletAddress } = useAccount();
-  const { data: walletClient } = useWalletClient();
   const isPasskeyUser = authMode === "passkey";
 
   return useMutation<ENSClaimResult, Error, { slug: string }>({
@@ -162,7 +163,7 @@ export function useENSClaim() {
           to: ensAddress,
           data,
         });
-      } else if (walletClient && walletAddress) {
+      } else if (walletAddress) {
         await assertSponsoredClaimFunded({ publicClient, ensAddress, slug, owner: walletAddress });
         // The wallet pays only gas. A wallet opened for a claim it cannot pay
         // for shows no request, so the check runs before anything reaches it.
@@ -171,7 +172,7 @@ export function useENSClaim() {
           to: ensAddress,
           data,
         });
-        await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
+        const walletClient = await readyWalletClient(DEFAULT_CHAIN_ID, walletAddress);
         await assertLocalArbitrumForkWallet();
 
         txHash = await walletClient.sendTransaction({
@@ -189,9 +190,13 @@ export function useENSClaim() {
         hash: txHash,
         timeout: TX_RECEIPT_TIMEOUT_MS,
       });
+      if (receipt.status !== "success") {
+        throw new Error("Name registration transaction reverted");
+      }
 
       let ccipMessageId: string | null = null;
       for (const log of receipt.logs) {
+        if (log.address.toLowerCase() !== ensAddress.toLowerCase()) continue;
         try {
           const decoded = decodeEventLog({
             abi: GreenGoodsENSABI,
@@ -209,18 +214,28 @@ export function useENSClaim() {
 
       return { slug, ccipMessageId, submittedAt: Date.now(), txHash };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ensKeys.all });
       // Seed registration status query with initial "pending" data
       queryClient.setQueryData(ensKeys.registrationStatus(data.slug), {
         status: "pending" as const,
-        ccipMessageId: data.ccipMessageId,
+        ccipMessageId: data.ccipMessageId ?? undefined,
         submittedAt: data.submittedAt,
       });
       queryClient.invalidateQueries({ queryKey: ensKeys.all });
 
       toastService.success({
-        title: "Name registration started",
-        description: `${data.slug}.greengoods.eth will be active in ~15-20 minutes.`,
+        title: intl.formatMessage({
+          id: "ens.claim.received",
+          defaultMessage: "Name registration started",
+        }),
+        description: intl.formatMessage(
+          {
+            id: "ens.claim.receivedDescription",
+            defaultMessage: "Request received for {name}. Check its progress in your profile.",
+          },
+          { name: `${data.slug}.greengoods.eth` }
+        ),
       });
     },
     onError: (error) => {

@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createConnection } from "node:net";
-import { availableParallelism, totalmem } from "node:os";
-import { dirname, resolve } from "node:path";
+import { availableParallelism, loadavg } from "node:os";
+import { delimiter, dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
@@ -16,10 +25,11 @@ import {
   readSharedGitSettings,
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
-  resolveVitestMaxWorkers,
 } from "../lib/dev-shared.js";
+import { LOCAL_GATE_VARIABLE, TEST_LEASE_TIMEOUT_EXIT_CODE } from "./test-lease.mjs";
 import {
   buildReceiptInputs,
+  inspectPlaywrightChromium,
   fingerprintReceiptInputs,
   isAdvisoryManualCheck,
   resolveGitInputs,
@@ -351,6 +361,7 @@ export function capabilityRecoveryHint(capability, contractSubmoduleState) {
   if (capability === "arbitrumFork") {
     return "Start the local fork with `bun run --cwd packages/contracts dev:arbitrum-fork`.";
   }
+  if (capability === "playwrightChromium") return "Install the pinned Chromium runtime with bun x playwright install chromium; then retry the selected browser check.";
   if (capability === "contractSubmodules") {
     if (contractSubmoduleState === "modified") {
       return "Inspect and preserve, commit, stash, or discard the local changes in the contract submodules; validation will not reset them.";
@@ -376,6 +387,7 @@ async function detectEnvironment(options) {
     "node_modules/typescript/package.json",
     "node_modules/vitest/package.json",
   ].every((path) => existsSync(resolve(projectRoot, path)));
+  const playwright = inspectPlaywrightChromium();
   const bunVersion = await commandOutput("bun");
   const foundryOutput = await commandOutput("forge");
   const foundryVersion = foundryOutput?.match(/\d+\.\d+\.\d+/)?.[0] ?? null;
@@ -385,6 +397,7 @@ async function detectEnvironment(options) {
     contractSubmoduleState: contractSubmodules.state,
     toolchain: {
       node: process.version.replace(/^v/, ""),
+      ...(playwright.fingerprint ? { playwright: playwright.fingerprint } : {}),
       ...(bunVersion ? { bun: bunVersion } : {}),
       ...(foundryVersion ? { foundry: foundryVersion } : {}),
     },
@@ -397,6 +410,7 @@ async function detectEnvironment(options) {
       arbitrumFork: await arbitrumForkAvailable(),
       authenticatedBrave: false,
       browser: false,
+      playwrightChromium: playwright.available,
       ...options.capabilities,
     },
   };
@@ -519,6 +533,7 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
     // this the scoped format and lint commands hand Biome a file that no
     // longer exists and the whole plan fails at its first check.
     deletedPaths: gitInputs.deletedPaths ?? [],
+    mutationPaths: gitInputs.mutationPaths ?? [],
     risk: options.risk,
     cancelled: options.cancelled,
     testPaths: options.testPaths,
@@ -528,8 +543,83 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
   return applyCompatibilityFilters(plan, options);
 }
 
-function envForCheck(check) {
-  const common = { CI: ciEnv.CI };
+// A receipt covers every variable a check inherits except these, which differ between a manual
+// run and the same run from the pre-push hook without changing what a check does. Git prepends its
+// exec path and the hook prepends tool directories to PATH, and NODE names the interpreter; the
+// node, bun and forge versions those resolve to are fingerprinted as the toolchain. Husky's shim
+// sources ~/.config/husky/init.sh, which commonly exports NVM_DIR, and the hook loads nvm when a
+// .nvmrc exists: nvm's own variables configure only nvm, and `nvm use` also moves MANPATH, which
+// only `man` reads. Shells count and track themselves, and each re-exec wrapper marks that it ran.
+const RECEIPT_IGNORED_VARIABLES = new Set([
+  "PATH",
+  "GIT_EXEC_PATH",
+  "NODE",
+  "npm_node_execpath",
+  "MANPATH",
+  "SHLVL",
+  "_",
+  "OLDPWD",
+  "PWD",
+]);
+const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
+
+/**
+ * The exact environment a check's process receives. Check commands call package binaries by name
+ * (`design.md`, `vitest`), as package scripts do, so the check's own node_modules/.bin and the
+ * repository's lead PATH: `bun run` and Husky's shim do the same, and a manual run of the gate must
+ * resolve them like the hook does.
+ */
+export function checkEnvironment(check, baseEnvironment = process.env, planBase = null) {
+  const packageBinaries = [
+    ...new Set([
+      resolve(projectRoot, check.cwd ?? ".", "node_modules/.bin"),
+      resolve(projectRoot, "node_modules/.bin"),
+    ]),
+  ];
+  const path = [...packageBinaries, baseEnvironment.PATH].filter(Boolean).join(delimiter);
+  return { ...baseEnvironment, ...envForCheck(check, baseEnvironment, planBase), PATH: path };
+}
+
+/** A digest of the variables that can change a check's result; values never leave the hash. */
+export function environmentFingerprint(environment) {
+  const hash = createHash("sha256");
+  hash.update("validation-environment-v1\0");
+  for (const name of Object.keys(environment).sort()) {
+    if (RECEIPT_IGNORED_VARIABLES.has(name) || RECEIPT_IGNORED_PATTERN.test(name)) continue;
+    hash.update(`${name}\0${environment[name]}\0`);
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
+// Builds and tests read the root .env family (Vite's loadEnv, `bun --env-file`). Git ignores those
+// files, so the working-copy fingerprint cannot see a change to them.
+export function ignoredConfigurationFingerprint(root = projectRoot) {
+  const hash = createHash("sha256");
+  hash.update("validation-ignored-configuration-v1\0");
+  const names = readdirSync(root)
+    .filter((name) => name.startsWith(".env"))
+    .sort();
+  for (const name of names) {
+    const path = resolve(root, name);
+    if (!statSync(path).isFile()) continue;
+    hash.update(`${name}\0`);
+    hash.update(readFileSync(path));
+    hash.update("\0");
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
+function envForCheck(check, baseEnvironment = {}, planBase = null) {
+  // CI=true reproduces CI's test environment; the marker keeps local package suites on the
+  // machine test lease, which real CI skips.
+  const common = { CI: ciEnv.CI, [LOCAL_GATE_VARIABLE]: "1" };
+  if (check.id === "immutable-plan-reports") {
+    // CI hands the check the push's previous head or the pull request's base. Give it the base
+    // this plan compared against instead of its origin/develop fallback, so it judges the same
+    // commits and working tree; a base set by the caller still wins.
+    const explicit = baseEnvironment.PLAN_REPORTS_BASE_REF || baseEnvironment.GUIDANCE_BASE_REF;
+    return explicit || !planBase ? common : { ...common, PLAN_REPORTS_BASE_REF: planBase };
+  }
   if (check.id.startsWith("agent-")) {
     return {
       ...common,
@@ -540,27 +630,6 @@ function envForCheck(check) {
   }
   if (["client-build", "admin-build"].includes(check.id)) return { ...common, ...ciEnv };
   return common;
-}
-
-export function resolveVitestBatchEnvironment(
-  batch,
-  {
-    cpus = availableParallelism(),
-    totalMemoryBytes = totalmem(),
-    ci = Boolean(process.env.CI),
-    explicitMaxWorkers = process.env.VITEST_MAX_WORKERS,
-  } = {},
-) {
-  if (batch.length < 2 || !batch.every((check) => check.id.endsWith("-test"))) return {};
-  if (explicitMaxWorkers) return { VITEST_MAX_WORKERS: explicitMaxWorkers };
-
-  const maxWorkers = resolveVitestMaxWorkers({
-    cpus,
-    totalMemoryBytes,
-    ci,
-    share: batch.length,
-  });
-  return maxWorkers === undefined ? {} : { VITEST_MAX_WORKERS: String(maxWorkers) };
 }
 
 function elapsedSeconds(start) {
@@ -604,7 +673,7 @@ async function runAbiArtifactCheck() {
 
 export async function runCommandCheck(
   check,
-  { signal, captureOutput = false, environment = {} } = {},
+  { signal, captureOutput = false, environment = checkEnvironment(check) } = {},
 ) {
   const start = Date.now();
   if (check.builtin === "abiArtifacts") {
@@ -633,7 +702,7 @@ export async function runCommandCheck(
       // capture instead, so their logs replay in plan order rather than
       // interleaving into noise.
       stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
-      env: { ...process.env, ...envForCheck(check), ...environment },
+      env: environment,
       detached: process.platform !== "win32",
     });
     let output = "";
@@ -702,9 +771,8 @@ export async function executePlan(plan, options = {}) {
   const attestations = options.attestations ?? {};
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
-  const concurrency = options.concurrency !== false;
-  const resolveBatchEnvironment =
-    options.resolveBatchEnvironment ?? resolveVitestBatchEnvironment;
+  const baseEnvironment = options.environment ?? process.env;
+  const ignoredConfiguration = options.ignoredConfiguration ?? ignoredConfigurationFingerprint();
 
   if (plan.status === "cancelled" || externalSignal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
@@ -728,29 +796,33 @@ export async function executePlan(plan, options = {}) {
     : null;
   const finish = (result) => {
     if (deadlineTimer) clearTimeout(deadlineTimer);
-    return result;
+    return { pendingManual, ignoredAttestations, ...result };
   };
 
+  // The selector owns receipt policy; a plan that does not allow reuse runs every check fresh.
+  const receiptsAllowed = plan.receiptPolicy?.reuseAllowed === true;
   const recordPass = (receiptInputs) => {
-    if (!reusePassingReceipts || plan.risk === "critical") return;
+    if (!reusePassingReceipts || !receiptsAllowed) return;
     receiptStore.set(receiptInputs.fingerprint, {
       status: "passed",
       passedAt: new Date().toISOString(),
       receiptInputs,
     });
   };
+  // The receipt fingerprints the same environment the check then runs with.
   const reusableReceipt = (check) => {
-    const receiptInputs = buildReceiptInputs(plan, check);
+    const environment = checkEnvironment(check, baseEnvironment, plan.base);
+    const receiptInputs = buildReceiptInputs(plan, check, {
+      environment: environmentFingerprint(environment),
+      ignoredConfiguration,
+    });
     const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
     const reusable =
-      plan.risk !== "critical" &&
+      receiptsAllowed &&
       cached?.status === "passed" &&
       cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
-    return { receiptInputs, reusable };
+    return { environment, receiptInputs, reusable };
   };
-  const runnableNow = (check) =>
-    check.state !== "blocked" && !(check.manual && !check.command) && !reusableReceipt(check).reusable;
-
   let index = 0;
   while (index < plan.checks.length) {
     if (signal?.aborted) {
@@ -812,7 +884,7 @@ export async function executePlan(plan, options = {}) {
       continue;
     }
 
-    const { receiptInputs, reusable } = reusableReceipt(check);
+    const { environment, receiptInputs, reusable } = reusableReceipt(check);
     if (reusable) {
       const evidence = {
         id: check.id,
@@ -828,85 +900,88 @@ export async function executePlan(plan, options = {}) {
       continue;
     }
 
-    // Independent package suites declare a concurrency group in the policy and
-    // run together, mirroring the grouping the root `test` script already uses.
-    // Only checks adjacent in plan order join a batch, so execution order and
-    // the stop rule stay exactly as the plan printed them.
-    const batch = [check];
-    if (concurrency && check.concurrencyGroup) {
-      for (let look = index + 1; look < plan.checks.length; look += 1) {
-        const next = plan.checks[look];
-        if (next.concurrencyGroup !== check.concurrencyGroup) break;
-        if (!runnableNow(next)) break;
-        batch.push(next);
-      }
-    }
+    // Checks run one at a time in plan order. Package suites get the whole machine: the
+    // machine-wide test lease in package-commands.mjs sizes their workers.
+    options.onCheckStart?.(check);
+    const result = await runCheck(check, { signal, environment });
+    // These package wrappers reserve EX_TEMPFAIL for a lease wait that expires before tests run.
+    const leaseTimedOut = !result.ok && !result.cancelled && result.exitCode === TEST_LEASE_TIMEOUT_EXIT_CODE &&
+      ["shared-test", "client-test", "admin-test", "agent-test", "indexer-test"].includes(check.id);
+    const evidence = { id: check.id, ...result, ...(leaseTimedOut ? { blocked: true } : {}), receiptInputs };
+    results.push(evidence);
+    options.onCheckComplete?.(check, evidence);
 
-    if (batch.length === 1) {
-      options.onCheckStart?.(check);
-      const result = await runCheck(check, { signal });
-      const evidence = { id: check.id, ...result, receiptInputs };
-      results.push(evidence);
-      options.onCheckComplete?.(check, evidence);
-
-      if (result.cancelled || signal?.aborted) {
-        return finish(
-          budgetExpired
-            ? { status: "budget-exceeded", exitCode: 124, results, blocked }
-            : { status: "cancelled", exitCode: 130, results, blocked },
-        );
-      }
-      if (!result.ok && failFast) {
-        return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
-      }
-      if (result.ok) recordPass(receiptInputs);
-      index += 1;
-      continue;
-    }
-
-    options.onBatchStart?.(batch);
-    const environment = resolveBatchEnvironment(batch);
-    const settled = await Promise.all(
-      batch.map((member) =>
-        runCheck(member, { signal, captureOutput: true, environment }),
-      ),
-    );
-    for (const [position, member] of batch.entries()) {
-      const evidence = {
-        id: member.id,
-        ...settled[position],
-        receiptInputs: buildReceiptInputs(plan, member),
-      };
-      results.push(evidence);
-      options.onCheckComplete?.(member, evidence);
-    }
-
-    // The whole batch is already in flight, so let every member report before
-    // stopping. Fail-fast still prevents anything after the batch from starting.
-    if (settled.some((result) => result.cancelled) || signal?.aborted) {
+    if (result.cancelled || signal?.aborted) {
       return finish(
         budgetExpired
           ? { status: "budget-exceeded", exitCode: 124, results, blocked }
           : { status: "cancelled", exitCode: 130, results, blocked },
       );
     }
-    const failure = settled.find((result) => !result.ok);
-    if (failure && failFast) {
-      return finish({ status: "failed", exitCode: failure.exitCode || 1, results, blocked });
+    if (leaseTimedOut) {
+      blocked.push({ id: check.id, blockedBy: ["test-lease"] });
+      if (failFast) return finish({ status: "blocked", exitCode: 2, results, blocked });
+      index += 1;
+      continue;
     }
-    for (const [position, member] of batch.entries()) {
-      if (settled[position].ok) recordPass(buildReceiptInputs(plan, member));
+    if (!result.ok && failFast) {
+      return finish({ status: "failed", exitCode: result.exitCode || 1, results, blocked });
     }
-    index += batch.length;
+    if (result.ok) recordPass(receiptInputs);
+    index += 1;
   }
 
-  if (results.some((result) => !result.ok)) {
+  if (results.some((result) => !result.ok && !result.blocked)) {
     return finish({ status: "failed", exitCode: 1, results, blocked });
   }
   if (blocked.length > 0 || plan.status === "blocked") {
     return finish({ status: "blocked", exitCode: 2, results, blocked, ignoredAttestations });
   }
   return finish({ status: "passed", exitCode: 0, results, blocked, pendingManual, ignoredAttestations });
+}
+
+/** Summarize observed evidence only; never copy subprocess logs, environment or attestation text. */
+export function summarizeExecution(plan, execution, { loadAverage = loadavg(), cpuCount = availableParallelism() } = {}) {
+  const results = execution.results ?? [];
+  const blocked = (execution.blocked ?? []).map(({ id, blockedBy }) => ({ id, blockedBy: [...blockedBy] }));
+  const leaseTimedOut = blocked.some((entry) => entry.blockedBy.includes("test-lease"));
+  const firstFailure = results.find((result) => !result.ok && !result.cancelled && !result.blocked);
+  const pendingManual = plan.checks.filter((check) => check.manual &&
+    !results.some((result) => result.id === check.id && result.ok)).map((check) => check.id);
+  const accounted = new Set([...results, ...blocked].map((entry) => entry.id).concat(pendingManual));
+  const quote = (value) => `'${String(value).replaceAll("'", "'\\''")}'`;
+  const replan = ["node scripts/dev/ci-local.js --plan --intent", quote(plan.effectiveIntent)];
+  if (plan.base) replan.push("--base", quote(plan.base));
+  if (plan.head) replan.push("--head", quote(plan.head));
+  if (plan.risk) replan.push("--risk", quote(plan.risk));
+  if (plan.changedPaths?.length) replan.push("--changed", quote(plan.changedPaths.join(",")));
+  for (const [surface, paths] of Object.entries(plan.testPaths ?? {})) {
+    for (const path of paths) replan.push("--test-path", quote(`${surface}:${path}`));
+  }
+  for (const check of plan.checks) replan.push("--only", quote(check.id));
+  const category = execution.status === "failed" ? "check-failed"
+    : execution.status === "blocked" ? (leaseTimedOut ? "lease-timeout" : "capability-blocked")
+      : execution.status;
+  const load = loadAverage.slice(0, 3).map((value) => Number.isFinite(value) && value >= 0 ? value : null);
+  const processors = Number.isInteger(cpuCount) && cpuCount > 0 ? cpuCount : null;
+  return {
+    category,
+    scope: { intent: plan.effectiveIntent, head: plan.head, workingCopyFingerprint: plan.workingCopyFingerprint,
+      profile: plan.environment?.profile, changedPaths: [...(plan.changedPaths ?? [])],
+      testPaths: structuredClone(plan.testPaths ?? {}), selectedChecks: plan.checks.map((check) => check.id) },
+    passed: results.filter((result) => result.ok && !result.reused && !result.attested).map((result) => result.id),
+    reused: results.filter((result) => result.reused).map((result) => result.id),
+    attested: results.filter((result) => result.attested).map((result) => result.id),
+    firstFailure: firstFailure ? { id: firstFailure.id, exitCode: firstFailure.exitCode } : null,
+    interrupted: results.filter((result) => result.cancelled).map((result) => result.id),
+    blocked, pendingManual,
+    notRun: plan.checks.filter((check) => !accounted.has(check.id)).map((check) => check.id),
+    skipped: (plan.skipped ?? []).map((check) => check.id),
+    context: { loadAverage: load, cpuCount: processors,
+      contentionSuspected: processors !== null && load[0] !== null && load[0] > processors,
+      testLease: leaseTimedOut ? "timed-out" : "not-reported" },
+    nextCommand: ["passed", "cancelled"].includes(execution.status) ? null : replan.join(" "),
+  };
 }
 
 export function loadPassingReceiptStore(path = defaultReceiptPath) {
@@ -1048,6 +1123,11 @@ async function main() {
   const abortController = new AbortController();
   const cancel = () => abortController.abort("user-cancelled");
   process.once("SIGINT", cancel);
+  if (options.reusePassingReceipts && plan.receiptPolicy?.reuseAllowed !== true) {
+    console.log(
+      `${colors.yellow}--reuse-passing-receipts is ignored:${colors.reset} ${plan.receiptPolicy?.note ?? "this plan runs every check fresh."}`,
+    );
+  }
   const receiptStore = options.reusePassingReceipts ? loadPassingReceiptStore() : new Map();
   const execution = await executePlan(plan, {
     failFast: options.failFast,
@@ -1057,14 +1137,6 @@ async function main() {
     attestations: options.attestations,
     onCheckStart(check) {
       console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
-    },
-    onBatchStart(batch) {
-      console.log(
-        `\n${colors.blue}Running ${batch.length} checks concurrently:${colors.reset} ${batch
-          .map((check) => check.id)
-          .join(", ")}`,
-      );
-      for (const check of batch) console.log(`  ${check.id}: ${check.command ?? check.builtin}`);
     },
     onCheckComplete(check, result) {
       const color = result.ok ? colors.green : colors.red;
@@ -1120,6 +1192,15 @@ async function main() {
   } else {
     console.log(`\n${colors.red}Validation failed; dependent checks stopped.${colors.reset}`);
   }
+  const summary = summarizeExecution(plan, execution);
+  console.log(`Outcome: ${summary.category}; ${summary.passed.length} fresh passes, ${summary.reused.length} reused, ${summary.notRun.length} unrun of ${summary.scope.selectedChecks.length} selected checks (${summary.scope.intent}).`);
+  if (summary.firstFailure) console.log(`First failure: ${summary.firstFailure.id} (exit ${summary.firstFailure.exitCode}); its original output is above.`);
+  for (const key of ["interrupted", "notRun", "skipped", "pendingManual"]) {
+    if (summary[key].length) console.log(`  ${key}: ${summary[key].join(", ")}`);
+  }
+  if (summary.context.testLease === "timed-out") console.log("Test lease expired before the suite ran. Wait for the active suite to finish; no retry was started.");
+  if (summary.context.contentionSuspected) console.log(`Host load ${summary.context.loadAverage.join("/")} on ${summary.context.cpuCount} CPUs suggests contention; it does not explain or waive a failure.`);
+  if (summary.nextCommand) console.log(`Review the original failure or blocker, then inspect the same selected scope: ${summary.nextCommand}`);
   // A leaking fixture passes its own test, so only the config it wrote to can report it.
   const leaked = reportGitFixtureLeak(
     findSharedGitSettingChanges(sharedGitSettings, readSharedGitSettings({ cwd: projectRoot })),

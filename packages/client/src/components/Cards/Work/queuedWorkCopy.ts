@@ -23,12 +23,6 @@ export function readQueuedWorkState(metadata: string | undefined): QueuedWorkSta
   }
 }
 
-/** A queued work or decision that Upload all has not sent yet. */
-export const WAITING_TO_UPLOAD_MESSAGE = {
-  id: "app.uploads.state.waiting",
-  defaultMessage: "Waiting to upload",
-} satisfies MessageDescriptor;
-
 /** Chips stay short so a work's title keeps its width at 360px in every language. */
 const TO_UPLOAD_CHIP = {
   id: "app.uploads.chip.toUpload",
@@ -130,6 +124,55 @@ const REFUSED = {
 
 export function blockedReasonMessage(reason: string | undefined): MessageDescriptor {
   return (reason && BLOCKED_REASONS.get(reason)) || REFUSED;
+}
+
+const SHORT_ACTION_ENDED = {
+  id: "app.uploads.blocked.short.actionEnded",
+  defaultMessage: "Action ended",
+} satisfies MessageDescriptor;
+
+/**
+ * Why, in two or three words, for a row in Your Work (D20): the row's pill
+ * already says it can't upload, and the work's own page keeps the sentence.
+ */
+const SHORT_BLOCKED_REASONS = new Map<string, MessageDescriptor>([
+  [
+    "NotGardenMember",
+    { id: "app.uploads.blocked.short.notMember", defaultMessage: "Not a member" },
+  ],
+  [
+    "NotGardenOperator",
+    { id: "app.uploads.blocked.short.notSteward", defaultMessage: "Not a steward" },
+  ],
+  ["NotActiveAction", SHORT_ACTION_ENDED],
+  ["ActionExpired", SHORT_ACTION_ENDED],
+  [
+    "NotInActionRegistry",
+    { id: "app.uploads.blocked.short.actionMissing", defaultMessage: "Action removed" },
+  ],
+  [
+    "ActionDomainMismatch",
+    { id: "app.uploads.blocked.short.actionNotInGarden", defaultMessage: "Not in this garden" },
+  ],
+  [
+    "NotInWorkRegistry",
+    { id: "app.uploads.blocked.short.workMissing", defaultMessage: "Not on the record" },
+  ],
+  [
+    "SelfAttestation",
+    { id: "app.uploads.blocked.short.selfReview", defaultMessage: "Your own work" },
+  ],
+]);
+
+export function blockedShortReasonMessage(state: QueuedWorkState): MessageDescriptor {
+  if (state.submissionState === "photo-needs-attention")
+    return { id: "app.uploads.blocked.short.photo", defaultMessage: "A photo won't convert" };
+  return (
+    (state.blockedReason && SHORT_BLOCKED_REASONS.get(state.blockedReason)) || {
+      id: "app.uploads.blocked.short.refused",
+      defaultMessage: "The record refused it",
+    }
+  );
 }
 
 /** The status chip for work still on this device, when its state has a name. */

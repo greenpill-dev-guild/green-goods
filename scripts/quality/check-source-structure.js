@@ -6,6 +6,7 @@ import { basename, posix, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+import { parseBaseArgs, resolveGitBase } from "../lib/git-guardrails.mjs";
 import { STAGED_MARKER, STAGED_MODULES } from "./check-staged-modules.mjs";
 
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
@@ -20,7 +21,6 @@ const MODIFIED_FILE_MAX_LINES = 500;
 // They get a wide cap instead of a split demand; anything past it is a sign the
 // underlying contract surface itself needs decomposition. Decision: PR #694.
 const DECLARATION_ONLY_INTERFACE_MAX_LINES = 1200;
-const ZERO_SHA = "0000000000000000000000000000000000000000";
 const STRUCTURE_BASELINE_PATH = "scripts/data/source-structure-baseline.json";
 
 const ALLOWED_TOP_LEVEL_DIRECTORIES = {
@@ -103,7 +103,8 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // the gate was adopted. An entry may never grow; touching a file above its ceiling
 // fails until it is brought back down. When a file shrinks, lower its entry to the
 // new count. When a file drops below MODIFIED_FILE_MAX_LINES, delete its entry so
-// the normal cap governs it again.
+// the normal cap governs it again. Entries are keyed by path, so a file keeps its
+// ceiling through a move only when its entry moves with it, unchanged.
 //
 // Re-baselined 2026-07-30: the original ceilings were captured months before the
 // check was wired into CI, and 17 entries had drifted above them in the meantime —
@@ -111,17 +112,13 @@ function isDeclarationOnlySolidityInterface(filePath) {
 // could merge. Ceilings now reflect measured reality, and every oversized file is
 // listed (the previous list covered 32 of 63, so 31 oversized files had no ceiling
 // at all and would have tripped the blanket cap on first touch).
-const FROZEN_ALLOWLIST = {
+export const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
-  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 545,
   "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 626,
-  "packages/admin/src/views/Garden/HypercertDetail.tsx": 501,
   "packages/agent/src/handlers/index.ts": 508,
   "packages/agent/src/platforms/telegram.ts": 590,
   "packages/agent/src/services/blockchain.ts": 627,
   "packages/client/src/components/Sheets/ConvictionSheet.tsx": 569,
-  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 520,
-  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 522,
   "packages/client/src/components/Public/PublicCookieJarCard.tsx": 756,
   "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 719,
   "packages/client/src/components/Public/PublicFundingCard.tsx": 1010,
@@ -131,7 +128,7 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/components/Public/Vault/VaultCheckoutDialog.tsx": 1171,
   "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx": 923,
   "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 538,
-  "packages/client/src/views/Garden/Media.tsx": 728,
+  "packages/client/src/views/Garden/Media.tsx": 720,
   "packages/client/src/views/Public/Fund.tsx": 775,
   "packages/client/src/views/Public/Impact.tsx": 627,
   "packages/contracts/src/modules/Gardens.sol": 914,
@@ -139,15 +136,14 @@ const FROZEN_ALLOWLIST = {
   "packages/contracts/src/modules/Octant.sol": 769,
   "packages/contracts/src/resolvers/Yield.sol": 899,
   "packages/contracts/src/tokens/Garden.sol": 502,
-  "packages/shared/src/components/Canvas/NavigationBar.tsx": 577,
-  "packages/shared/src/components/Toast/toast.service.tsx": 799,
+  "packages/shared/src/components/Toast/toast.service.tsx": 776,
   "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 568,
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 727,
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkMutation.ts": 528,
   "packages/shared/src/index.ts": 1418,
   "packages/shared/src/modules/app/analytics-events.ts": 520,
-  "packages/shared/src/modules/app/posthog.ts": 577,
+  "packages/shared/src/modules/app/posthog.ts": 553,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 536,
   "packages/shared/src/providers/Auth.tsx": 739,
@@ -180,18 +176,20 @@ function runGit(args, { allowFailure = false } = {}) {
   }
 }
 
-function parseArgs(argv) {
-  const args = { base: process.env.SOURCE_STRUCTURE_BASE_REF || "" };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--base") {
-      args.base = argv[index + 1] || "";
-      index += 1;
-    }
+// Resolve the base the way the other diff-aware checks do: an explicit --base, then CI's
+// SOURCE_STRUCTURE_BASE_REF, then origin/develop. A ref that does not resolve, such as a push
+// event's all-zero `before`, falls through to the next candidate.
+function resolveStructureBase(argv) {
+  try {
+    return resolveGitBase({
+      repoRoot,
+      explicitBase: parseBaseArgs(argv).base,
+      environmentVariables: ["SOURCE_STRUCTURE_BASE_REF"],
+    });
+  } catch (error) {
+    console.error(`❌ check-source-structure: ${error.message}`);
+    process.exit(2);
   }
-
-  return args;
 }
 
 function listFromGit(args, options) {
@@ -463,6 +461,90 @@ function namingViolation(root, filePath) {
   };
 }
 
+// Import seams keep a test from loading whole subtrees it never uses: Admin and Client reach Shared
+// only through declared leaves, and Shared reaches its own modules through leaves rather than
+// high-fanout barrels. They cover every Admin and Client file, tests and stories included, and
+// Shared's production files other than the barrels themselves.
+const EXACT_SHARED_ROOT =
+  /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
+const BROAD_CONSUMER_BARREL =
+  /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
+const SHARED_SPECIFIER =
+  /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
+const MOCKED_SPECIFIER = /vi\.(?:mock|importActual)\s*\(\s*["']([^"']+)["']/g;
+const DEEP_RELATIVE_SHARED_SOURCE =
+  /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+const SHARED_INTERNAL_BARREL =
+  /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|hooks|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+const QUERY_KEY_REGISTRY = /from\s+["'][^"']*config\/query-keys\/registry["']/;
+const DEFAULT_CHAIN_FROM_BLOCKCHAIN = /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/;
+
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function isSharedBarrelOrTestFile(filePath) {
+  return (
+    /\/(?:__tests__|__mocks__)\//.test(filePath) ||
+    /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(filePath) ||
+    filePath.endsWith("/index.ts")
+  );
+}
+
+function importSeamViolations(root, filePaths, sharedExportKeys) {
+  const violations = [];
+  const violation = (filePath, check, message) =>
+    violations.push({
+      id: `import-seam:${filePath}:${check}`,
+      rule: "import-seam",
+      path: filePath,
+      baselineEligible: false,
+      message: `${filePath}: ${message}`,
+    });
+  for (const filePath of filePaths) {
+    if (!/\.(?:ts|tsx)$/.test(filePath) || !existsSync(resolve(root, filePath))) continue;
+    const consumer = /^packages\/(?:admin|client)\/src\//.test(filePath);
+    const shared = filePath.startsWith("packages/shared/src/") && !isSharedBarrelOrTestFile(filePath);
+    if (!consumer && !shared) continue;
+    const source = withoutComments(readSource(root, filePath));
+    if (EXACT_SHARED_ROOT.test(source)) {
+      violation(
+        filePath,
+        "shared-root",
+        consumer ? "import a declared Shared leaf, not the package root" : "Shared must not import its own package root",
+      );
+    }
+    if (shared) {
+      if (QUERY_KEY_REGISTRY.test(source)) {
+        violation(filePath, "query-key-registry", "import the domain query-key leaf, not the registry");
+      }
+      if (SHARED_INTERNAL_BARREL.test(source)) {
+        violation(filePath, "internal-barrel", "import an internal leaf instead of a high-fanout barrel");
+      }
+      if (DEFAULT_CHAIN_FROM_BLOCKCHAIN.test(source)) {
+        violation(filePath, "default-chain", "import DEFAULT_CHAIN_ID from config/default-chain");
+      }
+      continue;
+    }
+    if (BROAD_CONSUMER_BARREL.test(source)) {
+      violation(filePath, "broad-barrel", "do not restore a broad Shared barrel");
+    }
+    if (DEEP_RELATIVE_SHARED_SOURCE.test(source)) {
+      violation(filePath, "deep-relative", "reach Shared through its package exports, not a relative path");
+    }
+    // Production files' imports are the shared-import rule's; this adds tests, stories and mocks.
+    const specifiers = isStructurePolicyFile(filePath)
+      ? [...source.matchAll(MOCKED_SPECIFIER)].map((match) => match[1])
+      : [...source.matchAll(SHARED_SPECIFIER)].map((match) => match[1]);
+    for (const specifier of new Set(specifiers)) {
+      if (!isDeclaredSharedSpecifier(specifier, sharedExportKeys)) {
+        violation(filePath, `undeclared:${specifier}`, `${specifier} is not a declared @green-goods/shared export`);
+      }
+    }
+  }
+  return violations;
+}
+
 export function collectStructureViolations({
   root,
   filePaths,
@@ -574,6 +656,7 @@ export function collectStructureViolations({
     }
   }
 
+  violations.push(...importSeamViolations(root, filePaths, sharedExportKeys));
   return violations.sort((left, right) => left.id.localeCompare(right.id));
 }
 
@@ -616,39 +699,71 @@ function isDisallowedJavaScriptSourceFile(filePath) {
   return true;
 }
 
+function mergeBaseWith(baseRef) {
+  return runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef;
+}
+
+// Added, modified and moved files as `git diff --name-status -z` reports them. Rename detection is
+// pinned on, as CI's git has it, so personal git config cannot change which files are judged.
+function diffEntries(revisions) {
+  const fields = runGit([
+    "-c",
+    "diff.renames=true",
+    "diff",
+    "--name-status",
+    "-z",
+    "--diff-filter=AMR",
+    ...revisions,
+  ]).split("\0");
+  const entries = [];
+  for (let index = 0; index + 1 < fields.length; ) {
+    const status = fields[index];
+    if (status.startsWith("R")) {
+      entries.push({ status: "R", from: fields[index + 1], path: fields[index + 2] });
+      index += 3;
+    } else {
+      entries.push({ status, path: fields[index + 1] });
+      index += 2;
+    }
+  }
+  return entries;
+}
+
+// Judge committed work against the base, as CI judges the pushed head, and uncommitted and
+// untracked work as well. Judging only the working tree let a committed violation pass the local
+// push gate and fail CI on the same head (PR #898). A moved file is judged at its new path as a
+// modified file: dropping renames let a file moved and grown in one change pass unchecked, and
+// judging them as added would hold every move to the new-file cap.
 function resolveChangedFiles(baseRef) {
   const changed = new Set();
   const added = new Set();
-
-  if (baseRef && baseRef !== ZERO_SHA) {
-    const mergeBase = runGit(["merge-base", "HEAD", baseRef], { allowFailure: true });
-    const diffBase = mergeBase || baseRef;
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", `${diffBase}...HEAD`])) {
-      changed.add(filePath);
+  const movedFrom = new Map();
+  const collect = (revisions) => {
+    for (const { status, path, from } of diffEntries(revisions)) {
+      changed.add(path);
+      if (status === "A") added.add(path);
+      if (status === "R") {
+        // A committed move followed by an uncommitted one traces back to the original path, and
+        // a file this branch added stays new wherever it moves.
+        movedFrom.set(path, movedFrom.get(from) ?? from);
+        if (added.has(from)) added.add(path);
+      }
     }
+  };
 
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", `${diffBase}...HEAD`])) {
-      added.add(filePath);
-    }
-  } else {
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=AM", "HEAD"])) {
-      changed.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["diff", "--name-only", "--diff-filter=A", "HEAD"])) {
-      added.add(filePath);
-    }
-
-    for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
-      changed.add(filePath);
-      added.add(filePath);
-    }
+  if (baseRef) {
+    collect([`${mergeBaseWith(baseRef)}...HEAD`]);
+  }
+  collect(["HEAD"]);
+  for (const filePath of listFromGit(["ls-files", "--others", "--exclude-standard"])) {
+    changed.add(filePath);
+    added.add(filePath);
   }
 
   return {
     changed: Array.from(changed).sort(),
     added,
+    movedFrom,
   };
 }
 
@@ -681,10 +796,7 @@ function loadStructureBaseline() {
 }
 
 function loadPreviousStructureBaseline(baseRef) {
-  const ref =
-    baseRef && baseRef !== ZERO_SHA
-      ? runGit(["merge-base", "HEAD", baseRef], { allowFailure: true }) || baseRef
-      : "HEAD";
+  const ref = baseRef ? mergeBaseWith(baseRef) : "HEAD";
   const source = runGit(["show", `${ref}:${STRUCTURE_BASELINE_PATH}`], { allowFailure: true });
   return source ? parseStructureBaseline(source) : null;
 }
@@ -750,8 +862,8 @@ function printDisallowedJavaScriptFailure(filePaths) {
 }
 
 function run() {
-  const { base } = parseArgs(process.argv.slice(2));
-  const { changed, added } = resolveChangedFiles(base);
+  const base = resolveStructureBase(process.argv.slice(2));
+  const { changed, added, movedFrom } = resolveChangedFiles(base);
   const allFiles = resolveAllFiles();
   const disallowedJavaScriptFiles = changed
     .filter(isDisallowedJavaScriptSourceFile)
@@ -823,6 +935,20 @@ function run() {
       continue;
     }
 
+    const originalPath = movedFrom.get(filePath);
+    const originalCeiling =
+      originalPath === undefined ? undefined : FROZEN_ALLOWLIST[originalPath];
+    if (originalCeiling !== undefined && lineCount > MODIFIED_FILE_MAX_LINES) {
+      const grown =
+        lineCount > originalCeiling
+          ? `, and bring the file back to ${originalCeiling} lines or below`
+          : "";
+      failures.push(
+        `- ${filePath}: ${lineCount} lines, moved from ${originalPath}, which has a frozen ceiling of ${originalCeiling}. Rename its FROZEN_ALLOWLIST entry to the new path and keep the ceiling at ${originalCeiling}${grown}.`,
+      );
+      continue;
+    }
+
     if (lineCount > MODIFIED_FILE_MAX_LINES) {
       failures.push(
         `- ${filePath}: modified file at ${lineCount} lines (limit ${MODIFIED_FILE_MAX_LINES}). Extract helpers, subcomponents, or shared modules before merge instead of widening the cap.`,
@@ -834,8 +960,11 @@ function run() {
     printFailure(failures);
   }
 
+  const scope = base
+    ? `against ${base} and the working tree`
+    : "in the working tree only, because no base ref resolved";
   console.log(
-    `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s); ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
+    `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s) ${scope}; ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
   );
 }
 

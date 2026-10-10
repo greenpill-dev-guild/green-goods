@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * WorkProvider Integration Tests
  *
@@ -114,7 +114,7 @@ import {
   createMockGarden,
   createMockUserContext,
   MOCK_ADDRESSES,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
 
 // ============================================
 // Test Utilities
@@ -210,6 +210,10 @@ describe("providers/WorkProvider", () => {
       images: [],
       setImages: vi.fn(),
     });
+
+    // Default: the context validates. clearAllMocks keeps a test's mockReturnValue, so a test
+    // that made validation fail would otherwise block the next test's submission.
+    vi.mocked(validateWorkSubmissionContext).mockReturnValue([]);
   });
 
   afterEach(() => {

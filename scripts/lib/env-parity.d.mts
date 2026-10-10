@@ -23,3 +23,5 @@ export function assertSentryDsnResolvable(options: {
   env?: Environment;
   logger?: WarningLogger;
 }): boolean;
+
+export function dropVercelFrameworkVariables(env?: Environment): void;

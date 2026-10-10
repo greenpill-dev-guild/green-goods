@@ -1,17 +1,16 @@
 /**
  * useContractTxSender Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the contract transaction sender that branches between
  * passkey (smart account) and wallet (wagmi) auth modes.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { arbitrum, celo } from "viem/chains";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
 // ============================================
@@ -61,11 +60,18 @@ vi.mock("wagmi", () => ({
 }));
 
 // Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
-vi.mock("@wagmi/core", () => ({
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ConnectorNotConnectedError: (await importOriginal<typeof import("@wagmi/core")>())
+    .ConnectorNotConnectedError,
   waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
+  // A connected wallet says which network it is on through its connector; the
+  // network guard no longer takes the stored chainId for it. It also says who
+  // it is: a send is for the address connected when it starts.
   getAccount: () => ({
+    address: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
     chainId: 42161,
     isConnected: true,
+    connector: { type: "injected", getChainId: async () => 42161 },
   }),
   switchChain: vi.fn().mockResolvedValue({ id: 42161, name: "Arbitrum One" }),
 }));
@@ -91,15 +97,6 @@ const TEST_REQUEST = {
   args: [VALID_RECIPIENT, 1000n] as readonly unknown[],
 };
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -123,9 +120,7 @@ describe("useContractTxSender", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("returns a function", () => {
-    const { result } = renderHook(() => useContractTxSender(), {
-      wrapper: createWrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() => useContractTxSender());
     expect(typeof result.current).toBe("function");
   });
 
@@ -140,9 +135,7 @@ describe("useContractTxSender", () => {
     });
 
     it("sends transaction via smart account client", async () => {
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       let txHash: string;
       await act(async () => {
@@ -156,7 +149,7 @@ describe("useContractTxSender", () => {
     });
 
     it("routes an explicit Celo request through the Celo resolver client", async () => {
-      const { result } = renderHook(() => useContractTxSender(), { wrapper: createWrapper() });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
       await result.current({ ...TEST_REQUEST, chainId: 42220 });
       expect(mockResolveSmartAccountClient).toHaveBeenCalledWith(42220);
       expect(mockSendUserOperation.mock.calls[0][0].account.address).toBe(
@@ -167,7 +160,7 @@ describe("useContractTxSender", () => {
 
     it("fails closed when an explicit chain has no resolver", async () => {
       mockResolverAvailable = false;
-      const { result } = renderHook(() => useContractTxSender(), { wrapper: createWrapper() });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
       await expect(result.current({ ...TEST_REQUEST, chainId: 42220 })).rejects.toMatchObject({
         code: "resolver_unavailable",
       });
@@ -176,9 +169,7 @@ describe("useContractTxSender", () => {
     });
 
     it("encodes function data and passes correct parameters", async () => {
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await act(async () => {
         await result.current(TEST_REQUEST);
@@ -196,9 +187,7 @@ describe("useContractTxSender", () => {
       const error = new Error("Smart account rejected");
       mockSendUserOperation.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await expect(
         act(async () => {
@@ -219,9 +208,7 @@ describe("useContractTxSender", () => {
     });
 
     it("sends transaction via wagmi writeContractAsync", async () => {
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       let txHash: string;
       await act(async () => {
@@ -234,15 +221,14 @@ describe("useContractTxSender", () => {
     });
 
     it("passes correct parameters to writeContractAsync", async () => {
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await act(async () => {
         await result.current(TEST_REQUEST);
       });
 
       expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_REQUEST.address,
         abi: TEST_REQUEST.abi,
         functionName: TEST_REQUEST.functionName,
@@ -252,9 +238,7 @@ describe("useContractTxSender", () => {
     });
 
     it("waits for transaction receipt when hash is canonical", async () => {
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await act(async () => {
         await result.current(TEST_REQUEST);
@@ -271,9 +255,7 @@ describe("useContractTxSender", () => {
       const safeStyleHash = `0x${"a".repeat(130)}` as `0x${string}`;
       mockWriteContractAsync.mockResolvedValueOnce(safeStyleHash);
 
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       let txHash: string;
       await act(async () => {
@@ -288,9 +270,7 @@ describe("useContractTxSender", () => {
       const error = new Error("User rejected the request");
       mockWriteContractAsync.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await expect(
         act(async () => {
@@ -313,9 +293,7 @@ describe("useContractTxSender", () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = null;
 
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await expect(
         act(async () => {
@@ -331,9 +309,7 @@ describe("useContractTxSender", () => {
       mockAuthMode = "passkey";
       mockSmartAccountRef = { ...mockSmartAccountClient, account: undefined } as any;
 
-      const { result } = renderHook(() => useContractTxSender(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useContractTxSender());
 
       await expect(
         act(async () => {

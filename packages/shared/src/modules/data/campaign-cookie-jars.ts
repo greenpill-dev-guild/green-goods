@@ -109,11 +109,9 @@ const CAMPAIGN_COOKIE_JARS_BY_CREATORS_QUERY = /* GraphQL */ `
 `;
 
 function getAlchemyKey(): string {
-  const env =
-    typeof import.meta !== "undefined"
-      ? (import.meta.env as { VITE_ALCHEMY_API_KEY?: string })
-      : {};
-  return env.VITE_ALCHEMY_API_KEY || "demo";
+  const alchemyKey =
+    typeof import.meta !== "undefined" ? import.meta.env.VITE_ALCHEMY_API_KEY : undefined;
+  return alchemyKey || "demo";
 }
 
 function createChainPublicClient(chainId: number) {

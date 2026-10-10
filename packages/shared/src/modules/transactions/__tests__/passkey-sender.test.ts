@@ -1,6 +1,6 @@
 /**
  * PasskeySender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the passkey transaction sender that uses a SmartAccountClient
  * to send UserOperations via a bundler.
@@ -9,8 +9,8 @@
 import {
   createFakeSmartAccountClient,
   createMockContractCall,
-  MOCK_TX_HASH,
-} from "@green-goods/shared/testing";
+} from "../../../__tests__/test-utils/transaction-fakes";
+import { MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { P256Credential } from "viem/account-abstraction";
 import { entryPoint07Address, getUserOperationHash } from "viem/account-abstraction";
 import { arbitrum, celo as celoChain, sepolia } from "viem/chains";

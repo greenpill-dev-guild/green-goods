@@ -37,6 +37,11 @@ interface PollConfig {
   onAttempt?: (attempt: number, delay: number) => void;
   /** Optional callback when data changes (for early exit detection) */
   onDataChange?: () => void;
+  /**
+   * Optional check for a change the counts cannot show, such as an indexed row
+   * that replaced a local one under the same id. Polling stops once it holds.
+   */
+  until?: () => boolean;
 }
 
 /**
@@ -57,7 +62,8 @@ function getQueryDataCount(queryKey: readonly unknown[]): number {
  * - Attempt 4: 4s delay (max)
  * Total max wait: ~11 seconds
  *
- * Early exit: Polling stops when the data count increases (new item detected)
+ * Early exit: Polling stops when the data count increases (new item detected),
+ * or when `until` reports a change the counts cannot show
  *
  * @param config - Polling configuration
  * @returns Promise that resolves after data changes or max attempts reached
@@ -87,6 +93,7 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
     maxDelay = 4000,
     onAttempt,
     onDataChange,
+    until,
   } = config;
 
   if (queryKeys.length === 0) {
@@ -126,9 +133,10 @@ export async function pollQueriesAfterTransaction(config: PollConfig): Promise<v
       )
     );
 
-    // Check for early exit: did data count increase?
+    // Check for early exit: did data count increase, or has the awaited change arrived?
     const currentCounts = queryKeys.map((key) => getQueryDataCount(key));
-    const dataChanged = currentCounts.some((count, i) => count > initialCounts[i]);
+    const dataChanged =
+      (until?.() ?? false) || currentCounts.some((count, i) => count > initialCounts[i]);
 
     debugLog(`[Polling] Attempt ${attempt + 1}/${maxAttempts} completed`, {
       delay,

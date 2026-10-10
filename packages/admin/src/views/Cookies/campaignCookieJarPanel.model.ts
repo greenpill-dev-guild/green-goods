@@ -88,6 +88,8 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   metadataChanged?: boolean;
   canUpdateMetadata?: boolean;
   metadataUrlsValid?: boolean;
+  /** The description is within the limit the metadata builder refuses past. */
+  metadataDescriptionFits?: boolean;
 }): boolean {
   const hasAllowlistDiff = params.grantCount > 0 || params.revokeCount > 0;
   const hasMetadataRefresh = Boolean(params.metadataChanged && params.canUpdateMetadata);
@@ -96,6 +98,7 @@ export function canSyncCampaignCookieJarAllowlist(params: {
     Boolean(params.jarAddress && params.isJarOwner) &&
     params.invalidAddressCount === 0 &&
     (params.metadataUrlsValid ?? true) &&
+    (params.metadataDescriptionFits ?? true) &&
     (hasAllowlistDiff || hasMetadataRefresh)
   );
 }

@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { logger } from "../../modules/app/logger";
 import { jobQueue } from "../../modules/job-queue/default-instance";
+import { deleteDraftOfQueuedWork } from "../../modules/work/draft-lifecycle";
 import { scheduleUploadPreparation } from "../../modules/work/upload-preparation";
 
 export interface QueuedWorkActions {
@@ -48,8 +49,11 @@ export function useQueuedWorkActions(workId: string | undefined): QueuedWorkActi
     if (!workId || isDiscarding) return false;
     setIsDiscarding(true);
     try {
-      // The queue refuses a work that may already be on chain.
-      const discarded = await jobQueue.discardJob(workId);
+      // The queue refuses a work that may already be on chain. The draft the work left in the
+      // composer goes in the same discard, before the work, so it never comes back alone.
+      const discarded = await jobQueue.discardJob(workId, async (job) => {
+        await deleteDraftOfQueuedWork(job, "discard");
+      });
       if (discarded) {
         toastService.success({
           ...TOAST,

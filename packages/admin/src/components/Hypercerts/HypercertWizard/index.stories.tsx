@@ -26,13 +26,13 @@ interface HypercertWizardHarnessProps {
 function StepPlaceholder({ label }: { label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-stroke-soft p-10 text-center">
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         Inspect the full step views under{" "}
         <span className="font-medium text-text-strong">
           Admin / Workflows / Hypercerts / Steps / *
         </span>
       </p>
-      <p className="mt-2 text-xs text-text-soft">Current step: {label}</p>
+      <p className="mt-2 body-xs text-text-soft">Current step: {label}</p>
     </div>
   );
 }
@@ -61,7 +61,7 @@ function HypercertWizardHarness({
       )}
       feedback={
         nextDisabled && validationMessage ? (
-          <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+          <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 body-sm text-warning-dark">
             {validationMessage}
           </div>
         ) : undefined

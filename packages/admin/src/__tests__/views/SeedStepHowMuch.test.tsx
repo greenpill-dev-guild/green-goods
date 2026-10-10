@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 
 import type { Action } from "@green-goods/shared/types/domain";
 import {
@@ -8,8 +8,10 @@ import {
 } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useState } from "react";
 import { useFieldArray } from "react-hook-form";
+import { useIntl } from "react-intl";
 import { describe, expect, it } from "vitest";
 import { SeedStepHowMuch } from "@/views/Garden/Pool/Seed/SeedStepHowMuch";
+import { seedErrorText } from "@/views/Garden/Pool/Seed/seedStepModel";
 import { fireEvent, renderWithProviders, screen, waitFor } from "../test-utils";
 
 function action(id: string, title: string): Action {
@@ -17,7 +19,7 @@ function action(id: string, title: string): Action {
     id,
     slug: title.toLowerCase().replaceAll(" ", "-"),
     startTime: 0,
-    endTime: 0,
+    endTime: Date.now() + 60_000,
     title,
     description: "",
     capitals: [],
@@ -33,21 +35,29 @@ const actions = [action("42161-1", "Plant seedlings"), action("42161-0x1", "Inva
 function Harness({
   kind = "GARDEN_WORK",
   busy = false,
+  unitLabel = "",
+  availableActions = actions,
+  chosenActionUID,
 }: {
   kind?: CommitmentComposerValues["kind"];
   busy?: boolean;
+  unitLabel?: string;
+  availableActions?: Action[];
+  chosenActionUID?: string;
 }) {
   const form = useCommitmentComposerForm({
     ...COMMITMENT_COMPOSER_DEFAULTS,
     kind,
     title: "Prepare the beds",
-    unitLabel: "",
+    unitLabel,
     targetUnits: 0,
     dueInDays: 0,
+    requirements: chosenActionUID ? [{ actionUID: chosenActionUID, requiredCount: 1 }] : [],
   });
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
   const values = form.watch();
   const [result, setResult] = useState("unchecked");
+  const { formatMessage } = useIntl();
 
   return (
     <>
@@ -56,10 +66,15 @@ function Harness({
         values={values}
         noteId="seed-how"
         busy={busy}
-        errorOf={(field) => form.formState.errors[field]?.message as string | undefined}
+        errorOf={(field) => {
+          const message = form.formState.errors[field]?.message as string | undefined;
+          return message === undefined ? undefined : seedErrorText(message, formatMessage);
+        }}
         requirements={requirements}
-        actions={actions}
+        actions={availableActions}
         chainId={42161}
+        now={Date.now()}
+        cap={3}
       />
       <button
         type="button"
@@ -81,18 +96,54 @@ function Harness({
 }
 
 describe("SeedStepHowMuch", () => {
-  it("uses the real composer validation for amount, unit, due date, and requirements", async () => {
-    renderWithProviders(<Harness />);
+  it("explains missing actions and associates a blank action error with its control", async () => {
+    renderWithProviders(<Harness unitLabel="hours" />);
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    expect(await screen.findByText("Add at least one action")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Action")).toHaveAttribute("aria-invalid", "true")
+    );
+    expect(screen.getByLabelText("Action")).toHaveAccessibleDescription("Choose an action");
+  });
+
+  it("uses the real composer validation for a service's unit, amount and due date", async () => {
+    renderWithProviders(<Harness kind="SERVICE" />);
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
 
-    expect(await screen.findByText("Say what you are counting")).toBeInTheDocument();
+    // The unit's message is an id the console translates; the rest are still prose.
+    expect(await screen.findByText("Say what you are counting.")).toBeInTheDocument();
     expect(screen.getByText("How many?")).toBeInTheDocument();
     expect(screen.getByText("Give it an end")).toBeInTheDocument();
     expect(screen.getByTestId("validation-result")).toHaveTextContent("invalid");
 
     fireEvent.change(screen.getByLabelText(/^unit/i), { target: { value: "plots" } });
-    fireEvent.change(screen.getByLabelText(/^target/i), { target: { value: "4" } });
-    fireEvent.change(screen.getByLabelText(/due in/i), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText(/^amount/i), { target: { value: "4" } });
+    fireEvent.change(screen.getByLabelText(/^due in/i), { target: { value: "30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    await waitFor(() => expect(screen.getByTestId("validation-result")).toHaveTextContent("valid"));
+  });
+
+  it("offers the app's unit, count and day choices, and keeps each free field", () => {
+    renderWithProviders(<Harness kind="SERVICE" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "rides" }));
+    expect(screen.getByLabelText(/^unit/i)).toHaveValue("rides");
+    fireEvent.click(screen.getByRole("button", { name: "6" }));
+    expect(screen.getByLabelText(/^amount/i)).toHaveValue("6");
+    fireEvent.click(screen.getByRole("button", { name: "14 days" }));
+    expect(screen.getByLabelText(/^due in/i)).toHaveValue("14");
+  });
+
+  it("counts garden work in hours as a fact, and keeps it by its approved actions", async () => {
+    renderWithProviders(<Harness kind="GARDEN_WORK" unitLabel="hours" />);
+
+    expect(screen.getByText("Counted in hours")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^unit/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "12" }));
+    expect(screen.getByLabelText(/^amount/i)).toHaveValue("12");
+    fireEvent.change(screen.getByLabelText(/^due in/i), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
     await waitFor(() =>
       expect(screen.getByTestId("validation-result")).toHaveTextContent("invalid")
@@ -106,6 +157,31 @@ describe("SeedStepHowMuch", () => {
     fireEvent.click(screen.getByRole("button", { name: "Validate" }));
 
     await waitFor(() => expect(screen.getByTestId("validation-result")).toHaveTextContent("valid"));
+  });
+
+  it("does not offer an action whose inclusive Work window ended", () => {
+    renderWithProviders(
+      <Harness
+        availableActions={[action("42161-1", "Closed action")].map((entry) => ({
+          ...entry,
+          endTime: Date.now() - 1,
+        }))}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add Action" }));
+    expect(screen.queryByRole("option", { name: "Closed action" })).toBeNull();
+  });
+
+  it("keeps a chosen action visible but disabled when its window closes", () => {
+    renderWithProviders(
+      <Harness
+        chosenActionUID="1"
+        availableActions={[{ ...action("42161-1", "Closed action"), endTime: Date.now() - 1 }]}
+      />
+    );
+
+    expect(screen.getByRole("option", { name: "Closed action" })).toBeDisabled();
+    expect(screen.getByText(/Closed action has closed/)).toBeInTheDocument();
   });
 
   it("adds and removes requirement rows and switches contributor policy", async () => {

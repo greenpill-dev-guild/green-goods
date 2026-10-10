@@ -20,19 +20,19 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
+import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
+import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
 import {
   getDistinctId,
   identify,
   identifyWithProperties,
-  registerTelemetrySink,
   reset,
   track,
   trackAppLifecycle,
   trackOfflineEvent,
   trackSyncPerformance,
 } from "../../modules/app/posthog";
-import { trackWorkApprovalPresentationFailed } from "../../modules/app/analytics-events";
-import { trackAuthWalletRestore } from "../../modules/app/authWalletRestoreAnalytics";
+import { registerTelemetrySink } from "../../modules/app/telemetry-sink";
 
 describe("modules/posthog", () => {
   beforeEach(() => {
@@ -128,6 +128,22 @@ describe("modules/posthog", () => {
     it("does not throw when called with no properties", () => {
       expect(() => track("bare_event")).not.toThrow();
     });
+
+    // Telemetry sits inside wallet and send flows. A sink that fails there must
+    // not turn a network switch that worked into a failed act.
+    it("keeps a sink that throws from reaching the caller", () => {
+      const unregister = registerTelemetrySink({
+        capture: () => {
+          throw new Error("capture failed");
+        },
+      });
+
+      try {
+        expect(() => track("wallet_network_switch")).not.toThrow();
+      } finally {
+        unregister();
+      }
+    });
   });
 
   describe("identify", () => {
@@ -192,5 +208,18 @@ describe("modules/posthog", () => {
       trackAppLifecycle("app_background");
       expect(mockCapture).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("modules/posthog throttling", () => {
+  it("throttles frequent identical events", () => {
+    const sink = { capture: vi.fn() };
+    const unregister = registerTelemetrySink(sink);
+
+    track("storage_estimate", {});
+    track("storage_estimate", {});
+
+    expect(sink.capture).toHaveBeenCalledOnce();
+    unregister();
   });
 });

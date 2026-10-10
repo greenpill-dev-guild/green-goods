@@ -1,8 +1,11 @@
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
-import { FIXTURE_IMAGE_AGROFORESTRY, daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { expect, fn, mocked, userEvent, within } from "storybook/test";
 import { withAdminIdentity } from "../../../../../shared/.storybook/decorators";
+import { daysAgo, FIXTURE_IMAGE_AGROFORESTRY } from "../../../../../shared/.storybook/fixtures";
+import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
 import { ReviewForm } from "./ReviewForm";
 
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
@@ -23,9 +26,10 @@ const BASE_WORK: Work = {
 
 const APPROVED_WORK: Work = { ...BASE_WORK, status: "approved" };
 
-// Far-future `actionEndTime` keeps the action considered "active". Stories
-// that need the expired state override this explicitly.
-const ACTIVE_ACTION_END = 4_102_444_800; // 2100-01-01
+// Far-future `actionEndTime` keeps the action considered "active". It is in
+// milliseconds, like the indexer's action end time and the clock the form
+// compares it with. Stories that need the expired state override this.
+const ACTIVE_ACTION_END = 4_102_444_800_000; // 2100-01-01
 
 const meta: Meta<typeof ReviewForm> = {
   title: "Admin/Workflows/Hub/ReviewForm",
@@ -65,6 +69,19 @@ type Story = StoryObj<typeof ReviewForm>;
 
 export const Actionable: Story = {};
 
+export const PublishedSubmitterName: Story = {
+  beforeEach: () => {
+    mocked(useEnsName).mockReturnValue({ data: "ordinary.eth" } as ReturnType<typeof useEnsName>);
+    mocked(useGreenGoodsEnsName).mockReturnValue({ data: "river.greengoods.eth" } as ReturnType<
+      typeof useGreenGoodsEnsName
+    >);
+    return resetHookMocks(useEnsName, useGreenGoodsEnsName);
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText(/river will see this decision/)).toBeVisible();
+  },
+};
+
 export const NoPermission: Story = {
   args: {
     canReview: false,
@@ -81,7 +98,7 @@ export const RoleBlocked: Story = {
 
 export const ActionExpired: Story = {
   args: {
-    actionEndTime: 1_577_836_800, // 2020-01-01
+    actionEndTime: 1_577_836_800_000, // 2020-01-01
   },
 };
 
@@ -89,5 +106,18 @@ export const AlreadyReviewed: Story = {
   args: {
     work: APPROVED_WORK,
     isReviewed: true,
+  },
+};
+
+/** Reject never sends in one click: it asks why, and the reason becomes the gardener's feedback. */
+export const RejectAsksForAReason: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "Reject" }));
+    const page = within(document.body);
+    const confirm = await page.findByRole("button", { name: "Reject Work" });
+    await expect(confirm).toBeDisabled();
+    await userEvent.click(await page.findByRole("button", { name: "Details are missing" }));
+    await expect(confirm).toBeEnabled();
   },
 };

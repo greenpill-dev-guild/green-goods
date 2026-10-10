@@ -8,12 +8,37 @@ import {
   findPackageArchitectureViolations,
   findSharedExportTargetViolations,
   parseJsxAttributes,
+  scanRule14Source,
   scanRule19Source,
   stripJsComments,
 } from "./check-react-patterns.js";
 
 const rule19Lines = (source) =>
   scanRule19Source("packages/client/src/Example.tsx", source).map((hit) => hit.line);
+
+test("rule 14 flags whole reads of import.meta.env and allows reads by key", () => {
+  const source = [
+    "const isDev = import.meta.env.DEV;",
+    'const isTest = import.meta.env?.MODE === "test";',
+    "export function load(env: Env = import.meta.env) {}",
+    "const keys = Object.keys(import.meta.env);",
+    "const value = import.meta.env[key];",
+    "const { PROD } = import.meta.env;",
+    "// const env = import.meta.env;",
+    "const indexerUrl = import.meta.env",
+    "  .VITE_ENVIO_INDEXER_URL;",
+    'const env = typeof import.meta !== "undefined" ? { DEV: import.meta.env.DEV } : {};',
+  ].join("\n");
+
+  const hits = scanRule14Source("packages/shared/src/example.ts", source);
+
+  assert.deepEqual(
+    hits.map((hit) => hit.line),
+    [3, 4, 5, 6],
+  );
+  assert.equal(hits[0].rule, "rule-14-whole-env-read");
+  assert.equal(hits[0].snippet, "export function load(env: Env = import.meta.env) {}");
+});
 
 test("detects forbidden package direction and package-level cycles", () => {
   const records = [

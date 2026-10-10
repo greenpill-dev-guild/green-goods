@@ -5,6 +5,7 @@ import {
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
   type GardenJoinRequestApiErrorCode,
+  type GardenJoinRequestKind,
   type GardenJoinRequestQueueResponse,
   type GardenJoinRequestSelfResponse,
   type ResolveGardenJoinRequestInput,
@@ -33,16 +34,26 @@ export function gardenJoinRequestErrorMessage(error: unknown): {
   const errorCode = error instanceof GardenJoinRequestTransportError ? error.errorCode : undefined;
 
   switch (errorCode) {
+    case "request_not_saved":
+      return {
+        id: "app.garden.joinRequest.error.notSaved",
+        defaultMessage: "This attempt did not save a request. Please try again.",
+      };
     case "already_member":
       return {
         id: "app.garden.joinRequest.error.alreadyMember",
         defaultMessage: "You are already a member of this garden.",
       };
+    case "already_steward":
+      return {
+        id: "app.garden.joinRequest.error.alreadySteward",
+        defaultMessage: "You already have steward access to this garden.",
+      };
     case "signature_invalid":
     case "signature_expired":
       return {
         id: "app.garden.joinRequest.error.authorization",
-        defaultMessage: "We could not verify your authorization. Please sign again.",
+        defaultMessage: "Please confirm it’s you with your wallet or passkey, then try again.",
       };
     case "idempotency_conflict":
     case "resolution_conflict":
@@ -125,6 +136,18 @@ function collectionRoute(gardenAddress: Address): string {
   return `/public/gardens/${encodeURIComponent(gardenAddress.toLowerCase())}/join-requests`;
 }
 
+function scopedRoute(path: string, proof: GardenJoinProofEnvelope): string {
+  return proof.kind ? `${path}?kind=${encodeURIComponent(proof.kind)}` : path;
+}
+
+function hasRequestKind(record: unknown, kind: GardenJoinRequestKind): boolean {
+  return Boolean(
+    record &&
+      typeof record === "object" &&
+      ("kind" in record ? record.kind : "garden_membership") === kind
+  );
+}
+
 function assertSecureApiBaseUrl(baseUrl: string): void {
   let url: URL;
   try {
@@ -173,8 +196,57 @@ async function request<T>(
         failure?.message ?? "The garden request could not be completed.",
         response.status,
         failure?.errorCode,
-        response.status >= 500
+        init.method !== "GET" &&
+          response.status >= 500 &&
+          failure?.errorCode !== "request_not_saved"
       );
+    }
+    if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true) {
+      throw new Error("Invalid garden request response.");
+    }
+    const expectedKind = proof?.kind ?? "garden_membership";
+    if (proof?.action === "create" || proof?.action === "read_self") {
+      const record = "request" in payload ? payload.request : undefined;
+      const emptyStatus = init.method === "GET" && record === null;
+      if (
+        !emptyStatus &&
+        (!record ||
+          typeof record !== "object" ||
+          !("id" in record) ||
+          typeof record.id !== "string" ||
+          !("state" in record) ||
+          !["pending", "welcomed", "declined"].includes(String(record.state)) ||
+          !hasRequestKind(record, expectedKind))
+      ) {
+        throw new Error("Invalid garden request status.");
+      }
+    }
+    if (
+      proof?.action === "list" &&
+      (!("items" in payload) ||
+        !Array.isArray(payload.items) ||
+        !payload.items.every((record) => hasRequestKind(record, expectedKind)))
+    ) {
+      throw new Error("Invalid garden request queue.");
+    }
+    if (
+      (proof?.action === "welcome" || proof?.action === "decline") &&
+      (!("request" in payload) || !hasRequestKind(payload.request, expectedKind))
+    ) {
+      throw new Error("Invalid garden request resolution.");
+    }
+    if (!proof && path === AVAILABILITY_ROUTE) {
+      if (
+        !("enabled" in payload) ||
+        typeof payload.enabled !== "boolean" ||
+        ("supportedKinds" in payload &&
+          (!Array.isArray(payload.supportedKinds) ||
+            !payload.supportedKinds.every(
+              (kind) => kind === "garden_membership" || kind === "steward_access"
+            )))
+      ) {
+        throw new Error("Invalid garden request availability.");
+      }
     }
     return payload as T;
   } catch (error) {
@@ -206,6 +278,15 @@ export const gardenJoinRequestTransport = {
     proof: GardenJoinProofEnvelope,
     baseUrl?: string
   ) {
+    if ((input.kind ?? "garden_membership") !== (proof.kind ?? "garden_membership")) {
+      return Promise.reject(
+        new GardenJoinRequestTransportError(
+          "Request kind does not match its authorization.",
+          400,
+          "invalid_request"
+        )
+      );
+    }
     return request<GardenJoinRequestSelfResponse>(
       collectionRoute(gardenAddress),
       proof,
@@ -216,7 +297,7 @@ export const gardenJoinRequestTransport = {
 
   mine(gardenAddress: Address, proof: GardenJoinProofEnvelope, baseUrl?: string) {
     return request<GardenJoinRequestSelfResponse>(
-      `${collectionRoute(gardenAddress)}/me`,
+      scopedRoute(`${collectionRoute(gardenAddress)}/me`, proof),
       proof,
       { method: "GET" },
       baseUrl
@@ -225,7 +306,7 @@ export const gardenJoinRequestTransport = {
 
   withdraw(gardenAddress: Address, proof: GardenJoinProofEnvelope, baseUrl?: string) {
     return request<{ ok: true }>(
-      `${collectionRoute(gardenAddress)}/me`,
+      scopedRoute(`${collectionRoute(gardenAddress)}/me`, proof),
       proof,
       { method: "DELETE" },
       baseUrl
@@ -240,6 +321,7 @@ export const gardenJoinRequestTransport = {
   ) {
     const params = new URLSearchParams({ state: "pending", limit: String(options.limit) });
     if (options.cursor) params.set("cursor", options.cursor);
+    if (proof.kind) params.set("kind", proof.kind);
     return request<GardenJoinRequestQueueResponse>(
       `${collectionRoute(gardenAddress)}?${params}`,
       proof,
@@ -259,6 +341,7 @@ export const gardenJoinRequestTransport = {
       ok: true;
       request: GardenJoinRequestQueueResponse["items"][number];
       pendingOnchainMembership?: boolean;
+      pendingOnchainRole?: boolean;
     }>(
       `${collectionRoute(gardenAddress)}/${encodeURIComponent(requestId)}/resolve`,
       proof,

@@ -53,6 +53,7 @@ const ARCHIVE_STATUS_KEYS = new Set([
 const ARCHIVE_LINEAR_KEYS = new Set([
   "syncDirection",
   "laneSyncMode",
+  "stateSyncMode",
   "lastSyncedAt",
   "issue",
   "parentIssue",
@@ -145,6 +146,8 @@ const CANONICAL_LANE_SET = new Set(CANONICAL_LANES);
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
 const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
 const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
+const LINEAR_STATE_SYNC_MODES = new Set(["stage_derived", "preserve_existing"]);
+const DEFAULT_LINEAR_STATE_SYNC_MODE = "stage_derived";
 const LINEAR_BASE_LABELS = ["protocol:green-goods", "source:plans"];
 const LINEAR_PARENT_ACTIVITY_LABEL = "activity:architecture";
 const LINEAR_LANE_SKIP_STATUSES = new Set(["n/a", "skipped", "passed", "completed"]);
@@ -1058,7 +1061,7 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     action: issue ? "update" : "create",
     issue,
     parentId: parentIssue,
-    parentRef: parentIssue ? null : null,
+    parentRef: null,
     title: linearLaneTitle(status, laneName),
     team,
     state: linearStateForLane(status, lane),
@@ -1101,11 +1104,43 @@ function linearLaneIsActionable(status, laneName) {
   return false;
 }
 
+// Record fields the hub may leave unrecorded (null).
+const OPTIONAL_LINEAR_RECORD_FIELDS = new Set(["parentId", "parentRef", "project", "milestone", "dueDate"]);
+
+// An update record leaves out an optional field the hub does not record, so
+// the applier keeps its current Linear value; a null would read as "clear it"
+// and could strip a parent, milestone, due date, or project set in Linear. A
+// create record keeps the null: the new issue starts without that field.
+// Reconciled mirrors retain their complete historical record independently of
+// local certification. A preserve record is read-only, not an issue update.
+function buildLinearSyncRecord(record, stateSyncMode = DEFAULT_LINEAR_STATE_SYNC_MODE) {
+  if (record.action !== "update") {
+    return record;
+  }
+
+  if (stateSyncMode === "preserve_existing") {
+    return {
+      action: "preserve",
+      issue: record.issue,
+      ...(record.lane ? { lane: record.lane } : {}),
+    };
+  }
+
+  return Object.fromEntries(
+    Object.entries(record).filter(([field, value]) =>
+      value !== null || !OPTIONAL_LINEAR_RECORD_FIELDS.has(field)),
+  );
+}
+
 function buildLinearSyncManifest(status) {
   const normalized = refreshLaneStatuses(structuredClone(status));
   const warnings = [];
   const linear = normalized.linear || {};
   const laneSyncMode = linearLaneSyncMode(linear);
+  const stateSyncMode = linear.stateSyncMode || DEFAULT_LINEAR_STATE_SYNC_MODE;
+  if (stateSyncMode === "preserve_existing") {
+    warnings.push("Preserve existing Linear records without mutation: verify preserve actions against live Linear, never submit them as updates. Any follow-up needs a separately authorized comment, successor or verified forward-only write.");
+  }
   const parentIssue = canonicalLinearParentIssue(linear);
   const project = linearProjectForStatus(normalized, warnings);
   const team = linearTeamForStatus(normalized);
@@ -1119,7 +1154,7 @@ function buildLinearSyncManifest(status) {
     warnings.push("Plan is missing Linear parent issue.");
   }
 
-  const parent = {
+  const parent = buildLinearSyncRecord({
     action: parentIssue ? "update" : "create",
     issue: parentIssue,
     title: `${normalized.feature.title} roadmap`,
@@ -1129,7 +1164,7 @@ function buildLinearSyncManifest(status) {
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
     description: buildLinearParentDescription(normalized, laneSyncMode),
-  };
+  }, stateSyncMode);
 
   const executionSubLanes = executionSubLanesForLinear(normalized);
   const canonicalLaneNames = executionSubLanes.length > 0
@@ -1176,7 +1211,25 @@ function buildLinearSyncManifest(status) {
     ? []
     : executionSubLanes.map(([laneName, lane]) =>
       buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
-  const lanes = [...executionLanes, ...canonicalLanes];
+  const lanes = [...executionLanes, ...canonicalLanes].map((record) =>
+    buildLinearSyncRecord(record, stateSyncMode));
+
+  if (stateSyncMode === "preserve_existing") {
+    // Dispatch filters must not hide recorded mirrors from closeout verification.
+    // Include historical aggregates and sync-disabled execution lanes read-only.
+    const recordedLanes = [
+      ...CANONICAL_LANES.map((lane) => [lane, linearLaneIssue(linear, lane)]),
+      ...Object.entries(normalized.execution_sub_lanes || {}).map(([name, lane]) =>
+        [name, normalizedLinearIssue(lane.linear?.issue)]),
+    ];
+    const includedIssues = new Set(lanes.map((record) => record.issue).filter(Boolean));
+    for (const [lane, issue] of recordedLanes) {
+      if (issue && !includedIssues.has(issue)) {
+        lanes.push({ action: "preserve", issue, lane });
+        includedIssues.add(issue);
+      }
+    }
+  }
 
   return {
     version: 1,
@@ -1197,6 +1250,7 @@ function buildLinearSyncManifest(status) {
       operationalCheckpoints: linear.operationalCheckpoints || {},
     },
     laneSyncMode,
+    stateSyncMode,
     parent,
     lanes,
     warnings,
@@ -1245,6 +1299,45 @@ function validateLinearSchedule(status, laneLinear, path, errors) {
   }
 }
 
+// A tracker is an umbrella Linear issue that sits directly under the hub's
+// parent and groups some execution sub-lanes. `linear.trackers` maps a name to
+// its issue; a synced sub-lane may name a recorded tracker as its parentIssue,
+// so the manifest parents that lane under the tracker. The manifest never
+// writes the tracker issue itself.
+function linearTrackerEntries(linear) {
+  const trackers = linear?.trackers;
+  if (!trackers || typeof trackers !== "object" || Array.isArray(trackers)) {
+    return [];
+  }
+
+  return Object.entries(trackers)
+    .map(([name, issue]) => [name, normalizedLinearIssue(issue)])
+    .filter(([, issue]) => issue);
+}
+
+function validateLinearTrackers(linear, errors) {
+  const trackers = linear.trackers;
+  if (trackers === undefined || trackers === null) {
+    return;
+  }
+  if (typeof trackers !== "object" || Array.isArray(trackers)) {
+    errors.push("linear.trackers must be an object when present");
+    return;
+  }
+
+  const canonicalParent = canonicalLinearParentIssue(linear);
+  for (const [name, issue] of Object.entries(trackers)) {
+    if (!EXECUTION_SUB_LANE_NAME.test(name)) {
+      errors.push(`linear.trackers has invalid key "${name}"`);
+    }
+    if (!hasText(issue)) {
+      errors.push(`linear.trackers.${name} must be a Linear issue identifier`);
+    } else if (issue.trim() === canonicalParent) {
+      errors.push(`linear.trackers.${name} cannot reuse the canonical parent issue`);
+    }
+  }
+}
+
 function validateLinear(status, errors) {
   const linear = status.linear;
   if (linear === undefined) {
@@ -1272,6 +1365,14 @@ function validateLinear(status, errors) {
     errors.push(`linear.laneSyncMode must be one of ${Array.from(LINEAR_LANE_SYNC_MODES).join(", ")}`);
   }
 
+  if (
+    linear.stateSyncMode !== undefined &&
+    linear.stateSyncMode !== null &&
+    !LINEAR_STATE_SYNC_MODES.has(linear.stateSyncMode)
+  ) {
+    errors.push(`linear.stateSyncMode must be one of ${Array.from(LINEAR_STATE_SYNC_MODES).join(", ")}`);
+  }
+
   for (const field of ["issue", "parentIssue", "project", "initiative", "lastSyncedAt"]) {
     if (linear[field] !== undefined && linear[field] !== null && typeof linear[field] !== "string") {
       errors.push(`linear.${field} must be a string or null`);
@@ -1280,6 +1381,7 @@ function validateLinear(status, errors) {
 
   validateLinearDateMap(linear.milestones, "linear.milestones", errors);
   validateLinearDateMap(linear.operationalCheckpoints, "linear.operationalCheckpoints", errors);
+  validateLinearTrackers(linear, errors);
 
   if (linear.lanes === undefined || linear.lanes === null) {
     return;
@@ -1338,6 +1440,16 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       } else {
         issueOwners.set(issue, `linear.lanes.${laneName}`);
       }
+    }
+  }
+  const trackers = linearTrackerEntries(status.linear);
+  const trackerIssues = new Set(trackers.map(([, issue]) => issue));
+  for (const [trackerName, issue] of trackers) {
+    const previousOwner = issueOwners.get(issue);
+    if (previousOwner) {
+      errors.push(`linear.trackers.${trackerName} duplicates ${issue} already used by ${previousOwner}`);
+    } else {
+      issueOwners.set(issue, `linear.trackers.${trackerName}`);
     }
   }
   for (const [laneName, lane] of Object.entries(subLanes)) {
@@ -1444,9 +1556,11 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
         errors.push(
           `execution_sub_lanes.${laneName}.linear.parentIssue cannot be set without a canonical linear.parentIssue`,
         );
-      } else if (parentIssue !== canonicalParent) {
+      } else if (parentIssue !== canonicalParent && !trackerIssues.has(parentIssue)) {
         errors.push(
-          `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`,
+          trackerIssues.size === 0
+            ? `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`
+            : `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or an issue in linear.trackers, or be null`,
         );
       }
     }
@@ -2302,7 +2416,7 @@ function moveFeature(flags, archiveLockHeld = false) {
       latestHistoryEntry?.timestamp === status.workflow.updated_at;
     if (!hasText(lastSyncedAt) || !confirmedCurrentState) {
       throw new Error(
-        `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
+        `Mirrored feature "${slug}" changed after its last confirmed Linear sync. Apply create/update actions and verify read-only preserve actions in the current linear-sync manifest, then run confirm-linear-sync --feature ${slug} --actor <actor> before archiving.`,
       );
     }
   }
@@ -2585,7 +2699,7 @@ function printLinearSyncManifest(manifest, asJson) {
   console.log(`${manifest.feature.slug} | ${manifest.parent.action} parent | ${manifest.lanes.length} lane issue(s)`);
   console.log(`team=${manifest.routing.team} project=${manifest.routing.project || "unprojected"}`);
   for (const lane of manifest.lanes) {
-    console.log(`${lane.lane} | ${lane.action} | ${lane.issue || "new"} | ${lane.title}`);
+    console.log(`${lane.lane} | ${lane.action} | ${lane.issue || "new"} | ${lane.title || "existing mirror (read-only)"}`);
   }
 
   if (manifest.warnings.length > 0) {

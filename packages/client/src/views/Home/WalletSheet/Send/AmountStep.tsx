@@ -79,9 +79,9 @@ export function AmountStep({
                   onClick={() => onSelectToken(token)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface",
                     selected
-                      ? "border-primary-base bg-primary-base/10"
+                      ? "border-primary-on-surface bg-primary-base/10"
                       : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50",
                     !selectable && "cursor-not-allowed opacity-60"
                   )}
@@ -94,7 +94,7 @@ export function AmountStep({
                           : token.symbol}
                       </span>
                       {token.confersGovernance ? (
-                        <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-base">
+                        <span className="inline-flex rounded-full bg-primary-base/10 px-1.5 py-0.5 text-[10px] font-medium text-primary-on-surface">
                           {formatMessage({ id: "app.send.token.governanceTag" })}
                         </span>
                       ) : null}
@@ -126,7 +126,7 @@ export function AmountStep({
                       )}
                     </span>
                     {selected ? (
-                      <RiCheckLine className="h-4 w-4 text-primary-base" aria-hidden />
+                      <RiCheckLine className="h-4 w-4 text-primary-on-surface" aria-hidden />
                     ) : null}
                   </div>
                 </button>

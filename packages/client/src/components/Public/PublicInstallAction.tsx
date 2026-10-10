@@ -20,6 +20,7 @@ import {
   useState,
 } from "react";
 import { useIntl } from "react-intl";
+import { useLocation } from "react-router-dom";
 import { PUBLIC_PWA_ORIGIN } from "@/config/pwaRouting";
 import {
   createSharedLinkLaunchUrl,
@@ -54,12 +55,10 @@ export function PublicInstallAction({
 }: PublicInstallActionProps) {
   const { formatMessage } = useIntl();
   const tunnelUrl = useTunnelUrl();
-  const currentPath =
-    typeof window === "undefined"
-      ? ""
-      : window.location.hash.startsWith("#/")
-        ? window.location.hash.slice(1).split("?")[0]
-        : window.location.pathname;
+  // The route comes from the router, which says when it changes. The site header keeps this
+  // component mounted from page to page, and a read of window.location while rendering names no
+  // reactive value, so the compiled app kept the path of the page the header first mounted on.
+  const { pathname: currentPath } = useLocation();
   const launchPath = getSharedLinkLaunchPath(destination ?? currentPath);
   const launchUrl = useMemo(() => {
     if (typeof window === "undefined") return new URL(launchPath, PUBLIC_PWA_ORIGIN).href;

@@ -41,7 +41,10 @@ export interface WorkUploads {
   isUploading: boolean;
   /** Works whose decision from this device has not finished queue confirmation. */
   waitingDecisionWorkIds: ReadonlySet<string>;
-  decisionFor(workUID: string): { jobId: string; status: QueuedUploadStatus } | undefined;
+  /** A review made on this device and still queued: its job, its upload, and when it was saved (ms). */
+  decisionFor(
+    workUID: string
+  ): { jobId: string; status: QueuedUploadStatus; savedAt: number } | undefined;
   statusOf(jobId: string): QueuedUploadStatus | undefined;
   upload(): Promise<UploadOutcome | undefined>;
   uploadOne(jobId: string): Promise<UploadOutcome | undefined>;
@@ -53,7 +56,7 @@ export interface WorkUploads {
 function summarize(jobs: Job[], chainId: number) {
   const statuses = new Map<string, QueuedUploadStatus>();
   const waitingDecisionWorkIds = new Set<string>();
-  const decisionsByWorkId = new Map<string, { jobId: string; status: QueuedUploadStatus }>();
+  const decisionsByWorkId = new Map<string, NonNullable<ReturnType<WorkUploads["decisionFor"]>>>();
   let readyCount = 0;
   let preparingCount = 0;
   let attentionCount = 0;
@@ -64,7 +67,7 @@ function summarize(jobs: Job[], chainId: number) {
     if (job.kind === "approval") {
       const workId = (job.payload as ApprovalJobPayload).workUID.toLowerCase();
       waitingDecisionWorkIds.add(workId);
-      decisionsByWorkId.set(workId, { jobId: job.id, status });
+      decisionsByWorkId.set(workId, { jobId: job.id, status, savedAt: job.createdAt });
     }
     // A sent item is still visible until the queue confirms it, but cannot be sent twice.
     if (status.state === "sent") continue;

@@ -1,21 +1,33 @@
 import { cycleFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import type { SeedCopyProgress } from "@green-goods/shared/hooks/admin-ui/pool/useSeedTray";
+import {
+  COMMITMENT_COMPOSER_DEFAULTS,
+  COMMITMENT_COMPOSER_ERROR_IDS,
+  commitmentComposerSchema,
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { createIntl } from "react-intl";
+import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
 import { describe, expect, it } from "vitest";
+import {
+  carriedOverUsd,
+  needsGoodDollarPrice,
+  rewardAmountAtCreate,
+} from "@/views/Garden/Pool/Seed/seedReward";
+import { seedStatusView } from "@/views/Garden/Pool/Seed/seedStatus";
 import {
   actionUIDOf,
   buildSeedCycleOptions,
   buildSeedStepConfigs,
   CONFIRMER_ADDRESS_PATTERN,
-  SEED_ERROR_DESCRIPTOR_BY_ID,
+  seedBlockedReason,
   STEP_FIELDS,
   STEPS,
+  seedErrorText,
+  stepFieldsFor,
   withConfirmer,
 } from "@/views/Garden/Pool/Seed/seedStepModel";
-import {
-  formatRewardAmount,
-  rewardAmountFromBaseUnits,
-  rewardAmountToBaseUnits,
-  rewardUnitsFor,
-} from "@/views/Garden/Pool/Seed/seedRewardAmount";
 
 const ADDRESS = "0x1111111111111111111111111111111111111111";
 const OTHER = "0x2222222222222222222222222222222222222222";
@@ -23,6 +35,41 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 const formatMessage = ({ defaultMessage }: { defaultMessage: string }) => defaultMessage;
 
 describe("seedStepModel", () => {
+  it.each([
+    ["en", en],
+    ["es", es],
+    ["pt", pt],
+  ] as const)("translates every displayed requirement row error in %s", (locale, messages) => {
+    const format = createIntl({ locale, messages }).formatMessage;
+    const cases = [
+      [[{ actionUID: "", requiredCount: 1 }], "actionChoose"],
+      [
+        [
+          { actionUID: "1", requiredCount: 1 },
+          { actionUID: "1", requiredCount: 1 },
+        ],
+        "actionDuplicate",
+      ],
+      [[{ actionUID: "1", requiredCount: 1.5 }], "actionCountWhole"],
+      [[{ actionUID: "1", requiredCount: 0 }], "actionCount"],
+      [[{ actionUID: "1", requiredCount: Number.NaN }], "actionCount"],
+      [[{ actionUID: "1", requiredCount: 4_294_967_296 }], "actionCountLarge"],
+    ] as const;
+    for (const [requirements, key] of cases) {
+      const parsed = commitmentComposerSchema.safeParse({
+        ...COMMITMENT_COMPOSER_DEFAULTS,
+        kind: "GARDEN_WORK",
+        requirements,
+      });
+      const issue = parsed.error?.issues.find(
+        (entry) => entry.path[0] === "requirements" && entry.path.length === 3
+      );
+      expect(issue).toBeDefined();
+      expect(seedErrorText(issue!.message, format)).toBe(
+        messages[`cockpit.garden.pool.seed.error.${key}`]
+      );
+    }
+  });
   it("declares the four steps and the fields each step owns", () => {
     expect(STEPS).toEqual(["what", "howMuch", "proof", "review"]);
     expect(STEP_FIELDS.what).toContain("title");
@@ -30,6 +77,28 @@ describe("seedStepModel", () => {
     expect(STEP_FIELDS.proof).toContain("confirmers");
     expect(STEP_FIELDS.review).toEqual([]);
     expect(buildSeedStepConfigs(formatMessage).map((step) => step.id)).toEqual(STEPS);
+  });
+
+  it("asks garden work for no unit, since it is counted in hours, and every other kind for one", () => {
+    expect(stepFieldsFor("howMuch", "GARDEN_WORK")).not.toContain("unitLabel");
+    expect(stepFieldsFor("howMuch", "GARDEN_WORK")).toContain("targetUnits");
+    expect(stepFieldsFor("howMuch", "SERVICE")).toContain("unitLabel");
+    expect(stepFieldsFor("howMuch", "SEASON_CAMPAIGN")).toContain("unitLabel");
+    expect(stepFieldsFor("proof", "GARDEN_WORK")).toEqual(STEP_FIELDS.proof);
+  });
+
+  it("names the first reason seeding is off", () => {
+    const open = { poolOpen: true, capacityOver: false, priceUnavailable: false };
+    expect(seedBlockedReason(open)).toBeNull();
+    expect(seedBlockedReason({ ...open, poolOpen: false, capacityOver: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.poolClosed"
+    );
+    expect(seedBlockedReason({ ...open, capacityOver: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.capacity"
+    );
+    expect(seedBlockedReason({ ...open, priceUnavailable: true })?.id).toBe(
+      "cockpit.garden.pool.seed.blocked.price"
+    );
   });
 
   it("accepts a real confirmer once and rejects malformed, zero, and duplicate addresses", () => {
@@ -79,60 +148,94 @@ describe("seedStepModel", () => {
     ).toEqual([{ value: "0", label: "No cycle (runs on its own)" }]);
   });
 
-  it("maps composer message ids to operator-facing descriptors", () => {
-    expect(
-      SEED_ERROR_DESCRIPTOR_BY_ID.get("cockpit.garden.pool.seed.error.considerationAmount")
-    ).toMatchObject({ defaultMessage: "Enter an amount above zero." });
+  it("says what the composer said in the steward's words, naming limits from their constants", () => {
+    const { formatMessage: format } = createIntl({ locale: "en", messages: {}, onError: () => {} });
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.considerationAmount, format)).toBe(
+      "Enter an amount above zero."
+    );
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.titleTooLong, format)).toBe(
+      "Shorten the title to 60 characters or fewer."
+    );
+    expect(seedErrorText(COMMITMENT_COMPOSER_ERROR_IDS.countTooMany, format)).toBe(
+      "Create 50 promises or fewer at once."
+    );
+    // The composer's remaining messages are English prose, shown as they are.
+    expect(seedErrorText("How many?", format)).toBe("How many?");
   });
 });
 
-describe("declared reward units", () => {
-  const usdc = { status: "ready", decimals: 6, symbol: "USDC" } as const;
+/** The reserve's price on 2026-09-30, in cUSD per G$ with 18 decimals: $5.00 is about 38,866 G$. */
+const PRICE = 128_647_930_734_508n;
+
+describe("a reward in dollars", () => {
+  const dollars = {
+    considerationRail: "CELO_SETTLEMENT",
+    considerationUsd: "5.00",
+    considerationAmount: "",
+  } as const;
+
+  it("is turned into G$ at Create, at the price read for it, and never without one", () => {
+    expect(rewardAmountAtCreate(dollars, PRICE)).toBe("38865763105965141239068");
+    expect(() => rewardAmountAtCreate(dollars, null)).toThrow();
+    expect(needsGoodDollarPrice([{ ...COMMITMENT_COMPOSER_DEFAULTS, ...dollars }])).toBe(true);
+  });
+
+  it("keeps an amount carried over in G$, and gives none to a promise without a reward", () => {
+    const carried = {
+      considerationRail: "CELO_SETTLEMENT",
+      considerationUsd: undefined,
+      considerationAmount: "38865000000000000000000",
+    } as const;
+    expect(rewardAmountAtCreate(carried, null)).toBe("38865000000000000000000");
+    expect(needsGoodDollarPrice([{ ...COMMITMENT_COMPOSER_DEFAULTS, ...carried }])).toBe(false);
+    // Shown back in dollars at today's rate, rounded down to the cent.
+    expect(carriedOverUsd(carried.considerationAmount, PRICE)).toBe("4.99");
+    expect(rewardAmountAtCreate({ ...dollars, considerationRail: "NONE" }, PRICE)).toBe("");
+  });
+});
+
+describe("the review's status row", () => {
+  type Status = SeedCopyProgress["status"];
+  type Miss = SeedCopyProgress["miss"];
+  const copies = (...runs: Array<[number, Status, Miss?]>): SeedCopyProgress[] =>
+    runs.flatMap(([count, status, miss], run) =>
+      Array.from({ length: count }, (_, index) => ({
+        clientCommitmentId: `copy-${run}-${index}`,
+        status,
+        ...(miss ? { miss } : {}),
+        txHash: null,
+        jobId: miss === "declined" || miss === "refused" ? null : "job",
+      }))
+    );
+  const view = (sent: SeedCopyProgress[], options: { sending?: boolean; pass?: number } = {}) =>
+    seedStatusView({
+      mode: "bundle",
+      isSending: options.sending ?? false,
+      copies: sent,
+      pass: options.pass === undefined ? sent : sent.slice(sent.length - options.pass),
+      total: sent.length,
+      grouped: true,
+      formatMessage: createIntl({ locale: "en", messages: {}, onError: () => {} }).formatMessage,
+    });
 
   it.each([
-    { text: "10", decimals: 18, baseUnits: "10000000000000000000", errorId: null },
-    { text: "2.5", decimals: 6, baseUnits: "2500000", errorId: null },
-    { text: ".5", decimals: 6, baseUnits: "500000", errorId: null },
-    { text: "  ", decimals: 18, baseUnits: "", errorId: null },
-    { text: "1.1234567", decimals: 6, baseUnits: "", errorId: "app.treasury.tooManyDecimals" },
-    { text: "1,5", decimals: 6, baseUnits: "", errorId: "app.treasury.invalidAmount" },
-  ])("stores $text as $baseUnits in $decimals-decimal units", ({ text, decimals, ...stored }) => {
-    expect(rewardAmountToBaseUnits(text, decimals)).toEqual(stored);
+    ["declined", copies([10, "not-sent", "declined"]), "declined", 10],
+    ["refused", copies([9, "not-sent", "declined"], [1, "not-sent", "refused"]), "refused", 10],
+    ["lost", copies([10, "not-sent", "failed"]), "unconfirmed", 10],
+    ["partial", copies([7, "created"], [2, "not-sent", "declined"], [1, "later"]), "partial", 2],
+    ["finished later", copies([9, "created"], [1, "later"]), "finishLater", 0],
+    ["created", copies([10, "created"]), "created", 0],
+  ] as const)("reads a %s pass, with what Try Again would send", (_, sent, phase, retry) => {
+    expect(view([...sent])).toMatchObject({ phase, retry });
   });
 
-  it.each([
-    { baseUnits: "10000000000000000000", decimals: 18, text: "10" },
-    { baseUnits: "2500000", decimals: 6, text: "2.5" },
-    { baseUnits: "", decimals: 18, text: "" },
-  ])("reads $baseUnits back as '$text'", ({ baseUnits, decimals, text }) => {
-    expect(rewardAmountFromBaseUnits(baseUnits, decimals)).toBe(text);
-  });
-
-  it("takes Celo settlement in G$ and waits on an external token until it answers", () => {
-    expect(rewardUnitsFor("CELO_SETTLEMENT", { status: "idle" })).toEqual({
-      status: "ready",
-      decimals: 18,
-      symbol: "G$",
-    });
-    expect(rewardUnitsFor("NONE", { status: "idle" })).toEqual({ status: "none" });
-    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "idle" })).toEqual({
-      status: "waiting",
-      reason: "noToken",
-    });
-    expect(rewardUnitsFor("ARBITRUM_EXTERNAL", { status: "unreadable" })).toEqual({
-      status: "waiting",
-      reason: "unreadable",
-    });
-    expect(
-      rewardUnitsFor("ARBITRUM_EXTERNAL", {
-        status: "ready",
-        metadata: { decimals: 6, symbol: "USDC" },
-      })
-    ).toEqual(usdc);
-  });
-
-  it("reviews an amount in token units, and never in units it does not know", () => {
-    expect(formatRewardAmount("2500000", usdc, "en")).toBe("2.5 USDC");
-    expect(formatRewardAmount("2500000", { status: "waiting", reason: "loading" }, "en")).toBe("—");
+  it("asks the wallet about the copies this Create sends, a bundle of ten at a time", () => {
+    expect(view(copies([15, "wallet"]), { sending: true }).title).toBe(
+      "Approve in your wallet: 10 promises in one request (1 of 2)"
+    );
+    // A Try Again of three asks about three, not the ten in the set.
+    expect(view(copies([7, "created"], [3, "wallet"]), { sending: true, pass: 3 }).title).toBe(
+      "Approve in your wallet: 3 promises in one request"
+    );
   });
 });

@@ -1,8 +1,6 @@
-import type { Abi, WalletClient } from "viem";
-import { getChain } from "../../config/chains";
+import type { Abi } from "viem";
 import type { ToastActionOptions } from "../../hooks/app/useToastAction";
-import { ensureAppKitWalletChain } from "../transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../transactions/local-fork-safety";
+import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
 export interface ActionOperationCommand {
@@ -44,7 +42,7 @@ export async function executeActionOperation(
 }
 
 export function createDefaultActionOperationPorts(input: {
-  walletClient: WalletClient;
+  transactionSender: TransactionSender;
   executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
 }): ActionOperationPorts {
   return {
@@ -63,16 +61,24 @@ export function createDefaultActionOperationPorts(input: {
       send: (call) =>
         input.executeWithToast(
           async () => {
-            await ensureAppKitWalletChain(call.chainId);
-            await assertLocalArbitrumForkWallet();
-            return input.walletClient.writeContract({
-              address: call.contractAddress,
-              abi: call.abi,
-              functionName: call.functionName,
-              account: call.account,
-              args: call.args,
-              chain: getChain(call.chainId),
-            });
+            const sender = input.transactionSender;
+            const assertOwnership = () => sender.assertOwnership?.(call.account, call.chainId);
+            await assertOwnership();
+            const result = await sender.sendContractCall(
+              {
+                address: call.contractAddress,
+                abi: call.abi,
+                functionName: call.functionName,
+                account: call.account,
+                args: call.args,
+                chainId: call.chainId,
+              },
+              { assertOwnership }
+            );
+            if (result.confirmation === "pending") {
+              throw new TransactionConfirmationPendingError();
+            }
+            return result.hash;
           },
           {
             loadingMessage: call.messages.loading,

@@ -1,6 +1,6 @@
 /**
  * WalletSheet Tests — host drawer: tab badge counting and tab membership.
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { within } from "@testing-library/react";

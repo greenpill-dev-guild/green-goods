@@ -1,4 +1,5 @@
 import { extractErrorMessage } from "./extract-message";
+import { wrongWalletNetwork } from "./wallet-network-refusal";
 
 export type TxErrorKind =
   | "cancelled"
@@ -56,23 +57,6 @@ const NETWORK_PATTERNS = [
   "failed to fetch",
   "econnrefused",
   "disconnected",
-];
-
-const WRONG_CHAIN_PATTERNS = [
-  "walletchainmismatch",
-  "chainmismatch",
-  "chain mismatch",
-  "connectorchainmismatch",
-  "wrong chain",
-  "wrong network",
-  "wallet network",
-  "switch your wallet",
-  "switch wallet",
-  "switch network",
-  "unsupported chain",
-  "chain not configured",
-  "network switch rejected",
-  "network switch already pending",
 ];
 
 const TIMEOUT_PATTERNS = ["timeout", "timed out", "deadline exceeded"];
@@ -161,18 +145,21 @@ function extractErrorCode(error: unknown): number | string | undefined {
 }
 
 /**
- * WebAuthn ceremony rejections raised when the user dismisses the passkey prompt.
- * Same set the auth flow already treats as cancellation in `authServices.ts`; the
- * spec deliberately reuses `NotAllowedError` for both a dismissal and a timeout,
- * so matching it here keeps a declined passkey out of the failure funnel.
+ * WebAuthn ceremony rejections raised when the passkey prompt closes without an answer. The
+ * auth flow counts sign-in and account creation by the same set (`auth-passkey-errors.ts`); the
+ * spec deliberately reuses `NotAllowedError` for a dismissal, a timeout and a device with no
+ * passkey to offer, so matching it here keeps a declined passkey out of the failure funnel.
  */
-const CANCELLED_ERROR_NAMES = new Set(["NotAllowedError", "AbortError"]);
+export const PASSKEY_PROMPT_CLOSED_NAMES: ReadonlySet<string> = new Set([
+  "NotAllowedError",
+  "AbortError",
+]);
 
-/** Walk the `cause` chain looking for a WebAuthn cancellation name. */
-function hasCancelledErrorName(error: unknown, depth = 0): boolean {
+/** Whether an error, or one it wraps as its `cause`, goes by one of the given names. */
+export function hasErrorName(error: unknown, names: ReadonlySet<string>, depth = 0): boolean {
   if (depth > 4 || !(error instanceof Error)) return false;
-  if (CANCELLED_ERROR_NAMES.has(error.name)) return true;
-  return hasCancelledErrorName((error as Error & { cause?: unknown }).cause, depth + 1);
+  if (names.has(error.name)) return true;
+  return hasErrorName((error as Error & { cause?: unknown }).cause, names, depth + 1);
 }
 
 function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
@@ -180,7 +167,7 @@ function isUserCancelled(error: unknown, normalizedMessage: string): boolean {
   if (code === USER_REJECTED_CODE || code === "ACTION_REJECTED") {
     return true;
   }
-  if (hasCancelledErrorName(error)) {
+  if (hasErrorName(error, PASSKEY_PROMPT_CLOSED_NAMES)) {
     return true;
   }
   return includesAny(normalizedMessage, CANCELLED_PATTERNS);
@@ -220,7 +207,7 @@ export function classifyTxError(error: unknown): TxErrorView {
     };
   }
 
-  if (includesAny(normalizedMessage, WRONG_CHAIN_PATTERNS)) {
+  if (wrongWalletNetwork(rawMessage)) {
     return {
       kind: "wrongChain",
       severity: "error",

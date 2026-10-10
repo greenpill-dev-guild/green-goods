@@ -1,11 +1,13 @@
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAlertLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
- * query client, no wallet — so their copy is resolved from the browser
- * language against this small table instead of the locale catalogs.
+ * query client, no wallet — so their copy is resolved against this small table
+ * instead of the locale catalogs. Each surface declares the language of its
+ * own copy, because the page's language is not theirs to set.
  */
 type BootLocale = "en" | "es" | "pt";
 
@@ -21,7 +23,7 @@ const BOOT_COPY: Record<
   }
 > = {
   en: {
-    loading: "Loading Green Goods Admin…",
+    loading: "Opening your workspace…",
     failedTitle: "Green Goods Admin could not start",
     failedBody:
       "Something failed before the workspace could open. Reload to try again, or clear the cached data if a reload does not help.",
@@ -30,7 +32,7 @@ const BOOT_COPY: Record<
     details: "Technical details",
   },
   es: {
-    loading: "Cargando Green Goods Admin…",
+    loading: "Abriendo tu espacio de trabajo…",
     failedTitle: "Green Goods Admin no pudo iniciarse",
     failedBody:
       "Algo falló antes de que el espacio de trabajo pudiera abrirse. Recarga para intentarlo de nuevo o borra los datos en caché si recargar no ayuda.",
@@ -39,7 +41,7 @@ const BOOT_COPY: Record<
     details: "Detalles técnicos",
   },
   pt: {
-    loading: "Carregando o Green Goods Admin…",
+    loading: "Abrindo seu espaço de trabalho…",
     failedTitle: "O Green Goods Admin não conseguiu iniciar",
     failedBody:
       "Algo falhou antes de o espaço de trabalho abrir. Recarregue para tentar de novo ou limpe os dados em cache se recarregar não ajudar.",
@@ -49,17 +51,33 @@ const BOOT_COPY: Record<
   },
 };
 
-function resolveBootLocale(language?: string | null): BootLocale {
-  const tag = (language ?? "").toLowerCase();
-  if (tag.startsWith("es")) return "es";
-  if (tag.startsWith("pt")) return "pt";
-  return "en";
+/** The language chosen in the app, when storage can be read. */
+function storedLanguage(): string | null {
+  try {
+    return window.localStorage.getItem("gg-language");
+  } catch {
+    return null;
+  }
 }
 
-function bootCopy() {
-  return BOOT_COPY[
-    resolveBootLocale(typeof navigator !== "undefined" ? navigator.language : undefined)
-  ];
+function browserLanguages(): readonly string[] {
+  if (typeof navigator === "undefined") return [];
+  return navigator.languages?.length ? navigator.languages : [navigator.language];
+}
+
+/**
+ * The choice the app makes once it runs: the stored language, else the first
+ * browser language with copy here, else English.
+ */
+function resolveBootLocale(): BootLocale {
+  const stored = storedLanguage();
+  const locales = Object.keys(BOOT_COPY) as BootLocale[];
+  for (const candidate of stored ? [stored] : browserLanguages()) {
+    const tag = (candidate ?? "").toLowerCase().split("-")[0];
+    const locale = locales.find((bootLocale) => bootLocale === tag);
+    if (locale) return locale;
+  }
+  return "en";
 }
 
 /** Layout that stands even when the stylesheet failed to arrive. */
@@ -75,22 +93,9 @@ const SHELL_STYLE = {
 
 /** The first frame: mounted synchronously before any optional service starts. */
 export function BootShell() {
-  const copy = bootCopy();
-  return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center bg-bg-weak px-6 text-center"
-      style={SHELL_STYLE}
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      data-component="AdminBootShell"
-    >
-      <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-1)]">
-        <RiSeedlingLine className="h-7 w-7 text-text-sub" aria-hidden />
-      </div>
-      <p className="mt-5 text-sm text-text-sub">{copy.loading}</p>
-    </div>
-  );
+  const locale = resolveBootLocale();
+  const copy = BOOT_COPY[locale];
+  return <AdminLoadingScreen label={copy.loading} locale={locale} />;
 }
 
 export interface BootRecoveryProps {
@@ -111,11 +116,13 @@ function describeError(error: unknown): string {
 
 /** The actionable failure state: what happened, reload, and a cache reset. */
 export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
-  const copy = bootCopy();
+  const locale = resolveBootLocale();
+  const copy = BOOT_COPY[locale];
   return (
     <div
       className="flex min-h-screen flex-col items-center justify-center bg-bg-weak px-6 text-center"
       style={SHELL_STYLE}
+      lang={locale}
       role="alert"
       data-component="AdminBootRecovery"
       data-state="failed"
@@ -123,8 +130,10 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-lighter">
         <RiAlertLine className="h-7 w-7 text-warning-dark" aria-hidden />
       </div>
-      <h1 className="mt-5 text-xl font-semibold text-text-strong">{copy.failedTitle}</h1>
-      <p className="mb-6 mt-2 max-w-sm text-sm text-text-sub">{copy.failedBody}</p>
+      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
+        {copy.failedTitle}
+      </h1>
+      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{copy.failedBody}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <AdminButton
           type="button"
@@ -143,7 +152,7 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
           {copy.reset}
         </AdminButton>
       </div>
-      <details className="mt-6 max-w-lg text-left text-xs text-text-sub">
+      <details className="mt-6 max-w-lg text-left body-xs text-text-sub">
         <summary className="cursor-pointer">{copy.details}</summary>
         <pre
           className="mt-2 whitespace-pre-wrap break-words rounded-[var(--m3-shape-sm)] bg-bg-white p-3"

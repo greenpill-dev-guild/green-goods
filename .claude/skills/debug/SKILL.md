@@ -9,7 +9,7 @@ argument-hint: "[error-description]"
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
+**References**: See `AGENTS.md` and the nearest package guide for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 ---
 
@@ -160,7 +160,7 @@ branch = one PR, and the posture is repair, not feature building.
 5. **Branch — only with the user's explicit go, once per slice.** One slice = one branch = one
    PR, so every slice boundary gets its own ask: propose `fix/<work-description>` for THIS slice
    off fresh `develop` — describing the work, never the session, date, or issue number
-   (`AGENTS.md § Branch + PR`) — and proceed only on a yes. Never reuse the previous slice's
+   (`.claude/context/linear-routing-rules.md § Branch and PR naming`) — and proceed only on a yes. Never reuse the previous slice's
    branch, and never create or switch branches without that answer (Safety Rules above;
    `AGENTS.md § Multi-Agent Repo Safety` — a concurrent session may share this checkout). A
    standing "work through them all" covers taking slices, not branch actions. Traceability lives
@@ -172,8 +172,10 @@ branch = one PR, and the posture is repair, not feature building.
    invented fixed suite (the selector owns criticality overrides and stop conditions).
 8. **Ship**: the `ship` skill gates the push; the PR references the issue (`Fixes PRD-NNN`), one
    slice per PR.
-9. **Hand back**: issue → `In Review` with the PR linked. It reaches `Done` only when its Test
-   IDs re-record as pass in the QA app (whoever recorded the fail re-records).
+9. **Hand back**: issue → `In Review` with the PR linked. Once the PR merges, run the closeout in
+   [`linear-routing-rules.md § After a merge`](../../context/linear-routing-rules.md#after-a-merge).
+   It reaches `Done` only when its Test IDs re-record as pass in the QA app (whoever recorded
+   the fail re-records).
 10. **Next slice or stop** — the user's call at each boundary. When the parent report's last
     open slice lands, close the parent against its `Done when` (every slice Done or explicitly
     deferred with re-QA re-recorded, the decisions child Done or Canceled, no open investigate
@@ -196,7 +198,7 @@ queries, auth, or indexer hypotheses. First prove the rendered surface.
 5. **Check recent component history** with `git log --follow` or focused `git show` on the
    visible component and wrapper files before proposing a fix.
 6. **For shared-component layout bugs, check the Tailwind v4 shared JSX scanning gotcha**
-   in `CLAUDE.md` before chasing data-layer hypotheses.
+   in `packages/shared/AGENTS.md` before chasing data-layer hypotheses.
 7. **Separate rendered-but-unusable from missing data**. If text/data exists in the DOM but the
    control is collapsed, invisible, untappable, or lacks visual selected state, treat it as a
    component/CSS regression until browser or DOM evidence proves otherwise.
@@ -217,7 +219,7 @@ geometry. Start at the failing output and trace backward through the data path.
 4. **Verify environment truth first**: chain ID, deployment JSON, indexer config, schema UID,
    contract address, RPC URL, and package guide for the touched surface.
 5. **Use repo wrappers for contract/indexer checks**. Do not invoke Forge directly for build
-   or test commands; use the bun scripts in `CLAUDE.md` and the package guides.
+   or test commands; use the Bun scripts in `AGENTS.md` and the package guides.
 6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
    the data is present and the rendered control is still collapsed, invisible, or unusable.
 
@@ -252,7 +254,9 @@ Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex
 
 ## Part 3: Verification Before Completion
 
-CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun run build`, `bun lint`, `npx tsc --noEmit` in the touched package.
+Follow [the validation pipeline](../../context/validation-pipeline.md) and root `AGENTS.md`:
+report fresh observed evidence, choose the owning package commands, and identify anything
+unverified. Do not substitute a guessed command for selected proof.
 
 ---
 
@@ -309,9 +313,10 @@ After debugging provide:
 
 ## Linear Routing
 
-This skill is read-only on Linear while debugging. The one exception is the QA Slice Fix
-Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back) — and only on
-the slice being worked. The shared routing core (team routing,
+This skill is read-only on Linear while debugging. The exceptions are the QA Slice Fix
+Protocol's state transitions (`In Progress` on take-up, `In Review` on hand-back), only on
+the slice being worked, and the merge closeout the routing rules authorize. The shared routing
+core (team routing,
 `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
 [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 

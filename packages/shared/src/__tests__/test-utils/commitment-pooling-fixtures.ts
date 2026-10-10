@@ -50,6 +50,13 @@ export function commitmentFixture(
   overrides: Partial<CommitmentReadModel> = {}
 ): CommitmentReadModel {
   return commitment({
+    requirements: [],
+    claimType: "INDIVIDUAL",
+    dueDate: null,
+    requiresAssessment: false,
+    considerationRail: "NONE",
+    considerationSource: null,
+    considerationToken: null,
     commitmentId: 1001n,
     direction: "OFFER",
     commitmentType: "SUPPORT_SERVICE",

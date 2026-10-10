@@ -11,7 +11,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useIntl } from "react-intl";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { fromPromise } from "xstate";
 import {
   trackAdminGardenCreateFailed,
@@ -52,8 +54,9 @@ function getFormStatus(): CreateGardenFormStatus {
 }
 
 export function useCreateGardenWorkflow() {
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const address = usePrimaryAddress() ?? undefined;
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
   const updateTransactionStatus = useAdminStore(
@@ -75,8 +78,9 @@ export function useCreateGardenWorkflow() {
 
   // Keep mutable dependencies current for the long-lived machine actor/actions.
   const dependenciesRef = useRef({
-    walletClient,
     address,
+    sender,
+    formatMessage,
     chainId: selectedChainId,
     addPendingTransaction,
     queryClient,
@@ -100,8 +104,9 @@ export function useCreateGardenWorkflow() {
   useEffect(() => {
     dependenciesRef.current = {
       ...dependenciesRef.current,
-      walletClient,
       address,
+      sender,
+      formatMessage,
       chainId: selectedChainId,
       addPendingTransaction,
       queryClient,
@@ -112,8 +117,9 @@ export function useCreateGardenWorkflow() {
       scheduleGardenRefresh,
     };
   }, [
-    walletClient,
     address,
+    sender,
+    formatMessage,
     selectedChainId,
     addPendingTransaction,
     queryClient,
@@ -136,17 +142,20 @@ export function useCreateGardenWorkflow() {
             }
 
             const {
-              walletClient: currentWalletClient,
               address: currentAddress,
+              sender: currentSender,
+              formatMessage: message,
               chainId: currentChainId,
               addPendingTransaction: addPendingTx,
               queryClient: latestQueryClient,
               scheduleGardenRefresh: scheduleRefresh,
             } = dependenciesRef.current;
 
-            if (!currentWalletClient || !currentAddress || !isAddress(currentAddress)) {
-              throw new Error("Connect a wallet to deploy the garden");
+            if (!currentAddress || !isAddress(currentAddress)) {
+              throw new Error(message({ id: "app.account.signInRequired" }));
             }
+            if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
+            await currentSender.assertOwnership?.(currentAddress, currentChainId);
             const accountAddress = currentAddress as `0x${string}`;
 
             trackAdminGardenCreateStarted({
@@ -158,7 +167,7 @@ export function useCreateGardenWorkflow() {
               const txHash = await createGarden(
                 { params, accountAddress, chainId: currentChainId },
                 createDefaultCreateGardenPorts({
-                  walletClient: currentWalletClient,
+                  transactionSender: currentSender,
                   addPending: (hash) => addPendingTx(hash, "garden:create"),
                 })
               );
@@ -293,18 +302,21 @@ export function useCreateGardenWorkflow() {
       throw new Error("Garden form is incomplete");
     }
 
-    const currentAddress = dependenciesRef.current.address;
+    const {
+      address: currentAddress,
+      sender: currentSender,
+      formatMessage: message,
+    } = dependenciesRef.current;
     const currentChainId = dependenciesRef.current.chainId;
 
     if (!currentAddress || !isAddress(currentAddress)) {
-      throw new Error("Connect a wallet to estimate deployment cost");
+      throw new Error(message({ id: "app.account.signInRequired" }));
     }
     const accountAddress = currentAddress as `0x${string}`;
 
-    const currentWalletClient = dependenciesRef.current.walletClient;
-    if (!currentWalletClient) throw new Error("Connect a wallet to estimate deployment cost");
+    if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
     const ports = createDefaultCreateGardenPorts({
-      walletClient: currentWalletClient,
+      transactionSender: currentSender,
       addPending: () => {},
     });
     return estimateGardenCreation(

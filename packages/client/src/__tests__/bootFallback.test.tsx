@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { readFileSync } from "node:fs";
@@ -92,11 +92,13 @@ type BootWindow = Pick<Window, "addEventListener" | "clearTimeout" | "setTimeout
   __GG_CLEAR_BOOT_FALLBACK?: () => void;
   __GG_MARK_BOOT_FAILED?: () => void;
   __GG_MARK_REACT_MOUNTED?: () => void;
+  localStorage?: Storage;
   location: Pick<Location, "href" | "reload" | "replace">;
 };
 
 type BootNavigator = {
   language: string;
+  languages?: readonly string[];
   onLine: boolean;
   serviceWorker?: {
     addEventListener: ReturnType<typeof vi.fn>;
@@ -220,6 +222,7 @@ function runController(
     pwaActionSlot: document.querySelector(".boot-pwa-action-slot") as HTMLElement,
     websiteRecovery: document.getElementById("boot-website-recovery") as HTMLElement,
     pwaMessage: document.getElementById("boot-pwa-message") as HTMLElement,
+    pwaNote: document.getElementById("boot-pwa-note") as HTMLElement,
     pwaReload: document.getElementById("boot-pwa-reload") as HTMLButtonElement,
     clearFallback: windowLike.__GG_CLEAR_BOOT_FALLBACK,
     markBootFailed: windowLike.__GG_MARK_BOOT_FAILED,
@@ -252,6 +255,12 @@ describe("presentation-specific boot fallback", () => {
 
   it("keeps production public routes in website mode, including standalone windows", () => {
     expect(detectPresentation({ href: "https://www.greengoods.app/gardens" })).toBe("website");
+    expect(
+      detectPresentation({
+        href: "https://www.greengoods.app/agent/reporting/abcdefghijklmnop",
+        displayMode: "standalone",
+      })
+    ).toBe("website");
     expect(
       detectPresentation({
         href: "https://www.greengoods.app/impact",
@@ -313,10 +322,32 @@ describe("presentation-specific boot fallback", () => {
       "banner"
     );
     expect(detectBootDataset({ href: "http://localhost:3001/actions" }).bootHero).toBe("banner");
+    expect(
+      detectBootDataset({ href: "https://www.greengoods.app/agent/reporting/abcdefghijklmnop" })
+        .bootHero
+    ).toBe("focused");
     // PWA boots never render the website skeleton, so no variant is stamped.
     expect(
       detectBootDataset({ href: "https://www.greengoods.app/home", displayMode: "standalone" })
         .bootHero
+    ).toBeUndefined();
+  });
+
+  it("marks the pages whose English title is written as three lines", () => {
+    for (const path of ["/", "/landing", "/gardens", "/impact", "/fund", "/actions/"]) {
+      expect(detectBootDataset({ href: `https://www.greengoods.app${path}` }).bootTitle).toBe(
+        "three-lines"
+      );
+    }
+    // Other heroes wrap on their own, a garden's page among them, so they keep the old bars.
+    for (const path of ["/cookies", "/vaults", "/glossary", "/gardens/0xabc"]) {
+      expect(
+        detectBootDataset({ href: `https://www.greengoods.app${path}` }).bootTitle
+      ).toBeUndefined();
+    }
+    expect(
+      detectBootDataset({ href: "https://www.greengoods.app/home", displayMode: "standalone" })
+        .bootTitle
     ).toBeUndefined();
   });
 
@@ -345,8 +376,10 @@ describe("presentation-specific boot fallback", () => {
     expect(pwa).toHaveAttribute("role", "status");
     expect(pwa).toHaveAttribute("aria-live", "polite");
     expect(pwaMessage).toHaveTextContent("Green Goods is loading.");
+    expect(fallback).toHaveAttribute("lang", "en");
     expect(pwa.querySelector("img")).toHaveAttribute("src", "%BASE_URL%icon.png");
-    expect(slots).toEqual(["logo", "message", "action"]);
+    // The scaffold sign-in uses, slot for slot: the logo, the line, the action and the note.
+    expect(slots).toEqual(["logo", "message", "action", "note"]);
   });
 
   it("themes the PWA loader from the app canvas and keeps its color off the document", () => {
@@ -362,7 +395,7 @@ describe("presentation-specific boot fallback", () => {
       /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #ffffff\)/s
     );
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #1a7544\)/s
+      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #c2f5da\)[^}]*--boot-action-fg:\s*var\(--color-primary-action-foreground, #0c0a09\)/s
     );
     expect(styles).toMatch(
       /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--boot-canvas\)[^}]*color:\s*var\(--boot-ink\)/s
@@ -396,48 +429,45 @@ describe("presentation-specific boot fallback", () => {
     );
   });
 
-  it("uses one compact anchored layout without an empty action gap", () => {
+  it("keeps every slot in place in every state, so the logo and the line never move", () => {
     const styles = inlineStyle("boot-fallback-styles");
     const zoomStyles = styles.match(
       /@media \(max-width: 240px\)\s*{([\s\S]*?)}\s*\/\* Nav visibility mirrors/
     )?.[1];
+    const { fallback, pwa, pwaActionSlot, pwaMessage, pwaNote, pwaReload } = runController("pwa");
+    const slots = Array.from(pwa.querySelectorAll<HTMLElement>("[data-boot-slot]"));
+    const expectSlotsReserved = () => {
+      for (const slot of slots) expect(slot).not.toHaveAttribute("hidden");
+    };
 
-    expect(styles).toMatch(
-      /\.boot-pwa-content\s*{[^}]*top:\s*max\(24px, calc\(50% - 96px\)\)[^}]*transform:\s*translateX\(-50%\)[^}]*grid-template-rows:\s*64px auto[^}]*row-gap:\s*16px/s
-    );
-    expect(styles).toMatch(
-      /\.boot-pwa-copy-stack\s*{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*gap:\s*12px/s
-    );
-    expect(styles).toMatch(
-      /\.boot-pwa-message-slot\s*{[^}]*block-size:\s*48px[^}]*align-items:\s*flex-end[^}]*overflow-y:\s*auto/s
-    );
-    expect(styles).toMatch(/\.boot-pwa-action-slot\s*{[^}]*block-size:\s*44px/s);
-    expect(styles).not.toMatch(/\.boot-pwa-action-slot\s*{[^}]*margin/s);
-    expect(styles).not.toContain("grid-template-rows: 64px 144px 68px");
-    expect(styles).toMatch(/\.boot-pwa-shell\s*{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
-    expect(zoomStyles).toBeDefined();
-    expect(zoomStyles).toMatch(
-      /\.boot-pwa-content\s*{[^}]*top:\s*24px[^}]*width:\s*min\(calc\(100% - 24px\), 320px\)/s
-    );
-    expect(zoomStyles).toMatch(/\.boot-pwa-message-slot\s*{[^}]*block-size:\s*120px/s);
-    expect(zoomStyles).toMatch(
-      /\.boot-pwa-action-slot \.boot-reload-button\s*{[^}]*max-width:\s*100%[^}]*padding-inline:\s*12px[^}]*font-size:\s*0\.875rem/s
-    );
-    expect(styles).not.toMatch(
-      /html\[data-boot-presentation="pwa"\] body\s*{[^}]*height:\s*100%[^}]*margin:\s*0[^}]*overflow:\s*hidden/s
-    );
-  });
+    // Loading: the action slot is empty, not gone. Hiding it would move the shared anchor.
+    expectSlotsReserved();
+    expect(pwaReload).toHaveAttribute("hidden");
+    expect(pwaNote).toHaveAttribute("hidden");
 
-  it("reveals the recovery action without moving the logo or message slots", () => {
-    const { fallback, pwaActionSlot, pwaMessage, pwaReload } = runController("pwa");
-
-    expect(pwaActionSlot).toHaveAttribute("hidden");
     vi.advanceTimersByTime(4500);
 
     expect(fallback).toHaveAttribute("data-state", "recovery");
-    expect(pwaMessage).toHaveTextContent("Green Goods needs the latest app files.");
-    expect(pwaActionSlot).not.toHaveAttribute("hidden");
+    expectSlotsReserved();
+    expect(pwaActionSlot).toContainElement(pwaReload);
     expect(pwaReload).not.toHaveAttribute("hidden");
+    expect(pwaReload).toHaveTextContent("Update App");
+    expect(pwaMessage).toHaveTextContent("Green Goods needs an update.");
+    expect(pwaNote).toHaveAttribute("hidden");
+
+    // The scene scrolls instead of clipping on a short screen, and never locks the document.
+    expect(styles).toMatch(/\.boot-pwa-shell\s*{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+    expect(styles).not.toMatch(
+      /html\[data-boot-presentation="pwa"\] body\s*{[^}]*height:\s*100%[^}]*margin:\s*0[^}]*overflow:\s*hidden/s
+    );
+    // At 200% zoom reading the line outranks holding its slot.
+    expect(zoomStyles).toBeDefined();
+    expect(zoomStyles).toMatch(
+      /\.boot-pwa-message-slot\s*{[^}]*height:\s*auto[^}]*min-height:\s*2rem/s
+    );
+    expect(zoomStyles).toMatch(
+      /\.boot-pwa-action-slot \.boot-reload-button\s*{[^}]*padding-inline:\s*0\.75rem[^}]*font-size:\s*0\.875rem[^}]*white-space:\s*normal/s
+    );
   });
 
   it("separates React mount from final PWA readiness", () => {
@@ -445,15 +475,49 @@ describe("presentation-specific boot fallback", () => {
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
   });
 
+  // The app's own choice: the stored language, else the first browser language with copy, else English.
   it.each([
-    ["es-MX", "Green Goods se está cargando."],
-    ["pt-BR", "Green Goods está carregando."],
-  ])("renders the %s loading copy on the static PWA surface", (language, message) => {
-    const { pwaMessage } = runController("pwa", {
-      navigator: { language, onLine: true },
+    { stored: null, browser: ["es-MX"], language: "es", message: "Green Goods se está cargando." },
+    { stored: null, browser: ["pt-BR"], language: "pt", message: "Green Goods está carregando." },
+    {
+      stored: null,
+      browser: ["fr-FR", "pt-BR"],
+      language: "pt",
+      message: "Green Goods está carregando.",
+    },
+    { stored: "pt", browser: ["es-MX"], language: "pt", message: "Green Goods está carregando." },
+    { stored: "fr", browser: ["es-MX"], language: "en", message: "Green Goods is loading." },
+  ])("shows $language copy and declares it for a stored $stored and a browser on $browser", ({
+    stored,
+    browser,
+    language,
+    message,
+  }) => {
+    const localStorage = createStorage();
+    if (stored) localStorage.setItem("gg-language", stored);
+    const { fallback, pwaMessage } = runController("pwa", {
+      navigator: { language: browser[0], languages: browser, onLine: true },
+      window: { ...createBootWindow().windowLike, localStorage },
     });
 
     expect(pwaMessage).toHaveTextContent(message);
+    expect(fallback).toHaveAttribute("lang", language);
+  });
+
+  it("keeps to the browser language when storage cannot be read", () => {
+    const { windowLike } = createBootWindow();
+    Object.defineProperty(windowLike, "localStorage", {
+      get() {
+        throw new DOMException("Access is denied for this document.", "SecurityError");
+      },
+    });
+    const { fallback, pwaMessage } = runController("pwa", {
+      navigator: { language: "es-MX", onLine: true },
+      window: windowLike,
+    });
+
+    expect(pwaMessage).toHaveTextContent("Green Goods se está cargando.");
+    expect(fallback).toHaveAttribute("lang", "es");
   });
 
   it("clears before the website delay when React mounts quickly", () => {
@@ -539,21 +603,12 @@ describe("presentation-specific boot fallback", () => {
     expect(fallback).toHaveAttribute("data-state", "cleared");
   });
 
-  it("preserves the PWA update recovery message", () => {
-    const { fallback, pwaMessage } = runController("pwa");
-
-    vi.advanceTimersByTime(4500);
-
-    expect(fallback).toHaveAttribute("data-state", "recovery");
-    expect(pwaMessage).toHaveTextContent("Green Goods needs the latest app files.");
-  });
-
   it("leaves a waiting worker for the browser to activate on the next cold start", async () => {
     const { worker } = createWorker();
     const { registration } = createRegistration({ waiting: worker });
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
-    const { fallback, pwaMessage, pwaReload } = runController("pwa", {
+    const { fallback, pwaMessage, pwaNote, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
@@ -563,9 +618,10 @@ describe("presentation-specific boot fallback", () => {
     pwaReload.click();
     await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
 
-    expect(pwaMessage).toHaveTextContent(
-      "Update waiting. Close every Green Goods window, then open the app again."
-    );
+    // One line under the logo; what to do about it is the quiet note under the action.
+    expect(pwaMessage).toHaveTextContent("An update is waiting.");
+    expect(pwaNote).not.toHaveAttribute("hidden");
+    expect(pwaNote).toHaveTextContent("Close every Green Goods window, then open the app again.");
     expect(pwaReload).toHaveTextContent("Try Again");
     expect(location.reload).not.toHaveBeenCalled();
     expect(serviceWorker.getRegistration).toHaveBeenCalledTimes(1);
@@ -603,7 +659,7 @@ describe("presentation-specific boot fallback", () => {
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
     const navigatorLike: BootNavigator = { language: "en", onLine: false, serviceWorker };
-    const { fallback, pwaMessage, pwaReload } = runController("pwa", {
+    const { fallback, pwaMessage, pwaNote, pwaReload } = runController("pwa", {
       navigator: navigatorLike,
       window: windowLike,
     });
@@ -612,7 +668,8 @@ describe("presentation-specific boot fallback", () => {
     pwaReload.click();
     await vi.waitFor(() => expect(fallback).toHaveAttribute("data-state", "stalled"));
 
-    expect(pwaMessage).toHaveTextContent("You’re offline. Saved screens may still be available.");
+    expect(pwaMessage).toHaveTextContent("You’re offline.");
+    expect(pwaNote).toHaveTextContent("Saved screens may still be available.");
     expect(pwaReload).toHaveTextContent("Try Again");
     expect(pwaReload).toHaveAttribute("aria-disabled", "false");
     expect(registration.update).not.toHaveBeenCalled();
@@ -659,7 +716,7 @@ describe("presentation-specific boot fallback", () => {
     const { registration } = createRegistration();
     const { serviceWorker } = createServiceWorkerContainer(registration);
     const { location, windowLike } = createBootWindow();
-    const { fallback, pwaMessage, pwaReload } = runController("pwa", {
+    const { fallback, pwaMessage, pwaNote, pwaReload } = runController("pwa", {
       navigator: { language: "en", onLine: true, serviceWorker },
       window: windowLike,
     });
@@ -670,9 +727,8 @@ describe("presentation-specific boot fallback", () => {
     await vi.advanceTimersByTimeAsync(15_000);
 
     expect(fallback).toHaveAttribute("data-state", "stalled");
-    expect(pwaMessage).toHaveTextContent(
-      "Close every Green Goods window, then open the app again."
-    );
+    expect(pwaMessage).toHaveTextContent("Green Goods couldn’t update.");
+    expect(pwaNote).toHaveTextContent("Close every Green Goods window, then open the app again.");
     expect(pwaReload).toHaveTextContent("Try Again");
     expect(registration.unregister).not.toHaveBeenCalled();
     expect(location.reload).not.toHaveBeenCalled();
@@ -687,6 +743,10 @@ describe("presentation-specific boot fallback", () => {
     expect(INDEX_HTML).toContain('applying: "Atualizando o Green Goods…"');
     expect(INDEX_HTML).toContain('retry: "Intentar de nuevo"');
     expect(INDEX_HTML).toContain('retry: "Tentar novamente"');
+    expect(INDEX_HTML).toContain(
+      'offlineNote: "Las pantallas guardadas pueden seguir disponibles."'
+    );
+    expect(INDEX_HTML).toContain('offlineNote: "As telas salvas ainda podem estar disponíveis."');
     expect(controller).not.toContain(".unregister(");
     expect(controller).not.toContain("caches.delete");
     expect(controller).not.toContain("deleteDatabase");

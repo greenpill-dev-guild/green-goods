@@ -119,11 +119,19 @@ run a broad local fallback and call the PR approved.
 Critical surfaces require both the complete local override and current-head CI. Ordinary work needs
 the targeted local contract and current-head CI.
 
+## 7. Close out Linear after a merge
+
+Publication does not authorize a merge, and a merge does not finish the Linear record. When the
+user asks for the merge or reports one, run the closeout in
+[After a merge](../../context/linear-routing-rules.md#after-a-merge). That section owns the steps,
+their conditions, and what the closeout may write; `Done` waits for a person's review.
+
 ## Output
 
 Report the resolved base, branch and head SHA, targeted proof, Push Gate status and elapsed time,
-whether the full local gate was required, commit and push result, PR URL, and current-head CI state.
-Use one of these outcomes:
+whether the full local gate was required, commit and push result, PR URL, current-head CI state,
+and the Linear line: the issue the PR names with its observed state, `no Linear issue linked`, or
+`not checked`. The Linear line reports; it does not change the outcome. Use one of these outcomes:
 
 - `READY`: current-head required CI is green and every applicable local contract passed.
 - `BLOCKED`: local proof, push budget, publication, or current-head CI is pending/unavailable.
@@ -137,3 +145,10 @@ Use one of these outcomes:
 - Do not approve a PR from local evidence while required CI is pending or stale.
 - Do not bypass `needs-focus`, the hard deadline, critical overrides, hooks, or receipt freshness.
 - Do not assume `origin/main`; resolve the live PR base or use `origin/develop`.
+
+## Unattended maintenance
+
+Keep unattended maintenance PRs to 20 changed files or fewer, as drafts with the required labels.
+Do not modify deployment/upgrade scripts or environment files, add packages or top-level
+directories, or edit agent operating guidance unless the assigned task explicitly requests it.
+These limits do not authorize publication or merging.

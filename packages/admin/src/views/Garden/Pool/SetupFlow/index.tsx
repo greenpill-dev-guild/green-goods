@@ -37,6 +37,7 @@ import {
   defaultCycleDates,
   endOfDaySeconds,
   isStepValid,
+  stepBlockedReason,
   type PoolSetupIntent,
   STEPS_BY_INTENT,
   setupFlowTitle,
@@ -135,15 +136,25 @@ export function PoolSetupFlow({
 
   const currentStep = steps[stepIndex] ?? "open";
   const isLast = stepIndex === steps.length - 1;
-  const stepReady = isStepValid(currentStep, {
+  const validity = {
     purpose,
     capValue,
     name,
     datesValid,
     secondSeasonBlocked,
     splitValid: split.allocation && split.recognitionPolicy,
-  });
+  };
+  const stepReady = isStepValid(currentStep, validity);
   const canContinue = stepReady && !submitting && pool.isOnline;
+  const blocked = stepBlockedReason(currentStep, validity);
+  const blockedReason = !pool.isOnline
+    ? formatMessage({
+        id: "cockpit.garden.pool.setup.blocked.offline",
+        defaultMessage: "Connect to continue.",
+      })
+    : blocked
+      ? formatMessage({ id: blocked.id, defaultMessage: blocked.defaultMessage }, blocked.values)
+      : null;
 
   const title = setupFlowTitle(intent, isCampaign, formatMessage);
 
@@ -315,6 +326,7 @@ export function PoolSetupFlow({
       isLast={isLast}
       submitting={submitting}
       canContinue={canContinue}
+      blockedReason={blockedReason}
       failed={failed}
       complete={complete}
       progress={rows.length > 0 ? (doneCount / rows.length) * 100 : undefined}
@@ -352,13 +364,16 @@ export function PoolSetupFlow({
           title={title}
           steps={stepConfigs}
           currentStep={stepIndex + 1}
+          complete={complete}
+          target={(placement) => <PoolTarget target={target} placement={placement} />}
           onStepClick={(step) => {
             if (!submitting && step - 1 < stepIndex) setStepIndex(step - 1);
           }}
           footer={footer}
         >
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
-            <PoolTarget target={target} />
+            {/* The protocol pool keeps its warning in the body: a change there reaches beyond one garden. */}
+            {target.isProtocol ? <PoolTarget target={target} /> : null}
             <FlowStepHeader
               title={stepConfigs[stepIndex]?.title ?? title}
               description={stepConfigs[stepIndex]?.description}

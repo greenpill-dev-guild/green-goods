@@ -669,6 +669,31 @@
       "source": "qa-readiness-catalog-2026-09-21"
     },
     {
+      "id": "PUB-060",
+      "tab": "Public Website",
+      "platform": "Desktop Browser",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Gardens",
+      "scenario": "An unlisted garden opens by its own link and says it is unlisted",
+      "preconditions": [
+        "The public link of a garden kept off the public lists, such as Green Goods Community Garden"
+      ],
+      "steps": [
+        "Open the garden's public page by its own link",
+        "Read the foot of the hero card and the actions at the foot of the page",
+        "In the browser's developer tools, find the robots meta tag in the page head",
+        "Open the Gardens archive and the Fund page, and look for the garden in each"
+      ],
+      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
+      "evidence": "Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden",
+      "role": "none",
+      "tags": ["garden-records"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-rehearsal-followups-2026-09-27"
+    },
+    {
       "id": "PUB-028",
       "tab": "Public Website",
       "platform": "Desktop Browser",
@@ -2424,8 +2449,11 @@
       "role": "gardener",
       "tags": ["my-work", "draft"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-runs-pwa-split-2026-09-07"
+      "status": "retired",
+      "source": "qa-runs-pwa-split-2026-09-07",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Your Work now unifies drafts with other Pending items and exposes them through Editing, rather than a separate Draft tab; its row actions and counts need a current check.",
+      "replacedBy": ["PWA-136"]
     },
     {
       "id": "PWA-075",
@@ -3116,6 +3144,327 @@
       "source": "qa-runs-pwa-split-2026-09-07"
     },
     {
+      "id": "PWA-123",
+      "priority": "P1",
+      "kind": "journey",
+      "scenario": "A signed-in visitor reads a commitment and is shown how to join, not an act",
+      "preconditions": [
+        "Signed in as a gardener who is not a member of the garden",
+        "An offered or requested commitment with open claiming in that garden's pool"
+      ],
+      "steps": [
+        "Open the commitment by its link",
+        "Read the status band and the People section",
+        "Read the card under the status band and the bottom of the screen"
+      ],
+      "expected": "The commitment reads in full; no act bar is drawn; the card reads 'Join {garden} to take this up' with Join Garden when the garden is open to join and Request to Join otherwise; pressing Join Garden joins and Take This Up appears without a reload",
+      "evidence": "Screenshot of the card",
+      "role": "gardener",
+      "tags": ["commitments", "claim"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
+      "id": "PWA-124",
+      "priority": "P0",
+      "kind": "transaction",
+      "scenario": "Take up a commitment minutes after joining the garden",
+      "preconditions": [
+        "A garden open to join, with an offered commitment with open claiming in its pool",
+        "The gardener joined that garden within the last fifteen minutes"
+      ],
+      "steps": [
+        "Join the garden from its screen and wait for the join to land",
+        "Open the offered commitment within a minute of the join landing",
+        "Press Take This Up",
+        "Reload"
+      ],
+      "expected": "Take This Up is offered as soon as the join lands, before the indexer catches up; the act queues and lands; the band moves to the accepted state and People lists the gardener as the provider; nothing says the gardener is not a member",
+      "evidence": "Screenshots before and after the take-up",
+      "role": "gardener",
+      "tags": ["commitments", "claim", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
+      "id": "PWA-125",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A parked act says why it waits and can be sent or dropped from the commitment",
+      "preconditions": [
+        "Signed in with a wallet",
+        "An act on a commitment that the queue left waiting, for example a take-up made while the garden role read had not landed, or a send that failed once"
+      ],
+      "steps": [
+        "Open the commitment",
+        "Read the row above the status band",
+        "Press Send Now and answer the wallet",
+        "On another parked act whose transaction was never sent, press Discard"
+      ],
+      "expected": "The row names the act and why it waits; Send Now asks the wallet and the row clears when the act lands; Discard is offered only when the transaction was never sent and removes the act; the act bar returns after either",
+      "evidence": "Screenshot of the row and of the screen after Send Now",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-990"
+    },
+    {
+      "id": "PWA-126",
+      "priority": "P1",
+      "kind": "transaction",
+      "scenario": "A take-up whose confirmation is lost waits as sent, and is never dropped or sent twice",
+      "preconditions": [
+        "Signed in with a wallet",
+        "A member of the garden, on an offered commitment"
+      ],
+      "steps": [
+        "Press Take This Up",
+        "While the wallet asks, set the page offline in DevTools, then approve in the wallet",
+        "Read the row above the status band",
+        "Go back online, reload, and press Check Again"
+      ],
+      "expected": "Offline, the row says the take-up has left this phone and is waiting for the network to confirm it, with Check Again and no Discard; after the reload it says the same; Check Again confirms it without a second wallet prompt, the band moves to the accepted state and the row clears",
+      "evidence": "Screenshot of the row while offline and of the screen after Check Again",
+      "role": "gardener",
+      "tags": ["commitments", "queue", "tx"],
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "area": "Commitments",
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-996"
+    },
+    {
+      "id": "PWA-127",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A wallet Work prompt held open past one minute cannot be sent or discarded from another tab",
+      "preconditions": ["Two tabs signed in to the same wallet account", "A valid Work draft"],
+      "steps": [
+        "Start Upload Work in the first tab and leave its wallet prompt open for more than one minute",
+        "In the second tab open the queued Work and inspect Upload, Discard and Try Again",
+        "Answer the first prompt, then check the Work from both tabs"
+      ],
+      "expected": "The second tab never offers a second send or Discard while the first prompt can still broadcast; after the first answer the one Work is reconciled once",
+      "evidence": "Screenshots of the queued row in both tabs and the final Work state",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "wallet", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-128",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work confirmation that was approved is found without another send",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work and approve in the wallet while the app tab is closed",
+        "Reopen the app and inspect the queued row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The row remains held until the Work is found; it clears as submitted with no second wallet prompt or duplicate Work",
+      "evidence": "Screenshots of the held row and final Work detail",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-129",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Work",
+      "scenario": "A lost Work send rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "Wallet account with a valid Work draft",
+        "A paired tester controls the wallet prompt"
+      ],
+      "steps": [
+        "Start Upload Work, close the app tab, then reject in the wallet",
+        "Reopen the app and check before the 30-minute window ends",
+        "After the window and indexer catch-up, Check Again once, then on a later look inspect Try Again",
+        "Press Try Again and answer one wallet prompt"
+      ],
+      "expected": "The Work stays held through the wait and first absence look; only the later look offers retry, and one retry sends one Work",
+      "evidence": "Timestamped screenshots of the held, retryable and final states",
+      "role": "gardener",
+      "tags": ["work-submission", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-130",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision that was sent is found without another send",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Approve the decision in the wallet while the app tab is closed",
+        "Reopen the commitment and inspect the queued act row",
+        "Press Check Again after the indexer catches up"
+      ],
+      "expected": "The decision stays held until the chain result is found; it settles once and never asks for another signature",
+      "evidence": "Screenshots of the held row and settled commitment",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-131",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "A lost approval decision rejected after tab close reopens only after the chain-clock wait and a later look",
+      "preconditions": [
+        "A service commitment ready for an eligible confirmer",
+        "Wallet account and paired wallet-prompt control"
+      ],
+      "steps": [
+        "Begin the decision, close the app tab, then reject the wallet prompt",
+        "Reopen and Check Again before 30 minutes have passed",
+        "After the chain-clock window and indexer catch-up, Check Again, then look once more",
+        "Use Send Now and answer one wallet prompt"
+      ],
+      "expected": "The decision stays held through the wait and first absence look; only the later look offers Send Now, and it sends exactly once",
+      "evidence": "Timestamped screenshots of the held, retryable and settled states",
+      "role": "steward",
+      "tags": ["commitments", "queue", "recovery", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-132",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Account",
+      "scenario": "Changing accounts on one device isolates queued Work, commitment acts and send records",
+      "preconditions": [
+        "Two test accounts with separate queued drafts or acts on one browser device"
+      ],
+      "steps": [
+        "With account A, park Work and a commitment act, and leave any send record unresolved",
+        "Sign out and sign in as account B; inspect Home filters, the same gardens, Work and commitment queues",
+        "Reload B, then sign out and return to A; reload A"
+      ],
+      "expected": "B starts with default filters and fresh garden state and cannot see, send or discard A’s queued items; each same-account reload retains its own state and A’s work returns only for A",
+      "evidence": "Private session notes without account names or addresses",
+      "role": "gardener",
+      "tags": ["auth", "queue", "account"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-133",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A named confirmer who did not create an untaken offer cannot withdraw it",
+      "preconditions": ["Untaken offer with a named confirmer distinct from its creator"],
+      "steps": [
+        "Open the offer as the named confirmer and inspect the action bar",
+        "Open it as the creator and inspect the action bar"
+      ],
+      "expected": "The named confirmer can read the offer but has no Withdraw This action; only the creator is offered withdrawal",
+      "evidence": "Screenshots of the two action bars without account identifiers",
+      "role": "gardener",
+      "tags": ["commitments", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-134",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "resilience",
+      "area": "Work",
+      "scenario": "A locally queued linked Work is described as saved until it is sent",
+      "preconditions": [
+        "A garden-work commitment with a matching requirement",
+        "A Work draft linked to that requirement"
+      ],
+      "steps": [
+        "Make the connection unconfirmed and press Upload Work",
+        "Read the message after the Work and link enter their queues",
+        "If link queueing fails, read the error and press Retry Link"
+      ],
+      "expected": "Success and error text say the Work is saved on this device, not submitted; the link can be retried without submitting Work twice, and the commitment reads it as submitted only after Work sends",
+      "evidence": "Screenshots of the saved message, retry message and eventual submitted state",
+      "role": "gardener",
+      "tags": ["work-submission", "commitments", "offline", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
+      "id": "PWA-135",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Commitments",
+      "scenario": "A chosen action that expires while the composer is open stops placement",
+      "preconditions": [
+        "Garden-work composer with a required action near the end of its Work window"
+      ],
+      "steps": [
+        "Choose the action while it is still open and leave the composer on How Much or Review",
+        "After the action window ends, read the requirement and placement control",
+        "Try to place the commitment"
+      ],
+      "expected": "The action is named as closed, placement is blocked before a create job is queued, and the draft remains editable so another action can be chosen",
+      "evidence": "Screenshots before and after the action closes",
+      "role": "gardener",
+      "tags": ["commitments", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
+    },
+    {
       "id": "PWA-103",
       "tab": "PWA",
       "platform": "Desktop Browser (PWA shell)",
@@ -3182,8 +3531,11 @@
       "role": "gardener",
       "tags": ["commitments", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-session-2026-08-29"
+      "status": "retired",
+      "source": "qa-session-2026-08-29",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Proof requires at least one photo, video, voice note, valid web link or non-empty words, with a credited gardener; a media-only minimum no longer defines readiness.",
+      "replacedBy": ["PWA-137"]
     },
     {
       "id": "PWA-088",
@@ -3650,6 +4002,31 @@
       "requiresProduction": false,
       "status": "active",
       "source": "qa-readiness-catalog-2026-09-21"
+    },
+    {
+      "id": "PWA-122",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Commitments",
+      "scenario": "A new commitment's name, unit and details stop at their limits",
+      "preconditions": [
+        "Signed in, in a garden with commitment pooling",
+        "A passage longer than 280 characters, copied to paste"
+      ],
+      "steps": [
+        "Start an offer, choose A service, paste the passage into Name it, read the field, and press Next",
+        "Paste the passage into the box under Of what, read the field, and go on",
+        "Paste the passage into Add any detail, and read the field and Next"
+      ],
+      "expected": "Name it stops at 60 characters, the unit box at 24 and the detail at 280, and each step still goes on with Next; nothing is sent",
+      "evidence": "Screenshots of the three fields at their limits",
+      "role": "gardener",
+      "tags": ["commitments", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
     },
     {
       "id": "PWA-070",
@@ -4724,9 +5101,9 @@
       "steps": [
         "Open the floating action button and read its actions",
         "Switch workspaces with the bottom navigation",
-        "Open the Profile tab from the bottom navigation and read the Account page"
+        "Open the Profile tab from the bottom navigation and read the Profile page"
       ],
-      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the Profile tab opens the mobile Account page with identity, theme, language, and Disconnect",
+      "expected": "The action button offers Submit work, Create assessment, and Create hypercert with the same gating as the desktop header; the bottom navigation switches workspaces; the Profile tab opens the mobile Profile page, titled Profile with a Profile tab with identity, theme, language, and Disconnect",
       "evidence": "Screenshots at phone width",
       "role": "steward",
       "tags": ["shell", "responsive"],
@@ -4995,9 +5372,9 @@
         "Open /hub/work",
         "Open a pending submission",
         "Inspect evidence media",
-        "Choose confidence and enter feedback",
+        "Choose a confidence level (none is chosen at first) and enter feedback",
         "Verify Approve and Reject are visible in the pinned dialog action region without scrolling",
-        "Reject or approve",
+        "Approve, or press Reject and give a reason in the Reject Work dialog",
         "Confirm the queue updates"
       ],
       "expected": "The complete decision path works and commit/cancel actions are never hidden inside a clipped scrolling region",
@@ -5132,7 +5509,7 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Assessment create flow gates invalid input",
       "preconditions": ["Admin role available"],
       "steps": [
@@ -5154,7 +5531,7 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Submit an assessment end to end from the admin",
       "preconditions": ["Steward session with a garden that can be assessed"],
       "steps": [
@@ -5177,7 +5554,7 @@
       "platform": "Chromium Desktop",
       "priority": "P1",
       "kind": "transaction",
-      "area": "Hub · Assess",
+      "area": "Hub · Assessments",
       "scenario": "Record a starting assessment for the test Garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
@@ -5203,10 +5580,13 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "journey",
-      "area": "Hub · Certify",
+      "area": "Hub · Hypercerts",
       "scenario": "Certification flow does not overpromise transaction state",
       "preconditions": ["Admin role available"],
-      "steps": ["Open /hub/certify/create or assessment detail", "Inspect actions"],
+      "steps": [
+        "Open /hub/certify/create, or open an assessment's record on /hub/assess and press Create Hypercert",
+        "Inspect actions"
+      ],
       "expected": "Disabled/loading/error states are explicit before transaction",
       "evidence": "Screenshot",
       "role": "steward",
@@ -5221,14 +5601,14 @@
       "platform": "Chromium Desktop",
       "priority": "P0",
       "kind": "transaction",
-      "area": "Hub · Certify",
+      "area": "Hub · Hypercerts",
       "scenario": "Mint a hypercert from an assessment",
       "preconditions": [
         "Steward with manage rights",
         "A garden with approved work attestations and an assessment"
       ],
       "steps": [
-        "Open /hub/certify, open the assessment, and press Open Mint Flow",
+        "Open /hub/assess, open the assessment, and press Create Hypercert",
         "Select attestations, fill the metadata, and set the distribution",
         "Press Mint Hypercert and keep the tab open",
         "Read the hypercert on /garden/impact"
@@ -5278,7 +5658,7 @@
       "scenario": "Hub → Confirm lists only what the garden in the header confirms",
       "preconditions": [
         "Steward of two gardens",
-        "At least one commitment waiting for the first garden's confirmation, and none waiting for the second's"
+        "At least one commitment waiting for the first garden's confirmation, and no ordinary, garden-fallback, or disputed row eligible for the second garden"
       ],
       "steps": [
         "Select the first garden with the header chip and open Hub → Confirm (/hub/confirm)",
@@ -5303,7 +5683,7 @@
       "scenario": "Confirm Kept… reviews the commitment before confirming it",
       "preconditions": [
         "Steward with the garden that confirms the commitment selected in the header",
-        "A commitment waiting for that garden's confirmation and marked Ready to confirm"
+        "A commitment waiting for that garden's confirmation and marked Ready to confirm; the confirming account is not a contributor"
       ],
       "steps": [
         "Open Hub → Confirm and press Confirm Kept… on the commitment's row",
@@ -5426,18 +5806,18 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settings",
-      "scenario": "Save garden name, description, and location as sequential transactions",
+      "scenario": "Save garden name, description, and location, one wallet confirmation each, and resume a stopped save",
       "preconditions": [
         "Steward with manage rights on a garden",
         "A wallet that can reject one prompt mid-run"
       ],
       "steps": [
         "Press Edit Garden from the garden workspace and change the name, description, and location",
-        "Read the unsaved-changes count and press Save Changes",
-        "Reject the second wallet prompt",
-        "Read the editor, then press Save Changes again"
+        "Read the footer and press Save Changes",
+        "Confirm the first wallet prompt and reject the second",
+        "Read the rows and the footer, then press Try Again and confirm what the wallet asks"
       ],
-      "expected": "Each changed field is its own transaction in sequence with 'Saving changes…' progress; a rejected prompt stops the run with 'Your edits are still here. Review the error and save again.' and the unsaved fields stay dirty; saving again writes only what is left and ends on 'All changes saved'",
+      "expected": "The dialog is titled Edit Garden; before saving the footer reads '3 changes · 3 wallet confirmations'; each change is its own row, numbered by its prompt, moving from waiting to 'Confirmed' with a link to its transaction; the rejection stops the run with 'Stopped at Description. 1 of 3 saved. Your other edits are still here.' and the unsaved edits stay; Try Again sends only the description and location, never the name again, and the dialog ends on 'All changes saved' with Done",
       "evidence": "Screenshots of the mid-run error and the saved state",
       "role": "steward",
       "tags": ["garden-settings", "tx"],
@@ -5460,7 +5840,7 @@
         "Reopen the editor, press Remove on the banner, then Undo",
         "Press Remove again and save"
       ],
-      "expected": "The preview reads 'Preview · uploads on save' and the image pins only on save; after saving the banner shows on the garden; Remove marks it 'Will be removed on save' and Undo restores it without a transaction; saving the removal clears the banner and the public garden page falls back to its named placeholder",
+      "expected": "The preview reads 'Preview · uploads on save' and the image pins only on save, its row reading 'Uploading the image…' before the wallet asks; after saving the banner shows on the garden; Remove marks it 'Will be removed on save' and Undo restores it without a transaction; saving the removal clears the banner and the public garden page falls back to its named placeholder",
       "evidence": "Screenshots of the preview, the staged removal, and the cleared banner",
       "role": "steward",
       "tags": ["garden-settings", "media", "tx"],
@@ -5483,7 +5863,7 @@
         "Switch Limit gardeners on with a cap at the current member count and save",
         "Read the garden in the app again"
       ],
-      "expected": "Open joining saves as one transaction and the app offers Join Garden instead of a request; the cap saves as its own transaction; with the cap reached the app no longer offers open joining; switching Limit gardeners off restores unlimited",
+      "expected": "Open joining saves as one confirmed row and the app offers Join Garden instead of a request; the cap saves as its own row; with the cap reached the app no longer offers open joining; switching Limit gardeners off restores unlimited",
       "evidence": "Screenshots of the settings and the app's join control",
       "role": "steward",
       "tags": ["garden-settings", "garden-join", "tx"],
@@ -5502,10 +5882,10 @@
       "preconditions": ["Steward with manage rights on a garden with one domain"],
       "steps": [
         "In Edit Garden deselect the only domain and try to save",
-        "Select a second domain and read the unsaved-changes count",
+        "Select a second domain and read the footer's count of changes",
         "Close the editor with X, the scrim, Escape, and browser back while changes are unsaved"
       ],
-      "expected": "Deselecting the last domain shows 'Select at least one domain' and blocks Save; the unsaved count follows every change; each close path asks 'Discard Changes?' once, Stay keeps the draft, and Discard drops it with nothing written",
+      "expected": "Deselecting the last domain shows 'Select at least one domain' and blocks Save; the footer's '# changes · # wallet confirmations' follows every change; each close path asks 'Discard Changes?' once, Stay keeps the draft, and Discard drops it with nothing written",
       "evidence": "Screenshots of the domain error and the discard prompt",
       "role": "steward",
       "tags": ["garden-settings"],
@@ -5546,10 +5926,10 @@
       "area": "Garden · Pool",
       "scenario": "Pool Funding reads Settlement ready for a garden whose settlement is set up",
       "preconditions": [
-        "Steward of a garden whose Celo settlement is fully set up: a funded settlement Safe, an active account and route, and an executor that is not paused"
+        "Steward of a garden whose Celo settlement is fully set up: a funded settlement Safe, active matching indexed and live routes, active G$ token, unpaused source and executor, readable fee policy and quotes, caps and allowances, and sufficient Celo acknowledgment reserve"
       ],
       "steps": [
-        "Open /garden/pool and read Pool Funding",
+        "Use a coherent settlement ledger whose processed blocks on both chains are readable and no older than two minutes; open /garden/pool and read Pool Funding",
         "Press Refresh Pool Funding and read it again"
       ],
       "expected": "Pool Funding shows Settlement ready and a funding state other than Funding unavailable, with no line naming something in the way; after the refresh it still reads ready and its Read time moves on",
@@ -5568,12 +5948,14 @@
       "kind": "data-integrity",
       "area": "Garden · Pool",
       "scenario": "When settlement is not ready, Pool Funding names what is in the way",
-      "preconditions": ["Steward of a garden whose Pool Funding reads Settlement unavailable"],
+      "preconditions": [
+        "Steward of a configured garden whose current G$ balance read fails, so Pool Funding reads Settlement unavailable"
+      ],
       "steps": [
         "Open /garden/pool and read Pool Funding",
         "Press View Funding Details and read the list"
       ],
-      "expected": "One line under Settlement unavailable names what is in the way, and View Funding Details lists that same reason in the same words; nothing on the rail says the pool is ready",
+      "expected": "The rail says The current G$ balance could not be read. under Settlement unavailable, and View Funding Details lists that same reason; neither surface says the pool is ready",
       "evidence": "Screenshots of the rail and of the details",
       "role": "steward",
       "tags": ["garden-pool", "funding", "settlement"],
@@ -5588,15 +5970,15 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Set up commitments for a garden without a pool",
-      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "scenario": "Set up commitments for a registered NotReady pool",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the setup checklist",
         "Press Set Up Commitments and complete the flow",
         "Read the pool status card and the app's garden tabs"
       ],
       "expected": "The console shows the setup state and checklist instead of an empty list; the flow pins its documents before any chain write and names a failure if pinning fails; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
-      "evidence": "Screenshots of the checklist and the created pool",
+      "evidence": "Screenshots of the checklist and the configured pool",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
       "requiresProduction": false,
@@ -5611,7 +5993,7 @@
       "kind": "resilience",
       "area": "Garden · Pool",
       "scenario": "Offline, Set Up Commitments says why it waits",
-      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool",
         "Turn the network off and read the card with Set Up Commitments",
@@ -5632,21 +6014,545 @@
       "priority": "P2",
       "kind": "content",
       "area": "Garden · Pool",
-      "scenario": "Setting up says how many times the wallet will ask, and that the split is fixed once the season opens",
-      "preconditions": ["Steward with manage rights on a garden with no pool"],
+      "scenario": "Setting up states the wallet-prompt count before a write",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the note on the Pool Status card",
-        "Press Set Up Commitments, fill in How It Works and The Season, and go on to The Split",
-        "Read the line above the presets, each preset, and the hint under each share",
-        "Go on to the last step, read its button, then close the flow and discard it"
+        "Press Set Up Commitments and read the wallet-prompt count before a write",
+        "Close the flow and discard it"
       ],
-      "expected": "The note says setting up takes four short steps and that the wallet will ask up to six times, fewer when it can take several changes at once; The Split opens with This split is fixed for good once the season opens, and it decides how the season's impact certificate is shared.; each preset reads as its roles, such as Gardeners 60 % · Treasury 15 % · Steward 10 % · Evaluator 5 % · Community 5 % · Funder 5 % for Garden-led (standard), and each share says what it is for; the last step's button reads Set Up and Open; nothing is sent",
-      "evidence": "Screenshots of the note, The Split, and the last step",
+      "expected": "The note says setting up takes four short steps and that the wallet will ask up to six times, fewer when it can take several changes at once; nothing is sent when the flow is discarded",
+      "evidence": "Screenshot of the note and wallet-prompt count",
       "role": "steward",
       "tags": ["garden-pool", "copy"],
       "requiresProduction": false,
       "status": "active",
       "source": "qa-design-audit-wave-2-2026-09-23"
+    },
+    {
+      "id": "ADM-167",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "The pool's description stops at 420 characters and a season's name at 120, each counted as you type",
+      "preconditions": [
+        "Steward with manage rights on a garden with no pool, and on a garden with a pool",
+        "A passage longer than 420 characters, copied to paste"
+      ],
+      "steps": [
+        "On the garden with no pool, open /garden/pool, press Set Up Commitments, and read the count under What this pool is for",
+        "Type a few words and read the count, then paste the passage and read the field and its count",
+        "Delete one character and read the count, then go on to The Season, paste the passage into Name, and read the field and its count",
+        "Close the flow and discard it, then on the garden with a pool press Edit Pool and read the count under What this pool is for"
+      ],
+      "expected": "The description's count sits at the end of the row under the field, starts at 0 / 420, and rises as you type; the pasted passage stops at 420 characters and reads 420 / 420, then 419 / 420 after the deletion; Name stops at 120 characters and reads 120 / 120; Edit Pool counts the saved description the same way, out of 420 (one saved before the limit loads in full with its count past 420 in red and the message Shorten this to 420 characters or fewer under it, and a change to it saves only once it fits); nothing is sent",
+      "evidence": "Screenshots of both setup fields at their limits and of the count in Edit Pool",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-168",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Settings",
+      "scenario": "A garden's name is counted the way the contract counts it, so an accented letter counts as two",
+      "preconditions": [
+        "Owner of an existing garden, able to start a new garden",
+        "This name copied to paste: Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa"
+      ],
+      "steps": [
+        "Start a new garden, read the count under Garden name, then type Horta and read it again",
+        "Replace the name with the copied one, read the field, its count and the message under it, then press Next",
+        "Delete a word so the message goes, then leave the new garden without creating it",
+        "On the existing garden, press Edit Garden from the garden workspace, paste the copied name into Name, and read the count, the message and Save Changes"
+      ],
+      "expected": "The count sits at the end of the row under the name and starts at 0 / 72, and Horta reads 5 / 72; the copied name has 68 characters but reads 73 / 72 in red with the message \"Shorten this: accented letters count as two, and some symbols as more\", and Next stays on the step until the count fits; settings show the same count and message, and Save Changes stays unavailable; nothing is sent",
+      "evidence": "Screenshots of both name fields past the limit",
+      "role": "steward",
+      "tags": ["garden-settings", "garden-create", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-169",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Cookies",
+      "scenario": "A campaign's description stops at 480 characters, counted as you type",
+      "preconditions": [
+        "Deployer identity, and the owner of a deployed campaign jar",
+        "A passage longer than 480 characters, copied to paste"
+      ],
+      "steps": [
+        "On the Green Goods Community Garden's Payouts, press Create Cookie Jar in Campaign Cookie Jars, read the count under Campaign description, then paste the passage and read the field and its count",
+        "Leave without creating, open the deployed jar's panel, paste the passage into Campaign description, and read the field and its count"
+      ],
+      "expected": "Each count sits at the end of the row under the field and starts from the description's length out of 480; the pasted passage stops at 480 characters and reads 480 / 480; nothing is sent",
+      "evidence": "Screenshots of both fields at the limit",
+      "role": "steward",
+      "tags": ["cookies", "validation"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-170",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Commitment",
+      "scenario": "Seeding a commitment stops the title at 60 characters, the unit at 24 and the note at 280, and says what is missing in your language",
+      "preconditions": [
+        "Steward of a garden with a pool",
+        "A passage longer than 280 characters, copied to paste"
+      ],
+      "steps": [
+        "Open the pool, press Seed Commitment, press Next with Title empty, and read the message under Title",
+        "Paste the passage into Title and into Note, and read each field and its count",
+        "Go on to the next step, paste the passage into Unit, and read the field and its count",
+        "Close the console and discard it, switch the admin to Español, and repeat the first step"
+      ],
+      "expected": "An empty Title says Give it a name.; Title stops at 60 characters and reads 60 / 60, Note at 280 and reads 280 / 280, and Unit at 24 and reads 24 / 24, each count at the end of the row under its field; in Español the empty Title says Ponle un nombre., not English; nothing is sent",
+      "evidence": "Screenshots of the three fields at their limits and of the Spanish message",
+      "role": "steward",
+      "tags": ["commitment", "garden-pool", "validation", "i18n"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-971"
+    },
+    {
+      "id": "ADM-171",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "The setup split explains when it becomes fixed",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
+      "steps": ["Open Set Up Commitments and go to The Split", "Read the note above the presets"],
+      "expected": "The Split says the split is fixed for good once the season opens and explains that it determines how the season's impact certificate is shared",
+      "evidence": "Screenshot of The Split note",
+      "role": "steward",
+      "tags": ["garden-pool", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-post-stack-review-2026-09-23"
+    },
+    {
+      "id": "ADM-172",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "Split presets name every role and its share",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
+      "steps": [
+        "Open Set Up Commitments and go to The Split",
+        "Read the Garden-led (standard) preset"
+      ],
+      "expected": "The preset maps its six shares to Gardeners 60 %, Treasury 15 %, Steward 10 %, Evaluator 5 %, Community 5 %, and Funder 5 %",
+      "evidence": "Screenshot of the preset",
+      "role": "steward",
+      "tags": ["garden-pool", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-post-stack-review-2026-09-23"
+    },
+    {
+      "id": "ADM-173",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "Each split share explains its purpose",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
+      "steps": ["Open Set Up Commitments and go to The Split", "Read the hint under each share"],
+      "expected": "Each of the six shares has a role-specific hint explaining what the allocation is for",
+      "evidence": "Screenshot of the share hints",
+      "role": "steward",
+      "tags": ["garden-pool", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-post-stack-review-2026-09-23"
+    },
+    {
+      "id": "ADM-174",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "Setup names the final write before it begins",
+      "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
+      "steps": [
+        "Open Set Up Commitments and reach the final review",
+        "Read the final action, then discard the flow"
+      ],
+      "expected": "The final action reads Set Up and Open, and discarding the flow sends nothing",
+      "evidence": "Screenshot of the final review",
+      "role": "steward",
+      "tags": ["garden-pool", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-post-stack-review-2026-09-23"
+    },
+    {
+      "id": "ADM-175",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "A running season blocks starting a second one with a recovery path",
+      "preconditions": ["Steward with manage rights on a garden with a running season"],
+      "steps": [
+        "Open Start Season and read The Season step",
+        "Read the warning and the available action without sending a transaction"
+      ],
+      "expected": "The warning names the running season and says to end it when nothing in it is live or start a campaign beside it; the flow does not offer a second season send",
+      "evidence": "Screenshot of The Season warning and action state",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "copy"],
+      "requiresProduction": false,
+      "status": "retired",
+      "retiredOn": "2026-09-24",
+      "retiredReason": "The running-season state does not expose Start Season, so the described wizard cannot be opened. The reachable pool-card action state is checked by ADM-172.",
+      "replacedBy": ["ADM-176"],
+      "source": "qa-post-stack-review-2026-09-23"
+    },
+    {
+      "id": "ADM-176",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Garden · Pool",
+      "scenario": "A running season leaves campaign creation available without offering a second season",
+      "preconditions": [
+        "Steward with manage rights on an open garden pool with a running season and campaign creation available"
+      ],
+      "steps": [
+        "Open the Garden Pool tab and read the current season card",
+        "Check the available cycle actions without sending a transaction"
+      ],
+      "expected": "The running season is named, Start Season is unavailable, and the steward can start a campaign beside it",
+      "evidence": "Screenshot of the running season card and its cycle actions",
+      "role": "steward",
+      "tags": ["garden-pool", "cycle", "copy"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-post-stack-review-2026-09-24"
+    },
+    {
+      "id": "ADM-177",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Hub · Work",
+      "scenario": "Rejecting work asks for a reason and sends it as the gardener's feedback",
+      "preconditions": ["Steward session; a pending submission it is safe to reject"],
+      "steps": [
+        "Open the submission from /hub/work and type a note in Feedback",
+        "Press Reject and read the Reject Work dialog",
+        "Clear the reason, then choose a suggested reason or write one",
+        "Press Reject Work and approve the wallet prompt",
+        "Reopen the work and read its review summary",
+        "As the gardener, open the work in the app and read its details"
+      ],
+      "expected": "Reject opens Reject Work instead of sending; the dialog names the work and the gardener and starts from the typed note; Reject Work stays disabled while the reason is empty; the review summary shows the reason as the feedback the gardener reads; in the app, the gardener's work detail leads with Review feedback showing the same reason",
+      "evidence": "Screenshots of the Reject Work dialog, the review summary, and the gardener's work detail",
+      "role": "steward",
+      "tags": ["review", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-178",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Hub · Work",
+      "scenario": "Waiting work reads as its age, and a garden reads Critical only when review has stalled",
+      "preconditions": [
+        "Steward session; a garden with pending work submitted more than a week ago"
+      ],
+      "steps": [
+        "Open /hub/work and read the cards and the header",
+        "Open the garden's Overview and read Garden Health: its status, its alert, and Median review time",
+        "Compare them with when the garden's last review landed"
+      ],
+      "expected": "Cards read a neutral Pending with 'submitted <age>'; the header counts work waiting over a week in plain ink; the garden reads Critical with 'No reviews in 7 days' only when no review landed in the last week, and otherwise Needs attention with the count of work waiting over a week; Median review time reads in days, or weeks past two weeks",
+      "evidence": "Screenshots of the Hub queue and Garden Health",
+      "role": "steward",
+      "tags": ["review"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-179",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Settings",
+      "scenario": "Edit Garden says how many wallet confirmations a save takes and shows each one landing",
+      "preconditions": ["Steward session on a garden it can edit"],
+      "steps": [
+        "Press Edit Garden and change the description and open joining",
+        "Read the footer before saving",
+        "Press Save Changes and confirm each wallet prompt, reading the rows as they move",
+        "Press Done"
+      ],
+      "expected": "Before saving the footer reads '2 changes · 2 wallet confirmations'; once saving starts the form gives way to two rows numbered 1 and 2 that read 'Waiting for your wallet' in turn and then 'Confirmed' with a link to each transaction; the footer ends on 'All changes saved' and Done closes the dialog",
+      "evidence": "Screenshots of the footer before saving and of the rows after the save",
+      "role": "steward",
+      "tags": ["tx", "garden"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-180",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "data-integrity",
+      "area": "Community · Endowment",
+      "scenario": "Endowment amounts name their asset and never add different assets together",
+      "preconditions": [
+        "Steward session on a garden with net deposits in two vault assets, such as WETH and DAI"
+      ],
+      "steps": [
+        "Open the garden's Overview and read Endowments under Garden Health",
+        "Open Community and read the header's endowment",
+        "Open the Endowment tab and read Total value locked there and on the vault page"
+      ],
+      "expected": "Every endowment amount lists each held asset with its symbol, such as '0.0005 WETH · 12 DAI'; the Endowment tab lists one line per asset; no amount appears without its asset or as one number made of both",
+      "evidence": "Screenshots of each amount",
+      "role": "steward",
+      "tags": ["endowment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-181",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Community · Payouts",
+      "scenario": "A garden without a payout jar keeps Fund Cookie Jar in place, disabled, and says why",
+      "preconditions": ["Steward session on a garden that has no payout cookie jar"],
+      "steps": [
+        "Open Community and hover Fund Cookie Jar in the header",
+        "At phone width, open the actions menu",
+        "Open the Payouts tab"
+      ],
+      "expected": "Fund Cookie Jar stays in its place but disabled, and hovering it reads 'This garden has no payout jar yet.'; the phone menu shows the same reason under the disabled action; the Payouts tab says payout jars are set up when a garden is created and whom to ask",
+      "evidence": "Screenshots of the header action, the phone menu, and the Payouts tab",
+      "role": "steward",
+      "tags": ["funding"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-182",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "data-integrity",
+      "area": "Community · Members",
+      "scenario": "Member counts count people, not role seats",
+      "preconditions": [
+        "Steward session on a garden where at least one member holds several roles"
+      ],
+      "steps": [
+        "Open Community, then Members, and read Total members in the rail",
+        "Count the people in the directory, then open Manage Members and read its count and rows",
+        "At phone width, read the role filter"
+      ],
+      "expected": "Total members, the directory, and Manage Members agree on the number of people; a member with several roles is one row with a chip per role; role counts appear only in the role filter, which is a select at phone width",
+      "evidence": "Screenshots of the rail, the dialog, and the phone filter",
+      "role": "steward",
+      "tags": ["garden"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-183",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "At 360 and 375 pixels the phone chrome fits in English, Spanish, and Portuguese",
+      "preconditions": [
+        "Admin open on the Hub of a garden with a long name, such as the Green Goods Community Garden"
+      ],
+      "steps": [
+        "At 375 pixels read the garden chip beside the refresh and bell buttons",
+        "At 360 and 375 pixels read every bottom navigation label in English, Spanish, and Portuguese",
+        "Read the Hub's stage tabs, then scroll them"
+      ],
+      "expected": "The chip ends before the refresh and bell and truncates a long name; every navigation label shows whole in its own tab (Community, Comunidad, Comunidade); a tab row wider than the screen fades the edge it clips and snaps tabs as it scrolls",
+      "evidence": "Screenshots at 360 and 375 pixels in each language",
+      "role": "steward",
+      "tags": ["shell", "responsive", "i18n"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-184",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Garden · Health",
+      "scenario": "On a phone, Garden Health leads with Attention Needed",
+      "preconditions": ["Steward session on a garden with at least one alert"],
+      "steps": ["At phone width open Garden → Health", "Widen the window past 768 pixels"],
+      "expected": "On a phone Attention Needed is the first card, above the health card, and the rest of the rail follows the main column; wider, Attention Needed returns to the rail",
+      "evidence": "Screenshots at 375 and 1280 pixels",
+      "role": "steward",
+      "tags": ["responsive"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-185",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "The floating action button shows its primary action's icon",
+      "preconditions": ["Steward session at phone width"],
+      "steps": [
+        "On Garden, Community, and the Hub read the floating action button",
+        "Open its menu, then close it"
+      ],
+      "expected": "Garden's button shows Edit Garden's gear, Community's shows Add Member's icon, and the Hub's shows a plus; while the menu is open the button shows a close icon",
+      "evidence": "Screenshots of each button closed and open",
+      "role": "steward",
+      "tags": ["shell", "responsive"],
+      "requiresProduction": false,
+      "status": "retired",
+      "source": "steward-cockpit-ux-2026-09-25",
+      "retiredOn": "2026-10-04",
+      "retiredReason": "Its result changed: the button no longer borrows its first action's icon. It shows a plus in every workspace, so the gear on Garden and the Add Member icon on Community this case expected no longer appear.",
+      "replacedBy": ["ADM-197"]
+    },
+    {
+      "id": "ADM-186",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Hub",
+      "scenario": "The Hub's three actions are outlined, with Submit Work rightmost",
+      "preconditions": ["Steward session that can submit and review work, at desktop width"],
+      "steps": [
+        "Open each Hub stage and read the header actions",
+        "At phone width open the floating action button"
+      ],
+      "expected": "Create Assessment, Create Hypercert, and Submit Work render outlined on every stage, so no action outshouts the queue; Submit Work stays rightmost and is the action nearest the phone button",
+      "evidence": "Screenshot of the Hub header",
+      "role": "steward",
+      "tags": ["hub"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-187",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Actions",
+      "scenario": "The Actions workspace is purple in light and dark",
+      "preconditions": ["Deployer session"],
+      "steps": [
+        "Open /actions in light, then in dark",
+        "Read the active tab, the active navigation item, Create Action, and the canvas wash"
+      ],
+      "expected": "The workspace tone is purple, never the error red, in both themes; Create Action's label reads clearly on its fill",
+      "evidence": "Screenshots in light and dark",
+      "role": "steward",
+      "tags": ["design"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-188",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Community · Payouts",
+      "scenario": "Campaign Cookie Jars live on the Green Goods Community Garden's Payouts, for deployers only",
+      "preconditions": ["Deployer session"],
+      "steps": [
+        "Select the Green Goods Community Garden and open Community → Payouts",
+        "Press Create Cookie Jar, move through the steps, and close the dialog with edits in it",
+        "Select another garden and open Payouts"
+      ],
+      "expected": "Campaign Cookie Jars sits on the protocol garden's Payouts with its campaign list and Create Cookie Jar in its header; Create Cookie Jar opens a flow dialog, and closing it with edits asks to discard them; another garden's Payouts shows no Campaign Cookie Jars",
+      "evidence": "Screenshots of the card, the flow's first step, and Review",
+      "role": "steward",
+      "tags": ["funding"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "steward-cockpit-ux-2026-09-25"
+    },
+    {
+      "id": "ADM-189",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Garden · Pool",
+      "scenario": "Seed rows with closed actions stay out of the queue, including tray retries",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden action whose Work window is ending"
+      ],
+      "steps": [
+        "Open Seed a Commitment and choose Garden work",
+        "Inspect the Action chooser after the action closes",
+        "Prepare a tray row while an action is open, then let it close before Create All or a retry",
+        "Review the result and edit the unsent row"
+      ],
+      "expected": "Closed actions are absent from new choices and a selected one is named as closed; the closed row is never queued, while other valid rows may continue, and the unsent row remains editable",
+      "evidence": "Screenshots of the closed choice and unsent row",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "actions", "time"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "pooling-review-2026-09-27"
     },
     {
       "id": "ADM-057",
@@ -5658,12 +6564,12 @@
       "scenario": "Start a season and open it to the garden",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
-        "Press Start Season and complete the cycle form",
-        "Read the season in the cycles list",
-        "Press Open to the Garden",
+        "Press Start Season, complete the cycle form, and confirm its ordered wallet prompts",
+        "Read the opened season in the cycles list",
+        "Read the completed flow before closing it",
         "Read the Pool tab in the app"
       ],
-      "expected": "The season is created in its starting state and listed with its dates; Open to the Garden moves it to open in one transaction; the app's seasons and campaigns rail shows it as open",
+      "expected": "The flow seeds and opens the season in order; the cycles list shows its dates and Open state, and the app's seasons and campaigns rail shows it as open",
       "evidence": "Screenshots of the cycles list and the app's rail",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -5797,7 +6703,7 @@
       "area": "Garden · Pool",
       "scenario": "Close the pool",
       "preconditions": [
-        "Steward with manage rights on a garden with an open pool and no live commitments"
+        "Steward with manage rights on a garden with an open pool, no live commitments, and every season and campaign finished"
       ],
       "steps": [
         "Press Close Pool… and read the confirmation",
@@ -5857,7 +6763,7 @@
       "status": "retired",
       "retiredOn": "2026-09-23",
       "retiredReason": "Its result changed: a save no longer sends one transaction. The dialog says how many times the wallet will ask and shows each change landing (ADM-147); a save stopped partway names what was saved, and Try Again sends only the rest (ADM-148). Closing with an unsaved change is ADM-149.",
-      "replacedBy": ["ADM-147", "ADM-148", "ADM-149"],
+      "replacedBy": ["ADM-147", "ADM-149"],
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
@@ -5918,7 +6824,10 @@
       "area": "Garden · Pool",
       "scenario": "Closing Pool Settings with an unsaved change asks Discard Changes?",
       "preconditions": ["Steward with manage rights on a garden with a pool"],
-      "steps": ["Press Edit Pool and change a setting", "Close the dialog without saving"],
+      "steps": [
+        "Press Edit Pool and change a setting",
+        "Close the dialog without saving, choose Keep Editing, and verify the change remains; close again and choose Discard"
+      ],
       "expected": "Closing asks Discard Changes? before anything is lost; Keep Editing returns to the change, and Discard closes the dialog with nothing sent",
       "evidence": "Screenshot of the Discard Changes? prompt",
       "role": "steward",
@@ -5960,11 +6869,13 @@
       "kind": "transaction",
       "area": "Garden · Pool",
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
-      "preconditions": ["Garden pool open"],
+      "preconditions": [
+        "Garden pool open; the separate local Garden commitment names an independent Garden steward or evaluator as confirmer, never its contributor"
+      ],
       "steps": [
         "Run the 4-step seed wizard",
         "Add named confirmers incl. one bad address",
-        "Review, press Seed This Commitment, and confirm in the wallet"
+        "Review, press Seed This Commitment, and confirm in the wallet, then press Done and verify the wizard closes"
       ],
       "expected": "Each step validates before Next; a bad or duplicate confirmer address is rejected visibly; the review reads every answer back before anything is sent; seeding asks the wallet to confirm one creation, and the wizard shows it as Created until Done closes it",
       "evidence": "Screenshots of the rejected confirmer and the review",
@@ -5986,7 +6897,7 @@
         "Steward with manage rights on a garden whose settlement account is active, so Celo G$ settlement can be chosen"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step and open Advanced: declared reward",
+        "Run the seed wizard to its Proof & Confirmation step and answer Yes to Declare a reward",
         "Choose Celo G$ settlement and type 10 in Amount (G$)",
         "Try an amount with more than 18 decimal places, then type 10 again and go on to the review",
         "Read the reward on the review and cancel out"
@@ -6012,7 +6923,7 @@
         "The address of a 6-decimal ERC-20 token on the pool's chain, such as USDC, and an address it is paid from"
       ],
       "steps": [
-        "Run the seed wizard to its Proof & Confirmation step, open Advanced: declared reward, and choose External payout record",
+        "Run the seed wizard to its Proof & Confirmation step, answer Yes to Declare a reward, and choose External payout record",
         "Read the amount field, then enter the token address and the Paid from address and read it again",
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"
@@ -6173,11 +7084,11 @@
       ],
       "steps": [
         "Open the claims card on /garden/pool and read the request",
-        "Press Accept and confirm in the wallet",
+        "Press Accept and observe Confirm in your wallet. while the prompt remains open, then confirm it",
         "Read the request's row until it leaves the list"
       ],
       "expected": "The request names who asks: a garden by its name, a person by their name when one resolves and otherwise by a short address; Accept sends at once, and the row says Confirm in your wallet., then Confirming on Arbitrum One… (or the network in use), then Accepted. The request leaves this list once the index shows it.; the row's acts stay closed until it leaves",
-      "evidence": "Screenshots of the row while confirming and once accepted",
+      "evidence": "Screenshots of the row while signing, confirming, and once accepted",
       "role": "steward",
       "tags": ["garden-pool", "claim", "tx"],
       "requiresProduction": false,
@@ -6219,14 +7130,14 @@
       "scenario": "Each count on the pool tab lands on exactly what it counts",
       "preconditions": [
         "Steward with manage rights on a garden with an open pool",
-        "At least one past-due commitment (as for ADM-064) and one claim request waiting (PWA-085); where one exists, a disputed commitment as well (ADM-077)"
+        "At least one past-due commitment (as for ADM-064) and one claim request waiting (PWA-085); where one exists, a disputed commitment as well (ADM-077); a second selected garden has zero claims, recovery, and past-due counts"
       ],
       "steps": [
         "Open /garden/pool and read the counts at the top: Claims waiting, Needs recovery, and Past due",
         "Press the Claims waiting count",
         "Press the Needs recovery count and read the commitments list",
         "Press the Past due count and read the list",
-        "Where a count reads 0, try to press it"
+        "Select the second garden, read its zero counts, and try to press each one"
       ],
       "expected": "The counts sit in one card, each number over its label; Claims waiting lands on the claims card; Needs recovery lands on the commitments list showing only the disputed and past-due commitments, each once, with the Needs recovery chip selected; Past due lands on the list showing only the past-due ones with the Past due chip selected; a count of 0 is plain text and goes nowhere",
       "evidence": "Screenshots of the counts and of each filtered list",
@@ -6372,8 +7283,11 @@
       "role": "steward",
       "tags": ["garden-pool", "commitment", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-readiness-catalog-2026-09-21"
+      "status": "retired",
+      "source": "qa-readiness-catalog-2026-09-21",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Creation signing depends on wallet capability: atomic bundles of up to ten promises or one prompt per promise; unconditional sequential prompt counts no longer describe this flow.",
+      "replacedBy": ["ADM-190"]
     },
     {
       "id": "ADM-130",
@@ -6451,14 +7365,15 @@
       "scenario": "Declining one wallet prompt in a batch skips that commitment only",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
+        "A wallet without atomic bundle support; the Review note says it asks once per promise",
         "The seed wizard open on its review with three commitments in the sitting: compose one, press Add Another Like This and change the title, twice"
       ],
       "steps": [
-        "Press Create All (3)",
-        "Reject the first wallet prompt, confirm the second, and reject the third",
-        "Read the wizard, press Back to Review, and read the review and the pool's list"
+        "Press Create 3 Promises",
+        "Reject the first wallet prompt, confirm the second and reject the third",
+        "Read the partial result and the retained answers on Review, then inspect the pool list"
       ],
-      "expected": "The wallet asks about every commitment, whatever was rejected before it; the wizard stays open on 1 commitment created and 2 not sent, with nothing created for them; back on the review it says 1 commitment was sent and 2 could not be sent, so nothing was created for them; both are still there marked Not sent, one under Added so far and one as This one; the confirmed one appears in the list; the button reads Create All (2)",
+      "expected": "The wallet asks about every promise in this individual pass, whatever was rejected before it. The dialog reports one created and two that did not send; the confirmed promise appears once in the pool list. The two unsent promises retain their answers and original identities for Try Again (2); the already-created promise stays locked and is not included in that retry. No promise is created for either declined request.",
       "evidence": "Screenshots of the review after the batch and of the list",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -6476,11 +7391,12 @@
       "scenario": "A commitment left Not sent is sent again as itself and lands once",
       "preconditions": [
         "Steward with manage rights, signed in with a wallet",
+        "A wallet without atomic bundle support; the Review note says it asks once per promise",
         "The seed wizard still open with commitments marked Not sent (ADM-131)"
       ],
       "steps": [
-        "Press Create All (2) and confirm both wallet prompts",
-        "Read the wizard, press Done, and read the pool's list"
+        "Press Try Again (2) and confirm both individual wallet prompts",
+        "Read the completed result, press Done and inspect the pool list"
       ],
       "expected": "Each remaining commitment is sent and the wizard ends on them as Created; every title from the sitting appears in the list exactly once, with no second copy of the one sent earlier",
       "evidence": "Screenshot of the list with each title once",
@@ -6506,15 +7422,18 @@
         "Press Create All (2) and read the wizard while the first wallet prompt is open",
         "Confirm it, and read the wizard while the second prompt is open",
         "Confirm the second and read the wizard when it finishes",
-        "Press View on one row"
+        "Press View on one row, then press Done and verify the wizard closes"
       ],
       "expected": "While the wallet asks, the wizard lists both commitments under one line that says Confirm in your wallet (1 of 2), then (2 of 2), and a row reads Created once the chain has it; the wizard ends on 2 commitments created. with each row Created and a View link that opens its transaction; Done closes it",
       "evidence": "Screenshots of the wizard during the pass and at the end",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
       "requiresProduction": false,
-      "status": "active",
-      "source": "qa-design-audit-wave-1-2026-09-23"
+      "status": "retired",
+      "source": "qa-design-audit-wave-1-2026-09-23",
+      "retiredOn": "2026-10-01",
+      "retiredReason": "Creation progress distinguishes atomic bundle requests from individual wallet prompts and reports current per-copy outcomes; the fixed two-prompt progress and transaction-row UI are superseded.",
+      "replacedBy": ["ADM-191"]
     },
     {
       "id": "ADM-133",
@@ -6691,7 +7610,9 @@
       "kind": "transaction",
       "area": "Garden · Commitment",
       "scenario": "Send a commitment for confirmation from the inspector",
-      "preconditions": ["Steward on the commitment's roster as provider, with evidence submitted"],
+      "preconditions": [
+        "Steward on the commitment's roster as provider, with evidence submitted; a distinct confirming account has ordinary confirmation authority in the selected garden"
+      ],
       "steps": [
         "Open /garden/pool and the commitment",
         "Press Send for Confirmation",
@@ -7569,14 +8490,14 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Community · Members",
-      "scenario": "Remove a member with confirmation",
+      "scenario": "Remove one role from a member, with confirmation",
       "preconditions": ["Steward with manage rights", "A member who is not a steward"],
       "steps": [
-        "Open Manage Members",
-        "Press Remove Member on the member and cancel",
-        "Press Remove Member again and confirm"
+        "Open Manage Members and find a member who holds two roles",
+        "Press the remove on one of their role chips and cancel",
+        "Press it again and confirm"
       ],
-      "expected": "Removal asks for confirmation naming the member; Cancel changes nothing; Confirm sends one transaction, the member leaves the directory, and the gardener's app no longer lists the garden under My gardens",
+      "expected": "The member has one row with a chip per role, each with its own remove named for the role ('Remove Gardener'); removal asks for confirmation naming the member and the role; Cancel changes nothing; Confirm sends one transaction and only that role leaves the row, which stays listed with the member's other role",
       "evidence": "Screenshots of the confirmation and the directory afterwards",
       "role": "steward",
       "tags": ["members", "tx"],
@@ -7835,7 +8756,10 @@
       "kind": "journey",
       "area": "Community · Coordination",
       "scenario": "A protocol transfer names its receiving garden and is reviewed before it is sent",
-      "preconditions": ["Protocol steward", "A queued protocol transfer (ADM-045)"],
+      "preconditions": [
+        "Protocol steward connected with an account permitted to dispatch protocol transfers",
+        "A queued protocol transfer (ADM-045)"
+      ],
       "steps": [
         "Read the queued row on the protocol funding card on /community/coordination",
         "Press Dispatch… and read the review",
@@ -7908,7 +8832,7 @@
         "Approve and deposit at the wallet",
         "Read the vault position and events"
       ],
-      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the position, net deposited, and events update",
+      "expected": "The dialog states the deposit limit and refuses an amount above it with the reason; a vault that is not auto-allocated says the module owner must enable it and takes no deposit; a valid amount approves then deposits with 'Depositing...' progress and 'Deposit completed successfully'; the vault's net deposited row and the page's total, named by asset, update with the events",
       "evidence": "Screenshots of the refused amount and the completed deposit",
       "role": "steward",
       "tags": ["endowment", "tx"],
@@ -7948,7 +8872,7 @@
       "scenario": "Harvest vault yield and read the split report",
       "preconditions": ["Steward with manage rights on a garden whose vault has accrued yield"],
       "steps": [
-        "Open the vault view and press Harvest",
+        "Open the vault view and press Harvest & Distribute",
         "Confirm at the wallet",
         "Read the harvest outcome alert and the harvest count"
       ],
@@ -7994,9 +8918,9 @@
       "steps": [
         "Open /community/payouts and press Fund Cookie Jar",
         "Enter an amount and confirm approve then deposit",
-        "Read the jar balance and the allocation events"
+        "Read the jar balance and Payouts so far"
       ],
-      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; the allocation events list the deposit",
+      "expected": "The deposit dialog approves then deposits with progress; the jar balance and payout readiness update; Payouts so far counts yield payouts, so a deposit leaves it unchanged",
       "evidence": "Screenshots of the deposit and the updated balance",
       "role": "steward",
       "tags": ["payouts", "tx"],
@@ -8175,12 +9099,12 @@
       "scenario": "Deploy a campaign cookie jar",
       "preconditions": ["Deployer identity", "A campaign image", "A configured jar factory"],
       "steps": [
-        "Open /cookies and press Create Cookie Jar",
-        "Fill the campaign, payout, and eligible gardens sections and review",
-        "Press Create jar and confirm at the wallet",
+        "As the deployer, select the Green Goods Community Garden, open Community → Payouts, and press Create Cookie Jar in Campaign Cookie Jars",
+        "Go through Campaign, Payout, and Eligible gardens, then read Review",
+        "Press Create Cookie Jar and confirm at the wallet",
         "Read the on-chain readback"
       ],
-      "expected": "The review lists campaign, payout, and eligible gardens; the deploy pins the image and sends one transaction; the readback shows balance and per-steward claim; if the transaction returns no address, Use jar address accepts a pasted address to recover",
+      "expected": "Create Cookie Jar opens as a flow dialog that steps through Campaign, Payout, Eligible gardens, and Review, with Advanced as a detour on Review; Review lists the payout, selected gardens, stewards who can claim, gardens without a steward, and the campaign page; the create pins the image and sends one transaction; the readback shows balance and per-steward claim; if the transaction returns no address, Use jar address accepts a pasted address to recover",
       "evidence": "Screenshots of the review and the readback",
       "role": "steward",
       "tags": ["cookies", "tx"],
@@ -8198,7 +9122,7 @@
       "scenario": "Sync the allowlist and grant or revoke extra addresses on a campaign jar",
       "preconditions": ["Jar owner or ops Safe connected", "A deployed campaign jar"],
       "steps": [
-        "Open the jar panel and press Sync Allowlist",
+        "Open a jar from Campaign Cookie Jars on the Green Goods Community Garden's Payouts and press Sync Allowlist",
         "Grant an extra address, then Revoke it",
         "Enter an invalid address"
       ],
@@ -8217,14 +9141,14 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Cookies",
-      "scenario": "Cookie jar routes are deployer-gated and the unconfigured factory is honest",
+      "scenario": "Campaign cookie jars are deployer-only, live in the protocol garden, and the unconfigured factory is honest",
       "preconditions": ["A steward identity that is not a deployer", "A deployer identity"],
       "steps": [
         "As the steward open /cookies and /cookies/deploy",
-        "As the deployer open both",
-        "Where the factory is not configured, read the empty state"
+        "As the deployer open both, then open Payouts in a garden other than the Green Goods Community Garden",
+        "Where the factory is not configured, read Campaign Cookie Jars"
       ],
-      "expected": "The steward gets an honest gate, never a blank shell; the deployer sees the jar list and the deploy form; a missing factory is explained instead of a broken form",
+      "expected": "The steward gets an honest gate, never a blank shell; for the deployer /cookies lands on the Green Goods Community Garden's Payouts with Campaign Cookie Jars in view and /cookies/deploy opens Create Cookie Jar; another garden's Payouts shows no Campaign Cookie Jars; a missing factory is explained instead of a broken form",
       "evidence": "Screenshots of the gate and the deployer view",
       "role": "steward",
       "tags": ["cookies", "roles"],
@@ -9395,6 +10319,281 @@
       "retiredReason": "Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface",
       "replacedBy": ["PUB-003", "ADM-031"],
       "source": "drive-test-cases-2025-12"
+    },
+    {
+      "id": "PWA-136",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Work",
+      "scenario": "Resume and discard saved work drafts from Your Work Pending and its Editing filter",
+      "preconditions": [
+        "Two saved work drafts, one with a photo and filled garden, action and details",
+        "Another non-draft item in Your Work Pending so Editing can be distinguished from All"
+      ],
+      "steps": [
+        "Open Your Work from the Home header and read the Pending tab",
+        "Choose Editing and read both draft rows and the count",
+        "Resume the draft with a photo and inspect the restored wizard",
+        "Return to Pending, choose Editing and press Discard on the other draft",
+        "Cancel the draft confirmation once, then confirm it"
+      ],
+      "expected": "Drafts share Pending with other unfinished items; Editing shows only saved work and proof drafts, with the two work drafts counted and marked Draft. Resume restores the chosen draft's garden, action, media and details. Discard asks for confirmation; Cancel keeps that draft, while confirming removes that draft and its attachments and updates the count without changing the other draft or non-draft pending item.",
+      "evidence": "Screenshots of Pending and Editing, the restored wizard and the discard confirmation",
+      "role": "gardener",
+      "tags": ["my-work", "draft"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "PWA-137",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Commitments",
+      "scenario": "Proof accepts photos, video, voice, links or words and blocks empty or invalid content",
+      "preconditions": [
+        "A commitment awaiting proof with a gardener entitled to add evidence",
+        "One valid sample for each content type: photo, video, voice note, http(s) link and non-empty words"
+      ],
+      "steps": [
+        "Open Add Proof and read the Media, Details and Review steps",
+        "Continue past Media with no attachment; leave Details empty and try to continue to Review",
+        "Try each content type on its own, removing the previous sample, and keep at least one gardener credited",
+        "Remove all credit once, try an invalid link once, then restore valid content and credit",
+        "Preview and remove photo, video and voice samples, then add the chosen proof",
+        "Interrupt one submission before it is admitted to the queue; correct the visible failure and submit once"
+      ],
+      "expected": "Media can be skipped; Details cannot advance with no content, whitespace-only words, no credited gardener or an invalid link. One photo, video, voice note, valid web link or non-empty words satisfies the content minimum without requiring another type. Add, preview and remove preserve the chosen content; a failed submission keeps the composer and its answers, while a successful submission admits one proof and shows its honest queue state.",
+      "evidence": "Screenshots of the empty and invalid gates, each single-content Review, the credited gardeners and the failure/recovery state",
+      "role": "gardener",
+      "tags": ["commitments", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-190",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Seed several independent promises with the prompt count matched to wallet capability",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "An open pool with room for the chosen promise count",
+        "Wallets with and without atomic bundle support, with each capability recorded for the walk"
+      ],
+      "steps": [
+        "Run Seed Promises to Review for one promise and press Add Another Like This",
+        "Verify the answers were kept, change the title and return to Review",
+        "Read the total and wallet note, then press Create 2 Promises and answer the wallet requests",
+        "Repeat the two-promise pass with the other wallet capability",
+        "With the bundling wallet, repeat with eleven independent promises and read the note and requests",
+        "Press Done after each completed pass and inspect the pool list"
+      ],
+      "expected": "Add Another Like This keeps the answers and Review includes both promises. For two promises, an atomic-capable wallet is asked once for both; a wallet without that capability is asked twice, one per promise. Atomic requests contain at most ten, so eleven promises use two requests. The note predicts the actual request count, and each created child exists once with its own lifecycle even when compatible children appear as one display group. Done closes the dialog.",
+      "evidence": "Screenshots of Review and wallet-count notes for both capabilities, the eleven-promise bundle boundary, and the resulting pool entries",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-191",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "transaction",
+      "area": "Garden · Pool",
+      "scenario": "Creation progress follows bundle requests or individual prompts and reports the final promise count",
+      "preconditions": [
+        "Steward with manage rights, signed in with a wallet",
+        "Seed Promises open on Review with two promises: compose one, press Add Another Like This and change the title",
+        "Wallets with and without atomic bundle support, with each capability recorded for the walk"
+      ],
+      "steps": [
+        "With the bundling wallet, press Create 2 Promises and read the dialog while its single request is open",
+        "Approve the request and read the creating and final outcome states",
+        "Repeat with the non-bundling wallet, reading the first and second prompt states and created count as each completes",
+        "Press Done and inspect both independent promises in the pool list"
+      ],
+      "expected": "The bundling pass names two promises in one wallet request, then waits for chain confirmation before reporting them created; it does not invent a second prompt. The individual pass identifies the current prompt out of two and increases the created count as each child lands. Answers and editing controls stay locked while a pass is in flight. Both paths finish with two promises created and no duplicate child; Done closes the dialog. Creation is reported only after the corresponding chain result, never from approval alone.",
+      "evidence": "Screenshots of the bundle and individual prompt states, confirmation wait, final count and pool entries",
+      "role": "steward",
+      "tags": ["garden-pool", "commitment", "queue", "tx"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-integration-corrections-2026-10-01"
+    },
+    {
+      "id": "ADM-192",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Work",
+      "scenario": "Work tab keeps approved work under an Approved scope",
+      "preconditions": [
+        "Steward with manage rights",
+        "A garden with pending work and approved work"
+      ],
+      "steps": [
+        "Open /hub/work and read the Pending and Approved chips beside the search",
+        "Press Approved, open an approved work, and close it",
+        "Press Pending"
+      ],
+      "expected": "Pending lists work waiting for review and Approved lists approved work, each card marked with its state; the Work tab's count stays the pending count in both scopes; closing a work opened from Approved returns to Approved; no tab presents approved work as an assessment queue",
+      "evidence": "Screenshots of both scopes",
+      "role": "steward",
+      "tags": ["hub", "work", "work-queue"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-193",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Assessments",
+      "scenario": "Assessments tab lists the garden's assessments and opens each record",
+      "preconditions": ["Steward of a garden with at least two assessments"],
+      "steps": [
+        "Open /hub/assess and read the list and the tab rail",
+        "Open an assessment and read its record",
+        "Follow View Assessment on EAS Explorer, then close the record"
+      ],
+      "expected": "Every assessment of the selected garden is listed newest first with its domain and reporting period, and the tab carries no count; the record shows the description, domain, reporting period, location, author and date, links to the attestation, and offers Create Hypercert; the Assessments tab stays selected behind the open record",
+      "evidence": "Screenshots of the list and an open record",
+      "role": "steward",
+      "tags": ["hub", "assess", "assessment"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-194",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub · Hypercerts",
+      "scenario": "Hypercerts tab lists the garden's minted hypercerts",
+      "preconditions": [
+        "Steward of a garden with at least one minted hypercert and one assessment"
+      ],
+      "steps": ["Open /hub/certify and read the list and the tab rail", "Open a hypercert"],
+      "expected": "Minted hypercerts are listed newest first with their mint date and work scopes; no assessment appears as ready to certify, and the tab carries no count; opening a hypercert shows its record on /garden/impact",
+      "evidence": "Screenshots of the list and the opened hypercert",
+      "role": "steward",
+      "tags": ["hub", "certify", "hypercert"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-195",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "content",
+      "area": "Hub",
+      "scenario": "Empty Assessments and Hypercerts tabs say what they hold and when they are needed",
+      "preconditions": ["Steward of a garden with no assessments and no hypercerts"],
+      "steps": [
+        "Open /hub/assess and read the empty state",
+        "Open /hub/certify and read the empty state",
+        "Type a word nothing matches into the search",
+        "Repeat in Spanish and Portuguese"
+      ],
+      "expected": "Assessments says what an assessment records, that one is written when a period opens, and that it is optional and never holds up a season, and offers Create Assessment; Hypercerts says what a hypercert is and when to create one, and offers Create Hypercert; a search that finds nothing says so and offers Clear Search, never the empty-tab copy; all of it reads in each language",
+      "evidence": "Screenshots of both empty states per language",
+      "role": "steward",
+      "tags": ["hub", "empty-state"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-196",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P1",
+      "kind": "journey",
+      "area": "Hub",
+      "scenario": "An evaluator sees Assessments and Hypercerts, and no Work tab",
+      "preconditions": [
+        "Signed in as an evaluator of the garden who is neither an owner nor a steward",
+        "The garden has at least one assessment"
+      ],
+      "steps": [
+        "Open /hub and read the tab rail",
+        "Open an assessment's record",
+        "Open Hypercerts"
+      ],
+      "expected": "The rail shows Assessments and Hypercerts and no Work tab, and /hub lands on Assessments; Create Assessment is offered; an assessment's record and the Hypercerts tab offer no Create Hypercert, and the record says only garden owners and stewards can create the hypercert",
+      "evidence": "Screenshots of the rail and the record",
+      "role": "any",
+      "tags": ["hub", "permissions"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "PWA-138",
+      "tab": "PWA",
+      "platform": "Desktop Browser (PWA shell)",
+      "priority": "P0",
+      "kind": "journey",
+      "area": "Work",
+      "scenario": "Start Fresh on a saved work draft keeps the draft in Your Work",
+      "preconditions": ["One saved work draft with a photo and a filled garden and action"],
+      "steps": [
+        "Reload the app, open Submit Work and read the sheet",
+        "Choose Start Fresh and inspect the wizard",
+        "Choose a different action and garden, then leave Submit Work",
+        "Open Your Work, choose Editing and read both draft rows",
+        "Resume the first draft and inspect the restored wizard"
+      ],
+      "expected": "The sheet offers Continue Draft and Start Fresh and says the draft stays in Your Work. Start Fresh opens an empty wizard without asking to discard anything. Editing then lists two drafts: the new one and the first, unchanged with its photo. Resuming the first restores its garden, action and photo.",
+      "evidence": "Screenshots of the sheet, the empty wizard, Editing with both drafts and the restored wizard",
+      "role": "gardener",
+      "tags": ["work-submission", "draft", "my-work"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
+    },
+    {
+      "id": "ADM-197",
+      "tab": "Admin Dashboard",
+      "platform": "Chromium Desktop",
+      "priority": "P2",
+      "kind": "journey",
+      "area": "Shell",
+      "scenario": "The floating action button shows a plus in every workspace",
+      "preconditions": [
+        "Steward session at phone width",
+        "A deployer session for the Actions button, which only a deployer has"
+      ],
+      "steps": [
+        "On Garden, Community, and the Hub read the floating action button",
+        "Open its menu and read the actions, then close it",
+        "On Actions read the button, and as a deployer press it"
+      ],
+      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own colour (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
+      "evidence": "Screenshots of each button closed and one menu open",
+      "role": "steward",
+      "tags": ["shell", "responsive"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "qa-session-2026-10-01"
     }
   ]
 }

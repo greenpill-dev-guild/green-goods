@@ -1,4 +1,4 @@
-/** @vitest-environment jsdom */
+/** @vitest-environment happy-dom */
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobQueueDB } from "../../modules/job-queue/db";
@@ -8,6 +8,10 @@ import {
   releaseWorkClaims,
   saveUnderClaim,
 } from "../../modules/job-queue/work-claims";
+import {
+  hasActiveWorkExecution,
+  subscribeToWorkExecution,
+} from "../../modules/work/execution-state";
 import { acquireWorkJobs } from "../../modules/work/work-confirmation";
 
 let sequence = 0;
@@ -24,6 +28,7 @@ async function queuedWork(): Promise<string> {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("claims for preparing and uploading queued work", () => {
@@ -60,6 +65,45 @@ describe("claims for preparing and uploading queued work", () => {
     ).rejects.toThrow("submission-ownership-changed");
     expect((await jobQueueDB.getJob(id))?.meta?.preparation).toBeDefined();
     await other?.release();
+  });
+
+  it("stays this tab's until storage has let go of it, and lets go even when storage refuses", async () => {
+    const id = await queuedWork();
+    const claim = await acquireWorkJobs([id]);
+    const heard = vi.fn();
+    const leave = subscribeToWorkExecution(heard);
+
+    // Storage is slow to let go, as it is on a busy phone.
+    const releaseStored = jobQueueDB.releaseExecutionClaim.bind(jobQueueDB);
+    let finish = () => {};
+    const stored = vi.spyOn(jobQueueDB, "releaseExecutionClaim");
+    stored.mockImplementationOnce(async (ids, token) => {
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      await releaseStored(ids, token);
+    });
+    const released = claim?.release();
+
+    // The claim still holds back an app update and keeps a second holder in this tab out. A
+    // restart let through here would leave the stored claim to shut the job out of the next page.
+    expect(hasActiveWorkExecution()).toBe(true);
+    expect(heard).not.toHaveBeenCalled();
+    expect(await acquireWorkJobs([id])).toBeNull();
+
+    finish();
+    await released;
+    expect(hasActiveWorkExecution()).toBe(false);
+    expect(heard).toHaveBeenCalledTimes(1);
+
+    // Storage that refuses the release must not leave this tab holding the job for good.
+    const next = await acquireWorkJobs([id]);
+    stored.mockRejectedValueOnce(new Error("storage refused"));
+    await expect(next?.release()).rejects.toThrow("storage refused");
+    expect(hasActiveWorkExecution()).toBe(false);
+
+    leave();
+    await releaseStored([id], next?.token ?? "");
   });
 
   it("keeps a claim alive until it is stopped", async () => {

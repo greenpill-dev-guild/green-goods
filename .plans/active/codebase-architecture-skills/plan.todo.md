@@ -2,11 +2,15 @@
 
 **Feature Slug**: `codebase-architecture-skills`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `ACTIVE — agent workflow observations and four remaining pilot categories`
 **Created**: `2026-08-24`
-**Last Updated**: `2026-08-24`
+**Last Updated**: `2026-10-06`
 **Historical predecessor**: `module-seams-and-velocity`, closed `completed` on 2026-08-24 — see the [archive ledger](../../ARCHIVE.md); the hub itself lives only in Git history.
 **Coordination boundary**: `../client-structure-and-agent-guides/` owns AGENTS/CLAUDE consolidation.
+
+## Status reconciliation (2026-10-06)
+
+The coverage-ratchet checkpoint closed by decision D3 on September 28. PRD-835 remains In Progress for the separate workflow reliability follow-up. Codex hook loading and one ordinary bug-fix observation are recorded; Claude Desktop Code and four pilot categories remain pending. Historical QA passes certify their original scope, not the reopened follow-up.
 
 ## Decision Log
 
@@ -22,6 +26,7 @@
 | 8 | Keep coverage scheduled/manual and separate from direct proof. | Fast loops and architecture certification answer different questions. |
 | 9 | Apply Matt Pocock's concepts, not his output mechanics. | Green Goods retains its own workflow, safety, and tracking contracts. |
 | 10 | Keep the hub active through the 2026-09-22 coverage checkpoint. | A future ratchet is tracked, not silently marked complete. |
+| 11 | Close the 2026-09-22 two-point ratchet without raising any global floor (Afo, 2026-09-28, D3 in `test-budget-and-ci-speed`). | The eleven measured critical-path floors replace it; global floors and parity arrays stay unchanged. |
 
 ## Requirements Coverage
 
@@ -36,7 +41,7 @@
 | Builder documentation alignment | `state_api` | 7 | complete |
 | Ship, push, and exact-SHA coverage evidence | `qa_pass_1` | 8 | complete |
 | Independent seam/readiness review | `qa_pass_2` | 9 | complete |
-| Two-point coverage ratchet review | `state_api` | 10 | due 2026-09-22 |
+| Two-point coverage ratchet review | `state_api` | 10 | closed 2026-09-28 by decision 11 (no raise) |
 
 ## Implementation Steps
 
@@ -52,8 +57,9 @@
 8. [x] Run scoped checks and the exact-path Ship Gate, commit directly on `develop`, refresh and safely
    push, dispatch coverage for the integration SHA, and record the receipt.
 9. [x] Run a fresh read-only module-seams/readiness review over the committed range and close findings.
-10. On 2026-09-22, raise supported coverage floors by two points with matching parity updates; if
-    evidence is insufficient, record the blocker and keep the hub active.
+10. [x] Closed on 2026-09-28 by decision 11 instead of the scheduled two-point raise: the eleven
+    measured critical-path floors replace the ratchet, and global floors and parity arrays stay
+    unchanged ([test-budget hub](../test-budget-and-ci-speed/plan.todo.md), D3).
 
 ## Deferred Candidate Cards
 
@@ -114,5 +120,19 @@
   - Shared: `62.76 / 54.01 / 61.29 / 64.29` against floors `61 / 52 / 59 / 62`.
   - Admin: `52.75 / 48.37 / 47.38 / 54.39` against floors `51 / 47 / 44 / 53`.
   - Client: `64.87 / 57.69 / 63.62 / 66.56` against floors `63 / 56 / 62 / 64`.
-- The implementation is certified for its current scope. The Plan Hub and PRD-835 stay active only
-  for the separate `2026-09-22` two-point coverage-ratchet checkpoint.
+- The implementation is certified for its current scope. The `2026-09-22` coverage-ratchet checkpoint closed by D3 on September 28.
+  The Plan Hub and PRD-835 now stay active for the agent workflow reliability follow-up.
+## Agent workflow reliability follow-up — 2026-09-26
+
+Authorized by the user's implementation request; original architecture decisions and certification
+below remain historical. Execution and proof: [follow-up handoff](handoffs/agent-workflow-reliability.md).
+
+- [x] Correct advisory completion and idle events, with negative fixtures.
+- [x] Share command matching; retain the agreed per-harness enforcement behavior.
+- [x] Reconcile audit guidance and add the short worktree isolation clarification.
+- [x] Add warning-only personal skill availability to the existing doctor.
+- [x] Wire focused regression selection, verify receipt freshness, and run required checks;
+  the pre-existing Git-environment test failure is recorded in the handoff.
+- [x] Observe Codex session-context and pre/post-edit hook loading in a normal Codex app session; see the October 4 observation in `eval.md` for the event boundary.
+- [ ] Observe hook loading in a normal Claude Desktop Code session (pending).
+- [ ] Observe the five next authorized task scenarios in the evaluation rubric (one bug-fix observation recorded; four categories pending).

@@ -122,14 +122,23 @@ export function isHeicFile(file: Pick<File, "name" | "type">): boolean {
   );
 }
 
+/**
+ * A file that counts toward an action's required photos: a JPEG, PNG or WebP,
+ * and a HEIC still waiting to convert where the policy keeps one. A video never
+ * does. A step that holds a flow until the minimum is met counts with this, so
+ * it agrees with the check made when the work is sent.
+ */
+export function isWorkPhoto(file: File, policy: WorkAttachmentPolicy = {}): boolean {
+  return PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
+}
+
 export function validateWorkAttachments(
   media: File[],
   audio: File[] = [],
   minPhotos = 0,
   policy: WorkAttachmentPolicy = {}
 ): string[] {
-  const isPhoto = (file: File) =>
-    PHOTO_TYPES.has(file.type) || (policy.pendingHeic === "accept" && isHeicFile(file));
+  const isPhoto = (file: File) => isWorkPhoto(file, policy);
   const errors: string[] = [];
   if (media.filter(isPhoto).length < minPhotos) errors.push("photos-required");
   if (media.length > 10) errors.push("media-count");

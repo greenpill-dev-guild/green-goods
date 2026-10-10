@@ -2,6 +2,7 @@ import { RiSearchLine } from "@remixicon/react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen } from "../test-utils";
 import { AdminButton } from "../../components/AdminButton";
+import { AdminSideSheet } from "../../components/AdminSideSheet";
 import {
   ADMIN_FLOW_DIALOG_CLASS,
   AdminConfirmDialog,
@@ -94,8 +95,7 @@ describe("AdminDialog", () => {
     expect(dialog).toHaveClass("admin-dialog--palette");
     expect(dialog.className).toContain("left-1/2");
     expect(dialog.className).toContain("-translate-x-1/2");
-    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
-    expect(dialog.className).not.toContain("w-[100dvw]");
+    expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-2xl");
     expect(screen.getByLabelText("Search commands")).toBeInTheDocument();
   });
 
@@ -175,7 +175,7 @@ describe("AdminConfirmDialog", () => {
     expect(document.querySelector('[data-slot="target"]')).toBeNull();
   });
 
-  it("keeps confirm dialogs on the compact mobile geometry", () => {
+  it("keeps confirm dialogs full width on mobile and capped on desktop", () => {
     renderWithProviders(
       <AdminConfirmDialog
         isOpen
@@ -190,8 +190,7 @@ describe("AdminConfirmDialog", () => {
     expect(dialog).toHaveAttribute("data-variant", "confirm");
     expect(dialog.className).toContain("left-1/2");
     expect(dialog.className).toContain("-translate-x-1/2");
-    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
-    expect(dialog.className).not.toContain("w-[100dvw]");
+    expect(dialog).toHaveClass("inset-x-0", "w-[100dvw]", "max-w-none", "sm:max-w-md");
   });
 
   it("locks confirmation dialogs while loading", () => {
@@ -212,5 +211,22 @@ describe("AdminConfirmDialog", () => {
     expect(screen.queryByLabelText("Close")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
+  });
+});
+
+describe("AdminSideSheet mobile geometry", () => {
+  it("opens global surfaces full width on mobile and keeps the desktop rail width", () => {
+    renderWithProviders(
+      <AdminSideSheet open onOpenChange={vi.fn()} title="Notifications">
+        <p>No new notifications</p>
+      </AdminSideSheet>
+    );
+
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toHaveClass(
+      "w-full",
+      "max-w-none",
+      "bottom-0",
+      "sm:w-[var(--admin-side-sheet-width)]"
+    );
   });
 });

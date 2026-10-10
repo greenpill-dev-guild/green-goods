@@ -1,6 +1,23 @@
 # Design Implementation
 
-Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in root `AGENTS.md § Known Gotchas`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
+Execution companion to the `design` skill: how to express Warm Earth *in code*. Direction lives in [SKILL.md](./SKILL.md) / [language.md](./language.md); runtime tokens in `packages/shared/src/styles/theme.css`. Generic Tailwind v4 / Radix / WCAG mechanics are model-known — this file holds only the repo-specific parts. Tailwind's shared-scan gotcha is in `packages/shared/AGENTS.md`; token roles and anti-patterns live in [language.md](./language.md) and [SKILL.md](./SKILL.md).
+
+## Platform and source rules
+
+Before frontend, UI, CSS, accessibility, or browser-proof work, use `modern-web-guidance` and
+retrieve current guidance with the repository-installed tool:
+
+```bash
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance search "agentic frontend CSS accessibility browser validation DevTools MCP"
+DISABLE_TELEMETRY=1 bun --bun modern-web-guidance retrieve accessibility
+```
+
+Target Baseline Widely Available. Prefer semantic HTML, native controls, and platform CSS;
+keep focus, accessible names, touch targets, loading/error/empty states, and reduced motion usable.
+Root `DESIGN.md` owns tokens; `packages/shared/src/styles/theme.css` is their runtime projection.
+Use semantic color, radius, material, and spring tokens rather than raw values. Use Remixicon.
+The owning surface's `DESIGN.md` and package guide govern its UI; use the shared
+[alignment protocol](system-alignment-review.md) for a full design-system review.
 
 ## New Component Runbook
 
@@ -24,7 +41,7 @@ Linear path from blank file to merge-ready.
 
 ## Dialogs — two project wrappers over Radix `Dialog.*`
 
-Both own mobile bottom-sheet + viewport width cap — consumers must **not** restate `max-w-*` (guarded; see frontend-design Rule 14). Raw Radix `Dialog.*` only when neither wrapper fits.
+Both own full-width mobile bottom sheets + desktop viewport width caps — consumers must **not** restate `max-w-*` (guarded; see frontend-design Rule 14). Every mobile bottom sheet spans the viewport width, with padding inside the surface; this also applies to public editorial sheets and `AdminSideSheet`. Raw Radix `Dialog.*` only when neither wrapper fits.
 
 - **`DialogShell`** — client / shared default. `packages/shared/src/components/Dialog/DialogShell.tsx`, exported from `@green-goods/shared` and `@green-goods/shared/components/Dialog/DialogShell`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`, centered width), `sheetSize?` (`compact|half|tall|full`, the narrow-viewport height tier, DL-014), `actions?` (`SheetActionsProps`: `primary`, `secondary`, a rare `tertiary`, `layout` `stack|steps`, DL-016), `children`, `preventClose?`, `hideCloseButton?`. Owns z-layering. Below 640px it renders the shared `PwaSheet` bottom sheet (drag handle, shared header, scrollable body) into `<body>`; the centered Radix surface only mounts at `sm`+. Every open sheet or dialog registers itself so the PWA AppBar steps aside (DL-015). `ConfirmDialog` follows the same split, so drafts, deletes, and every other confirm share one sheet in the installed app. Actions are data, not buttons: pass `actions` and the shared `SheetActions` bar (`@green-goods/shared/components/Dialog/SheetActions`) pins them under the body, stacked with the primary on top below 640px and one right-aligned row above. `PwaSheet` and the client `AppSheet` take the same `actions` prop. `PwaSheet` also owns every sheet's motion (DL-033): the slide in, the drag from the grip or the header's title block, backdrop and drag dismissal, and the exit on `--spring-spatial-exit`; a consumer never animates a sheet or binds its own drag, and holds dismissal during in-flight work with `preventClose`. **Never in admin.**
 - **`AdminDialog`** — admin dashboard default, strict M3. `packages/admin/src/components/AdminDialog.tsx` (+ `AdminConfirmDialog`). Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`, `size` (`sm|md|lg` — three tiers by action weight), `variant` (`standard|confirm|palette|flow`), `tone` (`hub|garden|community|actions|home` — required in-portal; the portal escapes `[data-tone]`, so unset falls back to green), `preventClose?`. `palette` backs the command palette; `flow` + `ADMIN_FLOW_DIALOG_CLASS` (with `size="lg"`) backs full-surface flows (Submit Work, Create Assessment, Create Hypercert). No `size="fullscreen"` — retired and enforced by check-tokens.sh. Size/variant standard: [prompt-contract.md § Dialog size & variant standard](./prompt-contract.md).
@@ -64,4 +81,6 @@ Baseline + directional (forwards / backwards / fade) + reduced-motion gating are
 
 ## Validation roll-up
 
-`bun run check --only design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run check --only vocabulary` · when a component / story / Storybook surface changes: `bun run --filter @green-goods/shared check:stories` + `check:story-quality`.
+Follow [the validation pipeline](../../context/validation-pipeline.md) for `agentic-readiness`,
+DesignMD/generated/token checks, vocabulary, and applicable Storybook coverage and quality proof.
+Label rendered proof per [Browser Evidence](../../../AGENTS.md#browser-evidence).
