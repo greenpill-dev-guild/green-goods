@@ -141,13 +141,24 @@ describe("steward review", () => {
       transactionHash: hash,
     });
     await harness.drain();
-    expect(sentTexts().at(-1)).toBe(
-      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}`
-    );
-    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
-      url: `https://arbitrum.easscan.org/attestation/view/${workUID}`,
-      label: "View the work",
-    });
+    const { decisionUID } = harness.core.db
+      .query(
+        "SELECT attestation_uid AS decisionUID FROM execution_operations WHERE kind = 'review'"
+      )
+      .get() as { decisionUID: string };
+    // Three 32-byte identifiers that must not trade places: the decision's own attestation, the
+    // transaction that carried it, and the work it decided.
+    expect(new Set([decisionUID, hash, workUID]).size).toBe(3);
+    const recorded = harness.transport.sent.at(-1)?.message;
+    expect(recorded?.text).toBe("Your review is recorded ✅");
+    expect(recorded?.records).toEqual([
+      {
+        url: `https://arbitrum.easscan.org/attestation/view/${decisionUID}`,
+        label: "View attestation",
+      },
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+      { url: `https://arbitrum.easscan.org/attestation/view/${workUID}`, label: "View the work" },
+    ]);
     expect(harness.chain.works.get(workUID)?.approved).toBe(true);
     expect(harness.core.db.query("SELECT lifecycle FROM review_intents").get()).toEqual({
       lifecycle: "recorded",
