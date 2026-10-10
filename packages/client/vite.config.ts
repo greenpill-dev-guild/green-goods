@@ -606,6 +606,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── the service worker (src/sw/sw.ts) ──
+        // It is not reached from index.html, so the scan misses its imports too. A page that
+        // registers the dev worker, as the browser suite's do, asks for them at request time.
+        "workbox-background-sync",
+        "workbox-cacheable-response",
+        "workbox-expiration",
+        "workbox-precaching",
+        "workbox-routing",
+        "workbox-strategies",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
