@@ -11,7 +11,7 @@ import { invalidateConfirmation, recordConfirmation } from "../confirmations";
 import { enqueueJob } from "../jobs";
 import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import { commitReview, type ReviewRecord, reviewState } from "../reviews";
-import { accountLink } from "./account-steps";
+import { accountLink } from "./account-link";
 import type { ChatCommand } from "./commands";
 import type { TurnPlan } from "./context";
 import { nextReviewStep } from "./review-prompts";

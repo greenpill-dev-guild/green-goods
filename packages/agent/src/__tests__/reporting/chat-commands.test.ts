@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isGreeting, parseCommand } from "../../services/reporting/coordinator/commands";
+import {
+  commandReplyId,
+  isGreeting,
+  parseCommand,
+  replyCommand,
+} from "../../services/reporting/coordinator/commands";
 
 /** Account requests in plain words are commands; a story that shares a word with one is not. */
 describe("account requests in plain words", () => {
@@ -34,6 +39,24 @@ describe("account requests in plain words", () => {
     "change",
   ])("leaves %s for the report", (text) => {
     expect(parseCommand(text)).toBeNull();
+  });
+
+  it("reads a garden word alone as a command, and a command button as its word", () => {
+    expect(["GARDEN", "huerto", "hortas"].map((text) => parseCommand(text)?.kind)).toEqual([
+      "garden",
+      "garden",
+      "garden",
+    ]);
+    expect(["join", "unirme", "participar"].map((text) => parseCommand(text)?.kind)).toEqual([
+      "join",
+      "join",
+      "join",
+    ]);
+    // A story that names a garden, or a button of some question, is neither.
+    expect(parseCommand("garden beds weeded")).toBeNull();
+    expect(replyCommand(commandReplyId("garden"))).toEqual({ kind: "garden" });
+    expect(replyCommand("p:prompt-1:0")).toBeNull();
+    expect(replyCommand(commandReplyId("planted"))).toBeNull();
   });
 
   it("knows a hello from a story", () => {

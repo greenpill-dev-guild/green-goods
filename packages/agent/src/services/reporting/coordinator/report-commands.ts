@@ -15,7 +15,8 @@ import { closeConversationPrompt, resolvePrompt } from "../prompts";
 import type { ChatCommand } from "./commands";
 import { commitLifecycle, EDITABLE_STATES, lifecycleState } from "./draft-commit";
 import { askEditMenu } from "./edit-menu";
-import { gardenLabel, promptNextStep } from "./prompting";
+import { askGarden, askJoin, sayJoin } from "./garden-step";
+import { askAnotherGarden, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnExternal } from "./report-work";
 import type { TurnWriter } from "./writer";
 
@@ -47,6 +48,8 @@ export function confirmDraft(
   const draft = ctx.draft;
   const prompt = ctx.prompt;
   if (!draft) return writer.say("report.noStatus");
+  // A report whose garden has left the list cannot be published, so it is not confirmed either.
+  if (askAnotherGarden(writer, draft, ctx.account?.address ?? null)) return;
   const current =
     prompt?.kind === "confirm_report" &&
     prompt.subjectId === draft.id &&
@@ -157,6 +160,19 @@ export function handleReportCommand(
     case "edit":
       if (draft && EDITABLE_STATES.has(lifecycleState(draft))) return askEditMenu(writer, draft);
       return writer.say(draft ? "report.frozen" : "report.noStatus");
+    case "garden":
+      // The same question EDIT reaches through its menu, one word away.
+      if (draft && EDITABLE_STATES.has(lifecycleState(draft)))
+        return askGarden(writer, draft, ctx.account?.address ?? null);
+      return writer.say(draft ? "report.frozen" : "report.noStatus");
+    case "join": {
+      const account = ctx.account?.address;
+      if (!account) return writer.say("link.notLinked");
+      // A report that can still change its garden gets the way back to its gardens with it.
+      if (draft && EDITABLE_STATES.has(lifecycleState(draft)))
+        return askJoin(writer, draft, account);
+      return sayJoin(writer, account);
+    }
     case "new":
       return writer.say(draft ? "report.resumeFirst" : "report.newStarted");
     case "status": {

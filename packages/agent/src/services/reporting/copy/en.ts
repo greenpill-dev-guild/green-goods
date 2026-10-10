@@ -19,9 +19,9 @@ export const EN_REPORTING_COPY = {
   "link.disconnectHint":
     "To disconnect this chat from your account, send DISCONNECT. To use a different account, send SWITCH.",
   "report.explainGarden":
-    "A garden is the community or place your work belongs to. Pick the one where you did this work.",
+    "These are the gardens your account is in. Pick the one where you did this work, or join another garden.",
   "report.explainGardenUnlinked":
-    "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and see your own gardens first.",
+    "A garden is the community or place your work belongs to. Pick the one where you did this work, or send CONNECT to link your account and choose from your own gardens.",
   "report.explainAction":
     "These are the kinds of work {garden} is tracking right now. Pick the closest match to what you did; the details come next.",
   "report.explainField": "{title}: {hint}. Pick the option that fits best.",
@@ -41,7 +41,7 @@ export const EN_REPORTING_COPY = {
     "You've stopped the assistant. I won't read new messages until you send START. Published reports stay public; unpublished drafts are being removed. Support: {support}",
   "consent.deleted":
     "Your unpublished drafts and files are being deleted. Published reports stay public on chain and IPFS and can't be removed. Support: {support}",
-  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
+  help: "Green Goods reporting:\n• Describe your work and send photos to start a report.\n• NEW starts a new report, STATUS shows where you are, CANCEL cancels the current report.\n• GARDEN changes the garden for your report, and JOIN shows how to join another garden.\n• Stewards: send REVIEW to see work waiting for review.\n• CONNECT, or your account address on its own, links your Green Goods account: open the verification link I send and send the six-digit code alone in this chat. You can link Telegram and WhatsApp to the same account. RECOVER reconnects an account after losing chat access.\n• DISCONNECT unlinks your account from this chat, and SWITCH links a different one.\n• STOP stops processing, DELETE removes unpublished data.\nSupport: {support}",
   "intake.paused":
     "Reporting is paused for maintenance. Your message is saved and I'll reply when it resumes. Support: {support}",
   "media.photoAdded": "Photo added to your report.",
@@ -83,9 +83,27 @@ export const EN_REPORTING_COPY = {
     "I read the spreadsheet's visible cells, but couldn't read its pictures or charts. Please check the summary before confirming.",
   "report.askGarden": "Which garden is this report for?",
   "report.askOwnGarden": "Which of your gardens is this report for?",
-  "report.otherGardens": "Other gardens",
+  "report.joinAnother": "Join another garden",
+  "report.changeGarden": "Change garden",
+  "report.gardenTaken": "{garden} is your only garden, so I'll use it for this report.{how}",
+  "report.gardenTakenWords": " Send GARDEN to change it, or JOIN to join another garden.",
+  "report.gardenDropped": "This account isn't in {garden}, so your report needs another garden.",
+  "report.gardenUnlisted":
+    "The garden this report was for no longer takes reports from chat, so it needs another garden.",
+  "report.joinFirst":
+    "I don't see {account} in a garden yet, so there's nowhere to send this report. It's saved.\n\nJoin the Community Garden below, or ask a steward of your garden to add this account. A garden you just joined can take a few minutes to show here.",
+  "report.joinFirstSteward":
+    "I don't see {account} in a garden yet, so there's nowhere to send this report. It's saved.\n\nAsk a steward of your garden to add this account. It can take a few minutes to show here once they do.",
+  "report.joinAnotherHow":
+    "Your account {account} can report to the gardens it's in.\n\nTo add one, join the Community Garden below, or ask a steward of another garden to add this account. A garden you just joined can take a few minutes to show here.",
+  "report.joinAnotherSteward":
+    "Your account {account} can report to the gardens it's in. To add one, ask a steward of that garden to add this account. It can take a few minutes to show here once they do.",
+  "report.checkAgain": "Check again",
+  "report.showMyGardens": "Show my gardens",
   "report.gardensUnavailable":
     "I can't load the list of gardens right now. Your message is saved; please send another message in a few minutes. Support: {support}",
+  "report.ownGardensUnavailable":
+    "I can't load your gardens right now. That's a problem on my side, and your report is saved. Tap Try again or send any message.",
   "report.questionPosition": "{position} of {total} · ",
   "report.actionAdoptedOne":
     "Got it: {action} at {garden}. 1 quick question, then a summary to check.",
@@ -179,6 +197,7 @@ export const EN_REPORTING_COPY = {
   "link.paired": "Your account {account} is now linked.{gardens}",
   "link.gardens": "\nYour gardens: {gardens}.",
   "link.gardensMore": "{gardens} and {count} more",
+  "link.gardensUnknown": "\nI can't load your gardens right now.",
   "link.joinCommunity": "Open this link to join the Community Garden with {account}.",
   "link.joinCommunityQuestion":
     "I don't see your account in this garden yet. Join the Community Garden, then tap I've joined.",
