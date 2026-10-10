@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import ceremony from "./CeremonyView.stories";
 import { RecoveryView } from "./RecoveryView";
 
@@ -72,6 +74,28 @@ export const Code: Story = {
 /** A code that didn't match is the field's own error, in the place its hint holds. */
 export const CodeWrong: Story = { args: { ...Code.args, error: "wrong_code" } };
 export const Confirm: Story = { args: { ...Code.args, stage: "confirm" } };
+/**
+ * Confirm Code and Move My Account are one act in one place, so the button's node stays and only
+ * its name changes. The step has changed all the same, and its title takes focus: the person
+ * hears what moving the account does before they are on the act that does it.
+ */
+export const CodeConfirmed: Story = {
+  tags: ["storybook-ci"],
+  args: Code.args,
+  render: function CodeConfirmed(args) {
+    const [stage, setStage] = useState(args.stage);
+    return <RecoveryView {...args} stage={stage} confirmCode={async () => setStage("confirm")} />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByRole("textbox", { name: /6-digit code/ }), "123456");
+    const pressed = canvas.getByRole("button", { name: "Confirm Code" });
+    await userEvent.click(pressed);
+    const title = await canvas.findByRole("heading", { level: 1, name: "Move This Account?" });
+    await expect(canvas.getByRole("button", { name: "Move My Account" })).toBe(pressed);
+    await waitFor(() => expect(title).toHaveFocus());
+  },
+};
 export const Applying: Story = { args: { ...Code.args, stage: "applying" } };
 export const Applied: Story = { args: { ...Code.args, stage: "applied" } };
 export const Unavailable: Story = { args: { stage: "unavailable", error: "expired" } };
