@@ -29,7 +29,8 @@ First cohort, buyer, geography, workflow, commercial inputs and ask remain propo
 - [x] Receive visual feedback and revise: shorter cover, knowledge silos, no generated faces, right-side images and concrete solution.
 - [x] Discuss title typography and fuller cover copy; record the decisions: Fraunces upright, subtitle Option 1, composition C1.
 - [x] Produce the v3 cover: a rendered 400 and 500 pair, then the agreed Medium 500 cover with the accent green second line, as an editable PPTX with a browser render and a font bundle.
-- [ ] Align the solution composition on the same typographic rules and review it before the full deck.
+- [x] Build the solution-slide sample on the agreed rules with status labels and a single accent.
+- [ ] Review the solution sample; on acceptance, the full-deck item below proceeds.
 - [ ] Produce the next editable deck from aligned content and imagery, with all-slide inspection.
 - [x] Final link/claim/arithmetic/artifact checks and handoff; observed results in eval.md.
 - [x] Document the mesh, node-free start, extension hub, local setup, API boundaries, local AI and private/public separation.

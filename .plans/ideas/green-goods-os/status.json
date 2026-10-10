@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-08T16:08:51Z",
-    "updated_at": "2026-10-10T04:50:57Z"
+    "updated_at": "2026-10-10T05:18:10Z"
   },
   "links": {
     "brief": "brief.md",
@@ -56,7 +56,8 @@
     "Latest user feedback rejects the italic cover title and requests fuller subtext. Typography/copy discussion must precede further slide edits. Dedicated research/green-goods-pitch-handoff branch preserves the work; see handoffs/pitch-restart-prompt.md.",
     "User explicitly authorized committing and pushing the research notes to the existing research/green-goods-pitch-handoff branch through draft PR #1055. This publication scope includes only research Markdown/JSON; product implementation and hardware tests remain unapproved.",
     "9 October 2026 Pacific / 10 October UTC: cover typography and copy decided (Fraunces upright, no italic or green accent; 18-word land-stewards subtitle over three lines at 20 pt; composition C1). artifacts/visual-direction-v3 holds Regular 400 and Medium 500 cover variants; the weight choice is open. Fraunces Medium static fetched from Google Fonts into the bundle with approval; nothing installed. Renders are browser replicas, not native PPTX output.",
-    "9 October 2026 Pacific / 10 October UTC: title weight Medium 500 and the website accent green on the second title line chosen; the v3 checkpoint is the agreed one-slide cover. User authorized committing and pushing this work to the existing research/green-goods-pitch-handoff branch (draft PR #1055). Next: the solution-slide sample."
+    "9 October 2026 Pacific / 10 October UTC: title weight Medium 500 and the website accent green on the second title line chosen; the v3 checkpoint is the agreed one-slide cover. User authorized committing and pushing this work to the existing research/green-goods-pitch-handoff branch (draft PR #1055). Next: the solution-slide sample.",
+    "10 October 2026 UTC: solution-slide sample built from the v2 composition on the agreed rules (Fraunces Medium headings, one green accent on the title, status labels from the capability ledger, spec-driven PPTX and render); awaiting review before full-deck expansion."
   ],
   "lanes": {
     "ui": {

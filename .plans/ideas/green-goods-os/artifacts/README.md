@@ -1,12 +1,12 @@
 # Editable pitch deck and inspection artifacts
 
-## Current status: cover agreed, solution sample next
+## Current status: cover agreed, solution sample in review
 
-On 9 October 2026 Pacific (10 October UTC) the user accepted Fraunces upright for the title with no italic or green accent word, then chose an 18-word third-person subtitle for land stewards from measured options, kept the v2 panel composition, approved fetching the Fraunces Medium cut, and settled on Medium 500 with the second title line in the website's accent green. Start with the [continuation prompt](../handoffs/pitch-restart-prompt.md). The problem and solution compositions stay at v2; the solution sample and full-deck expansion follow.
+On 9 October 2026 Pacific (10 October UTC) the user accepted Fraunces upright for the title with no italic or green accent word, then chose an 18-word third-person subtitle for land stewards from measured options, kept the v2 panel composition, approved fetching the Fraunces Medium cut, and settled on Medium 500 with the second title line in the website's accent green. Start with the [continuation prompt](../handoffs/pitch-restart-prompt.md). A solution-slide sample on the same rules now awaits review; the problem composition stays at v2 until the full-deck pass.
 
-## Latest visual checkpoint: v3 cover
+## Latest visual checkpoint: v3 cover and solution sample
 
-[The agreed editable cover](visual-direction-v3/green-goods-pitch-cover-v3.pptx): one slide in Fraunces Medium 500 upright with the second title line in accent green, the 18-word subtitle and the v2 panel composition. The [decision record, measurements and limitations](visual-direction-v3/README.md) accompany it with [speaker notes](visual-direction-v3/speaker-notes.md) and a [verification receipt](visual-direction-v3/verification.json). The render is a headless Chromium replica of the slide geometry with the exact font files, not PowerPoint or Keynote output. The [v3 font bundle](green-goods-pitch-fonts-v3.zip) adds the Medium cut with provenance; nothing was installed.
+[The agreed editable cover](visual-direction-v3/green-goods-pitch-cover-v3.pptx): one slide in Fraunces Medium 500 upright with the second title line in accent green, the 18-word subtitle and the v2 panel composition. The [decision record, measurements and limitations](visual-direction-v3/README.md) accompany it with [speaker notes](visual-direction-v3/speaker-notes.md) and a [verification receipt](visual-direction-v3/verification.json). The render is a headless Chromium replica of the slide geometry with the exact font files, not PowerPoint or Keynote output. The [v3 font bundle](green-goods-pitch-fonts-v3.zip) adds the Medium cut with provenance; nothing was installed. The [solution-slide sample](visual-direction-v3/green-goods-pitch-solution-v3.pptx), built from the v2 solution composition with status labels and a single accent, sits beside the cover with its [render](visual-direction-v3/solution-01.png) and [receipt](visual-direction-v3/verification-solution.json); the decision record explains both.
 
 ## Previous checkpoint: v2 cover, problem and solution
 

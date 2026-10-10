@@ -37,6 +37,16 @@ Render: [slide-01.png](slide-01.png) at 1280 by 720, a headless Chromium 148 ren
 
 The PPTX passed stdlib structural checks: zip integrity, well-formed XML in every part, every relationship target present, every part typed, and a one-entry slide list. Slide text matches the copy above; notes carry the full proposition, sources and the typography decision; no em dashes; no commercial figures. Details and hashes are in [verification.json](verification.json); PPTX SHA-256 `9b99b2afc2216e2064fc779d4e9dd43b0f6333604e1464976245f84028a639fc`.
 
+## Solution sample
+
+Built 10 October 2026 UTC from the v2 solution composition on the agreed rules, for review before any full-deck expansion: [editable one-slide PPTX](green-goods-pitch-solution-v3.pptx), [render](solution-01.png) at 1280 by 720, [receipt](verification-solution.json), notes appended to [speaker-notes.md](speaker-notes.md).
+
+- **Typography.** Fraunces Medium headings: title 41.25 pt over two lines with 45 pt leading and the cover's tracking, sub-headings 22.5 pt. Inter body: lede 20 pt, activity lines 18 pt, footnote and caption 10.5 pt in stone `#78716C`.
+- **One green accent.** The second title line, "for land stewardship", takes the website accent `#1A7544`, matching the cover. The closing sovereignty line, green in v2, is now Fraunces Medium 20 pt charcoal so the slide carries one accent. Alternative if preferred: closing line green and the title all charcoal.
+- **Status labels.** Each activity carries an eyebrow in Inter 10.5 pt uppercase with 1 pt tracking: AVAILABLE TODAY for the record (work capture with notes and photos and steward review; R03, R06, R07, R09), PROPOSED for learning with other land stewards, and AVAILABLE TODAY, POOLING IN PROGRESS for organizing work and funding (approvals, donations and vault endowments; R09, R13, R14; commitment pooling deployed but not an available product flow; R11, R12). The record line now says reviews rather than readings, because sensor readings and imports are proposed. Labels describe inspected source at the pinned commit, not a live deployment check.
+- **Composition.** Text left, the v2 field-notebook scene right, unchanged and still conceptual with cropped hands only. Geometry in inches: title 0.667, 0.448 at 11.979 by 1.25; lede 0.667, 2.0; three blocks from 2.75 at a 1.17 pitch, with the label at the block top, the heading 0.24 below and the body 0.70 below; image 7.073, 2.75 at 5.594 by 3.521; caption 7.073, 6.37; closing line 0.667, 6.5; footnote 0.667, 7.115.
+- **Build and measurements.** One slide spec drives both the PPTX builder and the renderer, so positions, sizes, colours and text are identical by construction. Every text box fits on one line in its box with the exact fonts: widest body line 505 px of 560 px, widest label 340 px of 571 px. PPTX SHA-256 `fe67e5ff897bb80284d26dc3e8d09d5091bda2f0892d5d94d6d9d5d78ef47e63`.
+
 ## Files and source-to-claim index
 
 - [Editable presentation](green-goods-pitch-cover-v3.pptx), [speaker notes](speaker-notes.md), [verification receipt](verification.json), render above.
@@ -46,4 +56,4 @@ The PPTX passed stdlib structural checks: zip integrity, well-formed XML in ever
 
 ## Next step
 
-Produce the solution-slide sample on the same rules (Fraunces Medium upright headings, Inter body, green reserved for one accent, image right) from the v2 solution composition before expanding the full deck.
+Review the solution sample above. On acceptance, expand the full deck from the agreed narrative with the same spec-driven build: one spec per slide, Fraunces Medium headings, Inter body, one accent per slide, images right, status labels where capabilities are claimed, and source-bearing notes.
