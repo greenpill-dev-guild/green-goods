@@ -182,3 +182,53 @@ renders all 13 skills.
 - **Human gates open**: D12, the page-length gate, a Reference landing, the GitHub thread replies,
   and taking PR #795 out of draft.
 
+## Validation Receipt — QA round 1 (2026-10-10)
+
+- **Tested implementation commit SHAs**: `a7f89bd01` (site chrome: flat canvas, one sidebar
+  highlight, navbar and footer), `5ba4d32d0` (per-mode mermaid palettes, parseable lifecycle
+  diagrams, CopyCommand, command inventory order, testing guide order), `e747e18c8` (Deployments &
+  Addresses with linked addresses, data-driven entity matrix), `d33522ad3` (Personas under
+  Architecture, explained CI workflows, grouped contract operations, readable routing, status
+  table, onboarding projection), `efa625a01` (hand-written pages, design tokens projection and
+  component, six Storybook captures). The hub update is the commit after these.
+- **Run at (UTC)**: 2026-10-10T00:25:00Z to 2026-10-10T00:35:00Z
+- **Exact commands and results**:
+  `node --test scripts/docs/generate.test.mjs scripts/docs/mermaid-parse.test.mjs docs/scripts/llms.test.mjs docs/scripts/developer-guides.test.mjs docs/scripts/docs-audit.test.mjs docs/scripts/check-search-index.test.mjs scripts/quality/check-ontology.test.mjs scripts/quality/select-validation.test.mjs scripts/quality/task-routing-contract.test.mjs`
+  → 248/248 · `node scripts/docs/generate.mjs --check` → 16 projections current ·
+  `node scripts/quality/check-ontology.mjs` → all guards, 3 generated artifacts current ·
+  `node docs/scripts/docs-audit.mjs --ci` → exit 0, the two advisory endpoint notes only ·
+  `node scripts/quality/check-docs-design-parity.mjs` → 11 bindings aligned · in `docs/`:
+  `bun run test` 84/84, `bun run typecheck` clean, `bun run build` green (69 routes, search index
+  covers 69).
+- **Rendered proof** (docs local production build served on 127.0.0.1:3013, browser pane, light
+  and dark, desktop and the 375px mobile preset): one canvas (`html` and `body` the same color,
+  `.main-wrapper::before` is `none`); navbar Community, Builders, App, Admin; the Builders sidebar
+  starts Getting Started, First Contribution, Architecture; the active link is `rgb(26,117,68)` on
+  a 12% tint with an 8px radius and no left border, the parent category shows the color only, and
+  an open category's wrapper takes the same tint, on builders and community pages alike; footer
+  four links per column, titles `#171717` and links `#5c5c5c` on `#f7f7f7` in light mode;
+  code-block buttons at 0.55 opacity at rest and 0.9 on the mobile preset with no horizontal
+  scroll. Data model: 8 diagrams, 0 "Try again", 8 Expand controls, 5 mechanism tables; in dark
+  mode node fill `#14532d`, label `#dcfce7`. How It Works: both community diagrams render. Command
+  inventory: Repository root first, docs last, 247 copy buttons (the pane denies clipboard writes,
+  so the button shows "Copy failed", the designed fallback). Deployments & Addresses: Arbitrum One,
+  Celo, Ethereum Mainnet, Sepolia sections; 65 arbiscan, 14 celoscan and 9 easscan schema links;
+  117 copy buttons; the libraries collapsed. Entity matrix: Silvi "Vocabulary mapping only", ENS
+  lists its recorded networks, no Planned badge. Personas and Surfaces is first under Architecture
+  and the old reference slug still answers. Design: 16 swatches, 6 pairings, 4 type rows in the
+  brand Inter, 7 radii, 6 figures served (every image path answers 200). Architecture shows five
+  ideas and the arrow `contracts → indexer → shared → client / admin / agent`. Integrations: list,
+  status table (9 rows), ownership. Testing Guide: runners Storybook, Vitest, Playwright, Mocha,
+  Foundry; surfaces Client, Admin, Agent, Shared, Indexer, Contracts; 19 copy buttons. Product QA
+  titled and labelled as such with the current `bun run qa pull` and `bun run qa report` commands.
+  CI & GitHub Actions: Workflow, Purpose, Runs on, Required columns, CI Gate the only Yes, 16
+  sections.
+- **Validated paths**: `docs/`, `scripts/docs/`, `scripts/data/validation-policy.json`,
+  `scripts/data/workflow-catalog.json`, `scripts/quality/check-ontology.mjs`,
+  `scripts/quality/ontology-render.mjs`, `packages/shared/src/ontology/green-goods-ontology.json`,
+  `.github/workflows/docs.yml`, `.claude/skills/design/{review-checklist,ecosystem}.md`.
+- **Worktree identity**: `git status --porcelain=v1 --untracked-files=all -- docs scripts/docs scripts/data scripts/quality packages/shared/src/ontology .github/workflows/docs.yml` → empty after the content commits.
+- **Push gate**: run on the pushed head through this branch's own pre-push hook with the ontology
+  check and the nine docs test files as focus; the PR body records the result.
+- **Human gates open**: D12 (Afo judges the rendered Anatomy page), the page-length gate, a
+  Reference landing, and the merge.

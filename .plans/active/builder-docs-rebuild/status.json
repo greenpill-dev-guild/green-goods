@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-02T16:54:52.541Z",
-    "updated_at": "2026-10-09T22:30:00.000Z"
+    "updated_at": "2026-10-10T00:30:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -76,7 +76,7 @@
         "status": "green_recorded",
         "red": {
           "command": "node --test scripts/docs/generate.test.mjs",
-          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) — 1 file-level failure covering the 4 new behavior tests"
+          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) \u2014 1 file-level failure covering the 4 new behavior tests"
         },
         "green": {
           "command": "node --test scripts/docs/generate.test.mjs",
@@ -201,6 +201,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Merged origin/develop (55a67ae2b, the 2.0.0 sync) in e53c79bef with 22 conflicts resolved; fixed the last three Codex threads (owner approvals, three next steps, EAS and Tokenbound projections via ontology integrations); every gate green on the merged tree and the docs build at 69 routes. Open: D12, the length gate, a Reference landing, thread replies, and leaving draft (Afo)."
+    },
+    {
+      "timestamp": "2026-10-10T00:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "QA round 1 (decisions 15 to 20): thirty items from Afo's walk of the local build landed on the branch; chrome, diagrams, generated pages, hand-written pages, design tokens and Storybook captures. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

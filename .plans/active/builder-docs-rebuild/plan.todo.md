@@ -23,6 +23,12 @@
 | 12 | The integration projection stays English-only (Afo, 2026-09-23) | The docs site ships no locales, so routing its labels through i18n would add keys nobody reads; revisit if the docs add locales |
 | 13 | EAS and Tokenbound join the ontology's integration catalog, so every integration page with an on-chain footprint renders the deployment projection (2026-10-09, open to Afo's veto) | The catalog had been seeded from modules only; the resolvers and garden account contracts are deployed per network like any module, and Passkeys, with no deployment, says so in prose |
 | 14 | Develop merged into the branch a third time on 2026-10-09 (1182 commits, the 2.0.0 release sync), by merge again | Same reasoning as decision 8; the review threads stay anchored |
+| 15 | QA round 1 lands on the same PR (Afo, 2026-10-10): thirty review items from the local production build, all on `feature/builder-docs-rebuild` | One review surface and one CI stream, as decision 2 |
+| 16 | One sidebar highlight everywhere, the primary green from the app tokens; builder teal survives only as the Builder role accent (Afo, 2026-10-10) | The teal was off-brand in the sidebar and three active looks coexisted; `docs/README.md` keeps brand artwork colors out of UI tokens |
+| 17 | Personas and Surfaces moves under Architecture as its first entry, slug `/builders/architecture/personas`, with the old reference slug redirected (Afo, 2026-10-10) | The actors give the work-submission trace its context; the collapsed Reference group hid them |
+| 18 | Product Experience QA becomes Product QA and is condensed, overriding decision 7 for this round (Afo, 2026-10-10) | Afo asked for the rename and a lighter page; the qa-report stream keeps ownership afterwards |
+| 19 | Deployments & Addresses prints every recorded address and schema UID with explorer links from an explicit artifact allowlist; owners, deployers, managers, safes, signers and receipts are blocked by name and tested (2026-10-10) | Resolves the open Codex thread; the page is now the address reference its sidebar label promised |
+| 20 | Architecture reframes "three ideas" as five (adding opt-in modules and local-first capture with indexed reads) and the dependency arrow reads `contracts → indexer → shared → client / admin / agent` as data flow (Afo, 2026-10-10) | "Three ideas" sold the protocol short; the indexer belongs in the arrow |
 
 ## Requirements Coverage
 
@@ -109,6 +115,21 @@ Status (2026-10-09): develop merged in again (decision 14), the last three Codex
 (owner approvals, three next steps, projections on EAS and Tokenbound), and every gate re-run
 green on the merged tree; receipt in `handoffs/claude-ui.md`. What remains is Afo's: the three
 human gates below, the GitHub thread replies, and taking the PR out of draft.
+
+Status (2026-10-10): QA round 1 from Afo's walk of the local build, thirty items, all landed on the
+branch (decisions 15 to 20). Site chrome: flat canvas (the fixed gradient is gone), one sidebar
+highlight, no Brand kit in the navbar or the Builders sidebar, Admin instead of Dashboard, four
+links per footer column, a readable light-mode footer. Diagrams: per-mode mermaid palettes through
+a swizzled component, lifecycle arrows carry a short clause with the full mechanism in a table,
+and a jsdom parse test guards every generated diagram. Generated pages: Deployments & Addresses
+prints linked addresses, the entity matrix derives integration status from the catalog and the
+artifacts, Personas moved under Architecture, CI workflows explained from a catalog data file,
+contract operations grouped by verb, task routing and skills restructured, commands root-first with
+copy buttons, ONBOARDING.md and the design tokens embedded through projections. Hand-written pages:
+Getting Started refreshed, First Contribution de-duplicated, five ideas on Architecture with the
+indexer in the arrow, one package table, deeper package pages with screenshots, integrations status
+table, Product QA, design page with tokens and six Storybook captures. Receipt in
+`handoffs/claude-ui.md`.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
