@@ -5,7 +5,7 @@ import type { ReportingGarden } from "../../services/reporting/gardens";
 import { TestBrowser } from "./support/browser";
 import { AIYELOJA, TAS } from "./support/fixtures";
 import { adaAccount, bolaAccount, latestLink } from "./support/flows";
-import { ADA, Harness, type Person, summaryToken } from "./support/harness";
+import { ADA, BOLA, Harness, type Person, summaryToken } from "./support/harness";
 
 /**
  * Which gardens a linked chat may report to: its account's own, read from the garden directory.
@@ -47,6 +47,18 @@ async function pair(account: PrivateKeyAccount, person: Person = ADA): Promise<s
   await browser.open(latestLink(harness));
   const proof = await browser.prove(account);
   return harness.say(person, String(proof.body.pairingCode));
+}
+
+/** Sends a small photo with no words. */
+async function sendPhoto(person: Person, id: string): Promise<string[]> {
+  const photo = await sharp({
+    create: { width: 64, height: 48, channels: 3, background: "#2d6a4f" },
+  })
+    .jpeg()
+    .toBuffer();
+  harness.mediaFiles.set(id, new Uint8Array(photo));
+  const media = [{ providerMediaId: id, declaredMime: "image/jpeg" }];
+  return harness.say(person, "", { text: undefined, media });
 }
 
 /** Opens the chat, agrees to processing and links an account before any report. */
@@ -189,14 +201,38 @@ describe("a linked account's reporting gardens", () => {
     harness = new Harness();
     joins(adaAccount, TAS);
     await linked();
-    const photo = await sharp({
-      create: { width: 64, height: 48, channels: 3, background: "#2d6a4f" },
-    })
-      .jpeg()
-      .toBuffer();
-    harness.mediaFiles.set("photo-1", new Uint8Array(photo));
-    const media = [{ providerMediaId: "photo-1", declaredMime: "image/jpeg" }];
-    expect(await harness.say(ADA, "", { text: undefined, media })).toEqual([
+    expect(await sendPhoto(ADA, "photo-1")).toEqual([
+      `TAS ${ONLY_GARDEN}`,
+      "Photo added to your report.",
+      TAS_ACTIVITIES,
+    ]);
+  });
+
+  it("reads the garden list again before an account's gardens are shown or used", async () => {
+    harness = new Harness();
+    harness.gardens.cached = true;
+    joins(adaAccount, AIYELOJA);
+    await linked();
+    await harness.say(ADA, STORY);
+    // A steward adds Ada to TAS. The list was read a moment ago, so that read still serves.
+    joins(adaAccount, TAS);
+    expect(await harness.say(ADA, "JOIN")).toHaveLength(1);
+    expect((await harness.press(ADA, "Show my gardens"))[0]).not.toContain("TAS");
+    // Ten seconds on it is read again, here for an answer about a report that has its garden.
+    await harness.say(ADA, "JOIN");
+    harness.clock.advance(10_000);
+    expect(await harness.press(ADA, "Show my gardens")).toEqual([OWN_GARDENS]);
+
+    // A file can be processed long after the turn that brought it: Bola's photo fails to
+    // download, Bola is added to TAS, and the retry must not find Bola in no garden.
+    await linked(bolaAccount, BOLA);
+    harness.mediaFailures.remaining = 1;
+    expect(await sendPhoto(BOLA, "photo-2")).toEqual([]);
+    joins(bolaAccount, TAS);
+    harness.clock.advance(20_000);
+    const sent = harness.transport.sent.length;
+    await harness.drain();
+    expect(harness.transport.texts().slice(sent)).toEqual([
       `TAS ${ONLY_GARDEN}`,
       "Photo added to your report.",
       TAS_ACTIVITIES,

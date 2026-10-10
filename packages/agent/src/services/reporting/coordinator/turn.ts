@@ -1,6 +1,5 @@
 import { outstandingRequirements } from "@green-goods/shared/modules/agent-reporting";
 import type { Address } from "@green-goods/shared/types/domain";
-import { createLogger } from "../../logger";
 import type { CatalogResult, ReportingCatalog } from "../catalog";
 import { accountAwaitingPair } from "../channel-pairing";
 import { inTransaction } from "../database";
@@ -47,7 +46,7 @@ import {
 } from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
-import { answeredGarden } from "./garden-step";
+import { answeredGarden, readOwnGardens } from "./garden-step";
 import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
@@ -81,16 +80,8 @@ export interface CoordinatorDeps {
   >;
 }
 
-const log = createLogger("reporting");
-
 const MAX_REPLANS = 3;
 const PAUSE_RETRY_MS = 5 * 60 * 1000;
-/**
- * How old the garden list may be when a turn is about to use a linked account's gardens. Short
- * enough that Check again shows a garden joined a moment ago, long enough that taps and messages
- * in a row share one read of the indexer.
- */
-const OWN_GARDENS_MAX_AGE_MS = 10_000;
 
 const commandOf = (plan: TurnPlan) => (plan.kind === "command" ? plan.command.kind : null);
 
@@ -104,26 +95,6 @@ function turnAccount(core: ReportingCore, ctx: TurnContext, plan: TurnPlan): Add
       ? accountAwaitingPair(core, ctx.subjectId, ctx.binding.participantId, plan.command.code)
       : null;
   return pairing ?? ctx.account?.address ?? null;
-}
-
-/**
- * A turn about to use a linked account's gardens reads the list again first, unless it was read
- * moments ago. A garden joined on the link page a minute ago should be there, and an account must
- * not be told it has none from an old list. A read that fails is answered by the directory, which
- * then says the account's gardens cannot be read.
- */
-async function readOwnGardens(
-  core: ReportingCore,
-  ctx: TurnContext,
-  plan: TurnPlan,
-  account: Address | null
-): Promise<void> {
-  const command = commandOf(plan);
-  const asked = command === "pair" || command === "garden" || command === "join";
-  if (!account || !(asked || !ctx.draft?.content.garden)) return;
-  await core.gardens
-    .refresh(core.clock.now(), OWN_GARDENS_MAX_AGE_MS)
-    .catch((err) => log.warn({ err }, "Could not read the garden list for a linked chat"));
 }
 
 /** The garden whose activities a turn may need: the one its report will name when it ends. */
@@ -182,13 +153,15 @@ async function gatherExternal(
       .eligibleActions(place, core.clock.now())
       .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
   const account = turnAccount(core, ctx, plan);
-  await readOwnGardens(core, ctx, plan, account);
-  const scope = gardenScope(core.gardens, account);
-  let garden = reportGarden(core, ctx, plan, scope, account);
   // A tap on a button of an earlier question puts the report's open question again.
   const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
   const reportPlan =
     plan.kind === "message" || plan.kind === "answer" || plan.kind === "command" || reasks;
+  // Any of these may show or use a linked account's gardens: the garden question and its
+  // answers, a garden a model reads in a correction, a reply that names them.
+  if (account && reportPlan) await readOwnGardens(core);
+  const scope = gardenScope(core.gardens, account);
+  let garden = reportGarden(core, ctx, plan, scope, account);
   // The activities are read whenever the reply may have to offer them: while the report has
   // still to choose one, which a changed garden asks of it again, and for any answer.
   const draft = ctx.draft;

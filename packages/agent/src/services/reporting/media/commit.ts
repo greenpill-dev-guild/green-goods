@@ -9,7 +9,7 @@ import {
   lifecycleState,
   StaleDraftError,
 } from "../coordinator/draft-commit";
-import { announceGarden } from "../coordinator/garden-step";
+import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
 import { takeSoleGarden, type Working } from "../coordinator/report-work";
 import { inTransaction } from "../database";
@@ -83,8 +83,10 @@ export async function applyProcessedAsset(
 ): Promise<JobOutcome> {
   const garden = safeDraft(core, asset.draftId)?.content.garden;
   // A report with no garden yet takes its chat's only one below, so that garden's activities are
-  // the ones to read.
+  // the ones to read. A file can be processed well after the turn that brought it, so the
+  // account's gardens are read again first.
   const account = activeAccount(core, asset.participantId, core.settings.chainId);
+  if (account && !garden) await readOwnGardens(core);
   const listed = garden
     ? findGarden(core.gardens, garden.address)
     : soleGarden(gardenScope(core.gardens, account?.address ?? null));

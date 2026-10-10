@@ -1,11 +1,15 @@
 import type { Address } from "@green-goods/shared/types/domain";
+import { createLogger } from "../../logger";
 import type { ReportingCopyKey } from "../copy";
 import type { DraftRecord } from "../drafts";
 import { type GardenScope, gardenScope, gardensIn, type ReportingGarden } from "../gardens";
 import type { PromptOption, PromptRecord } from "../prompts";
+import type { ReportingCore } from "../runtime";
 import type { OutboundMessage } from "../transport";
 import { accountLink } from "./account-link";
 import type { ConversationWriter } from "./writer";
+
+const log = createLogger("reporting");
 
 /**
  * The garden step: how a report comes to name its garden. A chat with no account chooses from
@@ -14,6 +18,25 @@ import type { ConversationWriter } from "./writer";
  * try again, never shown every garden instead. A choice made here only names the garden: the
  * account's role there is read from the chain before anything is published.
  */
+
+/**
+ * How old the garden list may be when a linked account's gardens are about to be used. Short
+ * enough that Check again shows a garden joined a moment ago, long enough that taps and messages
+ * in a row share one read of the indexer.
+ */
+const OWN_GARDENS_MAX_AGE_MS = 10_000;
+
+/**
+ * Reads the garden list again before a linked account's gardens are used, unless it was read
+ * moments ago. A garden joined on the link page a minute ago should be there, and an account must
+ * not be told it has none from an old list. A read that fails is answered by the directory, which
+ * then says the account's gardens cannot be read.
+ */
+export async function readOwnGardens(core: ReportingCore): Promise<void> {
+  await core.gardens
+    .refresh(core.clock.now(), OWN_GARDENS_MAX_AGE_MS)
+    .catch((err) => log.warn({ err }, "Could not read the garden list for a linked account"));
+}
 
 /** The garden question's choices that are not gardens. */
 export const JOIN_CHOICE = "choice:join";
