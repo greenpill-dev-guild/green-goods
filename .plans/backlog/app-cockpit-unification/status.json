@@ -1,0 +1,153 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "app-cockpit-unification",
+    "title": "One Look for the App and the Cockpit",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-10-10T09:56:00.510Z",
+    "updated_at": "2026-10-10T10:14:29Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["client-pwa", "admin", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
+    "depends_on_features": ["pwa-interface-simplification"]
+  },
+  "notes": [
+    "The maintainer asked for design research, a switchable mock, and this hub on a branch. Design acceptance and implementation scope remain open; no application, Linear, deployment, or transaction work is authorized.",
+    "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change; track the work under the Cosmo-Local project.",
+    "Stated preferences awaiting confirmation against rendered pairs: the app's equal-width tabs, the app's filter button, a gap in the cockpit's card list, a wide desktop work card that keeps its image grid, one count badge, a clearer dark card in the cockpit, the cockpit's light mode on the app.",
+    "Thirteen forks (F1 to F13) are recommendations, not accepted design specifications. A preset chosen in the design lab is not an acceptance decision.",
+    "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
+    "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
+    "No implementation lane is certified by document validation."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Token and style steps prove themselves with rendered pairs and the design guards; steps that change a component's structure (tabs, the filter control, the work card) need focused RED/GREEN proof. No implementation or test evidence is recorded by this planning task."
+      },
+      "skill_tags": ["ui", "design", "react"],
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Design review: the forks in spec.md await the maintainer's decisions, a bounded first slice, and explicit execution authorization."
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract, settlement, or deployment work is in scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-10T09:56:00.666Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-10T10:14:29Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scoped",
+      "branch": null,
+      "note": "Recorded the stated direction, the divergence ledger, thirteen open forks, a conditional delivery sequence, and pending evaluation. Added the design lab and the Storybook captures as artifacts. No implementation dispatched."
+    }
+  ]
+}

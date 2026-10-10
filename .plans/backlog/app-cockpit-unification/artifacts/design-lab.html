@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App and Cockpit Design Lab</title>
+<!-- Standalone copy of the design lab for the app and cockpit unification hub. Open this file in a
+     browser; it needs no build and no server. The two faces load from Google Fonts and fall back to
+     system fonts offline. See README.md in this folder for what the controls mean and what is a mock. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Page chrome for the standalone lab: the tokens the sidebar reads, in light and dark.
+   The lab's own styles follow in the blocks between the two lab markers below. */
+:root {
+  --bg: #FAF8F5;
+  --card: #FFFFFF;
+  --fg: #292524;
+  --fg-strong: #0C0A09;
+  --muted: #78716C;
+  --line: #E7E5E4;
+  --line-strong: #D6D3D1;
+  --accent: #1A7544;
+  --accent-ink: #FFFFFF;
+  --accent-soft: rgba(31, 193, 107, 0.12);
+  --mark: #1FC16B;
+  --font-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #110C08; --card: #201913; --fg: #E7E5E4; --fg-strong: #FAFAF9; --muted: #A8A29E;
+    --line: rgba(250, 250, 249, 0.10); --line-strong: rgba(250, 250, 249, 0.20);
+    --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, 0.14); --mark: #3EE089;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; padding-inline: 16px; padding-block: 8px 48px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+p { max-width: 72ch; margin: 12px 0; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; color: var(--fg-strong); }
+.eyebrow { font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<!-- lab:start -->
+<style>
+/* ===== Design lab v4: sidebar controls + a viewport-fitted stage with replica surfaces ===== */
+.lab { margin-top: 48px; }
+.lab .lab-h { font-family: var(--font-display); font-size: 26px; line-height: 1.2; font-weight: 700; color: var(--fg-strong); margin: 0 0 8px; border: 0; padding: 0; }
+.lab-shell { --labw: min(100vw - 32px, 1760px); width: var(--labw); margin-left: calc(50% - var(--labw) / 2); display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 16px; height: calc(100dvh - 28px); min-height: 520px; margin-top: 14px; }
+.lab-side { overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 12px; display: grid; gap: 6px; align-content: start; min-height: 0; scrollbar-width: thin; }
+.lab-side .clabel { font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.lab-side .ctl { display: grid; gap: 4px; }
+.lab-side .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.lab-side button { font: inherit; font-size: 11.5px; font-weight: 500; line-height: 15px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--fg); cursor: pointer; text-align: left; }
+.lab-side button:hover { border-color: var(--muted); }
+.lab-side button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab-side button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.lab-side button.recd::after { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 1px; }
+.lab-side button.on.recd::after { background: var(--accent-ink); }
+.lab-side .presets button { font-weight: 600; }
+.lab-side .shead { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
+.lab-side .readout { font-family: var(--font-mono); font-size: 11px; line-height: 1.5; color: var(--muted); margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; }
+.lab-side .readout b { color: var(--fg); font-weight: 600; }
+.lab-side .views { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.lab-side .views label { display: grid; gap: 3px; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); min-width: 0; }
+.lab-side .views select { font: inherit; font-size: 12.5px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 8px; min-width: 0; width: 100%; }
+.lab-side .views select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lab-side details { font-size: 12px; color: var(--muted); }
+.lab-side details summary { cursor: pointer; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
+.lab-stage { position: relative; min-width: 0; min-height: 0; display: flex; gap: 20px; align-items: flex-start; justify-content: center; }
+.lab-stage .col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lab-stage .col[hidden] { display: none !important; }
+.lab-stage .frame-label { font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-stage .frame-label span { color: var(--fg); text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--font-body); }
+.fitwrap { position: relative; overflow: hidden; }
+.lab-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+@media (max-width: 860px) {
+  .lab-shell { grid-template-columns: 1fr; height: auto; min-height: 0; --labw: 100%; margin-left: 0; }
+  .lab-side { max-height: 46vh; }
+  .lab-stage { flex-wrap: wrap; }
+}
+
+/* ----- frame base ----- */
+.lab .frame { position: relative; overflow: hidden; width: calc(var(--fw) * 1px); height: calc(var(--fh) * 1px); background: var(--canvas); color: var(--ink); font-family: var(--font); font-size: var(--body); line-height: 1.4; text-align: left; border-radius: 30px; border: 1px solid rgba(0,0,0,0.18); box-shadow: 0 24px 60px rgba(20, 14, 8, 0.18); transform-origin: top left; -webkit-font-smoothing: antialiased; }
+.lab .frame.desk { border-radius: 14px; }
+.lab .frame * { box-sizing: border-box; }
+.lab .frame svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.lab .frame .screen { display: none; position: absolute; inset: 0; overflow: hidden; }
+.lab .frame[data-screen="home"] .screen.home, .lab .frame[data-screen="garden"] .screen.garden, .lab .frame[data-screen="work"] .screen.work, .lab .frame[data-screen="submit"] .screen.submit, .lab .frame[data-screen="profile"] .screen.profile, .lab .frame[data-screen="hub"] .screen.hub, .lab .frame[data-screen="members"] .screen.members, .lab .frame[data-screen="assess"] .screen.assess { display: block; }
+.lab .frame .trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab .frame .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lab .frame .dim { position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+.lab .frame .fab { position: absolute; right: 16px; width: 56px; height: 56px; border-radius: 999px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 6px 16px rgba(20, 14, 8, 0.22); z-index: 3; }
+.lab .frame.app .fab { bottom: 16px; }
+.lab .frame.app:not([data-screen="garden"]) .fab { display: none; }
+.lab .frame.cockpit .fab { bottom: 96px; }
+.lab .frame.cockpit[data-screen="assess"] .fab, .lab .frame.cockpit[data-screen="profile"] .fab { display: none; }
+
+/* ----- shared pieces ----- */
+.lab .frame .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 500; line-height: 16px; border: 1px solid transparent; white-space: nowrap; }
+.lab .frame .pill.info { background: var(--t-info-bg); color: var(--t-info-fg); border-color: var(--t-info-bd); }
+.lab .frame .pill.ok { background: var(--t-ok-bg); color: var(--t-ok-fg); border-color: var(--t-ok-bd); }
+.lab .frame .pill.warn { background: var(--t-warn-bg); color: var(--t-warn-fg); border-color: var(--t-warn-bd); }
+.lab .frame .pill.err { background: var(--t-err-bg); color: var(--t-err-fg); border-color: var(--t-err-bd); }
+.lab .frame .pill.neutral { background: var(--grey); color: var(--sub); border-color: var(--hair); }
+.lab .frame .pill.xs { font-size: 11px; line-height: 14px; padding: 2px 8px; }
+.lab .frame.cockpit .pill { font-size: 11px; font-weight: 600; padding: 3px 10px; line-height: 14px; border-color: transparent; }
+.lab .frame.cockpit .pill.neutral { background: var(--grey); color: var(--sub); }
+.lab .frame .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.lab .frame .chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: var(--chip-r); border: 1px solid var(--outline); background: var(--chip-bg); color: var(--chip-fg); font-size: 14px; font-weight: var(--chip-w); white-space: nowrap; flex-shrink: 0; }
+.lab .frame .chip.on { background: var(--chip-sel-bg); color: var(--chip-sel-fg); border-color: var(--chip-sel-bd); }
+.lab .frame .chip.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+/* count badges: four contexts (bar, header launcher, filter count, tab), each with its own tokens so the F10 fork can unify or split them */
+.lab .frame .cnt { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; line-height: 1; padding: 0 4px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.lab .frame .tab .cnt { height: var(--bdg-tab-h); min-width: var(--bdg-tab-minw); font-size: var(--bdg-tab-fs); font-weight: var(--bdg-tab-w); background: var(--bdg-tab-bg); color: var(--bdg-tab-fg); padding: 0 var(--bdg-tab-px); }
+.lab .frame .tab.on .cnt { background: var(--bdg-tab-bg-on); color: var(--bdg-tab-fg-on); }
+.lab .frame .ibtn .cnt { position: absolute; top: -1px; right: -6px; height: var(--bdg-btn-h); min-width: var(--bdg-btn-minw); font-size: var(--bdg-btn-fs); font-weight: var(--bdg-btn-w); background: var(--bdg-btn-bg); color: var(--bdg-btn-fg); box-shadow: 0 0 0 var(--bdg-btn-ring) var(--canvas); }
+.lab .frame .ibtn .cnt.f { height: var(--bdg-flt-h); min-width: var(--bdg-flt-minw); font-size: var(--bdg-flt-fs); font-weight: var(--bdg-flt-w); box-shadow: 0 0 0 var(--bdg-flt-ring) var(--canvas); }
+.lab .frame .nav .cnt { position: absolute; top: -4px; right: -6px; height: var(--bdg-nav-h); min-width: var(--bdg-nav-minw); font-size: var(--bdg-nav-fs); font-weight: var(--bdg-nav-w); background: var(--bdg-nav-bg); color: var(--bdg-nav-fg); box-shadow: 0 0 0 var(--bdg-nav-ring) var(--nav-bg); }
+/* tabs: tinted equal-width (app StandardTabs) or underline rail (AdminTabRail) */
+.lab .frame .tabs { display: flex; align-items: stretch; border-bottom: 1px solid var(--tabs-bd); background: var(--tabs-bg); gap: var(--tabs-gap); min-width: 0; }
+.lab .frame .tab { position: relative; display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--sub); font-weight: 500; white-space: nowrap; min-width: 0; }
+.lab .frame .tab svg { font-size: 16px; }
+.lab .frame.tabs-tinted .tab { flex: 1 1 0; min-height: 44px; padding: 12px 6px; font-size: 12px; }
+.lab .frame.tabs-tinted .tab.on { background: var(--accent-tint); color: var(--accent-text); box-shadow: inset 0 -2px 0 var(--accent-text); }
+.lab .frame.tabs-tinted.desk .tab { font-size: 14px; }
+.lab .frame.tabs-rail .tab { flex: 0 0 auto; padding: 7px 16px; font-size: 14px; line-height: 20px; gap: 8px; margin-bottom: -1px; border-bottom: 2px solid transparent; }
+.lab .frame.tabs-rail .tab.on { color: var(--accent-text); font-weight: 600; border-bottom-color: var(--accent-text); }
+.lab .frame.tabs-rail.tabs-equal .tab { flex: 1 1 0; }
+/* buttons: shared Button (app) and AdminButton (cockpit) through tokens */
+.lab .frame .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--btn-h); padding: 0 var(--btn-px); border-radius: var(--btn-r); font-size: var(--btn-fs); font-weight: var(--btn-w); border: 1px solid transparent; white-space: nowrap; line-height: 1; }
+.lab .frame .btn svg { font-size: 16px; }
+.lab .frame .btn.primary { background: var(--accent); color: var(--on-accent); }
+.lab .frame .btn.secondary { background: var(--btn-sec-bg); border-color: var(--btn-sec-bd); color: var(--btn-sec-fg); }
+.lab .frame .btn.text { background: transparent; color: var(--accent-text); }
+.lab .frame .btn.lg { height: var(--btn-h-lg); padding: 0 var(--btn-px-lg); }
+.lab .frame .btn.sm { height: var(--btn-h-sm); padding: 0 12px; border-radius: var(--btn-r-compact); }
+.lab .frame .btn.block { width: 100%; }
+.lab .frame .btn.disabled { opacity: 0.5; }
+.lab .frame .ibtn { width: var(--icon); height: var(--icon); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ibtn-fg); position: relative; flex-shrink: 0; background: var(--ibtn-bg); border: 1px solid var(--ibtn-bd); }
+.lab .frame .ibtn.compact { width: 32px; height: 32px; font-size: 16px; }
+.lab .frame .ibtn.lg { width: 48px; height: 48px; }
+.lab .frame .ibtn.ghost { background: transparent; border-color: transparent; color: var(--sub); }
+.lab .frame .ibtn.filled { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+/* fields: outlined (app) or filled underline (cockpit) */
+.lab .frame .field { display: grid; gap: 6px; }
+.lab .frame .field .flabel { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 20px; }
+.lab .frame .field .fbox { position: relative; display: flex; align-items: center; gap: 8px; height: var(--ctl); padding: 0 14px; border-radius: var(--field-r); border: 1px solid var(--field-bd); background: var(--card); color: var(--ink); font-size: var(--body); }
+.lab .frame .field .fbox.ph { color: var(--soft); }
+.lab .frame .field .fbox.area { height: 84px; align-items: flex-start; padding-top: 10px; }
+.lab .frame .field .fbox .unit { margin-left: auto; color: var(--soft); font-size: 14px; }
+.lab .frame .field .fhelp { font-size: 12px; color: var(--soft); min-height: var(--help-h); line-height: 16px; }
+.lab .frame.fields-filled .field .flabel { display: none; }
+.lab .frame.fields-filled .field .fbox { height: 48px; border: 0; border-bottom: 1px solid var(--ink); border-radius: 8px 8px 0 0; background: var(--sc-high); align-items: flex-end; padding-bottom: 7px; color: var(--ink); font-size: 14px; line-height: 1.2; }
+.lab .frame.fields-filled .field .fbox::before { content: attr(data-label); position: absolute; left: 14px; top: 6px; font-size: 11px; line-height: 1.2; color: var(--sub); }
+.lab .frame.fields-filled .field .fbox.area { height: 96px; align-items: flex-start; padding-top: 24px; }
+.lab .frame .switch { width: 44px; height: 24px; border-radius: 999px; background: var(--accent); position: relative; flex-shrink: 0; }
+.lab .frame .switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 999px; background: var(--on-accent); }
+.lab .frame .sel { display: inline-flex; align-items: center; justify-content: space-between; gap: 6px; height: 32px; padding: 0 8px 0 12px; border-radius: var(--btn-r-compact); border: 1px solid var(--field-bd); color: var(--ink); font-size: 14px; background: var(--card); white-space: nowrap; }
+.lab .frame .sel svg { color: var(--soft); font-size: 14px; }
+/* phone bottom bars */
+.lab .frame .nav { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; align-items: flex-start; justify-content: space-evenly; background: var(--nav-bg); border-top: 1px solid var(--nav-bd); }
+.lab .frame .nav .ni { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--nav-fg); font-size: var(--nav-fs); font-weight: 500; flex: 1 1 0; min-width: 0; line-height: 16px; }
+.lab .frame .nav .ni .ic { position: relative; display: flex; align-items: center; justify-content: center; font-size: 24px; height: 32px; width: 56px; border-radius: 999px; }
+.lab .frame.app .nav { height: 72px; padding-top: 12px; border-radius: 16px 16px 0 0; }
+.lab .frame.app .nav .ni { flex: 0 0 auto; }
+/* the app's bar steps aside on a garden's page, in Submit Work, and under any sheet (AppBar, isImmersiveAppRoute) */
+.lab .frame.app[data-screen="garden"] .nav, .lab .frame.app[data-screen="submit"] .nav, .lab .frame.app[data-screen="work"] .nav, .lab .frame.app[data-sheet="on"] .nav { display: none; }
+.lab .frame.cockpit .nav { height: 80px; padding: 12px 4px 0; }
+.lab .frame.nav-pill .nav .ni.on { color: var(--on-container-nav); font-weight: 600; }
+.lab .frame.nav-pill .nav .ni.on .ic { background: var(--container); color: var(--on-container); }
+.lab .frame.nav-filled .nav .ni.on { color: var(--accent-text); font-weight: 500; }
+.lab .frame.nav-filled .nav .ni.on .ic svg { fill: currentColor; }
+/* sheets */
+.lab .frame .scrim { display: none; position: absolute; inset: 0; z-index: 10; background: var(--scrim); align-items: flex-end; }
+.lab .frame[data-sheet="on"] .scrim { display: flex; }
+.lab .frame .sheet { width: 100%; background: var(--sheet-bg); border: 1px solid var(--sheet-bd); border-bottom: 0; border-radius: var(--sheet-r) var(--sheet-r) 0 0; padding: 0 0 20px; box-shadow: 0 -12px 40px rgba(0,0,0,0.18); position: relative; z-index: 6; }
+.lab .frame .sheet.tall { position: absolute; left: 0; right: 0; bottom: 0; height: 93%; padding-bottom: 0; display: flex; flex-direction: column; }
+.lab .frame .grip { display: var(--grip); width: 40px; height: 6px; border-radius: 999px; background: var(--grip-bg); margin: 12px auto 4px; }
+.lab .frame .sh { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 4px 16px 12px; }
+.lab .frame .sh .st { font-size: var(--sheet-title); font-weight: 600; line-height: 24px; }
+.lab .frame .sh .sd { font-size: 14px; color: var(--sub); line-height: 20px; margin-top: 2px; }
+.lab .frame .sh .ibtn { width: 40px; height: 40px; }
+.lab .frame .sb { padding: 4px 16px 8px; display: grid; gap: 12px; }
+.lab .frame .sf { display: grid; gap: 8px; padding: 12px 16px 0; }
+.lab .frame.cockpit .sf { border-top: 1px solid var(--hair); background: var(--card); margin-top: 8px; padding: 12px 16px 4px; }
+.lab .frame .sheet .tabs { background: var(--sheet-tabs-bg); }
+</style>
+<style>
+/* ----- cards (F7), lists (F11), work items (F7 + F12) ----- */
+.lab .frame .card { border-radius: var(--card-r); background: var(--card); border: 1px solid var(--card-bd); box-shadow: var(--card-sh); overflow: hidden; }
+.lab .frame .card.xl { border-radius: var(--card-r-xl); }
+.lab .frame .card.info { background: var(--info-bg); }
+.lab .frame .card .ch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+.lab .frame .card .ct { font-size: 16px; font-weight: 600; line-height: 24px; }
+.lab .frame .card .cs { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame .card .cb { padding: 16px; display: grid; gap: 8px; font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame .wlist { display: grid; gap: var(--list-gap); align-content: start; }
+.lab .frame.list-divided .wlist { gap: 0; background: var(--card); border: 1px solid var(--card-bd); border-radius: var(--wcard-r); box-shadow: var(--card-sh); overflow: hidden; }
+.lab .frame.list-divided .wlist .witem { border-radius: 0; border-width: 0; border-top: 1px solid var(--hair); box-shadow: none; border-left-width: var(--edge-w); }
+.lab .frame.list-divided .wlist .witem:first-child { border-top: 0; }
+/* one work item, laid out three ways: the app's 88px row, the shared row, the cockpit's mosaic card */
+.lab .frame .witem { position: relative; background: var(--card); border: 1px solid var(--card-bd); border-radius: var(--wcard-r); box-shadow: var(--card-sh); overflow: hidden; min-width: 0; display: flex; }
+.lab .frame .witem .wmedia { position: relative; flex-shrink: 0; overflow: hidden; background: var(--grey); display: grid; }
+.lab .frame .witem .wmedia .cell { background: var(--c1); }
+.lab .frame .witem .wmedia .cell:nth-child(2) { background: var(--c2); }
+.lab .frame .witem .wmedia .cell:nth-child(3) { background: var(--c3); }
+.lab .frame .witem .wmedia .dchip, .lab .frame .witem .wmedia .mcount { position: absolute; bottom: 8px; display: none; align-items: center; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; line-height: 14px; }
+.lab .frame .witem .wmedia .dchip { left: 8px; background: var(--dchip-bg); color: var(--sub); }
+.lab .frame .witem .wmedia .mcount { right: 8px; padding: 4px 8px; background: rgba(0,0,0,0.6); color: #fff; font-weight: 500; }
+.lab .frame .witem .wbody { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
+.lab .frame .witem .wtop { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.lab .frame .witem .wt { min-width: 0; flex: 1 1 auto; }
+.lab .frame .witem .wact { display: none; font-size: 12px; color: var(--sub); line-height: 16px; }
+.lab .frame .witem .wmeta { font-size: 12px; color: var(--sub); line-height: 16px; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.lab .frame .witem .wmeta .who { font-weight: 500; }
+.lab .frame .witem .wmeta .when { color: var(--soft); }
+.lab .frame .witem .wsup { font-size: 12px; color: var(--sub); line-height: 16px; display: flex; align-items: center; gap: 8px; }
+/* app row: 88px, square thumb, 2px status edge, 16px title at 500 */
+.lab .frame.wi-row .witem { height: 88px; border-left: var(--edge-w) solid var(--edge); }
+.lab .frame.wi-row .witem .wmedia { width: 88px; height: 100%; }
+.lab .frame.wi-row .witem .wmedia .cell:not(:first-child) { display: none; }
+.lab .frame.wi-row .witem .wbody { padding: 8px 12px; justify-content: flex-start; }
+.lab .frame.wi-row .witem .wt { font-size: 16px; font-weight: 500; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab .frame.wi-row .witem .wmeta { margin-top: 2px; }
+.lab .frame.wi-row .witem .wsup { margin-top: 4px; }
+.lab .frame.wi-row .witem .wmeta .sep::before { content: "•"; margin: 0 4px; }
+/* shared row: 48px tile, one anatomy on both surfaces, body size follows the surface */
+.lab .frame.wi-shared .witem { border-left: var(--edge-w) solid var(--edge); align-items: center; padding: 12px 14px; gap: 12px; }
+.lab .frame.wi-shared .witem .wmedia { width: 48px; height: 48px; border-radius: 12px; }
+.lab .frame.wi-shared .witem .wmedia .cell:not(:first-child) { display: none; }
+.lab .frame.wi-shared .witem .wt { font-size: var(--body); font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab .frame.wi-shared .witem .wmeta { margin-top: 2px; }
+.lab .frame.wi-shared .witem .wsup { display: none; }
+.lab .frame.wi-shared .witem .wmeta .sep::before { content: "\2022"; margin: 0 4px; }
+/* cockpit mosaic card: 16:9 media, 14px title at 600, 11px status chip, 12px meta */
+.lab .frame.wi-card .witem { flex-direction: column; }
+.lab .frame.wi-card .witem .wmedia { aspect-ratio: 16 / 9; width: 100%; grid-template-columns: 1.35fr 1fr; gap: 1px; background: var(--hair); border-bottom: 1px solid var(--hair); }
+.lab .frame.wi-card .witem .wmedia .cell:first-child { grid-row: span 2; }
+.lab .frame.wi-card .witem .wmedia .dchip, .lab .frame.wi-card .witem .wmedia .mcount { display: inline-flex; }
+.lab .frame.wi-card .witem .wmedia::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.18)); pointer-events: none; }
+.lab .frame.wi-card .witem .wbody { padding: 14px; gap: 10px; }
+.lab .frame.wi-card .witem .wt { font-size: 14px; font-weight: 600; line-height: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lab .frame.wi-card .witem .wact { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab .frame.wi-card .witem .wmeta { justify-content: space-between; gap: 12px; }
+.lab .frame.wi-card .witem .wmeta .sep { display: none; }
+.lab .frame.wi-card .witem .wsup { display: none; }
+.lab .frame.wi-card .witem .wpill { flex-shrink: 0; }
+.lab .frame.wi-card.app .witem .wmedia .dchip { background: var(--card); }
+/* F12: the desktop card laid wide, mosaic kept on the left */
+.lab .frame.desk.wi-card.desk-wide .witem { flex-direction: row; }
+.lab .frame.desk.wi-card.desk-wide .witem .wmedia { width: 232px; aspect-ratio: auto; height: auto; min-height: 128px; border-bottom: 0; border-right: 1px solid var(--hair); }
+.lab .frame.desk.wi-card.desk-wide .witem .wbody { justify-content: center; }
+/* status edge on the app surface only (DL-034 anatomy); cockpit cards show state in the chip */
+.lab .frame .witem .wpill { flex-shrink: 0; }
+/* selection cards */
+.lab .frame .scard { position: relative; border-radius: var(--card-r); background: var(--card); border: 1px solid var(--card-bd); box-shadow: var(--card-sh); padding: 12px 14px; display: flex; align-items: center; gap: 12px; font-size: var(--body); font-weight: 600; }
+.lab .frame .scard svg { color: var(--sub); font-size: 18px; }
+.lab .frame .scard .ok { margin-left: auto; color: var(--accent-text); font-size: 16px; display: none; }
+.lab .frame.sel-border3 .scard.on { box-shadow: inset 0 0 0 3px var(--accent-text); border-color: transparent; color: var(--accent-text); }
+.lab .frame.sel-ring .scard.on { border-color: var(--accent-text); background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent-bd); }
+.lab .frame.sel-ring .scard.on .ok { display: block; }
+
+/* ----- app screens ----- */
+.lab .frame.app .a-head { display: flex; align-items: center; justify-content: space-between; padding: 24px 16px; }
+.lab .frame.app .a-title { font-size: 18px; font-weight: 600; line-height: 24px; }
+.lab .frame.app .launchers { display: flex; gap: 8px; align-items: center; }
+.lab .frame.app .padded { padding: 0 16px; display: grid; gap: 16px; }
+.lab .frame.app .gcard { border-radius: var(--card-r-xl); border: 1px solid var(--card-bd); background: var(--card); overflow: hidden; box-shadow: var(--card-sh); }
+.lab .frame.app .gbanner { height: 128px; background: var(--banner); position: relative; }
+.lab .frame.app .gbanner.b2 { background: var(--banner2); }
+.lab .frame.app .gbody { padding: 16px; display: grid; gap: 8px; }
+.lab .frame.app .gname { font-size: 18px; font-weight: 600; line-height: 24px; }
+.lab .frame.app .gstats { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; font-weight: 500; color: var(--sub); }
+.lab .frame.app .gstats .gs { display: inline-flex; align-items: center; gap: 4px; }
+.lab .frame.app .gstats svg { font-size: 16px; color: var(--accent-text); }
+.lab .frame.app .gdesc { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame.app .gstew { font-size: 12px; color: var(--sub); display: grid; gap: 4px; }
+.lab .frame.app .gstew .gsh { display: flex; align-items: center; gap: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.lab .frame.app .gstew .gsh svg { font-size: 14px; color: var(--accent-text); }
+.lab .frame.app .gtop { position: relative; height: 144px; background: var(--banner); border-radius: 0 0 24px 24px; }
+.lab .frame.app .topnav { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; padding: 24px 16px 0; }
+.lab .frame.app .topnav .ibtn { background: var(--card); border-color: var(--hair); color: var(--ink); }
+.lab .frame.app .gtitle { padding: 12px 16px; display: grid; gap: 6px; }
+.lab .frame.app .h1 { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.lab .frame.app .gline { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--sub); }
+.lab .frame.app .gline svg { color: var(--accent-text); font-size: 16px; }
+.lab .frame.app .gtabs { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.lab .frame.app .gcontent { padding: 12px 16px 0; display: grid; gap: 12px; }
+.lab .frame.app .cycles { display: flex; gap: 10px; overflow: hidden; }
+.lab .frame.app .cyc { flex: 0 0 214px; padding: 12px; display: grid; gap: 4px; }
+.lab .frame.app .cyc .ck { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.lab .frame.app .cyc .ck .kind { color: var(--t-warn-fg); }
+.lab .frame.app .cyc .ck .kind.c { color: var(--t-info-fg); }
+.lab .frame.app .cyc .ct2 { font-size: 16px; font-weight: 600; line-height: 22px; }
+.lab .frame.app .cyc .cm { font-size: 12px; color: var(--sub); }
+.lab .frame.app .frow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--sub); }
+.lab .frame.app .frow .sels { display: flex; gap: 8px; }
+.lab .frame.app .prow { padding: 12px 12px 12px 14px; display: flex; gap: 12px; position: relative; border-left: 2px solid var(--t-info-fg); }
+.lab .frame.app .prow.offer { border-left-color: var(--accent-text); }
+.lab .frame.app .prow .tile { width: 44px; height: 44px; border-radius: 12px; background: var(--grey); display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--sub); flex-shrink: 0; }
+.lab .frame.app .prow .pt { font-size: 16px; font-weight: 500; line-height: 22px; }
+.lab .frame.app .prow .pm { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--sub); }
+.lab .frame.app .prow .pm .need { color: var(--t-warn-fg); font-weight: 500; }
+.lab .frame.app .wk-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 0; min-height: 56px; margin-bottom: 16px; }
+.lab .frame.app .wk-head .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.lab .frame.app .wk-list { padding: 0 16px 24px; flex: 1 1 auto; overflow: hidden; }
+.lab .frame.app .s-top { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; }
+.lab .frame.app .steps { flex: 1 1 auto; display: flex; align-items: flex-start; justify-content: center; gap: 0; }
+.lab .frame.app .step { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 14px; color: var(--sub); line-height: 1; }
+.lab .frame.app .step .dot { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--outline); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; background: var(--card); }
+.lab .frame.app .step.done .dot { background: var(--accent-tint); border-color: transparent; color: var(--accent-text); }
+.lab .frame.app .step.on { color: var(--ink); font-weight: 600; }
+.lab .frame.app .step.on .dot { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.lab .frame.app .step-line { width: 24px; height: 1px; background: var(--hair); margin-top: 16px; }
+.lab .frame.app .step-line.done { background: var(--accent-text); }
+.lab .frame.app .sinfo { margin: 16px 16px 0; padding: 16px; border-radius: var(--card-r-xl); background: var(--info-bg); display: flex; gap: 16px; align-items: center; }
+.lab .frame.app .sinfo .itile { width: 56px; height: 56px; border-radius: 999px; background: var(--card); border: 1px solid var(--card-bd); display: flex; align-items: center; justify-content: center; color: var(--accent-text); font-size: 24px; flex-shrink: 0; }
+.lab .frame.app .sinfo .it { font-size: 20px; font-weight: 600; line-height: 26px; }
+.lab .frame.app .sinfo .id { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame.app .pinned { margin: 16px 16px 0; padding: 12px 16px; border-radius: var(--card-r-lg); background: var(--t-ok-bg); border: 1px solid var(--t-ok-bd); display: flex; align-items: center; gap: 12px; }
+.lab .frame.app .pinned .pk { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame.app .pinned .pv { font-size: 16px; font-weight: 600; line-height: 22px; }
+.lab .frame.app .pinned > svg { color: var(--accent-text); font-size: 24px; }
+.lab .frame.app .pinned .chev { margin-left: auto; color: var(--soft); font-size: 18px; }
+.lab .frame.app .form { padding: 16px 16px 0; display: grid; gap: 12px; }
+.lab .frame.app .bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; gap: 12px; padding: 12px 16px 20px; background: var(--nav-bg); border-top: 1px solid var(--nav-bd); border-radius: 16px 16px 0 0; box-shadow: 0 -6px 20px rgba(0,0,0,0.06); }
+.lab .frame.app .bar .btn { flex: 1 1 0; }
+.lab .frame.app .p-head { padding: 40px 16px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.lab .frame.app .p-av { position: relative; width: 96px; height: 96px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-text); display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 8px; }
+.lab .frame.app .p-edit { position: absolute; right: -2px; bottom: -2px; width: 32px; height: 32px; border-radius: 999px; background: var(--accent); color: var(--on-accent); border: 2px solid var(--canvas); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.lab .frame.app .p-name { font-size: 18px; font-weight: 700; line-height: 24px; }
+.lab .frame.app .p-badges { display: flex; gap: 8px; font-size: 14px; font-weight: 500; }
+.lab .frame.app .p-badges .pb { display: inline-flex; align-items: center; gap: 4px; }
+.lab .frame.app .p-badges svg { font-size: 16px; color: var(--accent-text); }
+.lab .frame.app .p-body { padding: 16px 16px 0; display: grid; gap: 16px; }
+.lab .frame.app .h5 { font-size: 16px; font-weight: 500; line-height: 24px; }
+.lab .frame.app .prow2 { display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 4px 16px; border-radius: var(--card-r-xl); border: 1px solid var(--card-bd); background: var(--card); box-shadow: var(--card-sh); }
+.lab .frame.app .av40 { width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--hair); display: flex; align-items: center; justify-content: center; color: var(--accent-text); font-size: 16px; flex-shrink: 0; }
+.lab .frame.app .prow2 .ptx { min-width: 0; flex: 1 1 auto; display: grid; gap: 2px; }
+.lab .frame.app .prow2 .pt { font-size: 14px; font-weight: 500; line-height: 20px; }
+.lab .frame.app .prow2 .pd { font-size: 12px; color: var(--sub); line-height: 16px; }
+.lab .frame.app .prow2 .pd.two { min-height: 32px; }
+.lab .frame.app .prow2 .pd svg { font-size: 12px; vertical-align: -1px; }
+.lab .frame.app .prow2 .pctl { flex-shrink: 0; width: 120px; }
+.lab .frame.app .prow2 .pctl .sel, .lab .frame.app .prow2 .pctl .btn { width: 100%; }
+.lab .frame.app .prow2 .chev { color: var(--soft); font-size: 20px; flex-shrink: 0; }
+.lab .frame.app .glist { display: grid; gap: 8px; }
+</style>
+<style>
+/* ----- cockpit screens (phone) ----- */
+.lab .frame.cockpit .c-appbar { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 12px 0 16px; }
+.lab .frame .gchip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px 0 6px; border-radius: 999px; background: var(--card); border: 1px solid var(--hair); font-size: 14px; font-weight: 500; max-width: 240px; color: var(--ink); }
+.lab .frame .gchip .av { width: 22px; height: 22px; border-radius: 999px; background: var(--gav-bg); color: var(--gav-fg); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.lab .frame .gchip svg.chev { font-size: 14px; color: var(--soft); }
+.lab .frame.cockpit .c-icons { display: flex; gap: 0; align-items: center; }
+.lab .frame.cockpit .c-head { padding: 24px 12px 0; display: grid; gap: 4px; }
+.lab .frame .c-title { font-size: 16px; font-weight: 600; line-height: 24px; }
+.lab .frame .c-desc { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame .c-meta { font-size: 12px; color: var(--soft); line-height: 16px; margin-top: 4px; display: flex; gap: 12px; }
+.lab .frame .c-meta b { color: var(--ink); font-weight: 600; }
+.lab .frame.cockpit .c-tabs { margin: 18px 12px 0; }
+.lab .frame.cockpit .c-tools { margin: 8px 12px 0; padding-top: 8px; border-top: 1px solid var(--hair); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.lab .frame .c-search { display: flex; align-items: center; gap: 12px; height: 36px; width: 100%; padding: 0 12px; border-radius: 999px; border: 1px solid var(--outline-var); background: var(--sc); color: var(--soft); font-size: 14px; min-width: 0; }
+.lab .frame .c-search svg { font-size: 13px; color: var(--sub); }
+.lab .frame .c-sort { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px 0 12px; border-radius: 999px; border: 1px solid var(--outline-var); background: var(--sc); color: var(--sub); font-size: 14px; white-space: nowrap; }
+.lab .frame .c-sort b { color: var(--ink); font-weight: 400; }
+.lab .frame .c-sort svg { font-size: 14px; color: var(--sub); }
+.lab .frame .tools-chips, .lab .frame .tools-fbtn { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lab .frame.filter-app .tools-chips { display: none; }
+.lab .frame.filter-cockpit .tools-fbtn { display: none; }
+.lab .frame.filter-cockpit .acts-select { display: none; }
+.lab .frame.filter-app .acts-chips { display: none; }
+.lab .frame.cockpit .c-content { padding: 16px 12px 0; }
+.lab .frame.cockpit .card + .card { margin-top: 12px; }
+.lab .frame .seg2 { display: flex; gap: 2px; }
+.lab .frame .seg2 span { display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; font-size: 14px; color: var(--accent-text); font-weight: 500; }
+.lab .frame .seg2 span.on { background: var(--sc-high); color: var(--ink); }
+.lab .frame .metric { display: grid; gap: 2px; }
+.lab .frame .metric .ml { font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame .metric .mv { font-size: 20px; font-weight: 600; color: var(--ink); line-height: 26px; }
+.lab .frame .metric .ms { font-size: 12px; color: var(--soft); }
+.lab .frame .metrics { padding: 16px; display: grid; gap: 12px; }
+.lab .frame .krows { padding: 0 16px 8px; }
+.lab .frame .krow { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-top: 1px solid var(--hair); font-size: 14px; color: var(--sub); }
+.lab .frame .krow b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.lab .frame .ibtn.close { border: 1px solid var(--outline); background: transparent; color: var(--ink); }
+.lab .frame .mrow { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--hair); }
+.lab .frame .mrow:last-child { border-bottom: 0; }
+.lab .frame .mrow .av2 { width: 36px; height: 36px; border-radius: 999px; background: var(--sc-high); color: var(--sub); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.lab .frame .mrow .mn { font-size: 14px; font-weight: 600; line-height: 20px; }
+.lab .frame .mrow .ma { font-size: 12px; color: var(--soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.lab .frame .mrow .mr { display: flex; gap: 6px; margin-top: 4px; }
+.lab .frame .mrow .ibtn { margin-left: auto; }
+.lab .frame .tagchip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--sc-high); color: var(--sub); font-size: 12px; font-weight: 500; white-space: nowrap; }
+/* flow dialog (phone: full-height sheet; desktop: centered) */
+.lab .frame .flow { position: absolute; inset: 0; background: var(--card); display: flex; flex-direction: column; z-index: 7; }
+.lab .frame .flow .fh { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+.lab .frame .flow .fh .fk { font-size: 12px; color: var(--sub); line-height: 16px; }
+.lab .frame .flow .fh .ft { font-size: 22px; font-weight: 600; line-height: 28px; }
+.lab .frame .flow .rail { display: flex; gap: 6px; padding: 10px 16px; align-items: center; }
+.lab .frame .flow .rail span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); white-space: nowrap; }
+.lab .frame .flow .rail span i { width: 22px; height: 22px; border-radius: 999px; border: 1px solid var(--outline); display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; font-weight: 600; }
+.lab .frame .flow .rail span.done i { background: var(--accent-tint); color: var(--accent-text); border-color: transparent; }
+.lab .frame .flow .rail span.on { color: var(--ink); font-weight: 600; }
+.lab .frame .flow .rail span.on i { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.lab .frame .flow .rail .ln { flex: 1 1 0; height: 1px; background: var(--hair); }
+.lab .frame .flow .fb { flex: 1 1 auto; overflow: hidden; padding: 8px 16px; display: grid; gap: 12px; align-content: start; }
+.lab .frame .fsec { border-radius: var(--card-r); border: 1px solid var(--card-bd); background: var(--card); padding: 14px 16px; display: grid; gap: 12px; }
+.lab .frame .fnum { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; line-height: 24px; }
+.lab .frame .fnum i { width: 28px; height: 28px; border-radius: 999px; background: var(--sc-high); color: var(--sub); font-style: normal; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lab .frame .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lab .frame .flow .ff { margin-top: auto; display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px 20px; border-top: 1px solid var(--hair); background: var(--card); }
+.lab .frame.cockpit .flow .ff { flex-direction: column-reverse; }
+.lab .frame.desk .flow .ff { flex-direction: row; }
+/* cockpit profile */
+.lab .frame .cp-id { display: flex; align-items: center; gap: 16px; padding: 24px 0 20px; border-bottom: 1px solid var(--hair); margin: 0 12px; }
+.lab .frame .cp-av { position: relative; width: 112px; height: 112px; border-radius: 16px; background: var(--sc-high); color: var(--ink); font-size: 28px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: var(--elev1); flex-shrink: 0; }
+.lab .frame .cp-cam { position: absolute; right: -6px; bottom: -6px; width: 40px; height: 40px; border-radius: 999px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2px solid var(--canvas); }
+.lab .frame .cp-name { font-size: 22px; font-weight: 600; line-height: 28px; }
+.lab .frame .cp-chips { display: flex; gap: 8px; margin-top: 8px; }
+.lab .frame .cp-sec { padding: 20px 12px 0; }
+.lab .frame .cp-h { font-size: 16px; font-weight: 600; line-height: 24px; display: flex; align-items: center; gap: 8px; }
+.lab .frame .cp-h svg { font-size: 18px; color: var(--sub); }
+.lab .frame .cp-sub { font-size: 14px; color: var(--sub); margin-top: 2px; line-height: 20px; }
+.lab .frame .addr { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--card-r); background: var(--card); border: 1px solid var(--card-bd); box-shadow: var(--card-sh); margin-top: 12px; font-size: 14px; }
+.lab .frame .addr .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; display: inline-flex; align-items: center; gap: 10px; }
+.lab .frame .addr .lnk { color: var(--accent-text); display: inline-flex; align-items: center; gap: 6px; }
+.lab .frame .scards { display: grid; gap: 8px; margin-top: 12px; }
+.lab .frame .cp-div { border-top: 1px solid var(--hair); margin: 20px 12px 0; }
+
+/* ----- cockpit desktop ----- */
+.lab .frame.desk .screen { top: 56px; }
+.lab .frame.desk .d-appbar { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 20px; }
+.lab .frame.desk .d-icons { display: flex; gap: 4px; align-items: center; }
+.lab .frame.desk .d-avatar { width: 28px; height: 28px; border-radius: 999px; background: var(--sc-highest); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--sub); margin-left: 6px; }
+.lab .frame.desk .d-route { padding: 36px 52px 0; }
+.lab .frame.desk .d-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.lab .frame.desk .d-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.lab .frame.desk .d-tabs { margin-top: 18px; }
+.lab .frame.desk.tabs-tinted .d-tabs, .lab .frame.desk.tabs-equal .d-tabs { max-width: 720px; }
+.lab .frame.desk .d-tools { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hair); display: flex; align-items: center; gap: 12px; }
+.lab .frame.desk .d-tools .c-search { flex: 1 1 auto; width: auto; }
+.lab .frame.desk .hubgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: var(--list-gap-desk); margin-top: 20px; align-items: stretch; }
+.lab .frame.desk.desk-wide .hubgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lab .frame.desk .d-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; margin-top: 20px; align-items: start; }
+.lab .frame.desk .d-grid .card + .card { margin-top: 20px; }
+.lab .frame.desk .metrics3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px 16px 8px; }
+.lab .frame.desk .krows2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; padding: 8px 16px 10px; }
+.lab .frame.desk .feed { display: grid; }
+.lab .frame.desk .feed div { display: flex; justify-content: space-between; gap: 8px; padding: 9px 0; border-top: 1px solid var(--hair); font-size: 14px; color: var(--sub); }
+.lab .frame.desk .feed div:first-child { border-top: 0; }
+.lab .frame.desk .feed b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.lab .frame.desk .dock { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; min-height: 56px; padding: 4px 6px; gap: 2px; border-radius: 999px; background: var(--nav-bg); border: 1px solid var(--nav-bd); box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 24px rgba(20,14,8,0.10); align-items: stretch; z-index: 4; }
+.lab .frame.desk .dock .ni { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 94px; padding: 2px 10px 4px; color: var(--nav-fg); font-size: 12px; font-weight: 500; line-height: 16px; }
+.lab .frame.desk .dock .ni .ic { width: 44px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.lab .frame.desk.nav-pill .dock .ni.on { color: var(--on-container-nav); font-weight: 600; }
+.lab .frame.desk.nav-pill .dock .ni.on .ic { background: var(--container); color: var(--on-container); }
+.lab .frame.desk.nav-filled .dock .ni.on { color: var(--accent-text); font-weight: 600; }
+.lab .frame.desk.nav-filled .dock .ni.on .ic svg { fill: currentColor; }
+.lab .frame.desk .mtable { display: grid; }
+.lab .frame.desk .mtable .mrow { padding: 12px 16px; }
+.lab .frame.desk .sside { position: absolute; top: 64px; right: 16px; bottom: 0; width: 384px; background: var(--card); border: 1px solid var(--hair); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: var(--elev2); display: flex; flex-direction: column; z-index: 8; overflow: hidden; }
+.lab .frame.desk .sside .ssh { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--hair); }
+.lab .frame.desk .sside .ssh .st { font-size: 22px; font-weight: 600; line-height: 28px; }
+.lab .frame.desk .sside .cp-id, .lab .frame.desk .sside .cp-div { margin: 0 20px; }
+.lab .frame.desk .sside .cp-sec { padding: 20px 20px 0; }
+.lab .frame.desk .ddlg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1024px; height: 612px; background: var(--card); border-radius: 16px; box-shadow: var(--elev2); display: flex; flex-direction: column; z-index: 8; overflow: hidden; }
+.lab .frame.desk .ddlg.md { width: 448px; height: auto; }
+.lab .frame.desk .ddlg .flow { position: static; flex: 1 1 auto; min-height: 0; }
+.lab .frame.desk .ddlg .flow .fh { padding: 12px 24px; }
+.lab .frame.desk .ddlg .flow .fb { padding: 16px 160px; }
+.lab .frame.desk .ddlg .flow .ff { padding: 12px 24px; }
+.lab .frame.desk .dscrim { display: none; position: absolute; inset: 0; background: var(--scrim); z-index: 7; }
+.lab .frame.desk[data-screen="assess"] .dscrim, .lab .frame.desk[data-sheet="on"] .dscrim { display: block; }
+.lab .frame.desk .screen.assess { background: transparent; }
+.lab .frame.desk .dialog-md { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 448px; background: var(--card); border-radius: 16px; box-shadow: var(--elev2); z-index: 9; display: none; }
+.lab .frame.desk[data-sheet="on"] .dialog-md { display: block; }
+.lab .frame.desk .dialog-md .dh { padding: 12px 24px; border-bottom: 1px solid var(--hair); font-size: 22px; font-weight: 600; line-height: 28px; }
+.lab .frame.desk .dialog-md .db { padding: 16px 24px; display: grid; gap: 12px; font-size: 14px; color: var(--sub); line-height: 20px; }
+.lab .frame.desk .dialog-md .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 24px; border-top: 1px solid var(--hair); }
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-plant" viewBox="0 0 24 24"><path d="M12 21v-7"/><path d="M12 14c0-4 2.5-6.5 7-6.5 0 4-2.5 6.5-7 6.5z"/><path d="M12 14c0-4-2.5-6.5-7-6.5 0 4 2.5 6.5 7 6.5z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 1 1 12 0v6l1.5 2h-15z"/><path d="M10 21h4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6.5 8v5l-3 2v-7z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chevr" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-hub" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.5 2.7-5.5 6-5.5s6 2 6 5.5"/><path d="M15 14.5c3 0 5.5 1.8 5.5 5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-10a6 6 0 1 1 12 0c0 4.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M4 14v6h7l6.5-2.5a2 2 0 0 0-1.4-3.7L13 15"/><path d="M4 14h3l3 1h4"/><path d="M15 3.5c1.5-1.5 3.5-.5 3.5 1.3 0 1.8-3.5 4.2-3.5 4.2S11.5 6.6 11.5 4.8c0-1.8 2-2.8 3.5-1.3z"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h5"/><path d="M3 9h18"/></symbol>
+  <symbol id="i-work" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12h8M8 8.5h5M8 15.5h6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4h11l-1.5 4L16 12H5"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-13-1 9-6 14-14 13z"/><path d="M5 19c3-4 6-7 10-9"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M10 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="i-recycle" viewBox="0 0 24 24"><path d="m7 19-3-5 3-5M17 19l3-5-3-5"/><path d="M4 14h8l2 4"/><path d="M20 14h-8l-2-4"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m5 17 5-5 4 4 2-2 3 3"/><circle cx="15" cy="9.5" r="1.5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2 2 0 0 0-3-3L5 17z"/><path d="m13 8 3 3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17"/></symbol>
+  <symbol id="i-vib" viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4 9v6M20 9v6"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14" r="4"/><path d="m11 11 9-9M16 6l3 3M13.5 8.5l3 3"/></symbol>
+  <symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.3 6.7"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.6-7.95A6 6 0 0 1 18 8.5a3.5 3.5 0 0 1 .5 7H7z"/><path d="M12 12v8M9 17l3 3 3-3"/></symbol>
+  <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="m8.5 13-1.5 8 5-3 5 3-1.5-8"/></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 1 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></symbol>
+  <symbol id="i-task" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v10M9.5 9.5h3.5a1.75 1.75 0 0 1 0 3.5h-2a1.75 1.75 0 0 0 0 3.5H15"/></symbol>
+  <symbol id="i-addu" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><path d="M19 8v6M16 11h6"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+</svg>
+<section class="lab" id="lab">
+  <div class="eyebrow">Try the choices</div>
+  <div class="lab-h">Switch each fork and watch both surfaces</div>
+  <p>Hand-built replicas of the shipped compositions, drawn with the real token values from <code>theme.css</code>, <code>index.css</code> and <code>admin-m3-tokens.css</code>, and with the shipped type sizes: the app's 16px row title, 12px status pill and 12px tabs; the cockpit's 14px card title, 11px status chip and 12px meta. Mocks for judging direction, not the components themselves; the Storybook captures in this folder's README are the real thing. The stage opens with the app phone beside the cockpit desktop; switch to two phones or all three. A dot marks the recommended option.</p>
+  <div class="lab-shell">
+    <div class="lab-side" id="labPanel">
+      <div class="ctl presets"><div class="clabel">Preset</div><div class="seg"><button type="button" data-preset="today">Today</button><button type="button" data-preset="rec">Recommended</button><button type="button" data-preset="max">Everything shared</button></div></div>
+      <div class="views">
+        <label>App screen<select data-key="appScreen"><option value="home">Home</option><option value="garden">Garden</option><option value="work">Your Work</option><option value="submit">Submit Work</option><option value="profile">Profile</option></select></label>
+        <label>Cockpit screen<select data-key="cockScreen"><option value="hub">Hub</option><option value="garden">Garden</option><option value="members">Community</option><option value="assess">Create Assessment</option><option value="profile">Profile</option></select></label>
+        <label>Stage<select data-key="stage"><option value="appdesk">App + cockpit desktop</option><option value="phones">Two phones</option><option value="all">All three</option></select></label>
+        <label>Sheet<select data-key="sheetOpen"><option value="off">Closed</option><option value="on">Open on both</option></select></label>
+        <label>Theme<select data-key="theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+      </div>
+      <div class="shead">Type and ground</div>
+      <div class="ctl" data-key="font"><div class="clabel">F1 Typeface</div><div class="seg"><button type="button" data-v="split">Split (today)</button><button type="button" data-v="pjs" class="recd">Plus Jakarta Sans</button><button type="button" data-v="inter">Inter</button></div></div>
+      <div class="ctl" data-key="ground"><div class="clabel">F2 Ground</div><div class="seg"><button type="button" data-v="split">Split (today)</button><button type="button" data-v="linen" class="recd">Linen, one dark ladder</button><button type="button" data-v="white">White</button></div></div>
+      <div class="shead">Controls</div>
+      <div class="ctl" data-key="controls"><div class="clabel">F3 Buttons and fields</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">Corner per surface, rest unified</button><button type="button" data-v="c16">16px everywhere</button><button type="button" data-v="pill">Pills everywhere</button></div></div>
+      <div class="ctl" data-key="chips"><div class="clabel">F4 Chips</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="capsule" class="recd">Capsules on both</button><button type="button" data-v="square">8px on both</button></div></div>
+      <div class="ctl" data-key="tabs"><div class="clabel">F8 Tabs</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="app" class="recd">App tabs on both, equal width</button><button type="button" data-v="rail">Cockpit rail on both</button></div></div>
+      <div class="ctl" data-key="filter"><div class="clabel">F9 Filter control</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="app" class="recd">App filter button on both</button><button type="button" data-v="cockpit">Inline chips on both</button></div></div>
+      <div class="ctl" data-key="badge"><div class="clabel">F10 Count badge</div><div class="seg"><button type="button" data-v="today">Today, four styles</button><button type="button" data-v="one" class="recd">One badge: 16px, 11px semibold</button><button type="button" data-v="launcher">The launcher badge everywhere</button></div></div>
+      <div class="shead">Cards and lists</div>
+      <div class="ctl" data-key="cards"><div class="clabel">F7 Cards and rows</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">One surface and row anatomy, corner per surface</button><button type="button" data-v="app">App cards everywhere</button><button type="button" data-v="cockpit">Cockpit cards everywhere</button></div></div>
+      <div class="ctl" data-key="list"><div class="clabel">F11 List spacing</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="gap8">8px gap on both</button><button type="button" data-v="gap12" class="recd">12px gap on both</button><button type="button" data-v="divided">One divided card</button></div></div>
+      <div class="ctl" data-key="deskcard"><div class="clabel">F12 Desktop work card</div><div class="seg"><button type="button" data-v="tall">Tall, mosaic on top (today)</button><button type="button" data-v="wide" class="recd">Wide, mosaic on the left</button></div></div>
+      <div class="shead">Phone chrome</div>
+      <div class="ctl" data-key="sheet"><div class="clabel">F5 Sheets on phones</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="rec" class="recd">One surface and header</button></div></div>
+      <div class="ctl" data-key="nav"><div class="clabel">F6 Bottom bar active state</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="pill" class="recd">Pill on both</button><button type="button" data-v="filled">Filled icon on both</button></div></div>
+      <div class="shead">Dark mode</div>
+      <div class="ctl" data-key="darkcards"><div class="clabel">F13 Dark cards (set Theme to Dark)</div><div class="seg"><button type="button" data-v="today">Today</button><button type="button" data-v="step" class="recd">Card one step lighter</button><button type="button" data-v="outline">Hairline on today's card</button><button type="button" data-v="both">Lighter and hairline</button></div></div>
+      <div class="ctl" data-key="tone"><div class="clabel">Workspace tone (cockpit)</div><div class="seg"><button type="button" data-v="today" class="recd">A tone per workspace</button><button type="button" data-v="green">One green</button></div></div>
+      <div class="shead" style="border-top:0;padding-top:4px"></div>
+      <details><summary>Tokens in effect</summary><div class="readout" id="readout" style="margin-top:6px"></div></details>
+    </div>
+
+    <div class="lab-stage" id="stage">
+      <div class="col" id="colApp"><div class="frame-label">App · PWA · 390 · <span id="appLabel">Inter</span></div>
+        <div class="fitwrap"><div class="frame app" id="frameApp" data-surface="app" data-screen="work" data-sheet="off" style="--fw:390;--fh:800">
+          <div class="screen home">
+            <div class="a-head"><div class="a-title">Home</div><div class="launchers"><div class="ibtn compact"><svg><use href="#i-filter"/></svg><span class="cnt f">2</span></div><div class="ibtn compact"><svg><use href="#i-wallet"/></svg></div><div class="ibtn compact"><svg><use href="#i-hand"/></svg></div><div class="ibtn compact"><svg><use href="#i-work"/></svg><span class="cnt">3</span></div></div></div>
+            <div class="padded">
+              <div class="gcard"><div class="gbanner"></div><div class="gbody"><div class="gname trunc">Riverside Commons Garden</div><div class="gstats"><span class="gs"><svg><use href="#i-people"/></svg>12 Members</span><span class="gs"><svg><use href="#i-user"/></svg>2 Stewards</span><span class="gs"><svg><use href="#i-pin"/></svg>Riverside District</span></div><div class="gdesc clamp2">A community-run garden restoring the floodplain with native planting, compost and a shared tool library.</div><div class="gstew"><div class="gsh"><svg><use href="#i-user"/></svg>Stewards</div><div class="trunc">ada.greengoods.eth, tomi.eth</div></div></div></div>
+              <div class="gcard"><div class="gbanner b2"></div><div class="gbody"><div class="gname trunc">Tech and Sun Hub</div><div class="gstats"><span class="gs"><svg><use href="#i-people"/></svg>8 Members</span><span class="gs"><svg><use href="#i-user"/></svg>1 Steward</span><span class="gs"><svg><use href="#i-pin"/></svg>Awka, Nigeria</span></div><div class="gdesc clamp2">Solar workshops and a seedling nursery run by the Thursday crew.</div></div></div>
+            </div>
+          </div>
+          <div class="screen garden">
+            <div class="gtop"><div class="topnav"><div class="ibtn"><svg><use href="#i-back"/></svg></div><div style="display:flex;gap:8px"><div class="ibtn"><svg><use href="#i-share"/></svg></div><div class="ibtn"><svg><use href="#i-more"/></svg></div></div></div></div>
+            <div class="gtitle"><div class="h1 clamp2">Riverside Commons Garden</div><div class="gline"><svg><use href="#i-pin"/></svg>Riverside District</div><div class="gline"><svg><use href="#i-cal"/></svg>Founded Mar 14, 2024</div></div>
+            <div class="tabs gtabs"><div class="tab">Work</div><div class="tab on">Promises<span class="cnt">7</span></div><div class="tab">Insights</div><div class="tab">Gardeners</div></div>
+            <div class="gcontent">
+              <div class="cycles">
+                <div class="card cyc"><div class="ck"><svg style="color:var(--t-warn-fg)"><use href="#i-sun"/></svg><span class="kind">Season</span><span class="pill xs ok">Open</span></div><div class="ct2 trunc">Autumn Planting 2026</div><div class="cm">Sep 1 to Nov 30 · 3 of 7 kept</div></div>
+                <div class="card cyc"><div class="ck"><svg style="color:var(--t-info-fg)"><use href="#i-flag"/></svg><span class="kind c">Campaign</span><span class="pill xs ok">Open</span></div><div class="ct2 trunc">Seed Swap Weekend</div><div class="cm">Oct 10 to Oct 11 · 0 of 2 kept</div></div>
+              </div>
+              <div class="frow"><span>7 live</span><div class="sels"><div class="sel">Live<svg><use href="#i-chev"/></svg></div><div class="sel">All kinds<svg><use href="#i-chev"/></svg></div></div></div>
+              <div class="card prow"><div class="tile"><svg><use href="#i-hand"/></svg></div><div style="min-width:0"><div class="pt clamp2">Repair the north fence panel by the compost bays before the first frost</div><div class="pm"><span class="pill info">In progress</span><span class="need">Needs you</span></div></div></div>
+              <div class="card prow"><div class="tile"><svg><use href="#i-hand"/></svg></div><div style="min-width:0"><div class="pt clamp2">Survey one household about rain barrel use</div><div class="pm"><span class="pill info">In progress</span><span>1 survey</span></div></div></div>
+              <div class="card prow offer"><div class="tile"><svg><use href="#i-plant"/></svg></div><div style="min-width:0"><div class="pt clamp2">Water the seedling beds every morning while the Okafor family is travelling</div><div class="pm"><span class="pill info">Offered</span><span>7 mornings</span></div></div></div>
+            </div>
+          </div>
+          <div class="screen work">
+            <div class="a-head" style="opacity:.5"><div class="a-title">Home</div><div class="launchers"><div class="ibtn compact"><svg><use href="#i-filter"/></svg></div><div class="ibtn compact"><svg><use href="#i-wallet"/></svg></div><div class="ibtn compact"><svg><use href="#i-hand"/></svg></div><div class="ibtn compact"><svg><use href="#i-work"/></svg><span class="cnt">3</span></div></div></div>
+            <div class="dim"></div>
+            <div class="sheet tall">
+              <div class="grip"></div>
+              <div class="sh"><div><div class="st">Your Work</div><div class="sd">Track work submissions and reviews</div></div><div class="ibtn"><svg><use href="#i-x"/></svg></div></div>
+              <div class="tabs"><div class="tab on"><svg><use href="#i-task"/></svg>Pending<span class="cnt">3</span></div><div class="tab"><svg><use href="#i-check"/></svg>Completed</div></div>
+              <div class="wk-head"><div class="btn secondary"><svg><use href="#i-upload"/></svg>Upload all</div><div class="acts"><div class="acts-select"><div class="sel">All<svg><use href="#i-chev"/></svg></div></div><div class="acts-chips chips"><span class="chip sm on">All</span><span class="chip sm">To upload</span><span class="chip sm">Drafts</span></div></div></div>
+              <div class="wk-list"><div class="wlist">
+                <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#D8E6C2,#9BBE8A);--c2:linear-gradient(160deg,#C9DDB0,#86AC78);--c3:linear-gradient(160deg,#E2EAD2,#A9C596)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Agroforestry</span><span class="mcount">1 / 3</span></div><div class="wbody"><div class="wtop"><div class="wt">Planted baobab seedlings</div><span class="wpill"><span class="pill warn">To upload</span></span></div><div class="wact">Plant native trees</div><div class="wmeta"><span class="who">Today</span><span class="sep"></span><span class="when">Riverside Commons</span></div><div class="wsup">3 photos · Waiting for signal</div></div></div>
+                <div class="witem" style="--edge:var(--hair2);--c1:linear-gradient(160deg,#E7E0C9,#C8B993);--c2:linear-gradient(160deg,#DCD3B8,#B8A77E);--c3:linear-gradient(160deg,#EFE9D7,#CFC29C)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Waste</span><span class="mcount">1 / 1</span></div><div class="wbody"><div class="wtop"><div class="wt">Compost turn</div><span class="wpill"><span class="pill neutral">Draft</span></span></div><div class="wact">Turn the community compost</div><div class="wmeta"><span class="who">Yesterday</span><span class="sep"></span><span class="when">Riverside Commons</span></div><div class="wsup">1 photo · Media step</div></div></div>
+                <div class="witem" style="--edge:var(--e-info);--c1:linear-gradient(160deg,#CFE3D3,#8FB79A);--c2:linear-gradient(160deg,#BBD6C1,#79A587);--c3:linear-gradient(160deg,#DCEBDF,#9DC3A8)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Education</span><span class="mcount">1 / 2</span></div><div class="wbody"><div class="wtop"><div class="wt">Herb spiral weeding</div><span class="wpill"><span class="pill info">In review</span></span></div><div class="wact">Weed and mulch the beds</div><div class="wmeta"><span class="who">Tuesday</span><span class="sep"></span><span class="when">Tech and Sun Hub</span></div><div class="wsup">2 photos · Sent, waiting on a steward</div></div></div>
+              </div></div>
+            </div>
+          </div>
+          <div class="screen submit">
+            <div class="s-top"><div class="ibtn"><svg><use href="#i-back"/></svg></div><div class="steps"><div class="step done"><div class="dot"><svg><use href="#i-check"/></svg></div>Start</div><div class="step-line done"></div><div class="step done"><div class="dot"><svg><use href="#i-check"/></svg></div>Media</div><div class="step-line done"></div><div class="step on"><div class="dot">3</div>Details</div><div class="step-line"></div><div class="step"><div class="dot">4</div>Review</div></div><div style="width:40px"></div></div>
+            <div class="sinfo"><div class="itile"><svg><use href="#i-edit"/></svg></div><div><div class="it">Add Details</div><div class="id">Say what you did and how much.</div></div></div>
+            <div class="pinned"><svg><use href="#i-hand"/></svg><div style="min-width:0"><div class="pk">Work for</div><div class="pv trunc">Transplant 36 seedlings into the east beds</div></div><svg class="chev"><use href="#i-chevr"/></svg></div>
+            <div class="form">
+              <div class="field"><div class="flabel">Title</div><div class="fbox" data-label="Title">Transplanted the east beds</div><div class="fhelp"></div></div>
+              <div class="field"><div class="flabel">Plants installed</div><div class="fbox" data-label="Plants installed">36<span class="unit">seedlings</span></div><div class="fhelp">Count what went into the ground today.</div></div>
+              <div class="field"><div class="flabel">Notes</div><div class="fbox area" data-label="Notes">Two beds, watered in after planting.</div><div class="fhelp"></div></div>
+            </div>
+            <div class="bar"><div class="btn secondary lg">Back</div><div class="btn primary lg">Review Work<svg><use href="#i-chevr"/></svg></div></div>
+          </div>
+          <div class="screen profile">
+            <div class="p-head"><div class="p-av"><svg><use href="#i-user"/></svg><div class="p-edit"><svg><use href="#i-cam"/></svg></div></div><div class="p-name trunc">Ada Okafor</div><div class="p-badges"><span class="pb"><svg><use href="#i-pin"/></svg>Awka, Nigeria</span></div></div>
+            <div class="tabs"><div class="tab on"><svg><use href="#i-gear"/></svg>Account</div><div class="tab"><svg><use href="#i-award"/></svg>Badges</div><div class="tab"><svg><use href="#i-head"/></svg>Help</div></div>
+            <div class="p-body">
+              <div class="h5">Settings</div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-gear"/></svg></div><div class="ptx"><div class="pt trunc">Theme</div><div class="pd two">Choose how the app looks</div></div><div class="pctl"><div class="sel">System<svg><use href="#i-chev"/></svg></div></div></div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-globe"/></svg></div><div class="ptx"><div class="pt trunc">Language</div><div class="pd two">Set your preferred language</div></div><div class="pctl"><div class="sel">English<svg><use href="#i-chev"/></svg></div></div></div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-vib"/></svg></div><div class="ptx"><div class="pt trunc">Vibration</div><div class="pd two">Vibrate lightly when you tap</div></div><div class="switch"></div></div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-cloud"/></svg></div><div class="ptx"><div class="pt trunc">Offline</div><div class="pd two">Ready<br>42 MB saved</div></div><div class="pctl"><div class="btn secondary sm">Refresh</div></div></div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-refresh"/></svg></div><div class="ptx"><div class="pt trunc">Update</div><div class="pd two">Check for a newer version.</div></div><div class="pctl"><div class="btn secondary sm">Check</div></div></div>
+              <div class="h5">My gardens</div>
+              <div class="glist"><div class="prow2"><div class="av40"><svg><use href="#i-plant"/></svg></div><div class="ptx"><div class="pt clamp2">Riverside Commons Garden</div><div class="pd"><svg><use href="#i-pin"/></svg> Riverside District</div></div><svg class="chev"><use href="#i-chevr"/></svg></div><div class="prow2"><div class="av40"><svg><use href="#i-plant"/></svg></div><div class="ptx"><div class="pt clamp2">Tech and Sun Hub</div><div class="pd"><svg><use href="#i-pin"/></svg> Awka, Nigeria</div></div><svg class="chev"><use href="#i-chevr"/></svg></div></div>
+              <div class="h5">Account</div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-key"/></svg></div><div class="ptx"><div class="pt trunc">Passkey</div><div class="pd">Active</div></div></div>
+              <div class="prow2"><div class="av40"><svg><use href="#i-user"/></svg></div><div class="ptx"><div class="pt trunc">Account ID</div><div class="pd">Support or a steward may ask for it.</div><div class="pd" style="display:flex;align-items:center;gap:6px;color:var(--ink)">0x3F4a…9A2C<svg><use href="#i-copy"/></svg></div></div></div>
+              <div class="btn secondary block"><svg><use href="#i-ext"/></svg>Logout</div>
+            </div>
+          </div>
+          <div class="fab"><svg><use href="#i-plus"/></svg></div>
+          <div class="nav"><div class="ni" id="appNavHome"><div class="ic"><svg><use href="#i-home"/></svg><span class="cnt">3</span></div>Home</div><div class="ni" id="appNavGarden"><div class="ic"><svg><use href="#i-plant"/></svg></div>Garden</div><div class="ni" id="appNavProfile"><div class="ic"><svg><use href="#i-user"/></svg></div>Profile</div></div>
+          <div class="scrim"><div class="sheet">
+            <div class="grip"></div>
+            <div class="sh"><div><div class="st">Request to Join</div><div class="sd">Tell the stewards of Riverside Commons who you are.</div></div><div class="ibtn"><svg><use href="#i-x"/></svg></div></div>
+            <div class="sb"><div class="field"><div class="flabel">Message</div><div class="fbox area" data-label="Message">I run the Thursday compost crew on Mill Lane.</div><div class="fhelp">Stewards read this before they answer.</div></div></div>
+            <div class="sf"><div class="btn primary lg block">Send Request</div><div class="btn secondary lg block">Cancel</div></div>
+          </div></div>
+        </div></div>
+      </div>
+      <div class="col" id="colCock"><div class="frame-label">Cockpit · phone · 390 · <span id="cockLabel">Plus Jakarta Sans</span></div>
+        <div class="fitwrap"><div class="frame cockpit" id="frameCock" data-surface="cockpit" data-screen="hub" data-sheet="off" style="--fw:390;--fh:800">
+          <div class="screen hub">
+            <div class="c-appbar"><div class="gchip"><span class="av"><svg><use href="#i-leaf"/></svg></span><span class="trunc">Botanic Commons</span><svg class="chev"><use href="#i-chev"/></svg></div><div class="c-icons"><div class="ibtn ghost"><svg><use href="#i-refresh"/></svg></div><div class="ibtn ghost"><svg><use href="#i-bell"/></svg></div></div></div>
+            <div class="c-head"><div class="c-title">Hub</div><div class="c-desc">Review and triage pending submissions.</div><div class="c-meta"><span><b>2</b> waiting over a week</span></div></div>
+            <div class="tabs c-tabs"><div class="tab on"><svg><use href="#i-check"/></svg>Work<span class="cnt">3</span></div><div class="tab"><svg><use href="#i-hand"/></svg>Confirm</div><div class="tab"><svg><use href="#i-work"/></svg>Assessments</div><div class="tab"><svg><use href="#i-award"/></svg>Hypercerts</div></div>
+            <div class="c-tools"><div class="c-search"><svg><use href="#i-search"/></svg>Search submissions</div><div class="tools-chips"><div class="chips"><span class="chip on">Pending</span><span class="chip">Approved</span></div><div class="c-sort">Sort by <b>Newest</b><svg><use href="#i-chev"/></svg></div></div><div class="tools-fbtn"><div class="ibtn compact"><svg><use href="#i-filter"/></svg><span class="cnt f">1</span></div><div class="c-sort">Sort by <b>Newest</b><svg><use href="#i-chev"/></svg></div></div></div>
+            <div class="c-content"><div class="wlist">
+              <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#D8E6C2,#9BBE8A);--c2:linear-gradient(160deg,#C9DDB0,#86AC78);--c3:linear-gradient(160deg,#E2EAD2,#A9C596)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Waste</span><span class="mcount">1 / 3</span></div><div class="wbody"><div class="wtop"><div class="wt">River bank cleanup</div><span class="wpill"><span class="pill neutral">Pending</span></span></div><div class="wact">Clear plastic from the river bank</div><div class="wmeta"><span class="who">maria.eth</span><span class="sep"></span><span class="when">submitted 6 hours ago</span></div><div class="wsup">3 photos · Jardim Botafogo</div></div></div>
+              <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#CFE3D3,#8FB79A);--c2:linear-gradient(160deg,#BBD6C1,#79A587);--c3:linear-gradient(160deg,#DCEBDF,#9DC3A8)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Agroforestry</span><span class="mcount">1 / 2</span></div><div class="wbody"><div class="wtop"><div class="wt">Planted 50 native saplings</div><span class="wpill"><span class="pill neutral">Pending</span></span></div><div class="wact">Plant native trees</div><div class="wmeta"><span class="who">0x7B2e…41C9</span><span class="sep"></span><span class="when">submitted 1 day ago</span></div><div class="wsup">2 photos · Rio Rainforest Lab</div></div></div>
+            </div></div>
+          </div>
+          <div class="screen garden">
+            <div class="c-appbar"><div class="gchip"><span class="av"><svg><use href="#i-leaf"/></svg></span><span class="trunc">Rio Rainforest Lab</span><svg class="chev"><use href="#i-chev"/></svg></div><div class="c-icons"><div class="ibtn ghost"><svg><use href="#i-bell"/></svg></div></div></div>
+            <div class="c-head"><div class="c-title">Garden</div><div class="c-meta" style="margin-top:8px"><span><b>1</b> gardener</span><span><b>1</b> impact</span></div></div>
+            <div class="tabs c-tabs"><div class="tab on">Health</div><div class="tab">Impact</div><div class="tab">Activity</div><div class="tab">Promises</div></div>
+            <div class="c-content">
+              <div class="card"><div class="ch"><div class="ct">Attention Needed</div></div><div class="cb">No active alerts.</div></div>
+              <div class="card"><div class="ch"><div><div class="ct">Garden Health</div><div class="cs">Healthy</div></div><div class="seg2"><span>7d</span><span class="on">30d</span><span>90d</span></div></div>
+                <div class="metrics"><div class="metric"><div class="ml">Last Activity</div><div class="mv">2 days ago</div></div><div class="metric"><div class="ml">Approved work</div><div class="mv">2</div><div class="ms">2 more than previous window</div></div><div class="metric"><div class="ml">Median review time</div><div class="mv">Not available</div></div></div>
+                <div class="krows"><div class="krow"><span>Pending Work</span><b>1</b></div><div class="krow"><span>Assessments (30d)</span><b>1</b></div><div class="krow"><span>Active Gardeners</span><b>1</b></div><div class="krow"><span>Endowments</span><b>39 0x00…000</b></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="screen members">
+            <div class="c-appbar"><div class="gchip"><span class="av"><svg><use href="#i-leaf"/></svg></span><span class="trunc">Botanic Commons</span><svg class="chev"><use href="#i-chev"/></svg></div><div class="c-icons"><div class="ibtn ghost"><svg><use href="#i-refresh"/></svg></div><div class="ibtn ghost"><svg><use href="#i-bell"/></svg></div></div></div>
+            <div class="c-head"><div class="c-title">Community</div><div class="c-meta" style="margin-top:8px"><span><b>0</b> endowment</span><span><b>0</b> distributed</span></div></div>
+            <div class="tabs c-tabs"><div class="tab on">Members<span class="cnt">4</span></div><div class="tab">Endowment</div><div class="tab">Payouts</div></div>
+            <div class="c-tools"><div class="c-search"><svg><use href="#i-search"/></svg>Search members</div><div class="tools-chips"><div class="chips"><span class="chip on">All</span><span class="chip">Stewards</span><span class="chip">Gardeners</span></div></div><div class="tools-fbtn"><div class="ibtn compact"><svg><use href="#i-filter"/></svg></div></div></div>
+            <div class="c-content"><div class="card">
+              <div class="mrow"><div class="av2">AO</div><div style="min-width:0"><div class="mn trunc">ada.greengoods.eth</div><div class="mr"><span class="tagchip">Steward</span><span class="tagchip">Gardener</span></div></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">TO</div><div style="min-width:0"><div class="mn trunc">tomi.eth</div><div class="mr"><span class="tagchip">Steward</span></div></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">MA</div><div style="min-width:0"><div class="mn trunc">maria.eth</div><div class="mr"><span class="tagchip">Gardener</span></div></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">0x</div><div style="min-width:0"><div class="mn trunc">0x7B2e…41C9</div><div class="mr"><span class="tagchip">Gardener</span><span class="pill neutral">Invited</span></div></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+            </div></div>
+          </div>
+          <div class="screen assess">
+            <div class="flow">
+              <div class="fh"><div><div class="fk">Rio Rainforest Lab</div><div class="ft">Create Assessment</div></div><div class="ibtn close"><svg><use href="#i-x"/></svg></div></div>
+              <div class="rail"><span class="done"><i><svg><use href="#i-check"/></svg></i>Scope</span><span class="ln"></span><span class="on"><i>2</i>Evidence</span><span class="ln"></span><span><i>3</i>Review</span></div>
+              <div class="fb">
+                <div class="fsec"><div class="fnum"><i>01</i>Which work</div><div class="scards" style="margin-top:0"><div class="scard on"><svg><use href="#i-recycle"/></svg>River bank cleanup<svg class="ok"><use href="#i-check"/></svg></div><div class="scard"><svg><use href="#i-plant"/></svg>Planted 50 native saplings<svg class="ok"><use href="#i-check"/></svg></div></div></div>
+                <div class="fsec"><div class="fnum"><i>02</i>Evidence</div><div class="grid2"><div class="field"><div class="flabel">Date</div><div class="fbox" data-label="Date">Oct 9, 2026</div></div><div class="field"><div class="flabel">Confidence</div><div class="fbox" data-label="Confidence">High<svg class="unit"><use href="#i-chev"/></svg></div></div></div><div class="field"><div class="flabel">Notes</div><div class="fbox area ph" data-label="Notes">What did you observe on site?</div></div></div>
+              </div>
+              <div class="ff"><div class="btn text">Cancel</div><div class="btn primary">Continue</div></div>
+            </div>
+          </div>
+          <div class="screen profile">
+            <div class="c-appbar"><div class="gchip"><span class="av"><svg><use href="#i-leaf"/></svg></span><span class="trunc">Botanic Commons</span><svg class="chev"><use href="#i-chev"/></svg></div><div class="c-icons"><div class="ibtn ghost"><svg><use href="#i-bell"/></svg></div></div></div>
+            <div class="c-head"><div class="c-title">Profile</div><div class="c-desc">Manage your canvas identity, appearance, and steward preferences.</div></div>
+            <div class="tabs c-tabs"><div class="tab on">Profile</div><div class="tab">Settings</div></div>
+            <div class="cp-id"><div class="cp-av">ST<div class="cp-cam"><svg><use href="#i-cam"/></svg></div></div><div style="min-width:0"><div class="cp-name trunc">steward</div><div class="cp-chips"><span class="tagchip">Steward</span><span class="tagchip">Wallet</span></div></div></div>
+            <div class="cp-sec"><div class="cp-h"><svg><use href="#i-wallet"/></svg>Wallet</div><div class="addr"><span class="mono">0x3F4a…9A2C<svg><use href="#i-copy"/></svg></span><span class="lnk">View on Explorer<svg><use href="#i-ext"/></svg></span></div></div>
+            <div class="cp-div"></div>
+            <div class="cp-sec"><div class="cp-h">Your gardens</div><div class="cp-sub">Switch the garden this canvas is scoped to.</div><div class="scards"><div class="scard on"><svg><use href="#i-leaf"/></svg>Botanic Commons<svg class="ok"><use href="#i-check"/></svg></div><div class="scard"><svg><use href="#i-leaf"/></svg>Rio Rainforest Lab<svg class="ok"><use href="#i-check"/></svg></div></div><div style="margin-top:16px"><div class="btn secondary">Request Steward Access</div></div></div>
+          </div>
+          <div class="fab"><svg><use href="#i-plus"/></svg></div>
+          <div class="nav"><div class="ni" id="cockNavHub"><div class="ic"><svg><use href="#i-hub"/></svg></div>Hub</div><div class="ni" id="cockNavGarden"><div class="ic"><svg><use href="#i-plant"/></svg></div>Garden</div><div class="ni" id="cockNavCommunity"><div class="ic"><svg><use href="#i-people"/></svg></div>Community</div><div class="ni" id="cockNavProfile"><div class="ic"><svg><use href="#i-user"/></svg></div>Profile</div></div>
+          <div class="scrim"><div class="sheet">
+            <div class="grip"></div>
+            <div class="sh"><div><div class="st">Remove Member</div><div class="sd">tomi.eth loses steward access to Botanic Commons. Past work and approvals stay.</div></div><div class="ibtn close"><svg><use href="#i-x"/></svg></div></div>
+            <div class="sb"><div class="field"><div class="flabel">Reason</div><div class="fbox area" data-label="Reason">Moved away from the garden in September.</div><div class="fhelp">Shared with the member.</div></div></div>
+            <div class="sf"><div class="btn primary lg block">Remove Member</div><div class="btn secondary lg block">Cancel</div></div>
+          </div></div>
+        </div></div>
+      </div>
+      <div class="col" id="colDesk"><div class="frame-label">Cockpit · desktop · 1280 · <span id="deskLabel">Plus Jakarta Sans</span></div>
+        <div class="fitwrap"><div class="frame cockpit desk" id="frameDesk" data-surface="cockpit" data-screen="hub" data-sheet="off" style="--fw:1280;--fh:720">
+          <div class="d-appbar"><div class="gchip"><span class="av"><svg><use href="#i-leaf"/></svg></span><span class="trunc" id="deskChip">Botanic Commons</span><svg class="chev"><use href="#i-chev"/></svg></div><div class="d-icons"><div class="ibtn ghost"><svg><use href="#i-search"/></svg></div><div class="ibtn ghost"><svg><use href="#i-bell"/></svg></div><div class="ibtn ghost"><svg><use href="#i-gear"/></svg></div><div class="d-avatar"><svg><use href="#i-user"/></svg></div></div></div>
+          <div class="screen hub"><div class="d-route">
+            <div class="d-head"><div><div class="c-title">Hub</div><div class="c-desc">Review and triage pending submissions.</div><div class="c-meta"><span><b>2</b> waiting over a week</span></div></div><div class="d-actions"><div class="btn secondary lg"><svg><use href="#i-check"/></svg>Create Assessment</div><div class="btn secondary lg"><svg><use href="#i-award"/></svg>Create Hypercert</div><div class="btn secondary lg"><svg><use href="#i-plus"/></svg>Submit Work</div></div></div>
+            <div class="tabs d-tabs"><div class="tab on"><svg><use href="#i-check"/></svg>Work<span class="cnt">3</span></div><div class="tab"><svg><use href="#i-hand"/></svg>Confirm</div><div class="tab"><svg><use href="#i-work"/></svg>Assessments</div><div class="tab"><svg><use href="#i-award"/></svg>Hypercerts</div></div>
+            <div class="d-tools"><div class="c-search"><svg><use href="#i-search"/></svg>Search submissions</div><div class="tools-chips"><div class="chips"><span class="chip on">Pending</span><span class="chip">Approved</span></div><div class="c-sort">Sort by <b>Newest</b><svg><use href="#i-chev"/></svg></div></div><div class="tools-fbtn"><div class="ibtn compact"><svg><use href="#i-filter"/></svg><span class="cnt f">1</span></div><div class="c-sort">Sort by <b>Newest</b><svg><use href="#i-chev"/></svg></div></div></div>
+            <div class="hubgrid wlist">
+              <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#D8E6C2,#9BBE8A);--c2:linear-gradient(160deg,#C9DDB0,#86AC78);--c3:linear-gradient(160deg,#E2EAD2,#A9C596)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Waste</span><span class="mcount">1 / 3</span></div><div class="wbody"><div class="wtop"><div class="wt">River bank cleanup</div><span class="wpill"><span class="pill neutral">Pending</span></span></div><div class="wact">Clear plastic from the river bank</div><div class="wmeta"><span class="who">maria.eth</span><span class="sep"></span><span class="when">submitted 6 hours ago</span></div><div class="wsup">3 photos · Jardim Botafogo</div></div></div>
+              <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#CFE3D3,#8FB79A);--c2:linear-gradient(160deg,#BBD6C1,#79A587);--c3:linear-gradient(160deg,#DCEBDF,#9DC3A8)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Agroforestry</span><span class="mcount">1 / 2</span></div><div class="wbody"><div class="wtop"><div class="wt">Planted 50 native saplings</div><span class="wpill"><span class="pill neutral">Pending</span></span></div><div class="wact">Plant native trees</div><div class="wmeta"><span class="who">0x7B2e…41C9</span><span class="sep"></span><span class="when">submitted 1 day ago</span></div><div class="wsup">2 photos · Rio Rainforest Lab</div></div></div>
+              <div class="witem" style="--edge:var(--e-warn);--c1:linear-gradient(160deg,#F3E3C3,#E0C79A);--c2:linear-gradient(160deg,#E9D5AE,#CDAF7C);--c3:linear-gradient(160deg,#F7ECD7,#E6D2AE)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Solar</span><span class="mcount">1 / 4</span></div><div class="wbody"><div class="wtop"><div class="wt">Panel cleaning after the harmattan dust</div><span class="wpill"><span class="pill neutral">Pending</span></span></div><div class="wact">Maintain the solar array</div><div class="wmeta"><span class="who">chidi.eth</span><span class="sep"></span><span class="when">submitted 3 days ago</span></div><div class="wsup">4 photos · Tech and Sun Hub</div></div></div>
+              <div class="witem" style="--edge:var(--e-ok);--c1:linear-gradient(160deg,#DCE8F2,#9FB9CF);--c2:linear-gradient(160deg,#C8D9E8,#8AA7C2);--c3:linear-gradient(160deg,#E6EEF5,#B1C6D8)"><div class="wmedia"><div class="cell"></div><div class="cell"></div><div class="cell"></div><span class="dchip">Education</span><span class="mcount">1 / 2</span></div><div class="wbody"><div class="wtop"><div class="wt">Rain barrel workshop</div><span class="wpill"><span class="pill ok">Approved</span></span></div><div class="wact">Teach water harvesting</div><div class="wmeta"><span class="who">ada.greengoods.eth</span><span class="sep"></span><span class="when">submitted 8 days ago</span></div><div class="wsup">2 photos · Riverside Commons</div></div></div>
+            </div>
+          </div></div>
+          <div class="screen garden"><div class="d-route">
+            <div class="d-head"><div><div class="c-title">Garden</div><div class="c-meta" style="margin-top:8px"><span><b>1</b> gardener</span><span><b>1</b> impact</span></div></div><div class="d-actions"><div class="btn text lg"><svg><use href="#i-ext"/></svg>View Public</div><div class="btn primary lg"><svg><use href="#i-gear"/></svg>Edit Garden</div></div></div>
+            <div class="tabs d-tabs"><div class="tab on">Health</div><div class="tab">Impact</div><div class="tab">Activity</div><div class="tab">Promises</div></div>
+            <div class="d-grid">
+              <div>
+                <div class="card"><div class="ch"><div><div class="ct">Garden Health</div><div class="cs">Healthy</div></div><div class="seg2"><span>7d</span><span class="on">30d</span><span>90d</span></div></div>
+                  <div class="metrics3"><div class="metric"><div class="ml">Last Activity</div><div class="mv">2 days ago</div></div><div class="metric"><div class="ml">Approved work</div><div class="mv">2</div><div class="ms">2 more than previous window</div></div><div class="metric"><div class="ml">Median review time</div><div class="mv">Not available</div></div></div>
+                  <div class="krows2"><div class="krow"><span>Pending Work</span><b>1</b></div><div class="krow"><span>Assessments (30d)</span><b>1</b></div><div class="krow"><span>Active Gardeners</span><b>1</b></div><div class="krow"><span>Endowments</span><b>39 0x00…000</b></div></div>
+                </div>
+                <div class="card"><div class="ch"><div class="ct">Promises</div><div class="btn secondary sm">Open the Pool Console</div></div><div class="cb"><div class="feed"><div><span class="trunc">Repair the north fence panel</span><b>In progress</b></div><div><span class="trunc">Survey one household about rain barrel use</span><b>In progress</b></div><div><span class="trunc">Water the seedling beds every morning</span><b>Offered</b></div></div></div></div>
+              </div>
+              <div>
+                <div class="card"><div class="ch"><div class="ct">Karma Integration</div><span class="pill err">Sync failed</span></div><div class="cb">The last Karma sync did not finish. Your Garden data is safe and you can retry.<div class="chips"><span class="chip">Retry sync</span></div></div></div>
+                <div class="card"><div class="ch"><div class="ct">Attention Needed</div></div><div class="cb">No active alerts.</div></div>
+                <div class="card"><div class="ch"><div class="ct">Activity Feed</div></div><div class="cb"><div class="feed"><div><span class="trunc">Canopy transect upload</span><b>2 days ago</b></div><div><span class="trunc">Rainforest canopy baseline</span><b>4 days ago</b></div><div><span class="trunc">Water quality review</span><b>5 days ago</b></div></div></div></div>
+              </div>
+            </div>
+          </div></div>
+          <div class="screen members"><div class="d-route">
+            <div class="d-head"><div><div class="c-title">Community</div><div class="c-meta" style="margin-top:8px"><span><b>0</b> endowment</span><span><b>0</b> distributed</span></div></div><div class="d-actions"><div class="btn secondary lg"><svg><use href="#i-coin"/></svg>Deposit / Withdraw</div><div class="btn secondary lg"><svg><use href="#i-hand"/></svg>Fund Cookie Jar</div><div class="btn primary lg"><svg><use href="#i-addu"/></svg>Add Member</div></div></div>
+            <div class="tabs d-tabs"><div class="tab on">Members<span class="cnt">4</span></div><div class="tab">Endowment</div><div class="tab">Payouts</div></div>
+            <div class="d-tools"><div class="c-search"><svg><use href="#i-search"/></svg>Search members</div><div class="tools-chips"><div class="chips"><span class="chip on">All</span><span class="chip">Stewards</span><span class="chip">Gardeners</span></div></div><div class="tools-fbtn"><div class="ibtn compact"><svg><use href="#i-filter"/></svg></div></div></div>
+            <div class="card" style="margin-top:20px"><div class="mtable">
+              <div class="mrow"><div class="av2">AO</div><div style="min-width:0;flex:1"><div class="mn trunc">ada.greengoods.eth</div><div class="ma">0x3F4a…9A2C</div></div><div class="mr" style="margin:0"><span class="tagchip">Steward</span><span class="tagchip">Gardener</span></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">TO</div><div style="min-width:0;flex:1"><div class="mn trunc">tomi.eth</div><div class="ma">0x91cC…0F7e</div></div><div class="mr" style="margin:0"><span class="tagchip">Steward</span></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">MA</div><div style="min-width:0;flex:1"><div class="mn trunc">maria.eth</div><div class="ma">0xA402…5D11</div></div><div class="mr" style="margin:0"><span class="tagchip">Gardener</span></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+              <div class="mrow"><div class="av2">0x</div><div style="min-width:0;flex:1"><div class="mn trunc">0x7B2e…41C9</div><div class="ma">Joined Oct 2</div></div><div class="mr" style="margin:0"><span class="tagchip">Gardener</span><span class="pill neutral">Invited</span></div><div class="ibtn ghost"><svg><use href="#i-more"/></svg></div></div>
+            </div></div>
+          </div></div>
+          <div class="dscrim"></div>
+          <div class="ddlg" id="deskFlow"><div class="flow">
+            <div class="fh"><div><div class="fk">Rio Rainforest Lab</div><div class="ft">Create Assessment</div></div><div class="ibtn close"><svg><use href="#i-x"/></svg></div></div>
+            <div class="rail" style="padding:10px 24px"><span class="done"><i><svg><use href="#i-check"/></svg></i>Scope</span><span class="ln"></span><span class="on"><i>2</i>Evidence</span><span class="ln"></span><span><i>3</i>Review</span></div>
+            <div class="fb">
+              <div class="fsec"><div class="fnum"><i>01</i>Which work</div><div class="grid2"><div class="scard on"><svg><use href="#i-recycle"/></svg>River bank cleanup<svg class="ok"><use href="#i-check"/></svg></div><div class="scard"><svg><use href="#i-plant"/></svg>Planted 50 native saplings<svg class="ok"><use href="#i-check"/></svg></div></div></div>
+              <div class="fsec"><div class="fnum"><i>02</i>Evidence</div><div class="grid2"><div class="field"><div class="flabel">Date</div><div class="fbox" data-label="Date">Oct 9, 2026</div></div><div class="field"><div class="flabel">Confidence</div><div class="fbox" data-label="Confidence">High<svg class="unit"><use href="#i-chev"/></svg></div></div></div><div class="field"><div class="flabel">Notes</div><div class="fbox area ph" data-label="Notes">What did you observe on site?</div></div></div>
+            </div>
+            <div class="ff"><div class="btn text">Cancel</div><div class="btn primary">Continue</div></div>
+          </div></div>
+          <div class="sside" id="deskSide">
+            <div class="ssh"><div class="st">Profile</div><div class="ibtn ghost"><svg><use href="#i-x"/></svg></div></div>
+            <div class="cp-id"><div class="cp-av">ST<div class="cp-cam"><svg><use href="#i-cam"/></svg></div></div><div style="min-width:0"><div class="cp-name trunc">steward</div><div class="cp-chips"><span class="tagchip">Steward</span><span class="tagchip">Wallet</span></div></div></div>
+            <div class="cp-sec"><div class="cp-h"><svg><use href="#i-wallet"/></svg>Wallet</div><div class="addr"><span class="mono">0x3F4a…9A2C<svg><use href="#i-copy"/></svg></span><span class="lnk">View on Explorer<svg><use href="#i-ext"/></svg></span></div></div>
+            <div class="cp-div"></div>
+            <div class="cp-sec"><div class="cp-h">Your gardens</div><div class="cp-sub">Switch the garden this canvas is scoped to.</div><div class="scards"><div class="scard on"><svg><use href="#i-leaf"/></svg>Botanic Commons<svg class="ok"><use href="#i-check"/></svg></div><div class="scard"><svg><use href="#i-leaf"/></svg>Rio Rainforest Lab<svg class="ok"><use href="#i-check"/></svg></div></div><div style="margin-top:16px"><div class="btn secondary">Request Steward Access</div></div></div>
+          </div>
+          <div class="dialog-md"><div class="dh">Remove Member</div><div class="db"><div>tomi.eth loses steward access to Botanic Commons. Past work and approvals stay.</div><div class="field"><div class="flabel">Reason</div><div class="fbox area" data-label="Reason">Moved away from the garden in September.</div></div></div><div class="df"><div class="btn text">Cancel</div><div class="btn primary">Remove Member</div></div></div>
+          <div class="dock"><div class="ni" id="deskNavHub"><div class="ic"><svg><use href="#i-hub"/></svg></div>Hub</div><div class="ni" id="deskNavGarden"><div class="ic"><svg><use href="#i-plant"/></svg></div>Garden</div><div class="ni" id="deskNavCommunity"><div class="ic"><svg><use href="#i-people"/></svg></div>Community</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <p class="lab-note">Density stays a dial: the app keeps 16px body text, 44 and 48px controls and a 48px hit area; the cockpit keeps 14px, 32 and 40px controls and a 44px hit area. The app hides its bar on garden pages and inside flows, as the real app does. Your Work is drawn as the full-height sheet it is in the app; the cockpit's Create Assessment is the flow dialog, full height on a phone and centered on desktop; Profile on desktop is the right side sheet.</p>
+</section>
+<style>
+.lab .frame.desk[data-screen="assess"] .screen.hub, .lab .frame.desk[data-screen="profile"] .screen.hub { display: block; }
+.lab .frame.desk .ddlg { display: none; }
+.lab .frame.desk[data-screen="assess"] .ddlg { display: flex; }
+.lab .frame.desk .sside { display: none; }
+.lab .frame.desk[data-screen="profile"] .sside { display: flex; }
+.lab .frame.desk[data-screen="profile"] .dscrim { display: none; }
+</style>
+<script>
+(function () {
+  var PJS = '"Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif';
+  var INTER = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  var DEFAULT = { font: 'split', ground: 'split', controls: 'today', chips: 'today', tabs: 'today', filter: 'today', badge: 'today', sheet: 'today', nav: 'today', cards: 'today', list: 'today', deskcard: 'tall', darkcards: 'today', tone: 'today', theme: 'light', stage: 'appdesk', appScreen: 'work', cockScreen: 'hub', sheetOpen: 'off' };
+  var PRESETS = {
+    today: { font: 'split', ground: 'split', controls: 'today', chips: 'today', tabs: 'today', filter: 'today', badge: 'today', sheet: 'today', nav: 'today', cards: 'today', list: 'today', deskcard: 'tall', darkcards: 'today', tone: 'today' },
+    rec: { font: 'pjs', ground: 'linen', controls: 'rec', chips: 'capsule', tabs: 'app', filter: 'app', badge: 'one', sheet: 'rec', nav: 'pill', cards: 'rec', list: 'gap12', deskcard: 'wide', darkcards: 'step', tone: 'today' },
+    max: { font: 'pjs', ground: 'linen', controls: 'c16', chips: 'capsule', tabs: 'app', filter: 'app', badge: 'one', sheet: 'rec', nav: 'pill', cards: 'app', list: 'gap12', deskcard: 'wide', darkcards: 'both', tone: 'green' }
+  };
+  var state = Object.assign({}, DEFAULT);
+  try { var saved = JSON.parse(localStorage.getItem('gg-lab-state-v4') || 'null'); if (saved && typeof saved === 'object') state = Object.assign({}, DEFAULT, saved); } catch (e) {}
+  if (state.badge === 'tab') state.badge = 'launcher'; // an option renamed after the first v4 publish
+
+  var TONES = {
+    light: {
+      green: { fill: '#1A7544', on: '#FFFFFF', text: '#1A7544', tint: 'rgba(31,193,107,0.10)', bd: 'rgba(31,193,107,0.24)', cont: '#D0FBE9', onCont: '#16643B' },
+      blue:  { fill: '#2547D0', on: '#FFFFFF', text: '#2547D0', tint: 'rgba(51,92,255,0.08)', bd: 'rgba(51,92,255,0.24)', cont: '#D5E2FF', onCont: '#182F8B' },
+      amber: { fill: '#B45309', on: '#FFFFFF', text: '#92400E', tint: 'rgba(217,119,6,0.08)', bd: 'rgba(217,119,6,0.24)', cont: '#FEF3C7', onCont: '#78350F' }
+    },
+    dark: {
+      greenApp: { fill: '#C2F5DA', on: '#0C0A09', text: '#C2F5DA', tint: 'rgba(194,245,218,0.12)', bd: 'rgba(194,245,218,0.28)', cont: '#16643B', onCont: '#D0FBE9' },
+      green: { fill: '#C2F5DA', on: '#16643B', text: '#C2F5DA', tint: 'rgba(194,245,218,0.10)', bd: 'rgba(194,245,218,0.28)', cont: '#16643B', onCont: '#D0FBE9' },
+      blue:  { fill: '#C0D5FF', on: '#182F8B', text: '#C0D5FF', tint: 'rgba(192,213,255,0.10)', bd: 'rgba(192,213,255,0.28)', cont: '#182F8B', onCont: '#D5E2FF' },
+      amber: { fill: '#FDE68A', on: '#78350F', text: '#FDE68A', tint: 'rgba(253,230,138,0.10)', bd: 'rgba(253,230,138,0.28)', cont: '#78350F', onCont: '#FEF3C7' }
+    }
+  };
+  var STATUS = {
+    light: { info: ['#EBF1FF', '#182F8B', '#D5E2FF'], ok: ['#E0FAEC', '#0B4627', '#C2F5DA'], warn: ['#FFF3E4', '#713A0A', '#FFD9B5'], err: ['#FFEBEC', '#681219', '#FFD5D8'] },
+    dark: { info: ['rgba(192,213,255,0.16)', '#C0D5FF', 'rgba(192,213,255,0.25)'], ok: ['rgba(194,245,218,0.16)', '#C2F5DA', 'rgba(194,245,218,0.25)'], warn: ['rgba(252,211,77,0.16)', '#FCD34D', 'rgba(252,211,77,0.25)'], err: ['rgba(255,151,160,0.16)', '#FF97A0', 'rgba(255,151,160,0.25)'] }
+  };
+  var EDGES = { light: { ok: '#1FC16B', warn: '#F59E0B', err: '#EF4444', info: '#335CFF' }, dark: { ok: '#1FC16B', warn: '#FBBF24', err: '#F87171', info: '#6B8CFF' } };
+  var SCREEN_TONE = { hub: 'blue', garden: 'green', members: 'amber', assess: 'blue', profile: 'green' };
+
+  function tokensFor(surface, s, screen, isDesk) {
+    var isApp = surface === 'app', dark = s.theme === 'dark', t = {};
+    t.font = s.font === 'split' ? (isApp ? INTER : PJS) : (s.font === 'pjs' ? PJS : INTER);
+    t.fontName = t.font === PJS ? 'Plus Jakarta Sans' : 'Inter';
+    var ground = s.ground === 'split' ? (isApp ? 'white' : 'linen') : s.ground;
+    var oneLadder = s.ground !== 'split';
+    var warm = oneLadder ? (s.ground === 'linen') : !isApp;
+    if (!dark) {
+      t.canvas = ground === 'linen' ? '#FAF8F5' : '#FFFFFF'; t.card = '#FFFFFF';
+      t.ink = '#0C0A09'; t.sub = '#57534E'; t.soft = '#78716C';
+      var appFaint = isApp && ground === 'white'; // theme.css: --stroke-soft-200 is neutral-100 (#F5F5F4) in the app
+      t.hair = appFaint ? '#F5F5F4' : '#E7E5E4'; t.hair2 = '#D6D3D1'; t.appBorder = appFaint ? '#F5F5F4' : '#E7E5E4';
+      t.grey = ground === 'linen' ? '#F5F2ED' : '#F5F5F4';
+      t.sc = ground === 'linen' ? '#F7F4EF' : '#F5F5F4'; t.scLow = ground === 'linen' ? '#FAF8F5' : '#FAFAF9'; t.scHigh = ground === 'linen' ? '#ECE9E2' : '#EFEDEA'; t.scHighest = ground === 'linen' ? '#E2DED5' : '#E7E5E4';
+      t.scrim = 'rgba(12,10,9,0.36)';
+      t.banner = 'linear-gradient(160deg, #E9E6D4, #C9D8B4)'; t.banner2 = 'linear-gradient(160deg, #F3E3C3, #E0C79A)';
+      t.navBg = '#FFFFFF'; t.navBd = appFaint ? '#F5F5F4' : '#E7E5E4'; t.navFg = isApp ? '#78716C' : '#57534E';
+      t.gripBg = 'rgba(31,193,107,0.32)';
+      t.elev1 = '0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)'; t.elev2 = '0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15)';
+      t.hairlineCard = '#E7E5E4'; t.tintCard = '#FAFAF9';
+      t.gavBg = '#D0FBE9'; t.gavFg = '#1A7544'; t.dchipBg = 'rgba(255,255,255,0.9)';
+    } else {
+      var dc = s.darkcards, lift = dc === 'step' || dc === 'both', line = dc === 'outline' || dc === 'both';
+      var applyDc = !isApp || oneLadder;
+      var up = applyDc && lift;
+      var appStone = isApp && !warm; // theme.css dark: cards share the canvas colour and carry a neutral-800 hairline
+      t.canvas = warm ? '#110C08' : '#0C0A09';
+      t.card = warm ? (up ? '#2A231C' : '#201913') : (isApp ? (up ? '#161412' : '#0C0A09') : (up ? '#292524' : '#1C1917'));
+      t.ink = '#FAFAF9'; t.sub = '#D6D3D1'; t.soft = '#A8A29E';
+      t.hair = appStone ? '#292524' : 'rgba(250,250,249,0.10)'; t.hair2 = appStone ? '#44403C' : 'rgba(250,250,249,0.18)'; t.appBorder = appStone ? '#292524' : 'rgba(250,250,249,0.12)';
+      t.grey = warm ? '#342C24' : '#292524';
+      t.sc = warm ? (up ? '#2A231C' : '#201913') : (up ? '#292524' : '#1C1917'); t.scLow = warm ? '#18130D' : '#141211'; t.scHigh = warm ? (up ? '#342C24' : '#2A231C') : (up ? '#3A3634' : '#292524'); t.scHighest = warm ? (up ? '#3E342C' : '#342C24') : (up ? '#44403C' : '#3A3634');
+      t.scrim = 'rgba(0,0,0,0.62)';
+      t.banner = 'linear-gradient(160deg, #3A3A2C, #2E3E27)'; t.banner2 = 'linear-gradient(160deg, #4A3B22, #3A2E18)';
+      t.navBg = t.card; t.navBd = appStone ? '#292524' : 'rgba(250,250,249,0.10)'; t.navFg = isApp ? '#A8A29E' : '#D6D3D1';
+      t.gripBg = 'rgba(194,245,218,0.5)';
+      t.elev1 = (applyDc && line) ? '0 0 0 1px rgba(250,250,249,0.14)' : ((applyDc && lift) ? '0 0 0 1px rgba(250,250,249,0.08)' : '0 0 0 1px rgba(250,250,249,0.06)');
+      t.elev2 = '0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(250,250,249,0.09)';
+      t.hairlineCard = (applyDc && line) ? 'rgba(250,250,249,0.14)' : 'rgba(250,250,249,0.12)'; t.tintCard = warm ? '#1A1410' : '#161412';
+      t.gavBg = 'rgba(194,245,218,0.16)'; t.gavFg = '#C2F5DA'; t.dchipBg = 'rgba(20,16,12,0.85)';
+    }
+    var toneKey = isApp ? 'green' : (s.tone === 'green' ? 'green' : (SCREEN_TONE[screen] || 'green'));
+    var tone = dark ? (isApp ? TONES.dark.greenApp : TONES.dark[toneKey]) : TONES.light[toneKey];
+    t.toneName = toneKey; t.accent = tone.fill; t.onAccent = tone.on; t.accentText = tone.text; t.accentTint = tone.tint; t.accentBd = tone.bd; t.container = tone.cont; t.onContainer = tone.onCont;
+    t.onContainerNav = isApp ? t.ink : (dark ? t.ink : tone.onCont);
+    t.status = dark ? STATUS.dark : STATUS.light; t.edges = dark ? EDGES.dark : EDGES.light;
+    // controls (F3)
+    var unify = s.controls !== 'today';
+    t.btnR = s.controls === 'c16' ? '16px' : (s.controls === 'pill' ? '999px' : (isApp ? '16px' : '999px'));
+    t.btnRCompact = s.controls === 'pill' ? '999px' : (s.controls === 'c16' ? '12px' : (isApp ? '12px' : '999px'));
+    t.btnW = unify ? 500 : (isApp ? 400 : 500);
+    t.outline = unify ? (dark ? '#A8A29E' : '#78716C') : (isApp ? (dark ? '#44403C' : '#D6D3D1') : (dark ? '#A8A29E' : '#78716C'));
+    t.outlineVar = isApp ? t.hair2 : t.hair2;
+    t.fieldBd = unify ? t.outline : (isApp ? t.hair2 : t.outline);
+    t.fields = unify ? 'outlined' : (isApp ? 'outlined' : 'filled');
+    t.fieldR = s.controls === 'c16' ? '16px' : (s.controls === 'pill' ? '12px' : (isApp ? '16px' : '8px'));
+    t.helpH = unify ? '16px' : (isApp ? '32px' : '16px');
+    t.btnSecBg = isApp ? t.card : 'transparent';
+    t.btnSecBd = unify ? t.outline : (isApp ? t.hair2 : t.outline);
+    t.btnSecFg = isApp ? t.ink : t.accentText;
+    t.ibtnBg = isApp ? t.card : 'transparent'; t.ibtnBd = isApp ? t.appBorder : 'transparent'; t.ibtnFg = isApp ? t.sub : t.sub;
+    // chips (F4)
+    t.chipR = s.chips === 'today' ? (isApp ? '999px' : '8px') : (s.chips === 'square' ? '8px' : '999px');
+    var chipSel = s.chips === 'today' ? (isApp ? 'fill' : 'container') : 'fill';
+    t.chipBg = isApp ? t.card : 'transparent'; t.chipW = isApp ? 400 : 500; t.chipFg = t.sub;
+    if (chipSel === 'fill') { t.chipSelBg = t.accent; t.chipSelFg = t.onAccent; t.chipSelBd = 'transparent'; }
+    else { t.chipSelBg = dark ? '#44403C' : '#E7E5E4'; t.chipSelFg = t.ink; t.chipSelBd = 'transparent'; }
+    // tabs (F8)
+    t.tabs = s.tabs === 'today' ? (isApp ? 'tinted' : 'rail') : (s.tabs === 'app' ? 'tinted' : 'rail');
+    t.tabsEqual = s.tabs === 'app' || (s.tabs === 'today' && isApp);
+    t.tabsBd = t.tabs === 'rail' ? t.hair2 : t.hair; t.tabsBg = 'transparent'; t.tabsGap = t.tabs === 'rail' ? '4px' : '0';
+    t.sheetTabsBg = t.tabs === 'tinted' ? (dark ? t.scLow : (ground === 'linen' ? '#F7F4EF' : '#FAFAF9')) : 'transparent';
+    // filter control (F9)
+    t.filter = s.filter === 'today' ? (isApp ? 'app' : 'cockpit') : s.filter;
+    // count badges (F10)
+    var solidBg = isApp ? '#1A7544' : t.accent, solidFg = isApp ? '#FFFFFF' : t.onAccent;
+    if (dark && isApp) { solidBg = '#1FC16B'; solidFg = '#0C0A09'; }
+    // Today's four styles, read from AppBar, the Your Work and Promises launchers, the Home filter count, and StandardTabs / AdminTabRail.
+    function bdg(h, minw, fs, w, bg, fg, ring, px) { return { h: h, minw: minw, fs: fs, w: w, bg: bg, fg: fg, ring: ring || '0px', px: px || '4px' }; }
+    if (s.badge === 'today') {
+      t.bNav = bdg('16px', '16px', '10px', 700, solidBg, solidFg);
+      t.bBtn = bdg('18px', '18px', '12px', 600, solidBg, solidFg, '2px');
+      t.bFlt = bdg('10px', '16px', '10px', 600, solidBg, solidFg);
+      t.bTab = isApp ? bdg('16px', '16px', '12px', 500, solidBg, solidFg) : bdg('18px', '18px', '12px', 600, t.scHigh, t.sub, '0px', '8px');
+      t.bTabOn = isApp ? [solidBg, solidFg] : [t.container, t.onContainer];
+    } else {
+      var one = s.badge === 'one';
+      var size = one ? '16px' : '18px', fs = one ? '11px' : '12px';
+      t.bNav = bdg(size, size, fs, 600, solidBg, solidFg, '2px'); t.bBtn = t.bNav; t.bFlt = t.bNav;
+      t.bTab = bdg(size, size, fs, 600, solidBg, solidFg); t.bTabOn = [solidBg, solidFg];
+    }
+    // sheet (F5)
+    var sheetStyle = s.sheet === 'today' ? (isApp ? 'app' : 'cockpit') : 'app';
+    t.sheetBg = sheetStyle === 'app' ? t.card : t.scHigh; t.sheetBd = sheetStyle === 'app' ? t.hair : 'transparent';
+    t.sheetR = sheetStyle === 'app' ? '16px' : '16px';
+    t.grip = sheetStyle === 'app' ? 'block' : 'none';
+    t.sheetTitle = sheetStyle === 'app' ? '18px' : '22px'; t.sheetStyle = sheetStyle;
+    // nav (F6)
+    t.nav = s.nav === 'today' ? (isApp ? 'filled' : 'pill') : s.nav;
+    t.navFs = isApp ? '14px' : '12px';
+    // cards and rows (F7)
+    var cm = s.cards, cardSurface, wi, sel, infoTint;
+    if (cm === 'today') { t.cardR = isApp ? '24px' : '12px'; t.wcardR = isApp ? '16px' : '12px'; cardSurface = isApp ? 'border' : 'elevated'; wi = isApp ? 'row' : 'card'; sel = isApp ? 'border3' : 'ring'; infoTint = isApp; t.edgeW = isApp ? '2px' : '0px'; }
+    else if (cm === 'rec') { t.cardR = isApp ? '24px' : '12px'; t.wcardR = isApp ? '16px' : '12px'; cardSurface = 'hairline'; wi = isDesk ? 'card' : 'shared'; sel = 'ring'; infoTint = false; t.edgeW = isApp ? '2px' : '0px'; }
+    else if (cm === 'app') { t.cardR = '24px'; t.wcardR = '16px'; cardSurface = 'border'; wi = isDesk ? 'card' : 'row'; sel = 'border3'; infoTint = true; t.edgeW = '2px'; }
+    else { t.cardR = '12px'; t.wcardR = '12px'; cardSurface = 'elevated'; wi = 'card'; sel = 'ring'; infoTint = false; t.edgeW = '0px'; }
+    t.cardRxl = cm === 'cockpit' ? '12px' : (cm === 'app' ? '24px' : (isApp ? '24px' : '12px'));
+    t.cardRlg = cm === 'cockpit' ? '12px' : (cm === 'app' ? '16px' : (isApp ? '16px' : '12px'));
+    if (cardSurface === 'elevated') { t.cardBd = 'transparent'; t.cardSh = t.elev1; }
+    else if (cardSurface === 'hairline') { t.cardBd = t.hairlineCard; t.cardSh = 'none'; }
+    else { t.cardBd = t.appBorder; t.cardSh = dark ? 'none' : '0 1px 2px rgba(0,0,0,0.04)'; }
+    t.infoBg = infoTint ? t.tintCard : t.card;
+    t.wi = wi; t.sel = sel; t.cardSurface = cardSurface;
+    // list spacing (F11)
+    var lg = s.list;
+    t.listGap = lg === 'today' ? (isApp ? '12px' : '14px') : (lg === 'gap8' ? '8px' : (lg === 'gap12' ? '12px' : '0px'));
+    t.listGapDesk = lg === 'today' ? '14px' : (lg === 'gap8' ? '8px' : (lg === 'gap12' ? '12px' : '8px'));
+    t.listDivided = lg === 'divided' && !isDesk;
+    // density
+    t.body = isApp ? '16px' : '14px'; t.ctl = isApp ? '44px' : '40px'; t.icon = '40px';
+    t.btnH = isApp ? '44px' : '32px'; t.btnHlg = isApp ? '48px' : '40px'; t.btnHsm = isApp ? '40px' : '28px'; t.btnPx = '16px'; t.btnPxLg = isApp ? '20px' : '20px'; t.btnFs = isApp ? '16px' : '14px';
+    return t;
+  }
+
+  function applyFrame(el, surface, screen, isDesk) {
+    var t = tokensFor(surface, state, screen, isDesk), st = el.style;
+    var map = { '--font': t.font, '--canvas': t.canvas, '--card': t.card, '--card-bd': t.cardBd, '--card-sh': t.cardSh, '--card-r': t.cardR, '--card-r-xl': t.cardRxl, '--card-r-lg': t.cardRlg, '--wcard-r': t.wcardR, '--info-bg': t.infoBg, '--ink': t.ink, '--sub': t.sub, '--soft': t.soft, '--hair': t.hair, '--hair2': t.hair2, '--grey': t.grey, '--sc': t.sc, '--sc-low': t.scLow, '--sc-high': t.scHigh, '--sc-highest': t.scHighest, '--scrim': t.scrim, '--banner': t.banner, '--banner2': t.banner2, '--accent': t.accent, '--on-accent': t.onAccent, '--accent-text': t.accentText, '--accent-tint': t.accentTint, '--accent-bd': t.accentBd, '--container': t.container, '--on-container': t.onContainer, '--on-container-nav': t.onContainerNav, '--btn-r': t.btnR, '--btn-r-compact': t.btnRCompact, '--btn-w': t.btnW, '--btn-h': t.btnH, '--btn-h-lg': t.btnHlg, '--btn-h-sm': t.btnHsm, '--btn-px': t.btnPx, '--btn-px-lg': t.btnPxLg, '--btn-fs': t.btnFs, '--btn-sec-bg': t.btnSecBg, '--btn-sec-bd': t.btnSecBd, '--btn-sec-fg': t.btnSecFg, '--outline': t.outline, '--outline-var': t.outlineVar, '--field-r': t.fieldR, '--field-bd': t.fieldBd, '--help-h': t.helpH, '--ibtn-bg': t.ibtnBg, '--ibtn-bd': t.ibtnBd, '--ibtn-fg': t.ibtnFg, '--chip-r': t.chipR, '--chip-bg': t.chipBg, '--chip-w': t.chipW, '--chip-fg': t.chipFg, '--chip-sel-bg': t.chipSelBg, '--chip-sel-fg': t.chipSelFg, '--chip-sel-bd': t.chipSelBd, '--tabs-bd': t.tabsBd, '--tabs-bg': t.tabsBg, '--tabs-gap': t.tabsGap, '--sheet-tabs-bg': t.sheetTabsBg, '--sheet-bg': t.sheetBg, '--sheet-bd': t.sheetBd, '--sheet-r': t.sheetR, '--grip': t.grip, '--grip-bg': t.gripBg, '--sheet-title': t.sheetTitle, '--nav-bg': t.navBg, '--nav-bd': t.navBd, '--nav-fg': t.navFg, '--nav-fs': t.navFs, '--body': t.body, '--ctl': t.ctl, '--icon': t.icon, '--elev1': t.elev1, '--elev2': t.elev2, '--gav-bg': t.gavBg, '--gav-fg': t.gavFg, '--dchip-bg': t.dchipBg, '--edge-w': t.edgeW, '--list-gap': t.listGap, '--list-gap-desk': t.listGapDesk,
+      '--e-ok': t.edges.ok, '--e-warn': t.edges.warn, '--e-err': t.edges.err, '--e-info': t.edges.info,
+      '--bdg-nav-h': t.bNav.h, '--bdg-nav-minw': t.bNav.minw, '--bdg-nav-fs': t.bNav.fs, '--bdg-nav-w': t.bNav.w, '--bdg-nav-bg': t.bNav.bg, '--bdg-nav-fg': t.bNav.fg, '--bdg-nav-ring': t.bNav.ring,
+      '--bdg-btn-h': t.bBtn.h, '--bdg-btn-minw': t.bBtn.minw, '--bdg-btn-fs': t.bBtn.fs, '--bdg-btn-w': t.bBtn.w, '--bdg-btn-bg': t.bBtn.bg, '--bdg-btn-fg': t.bBtn.fg, '--bdg-btn-ring': t.bBtn.ring,
+      '--bdg-flt-h': t.bFlt.h, '--bdg-flt-minw': t.bFlt.minw, '--bdg-flt-fs': t.bFlt.fs, '--bdg-flt-w': t.bFlt.w, '--bdg-flt-ring': t.bFlt.ring,
+      '--bdg-tab-h': t.bTab.h, '--bdg-tab-minw': t.bTab.minw, '--bdg-tab-fs': t.bTab.fs, '--bdg-tab-w': t.bTab.w, '--bdg-tab-bg': t.bTab.bg, '--bdg-tab-fg': t.bTab.fg, '--bdg-tab-px': t.bTab.px, '--bdg-tab-bg-on': t.bTabOn[0], '--bdg-tab-fg-on': t.bTabOn[1],
+      '--t-info-bg': t.status.info[0], '--t-info-fg': t.status.info[1], '--t-info-bd': t.status.info[2], '--t-ok-bg': t.status.ok[0], '--t-ok-fg': t.status.ok[1], '--t-ok-bd': t.status.ok[2], '--t-warn-bg': t.status.warn[0], '--t-warn-fg': t.status.warn[1], '--t-warn-bd': t.status.warn[2], '--t-err-bg': t.status.err[0], '--t-err-fg': t.status.err[1], '--t-err-bd': t.status.err[2] };
+    for (var k in map) st.setProperty(k, String(map[k]));
+    el.classList.toggle('tabs-tinted', t.tabs === 'tinted'); el.classList.toggle('tabs-rail', t.tabs === 'rail'); el.classList.toggle('tabs-equal', t.tabsEqual);
+    el.classList.toggle('fields-outlined', t.fields === 'outlined'); el.classList.toggle('fields-filled', t.fields === 'filled');
+    el.classList.toggle('nav-pill', t.nav === 'pill'); el.classList.toggle('nav-filled', t.nav === 'filled');
+    el.classList.toggle('wi-row', t.wi === 'row'); el.classList.toggle('wi-shared', t.wi === 'shared'); el.classList.toggle('wi-card', t.wi === 'card');
+    el.classList.toggle('sel-border3', t.sel === 'border3'); el.classList.toggle('sel-ring', t.sel === 'ring');
+    el.classList.toggle('filter-app', t.filter === 'app'); el.classList.toggle('filter-cockpit', t.filter === 'cockpit');
+    el.classList.toggle('list-divided', t.listDivided);
+    el.classList.toggle('desk-wide', isDesk && state.deskcard === 'wide');
+    el.classList.toggle('dark', state.theme === 'dark');
+    return t;
+  }
+
+  var frameApp = document.getElementById('frameApp'), frameCock = document.getElementById('frameCock'), frameDesk = document.getElementById('frameDesk');
+  var colApp = document.getElementById('colApp'), colCock = document.getElementById('colCock'), colDesk = document.getElementById('colDesk');
+  function describe(t, surface) {
+    var sheet = t.sheetStyle === 'app' ? 'white 16px grip' : 'warm grey';
+    return '<b>' + surface + '</b> ' + t.fontName + ' · canvas ' + t.canvas + ' · card ' + t.card + ' ' + t.cardR + ' ' + t.cardSurface + ' · work item ' + t.wi + ' · list gap ' + t.listGap + ' · button ' + (t.btnR === '999px' ? 'pill' : t.btnR) + '/' + t.btnW + ' · outline ' + t.outline + ' · chips ' + (t.chipR === '999px' ? 'capsule' : t.chipR) + ' · tabs ' + t.tabs + (t.tabsEqual ? ' equal' : '') + ' · filter ' + t.filter + ' · badge ' + t.bTab.fs + '/' + t.bTab.w + ' · fields ' + t.fields + ' · nav ' + t.nav + ' · sheet ' + sheet + (surface === 'cockpit' ? ' · tone ' + t.toneName : '');
+  }
+  var CHIP = { hub: 'Botanic Commons', garden: 'Rio Rainforest Lab', members: 'Botanic Commons', assess: 'Rio Rainforest Lab', profile: 'Botanic Commons' };
+  function render() {
+    frameApp.setAttribute('data-screen', state.appScreen);
+    frameCock.setAttribute('data-screen', state.cockScreen);
+    frameDesk.setAttribute('data-screen', state.cockScreen);
+    frameApp.setAttribute('data-sheet', state.sheetOpen); frameCock.setAttribute('data-sheet', state.sheetOpen); frameDesk.setAttribute('data-sheet', state.sheetOpen);
+    var ta = applyFrame(frameApp, 'app', state.appScreen, false);
+    var tc = applyFrame(frameCock, 'cockpit', state.cockScreen, false);
+    var td = applyFrame(frameDesk, 'cockpit', state.cockScreen, true);
+    document.getElementById('deskChip').textContent = CHIP[state.cockScreen] || 'Botanic Commons';
+    var appActive = { home: 'appNavHome', work: 'appNavHome', garden: 'appNavGarden', submit: 'appNavGarden', profile: 'appNavProfile' }[state.appScreen];
+    ['appNavHome', 'appNavGarden', 'appNavProfile'].forEach(function (id) { document.getElementById(id).classList.toggle('on', id === appActive); });
+    var cockActive = { hub: 'Hub', garden: 'Garden', members: 'Community', assess: 'Hub', profile: 'Profile' }[state.cockScreen];
+    ['Hub', 'Garden', 'Community', 'Profile'].forEach(function (n) { document.getElementById('cockNav' + n).classList.toggle('on', n === cockActive); var d = document.getElementById('deskNav' + n); if (d) d.classList.toggle('on', n === cockActive || (n === 'Hub' && cockActive === 'Profile')); });
+    document.getElementById('appLabel').textContent = ta.fontName;
+    document.getElementById('cockLabel').textContent = tc.fontName;
+    document.getElementById('deskLabel').textContent = td.fontName + (state.deskcard === 'wide' ? ' · wide cards' : '');
+    document.getElementById('readout').innerHTML = describe(ta, 'app') + '<br><br>' + describe(tc, 'cockpit');
+    colCock.hidden = state.stage === 'appdesk'; colDesk.hidden = state.stage === 'phones';
+    var panel = document.getElementById('labPanel');
+    panel.querySelectorAll('div[data-key]').forEach(function (g) {
+      var key = g.getAttribute('data-key');
+      g.querySelectorAll('button[data-v]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === state[key]); });
+    });
+    panel.querySelectorAll('select[data-key]').forEach(function (sel) { if (sel.value !== state[sel.getAttribute('data-key')]) sel.value = state[sel.getAttribute('data-key')]; });
+    panel.querySelectorAll('button[data-preset]').forEach(function (b) {
+      var p = PRESETS[b.getAttribute('data-preset')], on = true;
+      for (var k in p) if (state[k] !== p[k]) on = false;
+      b.classList.toggle('on', on);
+    });
+    try { localStorage.setItem('gg-lab-state-v4', JSON.stringify(state)); } catch (e) {}
+    fit();
+  }
+  document.getElementById('labPanel').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-preset')) { Object.assign(state, PRESETS[b.getAttribute('data-preset')]); render(); return; }
+    var g = b.closest('div[data-key]'); if (!g) return;
+    state[g.getAttribute('data-key')] = b.getAttribute('data-v'); render();
+  });
+  document.getElementById('labPanel').addEventListener('change', function (ev) {
+    var sel = ev.target.closest('select[data-key]'); if (!sel) return;
+    state[sel.getAttribute('data-key')] = sel.value; render();
+  });
+  function place(col, fw, fh, s) {
+    var wrap = col.querySelector('.fitwrap'), f = wrap.firstElementChild;
+    f.style.transform = 'scale(' + s + ')';
+    wrap.style.width = Math.round(fw * s) + 'px'; wrap.style.height = Math.round(fh * s + 2) + 'px';
+    col.style.width = Math.round(fw * s) + 'px';
+  }
+  function fit() {
+    var stage = document.getElementById('stage');
+    var W = stage.clientWidth, H = stage.clientHeight, gap = 20, labelH = 34;
+    var narrow = window.matchMedia('(max-width: 860px)').matches;
+    if (narrow) {
+      var sn = Math.min(1, W / 390);
+      place(colApp, 390, 800, sn); place(colCock, 390, 800, sn); place(colDesk, 1280, 720, Math.min(1, W / 1280));
+      return;
+    }
+    var availH = Math.max(320, H - labelH);
+    var sp = Math.min(1, availH / 800), sd = Math.min(1, availH / 720);
+    if (state.stage === 'phones') {
+      var s2 = Math.min(sp, (W - gap) / 780);
+      place(colApp, 390, 800, s2); place(colCock, 390, 800, s2);
+    } else if (state.stage === 'appdesk') {
+      var sdk = Math.min(sd, (W - gap - 390 * sp) / 1280);
+      if (sdk < 0.5) { sdk = Math.min(sd, 0.5); sp = Math.min(sp, (W - gap - 1280 * sdk) / 390); }
+      place(colApp, 390, 800, sp); place(colDesk, 1280, 720, sdk);
+    } else {
+      var sdk2 = Math.min(sd, (W - 2 * gap - 780 * sp) / 1280);
+      if (sdk2 < 0.45) { sdk2 = Math.min(sd, 0.45); sp = Math.min(sp, (W - 2 * gap - 1280 * sdk2) / 780); }
+      place(colApp, 390, 800, sp); place(colCock, 390, 800, sp); place(colDesk, 1280, 720, sdk2);
+    }
+  }
+  window.addEventListener('resize', fit);
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  setTimeout(fit, 50);
+})();
+</script>
+<!-- lab:end -->
+</div>
+</body>
+</html>
