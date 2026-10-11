@@ -409,9 +409,9 @@ export function OverviewTab({
 
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
-            {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
-
             {alertsLead ? null : alertsCard}
+
+            {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
             <AdminCard density="none">
               <AdminCardHeader>

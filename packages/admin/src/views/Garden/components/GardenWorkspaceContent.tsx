@@ -46,7 +46,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   }
 
   return (
-    <div className="mt-4 min-h-0 flex-1 space-y-4">
+    <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
       {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
           chainId={workspace.garden.chainId}

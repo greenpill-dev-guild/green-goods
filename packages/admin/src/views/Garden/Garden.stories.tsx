@@ -145,6 +145,18 @@ export const Overview: Story = {
   },
 };
 
+/** Shared main/rail layout with urgent health context first in the rail. */
+export const HealthLayout: Story = {
+  args: { initialPath: `/garden/overview?${SEEDED_GARDEN}` },
+  decorators: gardenDecorators(),
+};
+
+/** Impact records stay in the main column; aggregate context stays in the rail. */
+export const ImpactLayout: Story = {
+  args: { initialPath: `/garden/impact?${SEEDED_GARDEN}` },
+  decorators: gardenDecorators(),
+};
+
 export const Activity: Story = {
   tags: ["visual-harness"],
   args: { initialPath: `/garden/activity?${SEEDED_GARDEN}` },

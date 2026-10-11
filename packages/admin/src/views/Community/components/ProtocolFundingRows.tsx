@@ -5,6 +5,7 @@ import type {
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
+import { RiRefreshLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { formatGdollar, shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
@@ -28,12 +29,14 @@ export function ProtocolFundingRows({
   gardenName,
   onReview,
   onCancel,
+  onRefresh,
 }: {
   operations: ProtocolFundingOperationsController;
   /** A garden's name from the gardens list, or null when it is not listed. */
   gardenName: (garden: Address | null | undefined) => string | null;
   onReview: (act: TransferAct, row: ProtocolFundingRow) => void;
   onCancel: (disbursementId: bigint) => void;
+  onRefresh?: () => void;
 }) {
   const { formatMessage, locale } = useIntl();
   const statusLabel = (state: ProtocolFundingRow["state"]) => {
@@ -72,12 +75,27 @@ export function ProtocolFundingRows({
 
   return (
     <section className="space-y-2" aria-labelledby="protocol-funding-rows-title">
-      <AdminCardTitle as="h4" id="protocol-funding-rows-title">
-        {formatMessage({
-          id: "cockpit.community.protocolFunding.rows",
-          defaultMessage: "Protocol-to-Garden Transfers",
-        })}
-      </AdminCardTitle>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <AdminCardTitle as="h3" id="protocol-funding-rows-title">
+          {formatMessage({
+            id: "cockpit.community.protocolFunding.rows",
+            defaultMessage: "Protocol-to-Garden Transfers",
+          })}
+        </AdminCardTitle>
+        {onRefresh ? (
+          <AdminButton
+            variant="outlined"
+            size="sm"
+            leadingIcon={<RiRefreshLine />}
+            onClick={onRefresh}
+          >
+            {formatMessage({
+              id: "cockpit.community.protocolFunding.refresh",
+              defaultMessage: "Refresh Funding",
+            })}
+          </AdminButton>
+        ) : null}
+      </div>
       {operations.rows.length === 0 ? (
         <p className="body-xs text-text-soft">
           {formatMessage({

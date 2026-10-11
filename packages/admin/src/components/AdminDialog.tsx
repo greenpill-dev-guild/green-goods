@@ -15,6 +15,7 @@ import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
+import { releaseStuckDialogArtifacts } from "./Layout/dialogCloseSafetyNet";
 
 // ============================================================================
 // Types
@@ -216,6 +217,14 @@ export function AdminDialog({
     } else if (document.visibilityState === "hidden") {
       setInstantExit(true);
     }
+  }, [open]);
+  useEffect(() => {
+    if (open) return;
+    // Query-backed dialogs can close without navigation or a visibility change.
+    // Give normal exits time to finish, then recover missed animationend events
+    // through Radix's lifecycle; open dialogs and running exits keep their locks.
+    const recovery = window.setTimeout(() => releaseStuckDialogArtifacts(document), 1000);
+    return () => window.clearTimeout(recovery);
   }, [open]);
   // Palette + flow let the consumer own the visible header chrome; the
   // structured header (icon/title/description) is suppressed and the title is
