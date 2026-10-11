@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import {readFileSync, readdirSync} from "node:fs";
+import path from "node:path";
 import {describe, test} from "node:test";
 
 import {inlineCopyCommands, integrationStatusMarkdown, leadSentence, markdownTwin, projectionMarkdown, renderLlmsIndex, twinPath} from "./llms.mjs";
@@ -139,5 +141,87 @@ describe("status table and onboarding expansions", () => {
     const twin = markdownTwin("---\ntitle: G\n---\n\n# G\n\n<OnboardingProcedure />\n", "G", {onboarding: text});
     assert.ok(twin.includes("````markdown\n# Onboarding\n\n```bash\nbun run dev\n```\n````"), twin);
     assert.ok(markdownTwin("# G\n\n<OnboardingProcedure />\n", "G").includes("<OnboardingProcedure />"));
+  });
+});
+
+describe("data-backed component fallbacks", () => {
+  const docsRoot = path.resolve(import.meta.dirname, "..");
+  const data = (name) => JSON.parse(readFileSync(path.join(docsRoot, "src/data", name), "utf8"));
+  const siteData = {
+    integrations: data("integration-projections.json").integrations,
+    onboarding: data("onboarding.json").text,
+    designTokens: data("design-tokens.json"),
+    brandKit: data("brand-kit-v3.json"),
+    rolePaths: data("role-paths.json"),
+    stewardPath: data("steward-path.json"),
+  };
+
+  test("each component becomes the Markdown of the data it draws", () => {
+    const twin = (tag, options) => markdownTwin(`# T\n\n${tag}\n`, "T", options);
+    const tokens = twin("<DesignTokens />", {
+      designTokens: {
+        colors: {amber: "#D97706"},
+        typography: {"body-md": {fontFamily: "Inter", fontSize: "16px", fontWeight: 400, lineHeight: 1.5}},
+        rounded: {lg: "16px"},
+        spacing: {sm: "8px"},
+      },
+    });
+    assert.ok(tokens.includes("#### Colors\n\n| Token | Value |\n|---|---|\n| `amber` | `#D97706` |"), tokens);
+    assert.ok(tokens.includes("| `body-md` | Inter | 16px | 400 | 1.5 |"));
+    assert.ok(tokens.includes("#### Radii") && tokens.includes("| `sm` | `8px` |"));
+
+    const brand = markdownTwin("<BrandAssets />\n\n## Usage\n", "Brand kit", {
+      brandKit: {
+        version: 3,
+        canonicalColor: "dark-green",
+        wholeKit: {url: "/brand/kit.zip"},
+        bundles: [{label: "Logos", url: "/brand/logos.zip"}],
+        palette: [{id: "dark-green", name: "Dark green", hex: "#367D44", role: "Canonical brand color", status: "canonical"}],
+        typography: [{name: "Inter", role: "Body copy", source: "https://example.org/inter", sourceLabel: "Inter source"}],
+        graphics: [{title: "Symbol repeat", description: "1600 × 900 px"}],
+        templates: [{title: "Social card", description: "1200 × 630 px"}],
+        files: [{file: "primary/a.svg", format: "svg"}, {file: "primary/a.png", format: "png"}, {file: "palette/p.json", format: "json"}],
+      },
+    });
+    assert.ok(brand.startsWith("# Brand kit\n\nKit v3. Dark green `#367D44` is the canonical brand color."), brand);
+    assert.ok(brand.includes("- [Download the whole kit (ZIP)](/brand/kit.zip)\n- [Logos bundle (ZIP)](/brand/logos.zip)"));
+    assert.ok(brand.includes("| `primary` | 2 | svg, png |") && brand.includes("| `palette` | 1 | json |"));
+    assert.ok(brand.includes("| Inter | Body copy | [Inter source](https://example.org/inter) |"));
+    assert.ok(brand.trimEnd().endsWith("## Usage"), "the page's own prose still follows the inventory");
+
+    const roles = twin("<Hero />", {rolePaths: [{title: "Gardener", href: "/g/", audience: "Field workers", time: "5 min", description: "Document work."}]});
+    assert.ok(roles.includes("- [Gardener](/g/) (Field workers, 5 min): Document work."), roles);
+    const path = twin("<StewardPathNav />", {stewardPath: [{label: "Create a Garden", href: "/a"}, {label: "Review Work", href: "/b"}]});
+    assert.ok(path.includes("Steward path:\n\n1. [Create a Garden](/a)\n2. [Review Work](/b)"), path);
+  });
+
+  test("no page's twin is left with a bare component tag where content should be", () => {
+    // A tag with no props and no children carries nothing in the page source, so a twin that kept
+    // it would have a hole where the site shows content. Every such component needs a fallback
+    // in llms.mjs; this walks the real pages with the real data so a new one cannot slip in.
+    const BARE_TAG = /^[ \t]*<[A-Z][A-Za-z]*\s*\/>[ \t]*$/gm;
+    const FENCE = /^(```|~~~)[^\n]*\n[\s\S]*?^\1[ \t]*$/gm;
+    const pages = [];
+    const walk = (directory) => {
+      for (const entry of readdirSync(directory, {withFileTypes: true})) {
+        const full = path.join(directory, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.mdx?$/.test(entry.name)) pages.push(full);
+      }
+    };
+    walk(path.join(docsRoot, "docs"));
+    assert.ok(pages.length > 50, "the walk found the docs pages");
+    const holes = [];
+    for (const page of pages) {
+      const twin = markdownTwin(readFileSync(page, "utf8"), "T", siteData).replace(FENCE, "");
+      for (const [tag] of twin.matchAll(BARE_TAG)) holes.push(`${path.relative(docsRoot, page)}: ${tag.trim()}`);
+    }
+    assert.deepEqual(holes, []);
+    // The four named components really are in use, so the walk above exercised their fallbacks.
+    const real = (page) => markdownTwin(readFileSync(path.join(docsRoot, "docs", page), "utf8"), "T", siteData);
+    assert.match(real("reference/brand.mdx"), /^- \[Download the whole kit \(ZIP\)\]\(\/brand\//m);
+    assert.match(real("builders/architecture/design.mdx"), /^\| `tertiary-action` \| `#[0-9A-F]{6}` \|$/m);
+    assert.match(real("community/welcome.mdx"), /^- \[Gardener\]\(\/community\/gardener-guide\/\)/m);
+    assert.match(real("community/steward-guide/reviewing-work.mdx"), /^3\. \[Review and Approve Work\]/m);
   });
 });

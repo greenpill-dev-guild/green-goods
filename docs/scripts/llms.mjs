@@ -17,6 +17,105 @@ const PROJECTION_TAG = /^[ \t]*<IntegrationProjection\s+id="([^"]+)"\s*\/>[ \t]*
 const COPY_COMMAND_TAG = /<CopyCommand\s+command=(["'])(.*?)\1[^>]*\/>/g;
 const STATUS_TABLE_TAG = /^[ \t]*<IntegrationStatusTable\s*\/>[ \t]*$/gm;
 const ONBOARDING_TAG = /^[ \t]*<OnboardingProcedure\s*\/>[ \t]*$/gm;
+// Components that draw a page's content from a data file. A twin that left their tag in place
+// would carry none of that content, so each has a Markdown rendering of the same data below.
+const DESIGN_TOKENS_TAG = /^[ \t]*<DesignTokens\s*\/>[ \t]*$/gm;
+const BRAND_ASSETS_TAG = /^[ \t]*<BrandAssets\s*\/>[ \t]*$/gm;
+const HERO_TAG = /^[ \t]*<Hero\s*\/>[ \t]*$/gm;
+const STEWARD_PATH_TAG = /^[ \t]*<StewardPathNav\s*\/>[ \t]*$/gm;
+
+/** The core design tokens as tables: the values the DesignTokens component draws as swatches. */
+export function designTokensMarkdown(tokens) {
+  const code = (value) => `\`${value}\``;
+  const pairs = (heading, record) => [
+    `#### ${heading}`,
+    "",
+    "| Token | Value |",
+    "|---|---|",
+    ...Object.entries(record).map(([name, value]) => `| ${code(name)} | ${code(value)} |`),
+  ];
+  return [
+    ...pairs("Colors", tokens.colors),
+    "",
+    "#### Type",
+    "",
+    "| Token | Family | Size | Weight | Line height |",
+    "|---|---|---|---|---|",
+    ...Object.entries(tokens.typography).map(
+      ([name, type]) => `| ${code(name)} | ${type.fontFamily} | ${type.fontSize} | ${type.fontWeight} | ${type.lineHeight} |`,
+    ),
+    "",
+    ...pairs("Radii", tokens.rounded),
+    "",
+    ...pairs("Spacing", tokens.spacing),
+  ].join("\n");
+}
+
+/**
+ * The brand kit as an inventory: the downloads, palette, fonts, graphics and templates the
+ * BrandAssets component previews, with the files summarized per folder. Per-file URLs stay in the
+ * asset manifest the page links, so the twin does not repeat several hundred rows.
+ */
+export function brandKitMarkdown(kit) {
+  const canonical = kit.palette.find((color) => color.id === kit.canonicalColor);
+  const folders = new Map();
+  for (const entry of kit.files) {
+    const folder = entry.file.split("/")[0];
+    if (!folders.has(folder)) folders.set(folder, {count: 0, formats: new Set()});
+    folders.get(folder).count += 1;
+    folders.get(folder).formats.add(entry.format);
+  }
+  return [
+    "# Brand kit",
+    "",
+    `Kit v${kit.version}.${canonical ? ` ${canonical.name} \`${canonical.hex}\` is the canonical brand color.` : ""}`,
+    "",
+    `- [Download the whole kit (ZIP)](${kit.wholeKit.url})`,
+    ...kit.bundles.map((bundle) => `- [${bundle.label} bundle (ZIP)](${bundle.url})`),
+    "",
+    "## Palette",
+    "",
+    "| Color | Hex | Role | Status |",
+    "|---|---|---|---|",
+    ...kit.palette.map((color) => `| ${color.name} | \`${color.hex}\` | ${color.role} | ${color.status} |`),
+    "",
+    "## Typography",
+    "",
+    "| Family | Role | Source |",
+    "|---|---|---|",
+    ...kit.typography.map((font) => `| ${font.name} | ${font.role} | [${font.sourceLabel}](${font.source}) |`),
+    "",
+    "## Graphic elements",
+    "",
+    "| Graphic | Details |",
+    "|---|---|",
+    ...kit.graphics.map((graphic) => `| ${graphic.title} | ${graphic.description} |`),
+    "",
+    "## Templates",
+    "",
+    "| Template | Details |",
+    "|---|---|",
+    ...kit.templates.map((template) => `| ${template.title} | ${template.description} |`),
+    "",
+    "## Files",
+    "",
+    "| Folder | Files | Formats |",
+    "|---|---|---|",
+    ...[...folders].map(([folder, {count, formats}]) => `| \`${folder}\` | ${count} | ${[...formats].join(", ")} |`),
+  ].join("\n");
+}
+
+/** The welcome page's role cards as a list: who each path is for and where it starts. */
+export function rolePathsMarkdown(rolePaths) {
+  return rolePaths
+    .map((role) => `- [${role.title}](${role.href}) (${role.audience}, ${role.time}): ${role.description}`)
+    .join("\n");
+}
+
+/** The steward guide's path navigation as an ordered list. */
+export function stewardPathMarkdown(stewardPath) {
+  return ["Steward path:", "", ...stewardPath.map((step, index) => `${index + 1}. [${step.label}](${step.href})`)].join("\n");
+}
 
 /** The per-integration status table as Markdown, the same facts the IntegrationStatusTable renders. */
 export function integrationStatusMarkdown(integrations) {
@@ -82,11 +181,17 @@ function outsideFencedCode(text, transform) {
 
 /**
  * A page's source as plain Markdown for agents: no frontmatter and no MDX import lines (code
- * examples keep theirs). Given the integration projections, each IntegrationProjection tag becomes
- * the Markdown of the data it renders; other components stay as written, so a reader can tell
- * where the site renders something interactive. Pages without their own H1 get one from the title.
+ * examples keep theirs). A component that draws its content from a data file becomes the Markdown
+ * of that data when the data is given: the integration projections, the onboarding procedure, the
+ * design tokens, the brand kit, and the role and steward-path link lists. Components whose content
+ * is already in the page (props or children) stay as written, as does anything interactive, so a
+ * reader can tell where the site renders it. Pages without their own H1 get one from the title.
  */
-export function markdownTwin(source, title, { integrations = null, onboarding = null } = {}) {
+export function markdownTwin(
+  source,
+  title,
+  { integrations = null, onboarding = null, designTokens = null, brandKit = null, rolePaths = null, stewardPath = null } = {},
+) {
   const withoutFrontmatter = source.replace(/^---\n[\s\S]*?\n---\n/, "");
   const expandProjections = (text) => {
     let result = text;
@@ -101,6 +206,10 @@ export function markdownTwin(source, title, { integrations = null, onboarding = 
     }
     // ONBOARDING.md carries its own triple-backtick fences, so the twin wraps it in four.
     if (onboarding) result = result.replace(ONBOARDING_TAG, () => `\`\`\`\`markdown\n${onboarding.trimEnd()}\n\`\`\`\``);
+    if (designTokens) result = result.replace(DESIGN_TOKENS_TAG, () => designTokensMarkdown(designTokens));
+    if (brandKit) result = result.replace(BRAND_ASSETS_TAG, () => brandKitMarkdown(brandKit));
+    if (rolePaths) result = result.replace(HERO_TAG, () => rolePathsMarkdown(rolePaths));
+    if (stewardPath) result = result.replace(STEWARD_PATH_TAG, () => stewardPathMarkdown(stewardPath));
     return result;
   };
   const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))

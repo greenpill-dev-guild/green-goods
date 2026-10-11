@@ -1,16 +1,12 @@
 import Link from "@docusaurus/Link";
 import {useLocation} from "@docusaurus/router";
+import stewardPath from "@site/src/data/steward-path.json";
+
 import styles from "./styles.module.css";
 
-const STEWARD_PATH_ITEMS = [
-  {label: "Create a Garden", href: "/community/steward-guide/creating-a-garden"},
-  {label: "Make an Assessment", href: "/community/steward-guide/making-an-assessment"},
-  {label: "Review and Approve Work", href: "/community/steward-guide/reviewing-work"},
-  {
-    label: "Mint Impact Certificate",
-    href: "/community/steward-guide/creating-impact-certificates",
-  },
-];
+// The path lives in data so each steward page's Markdown twin prints the same links
+// (docs/scripts/llms.mjs).
+const STEWARD_PATH_ITEMS = stewardPath as {label: string; href: string}[];
 
 export function StewardPathNav() {
   const {pathname} = useLocation();

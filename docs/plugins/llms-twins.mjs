@@ -26,6 +26,12 @@ export default function llmsTwinsPlugin(context) {
         await readFile(path.join(context.siteDir, "src/data/integration-projections.json"), "utf8"),
       );
       const onboarding = JSON.parse(await readFile(path.join(context.siteDir, "src/data/onboarding.json"), "utf8"));
+      // The other data-backed components: the twin prints the data each one draws.
+      const data = async (name) => JSON.parse(await readFile(path.join(context.siteDir, "src/data", name), "utf8"));
+      const designTokens = await data("design-tokens.json");
+      const brandKit = await data("brand-kit-v3.json");
+      const rolePaths = await data("role-paths.json");
+      const stewardPath = await data("steward-path.json");
       const pages = [];
       for (const doc of docs) {
         const source = path.join(context.siteDir, doc.source.replace(/^@site\//, ""));
@@ -34,6 +40,10 @@ export default function llmsTwinsPlugin(context) {
         const markdown = markdownTwin(await readFile(source, "utf8"), doc.title, {
           integrations: projections.integrations,
           onboarding: onboarding.text,
+          designTokens,
+          brandKit,
+          rolePaths,
+          stewardPath,
         });
         await writeFile(twin, markdown);
         // Docusaurus's automatic excerpt can pick up a generated banner, so only a hand-written
