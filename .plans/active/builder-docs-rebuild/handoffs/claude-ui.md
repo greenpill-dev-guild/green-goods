@@ -333,3 +333,54 @@ renders all 13 skills.
 - **GitHub writes**: one reply and a resolution on each of the 19 threads, authorized by Afo's
   request to address and resolve the valid comments.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).
+
+## Validation Receipt — Second develop merge, CI Gate, and six Codex threads (2026-10-10)
+
+- **Scope**: the desktop app's Auto-fix event for head `70e64a58d`: a conflict with develop, a
+  failing CI Gate, and new review comments. Decisions 35 to 38. Commits `75ed33894` (merge),
+  `422606c9d` (CI Gate and the gate wording), `99a4d0ff9` (twins), `807b8ffc2` (prose); pushed
+  head `807b8ffc2`.
+- **Merge**: develop `e602fc13d` (5 commits, the Linear closeout guidance). One conflict, the
+  generated Task Routing page, regenerated; the three skill files develop changed
+  (`.claude/skills/{debug,plan,ship}/SKILL.md`) merged identical to develop.
+- **CI Gate root cause**: the gate job runs `node --test scripts/quality/select-validation.test.mjs …`
+  with no install, and one selector test imports `scripts/docs/generate.mjs`, whose reader imported
+  `js-yaml` at module load since `d33522ad3`. GitHub ran no pull-request workflows while the branch
+  conflicted with develop, so the failure first showed on `fd152d851`, after the previous merge.
+  Reproduced in a copy of the tracked tree with no `node_modules` (1 of 225 failing with
+  `Cannot find package 'js-yaml'`), fixed by resolving the parser where a workflow is parsed, and
+  rerun in a fresh package-free git copy: 225 of 225. The new graph test fails on the old reader
+  and passes on the new one.
+- **Feedback ledger**: 97 threads, 6 unresolved at classification (all Codex P2 on `70e64a58d`),
+  all ACTIONABLE and fixed. Reviews: 115, all read; 20 carry a body: 16 Codex summaries
+  (informational) and 4 CodeRabbit summaries from September whose inline findings are resolved
+  threads, plus one outside-diff finding (duplicate ERD group members), STALE:
+  `assignDataModelGroups` rejects a member listed twice and a test pins it. Conversation comments:
+  7, informational. **Correction to the previous receipt**: it said every connection was read to
+  completion, but it read review bodies from the last 30 of 95 reviews; this round read all of them.
+- **Sweep**: best-effort mint hooks (`GardenHooksLib`) checked against every integration page and
+  Architecture: Cookie Jar, ENS and the Architecture modules section corrected; Octant, Gardens,
+  Hats and Karma make no unconditional mint claim. Assessment ordering: no other builder or
+  community page orders it after approved work. Cited code paths: all 80 backticked repository
+  paths in the hand-written builder pages exist. Bare component tags in twins: none left on any
+  page (the new test walks all of them).
+- **Exact commands and results**: `node --test` over the generator, ontology, docs-script,
+  selector, mermaid-parse, routing, search-index and hook-parity suites → 294/294 ·
+  `node scripts/docs/generate.mjs --check` → 16 current · `node scripts/quality/check-ontology.mjs`
+  → all guards · `node docs/scripts/docs-audit.mjs --ci` → exit 0, the two advisory endpoint notes ·
+  `check-docs-design-parity` → 11 bindings · in `docs/`: `bun run test` 87/87, `bun run typecheck`
+  clean, `bun run build` green (70 routes, search index covers 70).
+- **Rendered proof** (docs local production build on 127.0.0.1:3013, browser pane): the welcome
+  page draws four role cards (gardener, steward, funder, builder) with icons and links from the
+  data file; the steward path lists four steps with the current one active; Cookie Jar shows the
+  new "Two kinds of jar" section, its diagram and no failure fallback; CI & GitHub Actions shows
+  five "never waits" lines. Built twins: `/brand.md`, `/builders/architecture/design.md`,
+  `/index.md` and a steward page carry the data and no bare tag.
+- **Validated paths**: `scripts/docs/`, `docs/scripts/llms*.mjs`, `docs/plugins/llms-twins.mjs`,
+  `docs/src/components/docs/{Hero,StewardPathNav}.tsx`, `docs/src/data/{role-paths,steward-path}.json`,
+  five builder pages, two regenerated pages.
+- **Push gate**: run on the pushed head through this branch's own pre-push hook with the ontology
+  check and the nine docs test files as focus; the PR body records the result.
+- **GitHub writes**: one reply and a resolution on each of the six threads, under Afo's standing
+  request to address and resolve the valid comments.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).

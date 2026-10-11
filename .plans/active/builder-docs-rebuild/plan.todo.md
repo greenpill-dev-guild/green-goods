@@ -43,6 +43,10 @@
 | 32 | Develop merged into the branch a fourth time on 2026-10-10 (`5d68e7eaf`, develop `8c57a9d56`, 43 commits), by merge again; the two generated-page conflicts were resolved by regenerating on the merged tree | Same reasoning as decisions 8 and 14; generated pages are never hand-merged |
 | 33 | The pre-push hook forwards only `--check` and `--test-path` from `GG_PUSH_GATE_ARGS`; `--base` is refused (2026-10-10, Codex) | `--base HEAD` handed the gate an empty diff and an empty check list, so the hook could pass without validating the push; focus through test paths covers the budget case instead |
 | 34 | Integration and architecture prose claims only what the contracts enforce, and names the application rule separately where the wizard adds one (2026-10-10, Codex round on Octant, Hypercerts, Karma, Unlock, the capital-formation gate) | A builder reading the docs as a contract reference must not be sent to entrypoints or guarantees that do not exist on-chain |
+| 35 | Develop merged a fifth time on 2026-10-10 (`75ed33894`, develop `e602fc13d`, 5 commits), by merge; the one conflict was the generated Task Routing page, regenerated on the merged tree | Same reasoning as decisions 8, 14 and 32 |
+| 36 | The docs generator's module graph imports with no packages installed: the YAML parser is resolved where a workflow is parsed, and a test walks the graph and refuses a static package import (2026-10-10) | CI Gate runs the selector suite before any install and that suite imports `scripts/docs/generate.mjs`; a top-level `js-yaml` import from round 1 failed the gate on every head that could run it |
+| 37 | A component that draws page content from a data file has a Markdown rendering in the twins (design tokens, brand kit, role cards, steward path); link lists live in `docs/src/data` so the component and the twin read one source, and a test fails on any bare component tag left in a twin; interactive components stay as written (2026-10-10, Codex) | D5 promised a whole-site agent-readable copy, and a twin with a bare tag has a hole where the site shows content |
+| 38 | Modules are described as wired to the garden token per chain, not opted into by a garden; at mint only the hat tree and the owner role are required and every other module call is best-effort (2026-10-10, corrects the wording of decision 20) | `GardenHooksLib` skips an unset module and swallows a failing one so a mint never reverts on an integration; the old heading sent readers to assume state that may not exist |
 
 ## Requirements Coverage
 
@@ -165,6 +169,11 @@ Hub work stories (shared package), and the footer and License copyright lines.
 Status (2026-10-10, merge and Codex round): develop merged (`5d68e7eaf`), the hook hardened
 (`409f3e25a`), and the 19 Codex threads from rounds 1 and 2 addressed in `fd152d851` (decisions 32
 to 34); every thread carries a reply naming its commit and is resolved. Pushed head `fd152d851`.
+
+Status (2026-10-10, second merge and CI Gate): develop merged again (`75ed33894`); CI Gate, red
+since the first merge let it run, fixed in `422606c9d` (the generator's reader loaded `js-yaml`
+at import time and the gate job installs nothing); six new Codex threads addressed in
+`422606c9d`, `99a4d0ff9` and `807b8ffc2` and resolved; decisions 35 to 38. Pushed head `807b8ffc2`.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
