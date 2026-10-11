@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:28ffb479957b25f059bdb4f3a8edcfbf866ed71449fe48a0613f2f1fd7745348",
+  "digest": "sha256:61e24eebd53bf7e522c39eedde76692404783ab299425052fed3944752274563",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",
@@ -284,7 +284,11 @@
           "name": "Arbitrum One",
           "status": "Deployed",
           "recorded": [
-            "greenWill"
+            "greenWill",
+            "unlock.factory",
+            "unlock.locks.genesis.address",
+            "unlock.locks.firstWork.address",
+            "unlock.locks.firstSupport.address"
           ]
         }
       ],

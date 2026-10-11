@@ -4,12 +4,15 @@ sidebar_label: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/registries/ENS.sol
+  - packages/contracts/src/registries/ENSReceiver.sol
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/shared/src/hooks/ens
 keywords:
   - ens
   - names
@@ -43,7 +46,9 @@ flowchart LR
 
 | Layer | Source |
 |---|---|
-| Registry | `packages/contracts/src/registries/ENS.sol` |
+| Registry (Arbitrum sender) | `packages/contracts/src/registries/ENS.sol` |
+| Receiver (Ethereum) | `packages/contracts/src/registries/ENSReceiver.sol`, which validates the CCIP message and registers the name |
+| Mint-time request | `packages/contracts/src/tokens/Garden.sol`, which skips the step without a module or slug, catches a failed registration, and queues the fee for refund |
 | Resolution hooks | `packages/shared/src/hooks/ens` |
 | Recorded components | The `greenGoodsENS` and `ensReceiver` fields in the [deployment record](/builders/reference/deployments) |
 

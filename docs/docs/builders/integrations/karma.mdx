@@ -4,12 +4,14 @@ sidebar_label: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Karma.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/shared/src/modules/data/karma.ts
 keywords:
   - karma gap
   - milestones
@@ -45,6 +47,7 @@ flowchart LR
 | Layer | Source |
 |---|---|
 | Module | `packages/contracts/src/modules/Karma.sol` |
+| Assessment mirror | `packages/contracts/src/resolvers/Assessment.sol`, which calls the module in a try/catch |
 | Data access | `packages/shared/src/modules/data/karma.ts` |
 
 <IntegrationProjection id="karma" />

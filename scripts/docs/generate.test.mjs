@@ -36,6 +36,7 @@ import {
   assignOperationGroups,
   assignTaskGroups,
   copyCommand,
+  integrationNetworkRecords,
   mutationBoundaryLabel,
   orderCommandManifests,
   renderSkills,
@@ -114,6 +115,48 @@ test("accepts only valid deployment addresses and treats zero as absent", () => 
     () => selectSafeAddressFields({ module: "not-an-address" }, ["module"]),
     /Malformed deployment address/,
   );
+  // A field may be a path into the artifact; a path through an operator identity is refused.
+  const nested = { unlock: { managerDefaults: [address], locks: { genesis: { address } } } };
+  assert.deepEqual(
+    selectSafeAddressFields(nested, ["unlock.locks.genesis.address", "unlock.locks.firstWork.address"]),
+    { "unlock.locks.genesis.address": address },
+  );
+  assert.throws(() => selectSafeAddressFields(nested, ["unlock.managerDefaults"]), /Unsafe configuration field/);
+});
+
+test("an integration is deployed only when every field it declares is recorded", () => {
+  const root = fixture();
+  try {
+    const address = "0x1111111111111111111111111111111111111111";
+    const zero = "0x0000000000000000000000000000000000000000";
+    const deployments = "packages/contracts/deployments";
+    mkdirSync(path.join(root, deployments), { recursive: true });
+    mkdirSync(path.join(root, "packages/indexer"), { recursive: true });
+    writeFileSync(
+      path.join(root, deployments, "networks.json"),
+      JSON.stringify({ networks: { staged: { chainId: 1, name: "Staged" }, complete: { chainId: 2, name: "Complete" } } }),
+    );
+    writeFileSync(path.join(root, "packages/indexer/config.yaml"), "contracts:\n  - name: Registry\n");
+    // The registry is recorded on both networks; only the second has the lock it depends on.
+    writeFileSync(path.join(root, deployments, "1-latest.json"), JSON.stringify({ registry: address, locks: { first: { address: zero } } }));
+    writeFileSync(path.join(root, deployments, "2-latest.json"), JSON.stringify({ registry: address, locks: { first: { address } } }));
+    const ontology = {
+      integrations: [
+        { id: "badges", display: "Badges", definition: "", deployment_fields: ["registry", "locks.first.address"], indexer_contracts: ["Registry"] },
+      ],
+    };
+    const sources = [`${deployments}/1-latest.json`, `${deployments}/2-latest.json`, `${deployments}/networks.json`, "packages/indexer/config.yaml"];
+    const { badges } = integrationNetworkRecords({ root, sources, ontology });
+    assert.deepEqual(
+      badges.networks.map((network) => [network.name, network.status, network.recorded]),
+      [
+        ["Staged", "Partial", ["registry"]],
+        ["Complete", "Deployed", ["registry", "locks.first.address"]],
+      ],
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("fails closed when any deployment artifact has a malformed address field", () => {
@@ -483,6 +526,16 @@ test("integration projections move to one data file with per-network and indexin
     ),
   );
   assert.ok(Array.isArray(hats.indexedContracts));
+  // GreenWill issues nothing without its locks, so the Unlock record counts them with the registry.
+  const unlock = payload.integrations.unlock.networks.find((network) => network.chainId === 42161);
+  assert.equal(unlock.status, "Deployed");
+  assert.deepEqual(unlock.recorded, [
+    "greenWill",
+    "unlock.factory",
+    "unlock.locks.genesis.address",
+    "unlock.locks.firstWork.address",
+    "unlock.locks.firstSupport.address",
+  ]);
   assert.equal(typeof payload.digest, "string");
   assert.ok(hats.totalNetworks >= hats.networks.length);
 });

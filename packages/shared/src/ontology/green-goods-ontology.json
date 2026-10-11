@@ -138,7 +138,13 @@
       "matrix_column": "Unlock",
       "definition": "Unlock Protocol locks back the GreenWill badges: the GreenWill registry proves a claim from on-chain state and grants the matching non-transferable Unlock key. Deployment artifacts and indexer configuration own recorded availability.",
       "contract_source": "packages/contracts/src/registries/GreenWill.sol",
-      "deployment_fields": ["greenWill"],
+      "deployment_fields": [
+        "greenWill",
+        "unlock.factory",
+        "unlock.locks.genesis.address",
+        "unlock.locks.firstWork.address",
+        "unlock.locks.firstSupport.address"
+      ],
       "indexer_contracts": ["GreenWill"],
       "additional_sources": ["packages/shared/src/modules/data/greenwill.ts"]
     }

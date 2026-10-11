@@ -126,11 +126,19 @@ export function selectSafeFields(value, allowlist) {
   return selected;
 }
 
+/**
+ * The recorded addresses for the allowlisted fields, keyed by the field as written. A field may
+ * be a dotted path into the artifact (`unlock.locks.genesis.address`); every segment is checked,
+ * so a path cannot reach an operator identity through a harmless-looking parent.
+ */
 export function selectSafeAddressFields(value, allowlist) {
   const selected = {};
   for (const field of allowlist) {
-    if (BLOCKED_FIELD.test(field)) throw new Error(`Unsafe configuration field requested: ${field}`);
-    const projected = value?.[field];
+    const segments = field.split(".");
+    if (segments.some((segment) => BLOCKED_FIELD.test(segment))) {
+      throw new Error(`Unsafe configuration field requested: ${field}`);
+    }
+    const projected = segments.reduce((node, segment) => node?.[segment], value);
     if (projected === undefined || projected === null) continue;
     if (typeof projected !== "string" || !ADDRESS_VALUE.test(projected)) {
       throw new Error(`Malformed deployment address for ${field}: ${String(projected)}`);

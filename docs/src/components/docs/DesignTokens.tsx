@@ -98,7 +98,11 @@ export function DesignTokens() {
 
       <section className={styles.block}>
         <h3>Radii and spacing</h3>
-        <p>Seven corner radii and three spacing steps; the squircle is the installed app's card corner.</p>
+        <p>
+          Seven corner radii and three spacing steps. In the installed app, cards, fields, and buttons take the 16px{" "}
+          <code>lg</code> corner; the 12px squircle is the step inside them, for content nested in a card and for a
+          pressed button.
+        </p>
         <div className={styles.chips}>
           {Object.entries(rounded).map(([name, value]) => (
             <div key={name} className={styles.radius} style={{borderRadius: value}} title={value}>

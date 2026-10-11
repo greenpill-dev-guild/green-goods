@@ -4,12 +4,17 @@ sidebar_label: Cookie Jar
 slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/CookieJar.sol
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/GardenHooks.sol
+  - packages/contracts/src/interfaces/ICookieJarFactory.sol
+  - packages/shared/src/hooks/cookie-jar
+  - packages/shared/src/modules/data/campaign-cookie-jars.ts
 keywords:
   - cookie jar
   - distribution
@@ -71,6 +76,7 @@ flowchart LR
 |---|---|
 | Module | `packages/contracts/src/modules/CookieJar.sol` |
 | Factory interface | `packages/contracts/src/interfaces/ICookieJarFactory.sol` |
+| Mint-time call | `packages/contracts/src/tokens/Garden.sol`, through `notifyCookieJar` in `packages/contracts/src/lib/GardenHooks.sol`, which skips a missing module and catches a failed call |
 | Garden jar reads | `packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts`, `useAccessibleCookieJars.ts`, and `useUserCookieJars.ts`, which call `CookieJarModule.getGardenJars` |
 | Garden jar writes | `useCookieJarDeposit.ts`, `useCookieJarWithdraw.ts`, and `useCookieJarAdmin.ts` in the same folder |
 | Campaign jar reads | `packages/shared/src/modules/data/campaign-cookie-jars.ts` (indexed `CampaignCookieJar` records from trusted creators) with `useCampaignCookieJar.ts` and `useCampaignCookieJarCampaigns.ts` |
