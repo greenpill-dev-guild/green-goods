@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-11T04:42:41Z"
+    "updated_at": "2026-10-11T04:49:40Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,7 +37,7 @@
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation scope remains open; no application, Linear, deployment, or transaction work is authorized.",
     "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change; track the work under the Cosmo-Local project.",
     "Direction accepted in principle on 2026-10-10: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Three picks differ from the recommendation: F6 keeps each bar's active state, F9 keeps each surface's filter control, F11 sets an 8px list gap.",
-    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet, and the cockpit's Material-named token layer is undecided. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
+    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet. The cockpit's Material-named tokens keep their names. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
     "Also accepted in principle: a green focus ring in the app, one empty, loading and error anatomy, one set of type role names, and retiring the unused glass spec. A pick locks on pairs of the lab's ten screens at 390, 768 and 1280px, light and dark, in three languages where text must fit. The maintainer's aim is to land as much of the sequence as fits before the Cosmo-Local demonstration; the plan is saved first and no implementation is authorized.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
@@ -165,6 +165,14 @@
       "status": "scope_amended",
       "branch": null,
       "note": "Recorded four changes without a fork as accepted in principle (focus ring, empty-state anatomy, type role names, glass spec), what a pair must show before a pick locks, and the timing aim. Added the empty-state step and three acceptance rows; renumbered the later steps. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:49:40Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded that the user round follows the slices and gates nothing, and that the cockpit's Material-named tokens keep their names. Split the delivery sequence into one slice per step, thirteen slices before acceptance. The maintainer asked for a Linear parent with an issue per slice; those records are not filed yet. No implementation dispatched."
     }
   ]
 }

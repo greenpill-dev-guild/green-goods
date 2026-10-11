@@ -80,8 +80,9 @@ the picks stand. They keep several things that Material 3 used to justify in the
 (F3), its tone pill in the bar (F6), its inline filter row (F9), its 12px card corner (F7) and its
 tones. They now stand as the cockpit's own dials, kept because they were chosen. What leaves with the rule is the filled field with an underline, elevation
 as the card surface, the 8px chip, the underline tab rail, the grey count chip and the warm grey
-phone sheet. No fork covers the cockpit's Material-named token layer, its state layers or its type
-role names, so what happens to those is undecided.
+phone sheet. The cockpit's Material-named tokens keep their names: its views already use the shared
+token names, so the layer is an internal detail, and a name changes only if a step has to touch it.
+The type role names are settled below.
 
 **Changes without a fork.** Four proposals in the [ledger](#the-divergence-ledger) have no control
 in the lab. The maintainer accepted all four on the same terms as the picks:

@@ -6,7 +6,9 @@
 
 Compare the released surfaces with the accepted design using the same routes and content. Start with
 a small formative round: a steward who also submits work as a gardener, and a gardener who has never
-opened the cockpit. This is qualitative design validation, not a measured improvement claim.
+opened the cockpit. This is qualitative design validation, not a measured improvement claim. The
+maintainer set the round after slices land: its findings become follow-ups, and no slice waits on
+it.
 
 Observe whether participants can:
 
