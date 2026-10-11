@@ -10,6 +10,11 @@ The MVP serves one garden on one desktop browser profile. It connects through th
 
 ## Read this plan
 
+- [Unified ontology proposal](ontology-alignment.md): one Grove language with traceable Green Goods and Commons meanings.
+- [Learning loops and ingestion diagrams](architecture-flows.md): internal work, external knowledge, and their shared memory.
+- [Dependencies by category](dependencies.md): responsibilities, reuse, candidates and deferred additions.
+- [Visualizer references and design directions](visual-design.md): actual Sigma/Cytoscape screenshots and comparison.
+- [Claude Code design prompt](handoffs/claude-design-exploration.md): a bounded exploration of three graph compositions.
 - [Architecture and reuse](spec.md): scope, Coop and Green Goods components, ownership, ingestion and temporal contracts.
 - [Implementation sequence](plan.todo.md): 13 unchecked checkpoints, with the first complete capture-to-graph-to-Hub slice.
 - [Acceptance gates](eval.md): domain, history, model, connection, graph, capacity and recovery criteria.

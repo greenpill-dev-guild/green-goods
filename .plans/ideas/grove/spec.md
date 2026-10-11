@@ -2,7 +2,7 @@
 
 **Status:** implementation proposal; planning requested, product build not started.
 **Updated:** 11 October 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
-**Companions:** [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md).
+**Companions:** [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md), [ontology alignment](ontology-alignment.md), [learning loops](architecture-flows.md), [dependency map](dependencies.md), [visual exploration](visual-design.md).
 
 Build a local browser extension whose main interface is a living garden graph. A steward can connect a garden from the Admin Hub, preserve useful research, inspect the relationships between research and recorded work, review suggested connections, and see what changed over time.
 
@@ -33,7 +33,7 @@ The first test uses synthetic garden fixtures and public research. A later named
 | D3 | Sigma + Graphology, with a small imperative renderer adapter | Separates rendering and layout from persisted knowledge; Cytoscape is the fallback if the benchmark rejects Sigma |
 | D4 | Dexie/IndexedDB revision tables and an atomic change sequence | Acknowledged saves, restart recovery, historical reconstruction and independent edge changes |
 | D5 | Typed, origin-restricted Hub bridge; credentials stay in the Hub | Reuse garden readers without copying authentication, private keys or wallet state into the extension |
-| D6 | Green Goods manifest plus a pinned, namespaced commons draft pack | Ground extraction in explicit versions without declaring a draft to be a canonical commons release |
+| D6 | Compose a versioned Grove application profile from Green Goods, a pinned Commons draft and local memory terms | One user-facing vocabulary with distinct source identities, per-type schemas and explicit mappings; see the [alignment proposal](ontology-alignment.md) |
 | D7 | Source-linked model proposals, validated before storage | The model cannot commit facts, approve Work, or invent supported ontology predicates |
 | D8 | Changes since last review and stable positions | The graph communicates learning rather than constant layout movement |
 | D9 | Explicit capture first; bounded passive capture completes the MVP | Prove the useful loop before broadening browser access |
@@ -132,9 +132,11 @@ Assertion origin (`protocol`, `source`, `model`, `human`) and personal review st
 
 The commons draft is packaged as versioned data. Preserve existing IDs when supplied; otherwise use visibly provisional draft IDs and an explicit mapping table. Do not claim a new canonical URI. In the test fixture, synthetic concepts are labeled synthetic. Runtime mapping recognizes supported predicate endpoint types and quarantines unknown terms; it does not quietly remap them to a generic relationship.
 
-Proposed memory-only vocabulary for this slice: `memory:Source`, `memory:Question`, `memory:Claim`, `memory:Resource`, `memory:relevantTo`, `memory:addresses`, `memory:aboutConcept`. These are proposed extension terms, not existing Green Goods or commons canon. Graph display categories may group types without merging their identities.
+Use the [Grove application profile proposal](ontology-alignment.md) for one language across imported records, graph queries and model output. Map Source and supporting Concept/Term to the pinned Commons draft; keep capture revisions as storage records. The earlier `memory:Source`/`memory:Claim` placeholders are superseded by this alignment direction before S2. `memory:Question`, `memory:Resource`, `memory:relevantTo`, `memory:addresses` and `memory:aboutConcept` remain proposed local additions. All provisional IDs stay visibly provisional. Display categories group types without merging their identities or review lifecycles.
 
 ## Ingestion and feedback
+
+See the [internal/external learning loops and ingestion diagrams](architecture-flows.md) for the complete flow and the boundary around later Commons contributions.
 
 1. Capture from an explicit action or enabled research scope. Save the source revision first. Strip form controls, credentials and hidden input; treat the retained text as untrusted evidence, never instructions.
 2. Normalize conservative URL identity plus content hash. Preserve distinct changed content at one URL. Exact canonical entity IDs win; name similarity produces a suggestion, never an automatic merge.
@@ -157,16 +159,7 @@ Freshness is computed from the workspace change sequence relative to an explicit
 
 First slice queries are deterministic keyword/structured queries with at most two hops and a bounded result set. The natural-language query compiler is deferred until these operations are reliable; the architecture allows a later validated typed query plan. The model never emits executable JavaScript or SQL for the graph.
 
-| Dependency | MVP decision |
-|---|---|
-| WXT + React | New extension package; follow root environment and Bun conventions |
-| Sigma + Graphology | Candidate renderer and in-memory multigraph; lock a mutually compatible tested release after approval |
-| Dexie + Zod | Reuse established Green Goods versions; local DB and boundary validation |
-| Transformers.js / ONNX + one Gemma artifact | Start from Coop's Gemma E2B configuration as a benchmark candidate; pin exact model revision, tokenizer, runtime and digests after the spike |
-| MiniSearch | Add only when indexed text search is wired; exact IDs and simple name filtering work in the first scaffold |
-| Readability | Candidate page extractor; compare with the bounded Coop extractor before adding another dependency; render plain text |
-| ForceAtlas2 | Deferred from the first slice, which uses deterministic placement; later package an explicit worker and stop layout when settled |
-| Cytoscape | Renderer fallback after the benchmark, not a second shipped graph engine |
+The [dependency map](dependencies.md) owns the categorized component list, package roles and selection state. Sigma + Graphology remains the leading candidate; Cytoscape is the comparison alternative. [Actual demo screenshots and the design brief](visual-design.md) separate renderer capability from the visual craft Grove must build. OpenJev is an optional decision-scoring research candidate with unresolved project identity, not a renderer or first-slice prerequisite.
 
 Run inference outside the graph document so GPU/CPU work cannot own the graph's lifecycle. The offscreen host and model sandbox receive only the prepared packet and expose no graph-write, signing or arbitrary network capabilities. Check source window/request correlation, validate returned messages and discard responses from a previous model epoch. Bundle executable JS/WASM; downloaded model data must not become a route to remote executable code. Serialize inference and pause layout work during interaction if the benchmark shows contention.
 

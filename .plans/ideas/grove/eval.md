@@ -9,7 +9,7 @@ These are proposed acceptance criteria, not observed performance or product rece
 
 | Gate | Proof | Acceptance |
 |---|---|---|
-| E1 — Domain and provenance | Direct contract/mapper tests using Green Goods fixture plus pinned commons draft | Distinct Garden/Action/Work/WorkApproval identities; 100% stored model assertions have valid endpoint/predicate IDs and exact evidence references; unknown terms remain quarantined |
+| E1 — Domain and provenance | Direct contract/mapper tests using Green Goods fixture plus pinned commons draft | Distinct Garden/Action/Work/WorkApproval identities; 100% stored model assertions have valid endpoint/predicate IDs and exact evidence references; unknown terms remain quarantined; Garden is not automatically Organization, Work is not CaseStudy, and local acceptance is not Commons publication or WorkApproval; historical views retain profile/mapping versions |
 | E2 — Durable history | IndexedDB integration tests plus real-browser reload/interruption | No acknowledged save lost in the interruption set; duplicate retry changes neither graph size nor freshness; review expected-revision conflict is visible |
 | E3 — Temporal correctness | Four deterministic histories | (a) Week-1 activity imported week 3 is absent in the week-2 knowledge view; (b) edge added between existing nodes is new; (c) proposed -> accepted -> corrected reconstructs each state; (d) failed/partial snapshot does not delete records or reset known approvals |
 | E4 — Local model and useful links | Real model on 20 labeled source packets, including irrelevant sources, false identity matches and malicious instructions; report every failure | No stored invalid IDs or fabricated evidence spans; at least 16/20 packets yield the human-labeled relevant connection or correct abstention. Report schema failures separately. No remote inference fallback. A failed quality gate keeps automatic proposals off; it does not pass the AI slice. |
@@ -42,8 +42,14 @@ Coop source was read at remote `901f57871ec578b0a31bb38c1eacdd0a85eed83a`. The l
 
 The earlier interactive example was a synthetic illustration. Its browser checks are not Sigma, Gemma, bridge, IndexedDB, authenticated Brave or production-extension proof.
 
+## Design and source follow-up
+
+On 11 October 2026, the linked Regen Coordination Knowledge Commons v0 draft was read through the Google Drive connector. It supports per-class schemas with shared versioned integration points; a ratified machine-readable pack and mapping approval remain unresolved. The new [alignment proposal](ontology-alignment.md) records this distinction.
+
+Public Sigma and Cytoscape demo screenshots were captured in the Codex in-app Chromium browser and are included in [visual-design.md](visual-design.md). They are reference images with different data/viewport sizes, not Grove runtime, benchmark, authenticated Brave or installed-extension proof. The Claude Code prompt is prepared, not executed. OpenJev project identity remains unresolved; no scorer was installed or tested.
+
 ## Planning PR validation
 
 This hub is published separately from the earlier OS research. All implementation steps and product gates remain unrun. Validation of this planning PR covers hub structure, local links, formatting, scope and the repository-selected push checks. Current results are recorded in the draft PR; they do not establish runtime or model readiness.
 
-No dependency was installed, no application source was changed and no implementation lane was marked complete. Browser proof: none; this change contains planning documents only.
+No dependency was installed, no application source was changed and no implementation lane was marked complete. Grove runtime browser proof: none. Public-demo reference screenshots are labeled separately above; this change contains planning documents and reference assets only.
