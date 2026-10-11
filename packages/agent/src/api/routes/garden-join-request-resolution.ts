@@ -1,5 +1,6 @@
 import {
   type GardenJoinProofContent,
+  type GardenJoinRequestKind,
   validateResolveGardenJoinRequest,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Context } from "hono";
@@ -53,6 +54,7 @@ export async function handleGardenJoinRequestResolution(
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  const kind = authenticated.proof.kind ?? "garden_membership";
   // Which dependency the request was waiting on, so a 503 names its cause.
   let stage = "role_read";
   try {
@@ -70,8 +72,20 @@ export async function handleGardenJoinRequestResolution(
     if (!request) {
       return gardenJoinRequestFailure(c, ctx, "request_not_found", "Join request not found.", 404);
     }
-    stage = "membership_read";
-    const isMember = await chain.isMember(preflight.garden, request.accountAddress);
+    if (request.kind !== kind) {
+      return gardenJoinRequestFailure(
+        c,
+        ctx,
+        "invalid_request",
+        "The signed request kind does not match this request.",
+        400
+      );
+    }
+    stage = kind === "steward_access" ? "steward_read" : "membership_read";
+    const isMember =
+      kind === "steward_access"
+        ? await chain.isSteward(preflight.garden, request.accountAddress)
+        : await chain.isMember(preflight.garden, request.accountAddress);
     if (isMember) {
       stage = "proof_claim";
       if (!(await claimGardenJoinRequestProof(store, authenticated.proof))) {
@@ -87,9 +101,10 @@ export async function handleGardenJoinRequestResolution(
       const welcomed = await store.reconcileWelcomed(
         preflight.garden,
         requestId,
-        new Date(ctx.deps.now?.() ?? Date.now()).toISOString()
+        new Date(ctx.deps.now?.() ?? Date.now()).toISOString(),
+        kind
       );
-      void trackResolution("welcomed", authenticated.proof.factory !== undefined);
+      void trackResolution("welcomed", authenticated.proof.factory !== undefined, kind);
       return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: welcomed });
     }
     if (request.revision !== parsed.value.expectedRevision) {
@@ -115,7 +130,13 @@ export async function handleGardenJoinRequestResolution(
       return publicBrowserCorsResponse(
         c,
         ctx.deps,
-        { ok: true, request, pendingOnchainMembership: true },
+        {
+          ok: true,
+          request,
+          ...(kind === "steward_access"
+            ? { pendingOnchainRole: true }
+            : { pendingOnchainMembership: true }),
+        },
         202
       );
     }
@@ -124,7 +145,7 @@ export async function handleGardenJoinRequestResolution(
         c,
         ctx,
         "resolution_conflict",
-        "Membership has not been confirmed yet.",
+        "The requested garden role has not been confirmed yet.",
         409
       );
     }
@@ -133,6 +154,7 @@ export async function handleGardenJoinRequestResolution(
       gardenAddress: preflight.garden,
       requestId,
       expectedRevision: parsed.value.expectedRevision,
+      kind,
       state: "declined",
       reason: parsed.value.reason,
       resolvedAt: new Date(ctx.deps.now?.() ?? Date.now()).toISOString(),
@@ -147,7 +169,7 @@ export async function handleGardenJoinRequestResolution(
         status
       );
     }
-    void trackResolution("declined", authenticated.proof.factory !== undefined);
+    void trackResolution("declined", authenticated.proof.factory !== undefined, kind);
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true, request: resolved.request });
   } catch (error) {
     reportGardenJoinRequestUnavailable("resolve", stage, error);
@@ -157,10 +179,11 @@ export async function handleGardenJoinRequestResolution(
 
 function trackResolution(
   resolution: "declined" | "welcomed",
-  isCounterfactual: boolean
+  isCounterfactual: boolean,
+  kind: GardenJoinRequestKind
 ): Promise<void> {
   return trackGardenJoinRequestEvent("join_request_resolved", {
-    kind: "garden_membership",
+    kind,
     resolution,
     is_counterfactual: isCounterfactual,
   });

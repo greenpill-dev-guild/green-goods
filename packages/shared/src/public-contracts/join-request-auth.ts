@@ -26,6 +26,10 @@ export function buildGardenJoinProofMessage(
     `Issued at: ${proof.issuedAt}`,
     `Expires at: ${proof.expiresAt}`,
   ];
+  if (proof.kind) {
+    lines.push(`Kind: ${proof.kind}`);
+    if (proof.kind === "steward_access") lines.push("Requested role: Steward (Operator)");
+  }
   if (proof.readSelf) {
     lines.push("Also authorize: read own join-request status until proof expiry");
     lines.push(`Audience: ${escapeProofField(proof.readSelf.audience)}`);

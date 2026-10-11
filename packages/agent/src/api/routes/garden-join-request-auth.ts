@@ -6,6 +6,7 @@ import {
   type GardenJoinProofContent,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiErrorCode,
+  type GardenJoinRequestKind,
 } from "@green-goods/shared/public-contracts/join-requests";
 import type { Address } from "@green-goods/shared/public-contracts";
 import type { Context } from "hono";
@@ -43,7 +44,8 @@ export async function authenticateGardenJoinRequest(
   c: Context,
   ctx: GardenJoinRequestRouteContext,
   expectedAction: GardenJoinProofAction,
-  content: GardenJoinProofContent = {}
+  content: GardenJoinProofContent = {},
+  expectedKind?: GardenJoinRequestKind
 ): Promise<{ ok: true; proof: GardenJoinProofEnvelope } | { ok: false; response: Response }> {
   const chainId = ctx.deps.gardenJoinRequestChainId;
   const verifier = ctx.deps.gardenJoinRequestSignatureVerifier;
@@ -65,12 +67,26 @@ export async function authenticateGardenJoinRequest(
     nowSeconds: Math.floor((ctx.deps.now?.() ?? Date.now()) / 1000),
     expectedAction: grantsRead ? "create" : expectedAction,
     allowedChainIds: [chainId],
+    ...(expectedKind ? { expectedKind } : {}),
   });
   if (!validation.ok) {
     const status = validation.error.errorCode === "signature_expired" ? 401 : 400;
     return {
       ok: false,
       response: publicBrowserCorsResponse(c, ctx.deps, validation.error, status),
+    };
+  }
+  const queryKind = c.req.query("kind");
+  if (queryKind !== undefined && queryKind !== (validation.value.kind ?? "garden_membership")) {
+    return {
+      ok: false,
+      response: gardenJoinRequestFailure(
+        c,
+        ctx,
+        "invalid_request",
+        "The signed request kind does not match this request.",
+        400
+      ),
     };
   }
   if (validation.value.readSelf && validation.value.readSelf.audience !== c.req.header("origin")) {

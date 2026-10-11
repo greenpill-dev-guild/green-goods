@@ -41,8 +41,40 @@ export function BrowserActs({ onOpen, onStay }: { onOpen: () => void; onStay: ()
 }
 
 /**
- * An account by its name: a new one to create, or one kept on another device to find. Either
- * way the act submits the field on the page, and Back returns to the two ways in.
+ * The account step's two doors, where a browser that remembers no passkey cannot tell a newcomer
+ * from someone whose account is elsewhere. Neither opens a prompt: each leads to the screen
+ * that asks for what it needs. The labels are set a size down, as the in-app pair is, so the
+ * pair shares one row on the narrowest phone in every language.
+ */
+export function EntryActs({
+  onCreate,
+  onExisting,
+}: {
+  onCreate: () => void;
+  onExisting: () => void;
+}) {
+  const intl = useIntl();
+  return (
+    <PairedActs>
+      <Button size="lg" className="!px-2 !text-sm" onClick={onCreate}>
+        {intl.formatMessage({
+          id: "app.login.button.createAccount",
+          defaultMessage: "Create Account",
+        })}
+      </Button>
+      <Button size="lg" className="!px-2 !text-sm" emphasis="secondary" onClick={onExisting}>
+        {intl.formatMessage({
+          id: "public.reporting.entry.existing",
+          defaultMessage: "I Have an Account",
+        })}
+      </Button>
+    </PairedActs>
+  );
+}
+
+/**
+ * An account by its name: a new one to create, or one this browser does not remember to find.
+ * Either way the act submits the field on the page, and Back returns to the ways in.
  */
 export type NameScreen = "create" | "find";
 
@@ -116,7 +148,8 @@ export function JoinActs({
 
 /**
  * The one thing either naming screen asks for: the name a new account will go by, or the name an
- * existing one was created with. The heading card says why the name matters.
+ * existing one was created with. Both call it the account's name, so the name chosen on one is
+ * recognizably the name asked for on the other. The heading card says why it matters.
  */
 export function AccountNameForm({
   screen,
@@ -147,17 +180,10 @@ export function AccountNameForm({
       <FormField
         htmlFor={nameId}
         required
-        label={
-          creating
-            ? intl.formatMessage({
-                id: "app.login.username.newAccountLabel",
-                defaultMessage: "Display name for new account",
-              })
-            : intl.formatMessage({
-                id: "app.login.recovery.label",
-                defaultMessage: "Username or ENS handle",
-              })
-        }
+        label={intl.formatMessage({
+          id: "public.reporting.account.nameLabel",
+          defaultMessage: "Account name",
+        })}
       >
         <TextInput
           id={nameId}
@@ -191,7 +217,8 @@ function StepLink({
       type="button"
       size="sm"
       emphasis="tertiary"
-      className="text-sm text-primary-action underline underline-offset-4"
+      // A link longer than the page, as large text or a long translation makes it, wraps.
+      className="max-w-full whitespace-normal text-sm text-primary-action underline underline-offset-4"
       disabled={disabled}
       onClick={onClick}
     >
@@ -201,44 +228,50 @@ function StepLink({
 }
 
 /**
- * The other ways through the account step, under what the step will ask for. With no account
- * connected: create one, or find one kept on another device. With one connected: the link names
- * it and lets it go, for the page starts on whichever account this browser last used, which may
- * not be the one meant, and nothing else on the step says which account will sign.
+ * Under the account step, with an account connected: the link names it and lets it go. The page
+ * starts on whichever account this browser last used, which may not be the one meant, and
+ * nothing else on the step says which account will sign.
  */
-export function AccountStepLinks({
+export function OtherAccountLink({
   account,
+  onChangeAccount,
+}: {
+  account: string;
+  onChangeAccount: () => void;
+}) {
+  const intl = useIntl();
+  return (
+    <StepLink onClick={onChangeAccount}>
+      <span title={account}>
+        {intl.formatMessage(
+          {
+            id: "public.reporting.connect.other",
+            defaultMessage: "Not {account}? Use a different account",
+          },
+          { account: formatAddress(account) }
+        )}
+      </span>
+    </StepLink>
+  );
+}
+
+/**
+ * The other ways in, under the passkey and wallet acts: a new account, and another account than
+ * the one whose passkey this browser remembers. Each is offered only where it can work.
+ */
+export function EntryLinks({
   canCreate,
   canFind,
   passkeyUnavailable,
   onName,
-  onChangeAccount,
 }: {
-  /** The account connected here, if one is. */
-  account: string | null;
   /** Only linking an account may create one. */
   canCreate: boolean;
   canFind: boolean;
   passkeyUnavailable: boolean;
   onName: (screen: NameScreen) => void;
-  onChangeAccount: () => void;
 }) {
   const intl = useIntl();
-  if (account) {
-    return (
-      <StepLink onClick={onChangeAccount}>
-        <span title={account}>
-          {intl.formatMessage(
-            {
-              id: "public.reporting.connect.other",
-              defaultMessage: "Not {account}? Use a different account",
-            },
-            { account: formatAddress(account) }
-          )}
-        </span>
-      </StepLink>
-    );
-  }
   return (
     <>
       {canCreate ? (
@@ -253,7 +286,7 @@ export function AccountStepLinks({
         <StepLink disabled={passkeyUnavailable} onClick={() => onName("find")}>
           {intl.formatMessage({
             id: "public.reporting.find.link",
-            defaultMessage: "Account on another device? Find it by name",
+            defaultMessage: "Another account? Find it by name",
           })}
         </StepLink>
       ) : null}

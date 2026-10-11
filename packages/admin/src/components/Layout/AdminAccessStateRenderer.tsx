@@ -2,7 +2,6 @@ import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
-import { AppBar, MainSheet } from "@/components/Shell";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -12,8 +11,10 @@ import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 import { AdminSignInContainer } from "@/components/AdminSignIn";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "./CanvasIndexerErrorState";
+import { AdminAccessHomeShell } from "./CanvasLayout";
 import { WalletRequiredConnectShell } from "./ConnectShell";
 import { SeedlingIllustration } from "./SeedlingIllustration";
+import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 interface AdminAccessStateRendererProps {
   state: AdminAccessState;
@@ -64,7 +65,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "disconnected") {
     return (
-      <AdminAccessHomeShell>
+      <AdminAccessHomeShell key="signed-out">
         <main
           id="main-content"
           tabIndex={-1}
@@ -94,7 +95,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
 
   if (state.status === "indexer-error") {
     return (
-      <AdminAccessHomeShell>
+      <AdminAccessHomeShell key="signed-in" showProfile>
         <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
           <CanvasIndexerErrorState
             onRetry={() => {
@@ -110,37 +111,14 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
   }
 
   return (
-    <AdminAccessHomeShell>
+    <AdminAccessHomeShell key="signed-in" showProfile>
       <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
         <CanvasGardenAccessState
           onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
           canCreateGarden={state.canCreateGarden}
+          stewardAccess={<StewardAccessRequestContainer showStatus />}
         />
       </main>
     </AdminAccessHomeShell>
-  );
-}
-
-function AdminAccessHomeShell({ children }: { children: ReactNode }) {
-  const intl = useIntl();
-
-  return (
-    <div
-      data-tone="home"
-      className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
-    >
-      <div className="canvas-area-top">
-        <AppBar
-          gardenChip={
-            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
-              <SeedlingIllustration className="h-5 w-5" />
-              {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
-            </span>
-          }
-        />
-      </div>
-      <MainSheet>{children}</MainSheet>
-      <div className="canvas-area-bottom" />
-    </div>
   );
 }

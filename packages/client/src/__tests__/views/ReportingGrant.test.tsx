@@ -1,5 +1,5 @@
 /** @vitest-environment happy-dom */
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   buildEnvelope,
   resolveReportingDeployment,
@@ -72,7 +72,8 @@ const makeProps = (): Props => ({
   joinSending: false,
   skipCommunity: vi.fn(),
   joinCommunity: vi.fn(async () => {}),
-  lastFailure: null,
+  failure: null,
+  savedPasskey: false,
   canFindAccount: false,
   changeAccount: vi.fn(async () => true),
   createAccount: vi.fn(async () => true),
@@ -276,16 +277,107 @@ describe("linking an account", () => {
       .getAllByRole("button")
       .map((act) => act.textContent);
 
-  it("says a failed sign-in in the account layer's own words, and the page stays up", () => {
-    render(view({ ...link(), lastFailure: "Sign in was cancelled." }));
-    expect(screen.getByRole("alert")).toHaveTextContent("Sign in was cancelled.");
+  const heading = () => screen.getByRole("heading", { level: 1 });
+  const press = (name: string) => fireEvent.click(within(bar()).getByRole("button", { name }));
+  const submitName = (name: string) => {
+    const field = screen.getByLabelText(/Account name/);
+    fireEvent.change(field, { target: { value: name } });
+    fireEvent.submit(field.closest("form") as HTMLFormElement);
+  };
+
+  it("opens on two doors where the browser remembers no passkey, and neither opens a prompt", () => {
+    const props = link();
+    render(view(props));
+    expect(heading()).toHaveTextContent("New to Green Goods?");
+    expect(acts()).toEqual(["Create Account", "I Have an Account"]);
+    press("I Have an Account");
+    expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
+    expect(props.connectPasskey).not.toHaveBeenCalled();
+    expect(props.createAccount).not.toHaveBeenCalled();
+  });
+
+  it("asks a passkey this browser does not remember for its account's name before any prompt", () => {
+    const props: Props = { ...link(), canFindAccount: true };
+    render(view(props));
+    press("I Have an Account");
+    press("Use Passkey");
+    expect(props.connectPasskey).not.toHaveBeenCalled();
+    expect(heading()).toHaveTextContent("Find Your Account");
+    expect(acts()).toEqual(["Find Account", "Back"]);
+    submitName(" afo.eth ");
+    expect(props.connectPasskey).toHaveBeenCalledWith("afo.eth");
+    expect(props.createAccount).not.toHaveBeenCalled();
+    // Back returns to the acts it came from, never to a new account.
+    press("Back");
     expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
   });
 
-  it("puts the act of each new pair first", () => {
-    const { rerender } = render(view({ ...link(), initialName: "create" }));
+  it("opens a remembered passkey's prompt at once, with the other ways in as links", () => {
+    const props: Props = { ...link(), savedPasskey: true, canFindAccount: true };
+    render(view(props));
+    expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
+    expect(screen.getByRole("button", { name: "New here? Create an account" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Another account? Find it by name" })).toBeVisible();
+    press("Use Passkey");
+    expect(props.connectPasskey).toHaveBeenCalledWith();
+  });
+
+  it("creates an account only from the create screen's own act", () => {
+    const props = link();
+    render(view(props));
+    press("Create Account");
+    // The door opens the screen; the account is made by the name's own submit.
+    expect(props.createAccount).not.toHaveBeenCalled();
+    expect(heading()).toHaveTextContent("Create Your Account");
     expect(acts()).toEqual(["Create Account", "Back"]);
-    rerender(view({ ...link(), stage: "intro", purpose: null, inAppBrowser: true }));
+    submitName("ada");
+    expect(props.createAccount).toHaveBeenCalledWith("ada");
+    expect(props.connectPasskey).not.toHaveBeenCalled();
+    press("Back");
+    expect(acts()).toEqual(["Create Account", "I Have an Account"]);
+  });
+
+  it.each([
+    ["prompt_closed", "existing", /prompt closed\. Try again, or use another way in/],
+    ["passkey_not_here", "existing", /isn't on this device\. Try another way in/],
+    ["no_saved_passkey", "existing", /No passkey is saved in this browser/],
+    ["not_created", "create", /no account was made\. Try again/],
+    ["name_taken", "create", /name is taken\. Pick another, or go back if it's yours/],
+    ["name_not_found", "find", /No account has that name\. Check the spelling, or go back/],
+    // A failure the page has no words for is said in the account layer's own.
+    ["other", "find", /^That passkey is for a different account\.$/],
+  ] as const)("says what to do after %s, and creates nothing because of it", (reason, initialEntry, says) => {
+    const props: Props = {
+      ...link(),
+      savedPasskey: true,
+      initialEntry,
+      failure: { reason, spoken: "That passkey is for a different account." },
+    };
+    render(view(props));
+    expect(screen.getByRole("alert")).toHaveTextContent(says);
+    expect(props.createAccount).not.toHaveBeenCalled();
+    expect(props.connectPasskey).not.toHaveBeenCalled();
+  });
+
+  it("drops a failed attempt's words once the person moves to another screen", () => {
+    const failure = { reason: "prompt_closed", spoken: "Sign in was cancelled." } as const;
+    render(view({ ...link(), savedPasskey: true, failure }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/prompt closed/);
+    fireEvent.click(screen.getByRole("button", { name: "New here? Create an account" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(heading().parentElement).toHaveTextContent(/Pick a name and keep it safe/);
+  });
+
+  it("says before any press that this browser cannot open a passkey prompt, and keeps the wallet", () => {
+    render(view({ ...link(), passkeyUnavailable: true }));
+    expect(screen.getByText(/Passkeys don't work here/)).toHaveAttribute("role", "status");
+    expect(within(bar()).getByRole("button", { name: "Use Passkey" })).toBeDisabled();
+    expect(within(bar()).getByRole("button", { name: "Use Wallet" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "New here? Create an account" })).toBeDisabled();
+  });
+
+  it("puts the act of the in-app pair first", () => {
+    render(view({ ...link(), stage: "intro", purpose: null, inAppBrowser: true }));
     expect(acts()).toEqual(["Open in Browser", "Continue Here"]);
   });
 
@@ -335,28 +427,16 @@ describe("linking an account", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("finds an account kept on another device by its name", () => {
-    const open: Props = { ...link(), canFindAccount: true };
-    render(view(open));
-    expect(screen.getByRole("button", { name: "New here? Create an account" })).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Account on another device? Find it by name" })
-    );
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find Your Account");
-    expect(acts()).toEqual(["Find Account", "Back"]);
-    const field = screen.getByLabelText(/Username or ENS handle/);
-    fireEvent.change(field, { target: { value: " afo.eth " } });
-    fireEvent.submit(field.closest("form") as HTMLFormElement);
-    expect(open.connectPasskey).toHaveBeenCalledWith("afo.eth");
-    expect(open.createAccount).not.toHaveBeenCalled();
-  });
-
   it("offers no search by name where there is nothing to search", () => {
     // Without the passkey server a name cannot be looked up; a publish link never creates one.
-    render(view({ ...link(), purpose: "publish_work" }));
+    const props: Props = { ...link(), purpose: "publish_work" };
+    render(view(props));
     expect(acts()).toEqual(["Use Passkey", "Use Wallet"]);
     expect(screen.queryByRole("button", { name: /Find it by name/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Create an account/ })).not.toBeInTheDocument();
+    // The passkey act is all there is to try, and its failure then says what to do.
+    press("Use Passkey");
+    expect(props.connectPasskey).toHaveBeenCalledWith();
   });
 
   it("invites the linked account to join, and never signs with another one", () => {
@@ -414,5 +494,75 @@ describe("top bar", () => {
     expect(within(sheet).getByRole("link", { name: /Manage Permissions/ })).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Sign Out of This Page" }));
     expect(props.leave).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("focus when the step changes", () => {
+  const title = () => screen.getByRole("heading", { level: 1 });
+  const opened = (): Props => ({
+    ...makeProps(),
+    stage: "intro",
+    purpose: null,
+    grant: null,
+    account: null,
+    sessionAccount: null,
+  });
+  const onAccountStep = (): Props => ({ ...opened(), stage: "connect", purpose: "link_account" });
+  /** As a browser does it: the control takes focus, then is pressed. */
+  const press = (control: HTMLElement) => {
+    control.focus();
+    fireEvent.click(control);
+  };
+  /** Long enough for the page to have moved focus, had it meant to. */
+  const settled = () => act(() => new Promise<void>((done) => setTimeout(done, 0)));
+
+  it("goes to the new step's title once the act the person pressed is gone", async () => {
+    const { rerender } = render(view(opened()));
+    await settled();
+    // Opening the page moves nothing.
+    expect(document.body).toHaveFocus();
+
+    press(within(bar()).getByRole("button", { name: "Continue" }));
+    rerender(view(onAccountStep()));
+    await waitFor(() => expect(title()).toHaveFocus());
+    expect(title()).toHaveTextContent("New to Green Goods?");
+    // The page can give its title focus. The Tab key passes it by.
+    expect(title()).toHaveAttribute("tabindex", "-1");
+
+    // A screen inside a step replaces its acts too.
+    press(within(bar()).getByRole("button", { name: "Create Account" }));
+    await waitFor(() => expect(title()).toHaveFocus());
+    expect(title()).toHaveTextContent("Create Your Account");
+  });
+
+  it("stays where it is when the page changes by itself, or the act pressed is still there", async () => {
+    // A send that settles is no one's act.
+    const { rerender } = render(view({ ...review(), stage: "submitted" }));
+    rerender(view({ ...review(), stage: "published" }));
+    await settled();
+    expect(document.body).toHaveFocus();
+
+    // A press that only starts something leaves its act in place, and focus on it.
+    const waiting = { ...onAccountStep(), savedPasskey: true };
+    rerender(view(waiting));
+    const passkey = within(bar()).getByRole("button", { name: "Use Passkey" });
+    press(passkey);
+    rerender(view({ ...waiting, connecting: true }));
+    await settled();
+    expect(passkey).toHaveFocus();
+  });
+
+  it("is left in the account sheet while that is open", async () => {
+    const { rerender } = render(view(opened()));
+    press(within(bar()).getByRole("button", { name: "Continue" }));
+    press(screen.getByRole("button", { name: "Account and Help" }));
+    const sheet = screen.getByRole("dialog");
+    const close = within(sheet).getAllByRole("button")[0];
+    close.focus();
+    rerender(view(onAccountStep()));
+    await settled();
+    expect(close).toHaveFocus();
+    // The open sheet hides the page from assistive technology, so the title is found by its id.
+    expect(document.getElementById("ceremony-title")).toHaveTextContent("New to Green Goods?");
   });
 });

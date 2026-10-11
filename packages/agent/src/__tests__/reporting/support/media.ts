@@ -112,6 +112,19 @@ export class FakeAudioTools implements AudioTools {
 }
 
 /** Writes a ZIP with deflated entries, enough for Office-shaped fixtures. */
+/** The start of an MP4 file: enough to be detected as video, which a report cannot use. */
+export const VIDEO_CLIP = new Uint8Array([
+  0,
+  0,
+  0,
+  24,
+  ...new TextEncoder().encode("ftypisom"),
+  0,
+  0,
+  0,
+  0,
+]);
+
 export function zip(entries: Record<string, string | Uint8Array>): Uint8Array {
   const locals: Uint8Array[] = [];
   const central: Uint8Array[] = [];

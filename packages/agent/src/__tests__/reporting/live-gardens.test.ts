@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { GardenMemberships } from "../../services/reporting/gardens";
 import { createLiveGardenDirectory } from "../../services/reporting/live-gardens";
 
 /** The live garden list: the indexer's gardens on the Agent's chain that accept chat reports. */
@@ -8,6 +9,11 @@ const garden = (suffix: string, name: string, initialized = true, chainId = 4216
   name,
   initialized,
 });
+
+const STRANGER = "0x00000000000000000000000000000000000000ff";
+const UNAVAILABLE = { ok: false, reason: "unavailable" };
+const labelsOf = (memberships: GardenMemberships) =>
+  memberships.ok ? memberships.gardens.map((entry) => entry.label) : null;
 
 function indexer(responses: Array<unknown[] | "down">) {
   let requests = 0;
@@ -75,7 +81,8 @@ describe("live garden directory", () => {
       chainId: 42161,
       fetch: fetchStub,
     });
-    expect(gardens.gardensOf(ada.toLowerCase() as `0x${string}`)).toEqual([]);
+    // Before any read there is nothing to say about an account, least of all that it has no garden.
+    expect(gardens.membershipsOf(ada.toLowerCase() as `0x${string}`)).toEqual(UNAVAILABLE);
     await gardens.refresh(0);
     expect(gardens.list().map((entry) => entry.label)).toEqual([
       "Aiyeloja Family Garden",
@@ -84,10 +91,44 @@ describe("live garden directory", () => {
       "TAS",
       "Vida Verde",
     ]);
-    expect(
-      gardens.gardensOf(ada.toLowerCase() as `0x${string}`).map((entry) => entry.label)
-    ).toEqual(["Aiyeloja Family Garden", "Greenpill Kenya", "TAS"]);
-    expect(gardens.gardensOf("0x00000000000000000000000000000000000000ff")).toEqual([]);
+    expect(labelsOf(gardens.membershipsOf(ada.toLowerCase() as `0x${string}`))).toEqual([
+      "Aiyeloja Family Garden",
+      "Greenpill Kenya",
+      "TAS",
+    ]);
+    expect(gardens.membershipsOf(STRANGER)).toEqual({ ok: true, gardens: [] });
+  });
+
+  it("keeps a known account's gardens through a failed read, and stops calling a stranger gardenless", async () => {
+    const ada = "0xabcdef0000000000000000000000000000000001";
+    const { requests, fetchStub } = indexer([
+      [{ ...garden("A1", "TAS"), gardeners: [ada], operators: [], owners: [] }],
+      "down",
+      [{ ...garden("A1", "TAS"), gardeners: [ada, STRANGER], operators: [], owners: [] }],
+    ]);
+    const gardens = createLiveGardenDirectory({
+      indexerUrl: "https://indexer.test",
+      chainId: 42161,
+      fetch: fetchStub,
+      ttlMs: 60_000,
+    });
+    await gardens.refresh(0);
+    // A turn about to use an account's gardens reads again sooner than the list's own lifetime.
+    await expect(gardens.refresh(40_000, 30_000)).rejects.toThrow(/503/);
+    expect(labelsOf(gardens.membershipsOf(ada))).toEqual(["TAS"]);
+    expect(gardens.membershipsOf(STRANGER)).toEqual(UNAVAILABLE);
+
+    // The failed read is not repeated at once. A caller may name a shorter wait of its own, and
+    // one that names none at all is read for there and then.
+    await gardens.refresh(50_000, 30_000);
+    await gardens.refresh(42_000, 3_000, 3_000);
+    expect(requests()).toBe(2);
+    await gardens.refresh(42_000, 3_000, 0);
+    expect(requests()).toBe(3);
+    // The good read settles both answers, and serves until it is too old for its caller.
+    expect(labelsOf(gardens.membershipsOf(STRANGER))).toEqual(["TAS"]);
+    await gardens.refresh(70_000, 30_000);
+    expect(requests()).toBe(3);
   });
 
   it("lists every garden that accepts reports by name and keeps the last list while the indexer is down", async () => {

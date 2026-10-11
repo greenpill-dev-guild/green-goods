@@ -2,10 +2,10 @@
  * Commitment pooling — editorial public-browser suite.
  *
  * Locks the three public surfaces of the editorial lane (uiux-spec §7):
- * - `PublicEvidencePipeline` tells the five-stage story, localized, without
+ * - `PublicEvidencePipeline` tells the four-stage story, localized, without
  *   widening the evidence ledger's three record kinds.
  * - `/gardens/:id` § 02 renders the Garden's commitment record across
- *   seasons and campaigns: readiness copy before launch, counts and the one
+ *   seasons and campaigns: no record before launch, counts and the one
  *   sanctioned percentage only above the public threshold, open Season and
  *   Campaigns as their own rows, finished cycles newest first and paged,
  *   cancelled cycles never, em dashes (never zeros) when a read failed.
@@ -471,11 +471,12 @@ describe("PublicEvidencePipeline", () => {
       expect(item).not.toHaveTextContent(en["public.impact.pipeline.loop"]);
     }
     expect(screen.getByText(en["public.impact.pipeline.loop"])).toBeInTheDocument();
-    // Impact Certificate survives inside step 4's body, not as a stage name.
-    expect(within(list).getAllByRole("listitem")[3]).toHaveTextContent("Impact Certificate");
+    expect(within(list).getAllByRole("listitem")[3]).toHaveTextContent(
+      en["public.impact.pipeline.step.learnings.description"]
+    );
   });
 
-  it("keeps every localized step description within the 25–30 word band", () => {
+  it("keeps every localized step description nonempty and within 30 words", () => {
     const catalogs: ReadonlyArray<Record<string, string>> = [en, es, pt];
     const steps = ["needs", "commitment", "work", "learnings"];
 
@@ -487,7 +488,7 @@ describe("PublicEvidencePipeline", () => {
           .replaceAll("</certificate>", "")
           .trim()
           .split(/\s+/).length;
-        expect(wordCount).toBeGreaterThanOrEqual(25);
+        expect(description.trim()).not.toBe("");
         expect(wordCount).toBeLessThanOrEqual(30);
       }
     }
@@ -621,7 +622,7 @@ describe("SectionNotice", () => {
 // ---------------------------------------------------------------------------
 
 describe("GardenDetail § 02 Commitments", () => {
-  it("sits between field notes and certificates with the ordinals renumbered", () => {
+  it("keeps published commitments after approved work and omits empty certificates", () => {
     const { container } = renderGarden();
     // The hero is a labelled section too; the record ladder starts after it.
     const sections = Array.from(
@@ -632,31 +633,25 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(sections).toEqual([
       "public-garden-detail-notes",
       "public-garden-detail-commitments",
-      "public-garden-detail-certificates",
       "public-garden-detail-stewards",
     ]);
-    expect(screen.getByText("§ 01: Field notes")).toBeInTheDocument();
+    expect(screen.getByText(en["public.gardenDetail.section.notes"])).toBeInTheDocument();
     expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
-    expect(screen.getByText("§ 03: Certificates")).toBeInTheDocument();
-    expect(screen.getByText("§ 04: Stewards")).toBeInTheDocument();
+    expect(screen.queryByText("§ 03: Certificates")).not.toBeInTheDocument();
+    expect(screen.getByText(en["public.gardenDetail.section.stewards"])).toBeInTheDocument();
     expect(mockUsePublicGardenPool).toHaveBeenCalledWith(GARDEN_ID, {
       chainId: CHAIN_ID,
       historyLimit: 12,
     });
   });
 
-  it("renders readiness copy and no statistics when the Garden has no pool yet", () => {
+  it("omits the commitment record when the Garden has no pool yet", () => {
     mockUsePublicGardenPool.mockReturnValue(poolResult(poolData({ pool: null })));
     renderGarden();
-    const section = commitmentsSection();
-    expect(within(section).getByRole("heading", { level: 2 })).toHaveTextContent(
-      en["public.pool.garden.heading.preparing"]
-    );
-    expect(section).toHaveTextContent(en["public.pool.garden.state.notReady"]);
-    expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
-    // No numbers beyond the ordinal in the kicker.
-    const body = (section.textContent ?? "").replace(en["public.pool.garden.kicker"], "");
-    expect(body).not.toMatch(/\d/);
+    expect(
+      screen.queryByRole("region", { name: en["public.pool.garden.heading"] })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(en["public.pool.garden.record.made"])).not.toBeInTheDocument();
   });
 
   it("holds the record's frame while the pool is still loading, without printing a number", () => {
@@ -676,14 +671,15 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(body).not.toContain("—");
   });
 
-  it("uses ready-state copy for a READY pool without fabricating live statistics", () => {
+  it("omits the commitment record for a READY pool before its first season", () => {
     mockUsePublicGardenPool.mockReturnValue(
       poolResult(poolData({ pool: makePool({ state: "READY", commitmentsAccepted: 0n }) }))
     );
     renderGarden();
-    const section = commitmentsSection();
-    expect(section).toHaveTextContent(en["public.pool.garden.state.ready"]);
-    expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: en["public.pool.garden.heading"] })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(en["public.pool.garden.record.made"])).not.toBeInTheDocument();
   });
 
   it("publishes the kept rate at exactly 5 due and 3 distinct providers", () => {
