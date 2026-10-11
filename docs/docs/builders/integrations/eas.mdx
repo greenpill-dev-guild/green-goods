@@ -4,7 +4,7 @@ sidebar_label: EAS
 slug: /builders/integrations/eas
 audience: developer
 owner: docs
-last_verified: 2026-10-09
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -13,6 +13,10 @@ source_of_truth:
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/resolvers/Assessment.sol
   - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/utils/eas/encoders.ts
+  - packages/shared/src/utils/eas/transaction-builder.ts
+  - packages/shared/src/modules/job-queue/work-executor.ts
+  - packages/shared/src/modules/job-queue/approval-executor.ts
   - packages/contracts/config/schemas.json
 keywords:
   - eas
@@ -71,7 +75,12 @@ flowchart LR
 |---|---|
 | Resolvers | `packages/contracts/src/resolvers/` (Work, WorkApproval, Assessment) |
 | Schema definitions | `packages/contracts/src/Schemas.sol` and `packages/contracts/config/schemas.json` |
-| Client-side encode, query, decode | `packages/shared/src/modules/data/eas.ts` |
+| Encode a record | `packages/shared/src/utils/eas/encoders.ts` (`encodeWorkData`, `encodeWorkApprovalData`) |
+| Build and send the attestation | `packages/shared/src/utils/eas/transaction-builder.ts`, sent by the queue executors in `packages/shared/src/modules/job-queue/` (`work-executor.ts`, `approval-executor.ts`) |
+| Query and parse records | `packages/shared/src/modules/data/eas.ts` |
+
+The write side and the read side are separate modules on purpose: a change to how a record is
+encoded or sent never touches the query layer, and the reverse.
 
 Schema UIDs and EAS endpoints are different on every chain, so read them from their source
 instead of copying them into code or prose. Each chain's deployment artifact lists its schema UIDs

@@ -133,14 +133,24 @@ contribution without a treasury anyone has to trust.
   <figcaption>A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register.</figcaption>
 </figure>
 
-### Capabilities are modules a garden opts into
+### Capabilities are modules, wired per chain
 
-Vaults through [Octant](./integrations/octant), distributions through [Cookie Jar](./integrations/cookie-jar), impact certificates
-through [Hypercerts](./integrations/hypercerts), milestone reporting through [Karma GAP](./integrations/karma), names through
-[ENS](./integrations/ens), and commitment pooling with its settlement lane are modules a garden turns on per
-chain, not features baked into every garden. A module exists where its deployment artifact says it
-does, and nowhere else: the [Deployments & Addresses](/builders/reference/deployments) page is the
-canonical record, and no page in these docs claims a module is live anywhere without it.
+Vaults through [Octant](./integrations/octant), distributions through
+[Cookie Jar](./integrations/cookie-jar), impact certificates through
+[Hypercerts](./integrations/hypercerts), milestone reporting through
+[Karma GAP](./integrations/karma), names through [ENS](./integrations/ens), and commitment pooling
+with its settlement lane are modules the protocol wires to the garden token on each chain, not
+code baked into the garden itself. A module exists where its deployment artifact says it does, and
+nowhere else: the [Deployments & Addresses](/builders/reference/deployments) page is the canonical
+record, and no page in these docs claims a module is live anywhere without it.
+
+Minting a garden tells each wired module about it. Two of those calls are required, so the mint
+reverts if either fails: creating the garden's hat tree and granting its owner role. Every other
+one is best-effort by design, so a missing module is skipped and a failing one is caught: the
+Karma project, the gardener and steward grants, the vault, the Gardens community, the jars, the
+commitment pool, the action domains, and the ENS name. A garden can therefore exist without any of
+them, and code that reads a module's state for a garden has to handle the gap instead of assuming
+it was created.
 
 ### Capture is local-first; reads are indexed
 

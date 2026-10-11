@@ -20,8 +20,10 @@ import {IntegrationProjection} from "@site/src/components/docs";
 
 # ENS
 
-[ENS](https://ens.domains) gives gardens and gardeners names under `greengoods.eth`. A garden gets
-its name when it's minted, and a gardener can claim one for their profile. Instead of an address,
+[ENS](https://ens.domains) gives gardens and gardeners names under `greengoods.eth`. A garden asks
+for its name when it's minted (best-effort: without the module or a slug the step is skipped, and a
+failed registration is caught with its fee queued for refund), and a gardener can claim one for
+their profile. Instead of an address,
 each carries a human-readable identity that resolves across the ecosystem. The module wires the
 registry, the cross-chain receiver, and the resolution paths that make those names work.
 
