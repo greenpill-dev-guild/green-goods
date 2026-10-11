@@ -85,7 +85,7 @@ describe("job queue analytics privacy", () => {
 
   it("emits only non-identifying lifecycle properties without a session ID", async () => {
     trackJobCreated("work", true, 11155111);
-    await trackJobProcessingError(job, 50, 11155111, 5);
+    await trackJobProcessingError(job, 50, 11155111, 5, new Error(`failed for ${gardenAddress}`));
     trackJobPermanentlyFailed(job);
     trackJobProcessed("work", 50, 2);
 
@@ -98,6 +98,22 @@ describe("job queue analytics privacy", () => {
       expect(JSON.stringify(properties)).not.toContain(transactionHash);
       expect(options).toEqual({ includeSessionId: false });
     }
+  });
+
+  it("names the failure's error family so cancellations and wallet faults read apart", async () => {
+    await trackJobProcessingError(
+      job,
+      50,
+      11155111,
+      5,
+      new Error(`User rejected the request.\n  from: ${userAddress}`)
+    );
+    trackJobPermanentlyFailed({ ...job, lastError: "Connector not connected." });
+
+    const [[, failed], [, permanentlyFailed]] = analyticsMocks.track.mock.calls;
+    expect(failed).toMatchObject({ parsed_error_family: "UserRejected" });
+    expect(permanentlyFailed).toMatchObject({ parsed_error_family: "WalletSessionUnavailable" });
+    expect(JSON.stringify(failed)).not.toContain(userAddress);
   });
 
   it("keeps queue breadcrumbs free of local job and address identifiers", () => {
