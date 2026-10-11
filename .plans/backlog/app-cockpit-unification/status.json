@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-11T04:09:16Z"
+    "updated_at": "2026-10-11T04:42:41Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,6 +38,7 @@
     "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change; track the work under the Cosmo-Local project.",
     "Direction accepted in principle on 2026-10-10: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Three picks differ from the recommendation: F6 keeps each bar's active state, F9 keeps each surface's filter control, F11 sets an 8px list gap.",
     "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet, and the cockpit's Material-named token layer is undecided. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
+    "Also accepted in principle: a green focus ring in the app, one empty, loading and error anatomy, one set of type role names, and retiring the unused glass spec. A pick locks on pairs of the lab's ten screens at 390, 768 and 1280px, light and dark, in three languages where text must fit. The maintainer's aim is to land as much of the sequence as fits before the Cosmo-Local demonstration; the plan is saved first and no implementation is authorized.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
     "No implementation lane is certified by document validation."
@@ -60,7 +61,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "Token and style steps prove themselves with rendered pairs and the design guards; steps that change a component's structure (tabs, the filter control, the work card) need focused RED/GREEN proof. No implementation or test evidence is recorded by this planning task."
+        "note": "Token and style steps prove themselves with rendered pairs and the design guards; steps that change a component's structure (tabs, the work card, the cockpit's phone sheet, empty states) need focused RED/GREEN proof. No implementation or test evidence is recorded by this planning task."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
@@ -156,6 +157,14 @@
       "status": "scope_amended",
       "branch": null,
       "note": "Recorded the maintainer's picks for the thirteen forks and the workspace tone as accepted in principle, and the retired Material 3 rule for the cockpit. F6, F9 and F11 differ from the recommendation; the maintainer confirmed the F9 pick and that the picks stand under the retired rule. Updated the plan's sequence and the acceptance matrix to match. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:42:41Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded four changes without a fork as accepted in principle (focus ring, empty-state anatomy, type role names, glass spec), what a pair must show before a pick locks, and the timing aim. Added the empty-state step and three acceptance rows; renumbered the later steps. No implementation dispatched."
     }
   ]
 }

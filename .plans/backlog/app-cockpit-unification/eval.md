@@ -25,7 +25,7 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A1 | No layout or flow change | Route structure, element order and every flow's steps match `develop` on both surfaces; only look and shared elements differ. |
 | A2 | Typeface (F1) | One family on both surfaces; no clipped, wrapped or truncated label that fitted before, in English, Spanish and Portuguese at 320, 360 and 390px; the static loading screen matches. |
 | A3 | Ground (F2) | Canvas and cards match the accepted values in light and dark on both surfaces; green text and marks keep their contrast floor on the new ground. |
-| A4 | Control boundary and focus (F3) | Secondary buttons, chips and fields have a 3:1 boundary in both themes; one focus-ring role shows on every control family. |
+| A4 | Control boundary and focus (F3) | Secondary buttons, chips and fields have a 3:1 boundary in both themes; one focus-ring role shows on every control family, in the app's green in the app and the workspace tone in the cockpit. |
 | A5 | Chips (F4); filter kept per surface (F9) | One chip shape and selected treatment on both; each surface's filter control works as it does today by pointer and keyboard; Pending and Approved remain inline scopes of one list in the cockpit (DL-082). |
 | A6 | Tabs (F8) | Equal-width cells on both surfaces; the longest Spanish and Portuguese labels fit at 320px; the selected tab is exposed to assistive technology as it is today on each surface. |
 | A7 | Count badge (F10) | One badge on the app's bar, launchers, filter and tabs and on the cockpit's tabs; 9+, 99+ and single digits fit; the badge keeps the action contrast pair (DL-017). |
@@ -35,6 +35,9 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A11 | Sheets (F5); bars kept per surface (F6) | The cockpit's phone sheet uses the shared surface and header; open, close, focus return and Back behave as before; each bar keeps its active state and the app's bar stays solid. |
 | A12 | Each surface keeps its own | Density, hit areas, button and card corners, the bar's active state, the filter control, workspace tone, motion and navigation chrome are unchanged on each surface. |
 | A13 | The public website | No visual change on public routes unless a fork names one. |
+| A14 | Empty, loading and error states | One anatomy on both surfaces in two sizes; each state keeps its copy and its actions; nothing reachable from a state today is lost. |
+| A15 | Type role names | Both surfaces name their type roles title, body, label and meta; each role keeps its size on each surface; no Material role name remains in the cockpit's views or guides. |
+| A16 | Glass | The design guide describes solid surfaces and the cockpit's one translucent dock; the five-thickness material spec is gone and nothing rendered changes. |
 
 ## Guards the work trips
 
@@ -62,8 +65,13 @@ These checks will fail or need an explicit update. Each failure is intended; non
 
 Select proof with `bun run check --plan -- --intent qa` against the changed surfaces. Token and style
 steps prove themselves with rendered pairs and the guards above. Steps that change a component's
-structure (tabs, the filter control, the work card) also need focused behaviour proof at the owning
-component. Do not add tests that only mirror markup.
+structure (tabs, the work card, the cockpit's phone sheet, empty states) also need focused behaviour
+proof at the owning component. Do not add tests that only mirror markup.
+
+A pick locks on a pair of the lab's ten screens, rendered from the real components at 390, 768 and
+1280px, in light and dark, with Spanish and Portuguese wherever text must fit. Every other route
+gets its own pair before a rule rolls out to it. The screens are listed in
+[spec.md](spec.md#direction-accepted-in-principle).
 
 Rendered results name their evidence class: authenticated Brave, mock-auth localhost, Storybook, or
 CI Playwright. The design lab is a mock and belongs to none of those classes. Installed-PWA

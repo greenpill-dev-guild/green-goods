@@ -83,6 +83,28 @@ as the card surface, the 8px chip, the underline tab rail, the grey count chip a
 phone sheet. No fork covers the cockpit's Material-named token layer, its state layers or its type
 role names, so what happens to those is undecided.
 
+**Changes without a fork.** Four proposals in the [ledger](#the-divergence-ledger) have no control
+in the lab. The maintainer accepted all four on the same terms as the picks:
+
+- **Focus ring.** The app's ring moves from blue to its own green. The cockpit keeps ringing in the
+  workspace tone. One focus role serves both.
+- **Empty, loading and error states.** One anatomy in two sizes, set by each surface's density.
+- **Type role names.** Title, body, label and meta on both surfaces, each at its own sizes. They
+  replace the cockpit's Material role names.
+- **Glass.** Solid surfaces everywhere. The cockpit's dock stays the one translucent piece, and the
+  unused five-thickness material spec leaves the design guide.
+
+**What a pair must show.** A pick locks on a before and after pair of the ten screens the lab draws,
+rendered from the real components. In the app: Home, a garden page, Your Work, Submit Work and
+Profile. In the cockpit: Hub, Garden, Community, Create Assessment and Profile. Each is shown at
+390, 768 and 1280px, in light and dark, with Spanish and Portuguese wherever text must fit. A width
+a surface does not support is recorded as not applicable. Every other route gets its own pair before
+a rule rolls out to it.
+
+**Timing.** The maintainer wants as much of the delivery sequence as fits to land before the
+Cosmo-Local demonstration. That is an aim, not an authorization. This record saves the plan, and no
+implementation has started.
+
 Open against the picks:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
@@ -477,8 +499,10 @@ ladder the app's dark cards follow the same step.
 - **F7 on the cockpit's phone.** The recommended row removes the mosaic from the phone queue. If
   stewards triage by photo on a phone, the mosaic card should stay there too. The pick takes the
   recommended row, so this stays a live check on the rendered pair.
-- **The Cosmo-Local demonstration.** Only the token slice is small enough to precede it, and only if
-  the width and contrast measurements pass. That call belongs to the maintainer.
+- **The Cosmo-Local demonstration.** The research's view was that only the token slice is small
+  enough to precede it, and only if the width and contrast measurements pass. The maintainer's aim
+  is to land as much of the sequence as fits before it. The measurements still gate the token slice,
+  and each later step still needs its approved pair.
 - **Protected surfaces.** None of the work touches authentication, the job queue, signing or
   contracts. It touches Shared styles that the public website also reads, so every token change
   needs an explicit surface scope.

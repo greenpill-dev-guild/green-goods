@@ -55,13 +55,21 @@ questions about how the choices stand. The full record is in
   The pick keeps the cockpit's inline chips, and the maintainer confirmed it when asked.
 - **What the picks keep stays the cockpit's own.** Its pills, its 12px cards, its tone pill and its
   inline filters remain by choice, no longer on Material 3's authority.
+- **Four changes without a fork are accepted on the same terms.** A green focus ring in the app,
+  one empty, loading and error anatomy, one set of type role names, and the unused glass spec
+  retired.
+- **A pick locks on pairs of the lab's ten screens.** Real components at 390, 768 and 1280px, in
+  light and dark, with Spanish and Portuguese where text must fit.
+- **Timing.** As much of the sequence as fits should land before the Cosmo-Local demonstration.
+  The plan is saved first; no implementation is authorized yet.
 
 ## The resulting shape
 
 One language, with the cockpit as its denser setting. Both surfaces share Plus Jakarta Sans, the
 linen ground with white cards, one warm dark ladder with the card a step lighter, capsule chips, the
 app's equal-width tabs, one count badge, one card surface and work-item anatomy, an 8px list gap, a
-control-grade outline with outlined fields, and the phone sheet surface and header. Each surface
+control-grade outline with outlined fields, one focus role, one empty-state anatomy, one set of
+type role names, and the phone sheet surface and header. Each surface
 keeps its density, its button and card corners, the active state of its bottom bar, its filter
 control, its motion and its navigation chrome. The cockpit keeps a tone per workspace and gains the
 wide desktop work card.
