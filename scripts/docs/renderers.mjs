@@ -107,7 +107,7 @@ export function renderApiIndex({ root, sources, digest }) {
     "Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs."
   );
   body += "[Runnable command inventory](./commands) is generated from the workspace manifests.\n\n";
-  body += "## Public Agent routes\n\n| Name | Path | Registered methods |\n|---|---|---|\n";
+  body += "## Public Agent routes\n\nThe routes named in the shared route contract (`PUBLIC_AGENT_ROUTES` in `packages/shared/src/public-contracts/routes.ts`), with the methods the agent registers for each. A path the agent serves without a constant in that contract is not listed here; read `packages/agent/src/api/` for those.\n\n| Name | Path | Registered methods |\n|---|---|---|\n";
   for (const route of routes) {
     const methods = routeRegistrations.get(route.name) ?? routeRegistrations.get(route.value) ?? [];
     body += `| ${esc(route.name)} | \`${esc(route.value)}\` | ${methods.length ? methods.map((method) => `\`${method}\``).join(", ") : "not found in Agent API sources"} |\n`;
@@ -994,7 +994,7 @@ export function renderContractOperations({ root, sources, digest }) {
   body += "`--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.\n\n";
   body += "## Execution modes\n\n| Mode | Meaning |\n|---|---|\n| preflight | Compile/artifact checks without RPC |\n| simulate | RPC simulation without broadcasting |\n| plan | Produce transaction-plan artifacts |\n| broadcast | Execute transactions |\n| upload | Upload content and write associated artifacts |\n\n";
   body += "Only the modes listed for each operation are accepted. Read-only operations do not require a mode. Release sessions retain the existing operator's stage, commit, credential, and transaction-boundary checks.\n\n";
-  body += "## Operations\n\nCommands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries `--network <network>` when the operation is network-scoped and `--mode <mode>` when a mode is required; replace the placeholders with one of the networks and modes listed on its row.\n\n";
+  body += "## Operations\n\nCommands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries everything the operation always needs: `--network <network>` when it is network-scoped, `--mode <mode>` when a mode is required, and `--<name> <value>` for each value marked required. Replace the placeholders with a network and mode from its row and your own values. A few operations need more in one mode only (a nonce to plan or broadcast, for instance); `--help` after the command says which.\n\n";
   for (const group of OPERATION_GROUPS) {
     const operations = grouped.get(group.verb);
     body += `### ${group.title} (${operations.length})\n\n${group.intro}\n\n`;
@@ -1010,7 +1010,8 @@ export function renderContractOperations({ root, sources, digest }) {
       body += options.length ? `Options: ${options.map(code).join(", ")}.\n\n` : "No options beyond the command itself.\n\n";
       body += "| Command | Networks | Modes |\n|---|---|---|\n";
       for (const operation of cluster) {
-        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}${operation.network ? " --network <network>" : ""}${operation.modes && !operation.modeOptional ? " --mode <mode>" : ""}`;
+        const required = (operation.required ?? []).map((key) => ` --${key} <value>`).join("");
+        const command = `bun run contracts -- ${operation.command}${operation.positional ? " <input>" : ""}${operation.network ? " --network <network>" : ""}${operation.modes && !operation.modeOptional ? " --mode <mode>" : ""}${required}`;
         const modes = operation.modes ? `${Object.keys(operation.modes).join(", ")}${operation.modeOptional ? " (optional)" : ""}` : "none";
         body += `| ${copyCommand(command)} | ${operation.network ? operation.networks.join(", ") : "not network-scoped"} | ${modes} |\n`;
       }

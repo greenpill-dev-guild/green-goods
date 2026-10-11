@@ -50,6 +50,8 @@ Use package export specifiers and public route constants as the stable entrypoin
 
 ## Public Agent routes
 
+The routes named in the shared route contract (`PUBLIC_AGENT_ROUTES` in `packages/shared/src/public-contracts/routes.ts`), with the methods the agent registers for each. A path the agent serves without a constant in that contract is not listed here; read `packages/agent/src/api/` for those.
+
 | Name | Path | Registered methods |
 |---|---|---|
 | commitmentImpact | `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` |

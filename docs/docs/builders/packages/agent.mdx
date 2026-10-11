@@ -34,7 +34,7 @@ and the handler talks to the services; the API routes read the same services for
 | `src/runtime/` | Startup and shutdown wiring, with the reporting that says what came up and what did not |
 | `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
 | `src/platforms/` | Messaging platform adapters (Telegram today) |
-| `src/api/` | Public HTTP routes (inventoried in the [API Index](./api-index)), including funding and the route table |
+| `src/api/` | Public HTTP routes, including funding and the route table; the [API Index](./api-index) inventories the ones named in the shared route contract |
 | `src/services/` | Service dependencies behind stable helper APIs: the database, reporting, and the protocol clients |
 | `src/config.ts`, `src/i18n.ts`, `src/types.ts` | Configuration, message translations, and the shared types the handlers speak |
 | `src/__tests__/` | Vitest suites for handlers, adapters, and services |
@@ -71,4 +71,5 @@ rest.
 
 - [`packages/agent/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/agent/AGENTS.md)
   is the full package contract, including the key-material flow.
-- [API Index](./api-index) lists the public routes and their registered methods.
+- [API Index](./api-index) lists the routes named in the shared route contract and their registered
+  methods; routes with their own constants live in `src/api/routes/` and `src/api/server.ts`.

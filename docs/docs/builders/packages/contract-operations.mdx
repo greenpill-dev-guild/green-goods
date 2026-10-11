@@ -36,7 +36,7 @@ Only the modes listed for each operation are accepted. Read-only operations do n
 
 ## Operations
 
-Commands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries `--network <network>` when the operation is network-scoped and `--mode <mode>` when a mode is required; replace the placeholders with one of the networks and modes listed on its row.
+Commands that accept the same options sit in one table under that option list, so each list appears once. A required value is marked. A copied command carries everything the operation always needs: `--network <network>` when it is network-scoped, `--mode <mode>` when a mode is required, and `--<name> <value>` for each value marked required. Replace the placeholders with a network and mode from its row and your own values. A few operations need more in one mode only (a nonce to plan or broadcast, for instance); `--help` after the command says which.
 
 ### Deploy (18)
 
@@ -64,10 +64,10 @@ Options: `--save-artifacts`, `--update-schemas`, `--force`, `--finalize-communit
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- deploy pooling --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy settlement-module --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy credit-registry --network &lt;network&gt; --mode &lt;mode&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
-| <CopyCommand command="bun run contracts -- deploy settlement-executor --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy pooling --network &lt;network&gt; --mode &lt;mode&gt; --expected-nonce &lt;value&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy settlement-module --network &lt;network&gt; --mode &lt;mode&gt; --expected-nonce &lt;value&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy credit-registry --network &lt;network&gt; --mode &lt;mode&gt; --expected-nonce &lt;value&gt;" /> | arbitrum | simulate, broadcast, preflight, plan |
+| <CopyCommand command="bun run contracts -- deploy settlement-executor --network &lt;network&gt; --mode &lt;mode&gt; --expected-nonce &lt;value&gt;" /> | celo | simulate, broadcast, preflight, plan |
 
 Options: `--sender <value>`, `--expected-nonce <value>`, `--plan <value>`.
 
@@ -153,7 +153,7 @@ Options: `--stage <value>`, `--commit <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- release operator" /> | not network-scoped | none |
+| <CopyCommand command="bun run contracts -- release operator --commit &lt;value&gt;" /> | not network-scoped | none |
 
 ### Settlement (23)
 
@@ -180,9 +180,9 @@ Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-roles deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
-| <CopyCommand command="bun run contracts -- settlement garden-roles enable --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
-| <CopyCommand command="bun run contracts -- settlement garden-routes configure --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-roles deploy --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-roles enable --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-routes configure --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--raw-bundle <value>`, `--step <value>`, `--receipt <value>`.
 
@@ -216,31 +216,31 @@ Options: `--plan <value>`, `--raw-bundle <value>`, `--step <value> (required)`, 
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-accounts deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-accounts deploy --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`, `--receipt <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-relay adopt --network &lt;network&gt;" /> | celo | none |
+| <CopyCommand command="bun run contracts -- settlement garden-relay adopt --network &lt;network&gt; --step &lt;value&gt; --receipt &lt;value&gt;" /> | celo | none |
 
 Options: `--plan <value>`, `--safe-plan <value>`, `--step <value> (required)`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-relay deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-relay deploy --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
 
 Options: `--plan <value>`, `--inventory <value>`, `--step <value> (required)`, `--receipt <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement garden-safes deploy --network &lt;network&gt; --mode &lt;mode&gt;" /> | celo | broadcast |
+| <CopyCommand command="bun run contracts -- settlement garden-safes deploy --network &lt;network&gt; --mode &lt;mode&gt; --step &lt;value&gt;" /> | celo | broadcast |
 
 Options: `--save-artifacts`, `--sender <value>`, `--salt <value>`, `--stage <value>`, `--step <value>`, `--expected-nonce <value>`, `--receipt <value> (required)`, `--artifact <value>`, `--owner-phase <value>`, `--owner <value>`, `--genesis-hat-id <value>`, `--genesis-lock <value>`, `--first-work-lock <value>`, `--first-support-lock <value>`, `--genesis-metadata-uri <value>`, `--first-work-metadata-uri <value>`, `--first-support-metadata-uri <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|
-| <CopyCommand command="bun run contracts -- settlement peer-verify --network &lt;network&gt;" /> | arbitrum | none |
+| <CopyCommand command="bun run contracts -- settlement peer-verify --network &lt;network&gt; --receipt &lt;value&gt;" /> | arbitrum | none |
 
 ### Commitment pooling (1)
 

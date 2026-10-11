@@ -191,8 +191,8 @@ describe("data-backed component fallbacks", () => {
 
     const roles = twin("<Hero />", {rolePaths: [{title: "Gardener", href: "/g/", audience: "Field workers", time: "5 min", description: "Document work."}]});
     assert.ok(roles.includes("- [Gardener](/g/) (Field workers, 5 min): Document work."), roles);
-    const path = twin("<StewardPathNav />", {stewardPath: [{label: "Create a Garden", href: "/a"}, {label: "Review Work", href: "/b"}]});
-    assert.ok(path.includes("Steward path:\n\n1. [Create a Garden](/a)\n2. [Review Work](/b)"), path);
+    const stewardNav = twin("<StewardPathNav />", {stewardPath: [{label: "Create a Garden", href: "/a"}, {label: "Review Work", href: "/b"}]});
+    assert.ok(stewardNav.includes("Steward path:\n\n1. [Create a Garden](/a)\n2. [Review Work](/b)"), stewardNav);
   });
 
   test("no page's twin is left with a bare component tag where content should be", () => {

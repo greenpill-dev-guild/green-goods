@@ -15,6 +15,7 @@ import {
   syncProjections,
 } from "./generator-core.mjs";
 import { createProjections, projectionSourcePaths } from "./generate.mjs";
+import { OPERATIONS, resolveCommand } from "../../packages/contracts/script/cli/operations.mjs";
 import {
   collectRenderableAddresses,
   deploymentAddressFields,
@@ -688,6 +689,55 @@ test("workflow inventory reads display name, sorted jobs, and triggers from the 
   assert.deepEqual(workflow.triggers.pull_request.paths, []);
   assert.deepEqual(workflow.triggers.schedule.crons, ["1 2 * * *"]);
   assert.ok("workflow_dispatch" in workflow.triggers);
+});
+
+test("every copied contract command resolves once its placeholders are filled", () => {
+  // A row a reader copies has to be a complete command: with a network and mode from its own row
+  // and a value for each placeholder, the CLI's own resolver must accept it. The samples only need
+  // the right shape, and a new required value without one fails here on purpose.
+  const SAMPLE = { "expected-nonce": "1", step: "1", commit: "a".repeat(40), receipt: `0x${"a".repeat(64)}` };
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/packages/contract-operations.mdx");
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const decode = (text) => text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#124;", "|").replaceAll("&amp;", "&");
+  const rows = [...rendered.matchAll(/<CopyCommand command="bun run contracts -- ([^"]+)" \/>/g)].map(([, command]) => decode(command));
+  assert.equal(rows.length, OPERATIONS.length, "one copied command per operation");
+  const stuck = [];
+  for (const row of rows) {
+    const [operation] = OPERATIONS.filter((item) => row === item.command || row.startsWith(`${item.command} `)).sort((a, b) => b.command.length - a.command.length);
+    assert.ok(operation, `no operation for: ${row}`);
+    const words = row.split(" ");
+    const fill = (network, mode) => {
+      let flag = null;
+      return words.map((word) => {
+        if (word.startsWith("--")) {
+          flag = word.slice(2);
+          return word;
+        }
+        if (word === "<network>") return network;
+        if (word === "<mode>") return mode;
+        if (word === "<input>") return "input";
+        if (word !== "<value>") return word;
+        assert.ok(SAMPLE[flag], `add a sample value for --${flag}`);
+        return SAMPLE[flag];
+      });
+    };
+    const networks = words.includes("<network>") ? operation.networks : [null];
+    const modes = words.includes("<mode>") ? Object.keys(operation.modes) : [null];
+    const errors = [];
+    const resolves = networks.some((network) =>
+      modes.some((mode) => {
+        try {
+          resolveCommand(fill(network, mode));
+          return true;
+        } catch (error) {
+          errors.push(error.message);
+          return false;
+        }
+      }),
+    );
+    if (!resolves) stuck.push(`${row}: ${errors[0]}`);
+  }
+  assert.deepEqual(stuck, []);
 });
 
 test("contract operations group by verb, factor common options, and carry no retired names", () => {
