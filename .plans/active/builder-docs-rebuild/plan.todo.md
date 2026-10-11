@@ -47,6 +47,11 @@
 | 36 | The docs generator's module graph imports with no packages installed: the YAML parser is resolved where a workflow is parsed, and a test walks the graph and refuses a static package import (2026-10-10) | CI Gate runs the selector suite before any install and that suite imports `scripts/docs/generate.mjs`; a top-level `js-yaml` import from round 1 failed the gate on every head that could run it |
 | 37 | A component that draws page content from a data file has a Markdown rendering in the twins (design tokens, brand kit, role cards, steward path); link lists live in `docs/src/data` so the component and the twin read one source, and a test fails on any bare component tag left in a twin; interactive components stay as written (2026-10-10, Codex) | D5 promised a whole-site agent-readable copy, and a twin with a bare tag has a hole where the site shows content |
 | 38 | Modules are described as wired to the garden token per chain, not opted into by a garden; at mint only the hat tree and the owner role are required and every other module call is best-effort (2026-10-10, corrects the wording of decision 20) | `GardenHooksLib` skips an unset module and swallows a failing one so a mint never reverts on an integration; the old heading sent readers to assume state that may not exist |
+| 39 | The Personas page presents a persona's `surfaces` as where its name may appear, a vocabulary rule, and no longer as where the persona works; the ontology data is unchanged, and the Admin package page states who the cockpit admits, sourced from the eligibility hook (2026-10-11, Codex) | `OntologySurface` is documented as the surfaces a term is allowed on and the glossary guard locks its column to it; the page had read it as access, which marked gardeners and funders as admin users. Removing `admin` from the data, as the review suggested, would have said the cockpit may not name them |
+| 40 | The ontology's Cookie Jar definition names both gates: the gardener Hat for a garden's own jar, an allowlist for a shared campaign jar (2026-10-11, Codex) | A garden jar is configured with an empty allowlist and ERC-1155 gating on the gardener hat; "allowlisted members" described only campaign jars |
+| 41 | The API Index is read from the agent's route registrations and lists every public route (19, up from 9); route constants stay where Shared keeps them; the reader refuses a registration it cannot resolve (2026-10-11, Afo: do the task here, add it to this PR) | Three features had added public routes outside `PUBLIC_AGENT_ROUTES` (join requests, saved offers, profile avatars), so an index read from one constant map went incomplete without any signal. Shared already keeps route constants in three files, so moving them into one map would not have removed the need to read registrations |
+| 42 | An integration's `deployment_fields` may be dotted paths into an artifact, each segment checked against the identity blocklist; the Unlock integration declares the GreenWill registry, the Unlock factory and the three lock addresses (2026-10-11, Codex) | With only `greenWill` declared, a registry deployed ahead of its locks read as deployed although no badge could be granted |
+| 43 | Every integration page declares the implementation files its code map and its behavior claims rely on (2026-10-11, Codex on ENS, applied to all nine pages) | The ENS page described the mint-time skip, catch and refund and the Ethereum receiver while declaring only the Arbitrum sender; the same gap sat on the Cookie Jar and Karma pages, and the others cited code-map files they did not declare |
 
 ## Requirements Coverage
 
@@ -179,6 +184,12 @@ Status (2026-10-10, Codex on `c839256b6`): two more threads, both valid and fixe
 decision 34. Copied contract commands carry every always-required value (13 of 92 operations), with
 a test that runs each rendered command through the CLI resolver; the API Index is described as the
 shared route contract's routes, since the agent serves six public paths outside that contract.
+
+Status (2026-10-11, two Codex rounds and the route index): three threads on `2aae01200` fixed in
+`01dce161d` and four on `01dce161d` fixed in `6f631c8dc`, all valid, one fixed differently from the
+suggestion (decision 39); the API Index now lists every public agent route (`ea2b5f410`, decision
+41), built at Afo's request and added to this PR by his choice; decisions 39 to 43. The duplicated
+join-request paths in the agent and Shared's transport are left for a follow-up issue.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

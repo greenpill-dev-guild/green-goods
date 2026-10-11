@@ -403,3 +403,47 @@ renders all 13 skills.
 - **Rendered proof**: none needed (generated tables and two prose lines; the build is the proof the
   MDX compiles).
 - **Ledger at close**: 99 threads; the two new ones replied to and resolved after the push.
+
+## Validation Receipt — Two Codex rounds and the agent route index (2026-10-11)
+
+- **Scope**: three threads Codex opened on `2aae01200` (fixed in `01dce161d`), four it opened on
+  `01dce161d` (fixed in `6f631c8dc`), and the route index Afo asked for in this session
+  (`ea2b5f410`), which he chose to add to this PR. Decisions 39 to 43.
+- **Feedback ledger**: seven threads, all ACTIONABLE. Compact button corner (12px at rest, 8px
+  pressed, per the theme tokens); Cookie Jar definition (two gates); persona surfaces (fixed in
+  the page's wording, not in the ontology: the eligibility hook admits stewards, owners and
+  evaluators, so the finding held for gardeners and funders only, and the field is a vocabulary
+  rule); the Indexer page's read path (the agent's reporting services query the indexer directly);
+  integration page sources (ENS, then all nine pages); Unlock completeness (nested deployment
+  fields); the token gallery's radius caption (cards are 16px).
+- **Route index**: the reader resolves the path argument of all 74 `app.<verb>()` calls in
+  `packages/agent/src/api` to 76 registrations and lists the 19 public paths: 9 from
+  `PUBLIC_AGENT_ROUTES`, 4 saved offers, 2 profile avatars, 4 join requests. Five have no Shared
+  constant. Sources: three Shared contract files and eleven Agent API files; two files that only
+  mentioned the contract are no longer sources.
+- **Sensitive surfaces changed**: `scripts/data/validation-policy.json` (the docs-generated rule
+  and the Docs workflow rule) and `.github/workflows/docs.yml` (two Shared contract files added
+  to both path lists). No permission or safety check is weakened: the change adds inputs that
+  select the Docs checks.
+- **Exact commands and results**: `node --test` over the nine docs, ontology, selector and parity
+  suites → 291/291 · `node scripts/docs/generate.mjs --check` → 16 current ·
+  `node scripts/quality/check-ontology.mjs` → all guards passed · `node docs/scripts/docs-audit.mjs --ci`
+  → exit 0, two advisory warnings that predate this round · docs `bun run test`,
+  `bun run typecheck` and `bun run build` → exit 0, 70 routes, search index covers 70.
+- **Regression proof**: with the public rule put back to contract-only, the fixture test and the
+  real-repository completeness test fail (`/public/features/garden-join-requests is missing from
+  the API Index`); restored, both pass. The completeness test scans the Agent API and the route
+  contracts for quoted `/public/` paths by a separate pattern and requires a row for each.
+- **Package-free CI Gate job**: the gate job's exact `node --test` command in a copy of the tracked tree at `ea2b5f410` with no `node_modules` → 225/225, so the new reader loads no package.
+- **Push gate**: run on `ea2b5f410` with the ontology check and the nine docs test files as focus: passed, 12 fresh passes, 0 reused, 0 unrun of 13 selected checks; the thirteenth is the manual browser proof, recorded above.
+- **Rendered proof**: local production build in the desktop app's browser pane, no sign-in. API
+  Index: 19 rows, the four columns, the 404 note and the constants list; no page-level overflow
+  at 1280 and 375 wide (the table scrolls inside itself, like the exports table below it). Unlock
+  page: Arbitrum One reads Deployed with the registry, factory and three locks. ENS page: the
+  receiver and mint-time rows. Indexer, Design and Personas pages: the corrected sentences.
+- **GitHub writes**: one reply and a resolution on each of the seven threads, under Afo's
+  standing request to address and resolve the valid comments.
+- **Follow-up left out of this PR**: the four join-request paths are written in both
+  `packages/agent/src/api` and `packages/shared/src/modules/garden-join-requests/transport.ts`
+  with no shared constant. Afo chose a backlog issue for it.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).
