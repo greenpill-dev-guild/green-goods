@@ -1,6 +1,14 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-import * as yaml from "js-yaml";
+
+// CI Gate imports this module graph before any package is installed (the selector suite in
+// scripts/quality/select-validation.test.mjs reads the projection sources), so nothing here may
+// load a package at import time. The YAML parser is resolved where a workflow is parsed, which
+// only the generator and its own tests do, after an install.
+const requirePackage = createRequire(import.meta.url);
+let yamlParser;
+const parseYaml = (text) => (yamlParser ??= requirePackage("js-yaml")).load(text);
 
 export function readJson(root, source) {
   try {
@@ -214,7 +222,7 @@ export function publicRouteRegistrations(root, sources) {
 export function workflowInventory(root, sources = workflowSourcePaths(root)) {
   return sources.map((source) => {
     const name = path.basename(source);
-    const parsed = yaml.load(readFileSync(path.join(root, source), "utf8")) ?? {};
+    const parsed = parseYaml(readFileSync(path.join(root, source), "utf8")) ?? {};
     const display = typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : name;
     const jobs = Object.keys(parsed.jobs ?? {}).sort();
     // `on` may be a string, a list of event names, or a map of event to options.

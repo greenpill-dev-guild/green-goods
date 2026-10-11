@@ -126,7 +126,7 @@ export function createProjections(root = REPO_ROOT) {
         return renderEntityMatrixMdx(sidecar, { sources, digest, integrations });
       },
     },
-    { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", "scripts/data/workflow-catalog.json", ...workflows], render: renderGitHubActions },
+    { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", "scripts/data/workflow-catalog.json", "scripts/data/validation-policy.json", ...workflows], render: renderGitHubActions },
     { scope: "qa", output: "docs/docs/builders/quality/test-cases.mdx", sources: ["package.json", "scripts/data/qa-test-catalog.json", "scripts/data/validation-policy.json", "playwright.config.ts", "packages/client/vitest.config.ts", "packages/admin/vitest.config.ts", "packages/shared/vitest.config.ts", "packages/agent/vitest.config.ts"], render: renderQaCatalog },
     { scope: "agentic", output: "docs/docs/builders/agentic/task-routing.mdx", sources: [TASK_ROUTING, ...routedSkillSources, "scripts/quality/task-routing-contract.mjs"], render: renderTaskRouting },
     { scope: "agentic", output: "docs/docs/builders/agentic/skills.mdx", sources: skillCatalogSources(root), render: renderSkills },

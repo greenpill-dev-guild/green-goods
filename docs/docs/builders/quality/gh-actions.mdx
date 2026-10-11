@@ -24,8 +24,9 @@ generated_from:
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
+  - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:61ba8ba0ffae5a06fb54058d56b43f7ab0ac63846e66006af1ac43047397a8c2"
+source_digest: "sha256:f32540060f9890bee5996d6c1ca9f03f3983cf4636e89a071160edc9dfe504e5"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -44,6 +45,7 @@ source_of_truth:
   - .github/workflows/shared.yml
   - .github/workflows/supply-chain-guardrails.yml
   - package.json
+  - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
 ---
 
@@ -82,7 +84,7 @@ Builds and tests the steward cockpit when admin code, the shared code it imports
 - **Use it when:** A change under packages/admin or the shared UI and hooks it depends on.
 - **Runs on:** pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `e2e`, `lighthouse`, `lint-build`, `sourcemaps`, `test`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/admin.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/admin.yml)
 
 ### Agent {#agent}
@@ -92,7 +94,7 @@ Typechecks and tests the messaging agent and its public HTTP API when agent or s
 - **Use it when:** Bot, webhook, or public API changes.
 - **Runs on:** pull requests that touch its paths (15 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `lint-typecheck-build`, `test`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/agent.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agent.yml)
 
 ### CI Gate {#ci-gate}
@@ -112,7 +114,7 @@ Builds, tests, and runs the client Playwright project for the public site and th
 - **Use it when:** Client views, routes, service worker, PWA packaging, or the shared UI they render.
 - **Runs on:** pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `e2e`, `lighthouse`, `lint-build`, `sourcemaps`, `test`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/client.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/client.yml)
 
 ### CodeQL Cache Prune {#codeql-cache-prune}
@@ -122,7 +124,7 @@ Deletes stale CodeQL overlay databases from the Actions cache so they cannot evi
 - **Use it when:** Housekeeping only: it runs after every push to develop and hourly as a backstop. Nothing to trigger by hand unless the cache fills up.
 - **Runs on:** pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch.
 - **Jobs:** `prune`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/codeql-cache-prune.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/codeql-cache-prune.yml)
 
 ### Contracts Manual {#contracts-manual}
@@ -132,7 +134,7 @@ Runs a chosen contracts operation (fork readiness, the CI lane, or both) on dema
 - **Use it when:** An operator wants a contracts check outside a pull request, for example before a release.
 - **Runs on:** manual dispatch.
 - **Jobs:** `contracts`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/contracts-manual.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/contracts-manual.yml)
 
 ### Contracts Nightly {#contracts-nightly}
@@ -142,7 +144,7 @@ The deep fuzz and invariant lane: pull-request CI runs the capped test profile f
 - **Use it when:** Nightly at 03:17 UTC, or on demand after a change to invariants or fuzz targets.
 - **Runs on:** a schedule (`17 3 * * *` UTC); manual dispatch.
 - **Jobs:** `deep-fuzz`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/contracts-nightly.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/contracts-nightly.yml)
 
 ### Contracts {#contracts}
@@ -152,7 +154,7 @@ Compiles, lints, and tests the Solidity packages and the contract script suite.
 - **Use it when:** Any change under packages/contracts or the contract scripts; the manual workflow calls it with an operation name.
 - **Runs on:** pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow.
 - **Jobs:** `fork-readiness-arbitrum`, `fork-readiness-core`, `lint-build`, `realism-audit`, `unit`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/contracts.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/contracts.yml)
 
 ### Coverage Nightly {#coverage-nightly}
@@ -162,7 +164,7 @@ Enforces the measured coverage floors across the packages. Pull requests run pla
 - **Use it when:** Nightly at 08:43 UTC and after every push to main.
 - **Runs on:** pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch.
 - **Jobs:** `coverage`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/coverage-nightly.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/coverage-nightly.yml)
 
 ### Design {#design}
@@ -172,7 +174,7 @@ Checks the design system: Storybook, story coverage, and DesignMD token parity, 
 - **Use it when:** Shared components, styles, tokens, any DESIGN.md, or the docs stylesheet. Dispatch it with publish_chromatic to publish Storybook.
 - **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `design-guardrails`, `storybook`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/design.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/design.yml)
 
 ### Docs {#docs}
@@ -182,7 +184,7 @@ Tests the docs generators, audits documentation authority, checks that generated
 - **Use it when:** Anything under docs/, the generator scripts, the skills catalog, or a source a projection reads.
 - **Runs on:** pull requests that touch its paths (74 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `build`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/docs.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/docs.yml)
 
 ### Indexer {#indexer}
@@ -192,7 +194,7 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 - **Use it when:** Indexer handlers, schema, or config, or the ABIs and deployments they read.
 - **Runs on:** pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `lint-build`, `test`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/indexer.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/indexer.yml)
 
 ### Ontology {#ontology}
@@ -202,7 +204,7 @@ Validates the ontology sidecar against the code it anchors and keeps its generat
 - **Use it when:** Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.
 - **Runs on:** pull requests that touch its paths (92 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `ontology-drift`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/ontology.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/ontology.yml)
 
 ### Release {#release}
@@ -212,7 +214,7 @@ Builds and publishes a tagged release.
 - **Use it when:** A pushed version tag. Maintainers cut releases from main; nothing to run by hand.
 - **Runs on:** pushed tags matching `v*.*.*`.
 - **Jobs:** `release`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, and the CI Gate never waits for it: it has no pull request path rule.
 - **File:** [.github/workflows/release.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/release.yml)
 
 ### Shared {#shared}
@@ -222,7 +224,7 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 - **Use it when:** Any shared source change. It also runs weekly to catch drift that no pull request touched.
 - **Runs on:** pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC).
 - **Jobs:** `changes`, `lint-typecheck`, `test`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/shared.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/shared.yml)
 
 ### Supply Chain Guardrails {#supply-chain-guardrails}
@@ -232,7 +234,7 @@ Checks manifests, lockfiles, and the release-age rule so a dependency change can
 - **Use it when:** Dependency, lockfile, or workflow changes.
 - **Runs on:** pull requests that touch its paths (38 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `audit`, `changes`, `format`, `guidance`, `parity`.
-- **Required status:** no, the CI Gate waits for it only when its paths change.
+- **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/supply-chain-guardrails.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/supply-chain-guardrails.yml)
 
 ## Root quality and build scripts

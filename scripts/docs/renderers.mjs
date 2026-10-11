@@ -212,7 +212,7 @@ const ADDRESS_GROUPS = [
   { title: "EAS schemas", intro: "The schema each record kind is written against.", kind: "schema", fields: [] },
   {
     title: "Modules and integrations",
-    intro: "Capabilities a garden opts into, and the partner contracts behind them.",
+    intro: "Capabilities wired to the garden token on this network, and the partner contracts behind them.",
     fields: [
       "hatsModule",
       "karmaGAPModule",
@@ -778,6 +778,14 @@ export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
   const catalog = readJson(root, declaredSource(sources, "scripts/data/workflow-catalog.json")).workflows ?? {};
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
+  // The CI Gate waits only for the workflows the validation policy gives a path rule; a workflow
+  // with no rule (scheduled, manual, or tag-only) is never part of that wait set.
+  const gated = new Set(Object.keys(readJson(root, declaredSource(sources, "scripts/data/validation-policy.json")).workflowRules ?? {}));
+  const requiredStatus = (workflow, entry) => {
+    if (entry.required) return "yes, branch protection waits for it";
+    if (gated.has(workflow.display)) return "no, but the CI Gate waits for it on a pull request that touches its paths";
+    return "no, and the CI Gate never waits for it: it has no pull request path rule";
+  };
   const missing = workflows.filter((workflow) => !catalog[workflow.source]).map((workflow) => workflow.source);
   const orphaned = Object.keys(catalog).filter((source) => !workflows.some((workflow) => workflow.source === source));
   if (missing.length || orphaned.length) {
@@ -803,7 +811,7 @@ export function renderGitHubActions({ root, sources, digest }) {
     body += `- **Use it when:** ${entry.useCase}\n`;
     body += `- **Runs on:** ${describeTriggers(workflow.triggers)}.\n`;
     body += `- **Jobs:** ${workflow.jobs.map((job) => `\`${esc(job)}\``).join(", ") || "none"}.\n`;
-    body += `- **Required status:** ${entry.required ? "yes, branch protection waits for it" : "no, the CI Gate waits for it only when its paths change"}.\n`;
+    body += `- **Required status:** ${requiredStatus(workflow, entry)}.\n`;
     body += `- **File:** [${esc(workflow.source)}](https://github.com/greenpill-dev-guild/green-goods/blob/develop/${workflow.source})\n\n`;
   }
   body += "## Root quality and build scripts\n\nThe workflows call these root scripts, so running one locally reproduces that step.\n\n| Script | Run it | What it runs |\n|---|---|---|\n";

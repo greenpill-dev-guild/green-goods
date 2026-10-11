@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -253,6 +253,27 @@ test("fixture CLI exits nonzero for broken authority and modified output", () =>
 test("rejects malformed CLI input", () => {
   assert.throws(() => parseGeneratorArgs(["--scope", "unknown"]), /Unknown docs generator scope/);
   assert.throws(() => parseGeneratorArgs(["--wat"]), /Unknown docs generator argument/);
+});
+
+test("the generator's module graph imports with no packages installed, as CI Gate loads it", () => {
+  // CI Gate runs the selector suite before any install, and that suite imports
+  // scripts/docs/generate.mjs. A static package import anywhere in the graph fails the gate on
+  // every pull request, and no local run sees it, because packages are installed here.
+  const STATIC_IMPORT = /^\s*(?:import|export)\s+(?:[\w$*\s{},]+?\s+from\s+)?["']([^"']+)["']/gm;
+  const seen = new Set();
+  const packages = [];
+  const visit = (file) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    for (const [, specifier] of readFileSync(file, "utf8").matchAll(STATIC_IMPORT)) {
+      if (specifier.startsWith("node:")) continue;
+      if (specifier.startsWith(".")) visit(path.resolve(path.dirname(file), specifier));
+      else packages.push(`${path.relative(REPO_ROOT, file)} imports ${specifier}`);
+    }
+  };
+  visit(path.join(REPO_ROOT, "scripts/docs/generate.mjs"));
+  assert.deepEqual(packages, [], "load a package where it is used (see parseYaml in source-readers.mjs), not at import time");
+  assert.ok(seen.has(path.join(REPO_ROOT, "scripts/docs/source-readers.mjs")) && seen.size >= 6, "the walk followed the relative imports");
 });
 
 test("generated banners quote regeneration commands the generator accepts", () => {
@@ -642,6 +663,13 @@ test("workflow catalog covers every workflow file, only CI Gate is required, and
   assert.match(rendered, /^### Contracts Nightly \{#contracts-nightly\}$/m);
   assert.ok(rendered.includes("`17 3 * * *` UTC"));
   assert.ok(rendered.includes('<CopyCommand command="bun run test" />'));
+  // The gate's wait set comes from the policy, so a scheduled or manual workflow never claims it.
+  const section = (heading) => rendered.slice(rendered.indexOf(`### ${heading} {#`)).split("\n### ")[0];
+  assert.match(section("Docs"), /Required status:\*\* no, but the CI Gate waits for it on a pull request that touches its paths\./);
+  for (const heading of ["Contracts Nightly", "Contracts Manual", "Coverage Nightly", "Release"]) {
+    assert.match(section(heading), /Required status:\*\* no, and the CI Gate never waits for it/, heading);
+  }
+  assert.match(section("CI Gate"), /Required status:\*\* yes, branch protection waits for it\./);
 });
 
 test("workflow inventory reads display name, sorted jobs, and triggers from the YAML", (t) => {
