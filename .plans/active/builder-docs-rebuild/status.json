@@ -241,6 +241,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Develop merged again (75ed33894); CI Gate fixed (422606c9d: the generator graph no longer imports a package at load); six Codex threads addressed and resolved (422606c9d, 99a4d0ff9, 807b8ffc2); decisions 35 to 38; pushed head 807b8ffc2. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-11T04:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Two Codex threads on c839256b6 fixed in a380cd0e9: copied contract commands carry always-required values, and the API Index is described as the shared route contract's routes. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

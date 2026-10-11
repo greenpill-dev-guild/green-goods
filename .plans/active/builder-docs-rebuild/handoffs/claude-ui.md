@@ -384,3 +384,22 @@ renders all 13 skills.
 - **GitHub writes**: one reply and a resolution on each of the six threads, under Afo's standing
   request to address and resolve the valid comments.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).
+
+## Validation Receipt — Two Codex threads on c839256b6 (2026-10-10)
+
+- **Scope**: the two threads Codex opened on `c839256b6`; both ACTIONABLE, fixed in `a380cd0e9`.
+- **Copied contract commands**: 13 of 92 operations declare always-required values the copied row
+  omitted. Before the fix, 13 rendered commands could not be completed (the resolver's own
+  `requires --expected-nonce`, `--step`, `--commit`, `--receipt` errors); after it, all 92 resolve
+  when filled from their own row. Mode-only requirements (a nonce to plan or broadcast on a few
+  operations) stay in `--help`, and the page says so.
+- **API Index**: `renderApiIndex` projects `PUBLIC_AGENT_ROUTES` (9 routes). The agent also serves
+  six public paths with their own constants (garden join requests, profile avatars, a feature
+  flag), so the page, the Monorepo Map and the Agent page now describe the table as the contract's
+  routes. Indexing the rest is a generator change left as a follow-up.
+- **Exact commands and results**: `node --test` over the same ten suites → 295/295 ·
+  `node scripts/docs/generate.mjs --check` → 16 current · `node docs/scripts/docs-audit.mjs --ci` →
+  exit 0 · docs `bun run build` → 70 routes, search index covers 70.
+- **Rendered proof**: none needed (generated tables and two prose lines; the build is the proof the
+  MDX compiles).
+- **Ledger at close**: 99 threads; the two new ones replied to and resolved after the push.

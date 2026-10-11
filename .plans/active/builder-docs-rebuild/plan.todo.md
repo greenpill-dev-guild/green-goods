@@ -175,6 +175,11 @@ since the first merge let it run, fixed in `422606c9d` (the generator's reader l
 at import time and the gate job installs nothing); six new Codex threads addressed in
 `422606c9d`, `99a4d0ff9` and `807b8ffc2` and resolved; decisions 35 to 38. Pushed head `807b8ffc2`.
 
+Status (2026-10-10, Codex on `c839256b6`): two more threads, both valid and fixed in `a380cd0e9` under
+decision 34. Copied contract commands carry every always-required value (13 of 92 operations), with
+a test that runs each rendered command through the CLI resolver; the API Index is described as the
+shared route contract's routes, since the agent serves six public paths outside that contract.
+
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
 - [x] Generated pages keep trust frontmatter + digest gates
