@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:3e2a0576fdaeb03fed56522bb442ba592ddf870fb18c865cfa339ac71b16e6ea"
+source_digest: "sha256:9bf7d6c28c9ba3d6d493ae50f74e6d519fdbd654666685b1b9bfc298d15d809d"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -97,7 +97,7 @@ flowchart LR
 |---|---|---|
 | Hypercert | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | admin, client, public, docs |
 | Vault | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios. | admin, client, public, docs |
-| Cookie Jar | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | admin, client, public, docs |
+| Cookie Jar | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. | admin, client, public, docs |
 
 ## Commitment pooling
 

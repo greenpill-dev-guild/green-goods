@@ -330,7 +330,7 @@
       "id": "cookie-jar",
       "kind": "entity",
       "canonical": "Cookie Jar",
-      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap.",
+      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["jar"],

@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
-source_digest: "sha256:c53c91ba68dcc516fe47c0603a15f3ae7140a79260deb43fb2bf5c4a1b2e7523"
+source_digest: "sha256:3b9237115f647a1fd636ad431278cef7cd1ed179c06e95cb2e38e26c82d570f0"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
 ---
@@ -16,7 +16,7 @@ source_of_truth:
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Personas and Surfaces
 
-Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means and where it works, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step.
+Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what. The ontology owns what a persona means and which surfaces may name it, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step.
 
 ## Personas
 
@@ -28,9 +28,9 @@ Green Goods has five personas. Each one is tied to an on-chain hat, which is how
 | Funder | `funder` | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | Community Member | `community` | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
-## Where each persona works
+## Where each persona appears
 
-A surface is a place a persona acts from. The matrix marks each persona's surfaces, and the list below says what each surface is.
+The ontology records the surfaces where a persona's name may appear, in copy and in data. That is a vocabulary rule, not an access rule: a surface can name a persona without letting it sign in. Who can open a surface is decided by that surface's code and the garden's hats, and its [package page](/builders/packages) says who it serves. The matrix marks the surfaces, and the list below says what each one is.
 
 | Persona | Admin cockpit | Client app | Messaging agent | Public site | Docs |
 |---|---|---|---|---|---|

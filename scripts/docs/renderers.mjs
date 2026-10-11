@@ -140,11 +140,11 @@ export function renderPersonaSurfaces({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
     "Personas and Surfaces",
-    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what, and to the surfaces where its work happens. The ontology owns what a persona means and where it works, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step."
+    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what. The ontology owns what a persona means and which surfaces may name it, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step."
   );
   body += "## Personas\n\n| Persona | Hat | Definition |\n|---|---|---|\n";
   for (const persona of ontology.personas) body += `| ${esc(persona.display)} | \`${esc(persona.hat)}\` | ${esc(persona.definition)} |\n`;
-  body += "\n## Where each persona works\n\nA surface is a place a persona acts from. The matrix marks each persona's surfaces, and the list below says what each surface is.\n\n";
+  body += "\n## Where each persona appears\n\nThe ontology records the surfaces where a persona's name may appear, in copy and in data. That is a vocabulary rule, not an access rule: a surface can name a persona without letting it sign in. Who can open a surface is decided by that surface's code and the garden's hats, and its [package page](/builders/packages) says who it serves. The matrix marks the surfaces, and the list below says what each one is.\n\n";
   body += `| Persona | ${used.map(([, heading]) => heading).join(" | ")} |\n|---|${used.map(() => "---").join("|")}|\n`;
   for (const persona of ontology.personas) {
     body += `| ${esc(persona.display)} | ${used.map(([id]) => (persona.surfaces.includes(id) ? "✓" : "—")).join(" | ")} |\n`;

@@ -4,11 +4,12 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/admin/AGENTS.md
   - packages/admin/package.json
+  - packages/shared/src/hooks/garden/useEligibleAdminGardens.ts
 keywords:
   - cockpit
   - steward
@@ -21,6 +22,11 @@ keywords:
 where stewards review submitted work, manage gardens and actions, and run their community's
 operations. It's an operator surface by design, so it favors utility copy, one dominant workspace
 per route, and restrained color over marketing polish.
+
+The cockpit opens for an address that is a steward, owner, or evaluator of at least one garden; a
+protocol deployer also gets the protocol garden. Anyone else who signs in sees a no-access screen,
+where they can request steward access. A gardener or funder role alone does not open the cockpit,
+though it names both throughout.
 
 ## The shell
 

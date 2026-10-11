@@ -329,7 +329,7 @@ test("personas page reads from the ontology alone and maps each persona onto its
   const rendered = renderProjection(REPO_ROOT, projection);
   assert.match(rendered, /^title: Personas and Surfaces$/m);
   assert.match(rendered, /^slug: \/builders\/architecture\/personas$/m);
-  assert.ok(rendered.indexOf("## Personas") < rendered.indexOf("## Where each persona works"));
+  assert.ok(rendered.indexOf("## Personas") < rendered.indexOf("## Where each persona appears"));
   assert.match(rendered, /^\| Gardener \| `gardener` \| /m);
   assert.match(rendered, /^\| Persona \| Admin cockpit \| Client app \| Messaging agent \| Public site \| Docs \|$/m);
   assert.match(rendered, /^\| Community Member \| — \| ✓ \| — \| ✓ \| ✓ \|$/m);
