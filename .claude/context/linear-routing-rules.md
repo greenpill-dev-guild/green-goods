@@ -11,7 +11,9 @@ routine limits; this file owns interactive routing and issue execution.
 1. **Read-only until acceptance.** Producing a report/audit/review never
    creates or mutates Linear records. Create records only after the user
    authorizes the write. An explicit request to create or update records is authorization;
-   if it is absent, present the concrete records and ask before writing.
+   if it is absent, present the concrete records and ask before writing. A request to merge, or
+   a reported merge, also authorizes the forward-only closeout in [After a merge](#after-a-merge)
+   and nothing beyond it.
 2. **Team routing.**
    - Accepted implementation, refactor, QA, maintenance, regression, bug-fix,
      or cleanup work (an accepted delivery outcome) → Linear **Issue**,
@@ -193,7 +195,9 @@ pulling in sibling lanes; the owning hub retains dependencies and execution orde
 For defects, follow [the QA fix posture](qa.md#fix-posture). For publication, use `ship` and
 [the validation pipeline](validation-pipeline.md). Link the issue in the PR body with
 `Fixes PRD-NNN` for completed work, `Refs PRD-NNN` for partial work, or `Relates to PRD-NNN`
-for context. Keep one issue per PR and require extra human review for critical contract work.
+for context. [After a merge](#after-a-merge) says what each line does to the issue and what
+the agent owes once the PR merges. Keep one issue per PR and require extra human review for
+critical contract work.
 
 ### Branch and PR naming
 
@@ -203,3 +207,63 @@ outcome, not the agent, issue number, or orchestration lane. Run the repository 
 check before publication. An inherited nonconforming branch requires the user's approval
 before renaming; never change it underneath concurrent sessions. Stay on the current branch
 otherwise, per [repository safety](../../AGENTS.md#multi-agent-repo-safety).
+
+## After a merge
+
+A merge does not finish the Linear record. Work that a pull request completes belongs in
+`In Review` once it merges, and it reaches `Done` only after a person has reviewed the merged
+work. No workflow, hook, or script in this repository writes Linear when a pull request merges:
+the named issue moves only through Linear's own GitHub integration or the closeout below.
+
+**What Linear does by itself.** The integration acts on the PR's reference line. The outcome
+depends on the keyword and on a per-team setting this repository cannot read:
+
+| Reference line | At the merge |
+|---|---|
+| `Fixes PRD-NNN` | Applies the team's merge status. |
+| `Refs PRD-NNN` | Never applies it, and can return an `In Review` issue to `In Progress`. |
+| `Relates to PRD-NNN` | Attaches the PR and changes no status. Use it for an issue that is already `Done`. |
+
+Legacy lines on existing PRs still name the issue: Linear treats `Closes PRD-NNN` and its other
+closing words like `Fixes`, and a `Linear: PRD-NNN` line counts whatever the integration does
+with it. An issue ID that follows any linking word is linked, so name an issue that way only on
+the reference line. The integration never posts a comment, and a PR that names no issue moves
+nothing. Treat the table as what to expect, not as proof: the issue's state history is the only
+evidence of what happened.
+
+**Closeout.** After a merge the user asked for or reported, for the issue the reference line
+names and no other. A line that names several issues is outside this closeout: report it and ask.
+
+1. Read the issue's `stateHistory`, not only its current status. An entry dated shortly after the
+   merge that matches what the table predicts is the integration's; any other change after the
+   merge is someone's decision. The integration can land after this first read, so treat it as
+   provisional.
+2. Write only the gap, and only for completed work. When the PR completes the issue, it belongs
+   in `In Review`: write nothing when it is already there, and set it when the integration left
+   it in an earlier state. Write nothing for partial work, for an issue the PR only relates to,
+   for one that is already `Done` or `Canceled`, or over a state someone decided after the merge.
+   Judge completion against the issue's `Done when`, not the keyword: the last PR of a multi-PR
+   issue completes it even when it says `Refs`.
+3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
+   what changed for the person using the product, and what the review should check or what
+   remains open. Read the issue's comments first and post nothing when one already closes out
+   that PR, so a retried or repeated closeout never comments twice.
+4. Read the issue again before reporting. If the state changed since step 2 and the new entry is
+   the integration's, it landed late: repeat step 2 once, then read once more. Leave any other
+   change as it is. Report the issue, its last observed state, and what set it (the integration,
+   your write, or someone else), and say so if it still had not settled. For a PR that names no
+   issue in any of these forms, report `no Linear issue linked`.
+
+**Authority.** This closeout is the only Linear write a merge implies. It covers moving the
+named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and
+posting that one comment. `Done`, moving an issue backward, editing a description, and any write
+to another issue, a parent or sibling included, are outside it and need their own authorization.
+If the issue is `Done` after the merge, leave it; when the integration put it there, report that
+the team's merge setting no longer matches this rule. Cloud routines keep the limits in their own
+specs.
+
+**Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
+their plain confirmation. It is a separate write under the first
+[invariant rule](#invariant-rules): set it when the user asks, with a comment naming the check.
+When the user reports a passing review without asking for the write, offer it and wait. A merge,
+green CI, or your own proof never makes an issue `Done`.
