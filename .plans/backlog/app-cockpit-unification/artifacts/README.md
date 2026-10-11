@@ -26,11 +26,13 @@ phone-width window stacks the frames and folds the dock behind a Controls button
 | Show | All three frames, the app phone with the cockpit desktop, or the two phones. |
 | Controls | Below keeps the dock under the frames. Side moves it to a rail beside them, which leaves the full height to the frames and suits the two-phone view. The rail needs a window at least 1072px wide and scrolls in one shorter than 800px. |
 | F1 to F13, Workspace tone | One control per decision in the specification, in number order. Each starts with Today, and a dot marks the recommended option. F13 only shows in the dark theme, so picking one of its options switches Theme to Dark. |
+| Copy picks | Copies the fourteen picks as one line of text, for example `Lab picks: F1 Typeface: Jakarta; F2 Ground: Linen; ...`. The picks live only in the browser that made them, so this is how they reach a note, a review or the specification. Where a viewer blocks copying, the line appears selected under the controls instead. |
 
 **It is a mock, not the product.** Each screen is hand-built HTML drawn with the token values and
 type sizes read from the component sources named in the specification. It shows direction and
-proportion. It proves nothing about the shipped interface, and no option in it is accepted until a
-before and after pair of the real components has been reviewed (see [eval.md](../eval.md)). Sample
+proportion. It proves nothing about the shipped interface. A pick made in it is accepted in
+principle and locks only when a before and after pair of the real components has been approved (see
+[spec.md](../spec.md#direction-accepted-in-principle)). Sample
 names, gardens and addresses are invented.
 
 The choices persist in the browser's local storage under `gg-lab-state-v5`. The block between the

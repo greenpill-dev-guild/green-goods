@@ -87,6 +87,10 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 .lab-panel .phint .ptext b { color: var(--fg); font-weight: 600; }
 .lab-panel .phint .pzoom { flex: 0 0 auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .lab-panel .lnk { flex: 0 0 auto; font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.lab-panel .pcopy { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 11.5px; line-height: 16px; color: var(--muted); }
+.lab-panel .pcopy label { flex: 0 0 auto; }
+.lab-panel .pcopy input { flex: 1 1 auto; min-width: 0; height: 24px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 9px; }
+.lab-panel .pcopy input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .lab-panel .ptoggle { display: none; }
 /* the same controls as a rail beside the frames */
 .lab-shell[data-dock="side"] { display: grid; grid-template-columns: 288px minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -102,6 +106,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 .lab-shell[data-dock="side"] .lab-panel select { height: 23px; }
 .lab-shell[data-dock="side"] .lab-panel .phint { flex-wrap: wrap; gap: 2px 12px; }
 .lab-shell[data-dock="side"] .lab-panel .phint .ptext { display: none; }
+.lab-shell[data-dock="side"] .lab-panel .pcopy { flex-wrap: wrap; gap: 2px 8px; }
+.lab-shell[data-dock="side"] .lab-panel .pcopy input { flex-basis: 100%; }
 @media (max-height: 850px) {
   /* a short window: squeeze the rail a little so every control still shows without scrolling it */
   .lab-shell[data-dock="side"] .lab-panel { padding-block: 6px 5px; }
@@ -126,7 +132,9 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
 .lab-shell.narrow .lab-panel .seg button { line-height: 28px; font-size: 13px; padding: 0 10px; }
 .lab-shell.narrow .lab-panel select { height: 34px; font-size: 16px; }
 .lab-shell.narrow .lab-panel .phint { flex-wrap: wrap; gap: 2px 12px; }
-.lab-shell.narrow .lab-panel .phint .ptext { flex-basis: 100%; white-space: normal; }
+.lab-shell.narrow .lab-panel .phint .ptext { order: 2; flex-basis: 100%; white-space: normal; min-height: 48px; }
+.lab-shell.narrow .lab-panel .pcopy { flex-wrap: wrap; gap: 2px 8px; }
+.lab-shell.narrow .lab-panel .pcopy input { flex-basis: 100%; height: 34px; font-size: 16px; }
 .lab-tokens { margin-top: 12px; font-size: 12px; color: var(--muted); }
 .lab-tokens summary { cursor: pointer; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; }
 .lab-tokens .readout { font-family: var(--font-mono); font-size: 11px; line-height: 1.5; margin-top: 6px; max-width: 120ch; }
@@ -614,7 +622,8 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
           <div class="ctl" data-key="darkcards" id="ctlDark"><div class="clabel"><b>F13</b> Dark cards <i>· dark theme</i></div><div class="seg" role="group" aria-label="F13 Dark cards"><button type="button" data-v="today" data-d="The cockpit's dark card sits six lightness points above its canvas, with a 6% ring.">Today</button><button type="button" data-v="step" class="recd" data-d="The card one ladder step lighter.">Lighter</button><button type="button" data-v="outline" data-d="A hairline on today's card.">Hairline</button><button type="button" data-v="both" data-d="One step lighter and a hairline.">Both</button></div></div>
           <div class="ctl" data-key="tone"><div class="clabel">Workspace tone</div><div class="seg" role="group" aria-label="Workspace tone"><button type="button" data-v="today" class="recd" data-d="A tone per cockpit workspace: blue Hub, green Garden, amber Community.">Today</button><button type="button" data-v="green" data-d="One green on every cockpit workspace.">One green</button></div></div>
         </div>
-        <div class="phint"><span class="ptext" id="labHint">A dot marks the recommended option. Point at an option to read what it does.</span><span class="pzoom" id="labZoom"></span><button type="button" class="lnk" id="labFit" title="Scrolls the lab so the frames and the controls fill the window.">Fit to window</button></div>
+        <div class="phint"><span class="ptext" id="labHint">A dot marks the recommended option. Point at an option to read what it does.</span><span class="pzoom" id="labZoom"></span><button type="button" class="lnk" id="labCopy" title="Copies your fourteen picks as one line of text to paste elsewhere.">Copy picks</button><button type="button" class="lnk" id="labFit" title="Scrolls the lab so the frames and the controls fill the window.">Fit to window</button></div>
+        <div class="pcopy" id="labCopyRow" hidden><label for="labCopyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="labCopyText" type="text" readonly></div>
       </div>
     </div>
 
@@ -1080,6 +1089,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
   panel.addEventListener('click', function (ev) {
     var b = ev.target.closest('button'); if (!b || b.disabled) return;
     if (b.id === 'labFit') { alignShell(true); return; }
+    if (b.id === 'labCopy') { copyPicks(b); return; }
     if (b.id === 'labToggle') { setCollapsed(!panel.classList.contains('collapsed')); fit(); return; }
     if (b.hasAttribute('data-preset')) { Object.assign(state, PRESETS[b.getAttribute('data-preset')]); render(); return; }
     var g = b.closest('div[data-key]'); if (!g) return;
@@ -1093,6 +1103,40 @@ code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accen
     var sel = ev.target.closest('select[data-key]'); if (!sel) return;
     state[sel.getAttribute('data-key')] = sel.value; render();
   });
+  // The picks live in this browser only. Copy picks hands them over as one line of text, for example
+  // "Lab picks: F1 Typeface: Jakarta; F2 Ground: Linen; ...", so they can be pasted into a chat or a note.
+  function picksLine() {
+    var parts = [];
+    panel.querySelectorAll('.prow.knobs div[data-key]').forEach(function (cell) {
+      var name = cell.querySelector('.clabel').cloneNode(true), aside = name.querySelector('i');
+      if (aside) name.removeChild(aside);
+      var on = cell.querySelector('button.on');
+      parts.push(name.textContent.replace(/\s+/g, ' ').trim() + ': ' + (on ? on.textContent.trim() : state[cell.getAttribute('data-key')]));
+    });
+    return 'Lab picks: ' + parts.join('; ');
+  }
+  var copyTimer = 0;
+  // The older copy command, for viewers that refuse the clipboard API but still honour a click.
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', ''); ta.setAttribute('aria-hidden', 'true');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function copyPicks(btn) {
+    var text = picksLine(), row = document.getElementById('labCopyRow'), field = document.getElementById('labCopyText');
+    function copied() { row.hidden = true; btn.textContent = 'Copied'; btn.focus(); clearTimeout(copyTimer); copyTimer = setTimeout(function () { btn.textContent = 'Copy picks'; }, 2200); }
+    // Last resort: show the line selected, ready for the keyboard shortcut.
+    function shown() { row.hidden = false; field.value = text; field.focus(); field.select(); }
+    function refused() { if (legacyCopy(text)) copied(); else shown(); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied, refused);
+      else refused();
+    } catch (e) { refused(); }
+  }
   // One line under the controls says what the option under the pointer (or the keyboard focus) does.
   function showHint(b) {
     hintEl.textContent = '';

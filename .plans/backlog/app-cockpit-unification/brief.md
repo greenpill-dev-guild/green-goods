@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit
 
-**Stage:** backlog · **Posture:** design research and decision review; implementation not authorized
+**Stage:** backlog · **Posture:** design direction accepted in principle; no pick is locked and implementation is not authorized
 
 Make the gardener app and the steward cockpit read as one product. Share the typeface, the ground
 and the chrome recipes; keep each surface's density, corners and accent as its own dialect. Layouts,
@@ -36,17 +36,35 @@ kept apart from the recommendations below.
 10. The cockpit's dark mode is liked, but its cards sometimes blend into the ground. Explore it.
 11. The cockpit's light mode is the look to bring to the app.
 
-Items 5 to 11 answer part of the decision list in [spec.md](spec.md#decisions-to-resolve). They were
-stated while looking at a mock, so each still needs confirming against a rendered pair of the real
-components before it is recorded as accepted.
+Items 5 to 11 were stated while looking at a mock. The picks below supersede them where they differ.
 
-## Recommended starting point — awaiting decisions
+## Direction accepted in principle
 
-One language, two dialects. The shared core is the typeface, the linen ground with white cards, one
-warm dark ladder, capsule chips, the app's equal-width tabs, one count badge, one card surface and
-work-item anatomy, the phone sheet surface and header, and the bottom bar's active recipe. Each
-surface then sets a short list of dials: density, button corner, card corner, accent model, motion
-and its own navigation chrome. Thirteen decisions carry this; none is accepted yet.
+On 2026-10-10 the maintainer chose an option for every fork in the design lab and answered two
+questions about how the choices stand. The full record is in
+[spec.md](spec.md#direction-accepted-in-principle).
+
+- **The picks are accepted in principle.** Each one locks when a before and after pair of the real
+  components is approved. Until then it is direction, not a specification.
+- **The cockpit's Material 3 rule is retired.** The cockpit becomes the app's language at a denser
+  setting, and its guide and prompt contract are to be rewritten around that.
+- **Eleven of the fourteen picks match the recommendation.** Three do not: the bottom bar keeps each
+  surface's active state (F6), the filter control stays as it is on each surface (F9), and the list
+  gap is 8px, not 12px (F11).
+- **The F9 pick reverses item 6 and was confirmed.** Item 6 above preferred the app's filter button.
+  The pick keeps the cockpit's inline chips, and the maintainer confirmed it when asked.
+- **What the picks keep stays the cockpit's own.** Its pills, its 12px cards, its tone pill and its
+  inline filters remain by choice, no longer on Material 3's authority.
+
+## The resulting shape
+
+One language, with the cockpit as its denser setting. Both surfaces share Plus Jakarta Sans, the
+linen ground with white cards, one warm dark ladder with the card a step lighter, capsule chips, the
+app's equal-width tabs, one count badge, one card surface and work-item anatomy, an 8px list gap, a
+control-grade outline with outlined fields, and the phone sheet surface and header. Each surface
+keeps its density, its button and card corners, the active state of its bottom bar, its filter
+control, its motion and its navigation chrome. The cockpit keeps a tone per workspace and gains the
+wide desktop work card.
 
 ## Scope and boundaries
 
@@ -64,7 +82,7 @@ pairs of the real components in English, Spanish and Portuguese; no measurement 
 
 ## Read next
 
-- [Specification and decisions](spec.md): evidence, the divergence ledger, the thirteen forks.
+- [Specification and decisions](spec.md): evidence, the divergence ledger, the picks and the thirteen forks.
 - [Plan](plan.todo.md): design gate and conditional delivery sequence.
 - [Evaluation](eval.md): acceptance matrix, the guards the work trips, the hub creation check.
 - [Design lab and captures](artifacts/README.md): the interactive mock and the Storybook evidence.

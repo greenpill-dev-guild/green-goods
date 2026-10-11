@@ -1,6 +1,7 @@
 # One Look for the App and the Cockpit — Specification
 
-**Status:** research and design proposal. Thirteen decisions are open and none is accepted.
+**Status:** research and design proposal. The maintainer's picks for the thirteen forks and the
+workspace tone are accepted in principle. None is locked.
 **Evidence date:** 2026-10-09 for the divergence ledger (code read at `develop` `288e9ab46`), and
 2026-10-10 for the component readings behind the design lab. Code references describe the inspected
 tree, not a deployment. Recheck them when implementation starts.
@@ -27,6 +28,72 @@ different days make them read as two products:
 The first two carry most of the visual distance and cost only token edits. The third is identity
 and stays a dial. The fourth is where new shared elements come from. The fifth is the cockpit's and
 stays.
+
+## Direction accepted in principle
+
+Recorded on 2026-10-10. The maintainer chose an option for each fork in the design lab, handed the
+choices over with its Copy picks control, and answered two questions about their standing. This
+section records what was chosen. The recommendations and their reasoning stay under
+[Decisions to resolve](#decisions-to-resolve).
+
+**Standing.** Every pick is accepted in principle. A pick locks when a before and after pair of the
+real components is approved, and only a locked pick is a specification. The lab is a mock, so a pick
+made there settles direction, not proportions.
+
+**The cockpit's Material 3 rule is retired.** Asked how that rule should read once the app's tabs,
+chips, cards and sheets move into the cockpit, the maintainer chose to retire it: the cockpit
+becomes the app's language at a denser setting, and its guide and prompt contract are rewritten
+around that. The options passed over were keeping Material 3 with named shared pieces, and keeping
+it strict so that only tokens cross.
+
+| Fork | Pick | Against the recommendation |
+|---|---|---|
+| F1 Typeface | Plus Jakarta Sans on both | Same |
+| F2 Ground | Linen canvas, white cards, one dark ladder | Same |
+| F3 Controls | Corner per surface; weight, outline and field anatomy unified | Same |
+| F4 Chips | Capsules on both | Same |
+| F5 Phone sheets | One surface and header | Same |
+| F6 Bottom bar | Keep each surface's active state | Differs: the recommendation was the pill on both |
+| F7 Cards and rows | One surface and row anatomy, corner per surface | Same |
+| F8 Tabs | The app's tabs on both, equal width | Same |
+| F9 Filter control | Keep each surface's control | Differs: the recommendation was the app's button on both |
+| F10 Count badge | One 16px badge, 11px semibold | Same |
+| F11 List spacing | 8px gap on both | Differs: the recommendation was 12px |
+| F12 Desktop work card | Wide, mosaic on the left | Same |
+| F13 Dark cards | Card one step lighter | Same |
+| Workspace tone | A tone per workspace in the cockpit | Same |
+
+What the three differing picks change:
+
+- **F6.** Neither bar changes. The app keeps its filled icon and green label, and the cockpit keeps
+  its tone pill. The shared count badge (F10) still lands on the app's bar.
+- **F9.** Neither filter control changes its form. The app keeps its round button and sheet. The
+  cockpit keeps its inline chips and sort, and those chips take the capsule shape and the selected
+  fill from F4. Pending and Approved stay one tap apart, and nothing new opens from a button on
+  desktop.
+- **F11.** The app's work list tightens from 12px to 8px and the cockpit's grid from 14px to 8px.
+  That is tighter than either list is today, and the card from F7 has a hairline and no drop shadow.
+  The rendered pair is where to judge it.
+
+What the retired rule means against these picks. The maintainer confirmed this reading when asked:
+the picks stand. They keep several things that Material 3 used to justify in the cockpit: its pills
+(F3), its tone pill in the bar (F6), its inline filter row (F9), its 12px card corner (F7) and its
+tones. They now stand as the cockpit's own dials, kept because they were chosen. What leaves with the rule is the filled field with an underline, elevation
+as the card surface, the 8px chip, the underline tab rail, the grey count chip and the warm grey
+phone sheet. No fork covers the cockpit's Material-named token layer, its state layers or its type
+role names, so what happens to those is undecided.
+
+Open against the picks:
+
+- **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
+  app's filter button ([brief](brief.md#stated-direction), item 6). The pick keeps the cockpit's
+  chips, and the maintainer confirmed the pick when asked.
+- **F3 and the app's message lines.** The unified field anatomy reserves one message line. The app
+  reserves two today (DL-018) so that a long message does not move the form. With one line reserved,
+  a two-line message would. Judge it on the pair in Spanish and Portuguese.
+- **F7 on the cockpit's phone.** The shared row removes the photo mosaic from the cockpit's phone
+  queue. Judge it on the pair, with a steward who triages by photo if one is available.
+- **F8 on desktop.** The cap on an equal-width tab row is still unset.
 
 ## Evidence and its limits
 
@@ -196,25 +263,26 @@ The levers, ranked by visible change per unit of work:
 
 ## Decisions to resolve
 
-Each fork lists its options with the recommendation first, then what it touches and where it
-stands. "Stated preference" means the maintainer said so while reviewing the lab; it is not yet an
-accepted decision. The lab switches every option live.
+Each fork lists its options with the recommendation first, then what it touches. The maintainer's
+pick is repeated under each fork; every pick is accepted in principle and none is locked (see
+[Direction accepted in principle](#direction-accepted-in-principle)). The lab switches every option
+live.
 
-| Fork | Recommendation | Standing |
+| Fork | Recommendation | Pick, accepted in principle |
 |---|---|---|
-| F1 Typeface | Plus Jakarta Sans on both | Open |
-| F2 Ground | Linen canvas, white cards, one dark ladder | Leaning: the cockpit's light mode is the look to bring to the app |
-| F3 Controls | Corner per surface; unify weight, outline and field anatomy | Open |
-| F4 Chips | Capsules on both | Open |
-| F5 Phone sheets | One surface and header | Open |
-| F6 Bottom bar | Pill behind the active icon on both | Open |
-| F7 Cards and rows | One surface and row anatomy, corner per surface | Asked for; where to unify and where to vary is open |
-| F8 Tabs | The app's tabs on both, equal width | Stated preference |
-| F9 Filter control | The app's filter button on both | Stated preference |
-| F10 Count badge | One 16px badge, 11px semibold | Asked to settle on one |
-| F11 List spacing | 12px gap on both | Stated: the cockpit list needs a gap; the size is open |
-| F12 Desktop work card | Wide, mosaic on the left | Stated preference |
-| F13 Dark cards | Card one step lighter | Asked to explore |
+| F1 Typeface | Plus Jakarta Sans on both | As recommended |
+| F2 Ground | Linen canvas, white cards, one dark ladder | As recommended |
+| F3 Controls | Corner per surface; unify weight, outline and field anatomy | As recommended |
+| F4 Chips | Capsules on both | As recommended |
+| F5 Phone sheets | One surface and header | As recommended |
+| F6 Bottom bar | Pill behind the active icon on both | Keep both |
+| F7 Cards and rows | One surface and row anatomy, corner per surface | As recommended |
+| F8 Tabs | The app's tabs on both, equal width | As recommended |
+| F9 Filter control | The app's filter button on both | Keep both; confirmed, reversing the earlier preference |
+| F10 Count badge | One 16px badge, 11px semibold | As recommended |
+| F11 List spacing | 12px gap on both | 8px gap on both |
+| F12 Desktop work card | Wide, mosaic on the left | As recommended |
+| F13 Dark cards | Card one step lighter | As recommended |
 
 ### F1 One typeface
 
@@ -229,6 +297,8 @@ Touches the app's `index.html` (font links and the static loading screen), its `
 [banned-vocabulary.json](../../../scripts/data/banned-vocabulary.json), whose client prompt list
 names the cockpit's face as a term to avoid.
 
+**Pick, accepted in principle:** the recommended option.
+
 ### F2 One ground
 
 - **Linen canvas, white cards, one dark ladder** (recommended): the canonical neutral is linen and
@@ -239,6 +309,8 @@ names the cockpit's face as a term to avoid.
 
 Touches the app-scope surface tokens and the dark block in `theme.css`, the static loading screen's
 colours, and the app's token audit. Every green-on-surface ratio was measured on white.
+
+**Pick, accepted in principle:** the recommended option.
 
 ### F3 Controls: corners and fields
 
@@ -253,6 +325,9 @@ The cockpit's filled field with an underline is the most Material-specific piece
 Its outlined variant already exists, so converging is a default change, not a new component. The
 app's secondary boundary should move to a 3:1 token under any option.
 
+**Pick, accepted in principle:** the recommended option. The cockpit keeps its pills as its own
+corner, no longer on Material 3's authority.
+
 ### F4 Chips
 
 - **Capsule chips on both** (recommended): the capsule is the language's shape for "pick me", and
@@ -261,6 +336,8 @@ app's secondary boundary should move to a 3:1 token under any option.
 - **The app adopts the cockpit's 8px chip**: breaks the capsule rule where it reads best.
 
 DL-065 (no check mark on a selected chip) carries over unchanged.
+
+**Pick, accepted in principle:** the recommended option.
 
 ### F5 Sheets on phones
 
@@ -273,6 +350,8 @@ DL-065 (no check mark on a selected chip) carries over unchanged.
 The title size stays per density (18px in the app, 22px in the cockpit). Drag-to-dismiss is
 behaviour and stays the app's.
 
+**Pick, accepted in principle:** the recommended option.
+
 ### F6 The bottom bar's active state
 
 - **Pill behind the active icon on both** (recommended): the cockpit's recipe, in green in the app.
@@ -281,6 +360,9 @@ behaviour and stays the app's.
 - **Keep both**: the most repeated element stays the most different.
 
 The app's bar stays solid. A backdrop blur costs frames on the low-end phones the app targets.
+
+**Pick, accepted in principle:** keep both. Neither bar changes, and the most repeated element
+stays different by choice.
 
 ### F7 Cards and rows
 
@@ -296,6 +378,8 @@ The app's bar stays solid. A backdrop blur costs frames on the low-end phones th
 A work item has three anatomies today: the shared `WorkCard` row in the app, the cockpit's
 `HubWorkCard` mosaic, and the shared `WorkbenchRow` for record lists.
 
+**Pick, accepted in principle:** the recommended option.
+
 ### F8 Tabs
 
 - **The app's tabs on both, equal width** (recommended): `StandardTabs` as shipped. Equal cells, a
@@ -308,6 +392,8 @@ A work item has three anatomies today: the shared `WorkCard` row in the app, the
 Touches `AdminTabRail`: it gains the equal-width layout and the tinted active cell, and its count
 chip becomes the shared badge. The tab height stays per surface (DL-011).
 
+**Pick, accepted in principle:** the recommended option.
+
 ### F9 Filter control
 
 - **The app's filter button on both** (recommended): a round outlined icon button with a count
@@ -317,6 +403,10 @@ chip becomes the shared badge. The tab height stays per surface (DL-011).
 
 DL-082 holds under every option: Pending and Approved stay scopes of one list. See the judgment
 point below about where those two scopes live.
+
+**Pick, accepted in principle:** keep both. It reverses the preference stated earlier the same day
+for the app's button, and the maintainer confirmed it when asked. The cockpit's chips still take the
+capsule from F4.
 
 ### F10 Count badge
 
@@ -331,6 +421,8 @@ semibold and a white ring on the Your Work and Promises launchers; a 10px-tall p
 button; 16px with 12px medium in tabs. The Your Work count appears on the bar and on its launcher at
 the same time, in two of those styles.
 
+**Pick, accepted in principle:** the recommended option.
+
 ### F11 List spacing
 
 - **12px gap on both** (recommended): the app's gap today. The gap is what makes a card read as a
@@ -338,6 +430,8 @@ the same time, in two of those styles.
 - **8px gap on both**: denser; cards start to read as one block on a phone.
 - **One divided card on both**: rows inside one card. Suits settings rows, not work items.
 - **Keep both**: 12px in the app, 14px in the cockpit's grid, none in its divided record lists.
+
+**Pick, accepted in principle:** 8px gap on both, not the recommended 12px.
 
 ### F12 Desktop work card
 
@@ -348,6 +442,8 @@ the same time, in two of those styles.
 
 Touches `HubWorkCard`'s layout from the desktop breakpoint and the grid's column rule. Phones keep
 the tall card unless F7 says otherwise.
+
+**Pick, accepted in principle:** the recommended option.
 
 ### F13 Dark cards
 
@@ -363,19 +459,24 @@ the tall card unless F7 says otherwise.
 Touches the dark surface ladder and the first elevation step in `admin-m3-tokens.css`. With F2's one
 ladder the app's dark cards follow the same step.
 
+**Pick, accepted in principle:** the recommended option.
+
 ## Human judgment points
 
 - **Locked decisions this reopens.** Strict Material 3 for the cockpit, including its pills and
   compact metric (DL-010, DL-011, DL-030, Rule 18); the app's corners (DL-029); the cockpit's chip
   (DL-065); and the guides and prompt vocabulary that assign each surface its face. Each accepted
-  fork needs a new decision-log row that names what it supersedes.
-- **F9 costs a tap.** Pending and Approved are one tap apart in the cockpit's toolbar today. Behind
-  a filter button they are two. A steward working a queue may switch scope often, so one option is
-  to keep those two scopes inline and use the button for everything else.
+  fork needs a new decision-log row that names what it supersedes. The maintainer has since retired
+  the Material 3 rule itself (see [Direction accepted in principle](#direction-accepted-in-principle));
+  those rows are still to be written.
+- **F9 would have cost a tap.** Pending and Approved are one tap apart in the cockpit's toolbar
+  today. Behind a filter button they would be two. The pick keeps them inline, so this point is
+  closed unless the pick changes.
 - **F8 on desktop.** Equal cells across a 1176px content column are very wide. The lab caps the row
   at 720px; the real cap needs a rendered pair.
 - **F7 on the cockpit's phone.** The recommended row removes the mosaic from the phone queue. If
-  stewards triage by photo on a phone, the mosaic card should stay there too.
+  stewards triage by photo on a phone, the mosaic card should stay there too. The pick takes the
+  recommended row, so this stays a live check on the rendered pair.
 - **The Cosmo-Local demonstration.** Only the token slice is small enough to precede it, and only if
   the width and contrast measurements pass. That call belongs to the maintainer.
 - **Protected surfaces.** None of the work touches authentication, the job queue, signing or

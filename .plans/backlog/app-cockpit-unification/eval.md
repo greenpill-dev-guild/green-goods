@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria proposed; implementation and review results pending.
+**Status:** acceptance criteria follow the picks accepted in principle; implementation and review results pending.
 
 ## Product validation
 
@@ -12,7 +12,8 @@ Observe whether participants can:
 
 - Tell which surface they are in within a second of opening it.
 - Recognise a tab row, a status badge, a count badge and a work item as the same object on both.
-- Find the filter on a list in either surface without hunting for a different control.
+- Find and use the filter on a list in each surface. The two controls differ by choice (the F9 pick),
+  so watch whether that costs a steward who uses both.
 - Read a card list in the cockpit's dark theme without losing where one card ends.
 
 Visual preference alone is not acceptance. Record wrong turns and hesitation, not opinions.
@@ -25,14 +26,14 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A2 | Typeface (F1) | One family on both surfaces; no clipped, wrapped or truncated label that fitted before, in English, Spanish and Portuguese at 320, 360 and 390px; the static loading screen matches. |
 | A3 | Ground (F2) | Canvas and cards match the accepted values in light and dark on both surfaces; green text and marks keep their contrast floor on the new ground. |
 | A4 | Control boundary and focus (F3) | Secondary buttons, chips and fields have a 3:1 boundary in both themes; one focus-ring role shows on every control family. |
-| A5 | Chips and filter (F4, F9) | One chip shape and selected treatment; the filter control opens the same choices by pointer and keyboard; Pending and Approved remain scopes of one list (DL-082). |
+| A5 | Chips (F4); filter kept per surface (F9) | One chip shape and selected treatment on both; each surface's filter control works as it does today by pointer and keyboard; Pending and Approved remain inline scopes of one list in the cockpit (DL-082). |
 | A6 | Tabs (F8) | Equal-width cells on both surfaces; the longest Spanish and Portuguese labels fit at 320px; the selected tab is exposed to assistive technology as it is today on each surface. |
 | A7 | Count badge (F10) | One badge on the app's bar, launchers, filter and tabs and on the cockpit's tabs; 9+, 99+ and single digits fit; the badge keeps the action contrast pair (DL-017). |
-| A8 | Cards, rows and lists (F7, F11) | One card surface; a visible card edge in both themes; the accepted list gap on every list; the app keeps its status edge. |
+| A8 | Cards, rows and lists (F7, F11) | One card surface; a visible card edge in both themes; an 8px gap on every list, with each card still reading as its own card; the app keeps its status edge. |
 | A9 | Desktop work card (F12) | The mosaic renders for no photo, one, two, and three or more photos, with its domain and count chips; phone widths keep the accepted phone layout. |
 | A10 | Dark cards (F13) | A card is distinguishable from the canvas in the cockpit's dark theme without a zoomed screenshot; chips and wells on a card remain distinguishable from the card. |
-| A11 | Sheets and bar (F5, F6) | The cockpit's phone sheet uses the shared surface and header; open, close, focus return and Back behave as before; the app's bar stays solid. |
-| A12 | Dialects survive | Density, hit areas, button corners, workspace tone, motion and navigation chrome are unchanged on each surface. |
+| A11 | Sheets (F5); bars kept per surface (F6) | The cockpit's phone sheet uses the shared surface and header; open, close, focus return and Back behave as before; each bar keeps its active state and the app's bar stays solid. |
+| A12 | Each surface keeps its own | Density, hit areas, button and card corners, the bar's active state, the filter control, workspace tone, motion and navigation chrome are unchanged on each surface. |
 | A13 | The public website | No visual change on public routes unless a fork names one. |
 
 ## Guards the work trips
@@ -53,7 +54,9 @@ These checks will fail or need an explicit update. Each failure is intended; non
   there as failures until the expectations move.
 - [banned-vocabulary.json](../../../scripts/data/banned-vocabulary.json): the client prompt list names
   the cockpit's face as a term to avoid; F1 changes that list and the glossary generated from it.
-- The decision log needs a row for every accepted fork, naming the decision it supersedes.
+- The decision log needs a row for every accepted fork, naming the decision it supersedes, and one
+  for the retired Material 3 rule. The cockpit's guide and prompt contract cite that rule today and
+  are rewritten with it.
 
 ## Verification posture for future implementation
 
@@ -102,6 +105,8 @@ run opened the file in headless Chromium (Playwright):
 - The dock stayed inside the window at seven scroll positions. Fit to window, the option hints, the
   presets, both arrangements, a reload, keyboard use and a phone-width window behaved as described
   in the [artifacts README](artifacts/README.md).
+- Copy picks produced the same line by each of its three routes: the clipboard, the older copy
+  command when the clipboard refuses, and the selected text field when both refuse.
 
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.

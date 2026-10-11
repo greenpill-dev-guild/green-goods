@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-10T10:14:29Z"
+    "updated_at": "2026-10-11T04:09:16Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,10 +34,10 @@
     "depends_on_features": ["pwa-interface-simplification"]
   },
   "notes": [
-    "The maintainer asked for design research, a switchable mock, and this hub on a branch. Design acceptance and implementation scope remain open; no application, Linear, deployment, or transaction work is authorized.",
+    "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation scope remains open; no application, Linear, deployment, or transaction work is authorized.",
     "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change; track the work under the Cosmo-Local project.",
-    "Stated preferences awaiting confirmation against rendered pairs: the app's equal-width tabs, the app's filter button, a gap in the cockpit's card list, a wide desktop work card that keeps its image grid, one count badge, a clearer dark card in the cockpit, the cockpit's light mode on the app.",
-    "Thirteen forks (F1 to F13) are recommendations, not accepted design specifications. A preset chosen in the design lab is not an acceptance decision.",
+    "Direction accepted in principle on 2026-10-10: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Three picks differ from the recommendation: F6 keeps each bar's active state, F9 keeps each surface's filter control, F11 sets an 8px list gap.",
+    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet, and the cockpit's Material-named token layer is undecided. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
     "No implementation lane is certified by document validation."
@@ -65,7 +65,7 @@
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "Design review: the forks in spec.md await the maintainer's decisions, a bounded first slice, and explicit execution authorization."
+      "blocked_reason": "Design review: the picks are accepted in principle and lock on approved pairs of the real components. A bounded first slice and explicit execution authorization are still needed."
     },
     "state_api": {
       "owner": "codex",
@@ -148,6 +148,14 @@
       "status": "scoped",
       "branch": null,
       "note": "Recorded the stated direction, the divergence ledger, thirteen open forks, a conditional delivery sequence, and pending evaluation. Added the design lab and the Storybook captures as artifacts. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:09:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the maintainer's picks for the thirteen forks and the workspace tone as accepted in principle, and the retired Material 3 rule for the cockpit. F6, F9 and F11 differ from the recommendation; the maintainer confirmed the F9 pick and that the picks stand under the retired rule. Updated the plan's sequence and the acceptance matrix to match. No implementation dispatched."
     }
   ]
 }

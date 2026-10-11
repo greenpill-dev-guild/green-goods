@@ -2,7 +2,7 @@
 
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** backlog
-**Status:** DESIGN REVIEW — no implementation authorized
+**Status:** DESIGN REVIEW — picks accepted in principle; no implementation authorized
 **Created / Last Updated:** 2026-10-10
 
 The stated direction is in [brief.md](brief.md); the evidence, requirements and open decisions are
@@ -18,15 +18,23 @@ been dispatched.
 - [x] Capture both surfaces from Storybook and label the evidence class.
 - [x] Build a switchable mock of every fork on the app, the cockpit phone and the cockpit desktop.
 - [x] Bound this hub against the garden-scoped Home, the public website and the cockpit's layouts.
-- [ ] Resolve the thirteen forks in the specification; record each acceptance explicitly.
-- [ ] Decide the F9 judgment point: whether Pending and Approved stay inline in the cockpit.
-- [ ] For each accepted fork, render a before and after pair of the real components before rollout.
+- [x] Record the maintainer's pick for each fork and the workspace tone as accepted in principle.
+- [x] Decide how the cockpit's Material 3 rule reads: retired.
+- [x] F9 judgment point: the pick keeps Pending and Approved inline in the cockpit.
+- [x] Confirm the F9 pick against the earlier stated preference for the app's filter button.
+- [x] Say what the cockpit keeps as its own now that Material 3 no longer decides it: what the picks
+      keep (pills, 12px cards, the tone pill, inline filters, tones, density).
+- [ ] Decide what happens to the cockpit's Material-named token layer, and rewrite the cockpit's
+      guide and prompt contract around the app's language.
+- [ ] Lock each pick: render a before and after pair of the real components and get it approved
+      before rollout.
 - [ ] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px.
 - [ ] Re-run the contrast audits on the accepted ground and dark ladder.
 - [ ] Approve the first slice and promote the hub only when execution is authorized.
 
-The lab in [artifacts](artifacts/README.md) is an exploratory input. A preset chosen there is not an
-acceptance decision.
+The picks were made in the lab in [artifacts](artifacts/README.md) and handed over with its Copy
+picks control. They are direction, accepted in principle. The lab remains a mock, and nothing chosen
+there is a specification until its pair is approved.
 
 ## Conditional delivery sequence
 
@@ -41,11 +49,11 @@ bounded change, and split a step that would mix independent behaviours.
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role. | Measured ratios in both themes; focus ring visible on every control family. |
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
-| 6. Chips and filter control (F4, F9) | `ui` | Capsule chips in the cockpit; the filter button and its sheet or popover. | DL-082 scopes still reachable; keyboard and screen-reader paths; the F9 judgment point recorded. |
-| 7. Cards, rows and lists (F7, F11, F12) | `ui` | One card surface; the work-item row; the list gap token; the wide desktop work card. | Rendered pairs of every list at every width; mosaic variants for one, two and three or more photos. |
-| 8. Sheets, fields and the bar (F5, F3 fields, F6) | `ui` | The cockpit's phone sheet surface and header; outlined fields by default; the active pill in the app's bar. | Sheet open, close and focus return unchanged; field message lines do not move layout. |
+| 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
+| 7. Cards, rows and lists (F7, F11, F12) | `ui` | One card surface; the work-item row; an 8px list gap token; the wide desktop work card. | Rendered pairs of every list at every width; mosaic variants for one, two and three or more photos. |
+| 8. Sheets and fields (F5, F3 fields) | `ui` | The cockpit's phone sheet surface and header; outlined fields by default. Neither bottom bar changes (the F6 pick). | Sheet open, close and focus return unchanged; field message lines do not move layout, checked with the longest Spanish and Portuguese messages. |
 | 9. Garden context chip in the app | `ui` | Render the shared `GardenChip` on the app's density. Waits on the Home decision in the PWA simplification hub. | Selection behaviour owned by that hub; this step proves only the shared look. |
-| 10. Guides and gates | `ui` | Decision-log rows, the token version and generated design files, Storybook parity numbers, both surface guides, both prompt contracts, the vocabulary list. | The design checks and the documentation generator pass. |
+| 10. Guides and gates | `ui` | Decision-log rows, including the retired Material 3 rule; the token version and generated design files; Storybook parity numbers; both surface guides and both prompt contracts, with the cockpit's rewritten around the app's language; the vocabulary list. | The design checks and the documentation generator pass. |
 | 11. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
 
 Steps 1 to 3 are token edits and can land alone. Steps 4 to 8 are the shared chrome recipes and
