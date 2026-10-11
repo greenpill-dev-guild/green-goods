@@ -244,7 +244,8 @@ closeout: report it and ask.
    more right before writing. A change dated after the merge may be a person's decision, so
    report it and ask instead. Write nothing for partial work, for an issue the PR only relates
    to, or for one that is already closed (`Done`, `Canceled` or `Duplicate`). Judge completion against
-   the issue's `Done when`, or the outcome it names when it has none, not the keyword: the last
+   the issue's `Done when` and, where that is missing or does not settle it, the outcome the
+   issue names, not the keyword: the last
    PR of a multi-PR issue completes it even when it says `Refs`. When you cannot tell, write
    nothing and ask.
 3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
