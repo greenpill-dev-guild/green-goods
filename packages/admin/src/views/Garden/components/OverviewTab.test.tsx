@@ -78,13 +78,22 @@ function renderOverview({
 }
 
 describe("OverviewTab", () => {
-  it("leads with the alerts card on a phone, above the health card (DL-051)", () => {
+  it.each([
+    [375, true],
+    [768, true],
+    [900, true],
+    [1023, true],
+    [1024, false],
+    [1440, false],
+  ] as const)("places alerts first at %spx: %s (DL-051)", (width, alertsLead) => {
     const matchMedia = vi.mocked(window.matchMedia);
     const original = matchMedia.getMockImplementation();
     matchMedia.mockImplementation(
       (query: string) =>
         ({
-          matches: query === "(max-width: 767px)",
+          matches: query.includes("min-width")
+            ? width >= Number(query.match(/min-width: (\d+)px/)?.[1])
+            : width <= Number(query.match(/max-width: (\d+)px/)?.[1]),
           media: query,
           onchange: null,
           addListener: vi.fn(),
@@ -99,22 +108,14 @@ describe("OverviewTab", () => {
       const alerts = screen.getAllByText("Atenção necessária");
       expect(alerts).toHaveLength(1);
       const health = screen.getByText("Saúde do jardim");
-      expect(
+      const followsAlerts = Boolean(
         alerts[0].compareDocumentPosition(health) & Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
+      );
+      expect(followsAlerts).toBe(alertsLead);
+      expect(Boolean(alerts[0].closest("aside"))).toBe(!alertsLead);
     } finally {
       if (original) matchMedia.mockImplementation(original);
     }
-  });
-
-  it("keeps the alerts card in the rail, after the health card, above phone width", () => {
-    renderOverview({});
-    const alerts = screen.getAllByText("Atenção necessária");
-    expect(alerts).toHaveLength(1);
-    const health = screen.getByText("Saúde do jardim");
-    expect(
-      alerts[0].compareDocumentPosition(health) & Node.DOCUMENT_POSITION_PRECEDING
-    ).toBeTruthy();
   });
 
   it.each([

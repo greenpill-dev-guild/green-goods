@@ -15,7 +15,7 @@ const meta: Meta<typeof ProtocolFundingOperationsCard> = {
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="max-w-2xl p-4" data-tone="community">
+      <div className="max-w-6xl p-4" data-tone="community">
         <Story />
       </div>
     ),

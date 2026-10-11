@@ -1,10 +1,11 @@
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
 import type { Address } from "@green-goods/shared/types/domain";
 import { formatTokenAmount, shownAssetAmounts } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCard, AdminCardTitle } from "@/components/AdminCard";
-import { VaultContractDetails } from "@/components/Vault";
+import { GardenSupporters, VaultContractDetails } from "@/components/Vault";
 import GardenVaultView from "@/views/Garden/Vault";
 
 export type CommunityEndowmentTabProps = Pick<
@@ -22,6 +23,13 @@ export function CommunityEndowmentTab({
 }: CommunityEndowmentTabProps) {
   const { formatMessage, locale } = useIntl();
   const shownAssets = shownAssetAmounts(endowmentByAsset);
+  const { vaults, isLoading, isError } = useGardenVaults(garden.id as Address, {
+    enabled: hasVaults,
+    chainId: garden.chainId,
+  });
+  const countsUnread = hasVaults && (isLoading || isError);
+  const harvestCount = vaults.reduce((total, vault) => total + vault.totalHarvestCount, 0);
+  const depositorCount = vaults.reduce((total, vault) => total + vault.depositorCount, 0);
 
   return (
     <div className="garden-tab-shell">
@@ -30,8 +38,8 @@ export function CommunityEndowmentTab({
           <GardenVaultView layout="sheet" />
         </div>
         <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky space-y-4">
-            <AdminCard variant="filled" className="space-y-3">
+          <div className="garden-tab-rail-sticky">
+            <AdminCard variant="elevated" className="space-y-3">
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.endowment.status" })}
               </AdminCardTitle>
@@ -60,6 +68,22 @@ export function CommunityEndowmentTab({
                   </ul>
                 )}
               </div>
+              <div className="divide-y divide-stroke-soft">
+                <div className="garden-stat-row">
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.treasury.totalHarvests" })}
+                  </span>
+                  <span className="garden-stat-row-value">{countsUnread ? "—" : harvestCount}</span>
+                </div>
+                <div className="garden-stat-row">
+                  <span className="garden-stat-row-label">
+                    {formatMessage({ id: "app.treasury.depositorCount" })}
+                  </span>
+                  <span className="garden-stat-row-value">
+                    {countsUnread ? "—" : depositorCount}
+                  </span>
+                </div>
+              </div>
               {treasurySeverity !== "none" ? (
                 <Alert
                   variant={treasurySeverity === "critical" ? "error" : "warning"}
@@ -71,6 +95,7 @@ export function CommunityEndowmentTab({
                 </Alert>
               ) : null}
             </AdminCard>
+            {hasVaults ? <GardenSupporters gardenAddress={garden.id as Address} /> : null}
             {hasVaults ? <VaultContractDetails gardenAddress={garden.id as Address} /> : null}
           </div>
         </aside>
