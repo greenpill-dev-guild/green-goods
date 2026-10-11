@@ -1,0 +1,44 @@
+{
+  "file": "artifacts/visual-direction-v3/green-goods-pitch-solution-v3.pptx",
+  "sha256": "fe67e5ff897bb80284d26dc3e8d09d5091bda2f0892d5d94d6d9d5d78ef47e63",
+  "byteCount": 2725797,
+  "slides": 1,
+  "purpose": "Solution-slide sample on the agreed rules, for review before full-deck expansion",
+  "editable_shapes": 15,
+  "embedded_pictures": 1,
+  "notes_parts": 1,
+  "em_dashes": 0,
+  "italic_runs": 0,
+  "observed_font_use_counts": {
+    "Fraunces Medium": 51,
+    "Inter": 81
+  },
+  "accent": "second title line in 1A7544; all other text 292524 or stone 78716C",
+  "status_labels": {
+    "Keep a useful record": "AVAILABLE TODAY (R03, R06, R07, R09)",
+    "Learn with other land stewards": "PROPOSED",
+    "Organize work and funding": "AVAILABLE TODAY, POOLING IN PROGRESS (R09, R13, R14; pooling R11, R12)"
+  },
+  "structural_checks": {
+    "zipIntegrity": true,
+    "xmlWellFormed": true,
+    "relationshipTargetsResolve": true,
+    "allPartsTyped": true,
+    "method": "Python standard library: zip test, minidom parse of every XML and rels part, relationship target existence, content-type coverage, text and attribute scans."
+  },
+  "source_package": {
+    "file": "artifacts/visual-direction-v2/green-goods-pitch-visual-direction-v2.pptx",
+    "sha256": "0e228082175ac4a52311acad37ea73fad7c0efa388e39a214b2f34a4e48522c7",
+    "reuse": "theme, layouts, notes part and the field-notebook picture of v2 slide 3; every text shape regenerated from the slide spec"
+  },
+  "spec_driven": true,
+  "render_engine": "Headless Chromium 148.0.7778.96 through the repository's @playwright/test 1.60.0, rendering the same slide spec at 1280x720 (96 px per inch) with the exact font files loaded by the page",
+  "render_review": "Render inspected at 1280x720 and 2560x1440 after two spacing fixes (lede moved to 2.0 in, closing line to 6.5 in); every text box fits on one line, widest body line 505 px of 560 px, widest label 340 px of 571 px; no faces or heads, no italics",
+  "render_is_native_pptx_output": false,
+  "native_powerpoint_keynote_or_google_slides_tested": false,
+  "fonts_embedded": false,
+  "renders": {
+    "solution-01.png": "2e6fab04621b429fa3f1971a9ce78c154845f42120b61f9f55cf848a28a884b5"
+  },
+  "date_utc": "2026-10-10"
+}

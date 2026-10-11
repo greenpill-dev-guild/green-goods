@@ -1,0 +1,160 @@
+{
+  "file": "artifacts/visual-direction-v3/green-goods-pitch-core-v3.pptx",
+  "sha256": "d000c31e650e71046bf52b6ab4736447c2dc22eb128d1dc931771bc90f32bde0",
+  "byteCount": 2527835,
+  "slides": 16,
+  "purpose": "Core pitch deck from the agreed sixteen-slide narrative, for review; cover and solution sample carried in unchanged in substance",
+  "per_slide": [
+    {
+      "n": 1,
+      "shapes": 7,
+      "pictures": 2,
+      "notes_paragraphs": 7
+    },
+    {
+      "n": 2,
+      "shapes": 13,
+      "pictures": 0,
+      "notes_paragraphs": 4
+    },
+    {
+      "n": 3,
+      "shapes": 15,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 4,
+      "shapes": 18,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 5,
+      "shapes": 15,
+      "pictures": 1,
+      "notes_paragraphs": 8
+    },
+    {
+      "n": 6,
+      "shapes": 24,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 7,
+      "shapes": 15,
+      "pictures": 1,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 8,
+      "shapes": 16,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 9,
+      "shapes": 19,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 10,
+      "shapes": 16,
+      "pictures": 1,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 11,
+      "shapes": 23,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 12,
+      "shapes": 27,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 13,
+      "shapes": 27,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 14,
+      "shapes": 19,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 15,
+      "shapes": 16,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    },
+    {
+      "n": 16,
+      "shapes": 24,
+      "pictures": 0,
+      "notes_paragraphs": 3
+    }
+  ],
+  "observed_font_use_counts": {
+    "Fraunces": 3,
+    "Fraunces Medium": 344,
+    "Inter": 608
+  },
+  "italic_runs": 0,
+  "em_dashes": 0,
+  "media": {
+    "image1.jpeg": "garden-concept from the v2 checkpoint, re-encoded as JPEG quality 88 for file size (the standalone cover file keeps the PNG)",
+    "image2.png": "official Green Goods mark",
+    "image3.jpeg": "field-notebook-concept from the v2 checkpoint, re-encoded as JPEG quality 88 (the standalone solution file keeps the PNG)",
+    "image4.jpeg": "packages/client/public/images/hero-actions.webp re-encoded as JPEG quality 85 (website imagery)",
+    "image5.jpeg": "packages/client/public/images/hero-cookie.webp re-encoded as JPEG quality 85 (website imagery, cropped hands)"
+  },
+  "structural_checks": {
+    "zipIntegrity": true,
+    "xmlWellFormed": true,
+    "relationshipTargetsResolve": true,
+    "allPartsTyped": true,
+    "slideCount": 16,
+    "method": "Python standard library: zip test, minidom parse of every XML and rels part, relationship target existence, content-type coverage, slide list count, attribute and text scans"
+  },
+  "withdrawn_figures_absent": false,
+  "spec": "artifacts/visual-direction-v3/core/deck-spec.json drives both the PPTX builder and the renderer",
+  "render_engine": "Headless Chromium 148.0.7778.96 through the repository's @playwright/test 1.60.0, rendering the same deck spec at 1280x720 (96 px per inch) with the exact font files; the PDF preview is Chromium's print of the same page at 13.333 by 7.5 in",
+  "render_review": "All sixteen slides inspected individually at 1280x720; the renderer's overflow report is clean after fixes to slides 3, 7, 13 and 16 and earlier wrap budgets; no faces or heads, no italics",
+  "render_is_native_pptx_output": false,
+  "native_powerpoint_keynote_or_google_slides_tested": false,
+  "fonts_embedded": false,
+  "renders": {
+    "slide-01.png": "d61a7deb83abb9c2ea08f5b178266998fb8e3a3c355c456b125a114f75e18d87",
+    "slide-02.png": "a4cdc86e02bcb4436dde66dda6ea30289224f29212ce5a811e75e3dc6dc0bfe9",
+    "slide-03.png": "578538ad0abdd0322347df8c346aa38a6fa64522ab4722e6b4144dd4f842f4cf",
+    "slide-04.png": "6062bfb5da02fcbefcd6326d4109cf637490a28922c4699ce292e5c6a571c008",
+    "slide-05.png": "bdeb65ca2a641d79ad323b96889a2fbaca93b052e274edc0d8b21143e4b8e86a",
+    "slide-06.png": "7f6acb2dbe4611a773c832ad6f5427085d58e70b559712a24c87cabb0c2775a8",
+    "slide-07.png": "3e2dbe3222324b447170d8b2db7a9a5e0c1c7b7c0844cb1503f31358b6029974",
+    "slide-08.png": "51f6b76ed60d9ee09cebe5627b8842fb56aa7e277c5dba1dc845b103832f3799",
+    "slide-09.png": "8521a71348e2fe90073d7f370972eb813bda03f71b8f18daa39407e9b9bfec5e",
+    "slide-10.png": "e41bbf8eefdc2bf54d1befc66da058a3a37e96a2af96a309e8f520f65109c899",
+    "slide-11.png": "d9b0ee6eb00f45ae7bd0dab408a2251e67949181426646b3ad7b30e17138f771",
+    "slide-12.png": "ae7cdae7c0491957542235e6f6b734a1ce2ca65162de2eb1127cbb14bf9dea5b",
+    "slide-13.png": "2cec1d95b66108423f9e267f52d4602a88025b3c802683ce162bd70cbf6080ad",
+    "slide-14.png": "218945561b39fd637f274ef37a2d1317b736184553205257413fd02a1e283609",
+    "slide-15.png": "5fc2e411ef8d52b522c0f19d8d54576542ca8b50dfcc7bbf8b2d695ef24afc52",
+    "slide-16.png": "3a9d2828f2f41c9e741232049934d1b53f91f62d961eeb35cfc05e7c8cba399e"
+  },
+  "pdf_preview": {
+    "sha256": "a6293b2060d67b2d67f74073182ba4007587bca03a4f16002a8ff2712c0fff1e",
+    "committed": false,
+    "delivered_to_user": "2026-10-10 UTC, rendered from the PNG-asset build before the JPEG re-encoding"
+  },
+  "date_utc": "2026-10-10",
+  "renders_committed": false,
+  "omission_reason": "The push gate's changed-path selector buffers the branch's binary diff and failed with ENOBUFS when the renders, the PDF and a 6.7 MB PPTX were committed; as in the earlier packaging pass, the renders and preview are regenerated from the spec rather than stored. Hashes above identify the inspected files."
+}
