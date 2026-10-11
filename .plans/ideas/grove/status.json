@@ -1,0 +1,146 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "grove",
+    "title": "Grove by Green Goods",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-10-11T10:02:56.686Z",
+    "updated_at": "2026-10-11T10:04:05.568413Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["docs"],
+    "work_types": ["research"],
+    "surfaces": [".plans/ideas/grove/"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User selected Grove as the extension brand; packages/extension remains the proposed code package.",
+    "User authorized this planning branch and draft PR only; product implementation and dependency installation remain unstarted.",
+    "The living graph is the core interface; the MVP is one garden on one desktop browser profile.",
+    "All product gates remain unrun. Local acceptance of a relationship is distinct from protocol WorkApproval.",
+    "Exact Coop source licensing, model compatibility and commons draft mappings remain implementation prerequisites."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract behavior is part of the proposed Grove MVP."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/README.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/README.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-11T10:02:56.690Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in ideas"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Publish the user-named Grove MVP as a standalone planning hub; no implementation started.",
+      "timestamp": "2026-10-11T10:04:05.568413Z",
+      "branch": "research/grove-mvp-plan"
+    }
+  ]
+}
