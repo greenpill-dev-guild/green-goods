@@ -239,9 +239,11 @@ closeout: report it and ask.
    and its time but not who set it, and the integration can land after this first read, so treat
    the reading as provisional.
 2. Write only the gap, once, and only for completed work. When the PR completes the issue, it
-   belongs in `In Review`: write nothing when it is already there, and set it when it sits in an
-   earlier open state. Write nothing for partial work, for an issue the PR only relates to, or
-   for one that is already closed (`Done`, `Canceled` or `Duplicate`). Judge completion against
+   belongs in `In Review`: write nothing when it is already there. Set it only when it sits in an
+   earlier open state and its history shows no change since the merge, and read the history once
+   more right before writing. A change dated after the merge may be a person's decision, so
+   report it and ask instead. Write nothing for partial work, for an issue the PR only relates
+   to, or for one that is already closed (`Done`, `Canceled` or `Duplicate`). Judge completion against
    the issue's `Done when`, or the outcome it names when it has none, not the keyword: the last
    PR of a multi-PR issue completes it even when it says `Refs`. When you cannot tell, write
    nothing and ask.
@@ -255,11 +257,11 @@ closeout: report it and ask.
    a PR that names no issue in any of these forms, report `no Linear issue linked`.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
-named issue forward to `In Review`, including when a `Refs` merge had reset it, and posting that
-one comment. `Done`, moving an issue backward, editing a description, and any write
+named issue forward to `In Review` when nothing has changed its state since the merge, and
+posting that one comment. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
-If the issue is `Done` after the merge, leave it and report it: the team's merge setting may no
-longer match this rule. Cloud routines keep the limits in their own specs.
+If the issue moved to `Done` after the merge, leave it and report it: the team's merge setting
+may no longer match this rule. Cloud routines keep the limits in their own specs.
 
 **Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
 their plain confirmation. It is a separate write under the first
