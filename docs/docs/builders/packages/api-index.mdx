@@ -10,35 +10,45 @@ generated_from:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
-  - packages/agent/src/api/http/public.ts
-  - packages/agent/src/api/public-protection.ts
+  - packages/agent/src/api/routes/garden-join-requests.ts
   - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
+  - packages/agent/src/api/routes/saved-offer-records.ts
+  - packages/agent/src/api/routes/saved-offers.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/server.ts
   - packages/client/package.json
   - packages/contracts/package.json
   - packages/indexer/package.json
   - packages/shared/package.json
+  - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
-source_digest: "sha256:2fa1521505eb75eaae12696fd0e96bf00fd18372601d8c2c105ed23e0a2db6c7"
+  - packages/shared/src/public-contracts/saved-offers/types.ts
+source_digest: "sha256:84af9616aa302e19e1129566aae117a5f545b505c23814c477874a0d37495ad8"
 source_of_truth:
   - packages/admin/package.json
   - packages/agent/package.json
   - packages/agent/src/api/funding/routes.ts
-  - packages/agent/src/api/http/public.ts
-  - packages/agent/src/api/public-protection.ts
+  - packages/agent/src/api/routes/garden-join-requests.ts
   - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/routes/profile-avatars.ts
   - packages/agent/src/api/routes/public-commitment-impact.ts
   - packages/agent/src/api/routes/public-garden-impact.ts
+  - packages/agent/src/api/routes/saved-offer-records.ts
+  - packages/agent/src/api/routes/saved-offers.ts
   - packages/agent/src/api/routes/subscribe.ts
   - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/server.ts
   - packages/client/package.json
   - packages/contracts/package.json
   - packages/indexer/package.json
   - packages/shared/package.json
+  - packages/shared/src/public-contracts/profile-avatar.ts
   - packages/shared/src/public-contracts/routes.ts
+  - packages/shared/src/public-contracts/saved-offers/types.ts
 ---
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
@@ -50,19 +60,37 @@ Use package export specifiers and public route constants as the stable entrypoin
 
 ## Public Agent routes
 
-The routes named in the shared route contract (`PUBLIC_AGENT_ROUTES` in `packages/shared/src/public-contracts/routes.ts`), with the methods the agent registers for each. A path the agent serves without a constant in that contract is not listed here; read `packages/agent/src/api/` for those.
+Every route the agent registers under `/public/`, and every route a shared route contract names, with the methods registered for each. The table is read from the route registrations in `packages/agent/src/api/`, so a route is listed whether or not Shared exports a constant for its path. Where a constant exists, import it instead of writing the path. Files are relative to `packages/agent/src/api/`.
 
-| Name | Path | Registered methods |
-|---|---|---|
-| commitmentImpact | `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` |
-| fundingIntentProof | `/public/funding-intents/proof` | `OPTIONS`, `POST` |
-| fundingIntentReceipt | `/public/funding-intents/:id` | `GET`, `OPTIONS` |
-| fundingIntents | `/public/funding-intents` | `OPTIONS`, `POST` |
-| gardenImpact | `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` |
-| passkeyDirectory | `/public/passkeys/rpc` | `OPTIONS`, `POST` |
-| subscribe | `/public/subscribe` | `OPTIONS`, `POST` |
-| thirdwebWebhook | `/webhooks/thirdweb` | `POST` |
-| uploadSign | `/api/uploads/sign` | `OPTIONS`, `POST` |
+| Path | Registered methods | Shared constant | Registered in |
+|---|---|---|---|
+| `/api/uploads/sign` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.uploadSign` | `routes/upload-sign.ts` |
+| `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.commitmentImpact` | `routes/public-commitment-impact.ts` |
+| `/public/features/garden-join-requests` | `GET`, `OPTIONS` | none | `server.ts` |
+| `/public/funding-intents` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntents` | `funding/routes.ts` |
+| `/public/funding-intents/:id` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.fundingIntentReceipt` | `funding/routes.ts` |
+| `/public/funding-intents/proof` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntentProof` | `funding/routes.ts` |
+| `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.gardenImpact` | `routes/public-garden-impact.ts` |
+| `/public/gardens/:garden/join-requests` | `GET`, `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
+| `/public/gardens/:garden/join-requests/:requestId/resolve` | `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
+| `/public/gardens/:garden/join-requests/me` | `DELETE`, `GET`, `OPTIONS` | none | `routes/garden-join-requests.ts` |
+| `/public/passkeys/rpc` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.passkeyDirectory` | `routes/passkey-directory.ts` |
+| `/public/profile-avatars/:chainId` | `GET`, `OPTIONS` | `PROFILE_AVATAR_BATCH_ROUTE` | `routes/profile-avatars.ts` |
+| `/public/profile-avatars/:chainId/:address` | `GET`, `OPTIONS`, `POST` | `PROFILE_AVATAR_ROUTE` | `routes/profile-avatars.ts` |
+| `/public/saved-offers` | `GET`, `OPTIONS` | `SAVED_OFFERS_ROUTES.collection` | `routes/saved-offer-records.ts` |
+| `/public/saved-offers/:savedOfferId` | `DELETE`, `GET`, `OPTIONS`, `PUT` | none | `routes/saved-offer-records.ts` |
+| `/public/saved-offers/session` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.session` | `routes/saved-offers.ts` |
+| `/public/saved-offers/session/challenge` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.challenge` | `routes/saved-offers.ts` |
+| `/public/subscribe` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.subscribe` | `routes/subscribe.ts` |
+| `/webhooks/thirdweb` | `POST` | `PUBLIC_AGENT_ROUTES.thirdwebWebhook` | `funding/routes.ts` |
+
+A listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.
+
+The route constants are exported by these Shared files:
+
+- `packages/shared/src/public-contracts/profile-avatar.ts`: `PROFILE_AVATAR_BATCH_ROUTE`, `PROFILE_AVATAR_ROUTE`
+- `packages/shared/src/public-contracts/routes.ts`: `PUBLIC_AGENT_ROUTES`
+- `packages/shared/src/public-contracts/saved-offers/types.ts`: `SAVED_OFFERS_ROUTES`
 
 ## Package exports
 

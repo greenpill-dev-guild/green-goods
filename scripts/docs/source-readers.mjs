@@ -30,16 +30,6 @@ export function packageExports(root, manifests) {
   return rows.sort((a, b) => `${a.package}:${a.specifier}`.localeCompare(`${b.package}:${b.specifier}`));
 }
 
-export function parseStringObject(root, source, symbol) {
-  const text = readFileSync(path.join(root, source), "utf8");
-  const match = new RegExp(`(?:const|export const)\\s+${symbol}[^=]*=\\s*\\{([\\s\\S]*?)\\}\\s+as const`).exec(text);
-  if (!match) throw new Error(`Could not statically parse ${symbol} in ${source}`);
-  return [...match[1].matchAll(/([A-Za-z_$][\w$]*)\s*:\s*["']([^"']+)["']/g)]
-    .map(([, name, value]) => ({ name, value }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-
 export function indexerContracts(root, source) {
   const text = readFileSync(path.join(root, source), "utf8");
   return [...text.matchAll(/^\s{2}- name:\s*([^\s#]+)\s*$/gm)].map((match) => match[1]).sort();
@@ -191,40 +181,168 @@ export function workflowSourcePaths(root, directory = ".github/workflows") {
     .map((name) => `${directory}/${name}`);
 }
 
-export function sourcePathsContaining(root, directory, needle) {
-  const matches = [];
+function typeScriptSourcePaths(root, directory) {
+  const paths = [];
   const visit = (relativeDirectory) => {
     for (const entry of readdirSync(path.join(root, relativeDirectory), { withFileTypes: true })) {
       const relativePath = `${relativeDirectory}/${entry.name}`;
       if (entry.isDirectory()) visit(relativePath);
-      else if (entry.isFile() && entry.name.endsWith(".ts")) {
-        const text = readFileSync(path.join(root, relativePath), "utf8");
-        if (text.includes(needle)) matches.push(relativePath);
-      }
+      else if (entry.isFile() && entry.name.endsWith(".ts")) paths.push(relativePath);
     }
   };
   visit(directory);
-  return matches.sort();
+  return paths.sort();
 }
 
-export function publicRouteRegistrations(root, sources) {
-  const registrations = new Map();
+const IDENTIFIER = "[A-Za-z_$][\\w$]*";
+const ROUTE_VERBS = ["get", "post", "put", "patch", "delete", "options"];
+// Calls on the Hono app that configure it without registering a route. Any other call
+// (`all`, `on`, `route`, `mount`) could register one, so the reader refuses it until it is taught.
+const NON_ROUTE_APP_CALLS = new Set(["use", "onError", "notFound", "fetch"]);
+
+/**
+ * Route path constants the given Shared contract files export, keyed by the name a caller
+ * writes: `NAME` for `export const NAME = "/path"`, and `NAME.key` for each path in a flat
+ * `export const NAME = { key: "/path" } as const` map.
+ */
+export function routeConstants(root, sources) {
+  const constants = new Map();
+  const add = (name, routePath, source) => {
+    if (constants.has(name)) {
+      throw new Error(`Route constant ${name} is exported by both ${constants.get(name).source} and ${source}`);
+    }
+    constants.set(name, { path: routePath, source });
+  };
   for (const source of sources) {
     const text = readFileSync(path.join(root, source), "utf8");
-    for (const match of text.matchAll(
-      /\bapp\.(get|post|put|patch|delete|options)\(\s*(?:PUBLIC_AGENT_ROUTES\.([A-Za-z_$][\w$]*)|["']([^"']+)["'])/g,
+    for (const [, name, routePath] of text.matchAll(
+      new RegExp(`export const\\s+(${IDENTIFIER})\\s*(?::[^=;]+)?=\\s*["'](/[^"']*)["']`, "g"),
+    )) add(name, routePath, source);
+    for (const [, name, members] of text.matchAll(
+      new RegExp(`export const\\s+(${IDENTIFIER})\\s*(?::[^=;]+)?=\\s*\\{([^{}]*)\\}\\s*as const`, "g"),
     )) {
-      const route = match[2] ?? match[3];
-      const methods = registrations.get(route) ?? new Set();
-      methods.add(match[1].toUpperCase());
-      registrations.set(route, methods);
+      for (const [, key, routePath] of members.matchAll(new RegExp(`(${IDENTIFIER})\\s*:\\s*["'](/[^"']*)["']`, "g"))) {
+        add(`${name}.${key}`, routePath, source);
+      }
     }
   }
-  return new Map(
-    [...registrations.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([name, methods]) => [name, [...methods].sort()]),
+  if (constants.size === 0) throw new Error(`No route constants found in ${sources.join(", ")}`);
+  return constants;
+}
+
+/**
+ * Every route one Agent API file registers on the Hono app, as `{ source, method, path }`. The
+ * app is recognized by the name every route module gives it, `app`.
+ *
+ * The path argument is resolved statically: a string literal, a template literal, a route
+ * constant from `constants`, or a name the same file binds with `const name = <literal>` or
+ * `for (const name of [<paths>])`. Anything else throws, so a route cannot drop out of the
+ * index because it was registered in a new way. Names are matched per file, not per scope: a
+ * name bound more than once is refused rather than guessed.
+ */
+export function agentRouteRegistrations(root, source, constants) {
+  // Whole-line comments are dropped so an example in a doc comment is not read as a route.
+  const text = readFileSync(path.join(root, source), "utf8")
+    .split("\n")
+    .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
+    .join("\n");
+  const fail = (message) => {
+    throw new Error(`${source}: ${message}. Teach agentRouteRegistrations in scripts/docs/source-readers.mjs.`);
+  };
+  for (const [, call] of text.matchAll(/\bapp\.([A-Za-z_$][\w$]*)\(/g)) {
+    if (!ROUTE_VERBS.includes(call) && !NON_ROUTE_APP_CALLS.has(call)) {
+      fail(`app.${call}() may register a route the reader cannot see`);
+    }
+  }
+
+  const bindings = new Map();
+  const bind = (name, expressions) => bindings.set(name, [...(bindings.get(name) ?? []), expressions]);
+  for (const [, name, expression] of text.matchAll(
+    new RegExp(`\\bconst\\s+(${IDENTIFIER})\\s*=\\s*("[^"\\n]*"|'[^'\\n]*'|\`[^\`\\n]*\`)(?:\\s+as const)?\\s*;`, "g"),
+  )) bind(name, [expression]);
+  for (const [, name, list] of text.matchAll(
+    new RegExp(`\\bfor\\s*\\(\\s*const\\s+(${IDENTIFIER})\\s+of\\s+\\[([^\\]]*)\\]\\s*\\)`, "g"),
+  )) bind(name, list.split(",").map((item) => item.trim()).filter(Boolean));
+
+  const resolve = (expression, trail = []) => {
+    const literal = /^(?:"([^"]*)"|'([^']*)')$/.exec(expression);
+    if (literal) return [literal[1] ?? literal[2]];
+    const template = /^`([^`]*)`$/.exec(expression);
+    if (template) {
+      // Odd parts are the `${...}` expressions; each contributes every path it can resolve to.
+      return template[1].split(/\$\{([^}]*)\}/).reduce(
+        (paths, part, index) => {
+          const values = index % 2 === 0 ? [part] : resolve(part.trim(), trail);
+          return paths.flatMap((prefix) => values.map((value) => prefix + value));
+        },
+        [""],
+      );
+    }
+    if (constants.has(expression)) return [constants.get(expression).path];
+    const bound = bindings.get(expression);
+    if (!bound) fail(`cannot resolve the route path \`${expression}\``);
+    if (bound.length > 1) fail(`the route path name \`${expression}\` is bound ${bound.length} times in this file`);
+    if (trail.includes(expression)) fail(`the route path name \`${expression}\` refers to itself`);
+    return [...new Set(bound[0].flatMap((item) => resolve(item, [...trail, expression])))];
+  };
+
+  const registrations = [];
+  const argument = /\s*([^,()]+?)\s*,/y;
+  for (const match of text.matchAll(new RegExp(`\\bapp\\.(${ROUTE_VERBS.join("|")})\\(`, "g"))) {
+    argument.lastIndex = match.index + match[0].length;
+    const expression = argument.exec(text)?.[1];
+    if (!expression) fail(`cannot read the path argument of app.${match[1]}()`);
+    for (const routePath of resolve(expression)) {
+      registrations.push({ source, method: match[1].toUpperCase(), path: routePath });
+    }
+  }
+  return registrations;
+}
+
+/** A route is public when it sits under `/public/` or a Shared route contract names its path. */
+function publicRoutePredicate(constants) {
+  const contractPaths = new Set([...constants.values()].map((constant) => constant.path));
+  return (routePath) => routePath.startsWith("/public/") || contractPaths.has(routePath);
+}
+
+/** The Agent API files under `directory` that register at least one public route. */
+export function publicAgentRouteSources(root, directory, contractSources) {
+  const constants = routeConstants(root, contractSources);
+  const isPublic = publicRoutePredicate(constants);
+  return typeScriptSourcePaths(root, directory).filter((source) =>
+    agentRouteRegistrations(root, source, constants).some((registration) => isPublic(registration.path)),
   );
+}
+
+/**
+ * One row per public route path: the methods the agent registers for it, the Shared constants
+ * that name it, and the files that register it. A contract path nobody registers keeps its row
+ * with no methods, which is how a contract that has drifted from the agent shows up.
+ */
+export function publicAgentRoutes(root, agentSources, contractSources) {
+  const constants = routeConstants(root, contractSources);
+  const isPublic = publicRoutePredicate(constants);
+  const rows = new Map();
+  const row = (routePath) => {
+    if (!rows.has(routePath)) rows.set(routePath, { methods: new Set(), constants: new Set(), sources: new Set() });
+    return rows.get(routePath);
+  };
+  for (const [name, constant] of constants) row(constant.path).constants.add(name);
+  for (const source of agentSources) {
+    for (const registration of agentRouteRegistrations(root, source, constants)) {
+      if (!isPublic(registration.path)) continue;
+      row(registration.path).methods.add(registration.method);
+      row(registration.path).sources.add(source);
+    }
+  }
+  return [...rows.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([routePath, entry]) => ({
+      path: routePath,
+      methods: [...entry.methods].sort(),
+      constants: [...entry.constants].sort(),
+      sources: [...entry.sources].sort(),
+    }));
 }
 
 export function workflowInventory(root, sources = workflowSourcePaths(root)) {

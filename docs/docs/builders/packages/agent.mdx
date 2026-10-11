@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
@@ -34,7 +34,7 @@ and the handler talks to the services; the API routes read the same services for
 | `src/runtime/` | Startup and shutdown wiring, with the reporting that says what came up and what did not |
 | `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
 | `src/platforms/` | Messaging platform adapters (Telegram today) |
-| `src/api/` | Public HTTP routes, including funding and the route table; the [API Index](./api-index) inventories the ones named in the shared route contract |
+| `src/api/` | The HTTP routes, public and authenticated, including funding; the [API Index](./api-index) inventories every public one |
 | `src/services/` | Service dependencies behind stable helper APIs: the database, reporting, and the protocol clients |
 | `src/config.ts`, `src/i18n.ts`, `src/types.ts` | Configuration, message translations, and the shared types the handlers speak |
 | `src/__tests__/` | Vitest suites for handlers, adapters, and services |
@@ -71,5 +71,5 @@ rest.
 
 - [`packages/agent/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/agent/AGENTS.md)
   is the full package contract, including the key-material flow.
-- [API Index](./api-index) lists the routes named in the shared route contract and their registered
-  methods; routes with their own constants live in `src/api/routes/` and `src/api/server.ts`.
+- [API Index](./api-index) lists every public route the agent registers, with its methods, the
+  Shared constant that names its path where one exists, and the file that registers it.

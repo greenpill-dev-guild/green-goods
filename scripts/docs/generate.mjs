@@ -22,9 +22,9 @@ import {
   renderTaskRouting,
 } from "./renderers.mjs";
 import {
+  publicAgentRouteSources,
   readJson,
   skillCatalogSources,
-  sourcePathsContaining,
   supportedChainIds,
   workflowSourcePaths,
 } from "./source-readers.mjs";
@@ -37,6 +37,14 @@ const CHAINS = "packages/shared/src/config/chains.ts";
 const NETWORKS = "packages/contracts/deployments/networks.json";
 const TASK_ROUTING = ".claude/context/task-routing.json";
 const BANNED_VOCABULARY = "scripts/data/banned-vocabulary.json";
+// The Shared files that export the Agent's public route paths. A route constant that lives
+// anywhere else is unknown to the API Index, and the generator says so when the Agent uses it.
+const AGENT_API = "packages/agent/src/api";
+const PUBLIC_ROUTE_CONTRACTS = [
+  "packages/shared/src/public-contracts/profile-avatar.ts",
+  "packages/shared/src/public-contracts/routes.ts",
+  "packages/shared/src/public-contracts/saved-offers/types.ts",
+];
 const PACKAGE_MANIFESTS = [
   "packages/admin/package.json",
   "packages/agent/package.json",
@@ -73,11 +81,7 @@ export function createProjections(root = REPO_ROOT) {
     PROJECTIONS,
   ];
   const workflows = workflowSourcePaths(root);
-  const publicAgentRoutes = sourcePathsContaining(
-    root,
-    "packages/agent/src/api",
-    "PUBLIC_AGENT_ROUTES",
-  );
+  const publicAgentRoutes = publicAgentRouteSources(root, AGENT_API, PUBLIC_ROUTE_CONTRACTS);
   const routedSkillSources = [...new Set((taskRouting.tasks ?? []).map((task) => task.skill).filter(Boolean))]
     .sort()
     .map((skill) => `.claude/skills/${skill}/SKILL.md`);
@@ -99,7 +103,19 @@ export function createProjections(root = REPO_ROOT) {
       "packages/contracts/script/utils/package-commands.mjs",
     ], render: renderCommands },
     { scope: "package", output: "docs/docs/builders/packages/contract-operations.mdx", sources: ["packages/contracts/script/cli/operations.mjs"], render: renderContractOperations },
-    { scope: "package", output: "docs/docs/builders/packages/api-index.mdx", sources: [...PACKAGE_MANIFESTS, "packages/shared/src/public-contracts/routes.ts", ...publicAgentRoutes], render: renderApiIndex },
+    {
+      scope: "package",
+      output: "docs/docs/builders/packages/api-index.mdx",
+      sources: [...PACKAGE_MANIFESTS, ...PUBLIC_ROUTE_CONTRACTS, ...publicAgentRoutes],
+      render: (context) =>
+        renderApiIndex({
+          ...context,
+          manifests: PACKAGE_MANIFESTS,
+          agentApi: AGENT_API,
+          routeContracts: PUBLIC_ROUTE_CONTRACTS,
+          routeSources: publicAgentRoutes,
+        }),
+    },
     { scope: "package", output: "docs/docs/builders/architecture/personas.mdx", sources: [ONTOLOGY], render: renderPersonaSurfaces },
     { scope: "integration", output: "docs/docs/builders/reference/deployments.mdx", sources: integrationCommon, render: renderDeploymentStatus },
     {

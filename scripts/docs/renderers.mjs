@@ -8,10 +8,10 @@ import {
   networkExplorers,
   networkNames,
   packageExports,
-  parseStringObject,
-  publicRouteRegistrations,
+  publicAgentRoutes,
   readJson,
   readText,
+  routeConstants,
   workflowInventory,
 } from "./source-readers.mjs";
 import {
@@ -93,25 +93,34 @@ export function renderMcpGuide({ root, sources, digest }) {
   return body;
 }
 
-export function renderApiIndex({ root, sources, digest }) {
-  const manifests = sources.filter((source) => source.endsWith("package.json"));
-  const exports = packageExports(root, manifests);
-  const routes = parseStringObject(root, declaredSource(sources, "packages/shared/src/public-contracts/routes.ts"), "PUBLIC_AGENT_ROUTES");
-  const routeRegistrations = publicRouteRegistrations(
-    root,
-    sources.filter((source) => source.startsWith("packages/agent/src/api/")),
-  );
+export function renderApiIndex({ root, sources, digest, manifests, agentApi, routeContracts, routeSources }) {
+  const declared = (paths) => paths.map((source) => declaredSource(sources, source));
+  const exports = packageExports(root, declared(manifests));
+  const contractSources = declared(routeContracts);
+  const routes = publicAgentRoutes(root, declared(routeSources), contractSources);
+  const code = (value) => `\`${esc(value)}\``;
+  const list = (values, empty) => (values.length ? values.map(code).join(", ") : empty);
   let body = pageHeader(
     { title: "API Index", slug: "/builders/packages/api-index", sources, digest },
     "API Index",
     "Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs."
   );
   body += "[Runnable command inventory](./commands) is generated from the workspace manifests.\n\n";
-  body += "## Public Agent routes\n\nThe routes named in the shared route contract (`PUBLIC_AGENT_ROUTES` in `packages/shared/src/public-contracts/routes.ts`), with the methods the agent registers for each. A path the agent serves without a constant in that contract is not listed here; read `packages/agent/src/api/` for those.\n\n| Name | Path | Registered methods |\n|---|---|---|\n";
+  body += `## Public Agent routes\n\nEvery route the agent registers under \`/public/\`, and every route a shared route contract names, with the methods registered for each. The table is read from the route registrations in \`${agentApi}/\`, so a route is listed whether or not Shared exports a constant for its path. Where a constant exists, import it instead of writing the path. Files are relative to \`${agentApi}/\`.\n\n| Path | Registered methods | Shared constant | Registered in |\n|---|---|---|---|\n`;
   for (const route of routes) {
-    const methods = routeRegistrations.get(route.name) ?? routeRegistrations.get(route.value) ?? [];
-    body += `| ${esc(route.name)} | \`${esc(route.value)}\` | ${methods.length ? methods.map((method) => `\`${method}\``).join(", ") : "not found in Agent API sources"} |\n`;
+    const files = route.sources.map((source) => source.slice(agentApi.length + 1));
+    body += `| ${code(route.path)} | ${list(route.methods, "not registered")} | ${list(route.constants, "none")} | ${list(files, "none")} |\n`;
   }
+  // Said only while it is true: some route groups are registered behind a startup condition.
+  if (routeSources.some((source) => /\bif \([^)]*\) \{\s*register[A-Za-z]+Routes\(/.test(readText(root, source)))) {
+    body += "\nA listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.\n";
+  }
+  const symbolsBySource = new Map(contractSources.map((source) => [source, new Set()]));
+  for (const [name, constant] of routeConstants(root, contractSources)) {
+    symbolsBySource.get(constant.source).add(name.split(".")[0]);
+  }
+  body += "\nThe route constants are exported by these Shared files:\n\n";
+  for (const [source, symbols] of symbolsBySource) body += `- \`${source}\`: ${list([...symbols].sort(), "none")}\n`;
   body += "\n## Package exports\n\n| Package | Specifier | Target |\n|---|---|---|\n";
   for (const item of exports) body += `| ${esc(item.package)} | \`${esc(item.specifier)}\` | \`${esc(item.target)}\` |\n`;
   return body;

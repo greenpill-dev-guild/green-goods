@@ -17,16 +17,18 @@ import {
 import { createProjections, projectionSourcePaths } from "./generate.mjs";
 import { OPERATIONS, resolveCommand } from "../../packages/contracts/script/cli/operations.mjs";
 import {
+  agentRouteRegistrations,
   collectRenderableAddresses,
   deploymentAddressFields,
   isRecordedAddress,
   packageExports,
+  publicAgentRoutes,
+  publicAgentRouteSources,
   readJson,
-  publicRouteRegistrations,
+  routeConstants,
   selectSafeAddressFields,
   selectSafeFields,
   supportedChainIds,
-  sourcePathsContaining,
   workflowInventory,
   workflowSourcePaths,
 } from "./source-readers.mjs";
@@ -197,33 +199,119 @@ test("derives supported chains and workflow sources deterministically", () => {
   }
 });
 
-test("discovers and parses public Agent route registrations statically", () => {
+test("reads every public Agent route, however its path is written", () => {
   const root = fixture();
   try {
     mkdirSync(path.join(root, "sources/api/nested"), { recursive: true });
     writeFileSync(
-      path.join(root, "sources/api/routes.ts"),
-      "app.post(PUBLIC_AGENT_ROUTES.subscribe, handler);\napp.get('/public/receipt/:id', handler);\n",
+      path.join(root, "sources/contract.ts"),
+      [
+        'export const ROUTES = {\n  subscribe: "/public/subscribe",\n  upload: "/api/uploads/sign",\n  orphan: "/public/orphan",\n} as const;',
+        'export const AVATAR_ROUTE = "/public/avatars/:id" as const;',
+        "export const AVATAR_LIMIT = 50;",
+      ].join("\n"),
     );
     writeFileSync(
-      path.join(root, "sources/api/nested/impact.ts"),
-      "app.options(PUBLIC_AGENT_ROUTES.gardenImpact, handler);\napp.get(PUBLIC_AGENT_ROUTES.gardenImpact, handler);\n",
+      path.join(root, "sources/api/routes.ts"),
+      [
+        "app.post(ROUTES.subscribe, handler);",
+        "app.post(ROUTES.upload, handler);",
+        "app.get(AVATAR_ROUTE, handler);",
+        "app.get('/public/receipt/:id', handler);",
+      ].join("\n"),
     );
-    writeFileSync(path.join(root, "sources/api/private.ts"), "app.get('/private', handler);\n");
+    writeFileSync(
+      path.join(root, "sources/api/nested/offers.ts"),
+      [
+        "// app.get('/public/commented-out', handler);",
+        'const collection = "/public/offers";',
+        "const record = `${collection}/:offerId`;",
+        "for (const route of [collection, record]) {",
+        "  app.options(route, preflight);",
+        "}",
+        "app.get(collection, list);",
+        "app.put(record, save);",
+      ].join("\n"),
+    );
+    writeFileSync(path.join(root, "sources/api/private.ts"), "app.use('/private/*', guard);\napp.get('/private', handler);\n");
 
-    const sources = sourcePathsContaining(root, "sources/api", "PUBLIC_AGENT_ROUTES");
-    assert.deepEqual(sources, ["sources/api/nested/impact.ts", "sources/api/routes.ts"]);
-    assert.deepEqual(
-      Object.fromEntries(publicRouteRegistrations(root, sources)),
-      {
-        "/public/receipt/:id": ["GET"],
-        gardenImpact: ["GET", "OPTIONS"],
-        subscribe: ["POST"],
-      },
+    const contracts = ["sources/contract.ts"];
+    const sources = publicAgentRouteSources(root, "sources/api", contracts);
+    assert.deepEqual(sources, ["sources/api/nested/offers.ts", "sources/api/routes.ts"]);
+    const offers = ["sources/api/nested/offers.ts"];
+    const routes = ["sources/api/routes.ts"];
+    assert.deepEqual(publicAgentRoutes(root, sources, contracts), [
+      { path: "/api/uploads/sign", methods: ["POST"], constants: ["ROUTES.upload"], sources: routes },
+      { path: "/public/avatars/:id", methods: ["GET"], constants: ["AVATAR_ROUTE"], sources: routes },
+      { path: "/public/offers", methods: ["GET", "OPTIONS"], constants: [], sources: offers },
+      { path: "/public/offers/:offerId", methods: ["OPTIONS", "PUT"], constants: [], sources: offers },
+      // A contract path nobody registers keeps its row, so drift between the two is visible.
+      { path: "/public/orphan", methods: [], constants: ["ROUTES.orphan"], sources: [] },
+      { path: "/public/receipt/:id", methods: ["GET"], constants: [], sources: routes },
+      { path: "/public/subscribe", methods: ["POST"], constants: ["ROUTES.subscribe"], sources: routes },
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("refuses a route registration it cannot read instead of dropping it", () => {
+  const root = fixture();
+  try {
+    mkdirSync(path.join(root, "sources/api"), { recursive: true });
+    writeFileSync(path.join(root, "sources/contract.ts"), 'export const ROUTE = "/public/known";\n');
+    const constants = routeConstants(root, ["sources/contract.ts"]);
+    const reading = (code) => {
+      writeFileSync(path.join(root, "sources/api/case.ts"), code);
+      return () => agentRouteRegistrations(root, "sources/api/case.ts", constants);
+    };
+    assert.deepEqual(reading("app.get(ROUTE, handler);\n")(), [
+      { source: "sources/api/case.ts", method: "GET", path: "/public/known" },
+    ]);
+    assert.throws(reading("app.get(UNKNOWN_ROUTE, handler);\n"), /cannot resolve the route path `UNKNOWN_ROUTE`/);
+    assert.throws(reading("app.get(buildPath(1), handler);\n"), /cannot read the path argument of app\.get\(\)/);
+    assert.throws(reading("app.all('/public/any', handler);\n"), /app\.all\(\) may register a route/);
+    assert.throws(
+      reading('const route = "/public/a";\nconst route = "/public/b";\napp.get(route, handler);\n'),
+      /`route` is bound 2 times/,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("API index lists every public path the Agent API and its route contracts write down", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/builders/packages/api-index.mdx",
+  );
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  // An independent scan: a quoted `/public/...` path in the Agent API or a route contract is a
+  // route, so each needs a row whichever way the Agent registers it.
+  const agentApi = "packages/agent/src/api";
+  const scanned = [
+    ...readdirSync(path.join(REPO_ROOT, agentApi), { recursive: true })
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => `${agentApi}/${name}`),
+    ...projection.sources.filter((source) => source.startsWith("packages/shared/src/public-contracts/")),
+  ];
+  const written = new Set();
+  for (const source of scanned) {
+    const text = readFileSync(path.join(REPO_ROOT, source), "utf8");
+    for (const [, routePath] of text.matchAll(/["'`](\/public\/[^"'`$\s]+)["'`]/g)) written.add(routePath);
+  }
+  // The scan must reach a path that has no Shared constant, the case this test exists for.
+  assert.ok(written.has("/public/gardens/:garden/join-requests"), [...written].join(", "));
+  for (const routePath of written) {
+    assert.ok(rendered.includes(`| \`${routePath}\` |`), `${routePath} is missing from the API Index`);
+  }
+  // The join-request and passkey groups are registered behind a startup condition.
+  assert.match(rendered, /leaves a route group out at startup/);
+  // The saved-offer record route is built from a constant, so no file writes its path out.
+  assert.match(
+    rendered,
+    /^\| `\/public\/saved-offers\/:savedOfferId` \| `DELETE`, `GET`, `OPTIONS`, `PUT` \| none \| `routes\/saved-offer-records\.ts` \|$/m,
+  );
 });
 
 test("sorts package exports deterministically", () => {
