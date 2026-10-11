@@ -320,6 +320,10 @@ export const Ceremony: Story = {
 const RECOVERY = [
   "Intro",
   "Connect",
+  "ConnectReturning",
+  "FindAccount",
+  "FindNameNotFound",
+  "ConnectFailed",
   "Connected",
   "ConnectDeclined",
   "Code",
@@ -344,6 +348,10 @@ export const Recovery: Story = {
 
 const PERMISSIONS = [
   "NotConnected",
+  "NotConnectedReturning",
+  "FindAccount",
+  "FindNameNotFound",
+  "ConnectFailed",
   "Connected",
   "Checking",
   "Active",

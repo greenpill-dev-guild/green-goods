@@ -9,8 +9,9 @@ import { RiShieldKeyholeLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { EmptyState } from "@/components/Communication";
-import { ConnectActions, PageAccount } from "./CeremonyActs";
-import { CeremonyFrame } from "./CeremonyFrame";
+import { AccountEntry, type EntryScreen } from "./AccountEntry";
+import { PageAccount } from "./CeremonyActs";
+import { CeremonyFrame, type CeremonyHeading } from "./CeremonyFrame";
 import { PERMISSION_FAILURE_COPY as ERRORS } from "./failures";
 import { PermissionList } from "./PermissionList";
 import { PermissionStatus } from "./PermissionStatus";
@@ -22,6 +23,9 @@ type PermissionsViewProps = Pick<
   ReturnType<typeof useAgentReportingPermissions>,
   | "account"
   | "connecting"
+  | "failure"
+  | "savedPasskey"
+  | "canFindAccount"
   | "connectWallet"
   | "connectPasskey"
   | "stage"
@@ -32,7 +36,10 @@ type PermissionsViewProps = Pick<
   | "importDescriptor"
   | "exportDescriptors"
   | "revoke"
->;
+> & {
+  /** Story fixture: the screen the page opens on while no account is connected. */
+  initialEntry?: EntryScreen;
+};
 
 /**
  * Command surface, solid material: inspect and remove permissions directly with the owner. The page
@@ -40,6 +47,11 @@ type PermissionsViewProps = Pick<
  * says where a check or removal stands, what a check found as a list of permissions with their
  * status, and the page's one standing act in the fixed bar. Removing sits under the list it acts
  * on, and the connected account is in the top bar's sheet.
+ *
+ * Until an account is connected the page is the account step every ceremony has (`AccountEntry`),
+ * with this page's status card: a passkey this browser does not remember is found by its
+ * account's name, and a failed attempt is said in the status card. The page never creates an
+ * account.
  */
 export function PermissionsView(props: PermissionsViewProps) {
   const intl = useIntl();
@@ -59,48 +71,71 @@ export function PermissionsView(props: PermissionsViewProps) {
     defaultMessage: "Remove Account Permissions",
   });
 
+  const heading: CeremonyHeading = {
+    title: {
+      id: "public.reporting.permissions.title",
+      defaultMessage: "Reporting Permissions",
+    },
+    info: text({
+      id: "public.reporting.permissions.body",
+      defaultMessage: "Check and remove your account's permissions here.",
+    }),
+    Icon: RiShieldKeyholeLine,
+  };
+
+  if (!props.account) {
+    return (
+      <AccountEntry
+        heading={heading}
+        steps={null}
+        problem={null}
+        account={
+          <PageAccount account={null} signedIn={false} signsIn={false} permissionsLink={false} />
+        }
+        status={(problem) => (
+          <PermissionStatus
+            stage={props.stage}
+            connected={false}
+            active={0}
+            failure={null}
+            problem={problem}
+          />
+        )}
+        failure={props.failure}
+        savedPasskey={props.savedPasskey}
+        canFindAccount={props.canFindAccount}
+        connecting={props.connecting}
+        connectWallet={props.connectWallet}
+        connectPasskey={props.connectPasskey}
+        initialEntry={props.initialEntry}
+      />
+    );
+  }
+
   return (
     <CeremonyFrame
-      heading={{
-        title: {
-          id: "public.reporting.permissions.title",
-          defaultMessage: "Reporting Permissions",
-        },
-        info: text({
-          id: "public.reporting.permissions.body",
-          defaultMessage: "Check and remove your account's permissions here.",
-        }),
-        Icon: RiShieldKeyholeLine,
-      }}
+      heading={heading}
       notice={
         <PermissionStatus
           stage={props.stage}
-          connected={props.account !== null}
+          connected
           active={active.length}
           failure={props.error && !importError ? props.error : null}
         />
       }
       actions={
-        !props.account ? (
-          <ConnectActions
-            connecting={props.connecting}
-            onConnectWallet={props.connectWallet}
-            onConnectPasskey={() => void props.connectPasskey()}
-          />
-        ) : (
-          <Button
-            size="lg"
-            className="w-full whitespace-normal [text-wrap:balance]"
-            loading={props.stage === "inspecting"}
-            disabled={props.stage === "revoking"}
-            onClick={() => void props.scan()}
-          >
-            {text({
-              id: "public.reporting.permissions.check",
-              defaultMessage: "Check Permissions",
-            })}
-          </Button>
-        )
+        <Button
+          size="lg"
+          className="w-full whitespace-normal [text-wrap:balance]"
+          loading={props.stage === "inspecting"}
+          disabled={props.stage === "revoking"}
+          onClick={() => void props.scan()}
+        >
+          {text({
+            id: "public.reporting.permissions.check",
+            defaultMessage: "Check Permissions",
+          })}
+        </Button>
       }
     >
       <PageAccount
@@ -145,95 +180,93 @@ export function PermissionsView(props: PermissionsViewProps) {
         />
       ) : null}
 
-      {props.account ? (
-        <div className="flex min-w-0 flex-col gap-3">
-          <form
-            method="post"
-            className="flex min-w-0 flex-col gap-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              props.importDescriptor(record);
-            }}
+      <div className="flex min-w-0 flex-col gap-3">
+        <form
+          method="post"
+          className="flex min-w-0 flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            props.importDescriptor(record);
+          }}
+        >
+          <FormField
+            htmlFor={importId}
+            label={text({
+              id: "public.reporting.permissions.importLabel",
+              defaultMessage: "Saved permission record",
+            })}
+            hint={text({
+              id: "public.reporting.permissions.importHint",
+              defaultMessage:
+                "Paste an exported record to check it. Importing a record doesn't grant any permission.",
+            })}
+            error={importError ? text(ERRORS[importError].message) : undefined}
           >
-            <FormField
-              htmlFor={importId}
-              label={text({
-                id: "public.reporting.permissions.importLabel",
-                defaultMessage: "Saved permission record",
-              })}
-              hint={text({
-                id: "public.reporting.permissions.importHint",
-                defaultMessage:
-                  "Paste an exported record to check it. Importing a record doesn't grant any permission.",
-              })}
-              error={importError ? text(ERRORS[importError].message) : undefined}
-            >
-              <Textarea
-                id={importId}
-                name="permissionRecord"
-                value={record}
-                onChange={(event) => setRecord(event.target.value)}
-                rows={4}
-                maxLength={65536}
-                required
-                invalid={importError !== null}
-                aria-invalid={importError !== null || undefined}
-                aria-describedby={`${importId}-helper-text`}
-                className="text-base [overflow-wrap:anywhere]"
-              />
-            </FormField>
-            {/* A section's own act, sized below the page's act in the bar. */}
+            <Textarea
+              id={importId}
+              name="permissionRecord"
+              value={record}
+              onChange={(event) => setRecord(event.target.value)}
+              rows={4}
+              maxLength={65536}
+              required
+              invalid={importError !== null}
+              aria-invalid={importError !== null || undefined}
+              aria-describedby={`${importId}-helper-text`}
+              className="text-base [overflow-wrap:anywhere]"
+            />
+          </FormField>
+          {/* A section's own act, sized below the page's act in the bar. */}
+          <Button
+            type="submit"
+            size="md"
+            emphasis="secondary"
+            className="self-start"
+            disabled={busy || props.stage === "submitted"}
+          >
+            {text({ id: "public.reporting.permissions.import", defaultMessage: "Import Record" })}
+          </Button>
+        </form>
+        {props.descriptors.length > 0 ? (
+          <div className="flex min-w-0 flex-col gap-3">
             <Button
-              type="submit"
               size="md"
-              emphasis="secondary"
+              emphasis="tertiary"
+              onClick={() => setExported(props.exportDescriptors())}
               className="self-start"
-              disabled={busy || props.stage === "submitted"}
             >
-              {text({ id: "public.reporting.permissions.import", defaultMessage: "Import Record" })}
+              {text({
+                id: "public.reporting.permissions.export",
+                defaultMessage: "Show Saved Records",
+              })}
             </Button>
-          </form>
-          {props.descriptors.length > 0 ? (
-            <div className="flex min-w-0 flex-col gap-3">
-              <Button
-                size="md"
-                emphasis="tertiary"
-                onClick={() => setExported(props.exportDescriptors())}
-                className="self-start"
-              >
-                {text({
-                  id: "public.reporting.permissions.export",
-                  defaultMessage: "Show Saved Records",
+            {exported ? (
+              <FormField
+                htmlFor={exportId}
+                label={text({
+                  id: "public.reporting.permissions.exportLabel",
+                  defaultMessage: "Copy and save this record",
                 })}
-              </Button>
-              {exported ? (
-                <FormField
-                  htmlFor={exportId}
-                  label={text({
-                    id: "public.reporting.permissions.exportLabel",
-                    defaultMessage: "Copy and save this record",
-                  })}
-                  hint={text({
-                    id: "public.reporting.permissions.exportHint",
-                    defaultMessage:
-                      "Keep this record to check permissions later. It contains public permission details, never a signing key.",
-                  })}
-                >
-                  <Textarea
-                    id={exportId}
-                    value={exported}
-                    readOnly
-                    rows={5}
-                    aria-describedby={`${exportId}-helper-text`}
-                    onFocus={(event) => event.target.select()}
-                    className="text-base [overflow-wrap:anywhere]"
-                  />
-                </FormField>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+                hint={text({
+                  id: "public.reporting.permissions.exportHint",
+                  defaultMessage:
+                    "Keep this record to check permissions later. It contains public permission details, never a signing key.",
+                })}
+              >
+                <Textarea
+                  id={exportId}
+                  value={exported}
+                  readOnly
+                  rows={5}
+                  aria-describedby={`${exportId}-helper-text`}
+                  onFocus={(event) => event.target.select()}
+                  className="text-base [overflow-wrap:anywhere]"
+                />
+              </FormField>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <DialogShell
         open={confirmOpen}
