@@ -85,7 +85,7 @@ sequenceDiagram
   D-->>G: Committed change: new source node
   D->>M: Leased job, pinned source/profile versions
   M-->>D: Validated proposal, transaction commits (42)
-  D-->>G: New relationship; retain camera and positions
+  D-->>G: New relationship, retain camera and positions
   U->>G: Inspect quote and accept expected revision
   G->>D: Append review revision (43)
   D-->>G: Reviewed relationship
