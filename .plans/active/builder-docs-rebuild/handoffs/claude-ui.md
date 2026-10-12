@@ -644,7 +644,9 @@ renders all 13 skills.
 ## Validation Receipt — The merge of PR #795 (2026-10-12 UTC)
 
 - **Scope**: the record of the merge and one correction. No page, generator or check changed in
-  this entry; lanes stay uncertified.
+  this entry. The `ui` and `state_api` lanes move from `in_progress` to `blocked` on Afo's review
+  gates (`plan-hub.mjs set-lane`), and the hub's overall status is `blocked`; nothing is certified
+  and the hub is not closed.
 - **Merged**: PR #795 into `develop` at 2026-10-12T04:41:41Z as merge commit
   `5c37667fe48dc159c90a45b4004895fe51290a5f`, parents `b0f1e9e6d` (develop) and `2da291351` (the PR
   head). A merge commit, not a squash, pinned to the head with `--match-head-commit`.

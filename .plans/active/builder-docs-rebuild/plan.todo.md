@@ -287,8 +287,12 @@ Still open: the five late threads above, and Afo's gates: D12 (the spine tone an
 page), the page-length gate, a Reference landing, the seven captures, the commitment and hypercert
 capability records (last verified 2026-08-15, they set three of the personas page's availability
 notes), and the community funder guide's "designed to preserve your principal" wording, which
-decision 48 did not reach. The lanes stay uncertified and the hub stays active until those gates
-close.
+decision 48 did not reach.
+
+Lane state after the merge: the `ui` and `state_api` lanes are `blocked` on those gates, not
+`in_progress` on a branch the merge removed, and not certified. The hub's overall status is
+`blocked` and it stays in `active/`: a closeout has to give every open item a destination and
+archive the hub, and that is Afo's decision once he has judged the gates.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
