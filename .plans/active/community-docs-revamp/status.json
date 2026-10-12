@@ -1,0 +1,193 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "community-docs-revamp",
+    "title": "Community Docs Revamp",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-09-23T22:55:58.404Z",
+    "updated_at": "2026-10-12T19:35:19.679Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["docs"],
+    "work_types": ["implementation"],
+    "surfaces": [
+      "docs/docs/community",
+      "docs/docs/reference",
+      "docs/sidebars.ts",
+      "docs/docusaurus.config.ts",
+      "docs/src/data",
+      "docs/static/img",
+      "docs/README.md",
+      "scripts/docs",
+      "scripts/quality",
+      "scripts/data/qa-test-catalog.json",
+      "packages/shared/src/ontology",
+      ".claude/context",
+      "docs/routines"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Brought forward on 2026-10-12 (plan.todo.md L12): the non-pooling foundation runs now in PR #896. Pooling documentation belongs to the commitment-pooling hub (PRD-1156 for the 2.0.0 release slice, PRD-727 for the full scope); that relationship is a note, not a depends_on_features entry, so this hub stays valid when the pooling hub closes. Insertion points for the later pooling pages are in handoffs/pooling-insertion-points.md.",
+    "Lane mapping: ui = community pages, sidebar, redirects, consumer pointers, and screenshots; state_api = the glossary renderer, the ontology gate term-heading guard, and (only if Decision Q3 keeps the page) the claims renderer. Phase progress is tracked in plan.todo.md, not as custom lanes.",
+    "Decisions live in plan.todo.md: locked L1 to L19, executor choices E1 to E11, and open Q2, Q3, Q4, Q9, Q10. No Linear mirror exists; creating one is an external write that waits for Afo (L19).",
+    ".plans/ is the durable repo truth; status.json is authoritative for lane state. A lane stays in_progress until its handoff carries a validation receipt and its owed proof has an owner."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "chore/community-docs-revamp-plan",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Docs pages, sidebar, redirects, consumer pointers, and screenshots have no unit-testable behavior. Proof is the eval.md gate chain, a rendered check on a production docs build, and the qa_pass_1 replay against the released product."
+      },
+      "skill_tags": ["docs", "ui", "humanize-writing"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "chore/community-docs-revamp-plan",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Glossary renderer in scripts/docs/generate.test.mjs; the ontology gate term-heading guard, and the claims renderer if Decision Q3 keeps that page, in scripts/quality/check-ontology.test.mjs (the suite that owns scripts/quality/ontology-render.mjs)."
+      },
+      "skill_tags": ["docs", "scripts"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract work in a docs revamp."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-23T22:55:58.410Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-09-23T23:01:39.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Wrote brief, spec, plan, and eval from the 2026-09-01 audit, reconciled against develop, PR #795, and Linear. Open decisions Q1 to Q10 await Afo."
+    },
+    {
+      "timestamp": "2026-10-12T19:27:19.572Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-10-12T19:33:32.842Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "reconciled",
+      "branch": null,
+      "note": "Reconciled the hub with the PR #896 review threads and Afo's 2026-10-12 brief: foundation brought forward, pooling routed to the pooling hub, the already-shipped docs-audit step removed, the glossary plan rebuilt on human_concepts, and Phase 2 split into page-or-pair checkpoints."
+    },
+    {
+      "timestamp": "2026-10-12T19:35:08.239Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "chore/community-docs-revamp-plan",
+      "note": "Foundation work started in PR #896 under L12."
+    },
+    {
+      "timestamp": "2026-10-12T19:35:19.725Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "chore/community-docs-revamp-plan",
+      "note": "Glossary step 3.1 started; step 3.2 waits for Q3."
+    }
+  ]
+}

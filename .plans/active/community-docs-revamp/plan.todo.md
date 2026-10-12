@@ -1,0 +1,211 @@
+# Community Docs Revamp Plan
+
+**Feature Slug**: `community-docs-revamp`
+**Stage**: `active`
+**Status**: `ACTIVE: the non-pooling foundation is in progress in PR #896; pooling documentation is owned by the pooling hub`
+**Created**: `2026-09-23`
+**Last Updated**: `2026-10-12`
+**Source**: 2026-09-01 Build Sync review and docs audit; reconciled on 2026-09-23 against
+`develop`, PR #795, and Linear; reconciled again on 2026-10-12 against the merged Builders track,
+the PR #896 review threads, and Afo's brief of that day (see [`spec.md`](./spec.md))
+**Linear**: not mirrored (Decision Q10 is open; creating the mirror is an external write that
+needs Afo's authorization)
+
+## Decision Log
+
+### Locked
+
+| # | Decision | Source |
+|---|---|---|
+| L1 | Audit first, then plan section by section before editing | Build Sync, 2026-09-01 |
+| L2 | Community pages stay focused, minimal, and nontechnical; technical depth lives on Builders | Build Sync, 2026-09-01 |
+| L3 | The codebase is the source of truth; generate docs content from it where that pays | Build Sync, 2026-09-01 |
+| L4 | Steward and Evaluator get separate guides | Build Sync, 2026-09-01 |
+| L5 | The FAQ moves to the top level | Build Sync, 2026-09-01 |
+| L6 | The full ontology moves to the Builders side | Build Sync, 2026-09-01 |
+| L7 | The funder guide keeps its three flows | Build Sync, 2026-09-01; restated by Afo, 2026-10-12 |
+| L8 | Submit Work is the model page for every guide, and keeps its structure | Build Sync, 2026-09-01; restated by Afo, 2026-10-12 |
+| L9 | Check the skills, scripts, and routines that read these pages before moving anything | Build Sync, 2026-09-01 |
+| L10 | No em dashes in hand-written docs prose | Afo, 2026-09-02 (builder-docs tone contract) |
+| L11 | Design Rationale, the License split, and `llms.txt` belong to the Builders track | Builder-docs spec D5, D9, D10 (PR #795, merged) |
+| L12 | The non-pooling foundation is brought forward from the post-release schedule and runs now, in PR #896. This does not approve every open recommendation in this plan | Afo, 2026-10-12 |
+| L13 | Pooling boundary: PRD-727 keeps the full pooling documentation scope and is neither narrowed to builder documentation nor closed into PR #795; PRD-1156 holds the 2.0.0 release-essential slice. This hub writes no pooling tutorial, diagram, or screenshot, does not expand the existing steward pooling guide, keeps that page and its navigation, publishes no placeholder, makes no pooling availability claim, changes no capability flag, and records where the later work connects. Replaces the Q1 recommendation | Afo, 2026-10-12 |
+| L14 | Welcome, How It Works, and Why We Build stay three pages (closes Q5) | Afo, 2026-10-12 |
+| L15 | The docs explain "garden" without implying that Green Goods only supports literal gardening; renames stay a product call (PRD-820) | Afo, 2026-10-12 |
+| L16 | Each task guide gives a brief purpose and prerequisites, numbered actions with exact screen labels, an observable success signal, who acts next, recovery beside the relevant problem, and one primary next step | Afo, 2026-10-12 |
+| L17 | Where a structural choice is unresolved, the working content and navigation stay until it is decided | Afo, 2026-10-12 |
+| L18 | Upload, review, approval, reward, and recovery behavior are verified against their owning implementation. Photo privacy and funding statements describe what the code does; no guarantee is inferred from interface copy | Afo, 2026-10-12 |
+| L19 | No merge, deployment, publication, external record update, or unrelated product change happens from this work without separate authorization | Afo, 2026-10-12 |
+
+### Resolved in execution
+
+Routine editorial and mechanical choices, made by the executor on 2026-10-12 under L12 and
+reversible in review.
+
+| # | Choice | Why |
+|---|---|---|
+| E1 | Screenshots are scripted captures from Storybook fixture stories and public pages, at the Builders track's viewport standard (builder hub decision 61). Signed-in screens never come from a live garden. Each caption names source and build. Closes Q7 | Mock auth reads live gardens, so it would publish members' names and photos |
+| E2 | The Evaluator guide covers the role and assessments. Data access stays on Builders. Closes Q8 | L2 |
+| E3 | The claim that the docs are translated is removed. Spanish and Portuguese pages remain a follow-on (the rest of Q9) | It is false today: `locales: ['en']` |
+| E4 | The glossary reuses the existing `human_concepts` records and adds no schema. The terms that lead the page are an explicit list in the renderer. Replaces the Q6 recommendation | The data already exists and is gate-checked; `surfaces` is a vocabulary rule, not a reader group |
+| E5 | File paths and slugs change only for the three approved moves (L4 to L6). Recovery and Track Your Work get new titles and labels on their existing URLs | A slug is not reader-facing text; redirects have a cost |
+| E6 | FAQ questions are headings, not collapsible components | Linkable from a support chat, listed in the page outline, found by search, and clean in the Markdown twin |
+| E7 | Task steps are Markdown numbered lists, not prop-driven components | The twin and search carry the steps |
+| E8 | Formal Ontology lands in Builders, Reference | Lookup material sits there |
+| E9 | Make an Assessment lives in the Evaluator guide and is also linked from the Steward sidebar category and steward path | Stewards write assessments too, and an assessment comes before the work it frames |
+| E10 | Glossary joins the FAQ at the top level of the sidebar; Honest Claims, Product History, Brand kit, and Credits keep their places | The glossary is a reading aid; the rest are L17 or untouched |
+| E11 | Pooling terms stay in the glossary's formal tables and are not added to the everyday section yet | Their availability records are being reconciled by PRD-1156 (L13) |
+
+### Open
+
+| # | Question | State | Blocks |
+|---|---|---|---|
+| Q2 | Where is the line between docs-site pooling pages and the Commitment Pooling Google Doc? | Routed to the pooling hub with L13; not decided here | Nothing in this hub |
+| Q3 | Honest Claims: move to Builders with a humanized renderer, or remove? | Open. Page and navigation retained (L17) | Step 3.2 |
+| Q4 | Product History: remove, or keep a stub? | Open. Page, its eight redirects, and the Builders link to it retained (L17) | Nothing else |
+| Q9 | Spanish and Portuguese gardener pages | Open, as a follow-on once the English settles | Nothing in this hub |
+| Q10 | Linear: when and where to mirror this hub | Open. `plan-hub.mjs linear-sync` proposes creating a parent issue; not created (L19) | The implementation start gate's mirror step only |
+
+Closed: Q1 (by L13), Q5 (by L14), Q6 (by E4), Q7 (by E1), Q8 (by E2).
+
+## Review Reconciliation (PR #896 threads)
+
+| Thread | Finding | Disposition |
+|---|---|---|
+| Codex, `brief.md` | A steward pooling guide already exists; the plan treated it as missing | Fixed. The brief and spec name the existing page, drop "Run Your Pool (new)", and route pooling work to the pooling hub (L13) |
+| Codex, `spec.md` | The target sidebar dropped Brand kit | Fixed. Brand kit stays in the sidebar |
+| Codex, `plan.todo.md` 0.5 | The docs-audit migration and its test already exist | Verified at `docs/scripts/docs-audit.mjs` (`isGuideLikeDoc`) and `docs/scripts/docs-audit.test.mjs`. Step and AC-5 removed |
+| Codex, `spec.md` Generators (2026-10-12) | "Surfaces include community readers" is not a real predicate; anchors consumed by the client could be dropped | Fixed by E4: an explicit list, and every anchor preserved |
+| Codex, `spec.md` Generators (2026-09-23) | The ontology gate's glossary lock would fail or be bypassed | Fixed. The canonical tables stay, so the definition lock is unchanged; the term-heading guard is extended and tested (step 3.1) |
+| Afo, 2026-10-12 | Inspect `human_concepts` and projection fields before adding a schema | Done. E4 reuses them |
+| Codex, `status.json` | Claims-renderer tests were assigned to the wrong suite | Fixed. Step 3.2 and the lane note name `scripts/quality/check-ontology.test.mjs` |
+| Codex, `plan.todo.md` 2.12 | One voice-pass step bundled ten pages | Fixed. Phase 2 is page-or-pair checkpoints |
+| CodeRabbit, `eval.md` AC-3 | Screenshot accessibility was not an acceptance check | Fixed in `eval.md` |
+| CodeRabbit and Codex, `eval.md` AC-2 | The voice searches missed bare "Hats" and chain names | Fixed. `eval.md` holds one maintained list |
+| CodeRabbit and Codex, `plan.todo.md` | Q1 and the release-day pooling copy had no pre-release step | Closed by L13. The release-day copy belongs to PRD-1156. Q10 no longer gates a release |
+| Codex, `eval.md` gate 2 | The usability claim was only tested by an agent replay | Fixed. The replay proves accuracy; an unassisted reading by people is its own check, owned by a person |
+| Codex, `eval.md` AC-4 | Truth fixes mixed lanes | Fixed. The `spec.md` table names an owner per fix; the generated claims entry belongs to the pooling hub and the audit fix is already done |
+| Codex, `status.json` | `depends_on_features: ["commitment-pooling"]` would break validation when that hub closes | Fixed. The dependency is removed; the relationship is a note |
+
+## Research / Plan Gate
+
+- [x] Record research evidence in `spec.md` (2026-09-01 audit; reconciled 2026-09-23 and 2026-10-12)
+- [x] Identify the patterns to mirror: Submit Work for pages; the builder-docs hub for lanes
+- [x] List human judgment points (Decision Log)
+- [x] Define what is out of scope (`brief.md`)
+- [x] Choose the lightest honest validation commands (`eval.md`)
+
+## Requirements Coverage
+
+| Requirement | Source | Lane | Step | Status |
+|---|---|---|---|---|
+| Audit section by section, then plan | Build Sync | n/a | This hub | ✅ |
+| Ground the work in strong reference docs | Build Sync | n/a | `spec.md` reference patterns | ✅ |
+| Clear Welcome, How It Works, and Why We Build | Afo, 2026-10-12 | `ui` | 2.1 to 2.3 | ⏳ |
+| Gardener guides: install, join, submit, track, recover | Build Sync; Afo, 2026-10-12 | `ui` | 2.4 to 2.8 | ⏳ |
+| Use Submit Work as the model and keep its structure | L8 | `ui` | 0.2, every Phase 2 step | ⏳ |
+| Steward guidance, with evaluator guidance separated | L4 | `ui` | 1.2, 2.9 to 2.13 | ⏳ |
+| Existing funding flows, three funder flows kept | L7 | `ui` | 2.14 to 2.16 | ⏳ |
+| FAQ at the top level, grouped by worry | L5 | `ui` | 1.1, 2.17 | ⏳ |
+| Glossary in plain language, from the ontology | L3, E4 | `state_api` | 3.1 | ⏳ |
+| Move the ontology to Builders | L6 | `ui` | 1.3 | ⏳ |
+| Redirects and consumers for approved moves | L9 | `ui` | 1.1 to 1.4, 4.2 | ⏳ |
+| Consistent page structure | L16 | `ui` | 0.2, Phase 2 | ⏳ |
+| Current, accurate screenshots with a named source | Afo, 2026-10-12; E1 | `ui` | 4.1 | ⏳ |
+| Plain-language submit, approve, and reward guide | PRD-927 | `ui` | 2.2, 2.7 | ⏳ |
+| Self-serve Android install | PRD-925 | `ui` | 2.4 | ⏳ |
+| Explain what a garden is | PRD-820, L15 | `ui`, `state_api` | 2.1, 2.2, 3.1 | ⏳ |
+| Photo privacy answer | PRD-639, L18 | `ui` | 2.17 | ⏳ |
+| Glossary prose for Work and Work Approval | PRD-744 | `state_api` | 3.1 (verify only) | ⏳ |
+| Honest Claims and Product History | Build Sync | `ui`, `state_api` | Q3, Q4 | Blocked on a decision |
+| Rework Design Rationale | Build Sync | n/a | PR #795 (L11) | ✅ |
+| Pooling user guides | PRD-727, PRD-1156 | n/a | Pooling hub (L13) | Not this hub |
+
+## Steps
+
+### Phase 0: Reconcile and prepare
+
+- [x] 0.1 Reconcile this hub with the review threads and Afo's 2026-10-12 brief, and promote it
+  with `node scripts/harness/plan-hub.mjs move --feature community-docs-revamp --to active`.
+  Verify: `node scripts/harness/plan-hub.mjs validate`.
+- [ ] 0.2 Write the page contract and voice contract from `spec.md` into `docs/README.md` §
+  Authored pages, shared with the Builders track.
+- [ ] 0.3 Evidence pass: read the owning implementation for every flow the guides describe and
+  record labels and behavior, with their sources, in `handoffs/claude-ui.md`.
+- [ ] 0.4 Linear mirror per Q10. Blocked: needs Afo's authorization (L19).
+
+### Phase 1: Structure (approved moves only)
+
+- [ ] 1.1 Move the FAQ's URL to `/faq`, redirect `/reference/faq`, and update the footer link.
+- [ ] 1.2 Add `community/evaluator-guide/` with an index, move Make an Assessment into it, redirect
+  the old slug, retarget the redirects that pointed at it, and repoint its consumers
+  (`steward-path.json`, the persona journey guide links, the builder pages, the agent context
+  pointer, and QA case DOCS-020).
+- [ ] 1.3 Move Formal Ontology to the Builders sidebar. File path and slug unchanged.
+- [ ] 1.4 Sidebar: a Steward category and an Evaluator category; FAQ and Glossary at the top
+  level; Brand kit, Honest Claims, and Product History kept; labels that match the page titles.
+  Verify after Phase 1: the docs audit, the generated-output check, and a docs build.
+- Deferred with L17: applying Q3 and Q4.
+
+### Phase 2: Pages (one page or pair per checkpoint)
+
+Each checkpoint: the page meets the page contract, uses on-screen labels checked against
+`en.json` and the owning component, and the docs audit stays clean.
+
+- [ ] 2.1 Welcome, with what a garden is (PRD-820).
+- [ ] 2.2 How It Works, and the loop's stage list in `docs/routines/growth-pulse.md` if it changes.
+- [ ] 2.3 Why We Build.
+- [ ] 2.4 Gardener index and Install and Update (PRD-925).
+- [ ] 2.5 Join a Garden.
+- [ ] 2.6 Submit Work (voice and labels; structure kept).
+- [ ] 2.7 Track Your Work.
+- [ ] 2.8 Recovery.
+- [ ] 2.9 Steward index, including how to get access.
+- [ ] 2.10 Create a Garden and Manage Actions.
+- [ ] 2.11 Review Work.
+- [ ] 2.12 Evaluator Guide and Make an Assessment.
+- [ ] 2.13 Mint Impact Certificate.
+- [ ] 2.14 Funding and Governance.
+- [ ] 2.15 Funder index and Donate.
+- [ ] 2.16 Endow and Remove an Endowment.
+- [ ] 2.17 FAQ content.
+- [ ] 2.18 Credits intro.
+
+### Phase 3: Generators
+
+- [ ] 3.1 `state_api`: `renderGlossary` leads with an "Everyday terms" section built from
+  `human_concepts` for an explicit list of terms, keeps every anchor and both canonical tables, and
+  the term-heading guard reads the new section. RED then GREEN in `scripts/docs/generate.test.mjs`
+  and `scripts/quality/check-ontology.test.mjs`; `bun run check --only docs-generated` and
+  `bun run check --only ontology` clean.
+- [ ] 3.2 `state_api`: if Q3 keeps the claims page, give `renderMarketingClaimsMdx` human headings,
+  with the assertion in `scripts/quality/check-ontology.test.mjs`. Blocked on Q3.
+- [ ] 3.3 Optional: encode the page contract as docs-audit checks. Deferred.
+
+### Phase 4: Screenshots and proof
+
+- [ ] 4.1 Screenshot pass: keep, replace, or remove each image; captions name source and build;
+  no image without a consumer.
+- [ ] 4.2 Verification: the gate chain in `eval.md`, a production docs build, a rendered check of
+  changed navigation and pages at phone and desktop widths, and redirects, search, links, and
+  Markdown twins.
+- [ ] 4.3 `qa_pass_1`: replay every guide on the released product, with authenticated Brave for
+  sign-in, wallet, and installed-app surfaces. Needs a person's session.
+- [ ] 4.4 Unassisted read-through by people who have not seen the docs (`eval.md` AC-9). Needs
+  people.
+- [ ] 4.5 `qa_pass_2`: consumers, redirects, links, and the full gate chain, after 4.3.
+
+## Validation
+
+See `eval.md` for the gate chain. Docs content is not unit-testable, so the `ui` lane's proof is
+the gate chain, a rendered check, and the replayed read-through; the `state_api` lane records
+RED/GREEN in its handoff.
+
+## Implementation Notes
+
+- 2026-10-12: The plan was written to start after the 2.0.0 release with pooling pages in scope.
+  Afo brought the non-pooling foundation forward and moved every pooling page to the pooling hub
+  (L12, L13). Steps that created `commitments.mdx` and "Run Your Pool", copied pooling gallery
+  images, and added a pooling section to How It Works are removed from this plan and listed in
+  `spec.md` § Pooling boundary and insertion points.
+- 2026-10-12: The docs-audit step is removed because the fix already shipped on `develop`.
