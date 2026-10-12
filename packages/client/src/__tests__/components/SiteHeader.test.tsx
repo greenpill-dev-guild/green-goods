@@ -10,7 +10,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -339,6 +339,26 @@ describe("SiteHeader", () => {
         "transparent"
       );
       expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+    }
+  });
+
+  it("brings the page to the top when the keyboard reaches the faded header", () => {
+    const scrollY = vi.spyOn(window, "scrollY", "get").mockReturnValue(400);
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    try {
+      renderHeader("/");
+      const header = document.querySelector("header") as HTMLElement;
+      // Faded out, yet still offered to the keyboard and to assistive technology.
+      expect(header.style.opacity).toBe("0");
+      expect(header).not.toHaveAttribute("aria-hidden");
+
+      act(() => screen.getByRole("link", { name: "Install App" }).focus());
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+      expect(header.style.opacity).toBe("1");
+    } finally {
+      scrollY.mockRestore();
+      scrollTo.mockRestore();
     }
   });
 

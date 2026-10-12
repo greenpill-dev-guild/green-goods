@@ -32,6 +32,7 @@ dialect: public-browser
 
 - **Fixed at top, fully transparent** on every public route — no background, no border, no blur. The header is removed from the layout flow so the hero image plate runs all the way to the top of the viewport and the header floats over it.
 - **Fades out on scroll** rather than turning into a solid sticky bar. Opacity goes from `1` at the top to `0` after ~220px of scroll, with `pointer-events: none` once hidden so the page below stays interactive. The mobile drawer pins the header back to fully visible while open.
+- **Keyboard focus brings the page to its top.** The header's controls stay in the tab order and in the accessibility tree while it is faded. When the keyboard reaches one, the page goes to its top, where the header is fully shown over the hero, as a header that scrolls with the page would be. A pointer press on a part-faded header does not move the page.
 - Wayfinding once the hero leaves the viewport is owned by the **compact utility footer** at the bottom of every public page.
 - Logo links home. **Nav order:** Gardens, Impact, Fund, Actions.
 - **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
