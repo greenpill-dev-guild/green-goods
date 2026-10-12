@@ -267,6 +267,21 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(trigger).toHaveFocus());
   });
 
+  it("returns focus to the menu button when an install sheet opened from the drawer closes", async () => {
+    renderHeader();
+    const menuButton = screen.getByRole("button", { name: /open menu/i });
+    fireEvent.click(menuButton);
+    // The drawer closes itself as its Install App opens the sheet, so that control is gone
+    // by the time the sheet closes.
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Install App" }));
+    const sheet = screen.getByRole("dialog", { name: "Bring Green Goods into the field" });
+    await waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => expect(menuButton).toHaveFocus());
+  });
+
   it("closes from a navigation link even when its route is already active", () => {
     renderHeader("/gardens");
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));

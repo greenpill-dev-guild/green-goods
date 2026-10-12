@@ -62,6 +62,7 @@ export const SiteHeader = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
   const homeLinkRef = useRef<HTMLAnchorElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
@@ -88,7 +89,9 @@ export const SiteHeader = () => {
   const isFullyHidden = effectiveOpacity <= 0.02;
 
   return (
-    <PublicInstallAction>
+    // The drawer's Install App closes the drawer before the sheet opens, so when the sheet
+    // closes that control is gone. Focus then goes where closing the drawer would have put it.
+    <PublicInstallAction focusFallbackRef={menuButtonRef}>
       {({
         label,
         href,
@@ -166,6 +169,7 @@ export const SiteHeader = () => {
                   {/* Mobile hamburger: light ink over the hero image */}
                   <Dialog.Trigger asChild>
                     <IconButton
+                      ref={menuButtonRef}
                       className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
                       aria-label={intl.formatMessage({
                         id: "public.nav.openMenu",
