@@ -90,8 +90,9 @@ export const SiteHeader = () => {
 
   return (
     // The drawer's Install App closes the drawer before the sheet opens, so when the sheet
-    // closes that control is gone. Focus then goes where closing the drawer would have put it.
-    <PublicInstallAction focusFallbackRef={menuButtonRef}>
+    // closes that control is gone. Focus then goes where closing the drawer would have put it:
+    // the menu button, or the home link at widths that hide the menu button.
+    <PublicInstallAction focusFallbackRef={isDesktop ? homeLinkRef : menuButtonRef}>
       {({
         label,
         href,

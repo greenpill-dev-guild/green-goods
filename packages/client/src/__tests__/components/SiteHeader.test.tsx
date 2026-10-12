@@ -75,18 +75,20 @@ const messages: Record<string, string> = {
   "public.nav.closeMenu": "Close Menu",
 };
 
-function renderHeader(initialRoute = "/gardens") {
-  return render(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
-      createElement(IntlProvider, {
-        locale: "en",
-        messages,
-        children: <SiteHeader />,
-      })
-    )
+function headerElement(initialRoute = "/gardens") {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [initialRoute] },
+    createElement(IntlProvider, {
+      locale: "en",
+      messages,
+      children: <SiteHeader />,
+    })
   );
+}
+
+function renderHeader(initialRoute = "/gardens") {
+  return render(headerElement(initialRoute));
 }
 
 describe("SiteHeader", () => {
@@ -267,8 +269,14 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(trigger).toHaveFocus());
   });
 
-  it("returns focus to the menu button when an install sheet opened from the drawer closes", async () => {
-    renderHeader();
+  it.each([
+    { landsOn: "the menu button", widened: false },
+    // At desktop widths the menu button is hidden, so the visible home link takes focus instead.
+    { landsOn: "the home link once the window has widened to desktop", widened: true },
+  ])("returns focus to $landsOn when an install sheet opened from the drawer closes", async ({
+    widened,
+  }) => {
+    const view = renderHeader();
     const menuButton = screen.getByRole("button", { name: /open menu/i });
     fireEvent.click(menuButton);
     // The drawer closes itself as its Install App opens the sheet, so that control is gone
@@ -276,10 +284,16 @@ describe("SiteHeader", () => {
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Install App" }));
     const sheet = screen.getByRole("dialog", { name: "Bring Green Goods into the field" });
     await waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
+    if (widened) {
+      mockUseMediaQuery.mockReturnValue(true);
+      view.rerender(headerElement());
+    }
 
     fireEvent.keyDown(document, { key: "Escape" });
 
-    await waitFor(() => expect(menuButton).toHaveFocus());
+    await waitFor(() =>
+      expect(widened ? screen.getByRole("link", { name: "Green Goods" }) : menuButton).toHaveFocus()
+    );
   });
 
   it("closes from a navigation link even when its route is already active", () => {
