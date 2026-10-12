@@ -18,7 +18,8 @@ test('standalone reporting policy separates offline, RPC, keystore broadcast and
   assert.throws(() => resolve('deploy single-attestation-policy --network arbitrum --mode broadcast --expected-nonce 0 --private-key secret'), /Unknown/);
   const broadcast = resolve('deploy single-attestation-policy --network arbitrum --mode broadcast --expected-nonce 0');
   assert.equal(broadcast.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
-  assert.equal(broadcast.env.PINATA_JWT_OP_REF, '');
+  assert.equal(broadcast.env.PINATA_JWT, '');
+  assert.equal(broadcast.env.PINATA_GATEWAY, '');
   assert.deepEqual(resolve('verify single-attestation-policy --network arbitrum').args, ['script/deploy/single-attestation-policy.ts', 'verify', '--network', 'arbitrum']);
   const published = resolve('verify single-attestation-policy --network arbitrum --publish-source');
   assert.deepEqual(published.args, ['script/deploy/single-attestation-policy.ts', 'verify', '--network', 'arbitrum', '--publish-source']);
@@ -49,7 +50,6 @@ test('deployment and upgrade simulation preserve different underlying flags', ()
   assert.deepEqual(upgrade.args, ['script/upgrade.ts', 'all', '--network', 'arbitrum']);
   assert.equal(upgrade.cwd, PACKAGE_ROOT);
   assert.equal(upgrade.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
-  assert.equal(upgrade.env.PINATA_JWT_OP_REF, '');
 });
 test('specialist dry modes cannot be mistaken for RPC simulation', () => {
   for (const command of ['deploy octant-factory', 'repair octant-assets']) {
@@ -123,12 +123,12 @@ function fakeRunner(exitCodes, hook) {
 }
 test('a failed mandatory check stops before broadcast and preserves failure code', async () => {
   const runner = fakeRunner([7]);
-  const result = await executeOperation(resolve('upgrade hats-module --network arbitrum --mode broadcast'), { ...runner, env: { TEST_VALUE: 'retained', PINATA_JWT_OP_REF: 'clear-me' } });
+  const result = await executeOperation(resolve('upgrade hats-module --network arbitrum --mode broadcast'), { ...runner, env: { TEST_VALUE: 'retained', FOUNDRY_KEYSTORE_ACCOUNT: 'caller-account' } });
   assert.equal(result.code, 7);
   assert.equal(runner.calls.length, 1);
   assert.equal(runner.calls[0].options.shell, false);
   assert.equal(runner.calls[0].options.env.TEST_VALUE, 'retained');
-  assert.equal(runner.calls[0].options.env.PINATA_JWT_OP_REF, '');
+  assert.equal(runner.calls[0].options.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
 });
 test('successful checks execute handler only after all checks', async () => {
   const runner = fakeRunner([0, 0, 0]);
