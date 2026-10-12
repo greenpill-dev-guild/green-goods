@@ -165,6 +165,8 @@ function controllerAt(overrides: Partial<Controller> = {}): Controller {
     isPending: false,
     isCheckingConfirmation: false,
     checkConfirmation: vi.fn(),
+    confirmWalletCancellation: vi.fn(async () => {}),
+    recoveryKey: "",
     normalizedGardenDomainMask: 1,
     reviewForm: ANSWERS,
     showValidation: false,
