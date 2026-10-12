@@ -50,7 +50,7 @@ Every live page must be reachable from a sidebar or its role/category index. Do 
 
 Use authored pages for user goals, prerequisites, steps, recovery, stable concepts, rationale, and navigation. Keep changing inventories out of prose. Link to the owning package guide, code, configuration, ontology, workflow, or generated page instead.
 
-Frontmatter must name the audience, owner, status, and exact `source_of_truth` paths. The docs audit treats broken local authority paths and links as errors.
+Frontmatter must name the audience, owner, status, and exact `source_of_truth` paths. The docs audit treats broken local authority paths and links as errors, and on a hand-written page so is a repository path in a code span that does not exist (a package page's directory table is read relative to its package).
 
 ### Brand downloads
 
@@ -86,12 +86,12 @@ Generated MDX is committed and reviewed, but never edited directly. Each page de
 
 ```bash
 node scripts/docs/generate.mjs
-node scripts/docs/generate.mjs -- --scope package
-node scripts/docs/generate.mjs -- --scope integration
-node scripts/docs/generate.mjs -- --scope ontology
-node scripts/docs/generate.mjs -- --scope workflow
-node scripts/docs/generate.mjs -- --scope qa
-node scripts/docs/generate.mjs -- --scope agentic
+node scripts/docs/generate.mjs --scope package
+node scripts/docs/generate.mjs --scope integration
+node scripts/docs/generate.mjs --scope ontology
+node scripts/docs/generate.mjs --scope workflow
+node scripts/docs/generate.mjs --scope qa
+node scripts/docs/generate.mjs --scope agentic
 ```
 
 `bun run check --only docs-generated` renders every projection in memory and fails when an output is missing, extra, or stale.

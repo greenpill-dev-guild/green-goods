@@ -5,7 +5,7 @@ slug: /community/how-it-works
 sidebar_position: 2
 audience: all
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/client/src/views/Public/Home.tsx
@@ -157,10 +157,14 @@ graph LR
     W["Work Attestation<br/>(Gardener submits)"] -->|reviewed by| WA["Work Approval<br/>(Steward verifies)"]
     WA -->|bundled and minted as| H["Hypercert<br/>(bundles approved work)"]
 
-    style A fill:#a855f7,stroke:#9333ea,color:#fff
-    style W fill:#22c55e,stroke:#16a34a,color:#fff
-    style WA fill:#3b82f6,stroke:#2563eb,color:#fff
-    style H fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef assessment fill:#6d28d9,stroke:#c4b5fd,color:#ffffff
+    classDef work fill:#166534,stroke:#86efac,color:#ffffff
+    classDef approval fill:#1d4ed8,stroke:#93c5fd,color:#ffffff
+    classDef certificate fill:#b45309,stroke:#fcd34d,color:#ffffff
+    class A assessment
+    class W work
+    class WA approval
+    class H certificate
 ```
 
 Each step is recorded on the **Ethereum Attestation Service** (EAS) with schema-validated data. Smart contract **resolvers** enforce that attesters have the correct Hats Protocol role and that the data matches the expected schema.

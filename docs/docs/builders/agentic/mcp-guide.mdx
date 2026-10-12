@@ -9,27 +9,65 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - .mcp.json
   - AGENTS.md
+  - docs/routines/bug-intake.md
+  - docs/routines/growth-pulse.md
+  - docs/routines/health-watch.md
+  - docs/routines/pr-review.md
+  - docs/routines/qa-call-report.md
+  - docs/routines/qa-triage-pulse.md
+  - docs/routines/release-prep.md
+  - docs/routines/research-synthesis.md
+  - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:933af8334756dca5f276451d6714b7572a8a7d7ca0e8cb09fcf1b18ffaaff056"
+source_digest: "sha256:4a7d648bf0cdee5d3721cb5c7c933a3080b6f9e83909d4e04f5d5be9e14e4adc"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
+  - docs/routines/bug-intake.md
+  - docs/routines/growth-pulse.md
+  - docs/routines/health-watch.md
+  - docs/routines/pr-review.md
+  - docs/routines/qa-call-report.md
+  - docs/routines/qa-triage-pulse.md
+  - docs/routines/release-prep.md
+  - docs/routines/research-synthesis.md
+  - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
 ---
 
-<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Agent and MCP Guide
 
-This inventory is projected from the checked-in MCP configuration. Repository guidance defines how each server may be used; user-level tools are outside this project contract.
+An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used.
+
+## MCP servers in this repository
+
+Projected from the checked-in MCP configuration, `.mcp.json`.
 
 | Server | Command | Arguments | Scope | Surfaces |
 |---|---|---|---|---|
 | brave-devtools | `node` | `scripts/mcp/brave-devtools.mjs` | local-browser-debugging | client, admin, docs, storybook |
 
-## Safety boundary
+### Safety boundary {#safety-boundary}
 
 - WebMCP proof through this wrapper is Brave-only (navigator.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.
 - The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.
 - This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.
 - Use the authenticated Brave extension or visible-desktop path for wallet, passkey, session, installed-PWA, and profile-dependent proof (AGENTS.md § Browser Evidence).
 - Do not expose secrets, wallet state, passkeys, local storage, private garden data, telemetry identifiers, or hidden admin actions in prompts or reports.
+
+## Connected services
+
+These are not in `.mcp.json`, and the routines' rules say to keep it that way. Each person connects them once in their coding app (Claude Code or Codex), and an agent may then use them inside the limits its guide sets. The third column is read from the connectors each scheduled routine declares; working sessions use the same services under the same rules.
+
+| Service | What agents use it for | Routines that declare it | Rules |
+|---|---|---|---|
+| Linear | The durable backlog. Agents read issues and projects, file and update issues under the routing contract, and post review comments and status updates. | `bug-intake`, `growth-pulse`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse`, `release-prep`, `research-synthesis` | [.claude/context/linear-routing-rules.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/context/linear-routing-rules.md) |
+| PostHog | Product telemetry, read-only, across three projects: App, Admin, and Agent. Agents use it to check a bug report against real usage and to answer health and growth questions, choosing the project before every query. | `bug-intake`, `growth-pulse`, `health-watch`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/posthog-questions.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/posthog-questions.md) |
+| Vercel | Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request. | `bug-intake`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
+| Sentry | Error detail beside the PostHog evidence, when a Sentry connection is available. Every routine is written to work without it. | `qa-call-report` | [docs/routines/README.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/README.md) |
+| GitHub | Pull requests, review threads, commit ranges, and releases. The gh CLI covers the same ground when no connector is present. | `release-prep` | [.claude/skills/resolve-pr-comments/SKILL.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/resolve-pr-comments/SKILL.md) |
+| Google Drive | The meeting notes that feed bug intake and QA triage. | `bug-intake`, `qa-call-report`, `qa-triage-pulse`, `research-synthesis` | [docs/routines/qa-triage-pulse.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/qa-triage-pulse.md) |
+| Google Calendar | Upcoming events that explain a change in the numbers, such as a demo or a planting season. Optional context only. | `growth-pulse`, `health-watch` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
+
+The routine definitions live in [docs/routines](https://github.com/greenpill-dev-guild/green-goods/tree/develop/docs/routines), each with the connectors it may use in its frontmatter.

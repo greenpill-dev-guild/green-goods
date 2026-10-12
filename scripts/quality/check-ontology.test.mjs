@@ -656,8 +656,21 @@ const miniOntology = {
       transitions: [{ from: ["Ready"], to: ["Ready"], layer: "on-chain", mechanism: "markPoolReady | guard" }],
     },
   ],
+  integrations: [
+    {
+      id: "karma",
+      display: "Karma GAP",
+      definition: "Project reporting.",
+      contract_source: "a.sol",
+      deployment_fields: ["karmaGAPModule"],
+      indexer_contracts: [],
+      additional_sources: [],
+      matrix_column: "Karma GAP",
+    },
+  ],
   integration_matrix: {
     protocols: ["Karma GAP", "Unlock"],
+    column_notes: { Unlock: "Vocabulary mapping only." },
     rows: [{ ref: "entity:garden", label: "Garden", cells: { "Karma GAP": "Project" } }],
   },
   pattern_watches: [],
@@ -696,6 +709,22 @@ const miniProjections = {
       example: "A person plants a tree.",
       aliases: ["field worker"],
       not_confused_with: ["Operator"],
+    },
+  ],
+  persona_journeys: [
+    {
+      ref: "persona:gardener",
+      context: "People in the field.",
+      engagements: [
+        {
+          when: "After doing the work",
+          what: "Submit it.",
+          where: ["client"],
+          term_refs: ["entity:garden"],
+          guide: "/community/gardener-guide/uploading-your-work",
+          code: ["a.sol"],
+        },
+      ],
     },
   ],
   marketing_claims: [
@@ -758,12 +787,50 @@ test("ontology renderer omits an empty specified-machines section", () => {
   assert.equal(rendered.includes("Specified machines without an implemented source"), false);
 });
 
-test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
+test("matrix columns must be claimed by one integration or carry a note", () => {
+  assert.deepEqual(checkSidecarIntegrity(miniOntology, () => true).filter((error) => /matrix/.test(error)), []);
+  const unmapped = structuredClone(miniOntology);
+  delete unmapped.integration_matrix.column_notes.Unlock;
+  assert.ok(checkSidecarIntegrity(unmapped, () => true).some((error) => error.includes('matrix column "Unlock": no integration claims it')));
+  const duplicate = structuredClone(miniOntology);
+  duplicate.integrations.push({ ...duplicate.integrations[0], id: "karma-two" });
+  assert.ok(checkSidecarIntegrity(duplicate, () => true).some((error) => error.includes('"Karma GAP" is already claimed by karma')));
+  const conflicting = structuredClone(miniOntology);
+  conflicting.integration_matrix.column_notes["Karma GAP"] = "Also noted.";
+  assert.ok(checkSidecarIntegrity(conflicting, () => true).some((error) => error.includes("notes describe unclaimed columns only")));
+  const missing = structuredClone(miniOntology);
+  delete missing.integrations[0].matrix_column;
+  assert.ok(checkSidecarIntegrity(missing, () => true).some((error) => error.includes("matrix_column is required")));
+  const undeclared = structuredClone(miniOntology);
+  undeclared.integrations[0].matrix_column = "Nope";
+  assert.ok(checkSidecarIntegrity(undeclared, () => true).some((error) => error.includes('"Nope" is not a declared integration_matrix protocol')));
+});
+
+test("matrix renderer reports code integrations and recorded networks per column", () => {
+  const integrations = {
+    karma: {
+      display: "Karma GAP",
+      networks: [{ chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["karmaGAPModule"] }],
+      totalNetworks: 4,
+      indexedContracts: [],
+    },
+  };
+  const matrix = renderEntityMatrixMdx(miniOntology, { integrations });
+  assert.ok(matrix.includes("| Karma GAP | [Karma GAP](/builders/integrations/karma) | Arbitrum One (Deployed) | 1 |"), matrix);
+  assert.ok(matrix.includes("| Unlock | Vocabulary mapping only, no code integration | — | 0 |"), matrix);
+  assert.ok(matrix.includes("- **Unlock**: Vocabulary mapping only."), matrix);
+  assert.equal(matrix.includes("Active integrations"), false);
+  assert.ok(renderEntityMatrixMdx(miniOntology).includes("deployment data not supplied"));
+});
+
+test("matrix renderer lists mapped terms per protocol and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
-  assert.ok(matrix.includes("| Garden | Project | — |"));
+  assert.ok(matrix.includes("| Garden | Project | Entity |"), matrix);
   const reference = renderOntologyMdx(miniOntology, miniProjections);
   assert.ok(reference.includes("markPoolReady \\| guard"));
-  assert.ok(matrix.includes("### Entities"));
+  assert.ok(matrix.includes("### Karma GAP"));
+  assert.equal(matrix.includes("### Unlock"), false, "a column with no mapped terms gets no section");
+  assert.ok(matrix.includes("Protocols in the matrix with no mapped terms yet: Unlock."), matrix);
 });
 
 test("integrity rejects undeclared executable transition endpoints and relationship targets", () => {
@@ -786,6 +853,7 @@ test("integration metadata requires unique deployment fields and existing source
       definition: "Broken fixture.",
       contract_source: "missing.sol",
       deployment_fields: ["module", "module"],
+      remote_deployment_fields: { receiver: { 2: 1 }, module: { 2: 2 } },
       indexer_contracts: [],
       additional_sources: ["missing.ts"],
     },
@@ -796,6 +864,8 @@ test("integration metadata requires unique deployment fields and existing source
   assert.ok(errors.includes("integration Bad Integration: deployment_fields contains duplicates"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.sol"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.ts"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields names receiver, which is not a deployment field"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields.module must map a chain id to a different chain id"));
 });
 
 test("specified constraints and state machines require specs and planned anchors", () => {
@@ -934,6 +1004,35 @@ test("projection integrity requires capability and human coverage", () => {
   assert.ok(errors.includes("human concepts: missing persona:gardener"));
 });
 
+test("projection integrity requires a journey per persona and a built interaction to say where and show its code", () => {
+  const missing = structuredClone(miniProjections);
+  missing.persona_journeys = [];
+  assert.ok(checkProjectionIntegrity(miniOntology, missing, () => true).includes("persona journeys: missing persona:gardener"));
+
+  const broken = structuredClone(miniProjections);
+  Object.assign(broken.persona_journeys[0].engagements[0], { where: ["kiosk"], code: [], guide: "joining a garden" });
+  broken.persona_journeys[0].engagements.push({ when: "Later", what: "", where: [], term_refs: ["entity:nothing"], code: [] });
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  const first = "persona journey persona:gardener engagement 1";
+  assert.ok(errors.includes(`${first}: unknown surface "kiosk"`));
+  assert.ok(errors.includes(`${first}: code is required once the interaction is built`));
+  assert.ok(errors.some((error) => error.startsWith(`${first}: guide must be a docs route`)));
+  const second = "persona journey persona:gardener engagement 2";
+  assert.ok(errors.includes(`${second}: what is required`));
+  assert.ok(errors.includes(`${second}: unknown term entity:nothing`));
+  assert.ok(errors.includes(`${second}: where is required once the interaction is built`));
+
+  // While a term it relies on is only planned, an interaction may name no surface and no code yet.
+  const planned = structuredClone(miniProjections);
+  Object.assign(planned.capabilities[0], { implementation: "not-implemented", deployment: "not-deployed", activation: "inactive", integration: "not-integrated", availability: "planned" });
+  planned.marketing_claims = [];
+  Object.assign(planned.persona_journeys[0].engagements[0], { where: [], code: [] });
+  assert.deepEqual(checkProjectionIntegrity(miniOntology, planned, () => true), []);
+
+  // A code path a journey points at must exist.
+  const gone = checkProjectionIntegrity(miniOntology, miniProjections, (file) => file !== "a.sol");
+  assert.ok(gone.includes("persona journey persona:gardener engagement 1: code path does not exist: a.sol"));
+});
 test("projection integrity rejects unsupported availability", () => {
   const broken = structuredClone(miniProjections);
   broken.capabilities[0].activation = "inactive";

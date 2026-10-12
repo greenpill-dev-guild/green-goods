@@ -1,0 +1,38 @@
+[
+  {
+    "title": "Gardener",
+    "href": "/community/gardener-guide/",
+    "icon": "seedling",
+    "roleAccent": "gardener",
+    "audience": "Field workers",
+    "time": "5 min quickstart",
+    "description": "Document regenerative work in the field with photos and structured evidence capture."
+  },
+  {
+    "title": "Steward",
+    "href": "/community/steward-guide/",
+    "icon": "shield",
+    "roleAccent": "steward",
+    "audience": "Garden managers",
+    "time": "15 min steward setup",
+    "description": "Create and manage your garden community, approve work, and configure actions."
+  },
+  {
+    "title": "Funder",
+    "href": "/community/funder-guide/",
+    "icon": "wallet",
+    "roleAccent": "funder",
+    "audience": "Capital allocators",
+    "time": "10 min first deposit",
+    "description": "Support garden operations through vault deposits and keep withdrawal controls close at hand."
+  },
+  {
+    "title": "Builder",
+    "href": "/builders/getting-started",
+    "icon": "hammer",
+    "roleAccent": "builder",
+    "audience": "Developers",
+    "time": "30 min setup",
+    "description": "Integrate with Green Goods contracts, APIs, and the shared component library."
+  }
+]

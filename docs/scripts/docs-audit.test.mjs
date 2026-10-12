@@ -167,6 +167,49 @@ test("broken markdown fragment exits nonzero", () => {
   }
 });
 
+test("a hand-written page that names a repository path that is not there exits nonzero", () => {
+  const root = fixture();
+  try {
+    mkdirSync(path.join(root, "packages/client/src/views"), { recursive: true });
+    mkdirSync(path.join(root, "docs/docs/builders/packages"), { recursive: true });
+    writeFileSync(path.join(root, "packages/client/src/main.tsx"), "");
+    writeFileSync(path.join(root, "docs/sidebars.ts"), "export default ['builders/test', 'builders/packages/client'];\n");
+    const file = path.join(root, "docs/docs/builders/packages/client.mdx");
+    const page = (entry, rows) => `---
+audience: developer
+owner: engineering
+last_verified: 2026-08-30
+feature_status: Live
+slug: /builders/packages/client
+source_of_truth:
+  - authority.ts
+---
+# Client
+
+The entry is \`${entry}\`, and a glob such as \`packages/client/src/**\` is not one path.
+
+| Directory | What lives there |
+|---|---|
+${rows}
+
+\`\`\`bash
+cat packages/client/src/an-example-that-need-not-exist.ts
+\`\`\`
+`;
+    writeFileSync(file, page("packages/client/src/main.tsx", "| `src/views/` | Screens |"));
+    const clean = runAudit(root);
+    assert.equal(clean.status, 0, clean.stderr);
+    // A renamed entry file and a directory row that no longer exists are both named.
+    writeFileSync(file, page("packages/client/src/index.tsx", "| `src/views/` | Screens |\n| `src/routes/` | Gone |"));
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /client\.mdx: Repository path not found: packages\/client\/src\/index\.tsx/);
+    assert.match(result.stderr, /client\.mdx: Repository path not found: src\/routes\//);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("orphaned public asset exits nonzero", () => {
   const root = fixture();
   try {

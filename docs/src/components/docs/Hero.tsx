@@ -4,51 +4,31 @@ import {
   RiShieldCheckLine,
   RiWallet3Line,
 } from "@remixicon/react";
-import {RolePathCard} from "./RolePathCard";
+import rolePaths from "@site/src/data/role-paths.json";
+
+import {RolePathCard, type RoleAccent} from "./RolePathCard";
 import styles from "./styles.module.css";
 
-const ROLE_PATHS = [
-  {
-    title: "Gardener",
-    href: "/community/gardener-guide/",
-    icon: RiSeedlingLine,
-    roleAccent: "gardener",
-    audience: "Field workers",
-    time: "5 min quickstart",
-    description:
-      "Document regenerative work in the field with photos and structured evidence capture.",
-  },
-  {
-    title: "Steward",
-    href: "/community/steward-guide/",
-    icon: RiShieldCheckLine,
-    roleAccent: "steward",
-    audience: "Garden managers",
-    time: "15 min steward setup",
-    description:
-      "Create and manage your garden community, approve work, and configure actions.",
-  },
-  {
-    title: "Funder",
-    href: "/community/funder-guide/",
-    icon: RiWallet3Line,
-    roleAccent: "funder",
-    audience: "Capital allocators",
-    time: "10 min first deposit",
-    description:
-      "Support garden operations through vault deposits and keep withdrawal controls close at hand.",
-  },
-  {
-    title: "Builder",
-    href: "/builders/getting-started",
-    icon: RiHammerLine,
-    roleAccent: "builder",
-    audience: "Developers",
-    time: "30 min setup",
-    description:
-      "Integrate with Green Goods contracts, APIs, and the shared component library.",
-  },
-] as const;
+// The role list lives in data so the welcome page's Markdown twin prints the same links
+// (docs/scripts/llms.mjs).
+const ROLE_ICONS = {
+  seedling: RiSeedlingLine,
+  shield: RiShieldCheckLine,
+  wallet: RiWallet3Line,
+  hammer: RiHammerLine,
+} as const;
+
+type RolePath = {
+  title: string;
+  href: string;
+  icon: keyof typeof ROLE_ICONS;
+  roleAccent: RoleAccent;
+  audience: string;
+  time: string;
+  description: string;
+};
+
+const ROLE_PATHS = rolePaths as RolePath[];
 
 export function Hero() {
   return (
@@ -60,7 +40,7 @@ export function Hero() {
 
       <div className={styles.heroRoleGrid} role="list">
         {ROLE_PATHS.map((role, i) => {
-          const Icon = role.icon;
+          const Icon = ROLE_ICONS[role.icon];
 
           return (
             <div
