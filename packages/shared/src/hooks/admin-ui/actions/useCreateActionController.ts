@@ -47,6 +47,7 @@ export function useCreateActionController() {
     assertReady,
     pendingRegistration,
     reconcileRegistration,
+    confirmRegistrationCancellation,
     acknowledgeRegistration,
     registrationScope,
   } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
@@ -319,6 +320,16 @@ export function useCreateActionController() {
     }
   };
 
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const scope = registrationScope;
+    if (isCheckingConfirmation || isLoading || send !== "pending")
+      throw new Error("pending-submission-changed");
+    await confirmRegistrationCancellation(confirmedInWallet);
+    if (!mounted.current || activeScope.current !== scope) return;
+    setSend("idle");
+    setSendError(null);
+    sendLockRef.current = false;
+  };
   const checkConfirmation = async () => {
     if (isCheckingConfirmation || isLoading || send === "sending" || send === "sent") return;
     const scope = registrationScope;
@@ -395,6 +406,8 @@ export function useCreateActionController() {
     isPendingRegistration,
     isCheckingConfirmation: isCheckingConfirmation || isLoading,
     checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey: `${registrationScope}:${pendingRegistration?.hash}`,
     isSent,
     onSubmit,
     stepConfigs,

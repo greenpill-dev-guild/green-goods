@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   getFileByHash: vi.fn(),
   loggerError: vi.fn(),
   navigate: vi.fn(),
-  restoreDraft: vi.fn(() => null),
+  restoreDraft: vi.fn<() => { formState: Record<string, unknown> } | null>(() => null),
   setDraft: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
@@ -154,7 +154,9 @@ describe("useActionEditorController", () => {
     mocks.pendingEdits = [];
     mocks.reconcileEdits.mockReset();
     vi.clearAllMocks();
-    mocks.restoreDraft.mockReturnValue(null);
+    mocks.restoreDraft.mockReset().mockReturnValue(null);
+    mocks.setDraft.mockReset();
+    mocks.clearDraft.mockReset();
     mocks.updateEndTime.mockResolvedValue({ success: true });
     mocks.updateInstructions.mockResolvedValue({ success: true });
     mocks.updateStartTime.mockResolvedValue({ success: true });
@@ -263,6 +265,57 @@ describe("useActionEditorController", () => {
     }
     expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
     expect(mocks.clearDraft).toHaveBeenCalledOnce();
+  });
+
+  it("retains same-save completion across a remount but expires it when the draft is consumed", async () => {
+    let saved: Record<string, unknown> | null = null;
+    mocks.setDraft.mockImplementation((_path, value) => {
+      saved = value;
+    });
+    mocks.restoreDraft.mockImplementation(() => (saved ? { formState: saved } : null));
+    mocks.clearDraft.mockImplementation(() => {
+      saved = null;
+    });
+    mocks.updateStartTime.mockResolvedValueOnce({ success: false, confirmation: "pending" });
+    const data = {
+      title: "Updated action",
+      startTime: new Date(originalStart.getTime() + 3600000),
+      endTime: originalEnd,
+    };
+    const first = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(first.result.current.form.getValues("title")).toBe("Original action")
+    );
+    act(() => first.result.current.form.reset(data));
+    await act(() => first.result.current.submit(data));
+    expect(mocks.updateTitle).toHaveBeenCalledOnce();
+    first.unmount();
+    mocks.pendingEdits = [["pending", {}]];
+    mocks.reconcileEdits.mockResolvedValueOnce({
+      confirmed: [
+        {
+          key: "11155111:owner:updateActionStartTime:42",
+          fingerprint: JSON.stringify(["42", String(data.startTime.getTime() / 1000)]),
+        },
+      ],
+      unresolved: false,
+      reverted: false,
+    });
+    const restored = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() => expect(restored.result.current.form.getValues("title")).toBe(data.title));
+    await act(() => restored.result.current.checkConfirmation());
+    expect(mocks.updateTitle).toHaveBeenCalledOnce();
+    expect(mocks.updateStartTime).toHaveBeenCalledOnce();
+    expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
+    expect(saved).toBeNull();
+    restored.unmount();
+    mocks.pendingEdits = [];
+    const fresh = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(fresh.result.current.form.getValues("title")).toBe("Original action")
+    );
+    await act(() => fresh.result.current.submit(data));
+    expect(mocks.updateTitle).toHaveBeenCalledTimes(2);
   });
 
   it("does not let a late confirmation navigate or clear a replacement screen", async () => {

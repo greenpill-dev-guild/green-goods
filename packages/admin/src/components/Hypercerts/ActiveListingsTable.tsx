@@ -69,7 +69,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
   const [recoveryError, setRecoveryError] = useState(false);
   const recoveryBusy = isCheckingConfirmation || isClearing;
 
-  const confirmationControl = pendingCancellation ? (
+  const recoveryControls = pendingCancellation ? (
     <>
       <Alert variant="info">
         <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
@@ -118,6 +118,13 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
       />
     </>
   ) : null;
+
+  const confirmationControl = (
+    <>
+      {recoveryControls}
+      {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
+    </>
+  );
 
   if (isLoading) {
     return (
@@ -177,7 +184,6 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
       {confirmationControl}
-      {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
       <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">

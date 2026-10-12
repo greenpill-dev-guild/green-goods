@@ -1,5 +1,5 @@
+import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
 import { Alert } from "@green-goods/shared/components/Alert";
-import { AdminButton } from "@/components/AdminButton";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useCreateAssessmentController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
@@ -121,16 +121,12 @@ export default function CreateAssessment() {
         onStepClick={editable ? (step) => createAssessment.goToStep(step - 1) : undefined}
         footer={
           createAssessment.isPending ? (
-            <AdminButton
-              type="button"
+            <WalletCancellationRecovery
+              key={createAssessment.recoveryKey}
+              onCheck={createAssessment.checkConfirmation}
+              onConfirmCancellation={createAssessment.confirmWalletCancellation}
               disabled={createAssessment.isCheckingConfirmation}
-              onClick={() => createAssessment.checkConfirmation()}
-            >
-              {formatMessage({
-                id: "app.account.checkConfirmation",
-                defaultMessage: "Check confirmation",
-              })}
-            </AdminButton>
+            />
           ) : (
             <FlowSendFooter
               stepIndex={createAssessment.currentStep}

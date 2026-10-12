@@ -13,13 +13,14 @@ const mocks = vi.hoisted(() => ({
   peekDraft: vi.fn(),
   create: vi.fn(),
   updateStatus: vi.fn(),
+  ownership: vi.fn(),
   trackFailed: vi.fn(),
 }));
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mocks.address,
 }));
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
-  useTransactionSender: () => ({ sendContractCall: vi.fn() }),
+  useTransactionSender: () => ({ sendContractCall: vi.fn(), assertOwnership: mocks.ownership }),
 }));
 vi.mock("../../../stores/useAdminStore", () => ({
   useAdminStore: (select: (state: unknown) => unknown) =>
@@ -324,5 +325,29 @@ it("records a recovered garden failure once before removing its checkpoint", asy
     chainId: mocks.chainId,
     error: "TransactionReverted",
   });
+  expect(mocks.create).not.toHaveBeenCalled();
+});
+
+it("allows the owner to release a cancelled garden proposal without another send", async () => {
+  const account = mocks.address as `0x${string}`;
+  useCreateGardenStore
+    .getState()
+    .recordPendingSubmission({
+      accountAddress: account,
+      chainId: mocks.chainId,
+      gardenName: "Cancelled garden",
+      result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
+    });
+  const { result } = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => result.current.openFlow());
+  await expect(result.current.confirmWalletCancellation(false)).rejects.toThrow(
+    "confirmation-required"
+  );
+  await act(() => result.current.confirmWalletCancellation(true));
+  expect(mocks.ownership).toHaveBeenCalledWith(account, mocks.chainId);
+  expect(
+    useCreateGardenStore.getState().getPendingSubmission(account, mocks.chainId)
+  ).toBeUndefined();
+  expect(result.current.state.matches("pending")).toBe(false);
   expect(mocks.create).not.toHaveBeenCalled();
 });

@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   listings: [] as unknown[],
   isLoading: false,
   error: null as Error | null,
+  cancellationError: null as Error | null,
   isChecking: false,
   check: vi.fn(),
   confirmCancelled: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock("@green-goods/shared/hooks/hypercerts/useCancelListing", () => ({
     isCheckingConfirmation: state.isChecking,
     checkConfirmation: state.check,
     confirmWalletCancellation: state.confirmCancelled,
-    error: null,
+    error: state.cancellationError,
   }),
 }));
 import { ActiveListingsTable } from "../../../components/Hypercerts/ActiveListingsTable";
@@ -31,6 +32,7 @@ describe("cancellation recovery without an active row", () => {
     state.listings = [];
     state.isLoading = false;
     state.error = null;
+    state.cancellationError = null;
     state.isChecking = false;
     state.check.mockClear();
     state.confirmCancelled.mockReset().mockResolvedValue(undefined);
@@ -68,6 +70,17 @@ describe("cancellation recovery without an active row", () => {
     await waitFor(() => expect(state.confirmCancelled).toHaveBeenCalledWith(true));
   });
 
+  it.each([
+    "loading",
+    "error",
+    "empty",
+  ])("shows terminal cancellation feedback with %s listings", (mode) => {
+    state.isLoading = mode === "loading";
+    state.error = mode === "error" ? new Error("Offline") : null;
+    state.cancellationError = new Error("Cancellation transaction reverted");
+    render(<ActiveListingsTable gardenAddress={garden} />);
+    expect(screen.getByText("Cancellation transaction reverted")).toBeVisible();
+  });
   it("disables the recovery control during its read", () => {
     state.isChecking = true;
     render(<ActiveListingsTable gardenAddress={garden} />);

@@ -31,6 +31,8 @@ export function useCreateGardenController() {
     submitCreation,
     retry,
     checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     draft,
   } = useCreateGardenWorkflow();
   const { loadDraft, draftKey } = draft;
@@ -200,6 +202,8 @@ export function useCreateGardenController() {
     isPending,
     isCheckingConfirmation: state.matches("reconciling"),
     checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     isTeamStep: currentStepConfig?.id === "team",
     retry,
     showValidation: stepValidation.showValidation,

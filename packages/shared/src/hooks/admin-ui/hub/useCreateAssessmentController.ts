@@ -164,6 +164,8 @@ export function useCreateAssessmentController() {
     isPending,
     isCheckingConfirmation,
     checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
@@ -411,7 +413,6 @@ export function useCreateAssessmentController() {
       showIncompleteForm();
       return;
     }
-
     // Which domain an assessment may carry is the garden's to say, so Submit
     // waits while its domains load or after their read failed.
     if (normalizedGardenDomainMask === undefined) {
@@ -424,7 +425,6 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     if (!address) {
       refuseSubmit(
         { id: "app.assessment.accountRequired", defaultMessage: "Sign in required" },
@@ -435,7 +435,6 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     const payload = buildWorkflowPayload(form);
     if (!payload) {
       refuseSubmit(
@@ -447,7 +446,6 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     // Reset a rejected send so retry uses the edited answers. Accepted sends stay pending.
     if (hasError) resetWorkflow();
     const started = startCreation(payload);
@@ -464,11 +462,9 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     setSubmittedForm(form);
     submitCreation();
   };
-
   return {
     canReview,
     // The Review stays up through the done state, after the store let the draft go.
@@ -490,6 +486,8 @@ export function useCreateAssessmentController() {
     isPending,
     isCheckingConfirmation,
     checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     normalizedGardenDomainMask,
     reviewForm: isSent && submittedForm ? submittedForm : form,
     showValidation: stepValidation.showValidation,

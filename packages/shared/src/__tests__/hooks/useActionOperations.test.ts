@@ -86,6 +86,7 @@ vi.mock("@tanstack/react-query", () => ({
   QueryClient: vi.fn(() => ({})),
 }));
 
+import { toastService } from "../../components/toast";
 import { useToastAction } from "../../hooks/app/useToastAction";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
@@ -466,6 +467,28 @@ describe("useActionOperations", () => {
       expect(send).toHaveBeenCalledOnce();
     });
 
+    it("clears only an owner-confirmed abandoned registration", async () => {
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      useActionRegistrationStore.getState().record(primaryAddress!, 11155111, pending);
+      const { result } = renderHook(() => useActionOperations(11155111));
+      await expect(result.current.confirmRegistrationCancellation(false)).rejects.toThrow(
+        "confirmation-required"
+      );
+      await runInAct(() => result.current.confirmRegistrationCancellation(true));
+      expect(result.current.pendingRegistration).toBeUndefined();
+      expect(send).not.toHaveBeenCalled();
+    });
+    it("reports one toast and refresh for several reverted edits", async () => {
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      const store = useActionRegistrationStore.getState();
+      for (const field of ["updateActionTitle", "updateActionEndTime"])
+        store.recordEdit(`11155111:${primaryAddress!.toLowerCase()}:${field}:42`, "[]", pending);
+      sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+      const { result } = renderHook(() => useActionOperations(11155111, "42"));
+      await runInAct(() => result.current.reconcileEdits());
+      expect(toastService.error).toHaveBeenCalledOnce();
+      expect(mockInvalidateQueries).toHaveBeenCalledOnce();
+    });
     it("records a recovered registration failure once", async () => {
       useActionRegistrationStore.getState().record(primaryAddress!, 11155111, {
         hash: "0xProposal",

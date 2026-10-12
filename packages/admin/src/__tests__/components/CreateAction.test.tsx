@@ -121,6 +121,7 @@ vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", 
     isPendingRegistration: controllerState.isPendingRegistration,
     isCheckingConfirmation: false,
     checkConfirmation: mockCheckConfirmation,
+    confirmWalletCancellation: vi.fn(),
     onSubmit: mockOnSubmit,
     txErrorView: { severity: "warning" },
     stepConfigs: [
@@ -305,7 +306,8 @@ vi.mock("@/components/Layout/FlowStepHeader", () => ({
   FlowStepHeader: ({ title }: { title: React.ReactNode }) => React.createElement("h2", null, title),
 }));
 
-vi.mock("@/components/AdminDialog", () => ({
+vi.mock("@/components/AdminDialog", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/AdminDialog")>()),
   AdminDialog: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { role: "dialog" }, children),
   ADMIN_FLOW_DIALOG_CLASS: "",
@@ -323,11 +325,6 @@ vi.mock("@/components/AdminButton", () => ({
 }));
 
 vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));
-
-vi.mock("@remixicon/react", () => {
-  const Icon = (props: unknown) => React.createElement("span", props as object);
-  return new Proxy({}, { get: () => Icon });
-});
 
 vi.mock("@/components/Layout/PageHeader", () => ({
   PageHeader: ({ title, description }: { title: string; description?: React.ReactNode }) =>

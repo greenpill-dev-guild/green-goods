@@ -1,5 +1,5 @@
 import { getConnectorClient, getPublicClient, type Config } from "@wagmi/core";
-import { toEventSelector, type Hex } from "viem";
+import { decodeEventLog, parseAbi, toEventSelector, type Hex } from "viem";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { isCanonicalTransactionHash } from "./confirmation";
@@ -13,7 +13,7 @@ interface ExecutionReceipt {
   blockHash: Hex;
   transactionHash: Hex;
   status: "success" | "reverted";
-  logs: readonly { address: Address; topics: readonly Hex[] }[];
+  logs: readonly { address: Address; topics: readonly Hex[]; data: Hex }[];
 }
 
 interface WalletReconciliationReads {
@@ -66,15 +66,40 @@ export async function reconcileWalletBroadcast(
       receipt.transactionHash.toLowerCase() !== hash.toLowerCase()
     )
       return { status: "unresolved" };
-    const executionFailure = toEventSelector("ExecutionFailure(bytes32,uint256)");
-    const safeFailed = receipt.logs.some(
-      (log) =>
-        log.address.toLowerCase() === account.toLowerCase() &&
-        log.topics[0]?.toLowerCase() === executionFailure.toLowerCase()
+    const safeLogs = receipt.logs.filter(
+      (log) => log.address.toLowerCase() === account.toLowerCase()
     );
-    return receipt.status === "reverted" || safeFailed
-      ? { status: "reverted" }
-      : { status: "confirmed", transactionHash: hash };
+    const executionFailure = toEventSelector("ExecutionFailure(bytes32,uint256)");
+    if (hash.toLowerCase() === reference.hash.toLowerCase()) {
+      const safeFailed = safeLogs.some(
+        (log) => log.topics[0]?.toLowerCase() === executionFailure.toLowerCase()
+      );
+      return receipt.status === "reverted" || safeFailed
+        ? { status: "reverted" }
+        : { status: "confirmed", transactionHash: hash };
+    }
+    if (receipt.status !== "success") return { status: "unresolved" };
+    const abi = parseAbi([
+      "event ExecutionSuccess(bytes32 txHash, uint256 payment)",
+      "event ExecutionFailure(bytes32 txHash, uint256 payment)",
+    ]);
+    for (const log of safeLogs) {
+      if (!log.topics[0]) continue;
+      try {
+        const event = decodeEventLog({
+          abi,
+          topics: [log.topics[0], ...log.topics.slice(1)],
+          data: log.data,
+        });
+        if (event.args.txHash.toLowerCase() !== reference.hash.toLowerCase()) continue;
+        return event.eventName === "ExecutionFailure"
+          ? { status: "reverted" }
+          : { status: "confirmed", transactionHash: hash };
+      } catch {
+        /* Ignore unrelated or malformed events. */
+      }
+    }
+    return { status: "unresolved" };
   } catch {
     return { status: "unresolved" };
   }

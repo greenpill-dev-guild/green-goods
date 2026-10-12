@@ -21,6 +21,7 @@ import { useActionOperations } from "../../action/useActionOperations";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAsyncEffect } from "../../utils/useAsyncEffect";
 import {
+  type EditActionSaveAttempt,
   getActionEditDraftPath,
   restoreEditActionDraft,
   serializeEditActionDraft,
@@ -81,14 +82,25 @@ export function useActionEditorController() {
   const operations = useActionOperations(DEFAULT_CHAIN_ID, id?.split("-")[1]);
   const isPendingEdit = operations.pendingEdits.length > 0;
   const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
-  // Confirmed writes are reusable only while finishing this mounted save attempt.
+  // The owning draft retains this attempt across remounts; consuming it expires the receipts.
   const completedWrites = useRef(new Map<string, string>());
+  const saveAttempt = useRef<EditActionSaveAttempt | undefined>(undefined);
   const editScope = `${operations.registrationScope}:${id}`;
   const activeEditScope = useRef(editScope);
   activeEditScope.current = editScope;
   useEffect(() => {
     completedWrites.current.clear();
-  }, [editScope]);
+    saveAttempt.current = undefined;
+    const path = getActionEditDraftPath(id);
+    const saved = path
+      ? useSheetOrchestratorStore.getState().restoreViewState(path)?.formState
+      : null;
+    const attempt = restoreEditActionDraft(saved)?.saveAttempt;
+    if (attempt?.scope === editScope) {
+      saveAttempt.current = { ...attempt, completedWrites: { ...attempt.completedWrites } };
+      completedWrites.current = new Map(Object.entries(attempt.completedWrites));
+    }
+  }, [editScope, id]);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -134,6 +146,13 @@ export function useActionEditorController() {
           useSheetOrchestratorStore.getState().restoreViewState(draftPath)?.formState ?? null;
         const restored = restoreEditActionDraft(saved);
         if (!restored) return false;
+        if (restored.saveAttempt?.scope === editScope) {
+          saveAttempt.current = {
+            ...restored.saveAttempt,
+            completedWrites: { ...restored.saveAttempt.completedWrites },
+          };
+          completedWrites.current = new Map(Object.entries(restored.saveAttempt.completedWrites));
+        }
         form.reset({
           title: restored.title || action.title || "",
           startTime: restored.startTime,
@@ -202,7 +221,8 @@ export function useActionEditorController() {
           instructionConfig,
           isEditingInstructions,
           translations,
-          translationsDirty
+          translationsDirty,
+          saveAttempt.current
         )
       );
     });
@@ -227,7 +247,8 @@ export function useActionEditorController() {
         instructionConfig,
         isEditingInstructions,
         translations,
-        translationsDirty
+        translationsDirty,
+        saveAttempt.current
       )
     );
   }, [
@@ -241,19 +262,38 @@ export function useActionEditorController() {
     translationsDirty,
   ]);
 
+  const persistAttempt = (data = form.getValues()) => {
+    if (!draftPath || !saveAttempt.current) return;
+    saveAttempt.current.completedWrites = Object.fromEntries(completedWrites.current);
+    setDraftFormState(
+      draftPath,
+      serializeEditActionDraft(
+        data,
+        instructionConfig,
+        isEditingInstructions,
+        translations,
+        translationsDirty,
+        saveAttempt.current
+      )
+    );
+  };
+
   const finishSave = () => {
     if (!mounted.current || activeEditScope.current !== editScope) return;
     toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
     operations.clearCompletedEdits();
     completedWrites.current.clear();
+    saveAttempt.current = undefined;
     if (draftPath) clearDraftFormState(draftPath);
     navigate(actionDetailHref);
   };
 
   const submit = async (data: EditActionFormData) => {
-    if (!action || !id || isPendingEdit || operations.isLoading) return;
+    if (!action || !id || isPendingEdit || operations.isLoading || isCheckingConfirmation) return;
     try {
       await operations.assertReady();
+      saveAttempt.current ??= { id: crypto.randomUUID(), scope: editScope, completedWrites: {} };
+      persistAttempt(data);
       const requireSuccess = (result: ActionOperationResult) => {
         if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
         if (!result.success) throw new Error(result.error?.message ?? "Action update failed");
@@ -273,6 +313,7 @@ export function useActionEditorController() {
           throw new Error("Action editor scope changed");
         requireSuccess(result);
         completedWrites.current.set(name, fingerprint);
+        persistAttempt(data);
       };
       if (data.title !== action.title)
         await perform("updateActionTitle", [BigInt(actionUID), data.title], () =>
@@ -324,8 +365,10 @@ export function useActionEditorController() {
       const outcome = await operations.reconcileEdits();
       if (!mounted.current || activeEditScope.current !== editScope || !outcome || !action || !id)
         return;
+      saveAttempt.current ??= { id: crypto.randomUUID(), scope: editScope, completedWrites: {} };
       for (const edit of outcome.confirmed)
         completedWrites.current.set(edit.key.split(":").at(-2)!, edit.fingerprint);
+      persistAttempt();
       operations.clearCompletedEdits();
       if (outcome.unresolved || outcome.reverted) return;
       const uid = BigInt(id.split("-")[1]);
@@ -352,8 +395,8 @@ export function useActionEditorController() {
       if (needsInstructions) {
         const fingerprint = completedWrites.current.get("updateActionInstructions");
         if (!fingerprint) return;
-        const [, cid] = JSON.parse(fingerprint) as [string, string];
         try {
+          const [, cid] = JSON.parse(fingerprint) as [string, string];
           const file = await getFileByHash(cid, { timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS });
           const raw = typeof file.data === "string" ? file.data : await file.data.text();
           if (
@@ -380,7 +423,7 @@ export function useActionEditorController() {
     form,
     instructionConfig,
     isEditingInstructions,
-    isLoading: operations.isLoading || isPendingEdit,
+    isLoading: operations.isLoading || isPendingEdit || isCheckingConfirmation,
     isPendingEdit,
     isCheckingConfirmation,
     checkConfirmation,

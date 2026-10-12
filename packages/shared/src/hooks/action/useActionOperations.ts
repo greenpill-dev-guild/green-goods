@@ -6,6 +6,7 @@
  * Each operation follows: account check → simulation → execution → refetch.
  */
 
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi } from "viem";
@@ -76,6 +77,8 @@ export function useActionOperations(chainId: number, actionUID?: string) {
   const pendingRegistration = useActionRegistrationStore((state) =>
     registrationScope ? state.pending[registrationScope] : undefined
   );
+  const activeRegistrationScope = useRef(registrationScope);
+  activeRegistrationScope.current = registrationScope;
   const edits = useActionRegistrationStore((state) => state.edits);
   const pendingEdits = Object.entries(edits).filter(
     ([key, edit]) =>
@@ -102,13 +105,14 @@ export function useActionOperations(chainId: number, actionUID?: string) {
         store.clearEdit(key);
         reverted = true;
       } else unresolved = true;
-      if (outcome.status === "reverted")
-        toastService.error({
-          title: formatMessage({ id: "app.account.transactionRevertedTitle" }),
-          message: formatMessage({ id: "app.account.transactionReverted" }),
-        });
-      void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
     }
+    if (reverted)
+      toastService.error({
+        title: formatMessage({ id: "app.account.transactionRevertedTitle" }),
+        message: formatMessage({ id: "app.account.transactionReverted" }),
+      });
+    if (confirmed.length || reverted)
+      void queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) });
     return { confirmed, unresolved, reverted };
   };
   const clearCompletedEdits = () => {
@@ -178,6 +182,27 @@ export function useActionOperations(chainId: number, actionUID?: string) {
     return { success: false, confirmation: "pending", hash: pending.hash };
   };
 
+  const confirmRegistrationCancellation = async (confirmedInWallet: boolean) => {
+    const pending = registrationScope
+      ? useActionRegistrationStore.getState().pending[registrationScope]
+      : undefined;
+    await confirmCancelledSubmission({
+      confirmedInWallet,
+      account: address ?? undefined,
+      sender,
+      chainId,
+      isCurrent: () =>
+        Boolean(
+          address &&
+            registrationScope &&
+            pending?.confirmation === "pending" &&
+            activeRegistrationScope.current === registrationScope &&
+            loadingCount.current === 0 &&
+            useActionRegistrationStore.getState().pending[registrationScope] === pending
+        ),
+      clear: () => useActionRegistrationStore.getState().clear(address!, chainId),
+    });
+  };
   // Schedule background refetch to sync with indexer
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
     useCallback(
@@ -454,6 +479,7 @@ export function useActionOperations(chainId: number, actionUID?: string) {
     pendingRegistration,
     registrationScope,
     reconcileRegistration,
+    confirmRegistrationCancellation,
     pendingEdits,
     reconcileEdits,
     clearCompletedEdits,

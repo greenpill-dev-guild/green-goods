@@ -773,6 +773,56 @@ describe("useCreateAssessmentWorkflow", () => {
     queryClient.clear();
   });
 
+  it("starts another assessment after explicit reset when confirmed draft cleanup failed", async () => {
+    mocks.clearDraft.mockResolvedValue(false);
+    mocks.send.mockResolvedValueOnce({
+      hash: "0xProposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    mocks.sender!.reconcileBroadcast = vi
+      .fn()
+      .mockResolvedValue({ status: "confirmed", transactionHash: `0x${"66".repeat(32)}` });
+    const client = createTestQueryClient();
+    const view = renderWorkflow(client);
+    await startReady(view.result);
+    await submitAndWaitFor(view.result, "pending");
+    act(() => view.result.current.checkConfirmation());
+    await waitFor(() => expect(view.result.current.state.matches("success")).toBe(true));
+    await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalled());
+    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(1);
+    act(() => view.result.current.reset());
+    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(0);
+    mocks.uploadJson.mockResolvedValue({ cid: "bafy-next" });
+    await startReady(view.result);
+    await submitAndWaitFor(view.result, "success");
+    expect(mocks.send).toHaveBeenCalledTimes(2);
+    client.clear();
+  });
+  it("frees an abandoned assessment only after owner-checked wallet cancellation", async () => {
+    mocks.send.mockResolvedValueOnce({
+      hash: "0xProposal",
+      sponsored: false,
+      confirmation: "pending",
+    });
+    const client = createTestQueryClient();
+    const view = renderWorkflow(client);
+    await startReady(view.result);
+    await submitAndWaitFor(view.result, "pending");
+    await expect(view.result.current.confirmWalletCancellation(false)).rejects.toThrow(
+      "confirmation-required"
+    );
+    mocks.assertOwnership.mockRejectedValueOnce(new Error("Wrong owner"));
+    await expect(view.result.current.confirmWalletCancellation(true)).rejects.toThrow(
+      "Wrong owner"
+    );
+    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(1);
+    await act(() => view.result.current.confirmWalletCancellation(true));
+    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(0);
+    expect(view.result.current.isPending).toBe(false);
+    expect(mocks.send).toHaveBeenCalledOnce();
+    client.clear();
+  });
   it("does not consume the next account's draft after a completed assessment", async () => {
     const client = createTestQueryClient();
     const hook = renderWorkflow(client);

@@ -1,12 +1,10 @@
+import { reconcileGardenRecovery } from "./gardenRecovery";
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
-import {
-  getTransactionScopeKey,
-  TransactionRevertedError,
-  type TxResult,
-} from "../../modules/transactions/types";
+import { getTransactionScopeKey, type TxResult } from "../../modules/transactions/types";
 import { useIntl } from "react-intl";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -129,79 +127,9 @@ export function useCreateGardenWorkflow() {
     () =>
       createGardenMachine.provide({
         actors: {
-          reconcileGarden: fromPromise<TxResult, TxResult>(async ({ input, signal }) => {
-            const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
-            const pending = activeAddress
-              ? useCreateGardenStore.getState().getPendingSubmission(activeAddress, activeChainId)
-              : undefined;
-            const { address: currentAddress, sender: currentSender } = dependenciesRef.current;
-            if (
-              !pending ||
-              !currentSender ||
-              currentAddress?.toLowerCase() !== pending.accountAddress.toLowerCase() ||
-              dependenciesRef.current.chainId !== pending.chainId
-            )
-              return input;
-            const ports = createDefaultCreateGardenPorts({
-              transactionSender: currentSender,
-              addPending: () => {},
-            });
-            const outcome =
-              pending.result.confirmation !== "pending"
-                ? { status: "confirmed" as const, transactionHash: pending.result.hash }
-                : await ports.sender.reconcile(
-                    pending.result.hash,
-                    pending.chainId,
-                    pending.result.broadcastReference
-                  );
-            if (
-              signal.aborted ||
-              useCreateGardenStore
-                .getState()
-                .getPendingSubmission(pending.accountAddress, pending.chainId) !== pending ||
-              dependenciesRef.current.address?.toLowerCase() !==
-                pending.accountAddress.toLowerCase() ||
-              dependenciesRef.current.chainId !== pending.chainId
-            )
-              return input;
-            if (outcome.status === "unresolved") return input;
-            if (outcome.status === "reverted") {
-              dependenciesRef.current.updateTransactionStatus(pending.result.hash, "failed");
-              trackAdminGardenCreateFailed({
-                gardenName: pending.gardenName,
-                chainId: pending.chainId,
-                error: "TransactionReverted",
-              });
-              useCreateGardenStore
-                .getState()
-                .clearPendingSubmission(pending.accountAddress, pending.chainId);
-              throw new TransactionRevertedError(
-                pending.result.hash,
-                "Garden creation transaction reverted"
-              );
-            }
-            if (outcome.status !== "confirmed") return input;
-            dependenciesRef.current.updateTransactionStatus(pending.result.hash, "confirmed");
-            if (!pending.successTracked)
-              trackAdminGardenCreateSuccess({
-                gardenName: pending.gardenName,
-                gardenAddress: getNetworkContracts(pending.chainId).gardenToken,
-                chainId: pending.chainId,
-                txHash: outcome.transactionHash,
-              });
-            queryInvalidation
-              .invalidateGardens(pending.chainId)
-              .forEach((queryKey) =>
-                dependenciesRef.current.queryClient.invalidateQueries({ queryKey })
-              );
-            dependenciesRef.current.scheduleGardenRefresh();
-            useCreateGardenStore.getState().recordPendingSubmission({
-              ...pending,
-              successTracked: true,
-              result: { ...pending.result, hash: outcome.transactionHash, confirmation: undefined },
-            });
-            return { hash: outcome.transactionHash, sponsored: input.sponsored };
-          }),
+          reconcileGarden: fromPromise<TxResult, TxResult>(({ input, signal }) =>
+            reconcileGardenRecovery(input, signal, () => dependenciesRef.current)
+          ),
           submitGarden: fromPromise<TxResult, void>(async () => {
             const gardenStoreState = useCreateGardenStore.getState();
             const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
@@ -324,7 +252,7 @@ export function useCreateGardenWorkflow() {
       }),
     [] // Machine created once — actors/actions read current values from refs
   );
-  const [state, send] = useMachine(machine);
+  const [state, send, actor] = useMachine(machine);
   const scope = address ? getTransactionScopeKey(address, selectedChainId) : null;
   const previousScope = useRef(scope);
   useEffect(() => {
@@ -481,7 +409,35 @@ export function useCreateGardenWorkflow() {
 
   const checkConfirmation = useCallback(() => send({ type: "CHECK_CONFIRMATION" }), [send]);
 
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const { address: account, sender, chainId } = dependenciesRef.current;
+    const pending = account
+      ? useCreateGardenStore.getState().getPendingSubmission(account, chainId)
+      : undefined;
+    await confirmCancelledSubmission({
+      confirmedInWallet,
+      account,
+      sender,
+      chainId,
+      isCurrent: () =>
+        Boolean(
+          account &&
+            pending?.result.confirmation === "pending" &&
+            actor.getSnapshot().matches("pending") &&
+            dependenciesRef.current.address === account &&
+            dependenciesRef.current.chainId === chainId &&
+            useCreateGardenStore.getState().getPendingSubmission(account, chainId) === pending
+        ),
+      clear: () => {
+        useCreateGardenStore.getState().clearPendingSubmission(account!, chainId);
+        send({ type: "SWITCH_SCOPE" });
+        openFlow();
+      },
+    });
+  };
   return {
+    recoveryKey: `${scope}:${state.context.txHash}`,
+    confirmWalletCancellation,
     state,
     openFlow,
     closeFlow,

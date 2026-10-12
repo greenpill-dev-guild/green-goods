@@ -1,3 +1,5 @@
+import { reconcileAssessmentRecovery } from "./assessmentRecovery";
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -16,7 +18,6 @@ import {
   AssessmentConfirmationUnavailableError,
   AssessmentReceiptMismatchError,
   AssessmentSubmissionPendingError,
-  reconcileAssessmentSubmission,
 } from "../../modules/assessment/create-assessment-command";
 import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
@@ -127,60 +128,21 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
           isPending: () => Boolean(getPending()),
         },
         actors: {
-          reconcileAssessment: fromPromise<string | null>(async ({ signal }) => {
-            const key = activeKeyRef.current;
-            const pending = getPending();
-            const { address: currentAddress, sender: currentSender } = identityRef.current;
-            if (
-              !key ||
-              !pending ||
-              !currentSender ||
-              currentAddress?.toLowerCase() !== pending.account.toLowerCase() ||
-              chainIdRef.current !== pending.chainId
+          reconcileAssessment: fromPromise<string | null>(({ signal }) =>
+            reconcileAssessmentRecovery(
+              signal,
+              () => ({
+                key: activeKeyRef.current,
+                pending: getPending(),
+                ...identityRef.current,
+                chainId: chainIdRef.current,
+              }),
+              (key, uid) => {
+                completionRef.current = { key, uid };
+              },
+              formatMessageRef.current
             )
-              return null;
-            const outcome = pending.confirmedUid
-              ? { status: "confirmed" as const, uid: pending.confirmedUid }
-              : await reconcileAssessmentSubmission(pending, currentSender);
-            if (
-              signal.aborted ||
-              activeKeyRef.current !== key ||
-              getPending() !== pending ||
-              identityRef.current.address?.toLowerCase() !== pending.account.toLowerCase() ||
-              chainIdRef.current !== pending.chainId
-            )
-              return null;
-            if (outcome.status === "unresolved") return null;
-            if (outcome.status === "reverted" || outcome.status === "mismatched") {
-              trackAdminAssessmentCreateFailed({
-                gardenId: pending.gardenId,
-                assessmentType: pending.assessmentType ?? "unknown",
-                chainId: pending.chainId,
-                error: outcome.status === "mismatched" ? "ReceiptMismatch" : "TransactionReverted",
-              });
-              useAssessmentSubmissionStore.getState().clear(key);
-              throw new Error(
-                formatMessageRef.current({
-                  id:
-                    outcome.status === "mismatched"
-                      ? "app.assessment.receiptMismatch"
-                      : "app.account.transactionReverted",
-                })
-              );
-            }
-            useAssessmentSubmissionStore
-              .getState()
-              .record({ ...pending, confirmedUid: outcome.uid, successTracked: true });
-            if (!pending.successTracked)
-              trackAdminAssessmentCreateSuccess({
-                gardenId: pending.gardenId,
-                assessmentType: pending.assessmentType ?? "unknown",
-                chainId: pending.chainId,
-                attestationUid: outcome.uid,
-              });
-            completionRef.current = { key, uid: outcome.uid };
-            return outcome.uid;
-          }),
+          ),
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
             async ({ input: params, signal }) => {
               const { address: currentAddress, sender: currentSender } = identityRef.current;
@@ -353,7 +315,10 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         return false;
       if (address)
         activeKeyRef.current = assessmentSubmissionKey(address, selectedChainId, params.gardenId);
-      if (getPending()) return false;
+      const existing = getPending();
+      if (existing && !existing.confirmedUid) return false;
+      if (existing && activeKeyRef.current)
+        useAssessmentSubmissionStore.getState().clear(activeKeyRef.current);
       const ipfsStatus = getIpfsInitStatus();
       if (ipfsStatus.status === "failed" || ipfsStatus.status === "skipped_no_config") {
         toastService.error({
@@ -412,9 +377,37 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     send({ type: "SUBMIT" });
   }, [send]);
   const reset = useCallback(() => {
-    if (getPending()) return;
+    const existing = getPending();
+    if (existing && !existing.confirmedUid) return;
+    if (existing && activeKeyRef.current)
+      useAssessmentSubmissionStore.getState().clear(activeKeyRef.current);
     send({ type: "RESET" });
   }, [send]);
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const key = activeKeyRef.current;
+    const pending = getPending();
+    await confirmCancelledSubmission({
+      confirmedInWallet,
+      ...identityRef.current,
+      account: identityRef.current.address,
+      chainId: chainIdRef.current,
+      isCurrent: () =>
+        Boolean(
+          key &&
+            pending &&
+            !pending.confirmedUid &&
+            getPending() === pending &&
+            activeKeyRef.current === key &&
+            actor.getSnapshot().matches("pending") &&
+            identityRef.current.address?.toLowerCase() === pending.account.toLowerCase() &&
+            chainIdRef.current === pending.chainId
+        ),
+      clear: () => {
+        useAssessmentSubmissionStore.getState().clear(key!);
+        send({ type: "SWITCH_SCOPE" });
+      },
+    });
+  };
   const queryClient = useQueryClient();
   // Invalidate assessment queries and clear draft when workflow reaches success state
   const isSuccess = state.matches("success");
@@ -492,6 +485,8 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     reset,
     isPending: state.matches("pending") || state.matches("reconciling"),
     isCheckingConfirmation: state.matches("reconciling"),
+    recoveryKey: `${scope}:${pendingSubmission?.result.hash}`,
+    confirmWalletCancellation,
     checkConfirmation: () => send({ type: "CHECK_CONFIRMATION" }),
     canRetry: state.matches("error") && !getPending() && state.context.retryCount < 3,
     draft,

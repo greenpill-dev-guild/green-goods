@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { toEventSelector } from "viem";
+import { encodeAbiParameters, toEventSelector } from "viem";
 import type { Config } from "@wagmi/core";
 import { reconcileWalletBroadcast } from "../../modules/transactions/wallet-reconciliation";
 import { WalletSender } from "../../modules/transactions/wallet-sender";
@@ -9,11 +9,22 @@ const block = `0x${"ab".repeat(32)}` as const;
 const transaction = `0x${"cd".repeat(32)}` as const;
 const reference = {
   kind: "transaction",
-  hash: "0xSafeProposal",
+  hash: `0x${"ef".repeat(32)}` as const,
   account,
   chainId: 11155111,
 } as const;
 const config = {} as Config;
+function safeEvent(
+  event = "ExecutionSuccess",
+  proposal = reference.hash,
+  signer: `0x${string}` = account
+) {
+  return {
+    address: signer,
+    topics: [toEventSelector(`${event}(bytes32,uint256)`)],
+    data: encodeAbiParameters([{ type: "bytes32" }, { type: "uint256" }], [proposal, 0n]),
+  };
+}
 function fixture() {
   return {
     walletReceipt: vi.fn().mockResolvedValue({
@@ -26,7 +37,7 @@ function fixture() {
       blockHash: block,
       transactionHash: transaction,
       status: "success",
-      logs: [],
+      logs: [safeEvent()],
     }),
   };
 }
@@ -48,18 +59,22 @@ describe("wallet proposal reconciliation", () => {
     expect(reads.executionReceipt).toHaveBeenCalledWith(transaction, 11155111);
     expect(write).not.toHaveBeenCalled();
   });
-  it.each(["reverted", "safe-failure"])("recognizes %s execution", async (failure) => {
+  it.each(["canonical-revert", "safe-failure"])("recognizes %s execution", async (failure) => {
     const reads = fixture();
     reads.executionReceipt.mockResolvedValue({
       blockHash: block,
       transactionHash: transaction,
-      status: failure === "reverted" ? "reverted" : "success",
-      logs:
-        failure === "safe-failure"
-          ? [{ address: account, topics: [toEventSelector("ExecutionFailure(bytes32,uint256)")] }]
-          : [],
+      status: failure === "canonical-revert" ? "reverted" : "success",
+      logs: failure === "safe-failure" ? [safeEvent("ExecutionFailure")] : [],
     });
-    expect(await reconcileWalletBroadcast(config, reference, account, reads)).toEqual({
+    expect(
+      await reconcileWalletBroadcast(
+        config,
+        failure === "canonical-revert" ? { ...reference, hash: transaction } : reference,
+        account,
+        reads
+      )
+    ).toEqual({
       status: "reverted",
     });
   });
@@ -69,12 +84,45 @@ describe("wallet proposal reconciliation", () => {
       blockHash: block,
       transactionHash: transaction,
       status: "success",
-      logs: [{ address: other, topics: [toEventSelector("ExecutionFailure(bytes32,uint256)")] }],
+      logs: [safeEvent(), { ...safeEvent("ExecutionFailure"), address: other }],
     });
     expect(await reconcileWalletBroadcast(config, reference, account, reads)).toEqual({
       status: "confirmed",
       transactionHash: transaction,
     });
+  });
+  it.each([
+    "missing",
+    "other-proposal",
+    "other-safe",
+    "malformed",
+  ])("refuses mismapped Safe execution evidence: %s", async (mode) => {
+    const reads = fixture();
+    const log = safeEvent();
+    if (mode === "other-proposal") log.data = safeEvent("ExecutionSuccess", transaction).data;
+    if (mode === "other-safe") log.address = other;
+    if (mode === "malformed") log.data = "0x";
+    reads.executionReceipt.mockResolvedValue({
+      blockHash: block,
+      transactionHash: transaction,
+      status: "success",
+      logs: mode === "missing" ? [] : [log],
+    });
+    expect(await reconcileWalletBroadcast(config, reference, account, reads)).toEqual({
+      status: "unresolved",
+    });
+  });
+  it("recognizes an ordinary transaction only by its exact hash", async () => {
+    const reads = fixture();
+    reads.executionReceipt.mockResolvedValue({
+      blockHash: block,
+      transactionHash: transaction,
+      status: "success",
+      logs: [],
+    });
+    expect(
+      await reconcileWalletBroadcast(config, { ...reference, hash: transaction }, account, reads)
+    ).toEqual({ status: "confirmed", transactionHash: transaction });
   });
   it("keeps unavailable, unexecuted and mismatched evidence pending", async () => {
     const reads = fixture();

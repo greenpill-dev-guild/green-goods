@@ -1,3 +1,4 @@
+import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useCreateActionController } from "@green-goods/shared/hooks/admin-ui/actions/useCreateActionController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
@@ -11,7 +12,6 @@ import {
   ReviewStep,
 } from "@/components/Action/CreateActionSteps";
 import { actionSendStatus } from "@/components/Action/CreateActionSteps/reviewStatus";
-import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
@@ -83,13 +83,12 @@ export default function CreateAction() {
   const activeStep = createAction.stepConfigs[createAction.currentStep];
 
   const footer = createAction.isPendingRegistration ? (
-    <AdminButton
-      type="button"
+    <WalletCancellationRecovery
+      key={createAction.recoveryKey}
+      onCheck={createAction.checkConfirmation}
+      onConfirmCancellation={createAction.confirmWalletCancellation}
       disabled={createAction.isCheckingConfirmation}
-      onClick={() => void createAction.checkConfirmation()}
-    >
-      {formatMessage({ id: "app.account.checkConfirmation", defaultMessage: "Check confirmation" })}
-    </AdminButton>
+    />
   ) : (
     <FlowSendFooter
       stepIndex={createAction.currentStep}
