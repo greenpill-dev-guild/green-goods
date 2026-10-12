@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   isChecking: false,
   check: vi.fn(),
   confirmCancelled: vi.fn(),
+  pendingCancellation: { orderId: 7, result: { hash: "0xSafeProposal", sponsored: false } },
 }));
 vi.mock("@green-goods/shared/hooks/hypercerts/useHypercertListings", () => ({
   useHypercertListings: () => state,
@@ -16,7 +17,7 @@ vi.mock("@green-goods/shared/hooks/hypercerts/useCancelListing", () => ({
   useCancelListing: () => ({
     cancelListing: vi.fn(),
     isCancelling: true,
-    pendingCancellation: { orderId: 7, result: { hash: "0xSafeProposal", sponsored: false } },
+    pendingCancellation: state.pendingCancellation,
     isCheckingConfirmation: state.isChecking,
     checkConfirmation: state.check,
     confirmWalletCancellation: state.confirmCancelled,
