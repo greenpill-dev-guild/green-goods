@@ -70,6 +70,8 @@
 | 59 | The economics explorer's Markdown twin is written from a generated projection of its model (Codex, 2026-10-11) | The twin carried only the literal BrowserOnly block. The model is TypeScript with nothing to import, which the pinned Node loads when the projection is rendered; the twin walk now treats a BrowserOnly block as a hole |
 | 60 | The docs audit fails when a hand-written page names a repository path that does not exist; a package page's directory table is read relative to its package (2026-10-11, from Afo's note on drift) | The hand-written pages carry path tables that nothing checked. Descriptions stay written by hand; the paths are checked against the tree. Paths git ignores, globs, placeholders and fenced examples are skipped. It found two wrong file names on the Client page |
 | 61 | Decision 57 as applied: product screens are captured at the viewport only (desktop 1440x900 saved 2000x1250, phone 390x844 saved 780x1688), signed-in screens from Storybook's real views with fixture data, public pages from production (2026-10-11) | Afo picked mock auth on localhost as the source, but the deployer mock reads live gardens, whose member names and work photos do not belong in a public repository. Storybook's real views render the same components with seeded data. A component figure (sign-in) is cropped to its content |
+| 62 | A persona journey names the messaging agent only for what the bot's handlers do: choosing a garden for the chat, a text or voice submission the bot holds, and a steward's pending, approve and reject. Joining a garden and following a review are app-only (2026-10-11, Codex) | The first journeys cited handlers by their names. `handlers/join.ts` only records the chat's garden and grants no hat; `handlers/status.ts` shows the chat's own state, not a review. A journey row is a claim about behavior, so its code path is read, not just located |
+| 63 | Pages that describe changing roles say a grant reaches down the tree and a revoke removes one hat (Tokenbound, Hats) (2026-10-11, Codex) | `_grantRole` gives an owner the steward and gardener hats too, while `_revokeRole` burns only the named hat. A previous owner stripped of the owner hat alone stays a steward, and `grantRole` and `revokeRole` are open to any owner or steward |
 
 ## Requirements Coverage
 
@@ -243,6 +245,10 @@ outdated captures removed. Not replaced: the steward guide's two review captures
 stories render an empty queue), the gardener guide's Start and Details captures, and the three QA
 app captures. The launcher's fork-indexer comment went out as its own PR against develop at Afo's
 request.
+
+Status (2026-10-11, Codex on `2b9809c9e`): three threads, all valid, fixed in `f156d771e`: two
+persona journey rows claimed the Telegram bot does what only the app does, and the Tokenbound page's
+handoff instruction left a previous owner with the steward hat; decisions 62 and 63.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

@@ -297,6 +297,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Final pass, second batch: the audit now fails on a missing repository path in a hand-written page (e2548a283), and product screens follow one capture size, with two outdated captures removed (052c8ad82); decisions 60 and 61. Five captures still lack a faithful source and are listed in the plan. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T04:06:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Three Codex threads on 2b9809c9e fixed in f156d771e: the persona journeys name the messaging agent only for what the bot's handlers do, and the Tokenbound and Hats pages say a revoke removes one hat; decisions 62 and 63. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

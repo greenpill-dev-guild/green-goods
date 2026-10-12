@@ -599,3 +599,24 @@ renders all 13 skills.
   the row's CSS they rendered 240x1688, stretched by their height attribute); the Passkeys page
   shows the cropped sign-in figure at 511x355.
 - **Human gates open**: unchanged, plus the five captures above.
+
+## Validation Receipt — Three Codex threads on 2b9809c9e (2026-10-11)
+
+- **Scope**: the three threads Codex opened on `2b9809c9e`, relayed by the desktop app's Auto-fix;
+  all ACTIONABLE, fixed in `f156d771e`. Decisions 62 and 63.
+- **Read in the agent**: `handlers/join.ts` (checks the garden exists, sets the chat's
+  `currentGarden`), `status.ts` (wallet, role, garden, session step, submission allowance),
+  `submit.ts` (text or voice into a draft, confirm adds it to the bot's pending list),
+  `pending.ts`, `approve.ts` (checks the steward on-chain, then submits the work with the
+  gardener's key and the approval with the steward's) and `reject.ts`.
+- **Read in the contracts**: `_grantRole`, `_grantSubRole` and `_revokeRole` in
+  `modules/Hats.sol`; `grantRole` and `revokeRole` are gated by `_requireOwnerOrOperator`, which
+  also admits the garden account, and the base Tokenbound account lets the token holder execute.
+- **Same class, same pass**: every other journey row's code path was re-read. Three pointers were
+  corrected (join requests and role dialogs in the cockpit, the endowment panel) and the
+  commitment pool row now uses the steward guide's verbs.
+- **Exact commands and results**: `node --test` over the generator, ontology and twin suites →
+  124/124 · `bun run check -- --intent qa --only docs-authority` → passed ·
+  `node scripts/quality/check-ontology.mjs` → all guards passed · drift check → 17 current.
+- **GitHub writes**: one reply and a resolution on each of the three threads.
+- **Human gates open**: unchanged.
