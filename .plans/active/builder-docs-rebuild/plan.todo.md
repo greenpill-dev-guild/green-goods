@@ -61,6 +61,13 @@
 | 50 | The design page's type samples load the client's own Inter and Fraunces requests, with `font-synthesis` off, instead of the brand kit's files (2026-10-11, Codex) | The brand kit ships the regular weight only, so `app-title` (600), `label-md` (500) and `editorial` (700) were weights the browser made up on a page that presents itself as the token rendering. A docs test pins the requests to `packages/client/index.html` and fails when a token's weight is outside the range they carry. The docs site already loads its own faces from the same host, so no new third party |
 | 51 | The Testing page's Docs row runs the selector-owned `docs-authority` check instead of a copied `node --test` file list (2026-10-11, Codex) | The copied list had fallen behind the Docs workflow and left out the Mermaid parser suite. The validation policy owns the check's file list, and the guide audit already rejects an unknown check id on that page |
 | 52 | Getting Started keeps saying the fork-mode indexer reads live Arbitrum; the review comment asking for the opposite was declined with evidence (2026-10-11, Codex) | `packages/indexer/config.yaml` has no RPC source, so Envio syncs chain 42161 from HyperSync; the compose file passes no RPC variable into the container; `smoke-full.js` skips the head comparison in fork mode; `ONBOARDING.md` says the same. The comment above `applyGroupEnvironment` in `scripts/dev/stack.js` says fork writes land in the local indexer, which the code does not support: flagged to Afo, not changed here |
+| 53 | The personas page is generated per persona and written for people: context, hat, and a when / what / where table for each, from `persona_journeys` in the ontology projection data (Afo, 2026-10-11: "Generated per persona but needs to be human friendly to read") | The old matrix showed where a persona's name may appear, which he read as wrong for this page: it should say which surfaces each persona works in. "Works in" is now the union of the surfaces a persona's own interactions name, and an interaction's availability comes from the capabilities it names, so a planned one cannot read as usable |
+| 54 | A journey's code paths are pointers the ontology gate checks for existence, not capability evidence (2026-10-11) | Listing them as evidence would oblige the Ontology workflow's path filter to cover about thirty view files and rerun on most product changes. A renamed view is caught the next time the gate runs, not in the renaming PR |
+| 55 | The entity matrix carries the five canonical personas, every integrated protocol, and the entities a partner protocol has its own word for; vocabulary-only columns and Octant's TAM roles are gone (Afo, 2026-10-11, all four options) | Funder and Evaluator were merged in one legacy row and a non-canonical researcher row remained; EAS and Tokenbound had integrations and no column; Silvi, Lido and FTC had no code. Cells the contracts contradict were corrected in the same pass (the garden wears an admin hat under the protocol's tree, not a top hat) |
+| 56 | The public website's buttons go back to capsules, in their own PR against develop, and the docs keep the production site captures (Afo, 2026-10-11) | The site screenshots are from production, which still has capsules, while develop made website buttons square (DL-029). He chose the capsule; the reversal is client and design-system work, not docs |
+| 57 | Builder-page screenshots follow one standard and are recaptured in this PR: one viewport per surface, light theme, develop's current UI through mock auth on localhost (Afo, 2026-10-11) | Thirty-one images came from three capture methods in seven sizes. Not done yet at this record |
+| 58 | The MCP guide lists the hosted services agents reach through a connector, joined from a small catalog and the connectors each routine declares in its frontmatter (Afo, 2026-10-11) | The page covered only the repository's own MCP server. The routines already declare Linear, PostHog, Vercel and the rest; a routine may not name a connector the catalog lacks |
+| 59 | The economics explorer's Markdown twin is written from a generated projection of its model (Codex, 2026-10-11) | The twin carried only the literal BrowserOnly block. The model is TypeScript with nothing to import, which the pinned Node loads when the projection is rendered; the twin walk now treats a BrowserOnly block as a hole |
 
 ## Requirements Coverage
 
@@ -217,6 +224,15 @@ applied to a second page), the type gallery loads the app's fonts, and the Docs 
 selector's check; the fork-indexer comment was answered with evidence and the sentence kept;
 decisions 50 to 52. Afo sent fifteen items from his final pass the same hour; they are the next
 round and are not in this commit.
+
+Status (2026-10-11, Afo's final pass): fifteen notes. Fixed: the Prove it steps, the capital
+paragraphs, the footer, the CI table (a width floor in the copy component), the API index groups,
+the Octant TAM roles, the personas page, the entity matrix, and the MCP guide (`65e16b847`,
+`a195e520e`); decisions 53 to 58. Filed as their own tasks: capsule buttons on the website, one
+environment file instead of two, and the launcher's fork-indexer comment. Still open: the
+screenshot recapture (decision 57) and a drift check for hand-written path tables. Develop was
+merged in (`4610170d2`; four generated pages regenerated), and Codex's note on `270f78cb8` is
+fixed in `154a382db` (decision 59).
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

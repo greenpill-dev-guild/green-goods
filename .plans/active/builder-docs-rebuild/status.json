@@ -281,6 +281,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Four Codex threads on da0163580 handled in c57faf305: three fixed (roles stay with their wearers on transfer, the type gallery loads the app's fonts, the Docs row runs docs-authority), one declined with evidence (the fork-mode indexer reads live Arbitrum); decisions 50 to 52. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T03:26:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Afo's final pass: nine of fifteen notes fixed in 65e16b847 and a195e520e (personas page from persona journeys, entity matrix rebuilt, MCP guide's connected services, plus six smaller fixes); three filed as separate tasks; screenshot recapture and a path-table drift check still open. Develop merged in 4610170d2 and Codex's explorer-twin note fixed in 154a382db; decisions 53 to 59. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

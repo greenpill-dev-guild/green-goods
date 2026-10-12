@@ -538,3 +538,41 @@ renders all 13 skills.
 - **GitHub writes**: one reply and a resolution on each of the four threads.
 - **Human gates open**: unchanged, plus one flag for Afo: the fork-indexer comment in
   `scripts/dev/stack.js` against `ONBOARDING.md`.
+
+## Validation Receipt — Afo's final pass, the develop merge, and the explorer twin (2026-10-11)
+
+- **Scope**: fifteen notes from Afo's pass on the local build, four of them decided by clickable
+  questions (decisions 53, 55, 56, 57); a merge of develop at `5886bebcc`; one Codex note on
+  `270f78cb8`. Commits `65e16b847`, `a195e520e`, `4610170d2`, `154a382db`.
+- **Personas**: journeys for the five personas (23 interactions) in
+  `green-goods-projections.json`, each row checked against the role guides and the code it points
+  at (all paths exist). The page inherits two availability notes from capability records dated
+  2026-08-15: commitments "deployed, not switched on" and hypercerts "still being built". Flagged
+  to Afo as possibly stale; the records are his to change.
+- **Matrix**: re-read `modules/Hats.sol` (admin hat under the protocol's Gardens hat; the six role
+  hat names), `modules/Karma.sol` (project admins, project updates), `modules/CookieJar.sol`
+  (`jarOwner: garden`), the ENS page (subnames for gardens and gardeners) and the hypercert
+  allowlist hook (contributors). No conviction "proposal" term was verified, so none was added.
+- **Merge**: the four conflicts were all generated pages (the API index, the command inventory,
+  the test cases, and develop's copy of the CI page at its old path). Resolved by keeping the
+  branch's layout and regenerating from the merged sources; the drift check reads 17 current.
+- **Explorer twin**: `docs/src/data/revenue-explorer.json` is rendered from
+  `protocolRevenueModel.ts`; the test checks each preset's streams add up to its revenue and its
+  margin is revenue minus expenses, so the outputs were computed and not typed.
+- **Exact commands and results**: `node --test` over the ten docs, ontology and selector suites
+  → 303/303 before the explorer change and 157/157 on the three suites it touched ·
+  `bun run check -- --intent qa --only docs-authority` → passed (69 tests, audit, 17 projections
+  current) · `node scripts/quality/check-ontology.mjs` → all guards passed · docs `bun run test`
+  → 89/89 · docs `bun run typecheck` → clean · production build into a side folder → exit 0,
+  search index covers 70 routes.
+- **Push gate**: hand-run with the hook's own arguments on `154a382db`: passed; 12 fresh passes, 0 reused, 0 unrun of 13 selected checks (push), 75 s; `browser-proof` stays advisory and is recorded above.
+- **Rendered proof**: local production build, read in a background tab of the desktop app's
+  browser pane, no sign-in. Personas page: seven sections, six tables, five code lists, four
+  availability notes. Entity matrix: ten protocol sections, no Silvi, Lido, FTC or TAM. MCP guide:
+  seven connected services. Economics explorer: the calculator still renders (44 inputs) and its
+  `.md` twin has the model's tables and no BrowserOnly block. Earlier in the round: the CI table's
+  command column went from 74px to 188px with one-line commands, no deployments table scrolls at a
+  511px column, and the footer matches the page background in both color modes.
+- **GitHub writes**: none for the explorer note (a review summary with no thread to answer).
+- **Human gates open**: D12, the page-length gate, a Reference landing, the merge, the two
+  capability records above, and the three filed tasks.
