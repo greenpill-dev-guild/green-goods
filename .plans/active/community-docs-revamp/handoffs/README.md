@@ -11,6 +11,8 @@ Keep lane handoffs short and factual. Use one file per lane:
 `pooling-insertion-points.md` is not a lane. It records where the later Commitment Pooling
 documentation (PRD-1156, PRD-727) connects to this foundation.
 
+The scripts behind the screenshots and the rendered check are in `../artifacts/`.
+
 Each handoff should capture:
 
 1. What changed

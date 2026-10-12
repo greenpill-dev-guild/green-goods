@@ -121,6 +121,9 @@ and protocol names; `admin-work-queue.png` and `admin-work-detail.png`, an old c
 real garden, a member's photo, and an account address; `client-work-intro.png` and
 `client-work-details.png`, an old app screen; and `admin-garden-overview.webp`, which nothing used.
 
+The capture list, the capture script, and the crop boxes are in `artifacts/`, with a note on
+which stories render an error instead of the screen.
+
 Every person, garden, and address in the images is fixture data ("Rio Rainforest Lab", "Botanic
 Commons", "Comunidad Verde", "Green Goods Community Garden", "Riverside Commons Garden").
 
@@ -143,7 +146,9 @@ link (below). `git grep` for `/reference/faq` finds only the redirect entry.
 
 Label: clean-room Playwright, headless Chromium, run locally against the production docs build of
 the tested commit. The build was answered from disk by request interception, with the host's
-clean-URL rules. It is not the deployed site and not an authenticated session.
+clean-URL rules. It is not the deployed site and not an authenticated session. The script is
+`artifacts/rendered-check.mjs`. The recorded run used the same script from a scratch folder; a
+second run from the hub copy gave the same result.
 
 - 30 pages at 1440 by 900 and at 390 by 844: every page returned 200 with its heading, no
   horizontal overflow, no broken image, a caption for every figure, and no page error. Requests to
@@ -204,7 +209,7 @@ commit, so the receipt below is for the later commit.
 
 - Tested implementation commit SHA: `0b22f55ccba3582105b7d3ac38df3f6d1522a8cb`
 - Run at (UTC): `2026-10-12T21:03:06Z`
-- Exact command(s): `bun run check -- --intent qa --no-fail-fast`; `bun run check --only docs-generated`; `bun run check --only vocabulary`; `bun run check --only guidance-links`; `bun run --cwd docs audit -- --ci`; the two searches in `eval.md`; a Playwright script, kept outside the repository, that loads `docs/build` in headless Chromium
+- Exact command(s): `bun run check -- --intent qa --no-fail-fast`; `bun run check --only docs-generated`; `bun run check --only vocabulary`; `bun run check --only guidance-links`; `bun run --cwd docs audit -- --ci`; the two searches in `eval.md`; `node .plans/active/community-docs-revamp/artifacts/rendered-check.mjs "$PWD" "$PWD/docs/build" <outDir>`
 - Result: 14 of 14 automated checks passed fresh, with the advisory `browser-proof` pending; 60 rendered page loads clean; 4 redirects, 15 anchors, search, and Markdown twins confirmed. The planner run finished at `2026-10-12T21:07:55Z`; the rendered check started at `2026-10-12T21:08:15Z`, and the focused checks and voice searches at `2026-10-12T21:08:48Z`
 - Validated paths: `docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology` → empty
