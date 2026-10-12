@@ -33,6 +33,8 @@ import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
 
+export { DEV_MOCK_AUTH_ADDRESSES };
+
 /**
  * Freeze wall-clock time inside the Storybook preview iframe so fixture
  * timestamps align with components that still call `Date.now()` or

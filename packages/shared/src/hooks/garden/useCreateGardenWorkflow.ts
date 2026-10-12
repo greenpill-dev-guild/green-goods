@@ -1,12 +1,3 @@
-/**
- * Create Garden Workflow Hook
- *
- * Bridges the XState machine with the Zustand form store,
- * providing a clean API for the UI layer.
- *
- * @module hooks/garden/useCreateGardenWorkflow
- */
-
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
@@ -67,24 +58,19 @@ export function useCreateGardenWorkflow() {
   const updateTransactionStatus = useAdminStore(
     (state: AdminState) => state.updateTransactionStatus
   );
-
   useLayoutEffect(() => {
     if (address) useCreateGardenStore.getState().selectDraftScope(address, selectedChainId);
   }, [address, selectedChainId]);
-
   // Draft persistence via IndexedDB (auto-saves on store changes)
   const draft = useGardenDraft(address, { enabled: !!address, chainId: selectedChainId });
-
   // Get store actions for step navigation
   const storeNextStep = useCreateGardenStore((s) => s.nextStep);
   const storePreviousStep = useCreateGardenStore((s) => s.previousStep);
   const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
   const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
   const storeReset = useCreateGardenStore((s) => s.reset);
-
   const queryClient = useQueryClient();
   const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   // Keep mutable dependencies current for the long-lived machine actor/actions.
   const dependenciesRef = useRef({
     address,
@@ -100,7 +86,6 @@ export function useCreateGardenWorkflow() {
     storeGoToFirstIncomplete,
     scheduleGardenRefresh: () => {},
   });
-
   const { start: scheduleGardenRefresh } = useProgressiveInvalidation(
     useCallback(() => {
       const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
@@ -110,7 +95,6 @@ export function useCreateGardenWorkflow() {
     }, []),
     INDEXER_LAG_SCHEDULE_MS
   );
-
   useEffect(() => {
     dependenciesRef.current = {
       ...dependenciesRef.current,
@@ -141,7 +125,6 @@ export function useCreateGardenWorkflow() {
     storeGoToFirstIncomplete,
     scheduleGardenRefresh,
   ]);
-
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
@@ -184,6 +167,11 @@ export function useCreateGardenWorkflow() {
             if (outcome.status === "unresolved") return input;
             if (outcome.status === "reverted") {
               dependenciesRef.current.updateTransactionStatus(pending.result.hash, "failed");
+              trackAdminGardenCreateFailed({
+                gardenName: pending.gardenName,
+                chainId: pending.chainId,
+                error: "TransactionReverted",
+              });
               useCreateGardenStore
                 .getState()
                 .clearPendingSubmission(pending.accountAddress, pending.chainId);
@@ -220,12 +208,15 @@ export function useCreateGardenWorkflow() {
             const existing = activeAddress
               ? gardenStoreState.getPendingSubmission(activeAddress, activeChainId)
               : undefined;
-            if (existing) return existing.result;
+            if (existing?.result.confirmation === "pending") return existing.result;
+            if (existing)
+              throw new Error(
+                dependenciesRef.current.formatMessage({ id: "app.garden.previousCreationComplete" })
+              );
             const params = gardenStoreState.getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
-
             const {
               address: currentAddress,
               sender: currentSender,
@@ -235,19 +226,16 @@ export function useCreateGardenWorkflow() {
               queryClient: latestQueryClient,
               scheduleGardenRefresh: scheduleRefresh,
             } = dependenciesRef.current;
-
             if (!currentAddress || !isAddress(currentAddress)) {
               throw new Error(message({ id: "app.account.signInRequired" }));
             }
             if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
             await currentSender.assertOwnership?.(currentAddress, currentChainId);
             const accountAddress = currentAddress as `0x${string}`;
-
             trackAdminGardenCreateStarted({
               gardenName: params.name,
               chainId: currentChainId,
             });
-
             try {
               const ports = createDefaultCreateGardenPorts({
                 transactionSender: currentSender,
@@ -295,7 +283,6 @@ export function useCreateGardenWorkflow() {
                 successTracked: true,
               });
               const contracts = getNetworkContracts(currentChainId);
-
               if (!pending?.successTracked)
                 trackAdminGardenCreateSuccess({
                   gardenName: params.name,
@@ -303,14 +290,12 @@ export function useCreateGardenWorkflow() {
                   chainId: currentChainId,
                   txHash,
                 });
-
               // Invalidate garden queries so the list updates immediately
               queryInvalidation
                 .invalidateGardens(currentChainId)
                 .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
               // Schedule follow-up for indexer lag
               scheduleRefresh();
-
               return result;
             } catch (error) {
               trackAdminGardenCreateFailed({
@@ -339,7 +324,6 @@ export function useCreateGardenWorkflow() {
       }),
     [] // Machine created once — actors/actions read current values from refs
   );
-
   const [state, send] = useMachine(machine);
   const scope = address ? getTransactionScopeKey(address, selectedChainId) : null;
   const previousScope = useRef(scope);
@@ -362,7 +346,6 @@ export function useCreateGardenWorkflow() {
     state.matches("reconciling") ||
     isLockPending;
   useBeforeUnloadWhilePending(isSubmitting);
-
   useEffect(() => {
     if (state.value === "success" && state.context.txHash) {
       updateTransactionStatus(state.context.txHash, "confirmed");
@@ -380,7 +363,6 @@ export function useCreateGardenWorkflow() {
       }
     }
   }, [state.value, state.context.txHash, updateTransactionStatus, draft, address, selectedChainId]);
-
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {
     send({ type: "OPEN" });
@@ -396,29 +378,24 @@ export function useCreateGardenWorkflow() {
       send({ type: "RESTORE_PENDING", submission: pending.result });
     }
   }, [send]);
-
   const closeFlow = useCallback(() => {
     if (isSubmitting) return;
     storeReset();
     void draft.clearDraft();
     send({ type: "CLOSE" });
   }, [send, storeReset, draft, isSubmitting]);
-
   const goNext = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "NEXT", formStatus });
   }, [send]);
-
   const goBack = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "BACK", formStatus });
   }, [send]);
-
   const goToReview = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "REVIEW", formStatus });
   }, [send]);
-
   const submitCreation = useCallback((): boolean => {
     const machineState = state.value;
     if (state.matches("submitting")) {
@@ -428,9 +405,7 @@ export function useCreateGardenWorkflow() {
       });
       return false;
     }
-
     const formStatus = getFormStatus();
-
     // Pre-flight check: catch guard failures before XState silently drops the event
     if (machineState !== "review") {
       logger.error("Cannot submit: machine not in review state", {
@@ -448,37 +423,31 @@ export function useCreateGardenWorkflow() {
       });
       return false;
     }
-
     logger.info("Submitting garden creation", {
       source: "useCreateGardenWorkflow.submitCreation",
       machineState,
       formStatus,
     });
-
     void runWithLock(async () => {
       send({ type: "SUBMIT", formStatus });
     });
     return true;
   }, [send, state, runWithLock]);
-
   const estimateCreationCost = useCallback(async () => {
     const params = useCreateGardenStore.getState().getParams();
     if (!params) {
       throw new Error("Garden form is incomplete");
     }
-
     const {
       address: currentAddress,
       sender: currentSender,
       formatMessage: message,
     } = dependenciesRef.current;
     const currentChainId = dependenciesRef.current.chainId;
-
     if (!currentAddress || !isAddress(currentAddress)) {
       throw new Error(message({ id: "app.account.signInRequired" }));
     }
     const accountAddress = currentAddress as `0x${string}`;
-
     if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
     const ports = createDefaultCreateGardenPorts({
       transactionSender: currentSender,
@@ -489,17 +458,22 @@ export function useCreateGardenWorkflow() {
       { reader: ports.reader }
     );
   }, []);
-
   const retry = useCallback(() => {
     send({ type: "RETRY" });
   }, [send]);
-
   const edit = useCallback(() => {
     send({ type: "EDIT" });
   }, [send]);
 
   const createAnother = useCallback(() => {
     if (!state.matches("success")) return;
+    const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
+    const store = useCreateGardenStore.getState();
+    const completed = activeAddress
+      ? store.getPendingSubmission(activeAddress, activeChainId)
+      : undefined;
+    if (activeAddress && completed && completed.result.confirmation !== "pending")
+      store.clearPendingSubmission(activeAddress, activeChainId);
     storeReset();
     void draft.clearDraft();
     send({ type: "CREATE_ANOTHER" });

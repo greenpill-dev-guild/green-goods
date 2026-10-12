@@ -420,7 +420,10 @@ describe("useCreateAssessmentWorkflow", () => {
     client.clear();
   });
 
-  it("permits another assessment only after the accepted proposal is confirmed reverted", async () => {
+  it.each([
+    "reverted",
+    "mismatched",
+  ] as const)("permits another assessment after recovered %s failure", async (status) => {
     mocks.send.mockResolvedValueOnce({
       hash: "0xProposal",
       sponsored: false,
@@ -430,10 +433,26 @@ describe("useCreateAssessmentWorkflow", () => {
     const { result } = renderWorkflow(client);
     await startReady(result);
     await submitAndWaitFor(result, "pending");
-    mocks.sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+    mocks.sender!.reconcileBroadcast = vi.fn().mockResolvedValue({
+      status: status === "mismatched" ? "confirmed" : "reverted",
+      transactionHash: `0x${"66".repeat(32)}`,
+    });
+    if (status === "mismatched")
+      mocks.getReceipt.mockResolvedValueOnce({ status: "success", logs: [] });
     act(() => result.current.checkConfirmation());
     await waitFor(() => expect(result.current.state.matches("error")).toBe(true));
-    expect(result.current.state.context.error).toContain("reverted");
+    expect(result.current.state.context.error).toContain(
+      status === "reverted" ? "reverted" : "did not match"
+    );
+    act(() => result.current.checkConfirmation());
+    expect(mocks.trackFailed).toHaveBeenCalledOnce();
+    expect(mocks.trackFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gardenId: GARDEN_ID,
+        chainId: 11155111,
+        error: status === "mismatched" ? "ReceiptMismatch" : "TransactionReverted",
+      })
+    );
     expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(0);
     expect(mocks.send).toHaveBeenCalledOnce();
     act(() => result.current.reset());

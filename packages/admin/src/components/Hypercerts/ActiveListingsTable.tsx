@@ -4,9 +4,11 @@ import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHy
 import type { Address } from "@green-goods/shared/types/domain";
 import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
 import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -58,22 +60,63 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     pendingCancellation,
     isCheckingConfirmation,
     checkConfirmation,
+    confirmWalletCancellation,
     error: cancellationError,
   } = useCancelListing(gardenAddress);
 
+  const [reviewCancellation, setReviewCancellation] = useState<typeof pendingCancellation>();
+  const [isClearing, setIsClearing] = useState(false);
+  const [recoveryError, setRecoveryError] = useState(false);
+  const recoveryBusy = isCheckingConfirmation || isClearing;
+
   const confirmationControl = pendingCancellation ? (
-    <Alert variant="info">
-      <AdminButton
-        size="sm"
-        disabled={isCheckingConfirmation}
-        onClick={() => void checkConfirmation()}
-      >
-        {intl.formatMessage({
-          id: "app.account.checkConfirmation",
-          defaultMessage: "Check confirmation",
-        })}
-      </AdminButton>
-    </Alert>
+    <>
+      <Alert variant="info">
+        <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
+          {intl.formatMessage({
+            id: "app.account.checkConfirmation",
+            defaultMessage: "Check confirmation",
+          })}
+        </AdminButton>
+        <AdminButton
+          size="sm"
+          variant="text"
+          disabled={recoveryBusy}
+          onClick={() => {
+            setRecoveryError(false);
+            setReviewCancellation(pendingCancellation);
+          }}
+        >
+          {intl.formatMessage({ id: "app.account.reviewCancellation" })}
+        </AdminButton>
+      </Alert>
+      {recoveryError && (
+        <Alert variant="error">
+          {intl.formatMessage({ id: "app.account.pendingRecoveryUnavailable" })}
+        </Alert>
+      )}
+      <AdminConfirmDialog
+        isOpen={Boolean(reviewCancellation && reviewCancellation === pendingCancellation)}
+        onClose={() => setReviewCancellation(undefined)}
+        title={intl.formatMessage({ id: "app.account.confirmCancellationTitle" })}
+        description={intl.formatMessage({ id: "app.account.confirmCancellationDescription" })}
+        confirmLabel={intl.formatMessage({ id: "app.account.confirmCancellation" })}
+        variant="warning"
+        tone="garden"
+        isLoading={isClearing}
+        confirmDisabled={recoveryBusy}
+        onError={() => setRecoveryError(true)}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await confirmWalletCancellation(true);
+            setReviewCancellation(undefined);
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+      />
+    </>
   ) : null;
 
   if (isLoading) {
@@ -222,7 +265,7 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                       }
                       loading={!pendingCancellation && isCancelling}
                       disabled={
-                        isCheckingConfirmation ||
+                        recoveryBusy ||
                         (Boolean(pendingCancellation) &&
                           pendingCancellation?.orderId !== listing.orderId)
                       }

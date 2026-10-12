@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 const state = vi.hoisted(() => ({
@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   error: null as Error | null,
   isChecking: false,
   check: vi.fn(),
+  confirmCancelled: vi.fn(),
 }));
 vi.mock("@green-goods/shared/hooks/hypercerts/useHypercertListings", () => ({
   useHypercertListings: () => state,
@@ -18,6 +19,7 @@ vi.mock("@green-goods/shared/hooks/hypercerts/useCancelListing", () => ({
     pendingCancellation: { orderId: 7, result: { hash: "0xSafeProposal", sponsored: false } },
     isCheckingConfirmation: state.isChecking,
     checkConfirmation: state.check,
+    confirmWalletCancellation: state.confirmCancelled,
     error: null,
   }),
 }));
@@ -30,6 +32,7 @@ describe("cancellation recovery without an active row", () => {
     state.error = null;
     state.isChecking = false;
     state.check.mockClear();
+    state.confirmCancelled.mockReset().mockResolvedValue(undefined);
   });
   it.each([
     "empty",
@@ -55,6 +58,15 @@ describe("cancellation recovery without an active row", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
     expect(state.check).toHaveBeenCalledOnce();
   });
+  it("clears a cancelled proposal only after the explicit wallet confirmation", async () => {
+    render(<ActiveListingsTable gardenAddress={garden} />);
+    fireEvent.click(screen.getByRole("button", { name: "Review Cancellation" }));
+    expect(screen.getByRole("alertdialog")).toBeVisible();
+    expect(state.confirmCancelled).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "I confirmed cancellation" }));
+    await waitFor(() => expect(state.confirmCancelled).toHaveBeenCalledWith(true));
+  });
+
   it("disables the recovery control during its read", () => {
     state.isChecking = true;
     render(<ActiveListingsTable gardenAddress={garden} />);

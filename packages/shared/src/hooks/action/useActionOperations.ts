@@ -26,7 +26,10 @@ import {
 } from "../../modules/action/action-operation-command";
 import { Capital, Domain } from "../../types/domain";
 import { reconcileTransaction } from "../../modules/transactions/confirmation";
-import { trackAdminActionCreateSuccess } from "../../modules/app/analytics-events";
+import {
+  trackAdminActionCreateFailed,
+  trackAdminActionCreateSuccess,
+} from "../../modules/app/analytics-events";
 import {
   type ActionRegistrationDetails,
   useActionRegistrationStore,
@@ -152,6 +155,14 @@ export function useActionOperations(chainId: number, actionUID?: string) {
       return { success: true, hash: outcome.transactionHash };
     }
     if (outcome.status === "reverted") {
+      if (pending.action)
+        trackAdminActionCreateFailed({
+          ...pending.action,
+          gardenAddress: contracts.gardenToken,
+          chainId,
+          error: "TransactionReverted",
+          parsedErrorFamily: "TransactionReverted",
+        });
       useActionRegistrationStore.getState().clear(address, chainId);
       return {
         success: false,

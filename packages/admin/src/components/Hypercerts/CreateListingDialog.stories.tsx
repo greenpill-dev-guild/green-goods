@@ -2,10 +2,10 @@ import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import {
+  DEV_MOCK_AUTH_ADDRESSES,
   withAdminIdentityRole,
   withPendingListing,
 } from "../../../../shared/.storybook/decorators";
-import { DEV_MOCK_AUTH_ADDRESSES } from "@green-goods/shared/providers";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { CreateListingDialog } from "./CreateListingDialog";
 

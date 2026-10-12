@@ -35,6 +35,7 @@ export interface UseCancelListingResult {
   error: Error | null;
   pendingCancellation?: { orderId: number; result: TxResult };
   checkConfirmation: () => Promise<void>;
+  confirmWalletCancellation: (confirmedInWallet: boolean) => Promise<void>;
   isCheckingConfirmation: boolean;
 }
 
@@ -158,7 +159,25 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
     },
   });
 
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    if (!confirmedInWallet) throw new Error("wallet-cancellation-confirmation-required");
+    if (!scope || !pendingCancellation || !sender || !signer) throw new Error("signer-not-ready");
+    const isCurrent = () =>
+      activeScope.current === scope &&
+      !mutation.isPending &&
+      !isCheckingConfirmation &&
+      useListingSubmissionStore.getState().cancellations[scope] === pendingCancellation;
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    await sender.assertOwnership?.(signer, chainId);
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    useListingSubmissionStore.getState().clearCancellation(scope);
+    setConfirmationError(null);
+    mutation.reset();
+    refresh();
+  };
+
   return {
+    confirmWalletCancellation,
     cancelListing: (orderId) => mutation.mutateAsync(orderId),
     isCancelling: mutation.isPending || Boolean(pendingCancellation),
     pendingCancellation,

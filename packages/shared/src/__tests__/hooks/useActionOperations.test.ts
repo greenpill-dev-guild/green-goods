@@ -13,12 +13,19 @@ import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createElement } from "react";
 import en from "../../i18n/en.json";
-import { trackAdminActionCreateSuccess } from "../../modules/app/analytics-events";
-vi.mock("../../modules/app/analytics-events", () => ({ trackAdminActionCreateSuccess: vi.fn() }));
+import {
+  trackAdminActionCreateFailed,
+  trackAdminActionCreateSuccess,
+} from "../../modules/app/analytics-events";
 import type { TransactionSender } from "../../modules/transactions/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionRegistrationStore } from "../../stores/useActionRegistrationStore";
 import { useActionOperations } from "../../hooks/action/useActionOperations";
+
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackAdminActionCreateFailed: vi.fn(),
+  trackAdminActionCreateSuccess: vi.fn(),
+}));
 
 let primaryAddress: `0x${string}` | null = null;
 let sender: TransactionSender | null = null;
@@ -457,6 +464,31 @@ describe("useActionOperations", () => {
         })
       );
       expect(send).toHaveBeenCalledOnce();
+    });
+
+    it("records a recovered registration failure once", async () => {
+      useActionRegistrationStore.getState().record(primaryAddress!, 11155111, {
+        hash: "0xProposal",
+        sponsored: false,
+        confirmation: "pending",
+        action: { actionTitle: "Pending action", actionSlug: "pending-action", actionDomain: 0 },
+      });
+      sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+      const { result } = renderHook(() => useActionOperations(11155111));
+      await runInAct(() => result.current.reconcileRegistration());
+      await runInAct(() => result.current.reconcileRegistration());
+      expect(result.current.pendingRegistration).toBeUndefined();
+      expect(trackAdminActionCreateFailed).toHaveBeenCalledOnce();
+      expect(trackAdminActionCreateFailed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionTitle: "Pending action",
+          chainId: 11155111,
+          error: "TransactionReverted",
+          parsedErrorFamily: "TransactionReverted",
+        })
+      );
+      expect(trackAdminActionCreateSuccess).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
     });
 
     it("handles contract errors during execution", async () => {

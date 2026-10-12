@@ -1,4 +1,5 @@
 {
+  "app.garden.previousCreationComplete": "Este jardín ya fue creado. Elige Crear otro para comenzar un nuevo jardín.",
   "admin.actions.createAction": "Crear acción",
   "admin.actions.description": "{count} {count, plural, one {acción disponible} other {acciones disponibles}}",
   "admin.actions.imageUnavailable": "Imagen no disponible",

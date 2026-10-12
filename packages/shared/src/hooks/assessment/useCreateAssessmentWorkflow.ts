@@ -55,20 +55,16 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const address = usePrimaryAddress() ?? undefined;
   const sender = useTransactionSender();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
-
-  // Draft persistence
   const draft = useAssessmentDraft(draftGardenId, address, {
     enabled: !!draftGardenId && !!address,
     chainId: selectedChainId,
   });
   const { saveDraft, clearDraft, peekDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
-
   const notifyDraftPersistenceIssue = useCallback(
     (stage: "save" | "clear") => {
       if (draftPersistenceWarningShownRef.current) return;
       draftPersistenceWarningShownRef.current = true;
-
       const titleId =
         stage === "save"
           ? "app.assessment.draftPersistence.saveFailed.title"
@@ -77,7 +73,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         stage === "save"
           ? "app.assessment.draftPersistence.saveFailed.message"
           : "app.assessment.draftPersistence.clearFailed.message";
-
       toastService.info({
         title: formatMessage({
           id: titleId,
@@ -97,7 +92,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     },
     [formatMessage]
   );
-
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
   const identityRef = useRef({ address, sender });
@@ -116,7 +110,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       : undefined;
   const chainIdRef = useRef(selectedChainId);
   const formatMessageRef = useRef(formatMessage);
-
   useEffect(() => {
     identityRef.current = { address, sender };
   }, [address, sender]);
@@ -126,7 +119,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   useEffect(() => {
     formatMessageRef.current = formatMessage;
   }, [formatMessage]);
-
   const machine = useMemo(
     () =>
       createAssessmentMachine.provide({
@@ -160,6 +152,12 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               return null;
             if (outcome.status === "unresolved") return null;
             if (outcome.status === "reverted" || outcome.status === "mismatched") {
+              trackAdminAssessmentCreateFailed({
+                gardenId: pending.gardenId,
+                assessmentType: pending.assessmentType ?? "unknown",
+                chainId: pending.chainId,
+                error: outcome.status === "mismatched" ? "ReceiptMismatch" : "TransactionReverted",
+              });
               useAssessmentSubmissionStore.getState().clear(key);
               throw new Error(
                 formatMessageRef.current({
@@ -189,7 +187,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               const currentChainId = chainIdRef.current;
               if (getPending())
                 throw new Error(formatMessageRef.current({ id: "app.account.transactionPending" }));
-
               if (!currentAddress) {
                 throw new Error(
                   formatMessageRef.current({
@@ -201,7 +198,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               if (!currentSender) {
                 throw new Error(formatMessageRef.current({ id: "app.account.signerNotReady" }));
               }
-
               try {
                 const newAttestationUID = await createAssessment(
                   {
@@ -333,7 +329,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       }),
     [] // Machine created once — actor reads current values from refs
   );
-
   const [state, send, actor] = useMachine(machine);
   const identityScope = `${address ? getTransactionScopeKey(address, selectedChainId) : "disconnected"}:${draftGardenId ?? ""}`;
   const previousScope = useRef(identityScope);
@@ -348,7 +343,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       send({ type: "RESTORE_PENDING", gardenId: pendingSubmission.gardenId });
     }
   }, [scope, identityScope, pendingSubmission, send, actor]);
-
   const startCreation = useCallback(
     (params: AssessmentWorkflowParams & { gardenId: Address }) => {
       if (
@@ -377,7 +371,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         });
         return false;
       }
-
       send({ type: "START", params });
       // The machine validates as it starts, and in its invalid state it ignores
       // the SUBMIT that follows. Answers it refuses are not started, so the
@@ -390,14 +383,12 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         });
         return false;
       }
-      // Persist draft to IndexedDB for offline resilience
       void (async () => {
         const savedDraft = await saveDraft(params);
         if (savedDraft) {
           draftPersistenceWarningShownRef.current = false;
           return;
         }
-
         if (!draftKey) return;
         notifyDraftPersistenceIssue("save");
       })();
@@ -414,26 +405,20 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       selectedChainId,
     ]
   );
-
   const retry = useCallback(() => {
     send({ type: "RETRY" });
   }, [send]);
-
   const submitCreation = useCallback(() => {
     send({ type: "SUBMIT" });
   }, [send]);
-
   const reset = useCallback(() => {
     if (getPending()) return;
     send({ type: "RESET" });
   }, [send]);
-
   const queryClient = useQueryClient();
-
   // Invalidate assessment queries and clear draft when workflow reaches success state
   const isSuccess = state.matches("success");
   const gardenId = state.context.assessmentParams?.gardenId ?? state.context.pendingGardenId;
-
   // Progressive re-invalidation covers EAS GraphQL indexer lag at 2s / 5s / 15s — matches
   // the pattern used by vault mutations (useVaultDeposit, useHarvest, useEmergencyPause).
   const { start: scheduleIndexerRefetch } = useProgressiveInvalidation(
@@ -455,9 +440,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       completion.key !== activeKeyRef.current
     )
       return;
-
     let cancelled = false;
-
     const finalizeSuccess = async () => {
       const completedKey = completion.key;
       const completed = completedKey
@@ -480,19 +463,14 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
           draftPersistenceWarningShownRef.current = false;
         }
       }
-
-      // Immediate invalidation for admin's direct EAS query
       const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
       for (const key of keys) {
         queryClient.invalidateQueries({ queryKey: key });
       }
-
       // Second pass after indexer lag so gardens/assessments data reflects the new attestation
       scheduleIndexerRefetch();
     };
-
     void finalizeSuccess();
-
     return () => {
       cancelled = true;
     };
@@ -506,7 +484,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     queryClient,
     scheduleIndexerRefetch,
   ]);
-
   return {
     state,
     startCreation,

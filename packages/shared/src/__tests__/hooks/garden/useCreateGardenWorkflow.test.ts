@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   peekDraft: vi.fn(),
   create: vi.fn(),
   updateStatus: vi.fn(),
+  trackFailed: vi.fn(),
 }));
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mocks.address,
@@ -42,7 +43,7 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 vi.mock("../../../modules/app/analytics-events", () => ({
   trackAdminGardenCreateStarted: vi.fn(),
   trackAdminGardenCreateSuccess: vi.fn(),
-  trackAdminGardenCreateFailed: vi.fn(),
+  trackAdminGardenCreateFailed: mocks.trackFailed,
 }));
 
 beforeEach(() => {
@@ -265,4 +266,63 @@ it("keeps a send that completes after scope switching recoverable without anothe
   act(() => restored.result.current.checkConfirmation());
   await waitFor(() => expect(restored.result.current.state.matches("success")).toBe(true));
   expect(mocks.create).toHaveBeenCalledOnce();
+});
+
+it("starts a new deployment after Create Another even when draft cleanup failed", async () => {
+  const account = mocks.address as `0x${string}`;
+  const store = useCreateGardenStore.getState();
+  store.recordPendingSubmission({
+    accountAddress: account,
+    chainId: mocks.chainId,
+    gardenName: "Completed garden",
+    result: { hash: "0xPreviousExecution", sponsored: false },
+    successTracked: true,
+  });
+  mocks.clearDraft.mockResolvedValue(false);
+  const { result } = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => result.current.openFlow());
+  act(() => result.current.checkConfirmation());
+  await waitFor(() => expect(result.current.state.matches("success")).toBe(true));
+  expect(store.getPendingSubmission(account, mocks.chainId)).toBeDefined();
+  act(() => result.current.createAnother());
+  expect(store.getPendingSubmission(account, mocks.chainId)).toBeUndefined();
+  act(() => {
+    store.setField("name", "New garden");
+    store.setField("slug", "new-garden");
+    store.setField("description", "New description");
+    store.setField("location", "Earth");
+    store.setField("domains", [0]);
+    store.addGardener(account);
+    result.current.goToReview();
+  });
+  mocks.create.mockResolvedValueOnce({ hash: "0xNewExecution", sponsored: false });
+  act(() => result.current.submitCreation());
+  await waitFor(() => expect(result.current.state.matches("success")).toBe(true));
+  expect(mocks.create).toHaveBeenCalledOnce();
+  expect(result.current.state.context.txHash).toBe("0xNewExecution");
+});
+
+it("records a recovered garden failure once before removing its checkpoint", async () => {
+  const account = mocks.address as `0x${string}`;
+  const store = useCreateGardenStore.getState();
+  store.recordPendingSubmission({
+    accountAddress: account,
+    chainId: mocks.chainId,
+    gardenName: "Rejected garden",
+    result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
+  });
+  mocks.reconcile.mockResolvedValueOnce({ status: "reverted" });
+  const { result } = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => result.current.openFlow());
+  act(() => result.current.checkConfirmation());
+  await waitFor(() => expect(result.current.state.matches("error")).toBe(true));
+  expect(store.getPendingSubmission(account, mocks.chainId)).toBeUndefined();
+  act(() => result.current.checkConfirmation());
+  expect(mocks.trackFailed).toHaveBeenCalledOnce();
+  expect(mocks.trackFailed).toHaveBeenCalledWith({
+    gardenName: "Rejected garden",
+    chainId: mocks.chainId,
+    error: "TransactionReverted",
+  });
+  expect(mocks.create).not.toHaveBeenCalled();
 });
