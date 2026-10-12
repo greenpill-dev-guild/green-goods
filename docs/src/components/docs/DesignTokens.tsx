@@ -1,7 +1,8 @@
+import Head from "@docusaurus/Head";
 import tokens from "@site/src/data/design-tokens.json";
 
 import styles from "./DesignTokens.module.css";
-import {COLOR_GROUPS, FONT_STACKS, PAIRINGS} from "./designTokens.data";
+import {COLOR_GROUPS, FONT_STACKS, PAIRINGS, PRODUCT_FONT_STYLESHEETS} from "./designTokens.data";
 
 type TypographyToken = {
   fontFamily: string;
@@ -31,6 +32,11 @@ function color(key: string): string {
 export function DesignTokens() {
   return (
     <div className={styles.tokens}>
+      <Head>
+        {PRODUCT_FONT_STYLESHEETS.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
+      </Head>
       <section className={styles.block}>
         <h3>Colors</h3>
         <p>Sixteen named colors. Ink and canvas carry the reading surfaces; the greens carry every action.</p>
@@ -73,7 +79,10 @@ export function DesignTokens() {
 
       <section className={styles.block}>
         <h3>Type</h3>
-        <p>Inter for the interface, Fraunces for editorial moments. The samples use the brand kit's font files.</p>
+        <p>
+          Inter for the interface, Fraunces for editorial moments. Each sample loads the fonts the app loads, so it
+          renders at its token's own weight.
+        </p>
         <div className={styles.type}>
           {Object.entries(typography).map(([name, token]) => (
             <div key={name} className={styles.typeRow}>

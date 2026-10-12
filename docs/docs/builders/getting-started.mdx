@@ -5,7 +5,7 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 goal: "Run Green Goods locally and see the app working before you change anything."
 difficulty: "standard"
@@ -21,6 +21,8 @@ source_of_truth:
   - scripts/dev/stack.js
   - scripts/lib/dev-modes.mjs
   - .mise.toml
+  - packages/indexer/config.yaml
+  - packages/indexer/docker-compose.indexer.yaml
 keywords:
   - developer quickstart
   - green goods monorepo
@@ -191,7 +193,8 @@ Each mode takes the same name in all three commands, for example `bun run dev --
   against production data.
 - **`fork`** swaps live Arbitrum for a local [Anvil](https://getfoundry.sh/anvil/overview) fork on
   port 3009, for contract work you want off the live chain. The local indexer still reads live
-  Arbitrum, so it won't show what you do on the fork. Restarting Anvil resets the fork, and
+  Arbitrum: it syncs from Envio's hosted HyperSync source, which never sees a local fork, so
+  indexed views won't show what you do on the fork. Restarting Anvil resets the fork, and
   passkeys don't work there.
 - **Service names** start a narrower set: `bun run dev -- client admin` starts just those two,
   without the agent or indexer behind them.

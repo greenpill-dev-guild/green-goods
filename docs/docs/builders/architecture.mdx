@@ -86,9 +86,11 @@ can predict how the rest of the system behaves.
 Each garden is an ERC-721 token whose
 [ERC-6551 token-bound account](./integrations/tokenbound) is the garden itself, on-chain: it holds
 the garden's treasury, wears its role tree, and receives its attestations. Nothing about a garden
-lives in an app database that could disappear. Transfer the token and you've transferred the
-garden, assets and history included, when transfers are allowed: the protocol can open them, limit
-them to its admin, or lock them. The [Garden account sources](./packages/contracts) and the
+lives in an app database that could disappear. Transfer the token and the account goes with it,
+assets and history included, when transfers are allowed: the protocol can open them, limit them to
+its admin, or lock them. The roles do not move with it: owners, stewards, evaluators and gardeners
+keep their hats until someone rotates them, so a transfer on its own moves the treasury, not who
+can approve work or run the garden. The [Garden account sources](./packages/contracts) and the
 [deployment record](/builders/reference/deployments) show what this looks like per chain.
 
 ### A record is an attestation with enforced meaning
