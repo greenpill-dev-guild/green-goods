@@ -152,10 +152,11 @@ describe("ActionsGallery", () => {
     for (let step = 0; step < 20 && document.activeElement !== card; step++) await user.tab();
     expect(card).toHaveFocus();
     await user.keyboard(key);
-    expect(screen.getByRole("dialog", { name: "Tree Planting" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Tree Planting" });
+    // Opening moves focus into the dialog; closing it hands focus back to the card.
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    // The dialog took focus for its close button; closing it hands focus back to the card.
     expect(card).toHaveFocus();
   });
 
