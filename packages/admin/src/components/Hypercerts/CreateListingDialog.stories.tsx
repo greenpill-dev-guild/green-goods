@@ -5,7 +5,7 @@ import {
   withAdminIdentityRole,
   withPendingListing,
 } from "../../../../shared/.storybook/decorators";
-import { DEV_MOCK_AUTH_ADDRESSES } from "@green-goods/shared/providers/DevAuthProvider";
+import { DEV_MOCK_AUTH_ADDRESSES } from "@green-goods/shared/providers";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { CreateListingDialog } from "./CreateListingDialog";
 
