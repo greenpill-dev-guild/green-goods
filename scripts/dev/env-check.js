@@ -90,7 +90,9 @@ function main() {
   const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
   if (!env) {
     console.error("error: .env not found.");
-    console.error("  fix: Run `node scripts/dev/env-template-init.js` then `bun run env:sync` to create one.");
+    console.error(
+      "  fix: Run `bun run env:sync` to create one from env.schema, or `npm run setup -- --profile isolated` for a baseline without secrets."
+    );
     process.exit(1);
   }
 
@@ -116,8 +118,8 @@ function main() {
   console.error("");
   if (options.envSource === "file") {
     console.error("Fix:");
-    console.error("  - Add the missing keys to env.template (with op:// refs or plain values)");
-    console.error("  - Run `bun run env:sync` to materialize");
+    console.error("  - Run `bun run env:sync` to rewrite .env from env.schema");
+    console.error("  - If the key has no value there, give it one in env.schema (a 1Password reference or a plain value)");
     console.error("  - Or set the value directly in .env if it's a personal local credential");
   } else {
     console.error("Fix: set the missing values in the invoking process environment.");

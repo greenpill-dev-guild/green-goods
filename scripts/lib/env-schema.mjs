@@ -102,6 +102,74 @@ export function parseSchemaText(text) {
   return entries;
 }
 
+const SECRET_REFERENCE_SCHEME = "op://";
+
+function unquote(value) {
+  const quoted =
+    (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"));
+  return quoted && value.length > 1 ? value.slice(1, -1) : value;
+}
+
+/**
+ * env.schema is also the template `bun run env:sync` hands to `op inject`, which replaces a
+ * 1Password reference wherever it appears in the file and copies everything else to .env as
+ * written. Report what would break that sync or put a wrong value in .env. Never prints values.
+ */
+export function findSyncProblems(text) {
+  const problems = [];
+  const seen = new Set();
+
+  text.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    const where = `line ${index + 1}`;
+    if (!line) return;
+
+    if (line.startsWith("#")) {
+      if (line.includes(SECRET_REFERENCE_SCHEME)) {
+        problems.push(`${where}: a comment holds a 1Password reference; the sync would try to resolve it.`);
+      }
+      return;
+    }
+
+    const equals = line.indexOf("=");
+    const key = equals === -1 ? "" : line.slice(0, equals).trim();
+    if (!ENV_KEY_PATTERN.test(key)) return;
+
+    if (seen.has(key)) problems.push(`${where}: ${key} is declared twice; the later value wins in .env.`);
+    seen.add(key);
+
+    if (key.endsWith("_OP_REF")) {
+      problems.push(`${where}: ${key} is a reference companion nothing resolves; put the reference on the key itself.`);
+    }
+
+    // Split before trimming so `KEY= # note` reads as an empty value with a comment.
+    const afterEquals = line.slice(equals + 1);
+    const commentIndex = commentStart(afterEquals);
+    const value = unquote(
+      (commentIndex === -1 ? afterEquals : afterEquals.slice(0, commentIndex)).trim()
+    );
+    const comment = commentIndex === -1 ? "" : afterEquals.slice(commentIndex);
+
+    if (comment.includes(SECRET_REFERENCE_SCHEME)) {
+      problems.push(`${where}: ${key} has a 1Password reference in its comment; the sync would try to resolve it.`);
+    }
+    if (/^(?:if|op)\s*\(|^\$\{?[A-Za-z_]/.test(value)) {
+      problems.push(
+        `${where}: ${key} holds a $VAR or function expression; it reaches .env as written and loaders do not agree on evaluating it.`
+      );
+    }
+    if (value.includes(SECRET_REFERENCE_SCHEME)) {
+      const path = value.slice(SECRET_REFERENCE_SCHEME.length).split("/");
+      const whole = value.startsWith(SECRET_REFERENCE_SCHEME) && path.length >= 3 && path.every(Boolean);
+      if (!whole) {
+        problems.push(`${where}: ${key} is not a whole 1Password reference (scheme, then vault/item/field).`);
+      }
+    }
+  });
+
+  return problems;
+}
+
 export function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return null;
   return parseEnvText(fs.readFileSync(filePath, "utf8"));
