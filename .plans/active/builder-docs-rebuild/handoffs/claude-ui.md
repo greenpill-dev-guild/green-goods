@@ -475,3 +475,33 @@ renders all 13 skills.
   request to address and resolve the valid comments.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge). The
   Vault and Cookie Jar definitions are canonical glossary text changed in review; worth a read.
+
+## Validation Receipt — Five Codex threads on 61234a5a4 (2026-10-11)
+
+- **Scope**: the five threads Codex opened on `61234a5a4`, relayed by the desktop app's Auto-fix;
+  all ACTIONABLE, fixed in `fa3811a01`. Decisions 47 to 49. GitHub CI was green on `61234a5a4`.
+- **ENS completeness**: `integrationNetworkRecords` resolves each field on the network that hosts
+  it and drops a network that only hosts another's component. Generated status: Sepolia Deployed,
+  Arbitrum One Deployed with `ensReceiver` on Ethereum Mainnet, no Ethereum row. The component and
+  the Markdown twin print where a remote field lives. `check-ontology` rejects a mapping that names
+  an undeclared field or its own chain.
+- **Verified in the contracts**: `joinGarden` and `setOpenJoining` in `accounts/Garden.sol` with
+  the Hats module accepting the garden account as a caller; the transfer hook in `tokens/Garden.sol`
+  enforcing only `transferRestriction` and `isOwner` reading the owner hat; ERC-4626 redemption for
+  the principal wording.
+- **QA catalog**: `DOCS-033` reworded (preconditions, one step, the expected result). The id ledger
+  check reports 443 ids, none removed, reintroduced or reactivated.
+- **Exact commands and results**: `node --test` over the nine suites → 292/292 ·
+  `node scripts/docs/generate.mjs --check` → 16 current · `node scripts/quality/check-ontology.mjs`
+  → all guards passed · `node docs/scripts/docs-audit.mjs --ci` → exit 0, the same two advisory
+  warnings · docs `bun run test` 87/87, `bun run typecheck` clean, and a production build into a
+  side folder → 70 routes, search index covers 70.
+- **Push gate**: run on `fa3811a01` with the ontology check and the nine docs test files as focus: passed, 12 fresh passes, 0 reused, 0 unrun of 13 selected checks; the thirteenth is the manual browser proof, recorded below.
+- **Rendered proof**: the side build served on a second local port and read in a background tab of
+  the desktop app's browser pane, no sign-in. The Hats diagram renders the open-joining path with
+  no parse error; the ENS table shows `ensReceiver (on Ethereum Mainnet)` on Arbitrum One; the
+  Tokenbound paragraph and the entity matrix's ENS row show the new text; no console errors. The
+  build was then swapped into the folder Afo's preview serves.
+- **GitHub writes**: one reply and a resolution on each of the five threads, under Auto-fix and
+  Afo's standing request to address and resolve the valid comments.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).

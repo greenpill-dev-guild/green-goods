@@ -265,6 +265,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Five Codex threads on fee71dd2e fixed in 517e8cb49 (EAS schema registrations, vault custody, Gardens and ENS best-effort, the Contracts page's library rows); decisions 44 to 46. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T01:05:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on 61234a5a4 fixed in fa3811a01 (ENS completeness across two chains, open joining, token against role ownership, no intact-principal promise, QA case DOCS-033); decisions 47 to 49. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

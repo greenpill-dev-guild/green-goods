@@ -55,6 +55,9 @@
 | 44 | An integration's completeness counts schema registrations: a deployment field ending in `SchemaUID` holds a schema UID, EAS declares its three registrations beside its resolvers, and Tokenbound declares the garden token; the chain's own EAS addresses are left out (2026-10-11, Codex) | Celo records the three resolvers and only the work schema, so EAS read as deployed there while two record types could not be written. Every artifact records `eas.address` and `eas.schemaRegistry`, including Ethereum where nothing of ours is deployed, so counting them would list Ethereum as a partial deployment |
 | 45 | The ontology's Vault definition states custody as the contracts have it: funders hold the vault's shares, the yield is donated on (by default to the yield resolver), and the garden account is only a fallback destination (2026-10-11, Codex) | The old text said the garden's token-bound account holds the vault, which points integrations at the wrong account for balances and authority. The Garden and Tokenbound definitions keep "treasury": the account does hold the GOODS the Gardens module seeds |
 | 46 | A page that describes module setup at mint, or a cross-chain delivery, says it is best-effort, names the read that shows what exists, and names who can repair it (Gardens, Octant, ENS; Cookie Jar already did) (2026-10-11, Codex) | `GardenHooksLib` swallows every module failure except the hat tree, and the ENS receiver records a name even when the ENS call reverts, so an unconditional flow sends readers to query state that may not exist |
+| 47 | An integration whose contracts sit on two networks is judged across both: `remote_deployment_fields` in the ontology names the network that records a field for another, and ENS declares Arbitrum's receiver on Ethereum; a network that only hosts such a component gets no row of its own (2026-10-11, Codex) | Judged one artifact at a time, both production halves of ENS read Partial forever although the pair was complete, and the matrix and status table reported a staged rollout that was not one. A missing receiver still reads Partial for the sending network |
+| 48 | No page promises an intact deposit: an endowment is vault shares the funder can redeem, subject to strategy and contract risk (Architecture, Octant, the Vault definition) (2026-10-11, Codex) | ERC-4626 shares redeem for what the vault holds; the Octant page already said a loss could reduce a withdrawal, and the other two contradicted it |
+| 49 | Role pages separate holding the garden token from wearing its hats, and name open joining as a way a role is granted (Tokenbound, Hats) (2026-10-11, Codex) | A token transfer hands over the account but moves no hat, so the previous owner keeps authority until the hats are rotated; and with open joining on, `joinGarden` grants the gardener hat to any caller, which "only owners and stewards write roles" hid |
 
 ## Requirements Coverage
 
@@ -198,6 +201,12 @@ Status (2026-10-11, Codex on `fee71dd2e`): five more threads, all valid, fixed i
 completeness counts schema registrations (Celo reads Partial), the Vault definition states custody
 as the contracts have it, Gardens setup and ENS delivery are marked best-effort, and the Contracts
 page's two library rows are swapped back; decisions 44 to 46. CI was green on `fee71dd2e`.
+
+Status (2026-10-11, Codex on `61234a5a4`): five more threads, all valid, fixed in `fa3811a01`: ENS
+completeness across its two chains, open joining on the Hats page, token ownership against role
+ownership on the Tokenbound page, no intact-principal promise, and QA case `DOCS-033` reworded to
+test the persona matrix as a naming rule; decisions 47 to 49. CI was green on `61234a5a4`. Afo is
+doing a final pass on a local production build of the branch.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
