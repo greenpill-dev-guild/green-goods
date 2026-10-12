@@ -1,60 +1,35 @@
 ---
-title: Credits & Licenses
+title: Credits
 slug: /reference/credits
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - LICENSE
   - AGENTS.md
 ---
 
-# Credits & Licenses
+# Credits
 
-Built with love by the Greenpill Dev Guild and contributors worldwide.
+Built with love by the Green Goods team and contributors worldwide.
 
 ---
 
 ## License
 
-**MIT License**
-
-Green Goods is free and open-source software.
-
-```
-MIT License
-
-Copyright (c) 2024 Greenpill Dev Guild
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-**Full license**: [LICENSE](https://github.com/greenpill-dev-guild/green-goods/tree/main/LICENSE)
+Green Goods is free and open source under the MIT License. The builder docs'
+[License](/builders/reference/license) page explains what that lets you do, and
+[`LICENSE`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/LICENSE) holds the full
+text.
 
 ---
 
 ## Core Team
 
-### Greenpill Dev Guild
+### The Green Goods team
 
-Green Goods is developed by the [Greenpill Dev Guild](https://github.com/greenpill-dev-guild), a community of builders creating regenerative web3 infrastructure.
+Green Goods is developed in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods) by a community of builders creating regenerative web3 infrastructure.
 
 **Key Contributors**:
 - Protocol design & smart contracts
@@ -211,7 +186,7 @@ Contact: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for media inquiries
 
 ## Contributing
 
-Want to be listed here? [Start contributing!](../builders/getting-started)
+Want to be listed here? [Start contributing!](/builders/how-to-contribute)
 
 All contributors are credited in:
 - GitHub contributors list

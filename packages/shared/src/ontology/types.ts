@@ -313,11 +313,33 @@ export interface OntologyMarketingClaim {
   verified_at: string;
 }
 
+/** One thing a persona does in the product: when, what, and on which surfaces. */
+export interface OntologyPersonaEngagement {
+  when: string;
+  what: string;
+  /** Product surfaces where it happens. Empty only while a term it relies on is still planned. */
+  where: string[];
+  /** Terms the interaction relies on; the docs mark it while one of them is not yet available. */
+  term_refs?: Array<`entity:${string}`>;
+  /** Docs route of the guide that walks through it. */
+  guide?: string;
+  /** Repository paths that implement it: pointers for readers, not capability evidence. */
+  code: string[];
+}
+
+export interface OntologyPersonaJourney {
+  ref: `persona:${string}`;
+  /** Who this persona usually is and what they need, in plain language. */
+  context: string;
+  engagements: OntologyPersonaEngagement[];
+}
+
 export interface GreenGoodsOntologyProjections {
   version: number;
   capabilities: OntologyCapability[];
   human_concepts: OntologyHumanConceptSource[];
   marketing_claims: OntologyMarketingClaim[];
+  persona_journeys: OntologyPersonaJourney[];
 }
 
 export interface AgentOntologyClaim {

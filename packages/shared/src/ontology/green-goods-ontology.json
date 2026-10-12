@@ -26,7 +26,7 @@
       "reads": "generated from all sections (do not edit; run bun run ontology:generate)"
     },
     {
-      "path": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "path": "docs/docs/builders/architecture/entity-matrix.mdx",
       "reads": "generated from integration_matrix (do not edit; run bun run ontology:generate)"
     },
     {
@@ -42,6 +42,7 @@
     {
       "id": "cookie-jar",
       "display": "Cookie Jar",
+      "matrix_column": "Cookie Jar",
       "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
       "contract_source": "packages/contracts/src/modules/CookieJar.sol",
       "deployment_fields": ["cookieJarFactory", "cookieJarModule"],
@@ -49,17 +50,48 @@
       "additional_sources": []
     },
     {
+      "id": "eas",
+      "display": "EAS",
+      "matrix_column": "EAS",
+      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, Assessment, and Community Testimony records; each schema's resolver validates authorization when a record is written.",
+      "contract_source": "packages/contracts/src/resolvers/Work.sol",
+      "deployment_fields": [
+        "assessmentResolver",
+        "testimonyResolver",
+        "workApprovalResolver",
+        "workResolver",
+        "schemas.assessmentSchemaUID",
+        "schemas.assessmentV3SchemaUID",
+        "schemas.communityTestimonySchemaUID",
+        "schemas.workApprovalSchemaUID",
+        "schemas.workSchemaUID"
+      ],
+      "indexer_contracts": ["WorkApprovalResolver"],
+      "additional_sources": [
+        "packages/contracts/src/resolvers/WorkApproval.sol",
+        "packages/contracts/src/resolvers/Assessment.sol",
+        "packages/contracts/src/resolvers/Testimony.sol"
+      ]
+    },
+    {
       "id": "ens",
       "display": "ENS",
+      "matrix_column": "ENS",
       "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
       "contract_source": "packages/contracts/src/registries/ENS.sol",
       "deployment_fields": ["ensReceiver", "greenGoodsENS"],
+      "remote_deployment_fields": {
+        "ensReceiver": {
+          "42161": 1
+        }
+      },
       "indexer_contracts": [],
       "additional_sources": ["packages/shared/src/utils/blockchain/ens.ts"]
     },
     {
       "id": "gardens",
       "display": "Gardens",
+      "matrix_column": "Gardens V2",
       "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
       "contract_source": "packages/contracts/src/modules/Gardens.sol",
       "deployment_fields": ["gardensModule"],
@@ -69,6 +101,7 @@
     {
       "id": "hats",
       "display": "Hats Protocol",
+      "matrix_column": "Hats Protocol",
       "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
       "contract_source": "packages/contracts/src/modules/Hats.sol",
       "deployment_fields": ["hatsModule"],
@@ -78,6 +111,7 @@
     {
       "id": "hypercerts",
       "display": "Hypercerts",
+      "matrix_column": "Hypercerts",
       "definition": "Hypercerts represent certified impact claims and their fraction ownership.",
       "contract_source": "packages/contracts/src/modules/Hypercerts.sol",
       "deployment_fields": ["hypercertExchange", "hypercertMinter", "hypercertsModule"],
@@ -87,6 +121,7 @@
     {
       "id": "karma",
       "display": "Karma GAP",
+      "matrix_column": "Karma GAP",
       "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
       "contract_source": "packages/contracts/src/modules/Karma.sol",
       "deployment_fields": ["karmaGAPModule"],
@@ -96,11 +131,38 @@
     {
       "id": "octant",
       "display": "Octant",
+      "matrix_column": "Octant",
       "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
       "contract_source": "packages/contracts/src/modules/Octant.sol",
       "deployment_fields": ["octantFactory", "octantModule"],
       "indexer_contracts": ["OctantModule", "OctantVault"],
       "additional_sources": []
+    },
+    {
+      "id": "tokenbound",
+      "display": "Tokenbound Accounts",
+      "matrix_column": "Tokenbound",
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "contract_source": "packages/contracts/src/accounts/Garden.sol",
+      "deployment_fields": ["accountProxy", "gardenAccountImpl", "gardenToken"],
+      "indexer_contracts": ["GardenAccount", "GardenToken"],
+      "additional_sources": ["packages/contracts/src/tokens/Garden.sol"]
+    },
+    {
+      "id": "unlock",
+      "display": "Unlock Protocol",
+      "matrix_column": "Unlock",
+      "definition": "Unlock Protocol locks back the GreenWill badges: the GreenWill registry proves a claim from on-chain state and grants the matching non-transferable Unlock key. Deployment artifacts and indexer configuration own recorded availability.",
+      "contract_source": "packages/contracts/src/registries/GreenWill.sol",
+      "deployment_fields": [
+        "greenWill",
+        "unlock.factory",
+        "unlock.locks.genesis.address",
+        "unlock.locks.firstWork.address",
+        "unlock.locks.firstSupport.address"
+      ],
+      "indexer_contracts": ["GreenWill"],
+      "additional_sources": ["packages/shared/src/modules/data/greenwill.ts"]
     }
   ],
   "entities": [
@@ -261,7 +323,7 @@
     {
       "id": "vault",
       "display": "Vault",
-      "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios.",
+      "definition": "A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/Octant.sol"],
         "indexer": {
@@ -283,7 +345,7 @@
     {
       "id": "cookie-jar",
       "display": "Cookie Jar",
-      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap.",
+      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/CookieJar.sol"],
         "indexer": {
@@ -3946,38 +4008,32 @@
   ],
   "integration_matrix": {
     "protocols": [
+      "EAS",
+      "Tokenbound",
+      "Hats Protocol",
       "Karma GAP",
       "Hypercerts",
       "Octant",
       "Gardens V2",
-      "Hats Protocol",
-      "Silvi",
       "Cookie Jar",
       "Unlock",
-      "ENS",
-      "Lido",
-      "FTC"
+      "ENS"
     ],
+    "column_notes": {},
     "rows": [
       {
         "ref": "entity:garden",
         "label": "Garden",
         "cells": {
+          "EAS": "Attestation recipient",
+          "Tokenbound": "Token-bound account (ERC-6551)",
+          "Hats Protocol": "Admin Hat",
           "Karma GAP": "Project",
           "Hypercerts": "Hypercert Holder",
           "Octant": "Vault Owner",
           "Gardens V2": "Community",
-          "Hats Protocol": "Top Hat",
-          "Silvi": "Project",
-          "Cookie Jar": "Jar"
-        }
-      },
-      {
-        "ref": "entity:assessment",
-        "label": "Assessment",
-        "cells": {
-          "Karma GAP": "Project Milestone",
-          "Hypercerts": "Hypercert Data"
+          "Cookie Jar": "Jar owner",
+          "ENS": "Subname of greengoods.eth"
         }
       },
       {
@@ -3992,6 +4048,7 @@
         "ref": "entity:work",
         "label": "Work",
         "cells": {
+          "EAS": "Attestation (Work Submission schema)",
           "Karma GAP": "Partial Project Update",
           "Hypercerts": "Hypercert Data"
         }
@@ -4000,64 +4057,110 @@
         "ref": "schema:workApproval",
         "label": "Work Approval",
         "cells": {
+          "EAS": "Attestation (Work Approval schema)",
           "Karma GAP": "Partial Project Update",
           "Hypercerts": "Hypercert Data"
         }
       },
       {
-        "ref": "persona:steward",
-        "label": "Garden Steward",
+        "ref": "entity:assessment",
+        "label": "Assessment",
         "cells": {
-          "Karma GAP": "Project Owner",
-          "Hypercerts": "Creator",
-          "Octant": "Vault Admin, TAM Operator",
-          "Gardens V2": "Council Member",
-          "Hats Protocol": "Steward Hat"
+          "EAS": "Attestation (Assessment schema)",
+          "Karma GAP": "Project Milestone",
+          "Hypercerts": "Hypercert Data"
+        }
+      },
+      {
+        "ref": "entity:attestation",
+        "label": "Attestation",
+        "cells": {
+          "EAS": "Attestation"
+        }
+      },
+      {
+        "ref": "entity:hat",
+        "label": "Hat",
+        "cells": {
+          "Hats Protocol": "Hat"
+        }
+      },
+      {
+        "ref": "entity:hypercert",
+        "label": "Hypercert",
+        "cells": {
+          "Hypercerts": "Hypercert"
+        }
+      },
+      {
+        "ref": "entity:vault",
+        "label": "Vault",
+        "cells": {
+          "Octant": "Multi-strategy vault (ERC-4626)"
+        }
+      },
+      {
+        "ref": "entity:cookie-jar",
+        "label": "Cookie Jar",
+        "cells": {
+          "Cookie Jar": "Jar"
         }
       },
       {
         "ref": "persona:gardener",
         "label": "Gardener",
         "cells": {
+          "EAS": "Attester",
+          "Hats Protocol": "Gardener Hat",
           "Karma GAP": "Project Member",
-          "Hypercerts": "Creator",
-          "Octant": "TAM Proposer",
+          "Hypercerts": "Contributor",
           "Gardens V2": "Community Member",
-          "Hats Protocol": "Gardener Hat"
+          "Cookie Jar": "Withdrawer",
+          "ENS": "Subname of greengoods.eth"
+        }
+      },
+      {
+        "ref": "persona:steward",
+        "label": "Steward",
+        "cells": {
+          "EAS": "Attester",
+          "Hats Protocol": "Steward Hat",
+          "Karma GAP": "Project Admin",
+          "Hypercerts": "Creator",
+          "Octant": "Vault Admin",
+          "Gardens V2": "Council Member"
+        }
+      },
+      {
+        "ref": "persona:evaluator",
+        "label": "Evaluator",
+        "cells": {
+          "EAS": "Attester",
+          "Hats Protocol": "Evaluator Hat",
+          "Karma GAP": "Grant Evaluator",
+          "Hypercerts": "Evaluator"
+        }
+      },
+      {
+        "ref": "persona:funder",
+        "label": "Funder",
+        "cells": {
+          "Hats Protocol": "Funder Hat",
+          "Hypercerts": "Funder",
+          "Octant": "Vault Depositor",
+          "Gardens V2": "Community Funder",
+          "Cookie Jar": "Depositor"
         }
       },
       {
         "ref": "persona:community-member",
         "label": "Community Member",
         "cells": {
+          "EAS": "Attester",
+          "Hats Protocol": "Community Hat",
           "Karma GAP": "Project Explorer",
           "Hypercerts": "Evaluator",
-          "Octant": "TAM Voter",
-          "Gardens V2": "Community Member",
-          "Hats Protocol": "Community Member"
-        }
-      },
-      {
-        "ref": "concept:funder-evaluator",
-        "label": "Funder/Evaluator",
-        "note": "Merges the canonical Funder and Evaluator personas — row kept for continuity with the original matrix.",
-        "cells": {
-          "Karma GAP": "Grant Evaluator",
-          "Hypercerts": "Funder",
-          "Octant": "Vault Depositor",
-          "Gardens V2": "Community Funder",
-          "Hats Protocol": "Garden Supporter"
-        }
-      },
-      {
-        "ref": "concept:data-scientist-researcher",
-        "label": "Data Scientist/Researcher",
-        "note": "Not one of the five canonical personas; retained as an integration-facing archetype.",
-        "cells": {
-          "Karma GAP": "Grant Evaluator",
-          "Hypercerts": "Evaluator",
-          "Gardens V2": "Community Explorer",
-          "Hats Protocol": "Garden Analyst"
+          "Gardens V2": "Community Member"
         }
       },
       {
@@ -4072,7 +4175,7 @@
         "label": "Badges",
         "note": "GreenWill badges.",
         "cells": {
-          "Unlock": "Unlock NFT"
+          "Unlock": "Lock (a badge type) and key (a badge held)"
         }
       }
     ]
@@ -4101,11 +4204,6 @@
     }
   ],
   "known_issues": [
-    {
-      "id": "erd-stale-assessment-fields",
-      "statement": "The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID).",
-      "anchors": ["docs/docs/builders/architecture/erd.mdx"]
-    },
     {
       "id": "missing-capital-mapping-fn",
       "statement": "No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ.",

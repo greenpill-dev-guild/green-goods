@@ -654,6 +654,48 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
     }
   }
 
+  // Persona journeys: what each persona does, when, and on which surfaces. Every persona has
+  // exactly one, and an interaction that is built must say where it happens and point at its code.
+  // The code paths are pointers for readers, checked for existence whenever this gate runs. They
+  // are not capability evidence, so they stay out of the evidence list the Ontology workflow's
+  // path filter has to cover: that would rerun the workflow on most view changes.
+  const journeys = projections.persona_journeys ?? [];
+  unique("persona journeys", journeys.map((item) => item.ref));
+  const journeyRefs = new Set(journeys.map((item) => item.ref));
+  for (const ref of personaRefs) {
+    if (!journeyRefs.has(ref)) errors.push(`persona journeys: missing ${ref}`);
+  }
+  const surfaces = new Set(ONTOLOGY_SURFACES);
+  for (const journey of journeys) {
+    const label = `persona journey ${journey.ref}`;
+    if (!personaRefs.has(journey.ref)) errors.push(`${label}: unknown persona`);
+    if (!journey.context?.trim()) errors.push(`${label}: context is required`);
+    if (!journey.engagements?.length) errors.push(`${label}: at least one engagement is required`);
+    for (const [index, engagement] of (journey.engagements ?? []).entries()) {
+      const row = `${label} engagement ${index + 1}`;
+      for (const field of ["when", "what"]) {
+        if (!engagement[field]?.trim()) errors.push(`${row}: ${field} is required`);
+      }
+      for (const surface of engagement.where ?? []) {
+        if (!surfaces.has(surface)) errors.push(`${row}: unknown surface "${surface}"`);
+      }
+      for (const ref of engagement.term_refs ?? []) {
+        if (!entityRefs.has(ref)) errors.push(`${row}: unknown term ${ref}`);
+      }
+      const unbuilt = (engagement.term_refs ?? []).some((ref) =>
+        ["planned", "vision"].includes(capabilityByRef.get(ref)?.availability)
+      );
+      if (!unbuilt && !engagement.where?.length) errors.push(`${row}: where is required once the interaction is built`);
+      if (!unbuilt && !engagement.code?.length) errors.push(`${row}: code is required once the interaction is built`);
+      for (const file of engagement.code ?? []) {
+        if (!fileExists(file)) errors.push(`${row}: code path does not exist: ${file}`);
+      }
+      if (engagement.guide !== undefined && !/^\/[a-z0-9/-]+$/.test(engagement.guide)) {
+        errors.push(`${row}: guide must be a docs route such as /community/gardener-guide/joining-a-garden`);
+      }
+    }
+  }
+
   for (const file of collectProjectionFiles(projections)) {
     if (!fileExists(file)) errors.push(`projection evidence does not exist: ${file}`);
   }
@@ -745,6 +787,17 @@ export function checkSidecarIntegrity(ontology, fileExists) {
     } else if (new Set(integration.deployment_fields).size !== integration.deployment_fields.length) {
       errors.push(`integration ${integration.id}: deployment_fields contains duplicates`);
     }
+    // A field recorded on another network's artifact: { field: { chainId: hostChainId } }.
+    for (const [field, hosts] of Object.entries(integration.remote_deployment_fields ?? {})) {
+      if (!integration.deployment_fields?.includes(field)) {
+        errors.push(`integration ${integration.id}: remote_deployment_fields names ${field}, which is not a deployment field`);
+      }
+      for (const [chain, host] of Object.entries(hosts ?? {})) {
+        if (!/^\d+$/.test(chain) || !Number.isInteger(host) || Number(chain) === host) {
+          errors.push(`integration ${integration.id}: remote_deployment_fields.${field} must map a chain id to a different chain id`);
+        }
+      }
+    }
     for (const key of ["indexer_contracts", "additional_sources"]) {
       if (!Array.isArray(integration[key])) {
         errors.push(`integration ${integration.id ?? "?"}: ${key} must be an array`);
@@ -756,6 +809,42 @@ export function checkSidecarIntegrity(ontology, fileExists) {
       if (typeof source === "string" && source && !fileExists(source)) {
         errors.push(`integration ${integration.id}: source does not exist: ${source}`);
       }
+    }
+  }
+
+  // A matrix column is a vocabulary mapping; whether code stands behind it is a separate fact.
+  // Every column is either claimed by exactly one catalog integration or explained by a note,
+  // so the entity matrix can never again call an unbuilt protocol an active integration.
+  const matrixProtocols = ontology.integration_matrix?.protocols ?? [];
+  const claimedColumns = new Map();
+  for (const integration of ontology.integrations ?? []) {
+    if (!Object.hasOwn(integration, "matrix_column")) {
+      errors.push(`integration ${integration.id ?? "?"}: matrix_column is required (a declared integration_matrix protocol, or null when the integration has no column)`);
+      continue;
+    }
+    const column = integration.matrix_column;
+    if (column === null) continue;
+    if (typeof column !== "string" || !matrixProtocols.includes(column)) {
+      errors.push(`integration ${integration.id}: matrix_column "${column}" is not a declared integration_matrix protocol`);
+      continue;
+    }
+    if (claimedColumns.has(column)) {
+      errors.push(`integration ${integration.id}: matrix_column "${column}" is already claimed by ${claimedColumns.get(column)}`);
+      continue;
+    }
+    claimedColumns.set(column, integration.id);
+  }
+  const columnNotes = ontology.integration_matrix?.column_notes ?? {};
+  for (const [column, note] of Object.entries(columnNotes)) {
+    if (!matrixProtocols.includes(column)) errors.push(`matrix column note "${column}": not a declared protocol`);
+    else if (claimedColumns.has(column)) {
+      errors.push(`matrix column note "${column}": column is claimed by integration ${claimedColumns.get(column)}; notes describe unclaimed columns only`);
+    }
+    if (typeof note !== "string" || !note.trim()) errors.push(`matrix column note "${column}": text is required`);
+  }
+  for (const column of matrixProtocols) {
+    if (!claimedColumns.has(column) && !Object.hasOwn(columnNotes, column)) {
+      errors.push(`matrix column "${column}": no integration claims it and integration_matrix.column_notes has no entry; add one or the other`);
     }
   }
 
