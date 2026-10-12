@@ -121,8 +121,60 @@ export function renderApiIndex({ root, sources, digest, manifests, agentApi, rou
   }
   body += "\nThe route constants are exported by these Shared files:\n\n";
   for (const [source, symbols] of symbolsBySource) body += `- \`${source}\`: ${list([...symbols].sort(), "none")}\n`;
-  body += "\n## Package exports\n\n| Package | Specifier | Target |\n|---|---|---|\n";
-  for (const item of exports) body += `| ${esc(item.package)} | \`${esc(item.specifier)}\` | \`${esc(item.target)}\` |\n`;
+  body += `\n## Package exports\n\n${renderPackageExports(exports)}`;
+  return body;
+}
+
+// A package with this many specifiers or fewer is one plain table.
+const FLAT_EXPORT_LIMIT = 12;
+// A group smaller than this joins "Other entry points", so the page is not a column of one-row sections.
+const SMALL_EXPORT_GROUP = 4;
+// A group larger than this is split by its second path segment, so an opened group can still be scanned.
+const LARGE_EXPORT_GROUP = 40;
+
+function exportTable(items) {
+  return `| Specifier | Target |\n|---|---|\n${items.map((item) => `| \`${esc(item.specifier)}\` | \`${esc(item.target)}\` |\n`).join("")}`;
+}
+
+/** `./hooks/auth/useAuth` has segments `hooks`, `auth`, `useAuth`; the package root `.` has none. */
+const exportSegments = (specifier) => specifier.split("/").slice(1);
+
+/**
+ * The export map by package. A large package is summarized as a table of groups (the first path
+ * segment under the package root) with each group collapsed beneath it, because several hundred
+ * rows in one table is a page nobody can scan.
+ */
+export function renderPackageExports(exports) {
+  const packages = Map.groupBy(exports, (item) => item.package);
+  let body = `${exports.length} export specifiers across ${packages.size} ${packages.size === 1 ? "package" : "packages"}. A specifier is the import path; the target is the file it resolves to.\n\n`;
+  for (const [name, items] of packages) {
+    body += `### ${esc(name)}\n\n`;
+    if (items.length <= FLAT_EXPORT_LIMIT) {
+      body += `${exportTable(items)}\n`;
+      continue;
+    }
+    const bySegment = Map.groupBy(items, (item) => exportSegments(item.specifier)[0] ?? "");
+    const groups = [...bySegment].filter(([, members]) => members.length >= SMALL_EXPORT_GROUP);
+    const others = [...bySegment].filter(([, members]) => members.length < SMALL_EXPORT_GROUP).flatMap(([, members]) => members);
+    body += `${items.length} specifiers. Open a group to see its specifiers.\n\n| Group | Specifiers |\n|---|---|\n`;
+    for (const [segment, members] of groups) body += `| \`./${esc(segment)}\` | ${members.length} |\n`;
+    if (others.length) body += `| Other entry points | ${others.length} |\n`;
+    body += "\n";
+    for (const [segment, members] of groups) {
+      // A code span, not a <code> tag: MDX reads the text inside a tag as Markdown, where the
+      // underscores of `__tests__` would turn into bold.
+      body += `<details>\n<summary>\`./${esc(segment)}\` (${members.length})</summary>\n\n`;
+      if (members.length > LARGE_EXPORT_GROUP) {
+        // A specifier with nothing under the group's own folder is listed with the group itself.
+        const byArea = Map.groupBy(members, (item) => (exportSegments(item.specifier).length > 2 ? exportSegments(item.specifier)[1] : ""));
+        for (const [area, rows] of byArea) body += `**\`./${esc(segment)}${area ? `/${esc(area)}` : ""}\`** (${rows.length})\n\n${exportTable(rows)}\n`;
+      } else {
+        body += `${exportTable(members)}\n`;
+      }
+      body += "</details>\n\n";
+    }
+    if (others.length) body += `<details>\n<summary>Other entry points (${others.length})</summary>\n\n${exportTable(others)}\n</details>\n\n`;
+  }
   return body;
 }
 
@@ -849,9 +901,9 @@ export function renderGitHubActions({ root, sources, digest }) {
     body += `- **Required status:** ${requiredStatus(workflow, entry)}.\n`;
     body += `- **File:** [${esc(workflow.source)}](https://github.com/greenpill-dev-guild/green-goods/blob/develop/${workflow.source})\n\n`;
   }
-  body += "## Root quality and build scripts\n\nThe workflows call these root scripts, so running one locally reproduces that step.\n\n| Script | Run it | What it runs |\n|---|---|---|\n";
+  body += "## Root quality and build scripts\n\nThe workflows call these root scripts, so running one locally reproduces that step.\n\n| Run it | What it runs |\n|---|---|\n";
   for (const [name, command] of Object.entries(rootManifest.scripts).filter(([name]) => /^(build|check|test|lint|format)/.test(name)).sort(([a], [b]) => a.localeCompare(b))) {
-    body += `| \`${esc(name)}\` | ${copyCommand(`bun run ${name}`)} | \`${esc(command)}\` |\n`;
+    body += `| ${copyCommand(`bun run ${name}`)} | \`${esc(command)}\` |\n`;
   }
   return body;
 }

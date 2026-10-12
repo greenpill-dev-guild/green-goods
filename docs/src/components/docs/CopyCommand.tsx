@@ -11,6 +11,16 @@ type CopyCommandProps = {
 type CopyState = "idle" | "copied" | "failed";
 
 /**
+ * The text may break anywhere so an address or a long invocation fits a table cell, which also
+ * lets a crowded table squeeze its column to one character. These floors stop that. A command
+ * line of up to 18 characters keeps to one line and a longer one never wraps narrower than
+ * that. A single value such as an address gets a lower floor, because it has no spaces to
+ * break at and a higher one makes a three-column address table scroll on a narrow screen.
+ */
+const COMMAND_FLOOR_CHARACTERS = 18;
+const VALUE_FLOOR_CHARACTERS = 12;
+
+/**
  * An inline command with its own copy button, for commands that live in table cells where a
  * fenced block cannot. The Markdown twins render the same command as a plain code span
  * (docs/scripts/llms.mjs), so agents reading the twin see the command, not the tag.
@@ -33,9 +43,11 @@ export function CopyCommand({command}: CopyCommandProps) {
   };
 
   const feedback = state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "";
+  const floor = Math.min(command.length, command.includes(" ") ? COMMAND_FLOOR_CHARACTERS : VALUE_FLOOR_CHARACTERS);
   return (
     <span className={styles.copyCommand}>
-      <code>{command}</code>
+      {/* One extra character covers the code span's own padding and border. */}
+      <code style={{minWidth: `${floor + 1}ch`}}>{command}</code>
       <button
         type="button"
         className={`clean-btn ${styles.copyCommandButton}`}

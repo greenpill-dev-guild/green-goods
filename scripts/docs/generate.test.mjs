@@ -42,6 +42,7 @@ import {
   integrationNetworkRecords,
   mutationBoundaryLabel,
   orderCommandManifests,
+  renderPackageExports,
   renderSkills,
   stateLabel,
 } from "./renderers.mjs";
@@ -388,6 +389,28 @@ test("sorts package exports deterministically", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("package exports summarize a large package by group and keep a small one as one table", () => {
+  const entry = (name, specifier) => ({ package: name, specifier, target: `./src${specifier.slice(1)}.ts` });
+  const exports = [
+    entry("@fixture/small", "./abis"),
+    entry("@fixture/large", "."),
+    entry("@fixture/large", "./toast"),
+    ...Array.from({ length: 41 }, (_, index) => entry("@fixture/large", `./hooks/${index < 30 ? "garden" : "vault"}/use${index}`)),
+    ...["a", "b", "c", "d"].map((name) => entry("@fixture/large", `./stores/${name}`)),
+  ];
+  const rendered = renderPackageExports(exports);
+  assert.match(rendered, /^48 export specifiers across 2 packages\./);
+  const [small, large] = rendered.split("### @fixture/large");
+  assert.ok(small.includes("| `./abis` | `./src/abis.ts` |") && !small.includes("<details>"), "a small package is one table");
+  // The summary counts each group, and groups under four specifiers share one row.
+  for (const row of ["| `./hooks` | 41 |", "| `./stores` | 4 |", "| Other entry points | 2 |"]) assert.ok(large.includes(row), row);
+  // Only a group over forty specifiers is split by its second segment.
+  for (const label of ["**`./hooks/garden`** (30)", "**`./hooks/vault`** (11)"]) assert.ok(large.includes(label), label);
+  assert.match(large, /<summary>`\.\/stores` \(4\)<\/summary>\n\n\| Specifier \| Target \|/);
+  // Grouping loses nothing and repeats nothing.
+  for (const item of exports) assert.equal(rendered.split(`| \`${item.specifier}\` | \`${item.target}\` |`).length - 1, 1, item.specifier);
 });
 
 test("detects missing, stale, and extra generated outputs", () => {

@@ -4070,7 +4070,7 @@
         "cells": {
           "Karma GAP": "Project Owner",
           "Hypercerts": "Creator",
-          "Octant": "Vault Admin, TAM Operator",
+          "Octant": "Vault Admin",
           "Gardens V2": "Council Member",
           "Hats Protocol": "Steward Hat"
         }
@@ -4081,7 +4081,6 @@
         "cells": {
           "Karma GAP": "Project Member",
           "Hypercerts": "Creator",
-          "Octant": "TAM Proposer",
           "Gardens V2": "Community Member",
           "Hats Protocol": "Gardener Hat"
         }
@@ -4092,7 +4091,6 @@
         "cells": {
           "Karma GAP": "Project Explorer",
           "Hypercerts": "Evaluator",
-          "Octant": "TAM Voter",
           "Gardens V2": "Community Member",
           "Hats Protocol": "Community Member"
         }

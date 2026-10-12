@@ -590,7 +590,8 @@ const config: Config = {
       ],
     },
     footer: {
-      // Four links per column; the footer follows the page surface in both color modes.
+      // Four links per column; the footer shares the page background in both color modes and
+      // carries no logo, so only its top border sets it apart from the content.
       style: 'light',
       links: [
         {
@@ -630,11 +631,6 @@ const config: Config = {
           ],
         },
       ],
-      logo: {
-        alt: 'Green Goods',
-        src: 'img/green-goods-logo.png',
-        width: 80,
-      },
       copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
     },
     prism: {

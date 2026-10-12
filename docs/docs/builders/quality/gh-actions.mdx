@@ -241,10 +241,10 @@ Checks manifests, lockfiles, and the release-age rule so a dependency change can
 
 The workflows call these root scripts, so running one locally reproduces that step.
 
-| Script | Run it | What it runs |
-|---|---|---|
-| `build` | <CopyCommand command="bun run build" /> | `bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build` |
-| `check` | <CopyCommand command="bun run check" /> | `node scripts/dev/ci-local.js` |
-| `format` | <CopyCommand command="bun run format" /> | `node scripts/dev/package-commands.mjs root format` |
-| `lint` | <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check` |
-| `test` | <CopyCommand command="bun run test" /> | `node scripts/dev/test.js` |
+| Run it | What it runs |
+|---|---|
+| <CopyCommand command="bun run build" /> | `bun run --cwd packages/contracts build && bun run --cwd packages/shared build && bun run --cwd packages/indexer build && bun run --cwd packages/client build && bun run --cwd packages/admin build` |
+| <CopyCommand command="bun run check" /> | `node scripts/dev/ci-local.js` |
+| <CopyCommand command="bun run format" /> | `node scripts/dev/package-commands.mjs root format` |
+| <CopyCommand command="bun run lint" /> | `node scripts/quality/check-react-patterns.js && bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script --deny-warnings && bun run --cwd packages/contracts lint --check` |
+| <CopyCommand command="bun run test" /> | `node scripts/dev/test.js` |

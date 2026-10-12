@@ -33,7 +33,7 @@
      same look to a category whose own page is open. */
   --ifm-menu-color-active: var(--ifm-color-primary);
   --ifm-menu-color-background-active: color-mix(in srgb, var(--ifm-color-primary) 12%, transparent);
-  --ifm-footer-background-color: var(--ifm-background-surface-color);
+  --ifm-footer-background-color: var(--ifm-background-color);
 
   --ifm-font-family-base: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
   --ifm-font-family-display: "Bricolage Grotesque", "Manrope", sans-serif;

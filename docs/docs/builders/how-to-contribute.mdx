@@ -5,7 +5,7 @@ slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - CONTRIBUTING.md
@@ -93,21 +93,39 @@ and the environment lives in one root `.env`
 
 ## Prove it
 
-Ask the repository which checks your change actually needs; it picks the smallest honest set from
-what you changed:
+Prove a change in four steps, smallest first. CI covers broad regression across the repository,
+so you never need to run everything locally.
 
-```bash
-bun run check --plan -- --intent qa
-```
+1. **Ask what your change needs.** The selector reads the files you changed and lists the
+   smallest honest set of checks. Nothing runs yet:
 
-Run the focused test that proves your change first, then the package checks the plan selects.
-When you push, the pre-push hook runs the ready-for-CI gate for you; the
-[Testing Guide](/builders/testing#reproducing-ci-locally) shows how to run that same gate by hand
-and which Playwright project matches your surface. CI covers broad regression across the repo, so
-you don't need to run everything locally. Two habits help: always `bun run test`, never
-`bun test`, and `bun run format` before you push.
+   ```bash
+   bun run check --plan -- --intent qa
+   ```
 
-When a change is visible, include rendered proof in the pull request and say where it came from:
+2. **Run the one test closest to your change.** Start with the test that proves the behavior you
+   touched, through its package's own command. For a client test, that looks like this:
+
+   ```bash
+   bun run --cwd packages/client test src/__tests__/bootFallback.test.tsx
+   ```
+
+   The [Testing Guide](/builders/testing#commands-per-surface) has the command for every
+   package. Always `bun run test`, never `bun test`.
+
+3. **Run what the plan selected.** The same command without `--plan` runs those checks and
+   prints an `Outcome` line that says whether they passed:
+
+   ```bash
+   bun run check -- --intent qa
+   ```
+
+4. **Format, then push.** Run `bun run format`. When you push, the pre-push hook runs the
+   ready-for-CI gate for you and stops the push if a check fails. The
+   [Testing Guide](/builders/testing#reproducing-ci-locally) shows how to run that gate by hand
+   and which Playwright project matches your surface.
+
+If your change is visible, add rendered proof to the pull request and say where it came from:
 mock auth on localhost, Storybook, CI Playwright, or a real signed-in browser.
 
 <figure className="gg-figure">
