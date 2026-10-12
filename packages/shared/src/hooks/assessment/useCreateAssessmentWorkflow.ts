@@ -1,3 +1,5 @@
+import { reconcileAssessmentRecovery } from "./assessmentRecovery";
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -14,6 +16,8 @@ import {
   createAssessment,
   createDefaultCreateAssessmentPorts,
   AssessmentConfirmationUnavailableError,
+  AssessmentReceiptMismatchError,
+  AssessmentSubmissionPendingError,
 } from "../../modules/assessment/create-assessment-command";
 import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
@@ -28,8 +32,15 @@ import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { TransactionConfirmationPendingError } from "../../modules/transactions/types";
+import {
+  getTransactionScopeKey,
+  TransactionConfirmationPendingError,
+} from "../../modules/transactions/types";
 import { withoutQuotedRequest } from "../../utils/errors/extract-message";
+import {
+  assessmentSubmissionKey,
+  useAssessmentSubmissionStore,
+} from "../../stores/useAssessmentSubmissionStore";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
 export type { AssessmentDraftRecord } from "./useAssessmentDraft";
@@ -45,19 +56,16 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const address = usePrimaryAddress() ?? undefined;
   const sender = useTransactionSender();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
-
-  // Draft persistence
   const draft = useAssessmentDraft(draftGardenId, address, {
     enabled: !!draftGardenId && !!address,
+    chainId: selectedChainId,
   });
   const { saveDraft, clearDraft, peekDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
-
   const notifyDraftPersistenceIssue = useCallback(
     (stage: "save" | "clear") => {
       if (draftPersistenceWarningShownRef.current) return;
       draftPersistenceWarningShownRef.current = true;
-
       const titleId =
         stage === "save"
           ? "app.assessment.draftPersistence.saveFailed.title"
@@ -66,7 +74,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         stage === "save"
           ? "app.assessment.draftPersistence.saveFailed.message"
           : "app.assessment.draftPersistence.clearFailed.message";
-
       toastService.info({
         title: formatMessage({
           id: titleId,
@@ -86,14 +93,24 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     },
     [formatMessage]
   );
-
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change
   const identityRef = useRef({ address, sender });
-  const confirmationPendingRef = useRef(false);
+  const scope =
+    address && draftGardenId
+      ? assessmentSubmissionKey(address, selectedChainId, draftGardenId)
+      : null;
+  const activeKeyRef = useRef(scope);
+  const completionRef = useRef<{ key: string; uid: string } | null>(null);
+  const pendingSubmission = useAssessmentSubmissionStore((state) =>
+    scope ? state.pending[scope] : undefined
+  );
+  const getPending = () =>
+    activeKeyRef.current
+      ? useAssessmentSubmissionStore.getState().pending[activeKeyRef.current]
+      : undefined;
   const chainIdRef = useRef(selectedChainId);
   const formatMessageRef = useRef(formatMessage);
-
   useEffect(() => {
     identityRef.current = { address, sender };
   }, [address, sender]);
@@ -103,19 +120,35 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   useEffect(() => {
     formatMessageRef.current = formatMessage;
   }, [formatMessage]);
-
   const machine = useMemo(
     () =>
       createAssessmentMachine.provide({
         guards: {
-          canRetry: ({ context }) => !confirmationPendingRef.current && context.retryCount < 3,
+          canRetry: ({ context }) => !getPending() && context.retryCount < 3,
+          isPending: () => Boolean(getPending()),
         },
         actors: {
+          reconcileAssessment: fromPromise<string | null>(({ signal }) =>
+            reconcileAssessmentRecovery(
+              signal,
+              () => ({
+                key: activeKeyRef.current,
+                pending: getPending(),
+                ...identityRef.current,
+                chainId: chainIdRef.current,
+              }),
+              (key, uid) => {
+                completionRef.current = { key, uid };
+              },
+              formatMessageRef.current
+            )
+          ),
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
-            async ({ input: params }) => {
+            async ({ input: params, signal }) => {
               const { address: currentAddress, sender: currentSender } = identityRef.current;
               const currentChainId = chainIdRef.current;
-
+              if (getPending())
+                throw new Error(formatMessageRef.current({ id: "app.account.transactionPending" }));
               if (!currentAddress) {
                 throw new Error(
                   formatMessageRef.current({
@@ -127,7 +160,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               if (!currentSender) {
                 throw new Error(formatMessageRef.current({ id: "app.account.signerNotReady" }));
               }
-
               try {
                 const newAttestationUID = await createAssessment(
                   {
@@ -144,6 +176,23 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                   createDefaultCreateAssessmentPorts({
                     account: currentAddress,
                     transactionSender: currentSender,
+                    checkpoint: (submission) =>
+                      useAssessmentSubmissionStore
+                        .getState()
+                        .record({ ...submission, assessmentType: params.assessmentType }),
+                    clearCheckpoint: (submission) => {
+                      if (submission.result.confirmation !== "pending") return;
+                      const key = assessmentSubmissionKey(
+                        submission.account,
+                        submission.chainId,
+                        submission.gardenId
+                      );
+                      if (
+                        useAssessmentSubmissionStore.getState().pending[key]?.result.hash ===
+                        (submission.result.broadcastReference?.hash ?? submission.result.hash)
+                      )
+                        useAssessmentSubmissionStore.getState().clear(key);
+                    },
                     reportEvidenceFailures: ({ failedCount, totalCount }) => {
                       logger.warn("Some evidence media uploads failed", {
                         source: "useCreateAssessmentWorkflow",
@@ -179,29 +228,55 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                     },
                   })
                 );
-                trackAdminAssessmentCreateSuccess({
-                  gardenId: params.gardenId,
-                  assessmentType: params.assessmentType,
-                  chainId: currentChainId,
-                  attestationUid: newAttestationUID,
-                });
+                const submissionKey = assessmentSubmissionKey(
+                  currentAddress,
+                  currentChainId,
+                  params.gardenId
+                );
+                const pending = useAssessmentSubmissionStore.getState().pending[submissionKey];
+                if (pending)
+                  useAssessmentSubmissionStore
+                    .getState()
+                    .record({ ...pending, confirmedUid: newAttestationUID, successTracked: true });
+                if (!pending?.successTracked)
+                  trackAdminAssessmentCreateSuccess({
+                    gardenId: params.gardenId,
+                    assessmentType: params.assessmentType,
+                    chainId: currentChainId,
+                    attestationUid: newAttestationUID,
+                  });
+                if (!signal.aborted)
+                  completionRef.current = { key: submissionKey, uid: newAttestationUID };
                 return newAttestationUID;
               } catch (error) {
-                confirmationPendingRef.current =
+                if (
                   error instanceof AssessmentConfirmationUnavailableError ||
-                  error instanceof TransactionConfirmationPendingError;
+                  error instanceof AssessmentSubmissionPendingError
+                ) {
+                  useAssessmentSubmissionStore.getState().record({
+                    ...error.assessmentSubmission,
+                    assessmentType: params.assessmentType,
+                  });
+                  // Accepted execution is neither a failed assessment nor permission to retry.
+                  throw new Error(
+                    formatMessageRef.current({ id: "app.account.transactionPending" })
+                  );
+                }
+                if (error instanceof AssessmentReceiptMismatchError) {
+                  const key = assessmentSubmissionKey(
+                    currentAddress,
+                    currentChainId,
+                    params.gardenId
+                  );
+                  useAssessmentSubmissionStore.getState().clear(key);
+                  throw new Error(
+                    formatMessageRef.current({ id: "app.assessment.receiptMismatch" })
+                  );
+                }
                 const message =
-                  error instanceof AssessmentConfirmationUnavailableError
-                    ? formatMessageRef.current({
-                        id: "app.assessment.confirmationUnavailable",
-                        defaultMessage:
-                          "Your assessment transaction was confirmed, but its record is temporarily unavailable. Check your assessments before submitting again.",
-                      })
-                    : error instanceof TransactionConfirmationPendingError
-                      ? formatMessageRef.current({ id: "app.account.transactionPending" })
-                      : withoutQuotedRequest(
-                          error instanceof Error ? error.message : String(error)
-                        );
+                  error instanceof TransactionConfirmationPendingError
+                    ? formatMessageRef.current({ id: "app.account.transactionPending" })
+                    : withoutQuotedRequest(error instanceof Error ? error.message : String(error));
                 trackAdminAssessmentCreateFailed({
                   gardenId: params.gardenId,
                   assessmentType: params.assessmentType,
@@ -216,11 +291,34 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       }),
     [] // Machine created once — actor reads current values from refs
   );
-
   const [state, send, actor] = useMachine(machine);
-
+  const identityScope = `${address ? getTransactionScopeKey(address, selectedChainId) : "disconnected"}:${draftGardenId ?? ""}`;
+  const previousScope = useRef(identityScope);
+  useEffect(() => {
+    if (previousScope.current !== identityScope) {
+      previousScope.current = identityScope;
+      activeKeyRef.current = scope;
+      send({ type: "SWITCH_SCOPE" });
+    }
+    if (pendingSubmission && actor.getSnapshot().matches("idle")) {
+      activeKeyRef.current = scope;
+      send({ type: "RESTORE_PENDING", gardenId: pendingSubmission.gardenId });
+    }
+  }, [scope, identityScope, pendingSubmission, send, actor]);
   const startCreation = useCallback(
     (params: AssessmentWorkflowParams & { gardenId: Address }) => {
+      if (
+        actor.getSnapshot().matches("pending") ||
+        actor.getSnapshot().matches("reconciling") ||
+        actor.getSnapshot().matches("submitting")
+      )
+        return false;
+      if (address)
+        activeKeyRef.current = assessmentSubmissionKey(address, selectedChainId, params.gardenId);
+      const existing = getPending();
+      if (existing && !existing.confirmedUid) return false;
+      if (existing && activeKeyRef.current)
+        useAssessmentSubmissionStore.getState().clear(activeKeyRef.current);
       const ipfsStatus = getIpfsInitStatus();
       if (ipfsStatus.status === "failed" || ipfsStatus.status === "skipped_no_config") {
         toastService.error({
@@ -238,7 +336,6 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         });
         return false;
       }
-
       send({ type: "START", params });
       // The machine validates as it starts, and in its invalid state it ignores
       // the SUBMIT that follows. Answers it refuses are not started, so the
@@ -251,41 +348,70 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         });
         return false;
       }
-      // Persist draft to IndexedDB for offline resilience
       void (async () => {
         const savedDraft = await saveDraft(params);
         if (savedDraft) {
           draftPersistenceWarningShownRef.current = false;
           return;
         }
-
         if (!draftKey) return;
         notifyDraftPersistenceIssue("save");
       })();
       return true;
     },
-    [send, actor, saveDraft, draftKey, notifyDraftPersistenceIssue, formatMessage]
+    [
+      send,
+      actor,
+      saveDraft,
+      draftKey,
+      notifyDraftPersistenceIssue,
+      formatMessage,
+      address,
+      selectedChainId,
+    ]
   );
-
   const retry = useCallback(() => {
     send({ type: "RETRY" });
   }, [send]);
-
   const submitCreation = useCallback(() => {
     send({ type: "SUBMIT" });
   }, [send]);
-
   const reset = useCallback(() => {
-    confirmationPendingRef.current = false;
+    const existing = getPending();
+    if (existing && !existing.confirmedUid) return;
+    if (existing && activeKeyRef.current)
+      useAssessmentSubmissionStore.getState().clear(activeKeyRef.current);
     send({ type: "RESET" });
   }, [send]);
-
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const key = activeKeyRef.current;
+    const pending = getPending();
+    await confirmCancelledSubmission({
+      confirmedInWallet,
+      ...identityRef.current,
+      account: identityRef.current.address,
+      chainId: chainIdRef.current,
+      isCurrent: () =>
+        Boolean(
+          key &&
+            pending &&
+            !pending.confirmedUid &&
+            getPending() === pending &&
+            activeKeyRef.current === key &&
+            actor.getSnapshot().matches("pending") &&
+            identityRef.current.address?.toLowerCase() === pending.account.toLowerCase() &&
+            chainIdRef.current === pending.chainId
+        ),
+      clear: () => {
+        useAssessmentSubmissionStore.getState().clear(key!);
+        send({ type: "SWITCH_SCOPE" });
+      },
+    });
+  };
   const queryClient = useQueryClient();
-
   // Invalidate assessment queries and clear draft when workflow reaches success state
   const isSuccess = state.matches("success");
-  const gardenId = state.context.assessmentParams?.gardenId;
-
+  const gardenId = state.context.assessmentParams?.gardenId ?? state.context.pendingGardenId;
   // Progressive re-invalidation covers EAS GraphQL indexer lag at 2s / 5s / 15s — matches
   // the pattern used by vault mutations (useVaultDeposit, useHarvest, useEmergencyPause).
   const { start: scheduleIndexerRefetch } = useProgressiveInvalidation(
@@ -299,38 +425,51 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     INDEXER_LAG_SCHEDULE_MS
   );
   useEffect(() => {
-    if (!isSuccess) return;
-
+    const completion = completionRef.current;
+    if (
+      !isSuccess ||
+      !completion ||
+      completion.uid !== state.context.txHash ||
+      completion.key !== activeKeyRef.current
+    )
+      return;
     let cancelled = false;
-
     const finalizeSuccess = async () => {
-      await clearDraft();
+      const completedKey = completion.key;
+      const completed = completedKey
+        ? useAssessmentSubmissionStore.getState().pending[completedKey]
+        : undefined;
+      const draftCleared = await clearDraft();
       const persistedDraft = await peekDraft();
+      if (
+        draftCleared &&
+        !persistedDraft &&
+        completedKey &&
+        completed &&
+        useAssessmentSubmissionStore.getState().pending[completedKey] === completed
+      )
+        useAssessmentSubmissionStore.getState().clear(completedKey);
       if (!cancelled) {
-        if (persistedDraft) {
+        if (!draftCleared || persistedDraft) {
           notifyDraftPersistenceIssue("clear");
         } else {
           draftPersistenceWarningShownRef.current = false;
         }
       }
-
-      // Immediate invalidation for admin's direct EAS query
       const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
       for (const key of keys) {
         queryClient.invalidateQueries({ queryKey: key });
       }
-
       // Second pass after indexer lag so gardens/assessments data reflects the new attestation
       scheduleIndexerRefetch();
     };
-
     void finalizeSuccess();
-
     return () => {
       cancelled = true;
     };
   }, [
     isSuccess,
+    state.context.txHash,
     clearDraft,
     peekDraft,
     notifyDraftPersistenceIssue,
@@ -338,15 +477,18 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     queryClient,
     scheduleIndexerRefetch,
   ]);
-
   return {
     state,
     startCreation,
     submitCreation,
     retry,
     reset,
-    canRetry:
-      state.matches("error") && !confirmationPendingRef.current && state.context.retryCount < 3,
+    isPending: state.matches("pending") || state.matches("reconciling"),
+    isCheckingConfirmation: state.matches("reconciling"),
+    recoveryKey: `${scope}:${pendingSubmission?.result.hash}`,
+    confirmWalletCancellation,
+    checkConfirmation: () => send({ type: "CHECK_CONFIRMATION" }),
+    canRetry: state.matches("error") && !getPending() && state.context.retryCount < 3,
     draft,
   };
 }

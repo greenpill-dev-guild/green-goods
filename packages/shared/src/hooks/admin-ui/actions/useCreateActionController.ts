@@ -2,7 +2,6 @@ import type { Step } from "../../../components/Form/StepIndicator";
 import {
   trackAdminActionCreateFailed,
   trackAdminActionCreateStarted,
-  trackAdminActionCreateSuccess,
 } from "../../../modules/app/analytics-events";
 import { logger } from "../../../modules/app/logger";
 import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
@@ -36,15 +35,22 @@ import {
 } from "./actionDrafts";
 
 /** Where the Review's send stands: nothing sent yet, under way, landed, or failed. */
-type CreateActionSend = "idle" | "sending" | "sent" | "failed";
+type CreateActionSend = "idle" | "sending" | "pending" | "sent" | "failed";
 
 export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
-  const { registerAction, isLoading, assertReady } = useActionOperations(
-    CREATE_ACTION_DEFAULT_CHAIN_ID
-  );
+  const {
+    registerAction,
+    isLoading,
+    assertReady,
+    pendingRegistration,
+    reconcileRegistration,
+    confirmRegistrationCancellation,
+    acknowledgeRegistration,
+    registrationScope,
+  } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const actionCreateGardenAddress = createActionContracts.gardenToken;
   const [currentStep, setCurrentStep] = useState(0);
@@ -59,6 +65,17 @@ export function useCreateActionController() {
   // before the state above re-renders; this lock is set synchronously.
   const sendLockRef = useRef(false);
   const txError = useTxErrorMessages(sendError);
+  const mounted = useRef(true);
+  const activeScope = useRef(registrationScope);
+  activeScope.current = registrationScope;
+  const previousScope = useRef(registrationScope);
+  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const domainOptions = [
     {
@@ -139,6 +156,25 @@ export function useCreateActionController() {
     setCurrentStep(Math.max(0, Math.min(restoredDraft.currentStep, stepConfigs.length - 1)));
   }, [form, stepConfigs.length]);
 
+  useEffect(() => {
+    if (previousScope.current !== registrationScope) {
+      const hadScope = previousScope.current !== null;
+      previousScope.current = registrationScope;
+      if (hadScope) {
+        sendLockRef.current = false;
+        setSend("idle");
+        setSendError(null);
+        setCurrentStep(0);
+        form.reset(createActionDefaultValues());
+      }
+    }
+    if (pendingRegistration) {
+      sendLockRef.current = true;
+      setSend("pending");
+      setCurrentStep(stepConfigs.length - 1);
+    }
+  }, [registrationScope, pendingRegistration, form, stepConfigs.length]);
+
   const stepValidation = useFormWizardStepValidation({
     currentStep,
     steps: stepConfigs,
@@ -182,6 +218,7 @@ export function useCreateActionController() {
     sendLockRef.current = true;
     setSend("sending");
     setSendError(null);
+    const submissionScope = registrationScope;
     let mutationStarted = false;
     const actionSlug = data.slug.trim().toLowerCase();
     const actionDomain = data.domain as Domain;
@@ -228,6 +265,11 @@ export function useCreateActionController() {
         instructions: instructionsUpload.cid,
       });
 
+      if (!mounted.current || activeScope.current !== submissionScope) return;
+      if (result.confirmation === "pending") {
+        setSend("pending");
+        return;
+      }
       if (!result.success) {
         const errorMessage = result.error?.message ?? "Action registration failed";
         mutationStarted = false;
@@ -242,16 +284,12 @@ export function useCreateActionController() {
         throw new Error(errorMessage);
       }
 
-      trackAdminActionCreateSuccess({
-        ...telemetryBase,
-        txHash: result.hash ?? "",
-      });
-
       // The flow stays on its Review once the action exists (DL-080): nothing
       // navigates and nothing asks to discard. The draft goes at once, so a
       // reload cannot register the same action twice.
       clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
       clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+      acknowledgeRegistration(result.hash);
       setSend("sent");
     } catch (error) {
       logger.error("Failed to create action", {
@@ -275,9 +313,51 @@ export function useCreateActionController() {
 
       // The Review's status row says what happened; Try Again sends the
       // answers as they stand.
+      if (!mounted.current || activeScope.current !== submissionScope) return;
       setSendError(error);
       setSend("failed");
       sendLockRef.current = false;
+    }
+  };
+
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const scope = registrationScope;
+    if (isCheckingConfirmation || isLoading || send !== "pending")
+      throw new Error("pending-submission-changed");
+    await confirmRegistrationCancellation(confirmedInWallet);
+    if (!mounted.current || activeScope.current !== scope) return;
+    setSend("idle");
+    setSendError(null);
+    sendLockRef.current = false;
+  };
+  const checkConfirmation = async () => {
+    if (isCheckingConfirmation || isLoading || send === "sending" || send === "sent") return;
+    const scope = registrationScope;
+    setIsCheckingConfirmation(true);
+    try {
+      const result = await reconcileRegistration();
+      if (!mounted.current || activeScope.current !== scope) return;
+      if (result.confirmation === "pending") return;
+      if (result.success) {
+        clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
+        clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+        acknowledgeRegistration(result.hash);
+        setSend("sent");
+      } else {
+        setSendError(
+          new Error(
+            result.error?.message ??
+              formatMessage({
+                id: "app.account.transactionReverted",
+                defaultMessage: "Transaction reverted. Your change was not recorded.",
+              })
+          )
+        );
+        setSend("failed");
+        sendLockRef.current = false;
+      }
+    } finally {
+      if (mounted.current) setIsCheckingConfirmation(false);
     }
   };
 
@@ -287,6 +367,7 @@ export function useCreateActionController() {
 
   // The draft left with the send, so a new action starts from empty answers.
   const handleCreateAnother = () => {
+    if (send !== "sent") return;
     sendLockRef.current = false;
     form.reset(createActionDefaultValues());
     setSend("idle");
@@ -304,6 +385,7 @@ export function useCreateActionController() {
   };
 
   const isSent = send === "sent";
+  const isPendingRegistration = send === "pending" || Boolean(pendingRegistration);
 
   return {
     currentStep,
@@ -319,8 +401,13 @@ export function useCreateActionController() {
     handleNext: stepValidation.handleNext,
     hasError: send === "failed",
     // A registered action is not in progress, so closing its done state never asks.
-    isDirty: form.formState.isDirty && !isSent,
+    isDirty: form.formState.isDirty && !isSent && !isPendingRegistration,
     isSending: send === "sending" || isLoading,
+    isPendingRegistration,
+    isCheckingConfirmation: isCheckingConfirmation || isLoading,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey: `${registrationScope}:${pendingRegistration?.hash}`,
     isSent,
     onSubmit,
     stepConfigs,

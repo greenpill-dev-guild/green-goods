@@ -11,6 +11,11 @@ import { useCreateActionController } from "../../../hooks/admin-ui/actions/useCr
 
 const mockNavigate = vi.fn();
 const mockRegisterAction = vi.fn();
+const mockReconcileRegistration = vi.fn();
+let registrationScope: string | null = "11155111:owner";
+let pendingRegistration:
+  | { hash: `0x${string}`; sponsored: boolean; confirmation: "pending" }
+  | undefined;
 const mockUploadFileToIPFS = vi.fn();
 const mockTrackStarted = vi.fn();
 const mockTrackSuccess = vi.fn();
@@ -89,6 +94,10 @@ vi.mock("../../../modules/data/ipfs/upload", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     assertReady: vi.fn(),
+    pendingRegistration,
+    registrationScope,
+    reconcileRegistration: mockReconcileRegistration,
+    acknowledgeRegistration: vi.fn(),
     registerAction: (...args: unknown[]) => mockRegisterAction(...args),
     isLoading: false,
   }),
@@ -154,6 +163,8 @@ function createFormData() {
 
 describe("useCreateActionController telemetry", () => {
   beforeEach(() => {
+    pendingRegistration = undefined;
+    mockReconcileRegistration.mockReset();
     vi.clearAllMocks();
     mockUploadFileToIPFS.mockResolvedValue({ cid: "bafy-instructions" });
     mockRegisterAction.mockResolvedValue({ success: true, hash: "0xabc" });
@@ -178,7 +189,7 @@ describe("useCreateActionController telemetry", () => {
     expect(mockRegisterAction).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Repair Event", slug: "repair.event", domain: 2 })
     );
-    expect(mockTrackSuccess).toHaveBeenCalledWith({ ...expectedBase, txHash: "0xabc" });
+    expect(mockTrackSuccess).not.toHaveBeenCalled(); // Confirmation analytics belong to the operations seam.
     expect(mockTrackFailed).not.toHaveBeenCalled();
   });
 
@@ -236,6 +247,8 @@ describe("useCreateActionController telemetry", () => {
 
 describe("useCreateActionController ending (DL-080)", () => {
   beforeEach(() => {
+    pendingRegistration = undefined;
+    mockReconcileRegistration.mockReset();
     vi.clearAllMocks();
     mockUploadFileToIPFS.mockResolvedValue({ cid: "bafy-instructions" });
     mockRegisterAction.mockResolvedValue({ success: true, hash: "0xabc" });
@@ -344,4 +357,75 @@ describe("useCreateActionController ending (DL-080)", () => {
     expect(result.current.currentStep).toBe(0);
     expect(result.current.form.getValues("title")).toBe("");
   });
+});
+
+it("keeps an accepted registration pending without retry, failure telemetry or draft clearing", async () => {
+  vi.clearAllMocks();
+  mockUploadFileToIPFS.mockResolvedValue({ cid: "ipfs://test" });
+  mockRegisterAction.mockResolvedValue({
+    success: false,
+    confirmation: "pending",
+    hash: "0xProposal",
+  });
+  const { result } = renderHook(() => useCreateActionController(), { wrapper });
+  await act(() => result.current.onSubmit(createActionDefaultValues()));
+  expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
+  expect(result.current.hasError).toBe(false);
+  expect(mockClearViewState).not.toHaveBeenCalled();
+  expect(mockTrackFailed).not.toHaveBeenCalled();
+  expect(mockTrackSuccess).not.toHaveBeenCalled();
+  await act(() => result.current.onSubmit(createActionDefaultValues()));
+  expect(mockRegisterAction).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  "confirmed",
+  "unresolved",
+  "reverted",
+])("restores and checks a pending action: %s", async (outcome) => {
+  vi.clearAllMocks();
+  pendingRegistration = { hash: "0xProposal", sponsored: false, confirmation: "pending" };
+  mockReconcileRegistration.mockResolvedValueOnce(
+    outcome === "confirmed"
+      ? { success: true, hash: "0xExecution" }
+      : outcome === "reverted"
+        ? { success: false, error: { message: "Transaction reverted" } }
+        : { success: false, confirmation: "pending" }
+  );
+  const { result } = renderHook(() => useCreateActionController(), { wrapper });
+  expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
+  expect(result.current.currentStep).toBe(3);
+  await act(() => result.current.checkConfirmation());
+  if (outcome === "confirmed") {
+    expect(result.current.isSent).toBe(true);
+    expect(mockClearViewState).toHaveBeenCalled();
+  } else if (outcome === "unresolved") {
+    expect(result.current.hasError).toBe(false);
+    expect(mockClearViewState).not.toHaveBeenCalled();
+  } else expect(result.current.hasError).toBe(true);
+  expect(mockRegisterAction).not.toHaveBeenCalled();
+  expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
+  pendingRegistration = undefined;
+});
+
+it("preserves a restored draft when the initial account resolves", () => {
+  pendingRegistration = undefined;
+  registrationScope = null;
+  mockRestoreViewState.mockReturnValueOnce({
+    formState: { title: "Restored action", currentStep: 2 },
+  } as never);
+  const view = renderHook(() => useCreateActionController(), { wrapper });
+  expect(view.result.current.form.getValues("title")).toBe("Restored action");
+  registrationScope = "11155111:owner";
+  view.rerender();
+  expect(view.result.current.form.getValues("title")).toBe("Restored action");
+  expect(view.result.current.currentStep).toBe(2);
+  registrationScope = "11155111:another-owner";
+  view.rerender();
+  expect(view.result.current.form.getValues("title")).toBe("");
+  registrationScope = "11155111:owner";
 });
