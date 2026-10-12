@@ -1,0 +1,357 @@
+// Text transforms behind llms.txt and the per-page Markdown twins. The build plugin in
+// plugins/llms-twins.mjs does the file work; these stay pure so they can be tested directly.
+
+/** Where a page's Markdown twin is served: its URL plus `.md`, with the home page at `/index.md`. */
+export function twinPath(permalink) {
+  const clean = permalink.replace(/\/+$/, "");
+  return `${clean || "/index"}.md`;
+}
+
+const FENCED_CODE = /^(```|~~~)[^\n]*\n[\s\S]*?^\1[ \t]*$/gm;
+// Top-level ES imports only: named, default, namespace, and side-effect forms. Named imports may
+// span several lines inside their braces.
+const IMPORT_STATEMENT =
+  /^import\s+(?:(?:\{[^}]*\}|[\w$]+(?:\s*,\s*\{[^}]*\})?|\*\s+as\s+[\w$]+)\s+from\s+)?(["'])[^"'\n]+\1;?[ \t]*\n?/gm;
+
+const PROJECTION_TAG = /^[ \t]*<IntegrationProjection\s+id="([^"]+)"\s*\/>[ \t]*$/gm;
+const COPY_COMMAND_TAG = /<CopyCommand\s+command=(["'])(.*?)\1[^>]*\/>/g;
+const STATUS_TABLE_TAG = /^[ \t]*<IntegrationStatusTable\s*\/>[ \t]*$/gm;
+const ONBOARDING_TAG = /^[ \t]*<OnboardingProcedure\s*\/>[ \t]*$/gm;
+// Components that draw a page's content from a data file. A twin that left their tag in place
+// would carry none of that content, so each has a Markdown rendering of the same data below.
+const DESIGN_TOKENS_TAG = /^[ \t]*<DesignTokens\s*\/>[ \t]*$/gm;
+const BRAND_ASSETS_TAG = /^[ \t]*<BrandAssets\s*\/>[ \t]*$/gm;
+const HERO_TAG = /^[ \t]*<Hero\s*\/>[ \t]*$/gm;
+const STEWARD_PATH_TAG = /^[ \t]*<StewardPathNav\s*\/>[ \t]*$/gm;
+// The economics explorer only runs in a browser, so its page wraps it in BrowserOnly.
+const REVENUE_EXPLORER_TAG = /^[ \t]*<BrowserOnly>\s*\{\(\) => <ProtocolRevenueExplorer\s*\/>\}\s*<\/BrowserOnly>[ \t]*$/gm;
+
+/** Whole numbers with thousands separators and up to four decimals, the same on every machine. */
+function plainNumber(value) {
+  const [whole, fraction = ""] = Math.abs(value).toFixed(4).split(".");
+  const decimals = fraction.replace(/0+$/, "");
+  return `${value < 0 ? "-" : ""}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${decimals ? `.${decimals}` : ""}`;
+}
+
+const dollars = (value) => `${value < 0 ? "-" : ""}$${plainNumber(Math.abs(Math.round(value)))}`;
+const REVENUE_OUTPUT_ROWS = [
+  ["Total annual revenue", "totalAnnualRevenue", dollars],
+  ["On-chain revenue", "onchainRevenue", dollars],
+  ["Off-chain revenue", "offchainRevenue", dollars],
+  ["Total expenses", "totalExpenses", dollars],
+  ["Net margin (revenue minus expenses)", "netMargin", dollars],
+  ["Coverage (revenue as a share of expenses)", "coverageRatio", (value) => `${plainNumber(Math.round(value * 1000) / 10)}%`],
+  ["Runway in months", "runwayMonths", (value) => plainNumber(Math.round(value * 10) / 10)],
+  ["Treasury after one year", "treasuryAfterOneYear", dollars],
+  ["TVL needed if vault yield alone paid every expense", "requiredTvl", dollars],
+  ["Principal needed if treasury yield alone paid every expense", "requiredPrincipal", dollars],
+  ["Implied valuation", "impliedValuation", dollars],
+  ["Token price", "tokenPrice", (value) => `$${plainNumber(value)}`],
+];
+
+/**
+ * The economics explorer's model as tables: each input with the value every preset gives it, then
+ * what each preset computes and where its revenue comes from. The site draws an interactive
+ * calculator from the same model; the twin carries its starting points.
+ */
+export function revenueExplorerMarkdown(explorer) {
+  const presets = explorer.presets;
+  const columns = presets.map((preset) => preset.label).join(" | ");
+  const rule = presets.map(() => "---").join("|");
+  const lines = [
+    "The site renders an interactive calculator here. Its model is listed below: every input with the value each preset gives it, then what each preset computes. Amounts are per year.",
+    "",
+    "### Presets",
+    "",
+    ...presets.map((preset) => `- **${preset.label}**: ${preset.description} The model places it at the ${preset.stage} stage.`),
+    "",
+    "### Inputs and preset values",
+  ];
+  for (const section of explorer.sections) {
+    lines.push("", `**${section.title}.** ${section.description}`, "", `| Input | What it is | ${columns} |`, `|---|---|${rule}|`);
+    for (const field of section.fields) {
+      const values = presets.map((preset) => `${field.prefix ?? ""}${plainNumber(preset.inputs[field.key])}${field.suffix ?? ""}`);
+      lines.push(`| ${field.label} | ${field.description} | ${values.join(" | ")} |`);
+    }
+  }
+  lines.push("", "### What each preset computes", "", `| Output | ${columns} |`, `|---|${rule}|`);
+  for (const [label, key, format] of REVENUE_OUTPUT_ROWS) {
+    const values = presets.map((preset) => (preset.outputs[key] === null ? "No limit" : format(preset.outputs[key])));
+    lines.push(`| ${label} | ${values.join(" | ")} |`);
+  }
+  lines.push("", "### Revenue streams", "", `| Stream | Kind | ${columns} |`, `|---|---|${rule}|`);
+  for (const [index, stream] of presets[0].streams.entries()) {
+    lines.push(`| ${stream.label} | ${stream.category} | ${presets.map((preset) => dollars(preset.streams[index].amount)).join(" | ")} |`);
+  }
+  return lines.join("\n");
+}
+
+/** The core design tokens as tables: the values the DesignTokens component draws as swatches. */
+export function designTokensMarkdown(tokens) {
+  const code = (value) => `\`${value}\``;
+  const pairs = (heading, record) => [
+    `#### ${heading}`,
+    "",
+    "| Token | Value |",
+    "|---|---|",
+    ...Object.entries(record).map(([name, value]) => `| ${code(name)} | ${code(value)} |`),
+  ];
+  return [
+    ...pairs("Colors", tokens.colors),
+    "",
+    "#### Type",
+    "",
+    "| Token | Family | Size | Weight | Line height |",
+    "|---|---|---|---|---|",
+    ...Object.entries(tokens.typography).map(
+      ([name, type]) => `| ${code(name)} | ${type.fontFamily} | ${type.fontSize} | ${type.fontWeight} | ${type.lineHeight} |`,
+    ),
+    "",
+    ...pairs("Radii", tokens.rounded),
+    "",
+    ...pairs("Spacing", tokens.spacing),
+  ].join("\n");
+}
+
+/**
+ * The brand kit as an inventory: the downloads, palette, fonts, graphics and templates the
+ * BrandAssets component previews, with the files summarized per folder. Per-file URLs stay in the
+ * asset manifest the page links, so the twin does not repeat several hundred rows.
+ */
+export function brandKitMarkdown(kit) {
+  const canonical = kit.palette.find((color) => color.id === kit.canonicalColor);
+  const folders = new Map();
+  for (const entry of kit.files) {
+    const folder = entry.file.split("/")[0];
+    if (!folders.has(folder)) folders.set(folder, {count: 0, formats: new Set()});
+    folders.get(folder).count += 1;
+    folders.get(folder).formats.add(entry.format);
+  }
+  return [
+    "# Brand kit",
+    "",
+    `Kit v${kit.version}.${canonical ? ` ${canonical.name} \`${canonical.hex}\` is the canonical brand color.` : ""}`,
+    "",
+    `- [Download the whole kit (ZIP)](${kit.wholeKit.url})`,
+    ...kit.bundles.map((bundle) => `- [${bundle.label} bundle (ZIP)](${bundle.url})`),
+    "",
+    "## Palette",
+    "",
+    "| Color | Hex | Role | Status |",
+    "|---|---|---|---|",
+    ...kit.palette.map((color) => `| ${color.name} | \`${color.hex}\` | ${color.role} | ${color.status} |`),
+    "",
+    "## Typography",
+    "",
+    "| Family | Role | Source |",
+    "|---|---|---|",
+    ...kit.typography.map((font) => `| ${font.name} | ${font.role} | [${font.sourceLabel}](${font.source}) |`),
+    "",
+    "## Graphic elements",
+    "",
+    "| Graphic | Details |",
+    "|---|---|",
+    ...kit.graphics.map((graphic) => `| ${graphic.title} | ${graphic.description} |`),
+    "",
+    "## Templates",
+    "",
+    "| Template | Details |",
+    "|---|---|",
+    ...kit.templates.map((template) => `| ${template.title} | ${template.description} |`),
+    "",
+    "## Files",
+    "",
+    "| Folder | Files | Formats |",
+    "|---|---|---|",
+    ...[...folders].map(([folder, {count, formats}]) => `| \`${folder}\` | ${count} | ${[...formats].join(", ")} |`),
+  ].join("\n");
+}
+
+/** The welcome page's role cards as a list: who each path is for and where it starts. */
+export function rolePathsMarkdown(rolePaths) {
+  return rolePaths
+    .map((role) => `- [${role.title}](${role.href}) (${role.audience}, ${role.time}): ${role.description}`)
+    .join("\n");
+}
+
+/** The steward guide's path navigation as an ordered list. */
+export function stewardPathMarkdown(stewardPath) {
+  return ["Steward path:", "", ...stewardPath.map((step, index) => `${index + 1}. [${step.label}](${step.href})`)].join("\n");
+}
+
+/** The per-integration status table as Markdown, the same facts the IntegrationStatusTable renders. */
+export function integrationStatusMarkdown(integrations) {
+  const lines = ["| Integration | Networks with recorded components | Indexed contracts |", "|---|---|---|"];
+  for (const [id, record] of Object.entries(integrations).sort(([a], [b]) => a.localeCompare(b))) {
+    const networks = record.networks.length ? record.networks.map((network) => `${network.name} (${network.status})`).join(", ") : "None recorded";
+    const indexed = record.indexedContracts.length ? record.indexedContracts.map((name) => `\`${name}\``).join(", ") : "none";
+    lines.push(`| [${record.display}](/builders/integrations/${id}) | ${networks} | ${indexed} |`);
+  }
+  return lines.join("\n");
+}
+
+// The generator encodes these five characters inside a CopyCommand attribute (scripts/docs/renderers.mjs).
+const decodeAttribute = (text) =>
+  text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#124;", "|").replaceAll("&amp;", "&");
+
+/** Each CopyCommand tag as the code span it renders, so a twin or an audit sees the command itself. */
+export function inlineCopyCommands(text) {
+  return text.replace(COPY_COMMAND_TAG, (_tag, _quote, command) => `\`${decodeAttribute(command)}\``);
+}
+
+/**
+ * The deployment projection as Markdown, carrying the same facts the IntegrationProjection
+ * component renders on the site, so an integration page's twin reads whole without the component.
+ */
+export function projectionMarkdown(integration) {
+  const deployments = "[deployment status projection](/builders/reference/deployments)";
+  const lines = ["## Checked-in deployment projection", ""];
+  if (integration.networks.length === 0) {
+    lines.push(
+      `No checked-in deployment artifact records components for this integration on any supported network. Per-network state lives in the ${deployments}.`,
+    );
+  } else {
+    lines.push("| Network | Status | Recorded components |", "|---|---|---|");
+    for (const network of integration.networks) {
+      const recorded = network.recorded
+        .map((field) => `\`${field}\`${network.remote?.[field] ? ` (on ${network.remote[field]})` : ""}`)
+        .join(", ");
+      lines.push(`| ${network.name} (\`${network.chainId}\`) | ${network.status} | ${recorded} |`);
+    }
+    if (integration.networks.length < integration.totalNetworks) {
+      lines.push("", `Networks without recorded components are omitted; per-network state lives in the ${deployments}.`);
+    }
+  }
+  if (integration.indexedContracts.length > 0) {
+    const contracts = integration.indexedContracts.map((name) => `\`${name}\``).join(", ");
+    lines.push("", "## Indexer boundary", "", `Configured indexer contracts: ${contracts}.`);
+  }
+  lines.push(
+    "",
+    "A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. This projection regenerates from checked-in artifacts via `node scripts/docs/generate.mjs`.",
+  );
+  return lines.join("\n");
+}
+
+function outsideFencedCode(text, transform) {
+  let result = "";
+  let last = 0;
+  for (const match of text.matchAll(FENCED_CODE)) {
+    result += transform(text.slice(last, match.index)) + match[0];
+    last = match.index + match[0].length;
+  }
+  return result + transform(text.slice(last));
+}
+
+/**
+ * A page's source as plain Markdown for agents: no frontmatter and no MDX import lines (code
+ * examples keep theirs). A component that draws its content from a data file becomes the Markdown
+ * of that data when the data is given: the integration projections, the onboarding procedure, the
+ * design tokens, the brand kit, the role and steward-path link lists, and the economics explorer's
+ * model. Components whose content
+ * is already in the page (props or children) stay as written, as does anything interactive, so a
+ * reader can tell where the site renders it. Pages without their own H1 get one from the title.
+ */
+export function markdownTwin(
+  source,
+  title,
+  {
+    integrations = null,
+    onboarding = null,
+    designTokens = null,
+    brandKit = null,
+    rolePaths = null,
+    stewardPath = null,
+    revenueExplorer = null,
+  } = {},
+) {
+  const withoutFrontmatter = source.replace(/^---\n[\s\S]*?\n---\n/, "");
+  const expandProjections = (text) => {
+    let result = text;
+    if (integrations) {
+      result = result
+        .replace(PROJECTION_TAG, (tag, id) => {
+          const integration = integrations[id];
+          if (!integration) throw new Error(`Unknown integration projection id in a Markdown twin: ${id}`);
+          return projectionMarkdown(integration);
+        })
+        .replace(STATUS_TABLE_TAG, () => integrationStatusMarkdown(integrations));
+    }
+    // ONBOARDING.md carries its own triple-backtick fences, so the twin wraps it in four.
+    if (onboarding) result = result.replace(ONBOARDING_TAG, () => `\`\`\`\`markdown\n${onboarding.trimEnd()}\n\`\`\`\``);
+    if (designTokens) result = result.replace(DESIGN_TOKENS_TAG, () => designTokensMarkdown(designTokens));
+    if (brandKit) result = result.replace(BRAND_ASSETS_TAG, () => brandKitMarkdown(brandKit));
+    if (rolePaths) result = result.replace(HERO_TAG, () => rolePathsMarkdown(rolePaths));
+    if (stewardPath) result = result.replace(STEWARD_PATH_TAG, () => stewardPathMarkdown(stewardPath));
+    if (revenueExplorer) result = result.replace(REVENUE_EXPLORER_TAG, () => revenueExplorerMarkdown(revenueExplorer));
+    return result;
+  };
+  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return `${/^#\s/m.test(body) ? "" : `# ${title}\n\n`}${body}\n`;
+}
+
+/**
+ * Cuts every HTML comment out of the text, including comments nested inside another one, and
+ * drops the tail of a comment that never closes. A single regex replace would leave a dangling
+ * `<!--` behind when comments nest, so this scans until none remain.
+ */
+function withoutHtmlComments(text) {
+  let result = text;
+  let start = result.indexOf("<!--");
+  while (start !== -1) {
+    const end = result.indexOf("-->", start + 4);
+    result = end === -1 ? result.slice(0, start) : result.slice(0, start) + result.slice(end + 3);
+    start = result.indexOf("<!--");
+  }
+  return result;
+}
+
+/**
+ * The first real sentence of a twin, for the index: skips headings, comments, components, lists,
+ * tables, callouts, and code, so generated banners never become a page's description.
+ */
+export function leadSentence(markdown) {
+  const withoutCode = withoutHtmlComments(markdown.replace(FENCED_CODE, ""));
+  for (const block of withoutCode.split(/\n\s*\n/)) {
+    const text = block.trim();
+    if (!text || /^(#|<|\||[-*+]\s|\d+\.\s|:::|>|!\[)/.test(text)) continue;
+    const flat = text.replace(/\s+/g, " ").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+    const sentence = flat.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? flat;
+    return sentence.length > 220 ? `${sentence.slice(0, 217).trimEnd()}...` : sentence;
+  }
+  return "";
+}
+
+const SECTIONS = [
+  { title: "Builders", matches: (permalink) => permalink.startsWith("/builders") },
+  { title: "Community", matches: (permalink) => permalink.startsWith("/community") },
+  { title: "Reference", matches: () => true },
+];
+
+const oneLine = (text) => String(text ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * The llms.txt index: the hand-written site guidance, then every page grouped by section, each
+ * linking its Markdown twin with the page's own description.
+ */
+export function renderLlmsIndex({ header, siteUrl, pages }) {
+  const lines = [
+    header.trim(),
+    "",
+    "Every page below is also published as Markdown: add `.md` to its URL, as these links do.",
+  ];
+  const remaining = [...pages].sort((a, b) => a.permalink.localeCompare(b.permalink));
+  for (const section of SECTIONS) {
+    const inSection = remaining.filter((page) => section.matches(page.permalink));
+    if (!inSection.length) continue;
+    for (const page of inSection) remaining.splice(remaining.indexOf(page), 1);
+    lines.push("", `## ${section.title}`, "");
+    for (const page of inSection) {
+      const description = oneLine(page.description);
+      lines.push(`- [${oneLine(page.title)}](${siteUrl}${twinPath(page.permalink)})${description ? `: ${description}` : ""}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
