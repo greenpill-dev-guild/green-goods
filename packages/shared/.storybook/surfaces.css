@@ -198,9 +198,9 @@
 }
 
 [data-surface-scope="website"] {
-  --gg-button-radius: var(--radius-none);
-  --gg-button-radius-pressed: var(--radius-none);
-  --gg-button-radius-compact: var(--radius-none);
-  --gg-button-radius-compact-pressed: var(--radius-none);
+  --gg-button-radius: var(--radius-full);
+  --gg-button-radius-pressed: var(--radius-full);
+  --gg-button-radius-compact: var(--radius-full);
+  --gg-button-radius-compact-pressed: var(--radius-full);
   --gg-button-weight: var(--font-weight-semibold, 600);
 }

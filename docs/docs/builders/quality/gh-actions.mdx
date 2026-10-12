@@ -26,7 +26,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:f4368f28a6639cc6ab8aa82ea7350eb64b521726da23ac0ee5ccc12c9a8d55c4"
+source_digest: "sha256:bdcc02eed07aef5789bd6439b0a67bc59c27c1c5711a0464c412f2d60bc0a48b"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -75,7 +75,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (93 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
-| [Supply Chain Guardrails](#supply-chain-guardrails) | Checks manifests, lockfiles, and the release-age rule so a dependency change cannot land unreviewed. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 
 ### Admin {#admin}
 
@@ -229,9 +229,9 @@ Typechecks and tests the shared package: hooks, providers, protocol modules, and
 
 ### Supply Chain Guardrails {#supply-chain-guardrails}
 
-Checks manifests, lockfiles, and the release-age rule so a dependency change cannot land unreviewed.
+Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.
 
-- **Use it when:** Dependency, lockfile, or workflow changes.
+- **Use it when:** Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.
 - **Runs on:** pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `audit`, `changes`, `format`, `guidance`, `parity`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.

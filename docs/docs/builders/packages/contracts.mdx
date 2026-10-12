@@ -35,7 +35,7 @@ sit in `test/` by area, and `deployments/` records the outcome.
 |---|---|
 | `src/accounts/` | Garden token-bound accounts, action routing, Celo relay and coordinator |
 | `src/resolvers/` | The EAS resolvers for work, approval, assessment, and testimony, and beside them the yield resolver, which is not an EAS resolver: it is the Octant accountant that distributes vault yield |
-| `src/modules/` | Opt-in integrations plus the pooling and settlement control planes |
+| `src/modules/` | The modules the protocol wires per chain: Hats, which every mint requires, the other integrations (Karma, Octant, Gardens, Cookie Jar, Hypercerts, Unlock), and the pooling and settlement control planes |
 | `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
 | `src/tokens/` | The Garden and Goods tokens |
 | `src/lib/` | The pooling and settlement libraries the modules link against at deploy time (`CommitmentPooling/`, `Settlement/`), the garden mint hooks, and shared helpers for Hats, Karma, strings, and token-bound accounts |

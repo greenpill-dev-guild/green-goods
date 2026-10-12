@@ -81,7 +81,7 @@ Token names come from root `DESIGN.md` (`rounded.*`), not stock Tailwind. In cli
 Tailwind classes resolve to that runtime scale: `rounded-md` 8px, `rounded-lg` 16px, `rounded-xl` 20px,
 `rounded-2xl` 24px (admin remaps `rounded-xl` and `rounded-2xl` to 16px). The 12px step has no Tailwind
 class; use `var(--radius-squircle)`. Buttons and fields never take a radius class: their shared primitives
-own the shape (DL-022, DL-026, DL-029). Naming stock Tailwind classes here once let the secondary corner
+own the shape (DL-022, DL-026, DL-029, DL-089). Naming stock Tailwind classes here once let the secondary corner
 drift from 12px to 20px.
 
 | Element | Radius | Runtime token | Shape Type | Concentric Parent |
@@ -95,21 +95,21 @@ drift from 12px to 20px.
 | Icon buttons | circle | `.gg-icon-button` | Capsule | — |
 | Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | — |
 | Buttons in the installed app, every emphasis (DL-029) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
-| Buttons on the public website, every emphasis (DL-029) | 0px | `--gg-button-radius` → `--radius-none` | Fixed | square, like editorial cards and panels |
+| Buttons on the public website, every emphasis and size (DL-089) | capsule | `--gg-button-radius` → `--radius-full` | Capsule | — |
 
 ### Button Corners and Emphasis
 
-Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026), and in the app that shape is the field's (DL-029):
+Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026): in the app that shape is the field's (DL-029), and on the website it is the capsule (DL-089):
 
 | Element | Installed app | Public website | Morph on Press | Use |
 |---------|---------------|----------------|----------------|-----|
-| **Primary** (filled; the error fill when destructive) | 16px | 0px | One step tighter in the app: 12px; none on the website | CTAs, hero actions, "Create Garden" |
-| **Secondary** (outlined, "Cancel" included) | 16px | 0px | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
-| **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Square fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
+| **Primary** (filled; the error fill when destructive) | 16px | Capsule | One step tighter in the app: 12px; none on the website | CTAs, hero actions, "Create Garden" |
+| **Secondary** (outlined, "Cancel" included) | 16px | Capsule | One step tighter in the app: 12px; none on the website | Second actions, "Cancel" (DL-016), "Add Link" |
+| **Tertiary** (text) | No container at rest; 16px fill on hover and focus | Capsule fill on hover and focus | — | Inline actions, a rare third action; 44px hit area |
 | **Icon buttons** | Circle | Circle | Tightens to the 12px squircle | Close, back, share, menu, remove |
 | **Chips** | Capsule | Capsule | — | Filters and choices; selected uses the action fill (DL-017) |
 
-**Rule (DL-026, values DL-029)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are square (`rounded.none`), like its editorial cards, dialogs, and panels. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
+**Rule (DL-026; values DL-029 for the app, DL-089 for the website)**: one button corner per surface. In the installed app it is the 16px field corner (`rounded.lg`), so a button and the field beside it share one shape; the 32px compact size keeps that corner's proportion rather than its number, 12px at rest and 8px pressed (`--gg-button-radius-compact`, `--gg-button-radius-compact-pressed`; DL-038), because 16px on a 32px button is a full capsule and stopped reading as one of the app's buttons. On the public website buttons are capsules (`rounded.full`) at every size, at rest and while pressed (DL-089); its editorial cards, dialogs, and panels stay square. The website's shell carries `data-site="website"`, and the corner tokens (`--gg-button-radius`, `--gg-button-radius-pressed`, and their `-compact` pair) sit on `:root`, so dialogs and sheets that portal out of the shell match the page. Labels are regular weight in the app and semibold on the website (`--gg-button-weight`). The shared `Button` (`emphasis`), `IconButton`, and `Chip` encode this and have no shape prop and no legacy `variant`; client code never hand-rolls a button (DL-025). The capsule-primary rule (DL-003) is superseded: applied everywhere, it mismatched every button pair.
 
 **Admin note**: cockpit buttons are pills (`AdminButton`, Title Case action labels per DL-012), sized on the DL-011 compact metric (28/32/40 with a 44px finger box on every tier and one 14px label, DL-030), and the admin FAB follows the capsule rule at both sizes (`rounded-full` — 48px dock circle, 56px extended floating capsule; DL-010). Admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps — the capsule is that set's 9999 step.
 
@@ -117,8 +117,8 @@ Emphasis is carried by fill, outline, and colour. The corner belongs to the surf
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
 
-**Buttons** (DL-001, built in DL-026, values DL-029):
-- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px, and 12px to 8px at the compact size (DL-038). Website buttons are square and do not morph
+**Buttons** (DL-001, built in DL-026; values DL-029 and DL-089):
+- In the installed app, primary and secondary buttons tighten one step on press and spring back on release: 16px to 12px, and 12px to 8px at the compact size (DL-038). Website buttons are capsules and keep that shape while pressed (DL-089)
 - A pressed button also takes its hover fill, because touch has no hover: without it a tap changed nothing visible but the corner (DL-039)
 - Icon buttons tighten from a circle to the 12px squircle
 - All use `--spring-spatial-fast` for the morph transition; under `prefers-reduced-motion` they keep their resting shape
@@ -134,14 +134,14 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 
 **Shipped CSS** (shared `theme.css`, components layer; abridged):
 ```css
-/* One corner per surface for every emphasis (DL-026, values DL-029) */
+/* One corner per surface for every emphasis (DL-026; values DL-029, DL-089) */
 :root {
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
 }
 :root:has([data-site="website"]) {
-  --gg-button-radius: var(--radius-none);
-  --gg-button-radius-pressed: var(--radius-none);
+  --gg-button-radius: var(--radius-full);
+  --gg-button-radius-pressed: var(--radius-full);
 }
 .gg-button[data-emphasis] {
   border-radius: var(--gg-button-radius);
@@ -248,7 +248,7 @@ Motion is built into components, not applied externally:
 
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
-| **Buttons** | App: shape morph on press (the corner tightens one step). Website: square, no morph | `--spring-spatial-fast` |
+| **Buttons** | App: shape morph on press (the corner tightens one step). Website: capsule, no morph | `--spring-spatial-fast` |
 | **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide up from the bottom edge in one move, never past rest; follow the finger on a drag; accelerate out from rest, or leave at speed on a flick (DL-033) | `--spring-spatial-slow` in · `--spring-spatial-exit` out · `--spring-spatial` for a settle or a flick |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
@@ -682,7 +682,7 @@ append-only ledger where all ongoing design decisions land:
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | One corner per surface, whatever the emphasis: 16px in the app, square on the website (DL-026, values DL-029; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
+| Button shape | One corner per surface, whatever the emphasis: 16px in the app, the capsule on the website (DL-026; values DL-029 and DL-089; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |

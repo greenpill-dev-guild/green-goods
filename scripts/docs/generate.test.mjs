@@ -260,8 +260,18 @@ test("reads every public Agent route, however its path is written", () => {
     writeFileSync(path.join(root, "sources/api/private.ts"), "app.use('/private/*', guard);\napp.get('/private', handler);\n");
 
     const contracts = ["sources/contract.ts"];
-    const sources = publicAgentRouteSources(root, "sources/api", contracts);
+    // A route outside the public index must belong to a family the page names as left out.
+    const unlisted = [{ prefixes: ["/private"], described: "the private routes" }];
+    const sources = publicAgentRouteSources(root, "sources/api", contracts, unlisted);
     assert.deepEqual(sources, ["sources/api/nested/offers.ts", "sources/api/routes.ts"]);
+    assert.throws(
+      () => publicAgentRouteSources(root, "sources/api", contracts, []),
+      /private\.ts: `\/private` is neither a public route nor in a route family the API Index names/,
+    );
+    assert.throws(
+      () => publicAgentRouteSources(root, "sources/api", contracts, [{ prefixes: ["/private", "/gone/"], described: "" }]),
+      /No Agent route is registered under `\/gone\/`/,
+    );
     const offers = ["sources/api/nested/offers.ts"];
     const routes = ["sources/api/routes.ts"];
     assert.deepEqual(publicAgentRoutes(root, sources, contracts), [
@@ -331,6 +341,9 @@ test("API index lists every public path the Agent API and its route contracts wr
   }
   // The join-request and passkey groups are registered behind a startup condition.
   assert.match(rendered, /leaves a route group out at startup/);
+  // The routes the index leaves out are named in one sentence, and none of their paths is a row.
+  assert.match(rendered, /not public contracts, and this table leaves them out: .*`\/messaging\/`/);
+  assert.doesNotMatch(rendered, /^\| `\/messaging\//m);
   // The saved-offer record route is built from a constant, so no file writes its path out.
   assert.match(
     rendered,

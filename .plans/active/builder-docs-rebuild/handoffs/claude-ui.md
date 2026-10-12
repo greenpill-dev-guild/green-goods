@@ -1,6 +1,7 @@
 # Lane Handoff — ui (docs-site surface)
 
-**Owner**: claude · **Branch**: `feature/builder-docs-rebuild` · **Status**: in_progress
+**Owner**: claude · **Branch**: `feature/builder-docs-rebuild` (merged in PR #795, then removed) ·
+**Status**: blocked on Afo's review gates since 2026-10-12; delivered, not certified
 **Scope**: docs-site mechanics in Phase 1 (mermaid pan-zoom, sidebar accent fallback, redirects
 plumbing, integration pages embedding the projection component), then the page rewrites of
 Phases 2-5 per plan.todo.md. Prose follows the spec.md tone contract; every phase passes the
@@ -598,7 +599,7 @@ renders all 13 skills.
   pane, no sign-in. Anatomy shows two frames at 240x517 with the new caption (before the fix to
   the row's CSS they rendered 240x1688, stretched by their height attribute); the Passkeys page
   shows the cropped sign-in figure at 511x355.
-- **Human gates open**: unchanged, plus the five captures above.
+- **Human gates open**: unchanged, plus the seven captures the plan lists as not replaced.
 
 ## Validation Receipt — Three Codex threads on 2b9809c9e (2026-10-11)
 
@@ -638,5 +639,79 @@ renders all 13 skills.
   `bun run check -- --intent qa --only docs-authority` → passed ·
   `node scripts/quality/check-ontology.mjs` → all guards passed · drift check → 17 current ·
   docs `bun run test` → 90/90.
-- **Human gates open**: D12, the page-length gate, a Reference landing, the five captures without
+- **Human gates open**: D12, the page-length gate, a Reference landing, the seven captures without
   a faithful source, and the two capability records dated 2026-08-15.
+
+## Validation Receipt — The merge of PR #795 (2026-10-12 UTC)
+
+- **Scope**: the record of the merge and one correction. No page, generator or check changed in
+  this entry. The `ui` and `state_api` lanes move from `in_progress` to `blocked` on Afo's review
+  gates (`plan-hub.mjs set-lane`), and the hub's overall status is `blocked`; nothing is certified
+  and the hub is not closed.
+- **Merged**: PR #795 into `develop` at 2026-10-12T04:41:41Z as merge commit
+  `5c37667fe48dc159c90a45b4004895fe51290a5f`, parents `b0f1e9e6d` (develop) and `2da291351` (the PR
+  head). A merge commit, not a squash, pinned to the head with `--match-head-commit`.
+- **State at the merge**: CI Gate passed on `2da2913516051f818ec6b551e5c98ff60604b5c1`; all 128
+  review threads resolved; CodeRabbit's changes-requested review of 2026-09-03 dismissed at Afo's
+  direction (decision 66). The last push gate ran on the same head (12 of 13 checks fresh,
+  browser-proof advisory).
+- **Exact commands and results**:
+  `git diff --stat 2da2913516051f818ec6b551e5c98ff60604b5c1 5c37667fe48dc159c90a45b4004895fe51290a5f`
+  → one file, `scripts/dev/stack.js` (develop's own change from PR #1076), so every path the gate
+  and CI validated on the head is what landed ·
+  `git merge-base --is-ancestor 66f5255a6 origin/develop` → exit 0 ·
+  `git ls-remote --heads origin feature/builder-docs-rebuild` → empty (the branch was removed at
+  the merge).
+- **After the merge**: the Linear closeout ran. Vercel built develop at the merge commit. The
+  public docs site still served its production build of 2026-10-06 and returned 404 for
+  `/builders/architecture/personas` (unauthenticated requests, 2026-10-12); the rebuild reaches it
+  with the next production deployment.
+- **Late review**: Codex opened five threads on the merged head at 2026-10-12T04:51:05Z, after the
+  merge. A paged read of the PR's threads now returns 133, five of them unresolved; the 128 above
+  was the count at the merge. First read against the code: `Garden.sol` increments
+  `gardenMemberCount` only in `joinGarden` and never decrements it; `packages/contracts.mdx` and a
+  link on `integrations/gardens.mdx` still say opt-in; the Supply Chain Guardrails workflow has
+  formatting, guidance and parity jobs its catalog entry does not name. The thread on the API Index
+  needs reframing, not a listing: the files under `packages/agent/src/api/routes/messaging/`
+  register 26 routes, and `http.ts` there describes them as a private same-origin API (session
+  cookie, exact Origin, CSRF token, private responses); `PublicRouteClass` only names their rate
+  limits. None is answered or fixed in this entry; Afo asked for one follow-up PR.
+- **Linear mirror**: `linear.stateSyncMode` is now `preserve_existing`. Before it,
+  `plan-hub.mjs linear-sync --feature builder-docs-rebuild --json` returned a parent update with
+  state `Todo` (it would have been `In Progress` while the lanes said `in_progress`); after it,
+  the parent is a read-only `preserve` entry. No manifest was applied.
+- **Correction**: the receipts above and the plan said five captures lack a faithful source. The
+  plan's own list has seven, and the files agree: `admin-work-queue.png` and `admin-work-detail.png`
+  (last changed 2026-03-08), `client-work-intro.png` and `client-work-details.png` (2026-04-18),
+  `qa-app-journey-view.jpg` (2026-09-03), `qa-app-priority-view.webp` and
+  `qa-app-recorded-issues.webp` (2026-09-01), all under `docs/static/img/screenshots/` and none at
+  the capture size of decision 61. The count is corrected in the plan, in the two receipts above
+  and in the status history.
+- **Open**: the five late threads, for a follow-up PR. **Human gates open**: D12 (the spine tone
+  and the Anatomy page), the page-length gate, a Reference landing, the seven captures, the
+  commitment and hypercert capability records (last verified 2026-08-15), and the community funder
+  guide's "designed to preserve your principal" wording.
+
+## Validation Receipt — The five threads opened after the merge (2026-10-12 UTC)
+
+- **Scope**: the five threads Codex opened on PR #795's merged head; fixed in `81ac2789c` on
+  `fix/builder-docs-late-review`, cut from develop after the merge record landed (PR #1078).
+- **Read before changing**: `joinGarden`, `setOpenJoining` and `setMaxGardeners` in
+  `accounts/Garden.sol` (the counter is incremented in `joinGarden` and written nowhere else);
+  `_requireOwnerOrOperator` in `modules/Hats.sol` (it admits the garden account as a caller);
+  `routes/messaging/http.ts`, `routes/messages.ts`, `routes/reporting-ops.ts` and `routes/health.ts`
+  in the agent; the Supply Chain Guardrails workflow's five jobs and
+  `scripts/quality/classify-supply-chain-changes.mjs`, which decides which lanes run.
+- **What the route reader sees**: 42 public registrations and 34 others: 26 under `/messaging/`,
+  three under `/api/messages`, three under `/reporting/ops/`, and the `/health` and `/ready`
+  probes. The index prints none of the 34 and names their families in one sentence.
+- **Exact commands and results**: `bun run check -- --intent push` on the uncommitted tree →
+  push · routine · 9 paths, 5 fresh passes (format, lint, test-quality, docs-authority,
+  docs-generated) · `node --test scripts/docs/generate.test.mjs` → 42/42, with the reader's
+  fixture test now covering both refusals · the Hats diagram parsed with the docs site's own
+  mermaid under jsdom → `flowchart-v2`, seven edges.
+- **Rendered proof**: none. The docs site was not built locally; the Docs workflow builds it.
+- **Left for Afo**: `maxGardeners` counts successful joins and never goes down, while the
+  cockpit's setting reads "Limit gardeners" (`app.garden.settings.limitGardeners`). The page now
+  states the behavior; changing the contract or the label is a product decision.
+- **Human gates open**: unchanged.

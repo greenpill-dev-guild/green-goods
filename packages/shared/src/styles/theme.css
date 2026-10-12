@@ -1205,15 +1205,17 @@
     padding-block: calc((var(--gg-button-block) - var(--gg-button-line) - 2px) / 2);
   }
 
-  /* Button corner and label weight per surface (DL-026, values DL-029): the
-   * installed app takes the 16px field corner so a button and the field beside
-   * it share one shape, one step tighter (12px) while pressed; the public
-   * website's buttons are square like its editorial cards, dialogs, and panels,
-   * with no press morph. The website shell carries data-site="website"; the
-   * tokens sit on :root so dialogs and sheets that portal out of the shell
-   * match the page. Icon buttons stay circles and chips capsules on both. The
-   * admin cockpit sets the same tokens, plus the block, inline, icon, and hit
-   * tokens read below, in packages/admin/src/index.css (DL-031). */
+  /* Button corner and label weight per surface (DL-026; values DL-029 for the
+   * app, DL-089 for the website): the installed app takes the 16px field corner
+   * so a button and the field beside it share one shape, one step tighter
+   * (12px) while pressed; the public website's buttons are capsules at every
+   * size, at rest and while pressed, with a semibold label, while its editorial
+   * cards, dialogs, and panels stay square. The website shell carries
+   * data-site="website"; the tokens sit on :root so dialogs and sheets that
+   * portal out of the shell match the page. Icon buttons stay circles and chips
+   * capsules on both. The admin cockpit sets the same tokens, plus the block,
+   * inline, icon, and hit tokens read below, in packages/admin/src/index.css
+   * (DL-031). */
   :root {
     --gg-button-radius: var(--radius-lg);
     --gg-button-radius-pressed: var(--radius-squircle);
@@ -1223,10 +1225,10 @@
   }
 
   :root:has([data-site="website"]) {
-    --gg-button-radius: var(--radius-none);
-    --gg-button-radius-pressed: var(--radius-none);
-    --gg-button-radius-compact: var(--radius-none);
-    --gg-button-radius-compact-pressed: var(--radius-none);
+    --gg-button-radius: var(--radius-full);
+    --gg-button-radius-pressed: var(--radius-full);
+    --gg-button-radius-compact: var(--radius-full);
+    --gg-button-radius-compact-pressed: var(--radius-full);
     --gg-button-weight: var(--font-weight-semibold, 600);
   }
 

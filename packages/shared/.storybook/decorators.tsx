@@ -143,8 +143,8 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
  * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
  * aliases for `admin`; the client typography rules for `app` and `website`;
  * and `data-site="website"` (the public shell's attribute, DL-026) around
- * website stories so the shared buttons take the square corner and semibold
- * label (DL-029).
+ * website stories so the shared buttons take the capsule corner and semibold
+ * label (DL-089).
  *
  * `withSurface` runs globally (preview.tsx) and infers the surface from the
  * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,

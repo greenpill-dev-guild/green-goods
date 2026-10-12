@@ -307,13 +307,60 @@ function publicRoutePredicate(constants) {
   return (routePath) => routePath.startsWith("/public/") || contractPaths.has(routePath);
 }
 
-/** The Agent API files under `directory` that register at least one public route. */
-export function publicAgentRouteSources(root, directory, contractSources) {
+/**
+ * Route families the Agent registers that are not public contracts. The API Index names them in
+ * one sentence and prints none of their paths. `publicAgentRouteSources` refuses a registration
+ * that is neither public nor in one of these families, and a family nothing registers, so the
+ * sentence cannot go stale in either direction. A prefix ending in `/` covers the paths under
+ * it; any other prefix covers that path and the paths under it.
+ */
+export const UNLISTED_AGENT_ROUTE_FAMILIES = [
+  { prefixes: ["/health", "/ready"], described: "the `/health` and `/ready` probes" },
+  {
+    prefixes: ["/api/messages", "/reporting/ops/"],
+    described: "`/api/messages` and `/reporting/ops/`, which answer only to the agent's API token",
+  },
+  {
+    prefixes: ["/messaging/"],
+    described:
+      "`/messaging/`, the private same-origin API behind the browser messaging ceremonies (host-only session cookies, with the exact Origin and a CSRF token required on requests that change state)",
+  },
+];
+
+function inRouteFamily(routePath, prefix) {
+  return prefix.endsWith("/") ? routePath.startsWith(prefix) : routePath === prefix || routePath.startsWith(`${prefix}/`);
+}
+
+/**
+ * The Agent API files under `directory` that register at least one public route. Every other
+ * registration must belong to one of `unlistedFamilies`, and every family must have one.
+ */
+export function publicAgentRouteSources(root, directory, contractSources, unlistedFamilies = UNLISTED_AGENT_ROUTE_FAMILIES) {
   const constants = routeConstants(root, contractSources);
   const isPublic = publicRoutePredicate(constants);
-  return typeScriptSourcePaths(root, directory).filter((source) =>
-    agentRouteRegistrations(root, source, constants).some((registration) => isPublic(registration.path)),
-  );
+  const prefixes = unlistedFamilies.flatMap((family) => family.prefixes);
+  const registered = new Set();
+  const sources = typeScriptSourcePaths(root, directory).filter((source) => {
+    const registrations = agentRouteRegistrations(root, source, constants);
+    for (const registration of registrations) {
+      if (isPublic(registration.path)) continue;
+      const prefix = prefixes.find((candidate) => inRouteFamily(registration.path, candidate));
+      if (!prefix) {
+        throw new Error(
+          `${source}: \`${registration.path}\` is neither a public route nor in a route family the API Index names as left out. Add its family to UNLISTED_AGENT_ROUTE_FAMILIES in scripts/docs/source-readers.mjs.`,
+        );
+      }
+      registered.add(prefix);
+    }
+    return registrations.some((registration) => isPublic(registration.path));
+  });
+  const unregistered = prefixes.filter((prefix) => !registered.has(prefix));
+  if (unregistered.length > 0) {
+    throw new Error(
+      `No Agent route is registered under ${unregistered.map((prefix) => `\`${prefix}\``).join(", ")}, which the API Index names as left out. Remove it from UNLISTED_AGENT_ROUTE_FAMILIES in scripts/docs/source-readers.mjs.`,
+    );
+  }
+  return sources;
 }
 
 /**

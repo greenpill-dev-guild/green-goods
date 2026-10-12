@@ -14,17 +14,30 @@ export const APP_SIZES: AppSize[] = ["lg", "md", "sm", "compact"];
 export const ADMIN_SIZES: AdminSize[] = ["sm", "md", "lg"];
 
 const APP_HEIGHT: Record<AppSize, number> = { lg: 48, md: 44, sm: 40, compact: 32 };
+/**
+ * The app's resting corner by size: the 16px field corner, and 12px on the 32px
+ * compact button, which keeps the corner's proportion, not its number (DL-038).
+ */
+const APP_CORNER: Record<AppSize, number> = { lg: 16, md: 16, sm: 16, compact: 12 };
 const ADMIN_HEIGHT: Record<AdminSize, number> = { sm: 28, md: 32, lg: 40 };
 
-/** Installed app (PWA): the 16px field corner, 12px pressed, weight 400, 48/44/40/32. */
+/**
+ * Installed app (PWA): the 16px field corner, 12px pressed; 12px and 8px
+ * pressed at the compact size; weight 400; 48/44/40/32.
+ */
 export const APP = {
   name: "Installed app",
   family: "Inter",
-  cornerRest: 16,
+  cornerRest: APP_CORNER.md,
   cornerPressed: 12,
+  cornerCompactRest: APP_CORNER.compact,
+  cornerCompactPressed: 8,
+  /** Shown under the specimen that swaps the resting corner token for the pressed one. */
+  pressedNote:
+    "The resting corner token is swapped for the pressed one: one step tighter (DL-001, DL-026). No morph under reduced motion.",
   weight: 400,
   rules: [
-    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-029)",
+    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-029); the 32px compact size takes 12px, 8px while pressed (DL-038)",
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
@@ -32,7 +45,7 @@ export const APP = {
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
-    radius: 16,
+    radius: APP_CORNER[size],
     weight: 400,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
     family: "Inter",
@@ -57,22 +70,30 @@ export const APP = {
   }),
 };
 
-/** Public website: the same primitives inside data-site="website", square. */
+/**
+ * Public website: the same primitives inside data-site="website", capsules.
+ * The corner tokens resolve to DesignMD `rounded.full` (9999px), at rest and
+ * while pressed.
+ */
 export const WEBSITE = {
   name: "Public website",
   family: "Inter",
-  cornerRest: 0,
-  cornerPressed: 0,
+  cornerRest: 9999,
+  cornerPressed: 9999,
+  cornerCompactRest: 9999,
+  cornerCompactPressed: 9999,
+  pressedNote:
+    "The resting corner token is swapped for the pressed one, which is the same capsule: website buttons do not morph (DL-089).",
   weight: 600,
   rules: [
-    "Every button: square, no press morph, label weight 600 (DL-026, DL-029)",
+    "Every button: a capsule at every size, no press morph, label weight 600 (DL-026, DL-089)",
     "Same heights as the app: 48 hero, 44 section and dialog, 40 row actions (DL-024)",
     "Fields on editorial sections: underline, serif text (surface=\"editorial\")",
-    "Dialogs, cards, panels, and buttons are all square; icon buttons stay circles, chips capsules",
+    "Dialogs, cards, and panels stay square; buttons and chips are capsules, icon buttons circles",
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
-    radius: 0,
+    radius: "pill",
     weight: 600,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
     family: "Inter",

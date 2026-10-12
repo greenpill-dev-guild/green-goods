@@ -120,7 +120,7 @@ components:
     textColor: "{colors.on-tertiary-action}"
     typography: "{typography.label-md}"
     padding: "{spacing.md}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.full}"
   button-secondary:
     textColor: "{colors.primary}"
     typography: "{typography.label-md}"
@@ -283,7 +283,7 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and no corner (`rounded.none`) on the public website; fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
