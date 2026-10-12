@@ -663,6 +663,16 @@ renders all 13 skills.
   public docs site still served its production build of 2026-10-06 and returned 404 for
   `/builders/architecture/personas` (unauthenticated requests, 2026-10-12); the rebuild reaches it
   with the next production deployment.
+- **Late review**: Codex opened five threads on the merged head at 2026-10-12T04:51:05Z, after the
+  merge. A paged read of the PR's threads now returns 133, five of them unresolved; the 128 above
+  was the count at the merge. First read against the code: the files under
+  `packages/agent/src/api/routes/messaging/` register 26 routes, rate limited through the
+  `messaging_*` values of `PublicRouteClass` in `public-protection.ts`, while the API Index reader
+  counts a route public only under `/public/` or a Shared contract path;
+  `Garden.sol` increments `gardenMemberCount` only in `joinGarden` and never decrements it;
+  `packages/contracts.mdx` and a link on `integrations/gardens.mdx` still say opt-in; the Supply Chain
+  Guardrails workflow has formatting, guidance and parity jobs its catalog entry does not name. None
+  is answered or fixed in this entry.
 - **Correction**: the receipts above and the plan said five captures lack a faithful source. The
   plan's own list has seven, and the files agree: `admin-work-queue.png` and `admin-work-detail.png`
   (last changed 2026-03-08), `client-work-intro.png` and `client-work-details.png` (2026-04-18),
@@ -670,7 +680,7 @@ renders all 13 skills.
   `qa-app-recorded-issues.webp` (2026-09-01), all under `docs/static/img/screenshots/` and none at
   the capture size of decision 61. The count is corrected in the plan, in the two receipts above
   and in the status history.
-- **Human gates open**: D12 (the spine tone and the Anatomy page), the page-length gate, a
-  Reference landing, the seven captures, the commitment and hypercert capability records (last
-  verified 2026-08-15), and the community funder guide's "designed to preserve your principal"
-  wording.
+- **Open**: the five late threads, for a follow-up PR. **Human gates open**: D12 (the spine tone
+  and the Anatomy page), the page-length gate, a Reference landing, the seven captures, the
+  commitment and hypercert capability records (last verified 2026-08-15), and the community funder
+  guide's "designed to preserve your principal" wording.

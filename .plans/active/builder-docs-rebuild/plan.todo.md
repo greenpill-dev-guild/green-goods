@@ -267,16 +267,28 @@ Linear closeout ran after the merge. Observed the same hour: Vercel built develo
 commit, and the public docs site still served its production build of 2026-10-06, so the new
 routes return 404 there until the next production deployment.
 
+After the merge: at 04:51 UTC, ten minutes later, Codex opened five more threads on the merged
+head, which brings the PR to 133 threads with five unanswered at this record. Each has a basis in
+the code at a first read. The API Index omits the agent's messaging routes, which the agent rate
+limits through the `messaging_*` values of its `PublicRouteClass`. The Hats page calls the
+self-join counter a member cap, though it counts only `joinGarden` calls and never goes down, and
+says nothing else writes the tree, though the token holder can grant and revoke through the garden
+account. The Contracts page and a link on the Gardens page still call the modules opt-in (decision
+38 corrected that on Architecture). The CI page's Supply Chain Guardrails entry names its
+dependency lane and not its formatting, guidance and parity lanes. They need a follow-up PR against
+develop; none is open at this record.
+
 Correction in the same record: this hub said five captures lack a faithful source, and its own
 list has seven: the steward guide's two review captures, the gardener guide's Start and Details
 captures, and the three QA app captures. None of the seven files has changed since 2026-09-03 and
 none is at the capture size of decision 61. The count is fixed where it appeared.
 
-Still open, all Afo's: D12 (the spine tone and the Anatomy page), the page-length gate, a
-Reference landing, the seven captures, the commitment and hypercert capability records (last
-verified 2026-08-15, they set three of the personas page's availability notes), and the community
-funder guide's "designed to preserve your principal" wording, which decision 48 did not reach. The
-lanes stay uncertified and the hub stays active until those gates close.
+Still open: the five late threads above, and Afo's gates: D12 (the spine tone and the Anatomy
+page), the page-length gate, a Reference landing, the seven captures, the commitment and hypercert
+capability records (last verified 2026-08-15, they set three of the personas page's availability
+notes), and the community funder guide's "designed to preserve your principal" wording, which
+decision 48 did not reach. The lanes stay uncertified and the hub stays active until those gates
+close.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
