@@ -550,6 +550,9 @@ export function buildLocalValidationPlan(options, gitInputs, environment) {
 // sources ~/.config/husky/init.sh, which commonly exports NVM_DIR, and the hook loads nvm when a
 // .nvmrc exists: nvm's own variables configure only nvm, and `nvm use` also moves MANPATH, which
 // only `man` reads. Shells count and track themselves, and each re-exec wrapper marks that it ran.
+// A host shim that hands `node` or `bun` on to the real tool can leave a loop guard behind:
+// dev-machine's DEV_MACHINE_SHIM_TRIED starts with the process ID, so it differs on every run and
+// tells a check nothing. That shim's other variables say where a command runs, and stay covered.
 const RECEIPT_IGNORED_VARIABLES = new Set([
   "PATH",
   "GIT_EXEC_PATH",
@@ -560,6 +563,7 @@ const RECEIPT_IGNORED_VARIABLES = new Set([
   "_",
   "OLDPWD",
   "PWD",
+  "DEV_MACHINE_SHIM_TRIED",
 ]);
 const RECEIPT_IGNORED_PATTERN = /^(?:NVM_\w+|GREEN_GOODS_\w+_REEXEC)$/;
 

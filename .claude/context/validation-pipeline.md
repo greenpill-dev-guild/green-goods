@@ -78,7 +78,9 @@ validated paths, environment profile, root `.env` files, or a variable the check
 invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
 git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
 out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
-and the toolchain versions already cover what `PATH` resolves.
+and the toolchain versions already cover what `PATH` resolves. A host tool shim's per-process loop
+guard (`DEV_MACHINE_SHIM_TRIED`) is left out for the same reason; the variables that say where such
+a shim runs a command are not.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
