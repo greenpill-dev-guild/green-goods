@@ -167,9 +167,10 @@ PASS_COUNT=0
 echo ""
 echo "== Core Commands =="
 
-# Check that scripts exist in root package.json (not that they run successfully)
+# Check that scripts exist in root package.json (not that they run successfully).
+# Stopping services is `bun run dev -- stop`, an argument to `dev`, not a script of its own.
 ROOT_PKG="package.json"
-for cmd in dev dev:stop format lint test build setup; do
+for cmd in dev format lint test build setup; do
   if grep -q "\"$cmd\"" "$ROOT_PKG" 2>/dev/null; then
     pass
   else
