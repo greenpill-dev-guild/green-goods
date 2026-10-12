@@ -1,8 +1,10 @@
 import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
+// A page's own `sidebar_label` wins over the label given here, so each label below repeats the
+// page's. Change the page (or, for a generated page, its renderer) to rename an entry.
 const sidebars: SidebarsConfig = {
   communitySidebar: [
-    {type: 'doc', id: 'community/welcome', label: 'Welcome'},
+    {type: 'doc', id: 'community/welcome', label: 'Welcome to Green Goods'},
     {type: 'doc', id: 'community/how-it-works', label: 'How It Works'},
     {type: 'doc', id: 'community/why-we-build', label: 'Why We Build'},
     {
@@ -47,14 +49,14 @@ const sidebars: SidebarsConfig = {
       label: 'Funder',
       link: {type: 'doc', id: 'community/funder-guide/index'},
       items: [
-        {type: 'doc', id: 'community/funder-guide/donating-to-a-garden', label: 'Donate'},
-        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Endow'},
+        {type: 'doc', id: 'community/funder-guide/donating-to-a-garden', label: 'Donate to a Garden'},
+        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Endow a Garden'},
         {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Remove an Endowment'},
       ],
     },
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
-    {type: 'doc', id: 'community/green-goods-claims.generated', label: 'Honest Claims'},
+    {type: 'doc', id: 'community/green-goods-claims.generated', label: 'Capability & Claims'},
     {
       type: 'category',
       label: 'Reference',
@@ -144,7 +146,7 @@ const sidebars: SidebarsConfig = {
       items: [
         {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
         {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
-        {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
+        {type: 'doc', id: 'reference/ontology.generated', label: 'Ontology'},
         {type: 'doc', id: 'builders/reference/license', label: 'License'},
       ],
     },
