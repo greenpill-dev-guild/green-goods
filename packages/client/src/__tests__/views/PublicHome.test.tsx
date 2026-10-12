@@ -1,9 +1,9 @@
 /**
  * Public Home — hero CTA layout tests.
  *
- * Covers the new browser-editorial CTA contract:
- * - Desktop renders only `Explore Gardens`.
- * - Mobile renders the install CTA first, then `Explore Gardens` second.
+ * Covers the browser-editorial CTA contract (DESIGN.browser.md § Homepage):
+ * - Desktop renders `Explore Gardens`, then `Support a Garden`; Install App stays in the header.
+ * - A phone renders the install CTA first (`Open App` once installed), then `Explore Gardens`.
  *
  * @vitest-environment happy-dom
  */
@@ -108,6 +108,14 @@ function renderHome() {
   );
 }
 
+/** The hero's actions in document order, with the label each one shows. */
+function heroCtas() {
+  const heroSection = screen.getByRole("heading", { level: 1 }).closest("section");
+  expect(heroSection, "hero <section> should wrap the H1").not.toBeNull();
+  const nodes = Array.from(heroSection!.querySelectorAll("a, button"));
+  return { nodes, labels: nodes.map((node) => (node.textContent ?? "").trim()) };
+}
+
 describe("Public Home — hero CTAs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -132,7 +140,7 @@ describe("Public Home — hero CTAs", () => {
     cleanup();
   });
 
-  it("desktop: renders only the Explore Gardens CTA in the hero (no Install App)", () => {
+  it("desktop: pairs Explore Gardens with Support a Garden and keeps Install App out of the hero", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: false,
@@ -145,19 +153,10 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
-    const heroHeading = screen.getByRole("heading", { level: 1 });
-    expect(heroHeading).toBeInTheDocument();
-
-    const heroSection = heroHeading.closest("section");
-    expect(heroSection, "hero <section> should wrap the H1").not.toBeNull();
-    const heroCtas = Array.from(heroSection!.querySelectorAll("a, button")).filter(
-      (node) => node.getAttribute("aria-label") !== "Green Goods"
-    );
-
-    const labels = heroCtas.map((node) => (node.textContent ?? "").trim());
-    expect(labels).toContain("Explore Gardens");
-    expect(labels).not.toContain("Install App");
-    expect(labels).not.toContain("Open App");
+    const { nodes, labels } = heroCtas();
+    expect(labels).toEqual(["Explore Gardens", "Support a Garden"]);
+    expect(nodes[0]).toHaveAttribute("href", "/gardens");
+    expect(nodes[1]).toHaveAttribute("href", "/fund");
   });
 
   it("keeps the public homepage visible even when PWA presentation is detected", () => {
@@ -260,45 +259,39 @@ describe("Public Home — hero CTAs", () => {
     expect(loop.compareDocumentPosition(funding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("mobile: leads with exploring Gardens, followed by support", () => {
-    mockUseApp.mockReturnValue({
-      isPwaPresentation: false,
-      isMobile: true,
+  it.each([
+    {
+      state: "before install",
       isInstalled: false,
-      wasInstalled: false,
-      platform: "unknown",
-      deferredPrompt: null,
-      promptInstall: vi.fn(),
-    });
-
-    renderHome();
-
-    const heroHeading = screen.getByRole("heading", { level: 1 });
-    const heroSection = heroHeading.closest("section");
-    expect(heroSection).not.toBeNull();
-    const heroCtas = Array.from(heroSection!.querySelectorAll("a, button")).filter(
-      (node) => node.getAttribute("aria-label") !== "Green Goods"
-    );
-    const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
-
-    expect(ctaLabels).toEqual(["Explore Gardens", "Support a Garden"]);
-    expect(heroCtas[0]).toHaveAttribute("href", "/gardens");
-    expect(heroCtas[1]).toHaveAttribute("href", "/fund");
-  });
-
-  it("keeps public discovery first when the app is already installed", () => {
+      scenario: "manual-install-available",
+      installAction: "show-manual-steps",
+      lead: "Install App",
+    },
+    {
+      state: "once installed",
+      isInstalled: true,
+      scenario: "already-installed",
+      installAction: "open-app",
+      lead: "Open App",
+    },
+  ])("phone, $state: leads with $lead, then Explore Gardens", ({
+    isInstalled,
+    scenario,
+    installAction,
+    lead,
+  }) => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: true,
-      isInstalled: true,
-      wasInstalled: true,
+      isInstalled,
+      wasInstalled: isInstalled,
       platform: "unknown",
       deferredPrompt: null,
       promptInstall: vi.fn(),
     });
     mockUseInstallGuidance.mockReturnValue({
-      scenario: "already-installed",
-      primaryAction: { type: "open-app", label: "Open App" },
+      scenario,
+      primaryAction: { type: installAction, label: lead },
       secondaryAction: null,
       browserInfo: { browser: "unknown" },
       showBrowserOption: false,
@@ -309,16 +302,10 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
-    const heroHeading = screen.getByRole("heading", { level: 1 });
-    const heroSection = heroHeading.closest("section");
-    expect(heroSection).not.toBeNull();
-    const heroCtas = Array.from(heroSection!.querySelectorAll("a, button")).filter(
-      (node) => node.getAttribute("aria-label") !== "Green Goods"
-    );
-    const ctaLabels = heroCtas.map((node) => (node.textContent ?? "").trim());
-
-    expect(ctaLabels[0]).toBe("Explore Gardens");
-    expect(ctaLabels).toContain("Support a Garden");
-    expect(ctaLabels).toContain("Explore Gardens");
+    const { nodes, labels } = heroCtas();
+    expect(labels).toEqual([lead, "Explore Gardens"]);
+    // The shared install action owns the lead, so its click and label stay one source of truth.
+    expect(nodes[0]).toHaveAttribute("data-install-action", installAction);
+    expect(nodes[1]).toHaveAttribute("href", "/gardens");
   });
 });
