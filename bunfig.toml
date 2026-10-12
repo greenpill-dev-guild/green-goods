@@ -2,7 +2,8 @@
 # Required because oxlint v1.48+ uses native bindings that bun resolves
 # but Node v18's ESM loader cannot handle extensionless bin wrappers.
 #
-# Disable Bun's implicit .env loading and let Varlock handle env loading/validation.
+# Disable Bun's implicit .env loading. Commands that need the root .env name it
+# themselves (`--env-file`, Vite's `envDir`).
 env = false
 
 

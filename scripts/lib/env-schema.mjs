@@ -102,6 +102,118 @@ export function parseSchemaText(text) {
   return entries;
 }
 
+const SECRET_REFERENCE_SCHEME = "op://";
+
+function unquote(value) {
+  const quoted =
+    (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"));
+  return quoted && value.length > 1 ? value.slice(1, -1) : value;
+}
+
+/**
+ * env.schema is also the template `bun run env:sync` hands to `op inject`, which replaces a
+ * 1Password reference wherever it appears in the file and copies everything else to .env as
+ * written. Report what would break that sync or put a wrong value in .env. Never prints values.
+ */
+export function findSyncProblems(text) {
+  const problems = [];
+  const seen = new Set();
+
+  text.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    const where = `line ${index + 1}`;
+    if (!line) return;
+
+    if (line.startsWith("#")) {
+      if (line.includes(SECRET_REFERENCE_SCHEME)) {
+        problems.push(`${where}: a comment holds a 1Password reference; the sync would try to resolve it.`);
+      }
+      return;
+    }
+
+    const equals = line.indexOf("=");
+    const key = equals === -1 ? "" : line.slice(0, equals).trim();
+    if (!ENV_KEY_PATTERN.test(key)) return;
+
+    if (seen.has(key)) problems.push(`${where}: ${key} is declared twice; the later value wins in .env.`);
+    seen.add(key);
+
+    if (key.endsWith("_OP_REF")) {
+      problems.push(`${where}: ${key} is a reference companion nothing resolves; put the reference on the key itself.`);
+    }
+
+    // Split before trimming so `KEY= # note` reads as an empty value with a comment.
+    const afterEquals = line.slice(equals + 1);
+    const commentIndex = commentStart(afterEquals);
+    const value = unquote(
+      (commentIndex === -1 ? afterEquals : afterEquals.slice(0, commentIndex)).trim()
+    );
+    const comment = commentIndex === -1 ? "" : afterEquals.slice(commentIndex);
+
+    if (comment.includes(SECRET_REFERENCE_SCHEME)) {
+      problems.push(`${where}: ${key} has a 1Password reference in its comment; the sync would try to resolve it.`);
+    }
+    if (/^(?:if|op)\s*\(|^\$\{?[A-Za-z_]/.test(value)) {
+      problems.push(
+        `${where}: ${key} holds a $VAR or function expression; it reaches .env as written and loaders do not agree on evaluating it.`
+      );
+    }
+    if (value.includes(SECRET_REFERENCE_SCHEME)) {
+      const path = value.slice(SECRET_REFERENCE_SCHEME.length).split("/");
+      const whole = value.startsWith(SECRET_REFERENCE_SCHEME) && path.length >= 3 && path.every(Boolean);
+      if (!whole) {
+        problems.push(`${where}: ${key} is not a whole 1Password reference (scheme, then vault/item/field).`);
+      }
+    }
+  });
+
+  return problems;
+}
+
+/**
+ * What a readiness report should say about the 1Password CLI. Only `bun run env:sync` needs it,
+ * so a missing CLI fails readiness only while there is no .env for anything else to read: a
+ * contributor on the isolated baseline never runs the sync.
+ */
+export function secretSyncReadiness({ referenceCount, hasOpCli, hasEnvFile }) {
+  if (referenceCount === 0) {
+    return {
+      level: "info",
+      check: "op:schema-refs",
+      title: "No 1Password refs in env.schema",
+      detail: ".env values are direct. Skipping op signin check.",
+      fix: "",
+    };
+  }
+  if (hasOpCli) {
+    // No `op whoami` pre-check: it reports "not signed in" without a session token, while
+    // `op inject` itself triggers Touch ID through the desktop integration at sync time.
+    return {
+      level: "info",
+      check: "op:cli-present",
+      title: "1Password CLI present",
+      detail: `${referenceCount} op:// ref(s) in env.schema will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
+      fix: "",
+    };
+  }
+  if (hasEnvFile) {
+    return {
+      level: "info",
+      check: "op:cli",
+      title: "1Password CLI is not installed",
+      detail: "Only `bun run env:sync` needs it. The existing .env is used as it is.",
+      fix: "",
+    };
+  }
+  return {
+    level: "fail",
+    check: "op:cli",
+    title: "1Password CLI is not installed",
+    detail: `${referenceCount} op:// refs in env.schema require resolution before \`bun run env:sync\` can write .env.`,
+    fix: "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`. For a baseline without secrets, run `npm run setup -- --profile isolated`.",
+  };
+}
+
 export function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return null;
   return parseEnvText(fs.readFileSync(filePath, "utf8"));

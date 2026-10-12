@@ -92,9 +92,8 @@ compatibility gate.
 | `setup.js` | `npm run setup -- --profile host`, `npm run setup -- --profile isolated`, `npm run setup -- --profile cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
 | `clean.js` | `bun run dev:clean`, `bun run dev:clean -- --dry-run` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
 | `doctor.js` | `bun run dev:health -- <mode>` | Non-mutating readiness check (ports, tools, env, profiles), including warning-only personal skill availability and effective worktree pre-push chain diagnostics |
-| `env-template-init.js` | `node scripts/dev/env-template-init.js` | Generate `env.template` skeleton from `env.schema` (one-shot) |
-| `env-sync.js` | `bun run env:sync` | Run `op inject` against `env.template` to materialize `.env` |
-| `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `env.schema` keys non-empty |
+| `env-sync.js` | `bun run env:sync` | Run `op inject` against `env.schema` to materialize `.env`; refuses a schema the inject step would trip on |
+| `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has every key `env.schema` marks `@required-in` the profile (`dev` by default), non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `remove-public-sourcemaps.js` | `packages/client build`, `packages/admin build` | Remove emitted `.map` files after Sentry upload so Vercel does not publish browser source maps |
 | `stack.js` | `bun run dev -- <mode>`, `bun run dev -- stop` | Start/stop PM2 groups; default local services against live Arbitrum, explicit fork mode, optional full browser tools, Docker preflight, early exit detection, automatic QA smoke, and polling-backed client HMR (`VITE_USE_POLLING=false` opts out) |
@@ -263,7 +262,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `lib/`
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, loopback URL probes for local smoke checks, and the git isolation helpers: `fixtureGitEnvironment()` for any test that builds a throwaway repository (`cwd` alone does not isolate git under a hook), plus the shared-config leak checks `ci-local.js` runs.
-- `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks.
+- `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks, and the sync-safety check `dev/env-sync.js` runs on `env.schema` before `op inject`.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs, and the rule that keeps Vercel's `VITE_`-prefixed system variables out of the browser bundles.
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 - `vitest-shared-graph.mjs` — splits the Shared Vitest config's Node test files into those that share one module graph and those that keep their own: files that mock, stub, assign globals directly, reset modules, use IndexedDB, or carry a `// @shared-graph isolate: <reason>` marker stay isolated; `quality/check-shared-graph-tests.mjs` checks the result. Covered by `quality/workflow-performance-parity.test.mjs`.

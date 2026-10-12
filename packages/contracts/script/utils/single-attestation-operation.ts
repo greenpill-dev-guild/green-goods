@@ -276,7 +276,6 @@ export function policyForgeCommand(
     SINGLE_ATTESTATION_POLICY_RUNTIME_HASH: plan.runtimeCodeHash,
     PINATA_JWT: "",
     PINATA_GATEWAY: "",
-    PINATA_JWT_OP_REF: "",
   };
   if (!broadcast) delete env.ETH_PASSWORD;
   return { args, env };
@@ -300,7 +299,6 @@ export function policySourceCommand(
     FOUNDRY_PROFILE: "production",
     PINATA_JWT: "",
     PINATA_GATEWAY: "",
-    PINATA_JWT_OP_REF: "",
   };
   delete env.ETH_PASSWORD;
   return {

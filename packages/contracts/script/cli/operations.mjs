@@ -149,16 +149,17 @@ export function resolveCommand(input) {
   const checks = [];
   if (operation.handler === 'script/deploy/single-attestation-policy.ts') {
     env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
-    env.PINATA_JWT = ''; env.PINATA_GATEWAY = ''; env.PINATA_JWT_OP_REF = '';
+    env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
   if (operation.command === 'release operator' || operation.command === 'migrate action-instructions-v2 check') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
+  // The session blanks these for each stage; blank them for the session itself, so its keystore check starts without them too.
+  if (operation.command === 'release operator') { env.PINATA_JWT = ''; env.PINATA_GATEWAY = ''; }
   if ((isUpgrade && ['arbitrum', 'sepolia'].includes(network)) || operation.command === 'migrate vaults' || operation.command === 'migrate action-instructions-v2' && mode !== 'simulate' || operation.command.startsWith('marketplace ') || operation.command === 'verify' && network === 'arbitrum') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
   if (network === 'arbitrum' && (operation.command.startsWith('marketplace ') || operation.command === 'verify')) env.MARKETPLACE_EXPECTED_OWNER = OPERATOR;
   if (['plan', 'broadcast'].includes(mode) && ((isUpgrade && ['assessment-resolver', 'commitment-pooling'].includes(target)) || operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling', 'pooling-configure'].includes(target))) {
     env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
-    env.PINATA_JWT = ''; env.PINATA_GATEWAY = ''; env.PINATA_JWT_OP_REF = '';
+    env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
-  if (isUpgrade) env.PINATA_JWT_OP_REF = '';
   if (isUpgrade && mode === 'plan' && ['assessment-resolver', 'commitment-pooling'].includes(target)) env.UPGRADE_PLAN_OUTPUT_DIR = '.generated/release-upgrades';
   const senderDefault = (isUpgrade && ['plan', 'broadcast'].includes(mode) && ['deployment-registry', 'assessment-resolver', 'commitment-pooling', 'hats-module', 'cookie-jar-module', 'signal-pool-yield-wiring'].includes(target)) || (isUpgrade && target === 'signal-pool-yield-wiring' && mode === 'simulate') || (operation.command === 'migrate vaults' && mode === 'broadcast') || (operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling-configure'].includes(target) && ['plan', 'broadcast'].includes(mode));
   if (senderDefault && !values.sender) values.sender = OPERATOR;
