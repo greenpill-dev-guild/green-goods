@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-09-02T16:54:52.541Z",
-    "updated_at": "2026-10-12T05:15:00.000Z"
+    "updated_at": "2026-10-12T05:26:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -346,6 +346,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "The mirrored issue's existing state is preserved during manifest updates. With both implementation lanes blocked, the stage-derived manifest set the parent to Todo, behind the In Review the post-merge closeout left. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-12T05:26:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "late_review_addressed",
+      "branch": null,
+      "note": "The five threads Codex opened on PR #795's merged head are fixed in 81ac2789c on their own branch, at Afo's request: two Hats page statements and its diagram, the opt-in wording on the Contracts and Gardens pages, the Supply Chain Guardrails catalog entry, and one sentence in the API Index naming the route families it leaves out, guarded by the route reader. Lanes stay blocked and uncertified. Left for Afo: maxGardeners counts joins, not members. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

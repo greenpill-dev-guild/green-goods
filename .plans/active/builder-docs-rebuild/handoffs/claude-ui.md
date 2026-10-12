@@ -691,3 +691,27 @@ renders all 13 skills.
   and the Anatomy page), the page-length gate, a Reference landing, the seven captures, the
   commitment and hypercert capability records (last verified 2026-08-15), and the community funder
   guide's "designed to preserve your principal" wording.
+
+## Validation Receipt — The five threads opened after the merge (2026-10-12 UTC)
+
+- **Scope**: the five threads Codex opened on PR #795's merged head; fixed in `81ac2789c` on
+  `fix/builder-docs-late-review`, cut from develop after the merge record landed (PR #1078).
+- **Read before changing**: `joinGarden`, `setOpenJoining` and `setMaxGardeners` in
+  `accounts/Garden.sol` (the counter is incremented in `joinGarden` and written nowhere else);
+  `_requireOwnerOrOperator` in `modules/Hats.sol` (it admits the garden account as a caller);
+  `routes/messaging/http.ts`, `routes/messages.ts`, `routes/reporting-ops.ts` and `routes/health.ts`
+  in the agent; the Supply Chain Guardrails workflow's five jobs and
+  `scripts/quality/classify-supply-chain-changes.mjs`, which decides which lanes run.
+- **What the route reader sees**: 42 public registrations and 34 others: 26 under `/messaging/`,
+  three under `/api/messages`, three under `/reporting/ops/`, and the `/health` and `/ready`
+  probes. The index prints none of the 34 and names their families in one sentence.
+- **Exact commands and results**: `bun run check -- --intent push` on the uncommitted tree →
+  push · routine · 9 paths, 5 fresh passes (format, lint, test-quality, docs-authority,
+  docs-generated) · `node --test scripts/docs/generate.test.mjs` → 42/42, with the reader's
+  fixture test now covering both refusals · the Hats diagram parsed with the docs site's own
+  mermaid under jsdom → `flowchart-v2`, seven edges.
+- **Rendered proof**: none. The docs site was not built locally; the Docs workflow builds it.
+- **Left for Afo**: `maxGardeners` counts successful joins and never goes down, while the
+  cockpit's setting reads "Limit gardeners" (`app.garden.settings.limitGardeners`). The page now
+  states the behavior; changing the contract or the label is a product decision.
+- **Human gates open**: unchanged.

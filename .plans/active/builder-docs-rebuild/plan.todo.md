@@ -284,11 +284,10 @@ list has seven: the steward guide's two review captures, the gardener guide's St
 captures, and the three QA app captures. None of the seven files has changed since 2026-09-03 and
 none is at the capture size of decision 61. The count is fixed where it appeared.
 
-Still open: the five late threads above, and Afo's gates: D12 (the spine tone and the Anatomy
-page), the page-length gate, a Reference landing, the seven captures, the commitment and hypercert
-capability records (last verified 2026-08-15, they set three of the personas page's availability
-notes), and the community funder guide's "designed to preserve your principal" wording, which
-decision 48 did not reach.
+Still open, all Afo's: D12 (the spine tone and the Anatomy page), the page-length gate, a
+Reference landing, the seven captures, the commitment and hypercert capability records (last
+verified 2026-08-15, they set three of the personas page's availability notes), and the community
+funder guide's "designed to preserve your principal" wording, which decision 48 did not reach.
 
 Lane state after the merge: the `ui` and `state_api` lanes are `blocked` on those gates, not
 `in_progress` on a branch the merge removed, and not certified. The hub's overall status is
@@ -296,6 +295,16 @@ Lane state after the merge: the `ui` and `state_api` lanes are `blocked` on thos
 archive the hub, and that is Afo's decision once he has judged the gates. The Linear mirror is set
 to preserve the issue's existing state, because the stage-derived manifest for blocked lanes would
 move it behind where the post-merge closeout left it.
+
+Status (2026-10-12 UTC, the five late threads): fixed in `81ac2789c` on their own branch, as Afo
+asked. The Hats page says what the join limit counts and names the token holder's path through
+the garden account, with that path in the diagram. The Contracts and Gardens pages no longer call
+the modules opt-in. The CI page's Supply Chain Guardrails entry names its four lanes. The API Index
+names the route families its table leaves out, the private messaging API among them; the route
+reader now refuses an unlisted route outside those families, and a family nothing registers, so
+that sentence cannot go stale. One question is left for Afo and is not a docs matter:
+`maxGardeners` counts joins and never goes down, while the cockpit's setting reads "Limit
+gardeners". The page states the behavior; whether the contract should count members is his call.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
