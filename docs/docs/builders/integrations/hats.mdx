@@ -31,7 +31,10 @@ tree, its whole authority structure is inspectable at once.
 
 ## How it flows
 
-Stewards and the garden's owner grant and revoke roles through the Hats module. One role can also
+Stewards and the garden's owner grant and revoke roles through the Hats module. A grant reaches
+down the tree: the owner role brings the steward and gardener hats with it, and the steward role
+brings the evaluator and gardener hats. A revoke does not: it removes the one hat it names, so
+taking someone out of a garden means revoking each hat they hold. One role can also
 be self-served: while a garden has open joining on, anyone who is not yet a member can call
 `joinGarden` on the garden account and receives the gardener hat, up to the garden's member cap
 when one is set. A steward or the owner turns that on or off with `setOpenJoining`. Everything

@@ -758,36 +758,35 @@
         {
           "when": "Joining a garden",
           "what": "Join an open garden directly, or ask to join and wait for a steward to accept.",
-          "where": ["client", "agent"],
+          "where": ["client"],
           "guide": "/community/gardener-guide/joining-a-garden",
           "code": [
             "packages/client/src/components/Features/Garden/JoinGardenButton.tsx",
-            "packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx",
-            "packages/agent/src/handlers/join.ts"
+            "packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx"
           ]
         },
         {
           "when": "After doing the work",
           "what": "Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns.",
-          "where": ["client", "agent"],
+          "where": ["client"],
           "term_refs": ["entity:work"],
           "guide": "/community/gardener-guide/uploading-your-work",
-          "code": [
-            "packages/client/src/views/Garden",
-            "packages/shared/src/modules/job-queue",
-            "packages/agent/src/handlers/submit.ts"
-          ]
+          "code": ["packages/client/src/views/Garden", "packages/shared/src/modules/job-queue"]
+        },
+        {
+          "when": "When messaging is easier",
+          "what": "Choose the garden in a chat with the Telegram bot, describe the work in a text or voice message, and confirm it. The bot holds the submission until a steward approves or rejects it there. Choosing a garden in the chat is not membership: the gardener still has to be a member of it.",
+          "where": ["agent"],
+          "term_refs": ["entity:work"],
+          "code": ["packages/agent/src/handlers/join.ts", "packages/agent/src/handlers/submit.ts"]
         },
         {
           "when": "While a steward reviews",
           "what": "Follow each submission from pending to approved or rejected, and read the steward's feedback.",
-          "where": ["client", "agent"],
+          "where": ["client"],
           "term_refs": ["entity:work-approval"],
           "guide": "/community/gardener-guide/track-status-and-attestations",
-          "code": [
-            "packages/client/src/views/Home/WorkDashboard",
-            "packages/agent/src/handlers/status.ts"
-          ]
+          "code": ["packages/client/src/views/Home/WorkDashboard"]
         },
         {
           "when": "When the garden pays an allowance",
@@ -839,13 +838,20 @@
         {
           "when": "As work comes in",
           "what": "Review each submission's evidence, then approve it or reject it with feedback.",
-          "where": ["admin", "client", "agent"],
+          "where": ["admin", "client"],
           "term_refs": ["entity:work-approval"],
           "guide": "/community/steward-guide/reviewing-work",
+          "code": ["packages/admin/src/views/Hub", "packages/client/src/views/Home/WorkDashboard"]
+        },
+        {
+          "when": "When work arrives by message",
+          "what": "List what gardeners sent through the Telegram bot and approve or reject each one there. An approval records the work and its approval together.",
+          "where": ["agent"],
+          "term_refs": ["entity:work-approval"],
           "code": [
-            "packages/admin/src/views/Hub",
-            "packages/client/src/views/Home/WorkDashboard",
-            "packages/agent/src/handlers/approve.ts"
+            "packages/agent/src/handlers/pending.ts",
+            "packages/agent/src/handlers/approve.ts",
+            "packages/agent/src/handlers/reject.ts"
           ]
         },
         {
@@ -854,7 +860,8 @@
           "where": ["admin", "client"],
           "term_refs": ["entity:hat"],
           "code": [
-            "packages/admin/src/views/Community/components/CommunityMembersTab.tsx",
+            "packages/admin/src/views/Community/components/CommunityJoinRequests.tsx",
+            "packages/admin/src/components/Garden/ManageMembersDialog.tsx",
             "packages/admin/src/components/Garden/GardenSettingsEditor.tsx",
             "packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx"
           ]
@@ -869,7 +876,7 @@
         },
         {
           "when": "When neighbours make promises",
-          "what": "Run the commitment pool: open a season, review offers and requests, and settle what was kept.",
+          "what": "Run the commitment pool: set it up, seed it, confirm commitments, and close them.",
           "where": ["admin"],
           "term_refs": ["entity:commitment-pool"],
           "guide": "/community/steward-guide/commitment-pooling",
@@ -949,7 +956,7 @@
           "term_refs": ["entity:vault"],
           "guide": "/community/funder-guide/withdraw-from-a-vault",
           "code": [
-            "packages/client/src/views/Public/Vaults.tsx",
+            "packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx",
             "packages/client/src/components/Sheets/EndowmentSheet"
           ]
         }

@@ -30,8 +30,12 @@ history included, as long as transfers are open: the GardenToken contract can li
 protocol's admin or lock them entirely (`transferRestriction`). It does not hand over the roles.
 The owner hat is granted to the minter at mint and the transfer hook only enforces the
 restriction, so after a transfer the previous owner still holds their hats, and the new holder is
-not an owner to `isOwner` until the hats are rotated: grant the new holder's hat and revoke the old
-one. Either way, no app of ours has to exist for a garden to keep being real.
+not an owner to `isOwner` until the hats are rotated. Rotation is not symmetric. Granting the owner
+hat also grants the steward and gardener hats beneath it, but a revoke removes only the hat it
+names. Take the owner hat alone from the previous owner and they remain a steward, who can still
+approve work and change roles, so revoke every hat they hold. The new holder can do this through
+the account itself, which the Hats module accepts as a caller. Either way, no app of ours has to
+exist for a garden to keep being real.
 
 ## How it flows
 

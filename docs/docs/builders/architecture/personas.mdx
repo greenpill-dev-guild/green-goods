@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:c9439c904929ec8567c452ea4e8cd9f1e88c89b1eaed69b86dfbc7eb0c42ac5b"
+source_digest: "sha256:62fb65b62becab7bf98240afe285fbbc39a41dfda4a541fc511375c70d2e90e3"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -49,9 +49,10 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 | When | What they do | Where |
 |---|---|---|
 | Getting started | Install the app and sign in with a passkey. No wallet or seed phrase is needed. [Guide](/community/gardener-guide/installing-and-updating). | Client app |
-| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Client app, Messaging agent |
-| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Client app, Messaging agent |
-| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Client app, Messaging agent |
+| Joining a garden | Join an open garden directly, or ask to join and wait for a steward to accept. [Guide](/community/gardener-guide/joining-a-garden). | Client app |
+| After doing the work | Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns. [Guide](/community/gardener-guide/uploading-your-work). | Client app |
+| When messaging is easier | Choose the garden in a chat with the Telegram bot, describe the work in a text or voice message, and confirm it. The bot holds the submission until a steward approves or rejects it there. Choosing a garden in the chat is not membership: the gardener still has to be a member of it. | Messaging agent |
+| While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Client app |
 | When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Client app |
 | When neighbours make promises | Follow the garden's commitments, confirm one a neighbour has kept, and record work toward one. *Deployed, not switched on yet.* | Client app |
 
@@ -59,9 +60,10 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 <summary>Where this lives in the code</summary>
 
 - **Getting started**: `packages/client/src/views/Login`
-- **Joining a garden**: `packages/client/src/components/Features/Garden/JoinGardenButton.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx`, `packages/agent/src/handlers/join.ts`
-- **After doing the work**: `packages/client/src/views/Garden`, `packages/shared/src/modules/job-queue`, `packages/agent/src/handlers/submit.ts`
-- **While a steward reviews**: `packages/client/src/views/Home/WorkDashboard`, `packages/agent/src/handlers/status.ts`
+- **Joining a garden**: `packages/client/src/components/Features/Garden/JoinGardenButton.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx`
+- **After doing the work**: `packages/client/src/views/Garden`, `packages/shared/src/modules/job-queue`
+- **When messaging is easier**: `packages/agent/src/handlers/join.ts`, `packages/agent/src/handlers/submit.ts`
+- **While a steward reviews**: `packages/client/src/views/Home/WorkDashboard`
 - **When the garden pays an allowance**: `packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx`
 - **When neighbours make promises**: `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Garden/WorkCommitmentSelection.tsx`
 
@@ -81,10 +83,11 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 | Starting a garden | Create the garden with its name, place and first roles. This needs deployer authority, and whoever creates the garden becomes its owner. [Guide](/community/steward-guide/creating-a-garden). | Admin cockpit |
 | Before work starts | Define the actions gardeners can document. [Guide](/community/steward-guide/managing-actions). | Admin cockpit |
 | Before a reporting period | Write the assessment that sets the baseline, the method and the outcomes to look for. [Guide](/community/steward-guide/making-an-assessment). | Admin cockpit |
-| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Admin cockpit, Client app, Messaging agent |
+| As work comes in | Review each submission's evidence, then approve it or reject it with feedback. [Guide](/community/steward-guide/reviewing-work). | Admin cockpit, Client app |
+| When work arrives by message | List what gardeners sent through the Telegram bot and approve or reject each one there. An approval records the work and its approval together. | Messaging agent |
 | As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Admin cockpit, Client app |
 | When money arrives | Set up the garden's vault and cookie jar, and choose how yield and payouts are shared. [Guide](/community/steward-guide/funding-and-governance). | Admin cockpit |
-| When neighbours make promises | Run the commitment pool: open a season, review offers and requests, and settle what was kept. [Guide](/community/steward-guide/commitment-pooling). | Admin cockpit |
+| When neighbours make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/commitment-pooling). | Admin cockpit |
 | At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Admin cockpit |
 
 <details>
@@ -93,8 +96,9 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 - **Starting a garden**: `packages/admin/src/views/Garden/CreateGarden.tsx`
 - **Before work starts**: `packages/admin/src/views/Actions`
 - **Before a reporting period**: `packages/admin/src/views/Hub/CreateAssessment.tsx`
-- **As work comes in**: `packages/admin/src/views/Hub`, `packages/client/src/views/Home/WorkDashboard`, `packages/agent/src/handlers/approve.ts`
-- **As people join**: `packages/admin/src/views/Community/components/CommunityMembersTab.tsx`, `packages/admin/src/components/Garden/GardenSettingsEditor.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx`
+- **As work comes in**: `packages/admin/src/views/Hub`, `packages/client/src/views/Home/WorkDashboard`
+- **When work arrives by message**: `packages/agent/src/handlers/pending.ts`, `packages/agent/src/handlers/approve.ts`, `packages/agent/src/handlers/reject.ts`
+- **As people join**: `packages/admin/src/views/Community/components/CommunityJoinRequests.tsx`, `packages/admin/src/components/Garden/ManageMembersDialog.tsx`, `packages/admin/src/components/Garden/GardenSettingsEditor.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx`
 - **When money arrives**: `packages/admin/src/views/Garden/Vault.tsx`, `packages/admin/src/views/Cookies`
 - **When neighbours make promises**: `packages/admin/src/views/Garden/Pool`
 - **At the end of a period**: `packages/admin/src/views/Hub/CreateHypercert.tsx`
@@ -145,7 +149,7 @@ Funders are people and organizations who want their money to follow verified wor
 - **Deciding where to give**: `packages/client/src/views/Public/Gardens.tsx`, `packages/client/src/views/Public/Impact.tsx`
 - **Giving directly**: `packages/client/src/views/Public/Fund.tsx`
 - **Giving for the long term**: `packages/client/src/views/Public/Fund.tsx`, `packages/client/src/components/Sheets/EndowmentSheet`
-- **Any time afterwards**: `packages/client/src/views/Public/Vaults.tsx`, `packages/client/src/components/Sheets/EndowmentSheet`
+- **Any time afterwards**: `packages/client/src/components/Public/Vault/VaultManagePositionsPanel.tsx`, `packages/client/src/components/Sheets/EndowmentSheet`
 
 </details>
 
