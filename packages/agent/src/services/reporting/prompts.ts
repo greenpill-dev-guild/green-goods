@@ -170,3 +170,23 @@ export function matchReply(
 export function replyIdFor(prompt: PromptRecord, option: PromptOption): string {
   return `p:${prompt.id}:${option.id}`;
 }
+
+/** The choice whose label these words spell out, whatever their case. */
+export function choiceLabelled(
+  prompt: PromptRecord | null,
+  text: string | null | undefined
+): PromptOption | null {
+  const typed = text?.trim().toLowerCase();
+  if (!prompt || !typed) return null;
+  return prompt.options.find((option) => option.label.trim().toLowerCase() === typed) ?? null;
+}
+
+/** The choice typed words pick: the one at that number, or the one whose label they spell out. */
+export function typedChoice(
+  prompt: PromptRecord,
+  text: string | null | undefined
+): PromptOption | undefined {
+  const typed = text?.trim();
+  if (!typed) return undefined;
+  return prompt.options[Number(typed) - 1] ?? choiceLabelled(prompt, typed) ?? undefined;
+}

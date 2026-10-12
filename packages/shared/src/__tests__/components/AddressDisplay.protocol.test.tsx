@@ -62,4 +62,18 @@ describe("AddressDisplay protocol identity", () => {
     });
     expect(screen.getByText("ordinary.eth")).toBeInTheDocument();
   });
+
+  it("uses a public role label until the account has a name", () => {
+    const { rerender } = render(
+      <AddressDisplay address={first} interactive={false} fallbackLabel="Garden participant" />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Garden participant")).toHaveAttribute("title", first);
+    hooks.protocol.mockReturnValue({ data: "river.greengoods.eth" });
+    rerender(
+      <AddressDisplay address={first} interactive={false} fallbackLabel="Garden participant" />
+    );
+    expect(screen.getByText("river")).toBeInTheDocument();
+    expect(screen.queryByText("Garden participant")).not.toBeInTheDocument();
+  });
 });

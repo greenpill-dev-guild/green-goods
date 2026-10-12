@@ -4,6 +4,7 @@ import {
   type GardenJoinProofAction,
   type GardenJoinProofEnvelope,
   type GardenJoinRequestApiError,
+  type GardenJoinRequestKind,
   type GardenJoinValidationResult,
 } from "./join-requests";
 
@@ -40,6 +41,7 @@ export function validateGardenJoinProofEnvelope(
   options: {
     nowSeconds?: number;
     expectedAction?: GardenJoinProofAction;
+    expectedKind?: GardenJoinRequestKind;
     allowedChainIds?: readonly number[];
     maxAgeSeconds?: number;
     maxFutureSkewSeconds?: number;
@@ -76,6 +78,16 @@ export function validateGardenJoinProofEnvelope(
   if (options.expectedAction && candidate.action !== options.expectedAction) {
     return { ok: false, error: error("Proof action does not match this request.", "action") };
   }
+  if (
+    candidate.kind !== undefined &&
+    candidate.kind !== "garden_membership" &&
+    candidate.kind !== "steward_access"
+  ) {
+    return { ok: false, error: error("Invalid proof kind.", "kind") };
+  }
+  if (options.expectedKind && (candidate.kind ?? "garden_membership") !== options.expectedKind) {
+    return { ok: false, error: error("Proof kind does not match this request.", "kind") };
+  }
   let readSelf: GardenJoinProofEnvelope["readSelf"];
   if (candidate.readSelf !== undefined) {
     const grant = candidate.readSelf;
@@ -104,6 +116,12 @@ export function validateGardenJoinProofEnvelope(
     }
     const content = validateCreateGardenJoinRequest(grant.content);
     if (!content.ok) return content;
+    if ((content.value.kind ?? "garden_membership") !== (candidate.kind ?? "garden_membership")) {
+      return {
+        ok: false,
+        error: error("Status authorization kind does not match the proof.", "kind"),
+      };
+    }
     readSelf = { audience: grant.audience, content: content.value };
   }
   if (typeof candidate.nonce !== "string" || !NONCE_PATTERN.test(candidate.nonce)) {
@@ -176,6 +194,7 @@ export function validateGardenJoinProofEnvelope(
       gardenAddress,
       accountAddress,
       action: candidate.action,
+      ...(candidate.kind ? { kind: candidate.kind } : {}),
       nonce: candidate.nonce as `0x${string}`,
       issuedAt: candidate.issuedAt,
       expiresAt: candidate.expiresAt,

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Address } from "@green-goods/shared/public-contracts";
+import type { GardenJoinRequestKind } from "@green-goods/shared/public-contracts/join-requests";
 import {
   decryptGardenJoinRequestRecord,
   GARDEN_JOIN_REQUEST_MAX_PENDING_PER_GARDEN,
@@ -24,6 +25,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
   ) {}
 
   async create(input: CreateGardenJoinRequestRecord) {
+    const kind = input.kind ?? "garden_membership";
     const accountAddressKey = this.cipher.accountKey(input.accountAddress);
     const requestedAt = Date.parse(input.requestedAt);
     for (const [id, record] of this.records) {
@@ -35,7 +37,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
         this.records.delete(id);
       }
     }
-    const existing = this.findPending(input.gardenAddress, accountAddressKey);
+    const existing = this.findPending(input.gardenAddress, accountAddressKey, kind);
     if (existing) return { created: false as const, request: this.decrypt(existing) };
     const pendingCount = [...this.records.values()].filter(
       (record) => record.gardenAddress === input.gardenAddress && record.state === "pending"
@@ -56,7 +58,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
       gardenAddress: input.gardenAddress,
       accountAddressKey,
       ...encrypted,
-      kind: "garden_membership",
+      kind,
       state: "pending",
       requestedVia: input.requestedVia,
       requestedAt: input.requestedAt,
@@ -71,7 +73,8 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
   async getMine(
     gardenAddress: Address,
     accountAddress: Address,
-    nowIso = new Date().toISOString()
+    nowIso = new Date().toISOString(),
+    kind: GardenJoinRequestKind = "garden_membership"
   ) {
     const accountAddressKey = this.cipher.accountKey(accountAddress);
     this.deleteExpiredPending(gardenAddress, nowIso, accountAddressKey);
@@ -79,6 +82,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
       .filter(
         (candidate) =>
           candidate.gardenAddress === gardenAddress &&
+          candidate.kind === kind &&
           candidate.accountAddressKey === accountAddressKey
       )
       .sort(compareNewest)[0];
@@ -92,7 +96,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
 
   async listPending(
     gardenAddress: Address,
-    options: { cursor?: string; limit?: number; nowIso?: string } = {}
+    options: { cursor?: string; limit?: number; nowIso?: string; kind?: GardenJoinRequestKind } = {}
   ) {
     this.deleteExpiredPending(gardenAddress, options.nowIso ?? new Date().toISOString());
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
@@ -100,6 +104,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
       .filter(
         (record) =>
           record.gardenAddress === gardenAddress &&
+          record.kind === (options.kind ?? "garden_membership") &&
           record.state === "pending" &&
           (!options.cursor || cursorFor(record) < options.cursor)
       )
@@ -113,7 +118,11 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
 
   async resolve(input: ResolveGardenJoinRequestRecord) {
     const record = this.records.get(input.requestId);
-    if (!record || record.gardenAddress !== input.gardenAddress) {
+    if (
+      !record ||
+      record.gardenAddress !== input.gardenAddress ||
+      record.kind !== (input.kind ?? "garden_membership")
+    ) {
       return { ok: false as const, reason: "not_found" as const };
     }
     if (record.revision !== input.expectedRevision) {
@@ -142,9 +151,14 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     return { ok: true as const, request: this.decrypt(updated) };
   }
 
-  async reconcileWelcomed(gardenAddress: Address, requestId: string, resolvedAt: string) {
+  async reconcileWelcomed(
+    gardenAddress: Address,
+    requestId: string,
+    resolvedAt: string,
+    kind: GardenJoinRequestKind = "garden_membership"
+  ) {
     const record = this.records.get(requestId);
-    if (!record || record.gardenAddress !== gardenAddress) return undefined;
+    if (!record || record.gardenAddress !== gardenAddress || record.kind !== kind) return undefined;
     if (record.state === "welcomed") return this.decrypt(record);
     const personal = this.decryptPersonal(record);
     const { reason: _reason, ...personalWithoutReason } = personal;
@@ -173,6 +187,7 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     if (
       !record ||
       record.gardenAddress !== input.gardenAddress ||
+      record.kind !== (input.kind ?? "garden_membership") ||
       record.accountAddressKey !== this.cipher.accountKey(input.accountAddress) ||
       record.state !== "pending" ||
       record.revision !== input.expectedRevision
@@ -212,11 +227,16 @@ export class MemoryGardenJoinRequestStore implements GardenJoinRequestStore {
     return [...this.proofNonces.keys()];
   }
 
-  private findPending(gardenAddress: Address, accountAddressKey: string) {
+  private findPending(
+    gardenAddress: Address,
+    accountAddressKey: string,
+    kind: GardenJoinRequestKind
+  ) {
     return [...this.records.values()].find(
       (record) =>
         record.gardenAddress === gardenAddress &&
         record.accountAddressKey === accountAddressKey &&
+        record.kind === kind &&
         record.state === "pending"
     );
   }

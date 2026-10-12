@@ -54,26 +54,30 @@ async function handleMine(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  const kind = authenticated.proof.kind ?? "garden_membership";
   // Which dependency the request was waiting on, so a 503 names its cause.
   let stage = "store_read";
   try {
     const nowIso = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
     let request = await ctx.budget!.run(() =>
-      store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso)
+      store.getMine(preflight.garden, authenticated.proof.accountAddress, nowIso, kind)
     );
     if (request && request.state !== "welcomed") {
-      stage = "membership_read";
+      stage = kind === "steward_access" ? "steward_read" : "membership_read";
       if (
         await ctx.budget!.run(() =>
-          chain.isMember(preflight.garden, authenticated.proof.accountAddress)
+          kind === "steward_access"
+            ? chain.isSteward(preflight.garden, authenticated.proof.accountAddress)
+            : chain.isMember(preflight.garden, authenticated.proof.accountAddress)
         )
       ) {
         stage = "store_reconcile";
-        request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso);
+        request = await store.reconcileWelcomed(preflight.garden, request.id, nowIso, kind);
       }
     }
     void trackGardenJoinRequestEvent("join_request_status_checked", {
       state: request?.state ?? "none",
+      kind,
       is_counterfactual: authenticated.proof.factory !== undefined,
     });
     return publicBrowserCorsResponse(c, ctx.deps, {
@@ -122,6 +126,7 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
       accountAddress: authenticated.proof.accountAddress,
       requestId,
       expectedRevision,
+      kind: authenticated.proof.kind ?? "garden_membership",
     });
     if (!withdrawn)
       return gardenJoinRequestFailure(
@@ -132,7 +137,7 @@ async function handleWithdraw(c: Context, ctx: GardenJoinRequestRouteContext) {
         404
       );
     void trackGardenJoinRequestEvent("join_request_withdrawn", {
-      kind: "garden_membership",
+      kind: authenticated.proof.kind ?? "garden_membership",
       is_counterfactual: authenticated.proof.factory !== undefined,
     });
     return publicBrowserCorsResponse(c, ctx.deps, { ok: true });
@@ -181,6 +186,7 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
   const store = ctx.store;
   const chain = ctx.deps.gardenJoinRequestChainReader;
   if (!store || !chain) return gardenJoinRequestsUnavailable(c, ctx);
+  const kind = authenticated.proof.kind ?? "garden_membership";
   let stage = "role_read";
   try {
     if (!(await chain.canManage(preflight.garden, authenticated.proof.accountAddress))) {
@@ -196,23 +202,28 @@ async function handleList(c: Context, ctx: GardenJoinRequestRouteContext) {
     const page = await store.listPending(preflight.garden, {
       ...(cursor ? { cursor } : {}),
       limit,
+      kind,
       nowIso: new Date(ctx.deps.now?.() ?? Date.now()).toISOString(),
     });
     const items = [];
     const resolvedAt = new Date(ctx.deps.now?.() ?? Date.now()).toISOString();
-    stage = "membership_read";
-    const membership = chain.areMembers
-      ? await chain.areMembers(
+    stage = kind === "steward_access" ? "steward_read" : "membership_read";
+    const readMany =
+      kind === "steward_access" ? chain.areStewards?.bind(chain) : chain.areMembers?.bind(chain);
+    const readOne =
+      kind === "steward_access" ? chain.isSteward.bind(chain) : chain.isMember.bind(chain);
+    const membership = readMany
+      ? await readMany(
           preflight.garden,
           page.items.map((request) => request.accountAddress)
         )
       : await Promise.all(
-          page.items.map((request) => chain.isMember(preflight.garden, request.accountAddress))
+          page.items.map((request) => readOne(preflight.garden, request.accountAddress))
         );
     stage = "store_reconcile";
     for (const [index, request] of page.items.entries()) {
       if (membership[index]) {
-        await store.reconcileWelcomed(preflight.garden, request.id, resolvedAt);
+        await store.reconcileWelcomed(preflight.garden, request.id, resolvedAt, kind);
       } else {
         items.push(request);
       }

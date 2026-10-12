@@ -67,8 +67,9 @@ editorial dialect on purpose:
 - **Website presentation even when installed.** The prefix is a public website prefix, so an
   installed app that captures the link still renders the page, not the PWA shell.
 - **Wallet connect is allowed here**, at the proof step only, as in funding flows. The page connects
-  an existing wallet or passkey and never creates an account; a publish or review says up front that
-  it takes two signatures.
+  an existing wallet or passkey. Only a link that joins a chat to an account may create one, and
+  only when the person chooses to: no failed sign-in leads to a new account. A publish or review
+  says up front that it takes two signatures.
 - **Privacy.** Served `no-store`, `no-referrer` and `noindex`; analytics and error reports drop the
   link locator, and replays and element captures are not taken on these pages. They are not WebMCP
   routes.

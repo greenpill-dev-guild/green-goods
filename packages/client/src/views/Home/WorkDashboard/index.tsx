@@ -269,7 +269,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       timeFilter,
       scrollTop: document.getElementById("work-dashboard-scroll")?.scrollTop ?? 0,
     };
-    onClose?.();
     dashboardNavigation.leave(snapshot, path, state);
   };
 
@@ -472,6 +471,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       className={className}
       isClosing={isClosing}
       onRequestClose={handleClose}
+      covered={dashboardNavigation.isDashboardCovered}
+      restored={Boolean(returnState)}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}

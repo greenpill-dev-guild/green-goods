@@ -72,6 +72,7 @@ function createApp(
   });
   const rateLimitPressure = new GardenJoinRequestRateLimitPressure();
   let applicantIsMember = false;
+  let applicantIsSteward = false;
   let openJoining = false;
   const chainReader = {
     isMember: vi.fn(
@@ -83,6 +84,13 @@ function createApp(
     ),
     areMembers: vi.fn(async (_garden: Address, accounts: readonly Address[]) =>
       accounts.map((account) => account.toLowerCase() === APPLICANT && applicantIsMember)
+    ),
+    isSteward: vi.fn(
+      async (_garden: Address, account: Address) =>
+        account.toLowerCase() === APPLICANT && applicantIsSteward
+    ),
+    areStewards: vi.fn(async (_garden: Address, accounts: readonly Address[]) =>
+      accounts.map((account) => account.toLowerCase() === APPLICANT && applicantIsSteward)
     ),
     isOpenJoining: vi.fn(async (_garden: Address) => openJoining),
   };
@@ -106,6 +114,7 @@ function createApp(
     rateLimitPressure,
     chainReader,
     setMember: (value: boolean) => (applicantIsMember = value),
+    setSteward: (value: boolean) => (applicantIsSteward = value),
     setOpenJoining: (value: boolean) => (openJoining = value),
   };
 }
@@ -118,6 +127,21 @@ async function submit(app: ReturnType<typeof createServer>) {
       displayName: "Maya",
       note: "I would like to help with the food forest.",
       requestedVia: "garden_detail",
+    }),
+  });
+}
+
+async function submitSteward(
+  app: ReturnType<typeof createServer>,
+  overrides: Partial<GardenJoinProofEnvelope> = {}
+) {
+  return app.request(`/public/gardens/${GARDEN}/join-requests`, {
+    method: "POST",
+    headers: headers(proof("create", APPLICANT, { kind: "steward_access", ...overrides })),
+    body: JSON.stringify({
+      kind: "steward_access",
+      displayName: "Maya",
+      requestedVia: "admin_access",
     }),
   });
 }
@@ -144,6 +168,229 @@ async function submitForGarden(
 }
 
 describe("garden join request public API", () => {
+  it("accepts steward requests from existing gardeners in open gardens", async () => {
+    const { app, setMember, setOpenJoining, chainReader } = createApp();
+    setMember(true);
+    setOpenJoining(true);
+    const response = await submitSteward(app);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      request: { kind: "steward_access", state: "pending" },
+    });
+    expect(chainReader.isOpenJoining).not.toHaveBeenCalled();
+    expect(chainReader.isMember).not.toHaveBeenCalled();
+  });
+
+  it("rejects an existing steward before consuming a proof or writing a request", async () => {
+    const { app, setSteward, store } = createApp();
+    setSteward(true);
+    const response = await submitSteward(app);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ errorCode: "already_steward" });
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+    expect(store.inspectProofKeys()).toHaveLength(0);
+  });
+
+  it("requires the signed create kind to match its body", async () => {
+    const { app, store } = createApp();
+    const response = await submitSteward(app, { kind: undefined });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ errorCode: "invalid_request" });
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+  });
+
+  it("verifies the request kind as part of a real account signature", async () => {
+    const signer = privateKeyToAccount(`0x${"11".repeat(32)}` as `0x${string}`);
+    const signatureVerifier = createGardenJoinRequestSignatureVerifier({
+      chain: arbitrum,
+      rpcUrl: "http://127.0.0.1:3009",
+    });
+    const { app } = createApp({ signatureVerifier });
+    const unsigned = proof("read_self", signer.address as Address, { kind: "steward_access" });
+    const signed = {
+      ...unsigned,
+      signature: await signer.signMessage({ message: buildGardenJoinProofMessage(unsigned) }),
+    };
+    const valid = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/me?kind=steward_access`,
+      { headers: headers(signed) }
+    );
+    expect(valid.status).toBe(200);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ jsonrpc: "2.0", id: 1, result: `0x${"0".repeat(64)}` }))
+    );
+    try {
+      const tampered = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+        headers: headers({ ...signed, kind: undefined }),
+      });
+      expect(tampered.status).toBe(401);
+      expect(await tampered.json()).toMatchObject({ errorCode: "signature_invalid" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("fails before persistence when the stewardship role read is unavailable", async () => {
+    const { app, store, chainReader } = createApp();
+    chainReader.isSteward.mockRejectedValueOnce(new Error("RPC unavailable"));
+    const response = await submitSteward(app);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ errorCode: "request_not_saved" });
+    expect(store.inspectEncryptedRecords()).toHaveLength(0);
+    expect(store.inspectProofKeys()).toHaveLength(0);
+    expect((await submitSteward(app)).status).toBe(201);
+  });
+
+  it("isolates self reads and queues by signed kind and rejects query scope tampering", async () => {
+    const { app } = createApp();
+    const membership = await (await submit(app)).json();
+    const steward = await (await submitSteward(app)).json();
+    expect(steward.request.id).not.toBe(membership.request.id);
+    for (const [kind, requestId] of [
+      ["garden_membership", membership.request.id],
+      ["steward_access", steward.request.id],
+    ] as const) {
+      const mine = await app.request(`/public/gardens/${GARDEN}/join-requests/me?kind=${kind}`, {
+        headers: headers(proof("read_self", APPLICANT, { kind })),
+      });
+      expect((await mine.json()).request.id).toBe(requestId);
+      const queue = await app.request(
+        `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25&kind=${kind}`,
+        {
+          headers: headers(proof("list", OPERATOR, { kind })),
+        }
+      );
+      expect((await queue.json()).items.map(({ id }: { id: string }) => id)).toEqual([requestId]);
+    }
+    const tampered = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/me?kind=steward_access`,
+      {
+        headers: headers(proof("read_self")),
+      }
+    );
+    expect(tampered.status).toBe(400);
+    const withdrawn = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/me?kind=steward_access`,
+      {
+        method: "DELETE",
+        headers: headers(
+          proof("withdraw", APPLICANT, {
+            kind: "steward_access",
+            requestId: steward.request.id,
+            expectedRevision: 0,
+          })
+        ),
+      }
+    );
+    expect(withdrawn.status).toBe(200);
+    const membershipMine = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      headers: headers(proof("read_self")),
+    });
+    expect((await membershipMine.json()).request.id).toBe(membership.request.id);
+  });
+
+  it("keeps stewardship pending until the Operator or Owner role is confirmed", async () => {
+    const { app, setMember, setSteward } = createApp();
+    await submitSteward(app);
+    setMember(true);
+    const resolve = () =>
+      app.request(`/public/gardens/${GARDEN}/join-requests/request-1/resolve`, {
+        method: "POST",
+        headers: headers(
+          proof("welcome", OPERATOR, {
+            kind: "steward_access",
+            requestId: "request-1",
+            expectedRevision: 0,
+          })
+        ),
+        body: JSON.stringify({ action: "welcome", expectedRevision: 0 }),
+      });
+    const waiting = await resolve();
+    expect(waiting.status).toBe(202);
+    expect(await waiting.json()).toMatchObject({
+      pendingOnchainRole: true,
+      request: { state: "pending" },
+    });
+    const mine = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/me?kind=steward_access`,
+      {
+        headers: headers(proof("read_self", APPLICANT, { kind: "steward_access" })),
+      }
+    );
+    expect((await mine.json()).request.state).toBe("pending");
+    const queue = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25&kind=steward_access`,
+      {
+        headers: headers(proof("list", OPERATOR, { kind: "steward_access" })),
+      }
+    );
+    expect((await queue.json()).items).toMatchObject([{ id: "request-1", state: "pending" }]);
+    setSteward(true);
+    const recovered = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/me?kind=steward_access`,
+      {
+        headers: headers(proof("read_self", APPLICANT, { kind: "steward_access" })),
+      }
+    );
+    expect((await recovered.json()).request).toMatchObject({ state: "welcomed", revision: 1 });
+    const welcomed = await resolve();
+    expect(welcomed.status).toBe(200);
+    expect(await welcomed.json()).toMatchObject({
+      request: { kind: "steward_access", state: "welcomed", revision: 1 },
+    });
+  });
+
+  it("rejects the wrong signed kind before reconciling an already confirmed steward", async () => {
+    const { app, store, setMember, setSteward } = createApp();
+    await submitSteward(app);
+    setMember(true);
+    setSteward(true);
+    const resolve = await app.request(`/public/gardens/${GARDEN}/join-requests/request-1/resolve`, {
+      method: "POST",
+      headers: headers(proof("welcome", OPERATOR, { requestId: "request-1", expectedRevision: 0 })),
+      body: JSON.stringify({ action: "welcome", expectedRevision: 0 }),
+    });
+    expect(resolve.status).toBe(400);
+    expect(await store.getById(GARDEN, "request-1")).toMatchObject({ state: "pending" });
+    const withdraw = await app.request(`/public/gardens/${GARDEN}/join-requests/me`, {
+      method: "DELETE",
+      headers: headers(
+        proof("withdraw", APPLICANT, { requestId: "request-1", expectedRevision: 0 })
+      ),
+    });
+    expect(withdraw.status).toBe(404);
+    expect(await store.getById(GARDEN, "request-1")).toMatchObject({ state: "pending" });
+  });
+
+  it("requires operator or owner authority to review steward requests", async () => {
+    const { app, store } = createApp();
+    await submitSteward(app);
+    const queue = await app.request(
+      `/public/gardens/${GARDEN}/join-requests?state=pending&limit=25&kind=steward_access`,
+      {
+        headers: headers(proof("list", APPLICANT, { kind: "steward_access" })),
+      }
+    );
+    expect(queue.status).toBe(403);
+    const declined = await app.request(
+      `/public/gardens/${GARDEN}/join-requests/request-1/resolve`,
+      {
+        method: "POST",
+        headers: headers(
+          proof("decline", APPLICANT, {
+            kind: "steward_access",
+            requestId: "request-1",
+            expectedRevision: 0,
+          })
+        ),
+        body: JSON.stringify({ action: "decline", expectedRevision: 0, reason: "Not available." }),
+      }
+    );
+    expect(declined.status).toBe(403);
+    expect(await store.getById(GARDEN, "request-1")).toMatchObject({ state: "pending" });
+  });
+
   it.each([
     "isOpenJoining",
     "isMember",
@@ -907,6 +1154,23 @@ describe("garden join request public API", () => {
       headers: { origin: ORIGIN },
     });
     expect(availability.status).toBe(200);
-    expect(await availability.json()).toEqual({ ok: true, enabled: false });
+    expect(await availability.json()).toEqual({ ok: true, enabled: false, supportedKinds: [] });
+  });
+
+  it("advertises both request kinds only when the service is available", async () => {
+    const { app } = createApp();
+    const enabled = await app.request("/public/features/garden-join-requests", {
+      headers: { origin: ORIGIN },
+    });
+    expect(await enabled.json()).toEqual({
+      ok: true,
+      enabled: true,
+      supportedKinds: ["garden_membership", "steward_access"],
+    });
+    const unavailable = createServer({ isAIReady: () => true, gardenJoinRequestsEnabled: true });
+    const disabled = await unavailable.request("/public/features/garden-join-requests", {
+      headers: { origin: ORIGIN },
+    });
+    expect(await disabled.json()).toEqual({ ok: true, enabled: false, supportedKinds: [] });
   });
 });

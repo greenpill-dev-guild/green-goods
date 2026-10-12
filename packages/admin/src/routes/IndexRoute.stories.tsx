@@ -15,7 +15,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Route, Routes } from "react-router-dom";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
 import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
 import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
@@ -185,7 +185,7 @@ export const Loading: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      await canvas.findByRole("status", { name: "Checking authentication..." })
+      await canvas.findByRole("status", { name: "Opening your workspace…" })
     ).toBeVisible();
   },
 };
@@ -219,6 +219,45 @@ export const NoGardenAccess: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByTestId("canvas-no-garden-access")).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Create Garden" })).toBeVisible();
+  },
+};
+
+export const PasskeyNoGardenAccess: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <IndexRouteScenario
+      state={{
+        ...walletAuthState,
+        authMode: "passkey",
+        smartAccountAddress: STORYBOOK_STEWARD,
+        walletAddress: null,
+        eoaAddress: undefined,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
+      }}
+    />
+  ),
+  decorators: indexRouteDecorators([
+    ...NO_GARDEN_SEEDS,
+    [
+      queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+      { isOwner: false, isInAllowlist: false, canDeploy: false },
+    ],
+    [queryKeys.ens.name(STORYBOOK_STEWARD_ADDRESS_KEY), null],
+    [queryKeys.ens.protocolName(STORYBOOK_STEWARD_ADDRESS_KEY), null],
+    [queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_STEWARD), null],
+  ]),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByTestId("canvas-no-garden-access")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Profile" }));
+    const dialog = within(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Profile" })
+    );
+    await expect(dialog.getByText("Passkey")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Copy Address" })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Disconnect" })).toBeVisible();
+    await userEvent.click(dialog.getByRole("button", { name: "Close" }));
   },
 };
 

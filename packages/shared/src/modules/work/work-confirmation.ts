@@ -203,9 +203,15 @@ export async function acquireWorkJobs(
       if (!(await jobQueueDB.renewExecutionClaim(ids, token)))
         throw new Error("submission-ownership-changed");
     },
+    // The stored claim goes first. The in-memory one is what holds back an app update, and a
+    // restart that landed while the stored claim was still on disk would leave it to shut this
+    // job out of the next page until it expired.
     release: async () => {
-      localRelease();
-      await jobQueueDB.releaseExecutionClaim(ids, token);
+      try {
+        await jobQueueDB.releaseExecutionClaim(ids, token);
+      } finally {
+        localRelease();
+      }
     },
   };
 }

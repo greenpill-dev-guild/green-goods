@@ -5,7 +5,9 @@ import {
   fetchJson,
   getString,
   getStringArray,
+  hypercertMetadataEffect,
   isRecord,
+  isCacheableIpfsUri,
   parseHypercertMetadata,
   resolveIpfsUri,
 } from "../src/handlers/metadata";
@@ -19,6 +21,36 @@ describe("resolveIpfsUri", () => {
     assert.equal(resolveIpfsUri(url), url);
   });
   it("passes through empty string unchanged", () => assert.equal(resolveIpfsUri(""), ""));
+});
+
+describe("isCacheableIpfsUri", () => {
+  const cidV0 = "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n";
+  const cidV1 = "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku";
+
+  it("recognizes canonical SHA-256 CIDv0 and CIDv1 content paths", () => {
+    for (const cid of [cidV0, cidV1, `bafkreia${"a".repeat(51)}`]) {
+      assert.equal(isCacheableIpfsUri(`ipfs://${cid}`), true, cid);
+      assert.equal(isCacheableIpfsUri(`ipfs://${cid}/folder/metadata.json`), true, cid);
+    }
+  });
+
+  it("leaves mutable, malformed, and gateway-dependent locations uncached", () => {
+    for (const uri of [
+      "https://example.com/metadata.json",
+      "ipns://example.com/metadata.json",
+      "ipfs://ipns/example.com/metadata.json",
+      "ipfs://bafk-meta",
+      `ipfs://Qm${"z".repeat(44)}`,
+      `ipfs://${cidV1.slice(0, -1)}b`,
+      `ipfs://${cidV1}?format=dag-json`,
+      `ipfs://${cidV1}/metadata.json#fragment`,
+      `ipfs://${cidV1}/../ipns/example.com`,
+      `ipfs://${cidV1}/%2e%2e/ipns/example.com`,
+      `ipfs://${cidV1}/folder\\metadata.json`,
+    ]) {
+      assert.equal(isCacheableIpfsUri(uri), false, uri);
+    }
+  });
 });
 
 describe("isRecord", () => {
@@ -65,6 +97,29 @@ describe("fetchJson", () => {
     globalThis.fetch = originalFetch;
   });
 
+  it("persists only successful immutable Effect results", async () => {
+    // TestIndexer omits Effect cache tables. Exercise the registered effect's
+    // persistence decision directly, separately from the handler recovery proof.
+    const effect = hypercertMetadataEffect as unknown as {
+      handler: (args: {
+        input: string;
+        context: { cache: boolean; log: { warn: () => void } };
+      }) => Promise<string>;
+    };
+    const uri = "ipfs://bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku";
+    for (const [input, status, shouldCache] of [
+      [uri, 404, false],
+      [uri, 200, true],
+      ["https://example.invalid/metadata.json", 200, false],
+    ] as const) {
+      globalThis.fetch = async () => new Response(JSON.stringify({ name: "Work" }), { status });
+      const context = { cache: true, log: { warn: () => {} } };
+      const result = await effect.handler({ input, context });
+      assert.equal(context.cache, shouldCache);
+      assert.deepEqual(JSON.parse(result), status === 200 ? { name: "Work" } : null);
+    }
+  });
+
   it("resolves IPFS metadata and returns parsed JSON", async () => {
     let requested = "";
     globalThis.fetch = async (input) => {
@@ -89,6 +144,44 @@ describe("fetchJson", () => {
       ok: true,
     });
     assert.equal(attempts, 2);
+  });
+
+  it("logs failed attempts with explicit or inherited event context", async () => {
+    globalThis.fetch = async () => new Response("missing", { status: 404 });
+    const warnings: Record<string, unknown>[] = [];
+    const log = {
+      warn: (_message: string, details?: Record<string, unknown>) => warnings.push(details ?? {}),
+    };
+    await fetchJson(
+      "ipfs://missing",
+      {
+        log,
+        eventType: "ClaimStored",
+        chainId: 42161,
+        blockNumber: 123,
+        txHash: "0xtx",
+      },
+      1_000,
+      1,
+      0
+    );
+    assert.deepEqual(warnings[0], {
+      eventType: "ClaimStored",
+      chainId: 42161,
+      blockNumber: 123,
+      correlationId: "0xtx",
+      uri: "ipfs://missing",
+      status: 404,
+      attempt: 1,
+      maxAttempts: 1,
+    });
+    await fetchJson("ipfs://missing", { log }, 1_000, 1, 0);
+    assert.deepEqual(warnings[1], {
+      uri: "ipfs://missing",
+      status: 404,
+      attempt: 1,
+      maxAttempts: 1,
+    });
   });
 });
 

@@ -18,10 +18,21 @@ export function initSchema(db: Database): void {
         revision INTEGER NOT NULL DEFAULT 0
       )
     `);
-  db.run(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_garden_join_requests_active
-      ON garden_join_requests(gardenAddress, accountAddressKey) WHERE state = 'pending'
-    `);
+  const activeRequestColumns = db
+    .query("PRAGMA index_info(idx_garden_join_requests_active)")
+    .all() as Array<{ name: string }>;
+  if (!activeRequestColumns.some(({ name }) => name === "kind")) {
+    db.run("BEGIN IMMEDIATE");
+    try {
+      db.run("DROP INDEX IF EXISTS idx_garden_join_requests_active");
+      db.run(`CREATE UNIQUE INDEX idx_garden_join_requests_active
+        ON garden_join_requests(gardenAddress, accountAddressKey, kind) WHERE state = 'pending'`);
+      db.run("COMMIT");
+    } catch (error) {
+      db.run("ROLLBACK");
+      throw error;
+    }
+  }
   db.run(`
       CREATE INDEX IF NOT EXISTS idx_garden_join_requests_queue
       ON garden_join_requests(gardenAddress, state, requestedAt DESC, id DESC)
@@ -275,7 +286,7 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 7");
+  db.run("PRAGMA user_version = 8");
 }
 
 function ensureColumn(

@@ -1,3 +1,4 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   type ContinuationRequest,
   completeRequest,
@@ -8,6 +9,59 @@ import { activeAccount, attachProvisionalChannel } from "./participants";
 import type { ReportingCore } from "./runtime";
 
 const MAX_PAIRING_ATTEMPTS = 5;
+
+interface PairingCandidate {
+  id: string;
+  request_id: string;
+  verified_account: Address;
+  verified_account_kind: "eoa" | "kernel";
+  pairing_code_hash: string;
+}
+
+/** The proofs a browser has verified for this chat's open links, each waiting for its code. */
+function pairingCandidates(
+  core: ReportingCore,
+  subjectId: string,
+  participantId: string
+): PairingCandidate[] {
+  return core.db
+    .query(
+      `SELECT c.id, c.request_id, c.verified_account, c.verified_account_kind, c.pairing_code_hash
+       FROM browser_challenges c JOIN continuation_requests r ON r.id = c.request_id
+       JOIN channel_bindings b ON b.id = r.channel_binding_id
+       JOIN participants p ON p.id = b.participant_id
+       WHERE r.channel_subject_id = $subject AND r.state = 'open' AND c.state = 'proof_verified'
+         AND r.purpose IN ('link_account','publish_work','review_decision')
+         AND r.participant_id = $participant AND b.participant_id = $participant
+         AND b.channel_subject_id = r.channel_subject_id
+         AND b.status IN ('provisional','active') AND b.identity_epoch = r.identity_epoch
+         AND p.identity_epoch = r.identity_epoch
+         AND c.expires_at > $now AND c.pairing_attempts < $max`
+    )
+    .all({
+      subject: subjectId,
+      participant: participantId,
+      now: core.clock.now(),
+      max: MAX_PAIRING_ATTEMPTS,
+    }) as PairingCandidate[];
+}
+
+/**
+ * The account this code would link, read without changing anything. A turn uses it to get ready
+ * for that account before `pairFromChat` decides, in its transaction, whether the pairing stands.
+ */
+export function accountAwaitingPair(
+  core: ReportingCore,
+  subjectId: string,
+  participantId: string,
+  code: string
+): Address | null {
+  const hash = hashSecret(code);
+  const match = pairingCandidates(core, subjectId, participantId).find(
+    (candidate) => candidate.pairing_code_hash === hash
+  );
+  return match?.verified_account ?? null;
+}
 
 export type PairingResult =
   | { status: "paired"; request: ContinuationRequest; accountBindingId: string; account: string }
@@ -26,32 +80,7 @@ export function pairFromChat(
   code: string
 ): PairingResult {
   const now = core.clock.now();
-  const candidates = core.db
-    .query(
-      `SELECT c.id, c.request_id, c.verified_account, c.verified_account_kind, c.pairing_code_hash
-       FROM browser_challenges c JOIN continuation_requests r ON r.id = c.request_id
-       JOIN channel_bindings b ON b.id = r.channel_binding_id
-       JOIN participants p ON p.id = b.participant_id
-       WHERE r.channel_subject_id = $subject AND r.state = 'open' AND c.state = 'proof_verified'
-         AND r.purpose IN ('link_account','publish_work','review_decision')
-         AND r.participant_id = $participant AND b.participant_id = $participant
-         AND b.channel_subject_id = r.channel_subject_id
-         AND b.status IN ('provisional','active') AND b.identity_epoch = r.identity_epoch
-         AND p.identity_epoch = r.identity_epoch
-         AND c.expires_at > $now AND c.pairing_attempts < $max`
-    )
-    .all({
-      subject: subjectId,
-      participant: participantId,
-      now,
-      max: MAX_PAIRING_ATTEMPTS,
-    }) as Array<{
-    id: string;
-    request_id: string;
-    verified_account: string;
-    verified_account_kind: "eoa" | "kernel";
-    pairing_code_hash: string;
-  }>;
+  const candidates = pairingCandidates(core, subjectId, participantId);
   const match = candidates.find((candidate) => candidate.pairing_code_hash === hashSecret(code));
   if (!match) {
     for (const candidate of candidates) {

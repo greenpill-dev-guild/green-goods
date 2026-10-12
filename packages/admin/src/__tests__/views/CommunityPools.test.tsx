@@ -6,6 +6,7 @@ import { toConfirmFixture } from "@green-goods/shared/__tests__/test-utils/commi
 import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -120,7 +121,11 @@ vi.mock("@green-goods/shared/hooks/admin-ui/pool/useSettlementOperationsControll
 }));
 
 vi.mock("@/views/Community/components/ProtocolFundingOperationsPanel", () => ({
-  ProtocolFundingOperationsPanel: () => <div data-testid="protocol-funding-operations" />,
+  ProtocolFundingOperationsPanel: ({
+    renderLayout,
+  }: {
+    renderLayout?: (funding: ReactNode, transfers: ReactNode) => ReactNode;
+  }) => renderLayout?.(<div data-testid="protocol-funding-operations" />, null),
 }));
 
 vi.mock("react-router-dom", async (importOriginal) => {

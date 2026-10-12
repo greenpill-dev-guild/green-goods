@@ -32,12 +32,7 @@ export function CommunityTabSkeleton({ mode }: CommunityTabSkeletonProps) {
       </>
     ) : mode === "endowment" ? (
       <>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="h-20 rounded-lg skeleton-shimmer" />
-          <div className="h-20 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.06s" }} />
-          <div className="h-20 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
           <div className="h-64 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.14s" }} />
           <div className="h-64 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.18s" }} />
         </div>
@@ -77,9 +72,9 @@ export function CommunityTabSkeleton({ mode }: CommunityTabSkeletonProps) {
         {formatMessage({ id: "app.garden.detail.community.loading" })}
       </span>
       <div className="garden-tab-layout">
-        <div className="garden-tab-main space-y-4">{mainSkeleton}</div>
+        <div className="garden-tab-main @container">{mainSkeleton}</div>
         <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky space-y-4">{railSkeleton}</div>
+          <div className="garden-tab-rail-sticky">{railSkeleton}</div>
         </aside>
       </div>
     </div>

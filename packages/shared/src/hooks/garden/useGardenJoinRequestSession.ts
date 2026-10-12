@@ -4,6 +4,7 @@ import { gardenJoinRequestKeys } from "../../config/query-keys/garden-join-reque
 import type {
   GardenJoinProofEnvelope,
   GardenJoinRequestSelfRecord,
+  GardenJoinRequestKind,
 } from "../../public-contracts/join-requests";
 
 type Status = {
@@ -19,10 +20,11 @@ export function useGardenJoinRequestSession(
   chainId: number,
   garden: string,
   account: string,
-  authMode: string
+  authMode: string,
+  kind: GardenJoinRequestKind = "garden_membership"
 ) {
   const client = useQueryClient();
-  const key = gardenJoinRequestKeys.self(chainId, garden, account, authMode);
+  const key = gardenJoinRequestKeys.self(chainId, garden, account, authMode, kind);
   const identity = key.join(":");
   const owner = `${chainId}:${account.toLowerCase()}:${authMode}`;
   const previousOwner = useRef({ owner, chainId, account: account.toLowerCase(), authMode });

@@ -104,7 +104,7 @@ describe("usePublicStats", () => {
     mockGetWorks.mockResolvedValue([
       createMockWork({ id: "w-1" }),
       createMockWork({ id: "w-2" }),
-      createMockWork({ id: "w-3" }),
+      createMockWork({ id: "w-3", gardenAddress: "0xOtherG12345678901234567890123456789012345" }),
     ]);
     mockGetGardenAssessments.mockResolvedValue([assessment("a-1", MOCK_ADDRESSES.garden)]);
 
@@ -133,10 +133,11 @@ describe("usePublicStats", () => {
         name: "Pilot Garden",
         gardeners: [MOCK_ADDRESSES.gardener],
       }),
+      createMockGarden({ id: communityGarden, name: "Green Goods Community Garden" }),
       createMockGarden({
-        id: communityGarden,
-        name: "Green Goods Community Garden",
-        gardeners: [MOCK_ADDRESSES.user, MOCK_ADDRESSES.smartAccount],
+        id: MOCK_ADDRESSES.user,
+        name: "Awaiting first work",
+        gardeners: [MOCK_ADDRESSES.smartAccount],
       }),
     ]);
     const works = [
@@ -158,6 +159,7 @@ describe("usePublicStats", () => {
     mockGetGardenAssessments.mockResolvedValue([
       assessment("a-pilot", MOCK_ADDRESSES.garden),
       assessment("a-community", communityGarden),
+      assessment("a-empty", MOCK_ADDRESSES.user),
     ]);
 
     const { result } = renderHookWithQueryClient(() => usePublicStats(), { queryClient });
@@ -223,13 +225,23 @@ describe("usePublicStats", () => {
     {
       failure: "the works read fails",
       fail: () => mockGetWorks.mockRejectedValue(new Error("EAS down")),
-      expected: { gardenCount: 1, contributorCount: 2, fieldNoteCount: null, attestationCount: 0 },
+      expected: {
+        gardenCount: null,
+        contributorCount: null,
+        fieldNoteCount: null,
+        attestationCount: null,
+      },
     },
     {
       failure: "a decision cannot be read",
       fail: () =>
         mockReadWorkApprovalsForWorks.mockResolvedValue({ approvals: [], failedWorkUIDs: ["w-1"] }),
-      expected: { gardenCount: 1, contributorCount: 2, fieldNoteCount: null, attestationCount: 0 },
+      expected: {
+        gardenCount: null,
+        contributorCount: null,
+        fieldNoteCount: null,
+        attestationCount: null,
+      },
     },
     {
       failure: "the assessments read fails",

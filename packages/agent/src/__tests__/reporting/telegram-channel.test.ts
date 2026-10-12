@@ -148,7 +148,7 @@ describe("Telegram delivery", () => {
     idempotencyKey: "outbox-1",
   });
 
-  it("sends choices as buttons, a public link as a button and a local link in the text", async () => {
+  it("sends choices, public links and public records as buttons, and local addresses in the text", async () => {
     const transport = createTelegramTransport(telegram);
     const choices = [
       { id: "p:q1:0", label: "TAS" },
@@ -165,10 +165,28 @@ describe("Telegram delivery", () => {
       request({ text: verify, link: { url: production, label: "Verify", copyLabel: "Copy link" } })
     );
     await transport.send(request({ text: verify, link: { url: local, label: "Verify" } }));
-    // A link to a public record is a button on its own: nothing there needs the link copied.
-    const record = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    // Public records are buttons of their own, one to a row in the order given: nothing there
+    // needs a link copied. A record on a local explorer goes in the text like any local link.
+    const attestation = "https://arbitrum.easscan.org/attestation/view/0xabc";
+    const transaction = "https://arbiscan.io/tx/0xdef";
+    const localTransaction = "http://localhost:3009/tx/0xdef";
     await transport.send(
-      request({ text: "Published.", link: { url: record, label: "View your report" } })
+      request({
+        text: "Published.",
+        records: [
+          { url: attestation, label: "View attestation" },
+          { url: transaction, label: "View transaction" },
+        ],
+      })
+    );
+    await transport.send(
+      request({
+        text: "Published.",
+        records: [
+          { url: attestation, label: "View attestation" },
+          { url: localTransaction, label: "View transaction" },
+        ],
+      })
     );
 
     expect(api.messages()).toEqual([
@@ -196,7 +214,17 @@ describe("Telegram delivery", () => {
       {
         chat_id: "7001",
         text: "Published.",
-        reply_markup: { inline_keyboard: [[{ text: "View your report", url: record }]] },
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "View attestation", url: attestation }],
+            [{ text: "View transaction", url: transaction }],
+          ],
+        },
+      },
+      {
+        chat_id: "7001",
+        text: `Published.\n\nView transaction: ${localTransaction}`,
+        reply_markup: { inline_keyboard: [[{ text: "View attestation", url: attestation }]] },
       },
     ]);
   });

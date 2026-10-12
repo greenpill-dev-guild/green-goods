@@ -352,7 +352,11 @@ export const publicAppRoutes: RouteObject[] = [
 export const pwaAppRoutes: RouteObject[] = [
   {
     ...combinedRoot,
-    children: [pwaRuntime, { path: "*", loader: () => redirect(APP_ROUTES.home) }],
+    children: [
+      { index: true, loader: legacyPwaRouteLoader(APP_ROUTES.home) },
+      pwaRuntime,
+      { path: "*", loader: () => redirect(APP_ROUTES.home) },
+    ],
   } as RouteObject,
 ];
 

@@ -858,6 +858,14 @@ test("a receipt covers the environment a check runs with, not only the plan", as
   };
   assert.equal((await run(nvmLoaded)).results[0].reused, true);
   assert.equal(runs, 3);
+  // A host shim that execs the real node leaves a loop guard that starts with the process ID, so
+  // it is new on every run. Where the same shim routes a command is not bookkeeping.
+  const shimmed = (pid) => ({ ...nvmLoaded, DEV_MACHINE_SHIM_TRIED: `${pid}:node:/Users/dev/.local/share/mise/shims` });
+  assert.equal((await run(shimmed(70001))).results[0].reused, true);
+  assert.equal((await run(shimmed(70002))).results[0].reused, true);
+  assert.equal(runs, 3);
+  await run({ ...shimmed(70003), DEV_MACHINE_ENTRY: "builder /Users/dev/green-goods" });
+  assert.equal(runs, 4);
 
   // The store keeps a digest of the environment, never its values.
   await run({ ...shell, SECRET_TOKEN: "do-not-store-me" });

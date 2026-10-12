@@ -1,5 +1,7 @@
 import { outstandingRequirements } from "@green-goods/shared/modules/agent-reporting";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { CatalogResult, ReportingCatalog } from "../catalog";
+import { accountAwaitingPair } from "../channel-pairing";
 import { inTransaction } from "../database";
 import {
   consumeInboxEvent,
@@ -7,8 +9,19 @@ import {
   type InboxEventRow,
   nextConversationEvent,
 } from "../inbox";
-import { findGarden, gardenByKey, type ReportingGarden } from "../gardens";
-import { interpretWithDeadline, type ReportInterpreter } from "../interpretation";
+import {
+  findGarden,
+  type GardenScope,
+  gardenScope,
+  gardensIn,
+  type ReportingGarden,
+  soleGarden,
+} from "../gardens";
+import {
+  type InterpretationResult,
+  interpretWithDeadline,
+  type ReportInterpreter,
+} from "../interpretation";
 import {
   acquireConversationLease,
   type ConversationLease,
@@ -25,6 +38,7 @@ import {
   requestConnection,
   welcome,
 } from "./account-steps";
+import type { ChatCommand } from "./commands";
 import {
   answerConsent,
   answerVoiceConsent,
@@ -33,11 +47,11 @@ import {
 } from "./consent-step";
 import { loadTurnContext, planTurn, type TurnContext, type TurnPlan } from "./context";
 import { StaleDraftError } from "./draft-commit";
+import { answeredGarden, readGardensForTurn } from "./garden-step";
 import { handleReportAnswer } from "./report-answer";
 import { confirmDraft, handleReportCommand } from "./report-commands";
 import { handleReportMessage } from "./report-message";
-import { answeredGarden } from "./prompting";
-import type { TurnExternal } from "./report-work";
+import { gardenToDrop, type TurnExternal } from "./report-work";
 import { isReviewPrompt, nextReviewStep } from "./review-prompts";
 import {
   answerReviewPrompt,
@@ -70,17 +84,66 @@ export interface CoordinatorDeps {
 const MAX_REPLANS = 3;
 const PAUSE_RETRY_MS = 5 * 60 * 1000;
 
-function catalogGarden(
+const commandOf = (plan: TurnPlan) => (plan.kind === "command" ? plan.command.kind : null);
+
+/**
+ * The account a turn runs as: the one linked to its chat, or the one its pairing code is about to
+ * link. The code is only read here; the turn itself decides whether the pairing stands.
+ */
+function turnAccount(core: ReportingCore, ctx: TurnContext, plan: TurnPlan): Address | null {
+  const pairing =
+    plan.kind === "command" && plan.command.kind === "pair" && ctx.binding
+      ? accountAwaitingPair(core, ctx.subjectId, ctx.binding.participantId, plan.command.code)
+      : null;
+  return pairing ?? ctx.account?.address ?? null;
+}
+
+/** The garden whose activities a turn may need: the one its report will name when it ends. */
+function reportGarden(
   core: ReportingCore,
   ctx: TurnContext,
-  plan: TurnPlan
+  plan: TurnPlan,
+  scope: GardenScope,
+  account: Address | null
 ): ReportingGarden | null {
-  if (plan.kind === "answer" && plan.prompt.kind === "select_garden")
-    return answeredGarden(core.gardens, plan.prompt, plan.option, plan.text);
-  const address = ctx.draft?.content.garden?.address;
-  if (address) return findGarden(core.gardens, address);
-  const gardens = core.gardens.list();
-  return gardens.length === 1 ? (gardens[0] as ReportingGarden) : null;
+  if (plan.kind === "answer" && plan.prompt.kind === "select_garden") {
+    const answered = answeredGarden(scope, plan.prompt, plan.option, plan.text);
+    if (answered) return answered;
+  }
+  // Pairing takes a garden the new account does not report to off the report.
+  const dropped = commandOf(plan) === "pair" && gardenToDrop(core.gardens, ctx.draft, account);
+  const address = dropped ? null : ctx.draft?.content.garden?.address;
+  return address ? findGarden(core.gardens, address) : soleGarden(scope);
+}
+
+/**
+ * The commands that can carry a report on, and so may have to offer its garden's activities: the
+ * pairing code, which resumes it under the account just linked, and CONFIRM, which puts the open
+ * question again when no summary is showing. Every other command, STOP, DELETE and HELP among
+ * them, is answered without waiting on the indexer.
+ */
+const REPORT_COMMANDS = new Set<ChatCommand["kind"]>(["pair", "confirm"]);
+
+/**
+ * Questions answered outside the report's own steps: a review's, and those about an account or
+ * its permissions. Their answers never offer a garden's activities.
+ */
+const OUTSIDE_REPORT = new Set([
+  "select_review_work",
+  "publication_consent",
+  "grant_choice",
+  "join_community",
+  "connect_offer",
+]);
+
+/** While a decision question is open, free text re-asks it instead of starting a report. */
+function reasksReview(ctx: TurnContext, plan: TurnPlan): boolean {
+  return (
+    plan.kind === "message" &&
+    plan.media.length === 0 &&
+    Boolean(ctx.review && ctx.account) &&
+    isReviewPrompt(ctx.prompt?.kind)
+  );
 }
 
 /** A report's questions that offer a list of choices. */
@@ -115,27 +178,57 @@ async function gatherExternal(
   ctx: TurnContext,
   plan: TurnPlan
 ): Promise<TurnExternal> {
+  const { core } = deps;
   const activitiesOf = (place: ReportingGarden): Promise<CatalogResult> =>
     deps.catalog
-      .eligibleActions(place, deps.core.clock.now())
+      .eligibleActions(place, core.clock.now())
       .catch((): CatalogResult => ({ ok: false, reason: "unavailable" }));
-  let garden = catalogGarden(deps.core, ctx, plan);
-  const reportPlan = plan.kind === "message" || plan.kind === "answer" || plan.kind === "command";
-  const needsCatalog =
-    Boolean(garden) && reportPlan && (!ctx.draft?.snapshot || plan.kind === "answer");
-  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
-  let interpretation = null;
+  const account = turnAccount(core, ctx, plan);
+  // A decision's own turns never reach a report: its answers, and free text sent to its question.
+  const reviewText = reasksReview(ctx, plan);
+  const outside =
+    plan.kind === "answer" &&
+    (OUTSIDE_REPORT.has(plan.prompt.kind) || isReviewPrompt(plan.prompt.kind));
   // A story or correction is read by the model, and so are words sent to a list of choices that
   // pick none of them: they may be a question, a correction or the answer in other words.
   const said = plan.kind === "message" ? plan.text : offChoiceText(plan);
-  if (said && ctx.modelEnabled && ctx.binding) {
+  const forModel = said && !reviewText && ctx.modelEnabled && ctx.binding ? said : null;
+  // CONNECT with an address says which gardens that account is in, whatever this chat is linked to.
+  const namesAccount =
+    plan.kind === "command" && plan.command.kind === "connect" && plan.command.account !== null;
+  if ((account || namesAccount) && !reviewText)
+    await readGardensForTurn(core, ctx, plan, forModel !== null);
+  // A tap on a button of an earlier question puts the report's open question again.
+  const reasks = plan.kind === "stale_reply" && ctx.draft !== null;
+  const reportPlan =
+    (plan.kind === "message" && !reviewText) ||
+    (plan.kind === "answer" && !outside) ||
+    (plan.kind === "command" && REPORT_COMMANDS.has(plan.command.kind)) ||
+    reasks;
+  const scope = gardenScope(core.gardens, account);
+  let garden = reportGarden(core, ctx, plan, scope, account);
+  // The activities are read whenever the reply may have to offer them: while the report has
+  // still to choose one, which a changed garden asks of it again, and for any answer but one to
+  // the garden question. That one needs them only for a garden it names, which is a change; its
+  // other choices show how to join or which gardens there are.
+  const draft = ctx.draft;
+  const choosing =
+    !draft ||
+    outstandingRequirements(draft.content, draft.snapshot).some((need) => need.kind === "action");
+  // A report that is about to name another garden has to choose its activity again.
+  const changing = garden?.address !== draft?.content.garden?.address;
+  const answersOther = plan.kind === "answer" && !outside && plan.prompt.kind !== "select_garden";
+  const needsCatalog = garden !== null && reportPlan && (choosing || answersOther || changing);
+  let result: CatalogResult | null = garden && needsCatalog ? await activitiesOf(garden) : null;
+  let interpretation: InterpretationResult | null = null;
+  if (forModel) {
     const content = ctx.draft?.content;
     interpretation = await interpretWithDeadline(
       deps.interpreter,
       {
         locale: ctx.locale,
         draftRevision: ctx.draft?.revision ?? 0,
-        message: { sourceEntryId: ctx.event.id, text: said },
+        message: { sourceEntryId: ctx.event.id, text: forModel },
         content: {
           actionUID: content?.actionUID ?? null,
           title: content?.title ?? null,
@@ -144,7 +237,7 @@ async function gatherExternal(
           details: content?.details ?? {},
         },
         requirements: content ? outstandingRequirements(content, ctx.draft?.snapshot ?? null) : [],
-        gardens: deps.core.gardens.list().map((candidate) => ({
+        gardens: gardensIn(scope).map((candidate) => ({
           key: candidate.key,
           label: candidate.label,
         })),
@@ -161,9 +254,7 @@ async function gatherExternal(
     );
     // A garden the model read for a report that has none yet: its activities are read in this
     // turn too, so the reply can ask which activity instead of failing to list them.
-    const named = interpretation?.gardenKey
-      ? gardenByKey(deps.core.gardens, interpretation.gardenKey)
-      : null;
+    const named = gardensIn(scope).find((candidate) => candidate.key === interpretation?.gardenKey);
     if (named && !garden && !ctx.draft?.content.garden) {
       garden = named;
       result = await activitiesOf(named);
@@ -232,9 +323,8 @@ function applyTurn(
       }
       return "consume";
     case "message": {
-      const { review, prompt, account } = writer.ctx;
-      // While a decision question is open, free text re-asks it instead of starting a report.
-      if (review && account && isReviewPrompt(prompt?.kind) && plan.media.length === 0) {
+      const { review, account } = writer.ctx;
+      if (review && account && reasksReview(writer.ctx, plan)) {
         nextReviewStep(writer, review, account.address);
         return "consume";
       }
@@ -257,7 +347,7 @@ function routeCommand(
   const { review } = writer.ctx;
   if (command.kind === "stop" || command.kind === "delete")
     return withdrawProcessing(writer, command.kind);
-  if (command.kind === "pair") return handlePairing(writer, command.code);
+  if (command.kind === "pair") return handlePairing(writer, command.code, external);
   if (command.kind === "connect") return requestConnection(writer, command.account);
   if (command.kind === "disconnect" || command.kind === "switch")
     return disconnectAccount(writer, command.kind === "switch");

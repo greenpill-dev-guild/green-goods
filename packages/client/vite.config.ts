@@ -547,7 +547,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // runtime dep surface up front — otherwise a cold cache discovers these
       // at request time and broadcasts "optimized dependencies changed.
       // reloading", a full-page reload that kills in-flight lazy-route
-      // navigation. Keep in sync with packages/admin/vite.config.ts.
+      // navigation, and in a browser run takes the page from every other
+      // case on the server. Keep in sync with packages/admin/vite.config.ts.
+      // To check after adding a bare import to shared: delete
+      // node_modules/.vite, start the server with DEBUG=vite:deps and load
+      // the routes; "new dependencies found" names what this list lacks.
       include: [
         "@hookform/resolvers/zod",
         "react",
@@ -567,17 +571,25 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "@radix-ui/react-select",
         "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
+        "@green-goods/shared > @tanstack/query-persist-client-core",
         "@green-goods/shared > @use-gesture/react",
         "@green-goods/shared > @wagmi/core",
         "@green-goods/shared > @xstate/react",
+        "@green-goods/shared > @zerodev/permissions",
+        "@green-goods/shared > @zerodev/permissions/policies",
+        "@green-goods/shared > @zerodev/permissions/signers",
+        "@green-goods/shared > @zerodev/sdk",
+        "@green-goods/shared > @zerodev/sdk/constants",
         "@green-goods/shared > browser-image-compression",
         "@green-goods/shared > clsx",
+        "@green-goods/shared > dexie",
         "ethers",
         "gql.tada",
         "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
         "idb",
         "idb-keyval",
+        "multiformats/cid",
         "@green-goods/shared > permissionless",
         "@green-goods/shared > permissionless/accounts",
         "@green-goods/shared > permissionless/clients/passkeyServer",
@@ -588,11 +600,21 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         "tailwind-merge",
         "tailwind-variants",
         "viem/account-abstraction",
+        "viem/accounts",
         "viem/chains",
         "@green-goods/shared > xstate",
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",
+        // ── the service worker (src/sw/sw.ts) ──
+        // It is not reached from index.html, so the scan misses its imports too. A page that
+        // registers the dev worker, as the browser suite's do, asks for them at request time.
+        "workbox-background-sync",
+        "workbox-cacheable-response",
+        "workbox-expiration",
+        "workbox-precaching",
+        "workbox-routing",
+        "workbox-strategies",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],

@@ -1,16 +1,15 @@
 import type { Address } from "@green-goods/shared/types/domain";
-import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { useHypercerts } from "@green-goods/shared/hooks/hypercerts/useHypercerts";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
-import { ListSkeleton, SectionEmpty } from "./GardenDetailAtoms";
+import { ListSkeleton, SectionEmpty, SectionNotice } from "./GardenDetailAtoms";
 
 /**
- * Shared section shell — reveal wrapper, kicker, heading, helper. Every section
- * renders whether or not it has content, so the ordinals stay stable across
- * Gardens and an absent thing can say it is absent.
+ * Shared section shell: reveal wrapper, kicker, heading, and helper.
+ * Each section owns whether it has a public record to show.
  */
 export function Section({
   id,
@@ -50,11 +49,16 @@ export function Section({
 export function CertificatesSection({
   certificates,
   loading,
+  unavailable = false,
+  onRetry,
 }: {
   certificates: ReturnType<typeof useHypercerts>["hypercerts"];
   loading: boolean;
+  unavailable?: boolean;
+  onRetry?: () => void;
 }) {
   const { formatMessage } = useIntl();
+  if (!loading && !unavailable && certificates.length === 0) return null;
 
   return (
     <Section
@@ -70,19 +74,13 @@ export function CertificatesSection({
       helper={formatMessage({
         id: "public.gardenDetail.certificates.helper",
         defaultMessage:
-          "Bundles of approved Work grounded in an Assessment and anchored to a public blockchain.",
+          "Shareable records bringing together approved work and the assessments supporting its claims.",
       })}
     >
       {loading ? (
         <ListSkeleton />
-      ) : certificates.length === 0 ? (
-        <SectionEmpty
-          message={formatMessage({
-            id: "public.gardenDetail.certificates.empty",
-            defaultMessage:
-              "No Impact Certificates yet. They appear when approved Work is bundled.",
-          })}
-        />
+      ) : unavailable && certificates.length === 0 ? (
+        <SectionNotice message={formatMessage({ id: "public.surface.error" })} onRetry={onRetry} />
       ) : (
         <ul className="mt-8 flex flex-col divide-y divide-stroke-soft-200 border-b border-stroke-soft-200">
           {certificates.map((cert) => (
@@ -111,7 +109,8 @@ export function CertificatesSection({
                 {formatMessage(
                   {
                     id: "public.gardenDetail.certificates.attestations",
-                    defaultMessage: "{count, plural, one {# attestation} other {# attestations}}",
+                    defaultMessage:
+                      "{count, plural, one {# source record} other {# source records}}",
                   },
                   { count: cert.attestationCount }
                 )}
@@ -140,7 +139,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
       })}
       helper={formatMessage({
         id: "public.gardenDetail.stewards.helper",
-        defaultMessage: "Trusted coordinators who approve Work and steward the Garden.",
+        defaultMessage: "The local coordinators who review submissions and care for this Garden.",
       })}
     >
       {loading ? (
@@ -159,7 +158,11 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
               key={address}
               className="border border-stroke-soft-200 bg-bg-white-0 px-4 py-2 text-sm text-text-sub-600"
             >
-              {formatAddress(address, { variant: "card" })}
+              <AddressDisplay
+                address={address}
+                interactive={false}
+                fallbackLabel={formatMessage({ id: "public.identity.steward" })}
+              />
             </li>
           ))}
         </ul>

@@ -1,5 +1,5 @@
 /** @vitest-environment happy-dom */
-// TEST-QUALITY: allow-small-test-file - Owner removal confirmation and import are separate UI authority boundaries.
+// TEST-QUALITY: allow-small-test-file - Connecting the owner, removal confirmation and import are separate UI authority boundaries.
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { IntlProvider } from "react-intl";
@@ -12,6 +12,9 @@ const ACCOUNT = "0x1f3a9c2b7d4e5f60718293a4b5c6d7e8f9012345";
 const makeProps = (): Props => ({
   account: ACCOUNT,
   connecting: false,
+  failure: null,
+  savedPasskey: false,
+  canFindAccount: true,
   connectWallet: vi.fn(),
   connectPasskey: vi.fn(async () => {}),
   stage: "ready",
@@ -40,6 +43,51 @@ const view = (props: Props) => (
     </IntlProvider>
   </MemoryRouter>
 );
+
+describe("connecting the owner", () => {
+  const notConnected = (): Props => ({
+    ...makeProps(),
+    account: null,
+    stage: "idle",
+    permissions: [],
+  });
+  const bar = () => screen.getByRole("region", { name: "Next step" });
+
+  it("finds a passkey this browser does not remember by its account's name, under the same status card", () => {
+    const props = notConnected();
+    render(view(props));
+    expect(screen.getByText("Not checked yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(bar()).getByRole("button", { name: "Use Passkey" }));
+    expect(props.connectPasskey).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find Your Account");
+    // The status card is on the page from the start, so asking for a name moves nothing under it.
+    expect(screen.getByText("Not checked yet")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: /Account name/ }), {
+      target: { value: "cleo" },
+    });
+    fireEvent.click(within(bar()).getByRole("button", { name: "Find Account" }));
+    expect(props.connectPasskey).toHaveBeenCalledWith("cleo");
+  });
+
+  it("says why connecting failed in the status card, which keeps its title", () => {
+    render(
+      view({
+        ...notConnected(),
+        savedPasskey: true,
+        failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+      })
+    );
+    const said = screen.getByText("The passkey prompt closed. Try again, or use another way in.");
+    const card = said.closest('[role="alert"], [role="status"]');
+    expect(card).toHaveTextContent(/^Not checked yet/);
+    // The heading card still says what the page is for.
+    expect(
+      screen.getByText("Check and remove your account's permissions here.")
+    ).toBeInTheDocument();
+  });
+});
 
 describe("owner permission removal", () => {
   it("requires explicit broad-removal confirmation and fences a changed account", () => {

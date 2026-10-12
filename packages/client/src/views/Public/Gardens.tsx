@@ -81,7 +81,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Anyone can read the record they build.",
+            "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
         })}
       />
 
@@ -104,7 +104,7 @@ export default function GardensGallery() {
               <EditorialHeading id="public-gardens-archive-title">
                 {formatMessage({
                   id: "public.gardens.archiveTitle",
-                  defaultMessage: "Browse every Garden keeping a public record.",
+                  defaultMessage: "Meet the Gardens.",
                 })}
               </EditorialHeading>
             </div>

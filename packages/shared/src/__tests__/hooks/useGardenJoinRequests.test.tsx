@@ -17,7 +17,18 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   withdraw: vi.fn(),
   list: vi.fn(),
+  resolve: vi.fn(),
   trackFailed: vi.fn(),
+  availability: vi.fn(),
+  authMode: "wallet" as "wallet" | "passkey",
+  smartAccount: {
+    address: "0x2222222222222222222222222222222222222222",
+    signMessage: vi.fn(),
+    getFactoryArgs: vi.fn(),
+  },
+  hasSmartClient: true,
+  resolveSmartClient: vi.fn(),
+  signerInput: vi.fn(),
 }));
 
 vi.mock("wagmi", () => ({
@@ -25,7 +36,13 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("../../hooks/auth/useAuth", () => ({
-  useAuth: () => ({ authMode: "wallet", smartAccountClient: null }),
+  useAuth: () => ({
+    authMode: mocks.authMode,
+    smartAccountClient: mocks.hasSmartClient
+      ? { account: mocks.smartAccount, chain: { id: 42161 } }
+      : null,
+    resolveSmartAccountClient: mocks.resolveSmartClient,
+  }),
 }));
 
 vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
@@ -37,7 +54,10 @@ vi.mock("../../hooks/blockchain/useChainConfig", () => ({
 }));
 
 vi.mock("../../modules/auth/account-message-signer", () => ({
-  createAccountMessageSigner: () => mocks.sign,
+  createAccountMessageSigner: (input: unknown) => {
+    mocks.signerInput(input);
+    return mocks.sign;
+  },
   resolveAccountFactoryArgs: vi.fn(async () => undefined),
 }));
 
@@ -52,10 +72,16 @@ vi.mock("../../modules/garden-join-requests", async (importOriginal) => ({
     create: (...args: unknown[]) => mocks.create(...args),
     withdraw: (...args: unknown[]) => mocks.withdraw(...args),
     list: (...args: unknown[]) => mocks.list(...args),
+    resolve: (...args: unknown[]) => mocks.resolve(...args),
+    availability: (...args: unknown[]) => mocks.availability(...args),
   },
 }));
 
-import { useGardenJoinRequests } from "../../hooks/garden/useGardenJoinRequests";
+import {
+  useGardenJoinRequestAvailability,
+  useGardenJoinRequestAvailabilityState,
+  useGardenJoinRequests,
+} from "../../hooks/garden/useGardenJoinRequests";
 import { GardenJoinRequestTransportError } from "../../modules/garden-join-requests";
 
 let testClient: QueryClient;
@@ -123,6 +149,252 @@ describe("useGardenJoinRequests", () => {
     mocks.create.mockResolvedValue(selfResponse);
     mocks.withdraw.mockResolvedValue({ ok: true });
     mocks.list.mockResolvedValue(queueResponse);
+    mocks.resolve.mockResolvedValue({ ok: true, request: queueResponse.items[0] });
+    mocks.authMode = "wallet";
+    mocks.hasSmartClient = true;
+    mocks.resolveSmartClient.mockResolvedValue({
+      account: mocks.smartAccount,
+      chain: { id: 42161 },
+    });
+    mocks.availability.mockResolvedValue({ ok: true, enabled: true });
+  });
+
+  it("does not advertise steward support from a legacy membership-only API", async () => {
+    const { result } = renderHook(() => useGardenJoinRequestAvailability("steward_access"));
+    await waitFor(() => expect(mocks.availability).toHaveBeenCalledOnce());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current).toBe(false);
+    const membership = renderHook(() => useGardenJoinRequestAvailability());
+    await waitFor(() => expect(membership.result.current).toBe(true));
+  });
+
+  it("advertises stewardship only when the enabled API lists it", async () => {
+    mocks.availability.mockResolvedValue({
+      ok: true,
+      enabled: true,
+      supportedKinds: ["steward_access"],
+    });
+    const { result } = renderHook(() => useGardenJoinRequestAvailability("steward_access"));
+    await waitFor(() => expect(result.current).toBe(true));
+    const membership = renderHook(() => useGardenJoinRequestAvailability());
+    expect(membership.result.current).toBe(false);
+  });
+
+  it("distinguishes an initial capability check from a failed service", async () => {
+    let reject!: (error: Error) => void;
+    mocks.availability.mockReturnValueOnce(
+      new Promise((_resolve, rejectPromise) => {
+        reject = rejectPromise;
+      })
+    );
+    const { result } = renderHook(() => useGardenJoinRequestAvailabilityState("steward_access"));
+    expect(result.current).toEqual({ available: false, isLoading: true, error: null });
+    const failure = new GardenJoinRequestTransportError("The service could not be reached.");
+    await act(async () => {
+      reject(failure);
+    });
+    await waitFor(() =>
+      expect(result.current).toEqual({ available: false, isLoading: false, error: failure })
+    );
+  });
+
+  it("signs steward intent with the primary passkey account and retains a kind-bound status grant", async () => {
+    mocks.authMode = "passkey";
+    const stewardResponse = {
+      ...selfResponse,
+      request: {
+        ...selfResponse.request!,
+        kind: "steward_access" as const,
+        requestedVia: "admin_access" as const,
+      },
+    };
+    mocks.create.mockResolvedValue(stewardResponse);
+    const { result } = renderHook(() =>
+      useGardenJoinRequests(GARDEN_A, { kind: "steward_access" })
+    );
+    await act(async () => {
+      await result.current.submitRequest({ displayName: "Maya", requestedVia: "admin_access" });
+    });
+    expect(mocks.signerInput).toHaveBeenCalledWith(
+      expect.objectContaining({ authMode: "passkey", account: mocks.smartAccount })
+    );
+    expect(mocks.create).toHaveBeenCalledWith(
+      GARDEN_A,
+      expect.objectContaining({ kind: "steward_access", requestedVia: "admin_access" }),
+      expect.objectContaining({
+        accountAddress: mocks.accountAddress,
+        kind: "steward_access",
+        readSelf: {
+          audience: window.location.origin,
+          content: expect.objectContaining({ kind: "steward_access" }),
+        },
+      })
+    );
+    expect(mocks.sign).toHaveBeenCalledWith(
+      expect.stringContaining("Requested role: Steward (Operator)")
+    );
+  });
+
+  it("keeps membership status and authorization separate from steward status for the same account and garden", async () => {
+    const member = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await member.result.current.checkStatus();
+    });
+    const steward = renderHook(() => useGardenJoinRequests(GARDEN_A, { kind: "steward_access" }));
+    expect(steward.result.current.request).toBeNull();
+    expect(steward.result.current.canRefreshStatus).toBe(false);
+    expect(steward.result.current.scopeKey).not.toBe(member.result.current.scopeKey);
+    mocks.mine.mockResolvedValue({ ok: true, request: null });
+    await act(async () => {
+      await steward.result.current.checkStatus();
+    });
+    expect(mocks.mine.mock.calls[1][1]).toMatchObject({
+      action: "read_self",
+      kind: "steward_access",
+    });
+    expect(member.result.current.request).toEqual(selfResponse.request);
+  });
+
+  it("does not hold a steward status read behind a membership write", async () => {
+    const pendingCreate = deferred<GardenJoinRequestSelfResponse>();
+    mocks.create.mockReturnValueOnce(pendingCreate.promise);
+    const member = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    const steward = renderHook(() => useGardenJoinRequests(GARDEN_A, { kind: "steward_access" }));
+    let sending!: Promise<unknown>;
+    let checking!: Promise<unknown>;
+    await act(async () => {
+      sending = member.result.current.submitRequest({
+        displayName: "Maya",
+        requestedVia: "garden_detail",
+      });
+    });
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+    await act(async () => {
+      checking = steward.result.current.checkStatus();
+    });
+    try {
+      expect(mocks.mine).toHaveBeenCalledOnce();
+    } finally {
+      await act(async () => {
+        pendingCreate.resolve(selfResponse);
+        await Promise.all([sending, checking]);
+      });
+    }
+  });
+
+  it("rejects a mismatched kind passed to the membership hook before signing", async () => {
+    const { result } = renderHook(() => useGardenJoinRequests(GARDEN_A));
+    await act(async () => {
+      await expect(
+        result.current.submitRequest({
+          kind: "steward_access",
+          displayName: "Maya",
+          requestedVia: "admin_access",
+        })
+      ).rejects.toMatchObject({ errorCode: "invalid_request" });
+    });
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("lazily resolves a restored passkey account before signing a steward request", async () => {
+    mocks.authMode = "passkey";
+    mocks.hasSmartClient = false;
+    const { result } = renderHook(() =>
+      useGardenJoinRequests(GARDEN_A, { kind: "steward_access" })
+    );
+    await act(async () => {
+      await result.current.submitRequest({ displayName: "Maya", requestedVia: "admin_access" });
+    });
+    expect(mocks.resolveSmartClient).toHaveBeenCalledWith(42161);
+    expect(mocks.signerInput).toHaveBeenCalledWith(
+      expect.objectContaining({ authMode: "passkey", account: mocks.smartAccount })
+    );
+    expect(mocks.create.mock.calls[0][2].accountAddress).toBe(mocks.accountAddress);
+  });
+
+  it("rejects a passkey signer belonging to a different primary account", async () => {
+    mocks.authMode = "passkey";
+    mocks.hasSmartClient = false;
+    mocks.resolveSmartClient.mockResolvedValue({
+      account: { ...mocks.smartAccount, address: GARDEN_B },
+      chain: { id: 42161 },
+    });
+    const { result } = renderHook(() =>
+      useGardenJoinRequests(GARDEN_A, { kind: "steward_access" })
+    );
+    await act(async () => {
+      await expect(
+        result.current.submitRequest({ displayName: "Maya", requestedVia: "admin_access" })
+      ).rejects.toThrow();
+    });
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a restored passkey resolution after its account scope changes", async () => {
+    mocks.authMode = "passkey";
+    mocks.hasSmartClient = false;
+    const resolving = deferred<unknown>();
+    mocks.resolveSmartClient.mockReturnValueOnce(resolving.promise);
+    const { result, rerender } = renderHook(() =>
+      useGardenJoinRequests(GARDEN_A, { kind: "steward_access" })
+    );
+    let sending!: Promise<unknown>;
+    await act(async () => {
+      sending = result.current
+        .submitRequest({ displayName: "Maya", requestedVia: "admin_access" })
+        .catch((error) => error);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    mocks.accountAddress = GARDEN_B;
+    rerender();
+    await act(async () => {
+      resolving.resolve({ account: mocks.smartAccount, chain: { id: 42161 } });
+      expect(await sending).toBeInstanceOf(Error);
+    });
+    expect(mocks.sign).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps steward requests in the review queue until the target on-chain role is confirmed", async () => {
+    const steward = {
+      ...queueResponse.items[0],
+      kind: "steward_access" as const,
+      requestedVia: "admin_access" as const,
+    };
+    mocks.list.mockResolvedValue({ ...queueResponse, items: [steward] });
+    mocks.resolve.mockResolvedValueOnce({ ok: true, request: steward, pendingOnchainRole: true });
+    const { result } = renderHook(() =>
+      useGardenJoinRequests(GARDEN_A, { kind: "steward_access" })
+    );
+    await act(async () => {
+      await result.current.loadQueue();
+    });
+    await act(async () => {
+      await result.current.resolveRequest(steward.id, {
+        action: "welcome",
+        expectedRevision: steward.revision,
+      });
+    });
+    expect(result.current.queue).toEqual([steward]);
+    expect(mocks.resolve.mock.calls[0][3]).toMatchObject({
+      action: "welcome",
+      kind: "steward_access",
+      requestId: steward.id,
+    });
+    mocks.resolve.mockResolvedValueOnce({ ok: true, request: { ...steward, state: "welcomed" } });
+    await act(async () => {
+      await result.current.resolveRequest(steward.id, {
+        action: "welcome",
+        expectedRevision: steward.revision,
+      });
+    });
+    expect(result.current.queue).toEqual([]);
   });
 
   it("retains pending status and its authorization when the dialog remounts", async () => {

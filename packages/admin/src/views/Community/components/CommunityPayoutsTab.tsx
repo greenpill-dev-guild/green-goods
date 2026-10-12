@@ -112,7 +112,7 @@ export function CommunityPayoutsTab({
         </div>
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
-            <AdminCard variant="filled" className="space-y-3">
+            <AdminCard variant="elevated" className="space-y-3">
               <AdminCardTitle>
                 {formatMessage({
                   id: "cockpit.community.payouts.readiness",

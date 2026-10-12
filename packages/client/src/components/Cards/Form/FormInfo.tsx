@@ -16,7 +16,10 @@ interface FormInfoProps {
   className?: string;
   /** `h1` when the card heads a page of its own, as on the public reporting pages. */
   titleAs?: "h1" | "h6";
-  /** Lets the page name itself by the card's title. */
+  /**
+   * Lets the page name itself by the card's title. A title the page names itself by can also be
+   * given focus by the page, as when its step changes, though never by the Tab key.
+   */
   headingId?: string;
 }
 
@@ -51,7 +54,11 @@ export const FormInfo = ({
         </div>
       )}
       <div className="flex min-w-0 flex-col gap-0.5 grow [overflow-wrap:anywhere]">
-        <Title id={headingId} className="text-base font-semibold text-text-strong-950">
+        <Title
+          id={headingId}
+          tabIndex={headingId ? -1 : undefined}
+          className="text-base font-semibold text-text-strong-950 scroll-mt-24 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-action"
+        >
           {title}
         </Title>
         <div className="text-xs leading-tight text-text-sub-600">{info}</div>

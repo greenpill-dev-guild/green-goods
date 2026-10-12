@@ -1,7 +1,31 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { fn } from "storybook/test";
-import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
+import {
+  withAdminIdentityRole,
+  withCanvasFrame,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../shared/.storybook/decorators";
 import { AdminAccessStateRenderer } from "./AdminAccessStateRenderer";
+
+const accountAddress = "0x1234567890123456789012345678901234567890" as const;
+const noAccessDecorators = [
+  withAdminIdentityRole("user"),
+  withSeededQueryClient([
+    [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), []],
+    [queryKeys.role.stewardGardens(accountAddress, DEFAULT_CHAIN_ID), []],
+    [
+      queryKeys.role.deploymentPermissions(accountAddress, DEFAULT_CHAIN_ID),
+      { isOwner: false, isInAllowlist: false, canDeploy: false },
+    ],
+    [queryKeys.ens.name(accountAddress), null],
+    [queryKeys.ens.avatar(accountAddress), null],
+    [queryKeys.ens.protocolName(accountAddress), null],
+    [queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, accountAddress), null],
+  ]),
+];
 
 const meta: Meta<typeof AdminAccessStateRenderer> = {
   title: "Admin/Shell/AdminAccessStateRenderer",
@@ -51,6 +75,7 @@ export const WalletRequired: Story = {
 };
 
 export const NoAccess: Story = {
+  decorators: noAccessDecorators,
   args: {
     state: { status: "no-access", canCreateGarden: false },
     ready: <div>Ready canvas</div>,
@@ -58,6 +83,7 @@ export const NoAccess: Story = {
 };
 
 export const IndexerError: Story = {
+  decorators: noAccessDecorators,
   args: {
     state: { status: "indexer-error" },
     ready: <div>Ready canvas</div>,

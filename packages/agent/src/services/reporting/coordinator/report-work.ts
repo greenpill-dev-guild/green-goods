@@ -8,10 +8,20 @@ import {
   type ReportContent,
 } from "@green-goods/shared/modules/agent-reporting";
 import { resolveWorkSubmissionTitle } from "@green-goods/shared/utils/work/workTitles";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { DraftRecord } from "../drafts";
 import type { InterpretationResult } from "../interpretation";
-import { type GardenDirectory, gardenByKey, type ReportingGarden } from "../gardens";
-import { commitContentChange } from "./draft-commit";
+import {
+  findGarden,
+  type GardenDirectory,
+  type GardenScope,
+  gardenScope,
+  gardensIn,
+  type ReportingGarden,
+  soleGarden,
+} from "../gardens";
+import { commitContentChange, lifecycleState } from "./draft-commit";
+import { announceGarden } from "./garden-step";
 import { type CatalogView, gardenLabel, promptNextStep } from "./prompting";
 import type { TurnWriter } from "./writer";
 
@@ -52,6 +62,8 @@ export interface Working {
   content: ReportContent;
   snapshot: ActionDefinitionSnapshot | null;
   changed: boolean;
+  /** The linked account's only garden, when this turn gave it to the report without asking. */
+  taken?: ReportingGarden;
 }
 
 export function apply(work: Working, changes: FieldChange[]): void {
@@ -87,23 +99,52 @@ export function adoptAction(
   work.changed = true;
 }
 
-/** Fills garden and Action only when the garden list and the catalog leave no ambiguity. */
+/**
+ * A report still being put together drops a garden the account now linked to its chat does not
+ * report to. The indexer's answer is enough to ask again, never to refuse: a report that is
+ * already confirmed keeps its garden, and the chain decides when it is published. Gardens that
+ * cannot be read leave the choice alone.
+ */
+export function gardenToDrop(
+  directory: GardenDirectory,
+  draft: DraftRecord | null,
+  account: Address | null
+): ReportingGarden | null {
+  if (!draft || !account || !["collecting", "review"].includes(lifecycleState(draft))) return null;
+  const garden = findGarden(directory, draft.content.garden?.address);
+  const scope = gardenScope(directory, account);
+  if (!garden || scope.kind !== "own") return null;
+  return scope.gardens.some((own) => own.key === garden.key) ? null : garden;
+}
+
+/**
+ * A report with no garden takes the only one its chat could choose. `sourceEntryId` names the
+ * message during which that happened, and is only read when a garden is taken.
+ */
+export function takeSoleGarden(
+  work: Working,
+  scope: GardenScope,
+  sourceEntryId: () => string
+): void {
+  const sole = soleGarden(scope);
+  if (work.content.garden || !sole) return;
+  apply(work, [
+    { field: "garden", value: gardenRef(sole), provenance: systemFact(sourceEntryId()) },
+  ]);
+  // A chat with no account takes the only garden there is unannounced, as it always has: the
+  // activity question that follows names it.
+  if (scope.kind === "own" && work.content.garden) work.taken = sole;
+}
+
+/** Fills garden and Action only when the chat's gardens and the catalog leave no ambiguity. */
 export function autoFill(
   writer: TurnWriter,
   work: Working,
   external: TurnExternal,
   sourceEntryId: string
 ): void {
-  const gardens = writer.core.gardens.list();
-  if (!work.content.garden && gardens.length === 1) {
-    apply(work, [
-      {
-        field: "garden",
-        value: gardenRef(gardens[0] as ReportingGarden),
-        provenance: systemFact(sourceEntryId),
-      },
-    ]);
-  }
+  const account = writer.ctx.account?.address ?? null;
+  takeSoleGarden(work, gardenScope(writer.core.gardens, account), () => sourceEntryId);
   const result = external.catalog.result;
   const sameGarden =
     external.catalog.garden?.address.toLowerCase() === work.content.garden?.address.toLowerCase();
@@ -112,12 +153,13 @@ export function autoFill(
   }
 }
 
+/** `scope` is what the chat may choose from: a garden the model reads outside it is not taken. */
 export function applyInterpretation(
   work: Working,
   result: InterpretationResult,
   external: TurnExternal,
   sourceEntryId: string,
-  gardens: GardenDirectory
+  scope: GardenScope
 ): void {
   const provenance = (
     kind: FieldProvenance["kind"],
@@ -132,7 +174,7 @@ export function applyInterpretation(
     model: result.models.join(","),
     gardenerStated: false,
   });
-  const garden = result.gardenKey ? gardenByKey(gardens, result.gardenKey) : null;
+  const garden = gardensIn(scope).find((candidate) => candidate.key === result.gardenKey);
   if (garden)
     apply(work, [
       { field: "garden", value: gardenRef(garden), provenance: provenance("reported") },
@@ -159,6 +201,8 @@ export function finish(
   external: TurnExternal,
   cause: string
 ): DraftRecord {
+  const account = writer.ctx.account?.address ?? null;
+  takeSoleGarden(work, gardenScope(writer.core.gardens, account), () => writer.sourceEntryId());
   const next = work.changed
     ? commitContentChange(writer.core, draft, {
         content: work.content,
@@ -167,6 +211,7 @@ export function finish(
         sourceEventId: writer.ctx.event.id,
       })
     : draft;
+  if (work.taken) announceGarden(writer, work.taken);
   // An activity just adopted: say how many questions follow, the count each one is numbered against.
   if (draft.content.actionUID === null && next.content.actionUID !== null && next.snapshot) {
     const remaining = outstandingFieldQuestions(next.content, next.snapshot).length;

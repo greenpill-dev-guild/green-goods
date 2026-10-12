@@ -27,7 +27,14 @@ import {
  * readable without placing a button inside the field-note tile's button.
  */
 export function NoteAuthor({ address }: { address: Address }) {
-  return <AddressDisplay address={address} interactive={false} />;
+  const { formatMessage } = useIntl();
+  return (
+    <AddressDisplay
+      address={address}
+      interactive={false}
+      fallbackLabel={formatMessage({ id: "public.identity.participant" })}
+    />
+  );
 }
 
 /**

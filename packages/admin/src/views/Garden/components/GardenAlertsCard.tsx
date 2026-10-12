@@ -12,7 +12,7 @@ export interface GardenAlert {
 
 /**
  * Attention Needed: what the garden needs from its steward next. It sits in the
- * tab's rail, except on phones, where it leads above the main column (DL-051).
+ * desktop rail, and leads above the main content in stacked layouts (DL-051).
  */
 export function GardenAlertsCard({ alerts }: { alerts: GardenAlert[] }) {
   const { formatMessage } = useIntl();

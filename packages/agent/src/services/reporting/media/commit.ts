@@ -9,12 +9,16 @@ import {
   lifecycleState,
   StaleDraftError,
 } from "../coordinator/draft-commit";
+import { announceGarden, readOwnGardens } from "../coordinator/garden-step";
 import { type CatalogView, promptNextStepFor } from "../coordinator/prompting";
+import { takeSoleGarden, type Working } from "../coordinator/report-work";
+import { createLogger } from "../../logger";
 import { inTransaction } from "../database";
 import { DraftContentUnavailableError, loadDraft } from "../drafts";
 import { participantWriter } from "../notify";
 import { activeAccount } from "../participants";
-import { findGarden } from "../gardens";
+import { openPrompt } from "../prompts";
+import { findGarden, gardenScope, soleGarden } from "../gardens";
 import type { ReportingCore } from "../runtime";
 import type { JobOutcome } from "../worker";
 import type { MediaExtraction, MediaSource } from "./extract";
@@ -22,8 +26,9 @@ import type { MediaExtraction, MediaSource } from "./extract";
 /**
  * Applies one processed asset to its draft: the sanitized photo as candidate evidence and any
  * proposed values with their exact sources, committed only on the draft's current revision. A
- * concurrent turn wins and the job resumes from the stored asset. Limitations are explained and
- * the draft is kept; the next question is asked once, after the last file of a batch.
+ * concurrent turn wins and the job resumes from the stored asset. A file that cannot be used is
+ * explained and the draft is kept. The next question is asked once, after the last file of a
+ * batch; after a file that could not be used, only when the report has no question open.
  */
 export type Limitation =
   | "media.tooLarge"
@@ -58,6 +63,8 @@ export interface ProcessingResult {
   sourceKind: MediaSource["kind"] | null;
 }
 
+const log = createLogger("reporting");
+
 const done: JobOutcome = { status: "done" };
 
 function clip(text: string): string {
@@ -80,11 +87,23 @@ export async function applyProcessedAsset(
   result: ProcessingResult
 ): Promise<JobOutcome> {
   const garden = safeDraft(core, asset.draftId)?.content.garden;
-  const listed = findGarden(core.gardens, garden?.address);
-  const catalog: CatalogView = {
-    garden: listed,
-    result: listed ? await catalogFor(listed) : null,
-  };
+  // A report with no garden yet takes its chat's only one below, so that garden's activities are
+  // the ones to read. A file can be processed well after the turn that brought it, so the
+  // account's gardens are read again first.
+  const account = activeAccount(core, asset.participantId, core.settings.chainId);
+  if (account && !garden) await readOwnGardens(core);
+  const listed = garden
+    ? findGarden(core.gardens, garden.address)
+    : soleGarden(gardenScope(core.gardens, account?.address ?? null));
+  // Activities that cannot be read must not cost the file: the report says so when it comes to
+  // ask for one.
+  const activities = listed
+    ? await catalogFor(listed).catch((err): CatalogView["result"] => {
+        log.warn({ err }, "Could not read a garden's activities for a processed file");
+        return { ok: false, reason: "unavailable" };
+      })
+    : null;
+  const catalog: CatalogView = { garden: listed, result: activities };
   try {
     return inTransaction(core.db, () => commitInTransaction(core, asset, result, catalog));
   } catch (error) {
@@ -146,14 +165,18 @@ function commitInTransaction(
     dedupePrefix: `media:${asset.id}`,
   });
   if (!draft || !writer) return done;
+  const editable = EDITABLE_STATES.has(lifecycleState(draft));
   if (result.limitation) {
     writer.say(result.limitation);
-    return done;
-  }
-  if (!EDITABLE_STATES.has(lifecycleState(draft))) {
+    // A report that can still change is never left with nothing asked. When the file that could
+    // not be used was all it had to go on, its next step is put as it is after one that could.
+    // A question that is already open stays as it is.
+    if (!editable || openPrompt(core, asset.conversationId)) return done;
+  } else if (!editable) {
     writer.say("media.late");
     return done;
   }
+  const used = result.limitation === null;
   let content = draft.content;
   if (result.evidence) {
     content = withEvidence(content, {
@@ -182,22 +205,37 @@ function commitInTransaction(
       ...changes.filter((change) => change.field !== "feedback"),
     ];
   }
-  content = applyReportChanges(content, changes, draft.snapshot).content;
+  const account = activeAccount(core, asset.participantId, core.settings.chainId);
+  const work: Working = {
+    // A file that could not be used adds nothing to the report.
+    content: used ? applyReportChanges(content, changes, draft.snapshot).content : draft.content,
+    snapshot: draft.snapshot,
+    changed: false,
+  };
+  takeSoleGarden(
+    work,
+    gardenScope(core.gardens, account?.address ?? null),
+    () => asset.sourceEntryId
+  );
   const next =
-    content === draft.content
+    work.content === draft.content
       ? draft
       : commitContentChange(core, draft, {
-          content,
+          content: work.content,
           cause: `media:${asset.id}`,
           sourceEventId: asset.sourceEventId,
         });
+  // Said with the file that caused it: the question that follows waits for the batch's last file.
+  if (work.taken) announceGarden(writer, work.taken);
   if (result.transcript) writer.say("voice.heard", { transcript: clip(result.transcript.text) });
-  if (result.warnings.includes("hidden_content_excluded")) writer.say("media.hiddenExcluded");
+  if (used && result.warnings.includes("hidden_content_excluded"))
+    writer.say("media.hiddenExcluded");
   if (result.extraction && result.warnings.includes("docx_visuals_not_read"))
     writer.say("media.wordNative");
   if (result.extraction && result.warnings.includes("spreadsheet_visuals_not_read"))
     writer.say("media.spreadsheetNative");
   if (
+    used &&
     result.warnings.some(
       (warning) =>
         ![
@@ -219,7 +257,7 @@ function commitInTransaction(
   // One reply after the last file of a batch, not one question per photo.
   if (pending.n === 0) {
     // Without an extraction (model processing off or unavailable) the file was only kept.
-    if (!result.transcript)
+    if (used && !result.transcript)
       writer.say(
         result.sourceKind === "image"
           ? "media.photoAdded"
@@ -227,7 +265,6 @@ function commitInTransaction(
             ? "media.fileRead"
             : "media.fileKept"
       );
-    const account = activeAccount(core, asset.participantId, core.settings.chainId);
     promptNextStepFor(writer, next, catalog, account?.address ?? null);
   }
   return done;

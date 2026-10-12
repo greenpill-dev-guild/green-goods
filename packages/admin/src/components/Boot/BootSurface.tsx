@@ -1,6 +1,7 @@
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAlertLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
@@ -22,7 +23,7 @@ const BOOT_COPY: Record<
   }
 > = {
   en: {
-    loading: "Loading Green Goods Admin…",
+    loading: "Opening your workspace…",
     failedTitle: "Green Goods Admin could not start",
     failedBody:
       "Something failed before the workspace could open. Reload to try again, or clear the cached data if a reload does not help.",
@@ -31,7 +32,7 @@ const BOOT_COPY: Record<
     details: "Technical details",
   },
   es: {
-    loading: "Cargando Green Goods Admin…",
+    loading: "Abriendo tu espacio de trabajo…",
     failedTitle: "Green Goods Admin no pudo iniciarse",
     failedBody:
       "Algo falló antes de que el espacio de trabajo pudiera abrirse. Recarga para intentarlo de nuevo o borra los datos en caché si recargar no ayuda.",
@@ -40,7 +41,7 @@ const BOOT_COPY: Record<
     details: "Detalles técnicos",
   },
   pt: {
-    loading: "Carregando o Green Goods Admin…",
+    loading: "Abrindo seu espaço de trabalho…",
     failedTitle: "O Green Goods Admin não conseguiu iniciar",
     failedBody:
       "Algo falhou antes de o espaço de trabalho abrir. Recarregue para tentar de novo ou limpe os dados em cache se recarregar não ajudar.",
@@ -94,22 +95,7 @@ const SHELL_STYLE = {
 export function BootShell() {
   const locale = resolveBootLocale();
   const copy = BOOT_COPY[locale];
-  return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center bg-bg-weak px-6 text-center"
-      style={SHELL_STYLE}
-      lang={locale}
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      data-component="AdminBootShell"
-    >
-      <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-1)]">
-        <RiSeedlingLine className="h-7 w-7 text-text-sub" aria-hidden />
-      </div>
-      <p className="mt-5 body-sm text-text-sub">{copy.loading}</p>
-    </div>
-  );
+  return <AdminLoadingScreen label={copy.loading} locale={locale} />;
 }
 
 export interface BootRecoveryProps {

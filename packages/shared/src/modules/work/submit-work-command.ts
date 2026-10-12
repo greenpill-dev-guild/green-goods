@@ -23,6 +23,8 @@ export interface SubmitWorkCommand {
   linkIntent?: DraftWorkLink | null;
   assertOwnership?: () => void | Promise<void>;
   onBroadcast?: (hash: `0x${string}`) => Promise<void>;
+  /** The admitted job is terminal and proven unsent; a retained identity may be retired. */
+  onTerminalUnsentFailure?: () => void;
   onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
   /** Supplied by a resumed journey; otherwise generated once before choosing a transport. */
   clientWorkId?: string;

@@ -375,6 +375,25 @@ describe("createAuthServices", () => {
       expect(harness.calls.getWebAuthnCredential).toHaveBeenCalledTimes(1);
     });
 
+    it("opens no prompt and makes no account when this device remembers no passkey", async () => {
+      const attempt = invoke(harness.services.authenticatePasskey, {
+        userName: "",
+        chainId: CHAIN_ID,
+      });
+
+      // No name was given, so the refusal is about the device and blames no username.
+      await expect(attempt).rejects.toMatchObject({
+        name: "PasskeyNotFoundError",
+        scope: "device",
+      });
+      expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.calls.createLocalPasskey).not.toHaveBeenCalled();
+      expect(harness.calls.createWebAuthnCredential).not.toHaveBeenCalled();
+      expect(harness.telemetry.loginFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "local_cache", reason: "credential_not_found" })
+      );
+    });
+
     it("keeps sign-out durable when the local ceremony is dismissed", async () => {
       harness.state.credential = CREDENTIAL;
       harness.state.signedOut = true;
@@ -473,8 +492,10 @@ describe("createAuthServices", () => {
           userName: "another-name",
           chainId: CHAIN_ID,
         })
-      ).rejects.toThrow(
-        lookup === "unreachable" ? "Passkey server lookup failed" : "No passkey credential"
+      ).rejects.toMatchObject(
+        lookup === "unreachable"
+          ? { name: "PasskeyServerLookupError" }
+          : { name: "PasskeyNotFoundError", scope: "name" }
       );
       expect(harness.calls.getWebAuthnCredential).not.toHaveBeenCalled();
       expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();

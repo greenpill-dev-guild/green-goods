@@ -99,3 +99,11 @@ export interface ReportingChain {
 /** keccak256("Attested(address,address,bytes32,bytes32)") */
 export const ATTESTED_TOPIC =
   "0x8bf46bf4cfd674fa735a3d63ec1c9ad4153f033c290341f3a588b75685141b35" as const;
+
+/**
+ * keccak256("UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)"), which the
+ * EntryPoint emits once for each operation a bundle executes. The operation hash is its first
+ * indexed argument; the unindexed data is (nonce, success, actualGasCost, actualGasUsed).
+ */
+export const USER_OPERATION_EVENT_TOPIC =
+  "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f" as const;

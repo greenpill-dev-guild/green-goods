@@ -180,7 +180,9 @@ accepted product delivery go to Product; research before product scope is accept
 Research. Use Community only for explicitly relevant community work. Read the
 [routing contract](.claude/context/linear-routing-rules.md) before writing, and query live workspace
 state instead of caching teams, states, or project inventories here. An audit alone authorizes no
-external writes. Cloud routine ownership and limits live in [docs/routines](docs/routines/README.md).
+external writes. A merge does not finish a Linear record; after one, follow
+[After a merge](.claude/context/linear-routing-rules.md#after-a-merge). Cloud routine ownership and
+limits live in [docs/routines](docs/routines/README.md).
 
 ## Writing and completion
 

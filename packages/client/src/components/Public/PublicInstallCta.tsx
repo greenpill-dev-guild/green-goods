@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { useIntl } from "react-intl";
+import { useLocation } from "react-router-dom";
 import { getSharedRecordPath } from "@/config/sharedLink";
 import { PublicInstallAction } from "./PublicInstallAction";
 
@@ -22,12 +23,9 @@ export function PublicInstallCta({
   destination,
 }: PublicInstallCtaProps) {
   const { formatMessage } = useIntl();
-  const currentPath =
-    typeof window === "undefined"
-      ? ""
-      : window.location.hash.startsWith("#/")
-        ? window.location.hash.slice(1).split("?")[0]
-        : window.location.pathname;
+  // From the router, as in PublicInstallAction: a path read from window.location while rendering
+  // is kept by the compiled app for as long as this instance lives.
+  const { pathname: currentPath } = useLocation();
   const recordPath = getSharedRecordPath(destination ?? currentPath, "home");
   const continuation = recordPath ? (
     <div className="mt-4 text-center text-sm text-text-sub-600">

@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import { fn } from "storybook/test";
-import { withAdminIdentity, withDataRouter } from "../../../../../shared/.storybook/decorators";
+import {
+  withAdminIdentity,
+  withDataRouter,
+  withSeededQueryClient,
+} from "../../../../../shared/.storybook/decorators";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
@@ -13,7 +18,16 @@ const meta = {
   title: "Admin/Workflows/Community/Members",
   component: CommunityMembersTab,
   tags: ["autodocs"],
-  decorators: [withAdminIdentity, withDataRouter("/community/members")],
+  decorators: [
+    withAdminIdentity,
+    withDataRouter("/community/members"),
+    withSeededQueryClient([
+      [
+        queryKeys.gardenJoinRequests.availability(),
+        { enabled: true, supportedKinds: ["garden_membership", "steward_access"] },
+      ],
+    ]),
+  ],
   parameters: { layout: "padded" },
   args: {
     garden: storyGarden,

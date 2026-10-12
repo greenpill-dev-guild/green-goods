@@ -85,15 +85,27 @@ function queueItem(overrides: Partial<GardenJoinRequestQueueItem>): GardenJoinRe
 
 function withJoinRequests(overrides: Partial<JoinRequests> = {}) {
   return () => {
-    mocked(useGardenJoinRequestAvailability).mockReturnValue(true);
+    mocked(useGardenJoinRequestAvailability).mockImplementation(
+      (kind) =>
+        kind !== "steward_access" ||
+        overrides.queue?.some((item) => item.kind === "steward_access") === true
+    );
     mocked(useGardenJoinRequests).mockReturnValue(joinRequests(overrides));
     return resetHookMocks(useGardenJoinRequestAvailability, useGardenJoinRequests);
   };
 }
 
-async function checkRequests(canvasElement: HTMLElement) {
+async function checkRequests(
+  canvasElement: HTMLElement,
+  kind: "garden_membership" | "steward_access" = "garden_membership"
+) {
   const canvas = within(canvasElement);
-  await userEvent.click(await canvas.findByRole("button", { name: "Check Requests" }));
+  const queue = within(
+    canvas.getByTestId(
+      kind === "steward_access" ? "community-steward-requests" : "community-join-requests"
+    )
+  );
+  await userEvent.click(await queue.findByRole("button", { name: "Check Requests" }));
   return canvas;
 }
 
@@ -127,6 +139,23 @@ export const PendingRequests: Story = {
     await expect(canvas.getByText("Tomás Ribeiro")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "Welcome" })).toHaveLength(2);
     await expect(canvas.getAllByRole("button", { name: "Decline" })).toHaveLength(2);
+  },
+};
+
+export const StewardRequests: Story = {
+  beforeEach: withJoinRequests({
+    queue: [
+      queueItem({
+        kind: "steward_access",
+        requestedVia: "admin_access",
+        note: "I coordinate the weekly planting sessions and can help steward the garden.",
+      }),
+    ],
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = await checkRequests(canvasElement, "steward_access");
+    await expect(canvas.getByRole("button", { name: "Approve Steward Access" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Welcome" })).not.toBeInTheDocument();
   },
 };
 

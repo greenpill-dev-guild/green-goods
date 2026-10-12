@@ -189,7 +189,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   const joinRequestAvailabilityRoute = "/public/features/garden-join-requests";
   app.options(joinRequestAvailabilityRoute, (c) => publicBrowserCorsPreflight(c, deps));
   app.get(joinRequestAvailabilityRoute, (c) =>
-    publicBrowserCorsResponse(c, deps, { ok: true, enabled: joinRequestsAvailable })
+    publicBrowserCorsResponse(c, deps, {
+      ok: true,
+      enabled: joinRequestsAvailable,
+      supportedKinds: joinRequestsAvailable ? ["garden_membership", "steward_access"] : [],
+    })
   );
   if (joinRequestsAvailable) {
     registerGardenJoinRequestRoutes(app, {

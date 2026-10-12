@@ -16,6 +16,7 @@ interface Message {
   text: string;
   choices: Array<{ id: string; label: string }>;
   link: { url: string; label: string } | null;
+  records: Array<{ url: string; label: string }>;
 }
 
 type Log = (line: string) => void;
@@ -101,7 +102,10 @@ export async function runWalkthrough(base: string, log: Log = console.log): Prom
       r.json()
     )) as Message[];
     seen += fresh.length;
-    for (const message of fresh) log(`  agent: ${message.text.replaceAll("\n", "\n         ")}`);
+    for (const message of fresh) {
+      log(`  agent: ${message.text.replaceAll("\n", "\n         ")}`);
+      for (const record of message.records) log(`         [${record.label}] ${record.url}`);
+    }
     transcript.push(...fresh);
     return fresh;
   }

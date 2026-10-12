@@ -106,15 +106,20 @@ describe("owner publication", () => {
       "SELECT state, attestation_uid, transaction_hash FROM execution_operations"
     );
     expect(published).toMatchObject({ state: "published", transaction_hash: hash });
-    expect(sentTexts().at(-1)).toBe(
-      `Your report is published ✅\nWork: ${published.attestation_uid}\nTransaction: https://arbiscan.io/tx/${hash}`
-    );
-    // The link opens the attestation's own record, which exists from the moment it is published.
-    // Nothing is signed there, so it carries no advice about browsers and no link to copy.
-    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
-      url: `https://arbitrum.easscan.org/attestation/view/${published.attestation_uid}`,
-      label: "View your report",
-    });
+    // Both identifiers are 32 bytes, so only their values tell a swapped pair of links apart.
+    expect(published.attestation_uid).not.toBe(hash);
+    const result = harness.transport.sent.at(-1)?.message;
+    expect(result?.text).toBe("Your report is published ✅");
+    // The attestation leads and the transaction follows, each on its own explorer. Nothing is
+    // signed at either, so the result carries no advice about browsers and no link to copy.
+    expect(result?.records).toEqual([
+      {
+        url: `https://arbitrum.easscan.org/attestation/view/${published.attestation_uid}`,
+        label: "View attestation",
+      },
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+    expect(result?.link).toBeUndefined();
     // Attribution is the gardener's own account, never the Agent or a relayer.
     expect(row("SELECT attester, garden_address FROM work_records")).toEqual({
       attester: adaAccount.address.toLowerCase(),
@@ -236,6 +241,12 @@ describe("owner publication", () => {
     });
     // No fresh attempt is possible while the first one may still land.
     expect((await reserve(browser, view, envelope, "attempt-key-2")).status).toBe(409);
+    // A report that is being sent has no garden question to ask, so GARDEN says so without
+    // waiting on a read of the garden list.
+    harness.clock.advance(10_000);
+    const reads = harness.gardens.reads;
+    expect((await harness.say(ADA, "GARDEN"))[0]).toContain("so I can't change it now");
+    expect(harness.gardens.reads).toBe(reads);
 
     harness.chain.submit({
       attester: adaAccount.address,
@@ -277,6 +288,59 @@ describe("owner publication", () => {
       state: "published",
       transaction_hash: hash,
     });
+  });
+
+  it("reports a mined transaction whose attestation is unread as confirmed, then sends the result unasked", async () => {
+    await confirmLinkAndPublish(harness);
+    const { browser, view, envelope } = await openSigningPage(harness);
+    const attempt = await reserve(browser, view, envelope);
+    const hash = harness.chain.submit({
+      attester: adaAccount.address,
+      to: envelope.call.to,
+      data: envelope.call.data,
+    });
+    harness.chain.attestationsUnread = true;
+    await reportOutcome(browser, view, envelope, attempt.body.attemptId, {
+      kind: "broadcast",
+      transactionHash: hash,
+    });
+    await harness.drain();
+    // A wait, not a conflict: the receipt names an attestation the node has not returned yet.
+    expect(row("SELECT state, failure_code FROM execution_operations")).toEqual({
+      state: "reconciling",
+      failure_code: null,
+    });
+    expect(
+      row("SELECT last_error_code FROM processing_jobs WHERE kind = 'reconcile_operation'")
+    ).toEqual({ last_error_code: "attestation_pending" });
+    const waiting = harness.transport.sent.at(-1)?.message;
+    expect(waiting?.text).toBe(
+      "The transaction is confirmed. I'm checking the attestation details and will send the link when I have it. You don't need to sign or send anything again."
+    );
+    // No attestation link and no claim of publication until the record matches this report.
+    expect(waiting?.records).toEqual([
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+    ]);
+
+    // Another pass in the same state adds nothing to the chat.
+    harness.clock.advance(30_000);
+    await harness.drain();
+    expect(harness.transport.sent.at(-1)?.message).toEqual(waiting);
+
+    harness.chain.attestationsUnread = false;
+    harness.clock.advance(30_000);
+    await harness.drain();
+    expect(row("SELECT state, transaction_hash FROM execution_operations")).toEqual({
+      state: "published",
+      transaction_hash: hash,
+    });
+    expect(sentTexts().slice(-2)).toEqual([waiting?.text, "Your report is published ✅"]);
+    expect(harness.transport.sent.at(-1)?.message.records?.map((record) => record.label)).toEqual([
+      "View attestation",
+      "View transaction",
+    ]);
+    // The same attempt throughout: nothing was signed or sent a second time.
+    expect(row("SELECT count(*) AS n FROM execution_attempts")).toEqual({ n: 1 });
   });
 
   it("treats a reported hash that carries another payload as a conflict, never as publication", async () => {

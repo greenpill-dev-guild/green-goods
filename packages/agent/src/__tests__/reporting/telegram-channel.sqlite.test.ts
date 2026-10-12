@@ -15,6 +15,9 @@ import { processMedia } from "../../services/reporting/media/process";
 import type { ReportingCore } from "../../services/reporting/runtime";
 import { drain } from "../../services/reporting/worker";
 import { textResponse } from "../../types";
+import { TestBrowser } from "./support/browser";
+import { TAS } from "./support/fixtures";
+import { adaAccount } from "./support/flows";
 import { Harness } from "./support/harness";
 import { FakeTelegramApi, TEST_BOT_REALM, TEST_BOT_TOKEN } from "./support/telegram-api";
 
@@ -78,7 +81,12 @@ function press(label: string): Update {
   return { update_id: updateId, callback_query: query } as unknown as Update;
 }
 
-type InlineRows = Array<Array<{ text: string; callback_data?: string }>>;
+type InlineRows = Array<Array<{ text: string; callback_data?: string; url?: string }>>;
+
+const buttonsOf = (message: Record<string, unknown> | undefined) =>
+  (
+    (message?.reply_markup as { inline_keyboard?: InlineRows } | undefined)?.inline_keyboard ?? []
+  ).flat();
 
 /** Runs every queue, sending through Telegram and downloading files through the bot. */
 async function drainThroughTelegram(): Promise<void> {
@@ -197,6 +205,43 @@ describe("Telegram reporting on the existing bot", () => {
     expect(sentTexts()).toContain("Photo added to your report.");
     const { id } = harness.core.db.query("SELECT id FROM work_drafts").get() as { id: string };
     expect(loadDraft(harness.core, id)?.content.evidence).toHaveLength(1);
+  });
+
+  it("keeps changing the garden a tap away after taking an account's only garden", async () => {
+    openTelegramChannel();
+    harness.chain.grantRole(TAS.address, adaAccount.address, { gardener: true });
+    const telegraf = bot();
+    const tell = async (update: Update) => {
+      await telegraf.handleUpdate(update);
+      await drainThroughTelegram();
+    };
+    await tell(direct({ text: "/start" }));
+    await tell(press("I agree"));
+    await tell(direct({ text: "/connect" }));
+    const link =
+      api
+        .messages()
+        .flatMap(buttonsOf)
+        .find((button) => button.url)?.url ?? "";
+    const browser = new TestBrowser(harness.app);
+    await browser.open(link);
+    const proof = await browser.prove(adaAccount);
+    await tell(direct({ text: String(proof.body.pairingCode) }));
+    await tell(direct({ text: "Today I planted twelve baobab seedlings by the fence" }));
+
+    // With buttons to tap, the announcement names no command words.
+    const taken = api.messages().find((message) => String(message.text).startsWith("TAS is"));
+    expect(taken?.text).toBe("TAS is your only garden, so I'll use it for this report.");
+    expect(buttonsOf(taken).map((button) => button.text)).toEqual([
+      "Change garden",
+      "Join another garden",
+    ]);
+    expect(sentTexts().at(-1)).toContain("Which activity in TAS");
+    // The activity question is the open one by now, and the button still changes the garden.
+    await tell(press("Change garden"));
+    expect(sentTexts().at(-1)).toBe(
+      "Which of your gardens is this report for?\n1. TAS\n2. Join another garden"
+    );
   });
 
   it("does not acknowledge an update it could not store", async () => {

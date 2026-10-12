@@ -481,7 +481,7 @@ export const DetailsStep: Story = {
   decorators: submitWorkRouteDecorators([DETAILS_ACTION]),
   play: async ({ canvasElement }) => {
     const flow = await openDetailsStep(canvasElement);
-    await expect(flow.getByText("* Required field")).toBeVisible();
+    await waitFor(() => expect(flow.getByText("* Required field")).toBeVisible());
     await expect(flow.queryAllByRole("alert")).toHaveLength(0);
   },
 };

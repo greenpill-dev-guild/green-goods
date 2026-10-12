@@ -309,7 +309,7 @@ function renderDashboard(onClose = vi.fn()) {
   const view = render(
     createElement(
       MemoryRouter,
-      null,
+      { initialEntries: ["/home"] },
       createElement(
         IntlProvider,
         { locale: "en", messages: en },
@@ -641,7 +641,7 @@ describe("WorkDashboard", () => {
     await waitFor(() => expect(mockDiscardWork).toHaveBeenCalledOnce());
   });
 
-  it("lists unsent proof by its promise and opens the promise from its row", () => {
+  it("lists unsent proof by its promise and opens the promise from its row", async () => {
     const onClose = vi.fn();
     mockOnPhone = 2;
     mockProofs = [
@@ -673,20 +673,21 @@ describe("WorkDashboard", () => {
     expect(within(row).getByText("Nothing sent yet")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Repair the north fence panel"));
-    expect(onClose).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith(
       "/home/0x00000000000000000000000000000000000000a1/commitments/7",
       {
         state: {
           from: "dashboard",
-          dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+          dashboardOrigin: expect.any(Object),
+          dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
         },
-        viewTransition: true,
+        viewTransition: false,
       }
     );
   });
 
-  it("reopens a proof draft where it was left, with Back leading to Your Work", () => {
+  it("reopens a proof draft where it was left, with Back leading to Your Work", async () => {
     mockProofs = [
       {
         id: "proof-draft",
@@ -713,9 +714,10 @@ describe("WorkDashboard", () => {
       {
         state: {
           from: "dashboard",
-          dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+          dashboardOrigin: expect.any(Object),
+          dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
         },
-        viewTransition: true,
+        viewTransition: false,
       }
     );
   });
@@ -787,7 +789,7 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("No completed work")).not.toBeInTheDocument();
   });
 
-  it("opens the original work route from the My work reviewed completed filter", () => {
+  it("opens the original work route from the My work reviewed completed filter", async () => {
     const onClose = vi.fn(() => {
       const scroller = document.getElementById("work-dashboard-scroll");
       if (scroller) scroller.scrollTop = 0;
@@ -841,9 +843,10 @@ describe("WorkDashboard", () => {
     if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
     scroller.scrollTop = 217;
     fireEvent.click(screen.getByText("Reviewed planting"));
+    expect(onClose).not.toHaveBeenCalled();
 
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(mockNavigate).toHaveBeenCalledWith("/", {
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/home", {
       replace: true,
       state: {
         dashboardEntry: expect.objectContaining({
@@ -860,13 +863,11 @@ describe("WorkDashboard", () => {
         from: "dashboard",
         returnTo: "/home",
         workStatus: "approved",
-        dashboardBack: expect.objectContaining({ path: "/", scope: expect.any(String) }),
+        dashboardOrigin: expect.any(Object),
+        dashboardBack: expect.objectContaining({ path: "/home", scope: expect.any(String) }),
       },
-      viewTransition: true,
+      viewTransition: false,
     });
-    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(
-      mockNavigate.mock.invocationCallOrder[0]
-    );
   });
 
   it("restores scroll when late content fits, then lets the reader scroll freely", async () => {
@@ -895,6 +896,10 @@ describe("WorkDashboard", () => {
     });
     try {
       const view = renderDashboard();
+      expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-entry-motion", "instant");
+      expect(screen.getByTestId("app-sheet-overlay").style.viewTransitionName).toBe(
+        "work-dashboard"
+      );
       const scroller = document.getElementById("work-dashboard-scroll");
       if (!scroller) throw new Error("WorkDashboard scroll owner is missing");
       expect(scroller.scrollTop).toBe(0);
@@ -969,6 +974,7 @@ describe("WorkDashboard", () => {
     // A tabbed workspace holds the full sheet tier so tab switches never resize
     // it (DL-014), and it registers as open so the AppBar steps aside (DL-015).
     expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-sheet-size", "full");
+    expect(screen.getByTestId("app-sheet")).toHaveAttribute("data-entry-motion", "slide");
     expect(mockRegisterOpenSheet).toHaveBeenCalled();
   });
 

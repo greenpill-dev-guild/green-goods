@@ -202,7 +202,7 @@ describe("AppShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "On-screen Back" }));
     fireEvent.click(screen.getByRole("button", { name: "Device Forward" }));
     expect(screen.getByText("Inspected item")).toBeInTheDocument();
-    expect(useUIStore.getState().isWorkDashboardOpen).toBe(false);
+    expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Device Back" }));
     expect(useUIStore.getState().workDashboardReturnState).toEqual(workSnapshot);
     expect(useUIStore.getState().isWorkDashboardOpen).toBe(true);

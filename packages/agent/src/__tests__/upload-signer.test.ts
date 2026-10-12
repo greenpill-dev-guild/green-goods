@@ -36,6 +36,65 @@ describe("upload signing API", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+  });
+
+  it("allows Cookie Jar image uploads without granting access to other public routes", async () => {
+    const origin = "https://cookies.greengoods.app";
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        uploadSigning: {
+          pinataJwt: "test-only",
+          fetch: vi
+            .fn<typeof fetch>()
+            .mockResolvedValue(
+              new Response(
+                JSON.stringify({ data: "https://uploads.pinata.test/v3/files/signed" }),
+                { status: 200 }
+              )
+            ),
+        },
+      },
+      { logger: false }
+    );
+    const preflight = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "OPTIONS",
+      headers: { origin },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(origin);
+    const upload = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "POST",
+      headers: jsonHeaders({ origin }),
+      body: JSON.stringify(validRequest()),
+    });
+    expect(upload.status).toBe(200);
+    const unrelated = await app.request(PUBLIC_AGENT_ROUTES.subscribe, {
+      method: "OPTIONS",
+      headers: { origin },
+    });
+    expect(unrelated.status).toBe(403);
+  });
+
+  it.each([
+    "http://127.0.0.1:3041",
+    "http://localhost:3041",
+  ])("allows %s for upload signing only in development", async (origin) => {
+    const app = createServer(
+      { isAIReady: () => true, allowedOrigins: new Set([ORIGIN]) },
+      { logger: false }
+    );
+    vi.stubEnv("APP_ENV", "production");
+    vi.stubEnv("NODE_ENV", "production");
+    const preflight = () =>
+      app.request(PUBLIC_AGENT_ROUTES.uploadSign, { method: "OPTIONS", headers: { origin } });
+    expect((await preflight()).status).toBe(403);
+    vi.stubEnv("APP_ENV", "development");
+    const response = await preflight();
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(origin);
   });
 
   it("returns a constrained Pinata signed upload URL for an allowed browser origin", async () => {

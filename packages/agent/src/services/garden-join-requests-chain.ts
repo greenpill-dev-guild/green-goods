@@ -12,6 +12,8 @@ import {
 export interface GardenJoinRequestChainReader {
   isMember(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
   areMembers?(gardenAddress: Address, accountAddresses: readonly Address[]): Promise<boolean[]>;
+  isSteward(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
+  areStewards?(gardenAddress: Address, accountAddresses: readonly Address[]): Promise<boolean[]>;
   canManage(gardenAddress: Address, accountAddress: Address): Promise<boolean>;
   isOpenJoining(gardenAddress: Address): Promise<boolean>;
 }
@@ -55,6 +57,13 @@ export function createGardenJoinRequestChainReader(options: {
       functionName,
       args: [accountAddress],
     });
+  const isSteward = async (gardenAddress: Address, accountAddress: Address) => {
+    const [operator, owner] = await Promise.all([
+      read(gardenAddress, accountAddress, "isOperator"),
+      read(gardenAddress, accountAddress, "isOwner"),
+    ]);
+    return operator || owner;
+  };
   return {
     async isMember(gardenAddress, accountAddress) {
       const [gardener, operator, owner] = await Promise.all([
@@ -96,13 +105,31 @@ export function createGardenJoinRequestChainReader(options: {
           Boolean(results[index * 3 + 2])
       );
     },
-    async canManage(gardenAddress, accountAddress) {
-      const [operator, owner] = await Promise.all([
-        read(gardenAddress, accountAddress, "isOperator"),
-        read(gardenAddress, accountAddress, "isOwner"),
-      ]);
-      return operator || owner;
+    isSteward,
+    async areStewards(gardenAddress, accountAddresses) {
+      if (accountAddresses.length === 0) return [];
+      const results = await client.multicall({
+        allowFailure: false,
+        contracts: accountAddresses.flatMap((accountAddress) => [
+          {
+            address: gardenAddress,
+            abi: GARDEN_ACCOUNT_ROLE_ABI,
+            functionName: "isOperator" as const,
+            args: [accountAddress],
+          },
+          {
+            address: gardenAddress,
+            abi: GARDEN_ACCOUNT_ROLE_ABI,
+            functionName: "isOwner" as const,
+            args: [accountAddress],
+          },
+        ]),
+      });
+      return accountAddresses.map(
+        (_, index) => Boolean(results[index * 2]) || Boolean(results[index * 2 + 1])
+      );
     },
+    canManage: isSteward,
     async isOpenJoining(gardenAddress) {
       return client.readContract({
         address: gardenAddress,

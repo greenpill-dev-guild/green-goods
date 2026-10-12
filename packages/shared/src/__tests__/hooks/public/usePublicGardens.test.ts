@@ -87,7 +87,7 @@ describe("usePublicGardens", () => {
 
     queryClient.setQueryData(["greengoods", "public", "gardens", 11155111], []);
     mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([]);
+    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: garden.id })]);
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
       queryClient,
@@ -113,7 +113,7 @@ describe("usePublicGardens", () => {
     });
 
     mockGetGardens.mockResolvedValue([realGarden, placeholderGarden]);
-    mockGetWorks.mockResolvedValue([]);
+    mockGetWorks.mockResolvedValue([createMockWork({ gardenAddress: realGarden.id })]);
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
       queryClient,
@@ -139,6 +139,11 @@ describe("usePublicGardens", () => {
     });
 
     mockGetGardens.mockResolvedValue([namedGarden, unnamedGarden]);
+    mockGetWorks.mockResolvedValue(
+      [namedGarden, unnamedGarden].map((garden) =>
+        createMockWork({ id: garden.id, gardenAddress: garden.id })
+      )
+    );
 
     const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
       queryClient,
@@ -239,7 +244,6 @@ describe("usePublicGardens", () => {
 
     expect(result.current.data).toMatchObject([
       { name: "Riparian Restoration", gardenerCount: 4, actionCount: 1 },
-      { name: "Forest Garden", gardenerCount: 2, actionCount: 0 },
     ]);
   });
 
@@ -281,51 +285,36 @@ describe("usePublicGardens", () => {
     });
   });
 
-  it("falls back to garden createdAt when no works exist", async () => {
-    const garden = createMockGarden({
-      id: MOCK_ADDRESSES.garden,
-      name: "Quiet Garden",
-      createdAt: 1_650_000_000_000, // ms
+  it("excludes gardens with no work, pending-only work, or rejected-only work", async () => {
+    const gardens = ["empty", "pending", "rejected"].map((name, index) =>
+      createMockGarden({ id: `0x${String(index + 1).repeat(40)}`, name })
+    );
+    mockGetGardens.mockResolvedValue(gardens);
+    mockGetWorks.mockResolvedValue(
+      gardens
+        .slice(1)
+        .map((garden) => createMockWork({ id: garden.name, gardenAddress: garden.id }))
+    );
+    mockReadWorkApprovalsForWorks.mockResolvedValue({
+      approvals: [createMockWorkApproval({ workUID: "rejected", approved: false })],
+      failedWorkUIDs: [],
     });
-
-    mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockResolvedValue([]);
-
-    const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
-      queryClient,
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    const data = result.current.data ?? [];
-    expect(data[0]?.actionCount).toBe(0);
-    // Garden createdAt in domain is ms; hook normalizes to seconds for parity with works
-    expect(data[0]?.lastActivityAt).toBe(Math.floor(1_650_000_000_000 / 1000));
+    const { result } = renderHookWithQueryClient(() => usePublicGardens(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
   });
 
-  it("treats EAS query failure as soft — gardens still render, with zero entries", async () => {
-    const garden = createMockGarden({
-      id: MOCK_ADDRESSES.garden,
-      name: "Resilient Garden",
-    });
-    mockGetGardens.mockResolvedValue([garden]);
-    mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
-
-    const { result } = renderHookWithQueryClient(() => usePublicGardens(), {
-      queryClient,
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    const data = result.current.data ?? [];
-    expect(data).toHaveLength(1);
-    expect(data[0]?.actionCount).toBe(0);
-    // The mock garden's gardener and steward come from the indexer's role lists, so the count survives.
-    expect(data[0]?.gardenerCount).toBe(2);
+  it.each([
+    "works",
+    "approvals",
+  ])("reports unread %s as an error rather than an empty directory", async (source) => {
+    mockGetGardens.mockResolvedValue([createMockGarden()]);
+    mockGetWorks.mockResolvedValue([createMockWork()]);
+    if (source === "works") mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
+    else mockReadWorkApprovalsForWorks.mockRejectedValue(new Error("Approvals unavailable"));
+    const { result } = renderHookWithQueryClient(() => usePublicGardens(), { queryClient });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
   });
 
   it("propagates indexer (garden) fetch errors", async () => {

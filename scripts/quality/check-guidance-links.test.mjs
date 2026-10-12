@@ -99,6 +99,35 @@ test("finds source consumers of a deleted slash command", () => {
   assert.match(failures[0], /deleted surface -> \/qa-triage/);
 });
 
+test("a deleted guide basename does not match a longer filename that merely starts with it", () => {
+  const deleted = [".claude/skills/testing/references/playwright.md"];
+  assert.deepEqual(
+    scanDeletedSurfaceReferences(
+      [
+        {
+          path: "scripts/quality/check-codex-docs.js",
+          text: 'const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");',
+        },
+      ],
+      deleted,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    scanDeletedSurfaceReferences(
+      [{ path: "docs/guide.mdx", text: "Keep `playwright.md.bak` and `playwright.md-notes` out of it." }],
+      deleted,
+    ),
+    [],
+  );
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "docs/guide.mdx", text: "See `playwright.md` for the rig." }],
+    deleted,
+  );
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /deleted surface -> playwright\.md/);
+});
+
 test("does not confuse status.json paths with the retired status command", () => {
   const failures = scanDeletedSurfaceReferences(
     [{ path: ".claude/skills/plan/SKILL.md", text: "Update .plans/active/example/status.json." }],

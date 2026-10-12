@@ -35,8 +35,7 @@ import { Section } from "./GardenDetailSections";
  * and the one sanctioned percentage when `selectPublicPromiseKeptRate`
  * publishes it); then the open Season and Campaigns beside the pool-wide
  * exact-label units; then the finished cycles newest first; then the line
- * that ties fulfilled commitments to § 03. A Garden with no pool keeps the
- * same body with readiness copy, which keeps the ordinals stable.
+ * that ties fulfilled commitments to § 03. A Garden without a published pool record omits this section.
  *
  * What it never shows: pause reasons, metadata CIDs, provider rows, wallet
  * addresses, cancelled or disputed counts, cancelled cycles, rankings, or any
@@ -63,6 +62,9 @@ export function CommitmentsSection({
   const unavailable = data?.unavailableSources.commitmentPool === true || (!loading && !data);
   const preparing =
     !loading && !unavailable && data !== undefined && !isRecordState(data.pool?.state ?? null);
+
+  // A confirmed pre-launch pool has no public record to explain yet.
+  if (preparing) return null;
 
   return (
     <Section
@@ -94,8 +96,6 @@ export function CommitmentsSection({
           </PanelLead>
         ) : unavailable || !data ? (
           <UnavailableRecord onRetry={() => void pool.refetch()} />
-        ) : preparing ? (
-          <Readiness sentence={stateSentence(formatMessage, data)} />
         ) : (
           <PoolRecord
             data={data}
@@ -170,26 +170,6 @@ function stateSentence(
 }
 
 /** No pool, NOT_READY, or READY: readiness language, no statistics. */
-function Readiness({ sentence }: { sentence: string }) {
-  const { formatMessage } = useIntl();
-  return (
-    <PanelLead lede={sentence}>
-      <PanelNote
-        kicker={formatMessage({
-          id: "public.pool.garden.readinessKicker",
-          defaultMessage: "What this section will hold",
-        })}
-      >
-        {formatMessage({
-          id: "public.pool.garden.readinessBody",
-          defaultMessage:
-            "Commitments made and kept, the open season and its campaigns, and every finished season since the pool opened.",
-        })}
-      </PanelNote>
-    </PanelLead>
-  );
-}
-
 /** Unknown is not zero: em dashes under the labels, a neutral retry beside. */
 function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();

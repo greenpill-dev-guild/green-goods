@@ -24,6 +24,113 @@ const proof = {
 };
 
 describe("garden join request public contract", () => {
+  it("preserves the exact legacy membership signing bytes when kind is omitted", () => {
+    expect(
+      buildGardenJoinProofMessage(proof, { displayName: "Maya", requestedVia: "garden_detail" })
+    ).toBe(
+      [
+        "Green Goods Garden Join Request",
+        "Version: 1",
+        "Chain ID: 11155111",
+        `Garden: ${garden}`,
+        `Account: ${account}`,
+        "Action: create",
+        `Nonce: 0x${"ab".repeat(32)}`,
+        "Issued at: 1800000000",
+        "Expires at: 1800000300",
+        "Display name: Maya",
+        "Requested via: garden_detail",
+      ].join("\n")
+    );
+  });
+
+  it.each([
+    "create",
+    "read_self",
+    "list",
+    "welcome",
+    "decline",
+    "withdraw",
+  ] as const)("binds the requested steward role on a %s signature", (action) => {
+    const stewardProof = { ...proof, action, kind: "steward_access" as const };
+    const message = buildGardenJoinProofMessage(stewardProof);
+    expect(message).toContain("Kind: steward_access");
+    expect(message).toContain("Requested role: Steward (Operator)");
+    expect(buildGardenJoinProofMessage({ ...stewardProof, kind: "garden_membership" })).not.toBe(
+      message
+    );
+  });
+
+  it.each([
+    "admin_access",
+    "account_profile",
+  ] as const)("accepts a steward request from %s", (requestedVia) => {
+    expect(
+      validateCreateGardenJoinRequest({
+        kind: "steward_access",
+        displayName: "  Maya  ",
+        requestedVia,
+      })
+    ).toEqual({
+      ok: true,
+      value: { kind: "steward_access", displayName: "Maya", requestedVia },
+    });
+  });
+
+  it("rejects unsupported kinds and sources outside their request context", () => {
+    for (const input of [
+      { kind: "owner_access", requestedVia: "garden_detail" },
+      { kind: "garden_membership", requestedVia: "admin_access" },
+      { kind: "steward_access", requestedVia: "garden_detail" },
+    ]) {
+      expect(validateCreateGardenJoinRequest({ ...input, displayName: "Maya" })).toMatchObject({
+        ok: false,
+      });
+    }
+  });
+
+  it("rejects a status recovery grant for a different role than the signed envelope", () => {
+    const content = { displayName: "Maya", kind: "steward_access", requestedVia: "admin_access" };
+    const grant = {
+      ...proof,
+      kind: "garden_membership",
+      readSelf: { audience: "https://greengoods.app", content },
+    };
+    expect(validateGardenJoinProofEnvelope(grant, { nowSeconds: issuedAt })).toMatchObject({
+      ok: false,
+    });
+    expect(
+      validateGardenJoinProofEnvelope(
+        { ...grant, kind: "steward_access" },
+        { nowSeconds: issuedAt }
+      )
+    ).toMatchObject({
+      ok: true,
+      value: { kind: "steward_access", readSelf: { content } },
+    });
+  });
+
+  it("rejects unknown proof kinds and a legacy proof presented as a steward authorization", () => {
+    expect(
+      validateGardenJoinProofEnvelope({ ...proof, kind: "owner_access" }, { nowSeconds: issuedAt })
+    ).toMatchObject({ ok: false });
+    expect(
+      validateGardenJoinProofEnvelope(proof, {
+        nowSeconds: issuedAt,
+        expectedKind: "steward_access",
+      })
+    ).toMatchObject({
+      ok: false,
+      error: { fieldErrors: { kind: expect.any(String) } },
+    });
+    expect(
+      validateGardenJoinProofEnvelope(proof, {
+        nowSeconds: issuedAt,
+        expectedKind: "garden_membership",
+      })
+    ).toMatchObject({ ok: true });
+  });
+
   it("validates a required display name and optional note", () => {
     expect(
       validateCreateGardenJoinRequest({

@@ -1,5 +1,13 @@
 export type PlaywrightApp = "admin" | "client";
 
+/**
+ * Where the passkey project runs the Agent's loopback reporting driver, beside the Client that
+ * proxies `/api/messaging` to it. The port stays clear of 3001 to 3013, which the dev stack and
+ * the contracts dual-chain test hold, and of 8787, where a hand-started driver listens.
+ */
+export const REPORTING_DRIVER_PORT = 3016;
+export const REPORTING_DRIVER_URL = `http://127.0.0.1:${REPORTING_DRIVER_PORT}`;
+
 const PROJECT_APPS: Readonly<Record<string, readonly PlaywrightApp[]>> = {
   "admin-ci": ["admin"],
   "anvil-fork": ["client"],
@@ -38,6 +46,29 @@ export function selectedProjectNames(argv: readonly string[]): string[] {
   }
 
   return names;
+}
+
+/**
+ * Whether a `--project` selection picks this project. Playwright matches names without regard to
+ * case and lets `*` stand for any run of characters, so `passkey-*` selects `passkey-mock`.
+ */
+export function selectsProject(selectors: readonly string[], project: string): boolean {
+  const name = project.toLowerCase();
+  return selectors.some((selector) => {
+    const parts = selector.toLowerCase().split("*");
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+    if (parts.length === 1) return first === name;
+    if (!name.startsWith(first) || name.length < first.length + last.length) return false;
+    // The pieces between the stars must follow one another, and the last must end the name.
+    let from = first.length;
+    for (const piece of parts.slice(1, -1)) {
+      const at = name.indexOf(piece, from);
+      if (at < 0) return false;
+      from = at + piece.length;
+    }
+    return name.length - last.length >= from && name.endsWith(last);
+  });
 }
 
 export function resolvePlaywrightApps(

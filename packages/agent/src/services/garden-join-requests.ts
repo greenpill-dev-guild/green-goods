@@ -40,6 +40,7 @@ export type GardenJoinRequestRecord = GardenJoinRequestQueueItem & {
 };
 
 export type CreateGardenJoinRequestRecord = {
+  kind?: GardenJoinRequestKind;
   gardenAddress: Address;
   accountAddress: Address;
   displayName: string;
@@ -50,6 +51,7 @@ export type CreateGardenJoinRequestRecord = {
 };
 
 export type ResolveGardenJoinRequestRecord = {
+  kind?: GardenJoinRequestKind;
   gardenAddress: Address;
   requestId: string;
   expectedRevision: number;
@@ -59,6 +61,7 @@ export type ResolveGardenJoinRequestRecord = {
 };
 
 export type WithdrawGardenJoinRequestRecord = {
+  kind?: GardenJoinRequestKind;
   gardenAddress: Address;
   accountAddress: Address;
   requestId: string;
@@ -74,12 +77,13 @@ export type GardenJoinRequestStore = {
   getMine(
     gardenAddress: Address,
     accountAddress: Address,
-    nowIso?: string
+    nowIso?: string,
+    kind?: GardenJoinRequestKind
   ): Promise<GardenJoinRequestRecord | undefined>;
   getById(gardenAddress: Address, requestId: string): Promise<GardenJoinRequestRecord | undefined>;
   listPending(
     gardenAddress: Address,
-    options?: { cursor?: string; limit?: number; nowIso?: string }
+    options?: { cursor?: string; limit?: number; nowIso?: string; kind?: GardenJoinRequestKind }
   ): Promise<{ items: GardenJoinRequestRecord[]; nextCursor?: string }>;
   resolve(
     input: ResolveGardenJoinRequestRecord
@@ -90,7 +94,8 @@ export type GardenJoinRequestStore = {
   reconcileWelcomed(
     gardenAddress: Address,
     requestId: string,
-    resolvedAt: string
+    resolvedAt: string,
+    kind?: GardenJoinRequestKind
   ): Promise<GardenJoinRequestRecord | undefined>;
   claimProof(nonce: string, expiresAt: string): Promise<boolean>;
   withdraw(input: WithdrawGardenJoinRequestRecord): Promise<boolean>;
@@ -193,18 +198,18 @@ export function createSqliteGardenJoinRequestStore(
   return {
     create: (input) =>
       import("./db").then((db) => db.createGardenJoinRequest(cipher, generators.id(), input)),
-    getMine: (gardenAddress, accountAddress, nowIso) =>
+    getMine: (gardenAddress, accountAddress, nowIso, kind) =>
       import("./db").then((db) =>
-        db.getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso)
+        db.getGardenJoinRequestMine(cipher, gardenAddress, accountAddress, nowIso, kind)
       ),
     getById: (gardenAddress, requestId) =>
       import("./db").then((db) => db.getGardenJoinRequestById(cipher, gardenAddress, requestId)),
     listPending: (gardenAddress, options) =>
       import("./db").then((db) => db.listPendingGardenJoinRequests(cipher, gardenAddress, options)),
     resolve: (input) => import("./db").then((db) => db.resolveGardenJoinRequest(cipher, input)),
-    reconcileWelcomed: (gardenAddress, requestId, resolvedAt) =>
+    reconcileWelcomed: (gardenAddress, requestId, resolvedAt, kind) =>
       import("./db").then((db) =>
-        db.reconcileWelcomedGardenJoinRequest(cipher, gardenAddress, requestId, resolvedAt)
+        db.reconcileWelcomedGardenJoinRequest(cipher, gardenAddress, requestId, resolvedAt, kind)
       ),
     claimProof: (nonce, expiresAt) =>
       import("./db").then((db) =>

@@ -4,7 +4,6 @@ import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePu
 import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import { useId } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialKicker } from "./atoms";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { evidenceRecordTitle } from "./evidenceTitle";
 import { PublicRecordDrawer } from "./PublicRecordDrawer";
@@ -183,7 +182,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
       eyebrow={formatMessage(
         {
           id: "public.impact.dialog.recordHeader",
-          defaultMessage: "Evidence record · № {id}",
+          defaultMessage: "Evidence record",
         },
         { id: recordIdShort }
       )}
@@ -243,7 +242,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
             [
               formatMessage({
                 id: "public.impact.dialog.meta.stage",
-                defaultMessage: "Pipeline stage",
+                defaultMessage: "Record type",
               }),
               kindLabel,
             ],
@@ -261,13 +260,13 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
       </dl>
 
       {sourceRefs.length > 0 ? (
-        <div className="mt-8">
-          <EditorialKicker className="mb-3">
+        <details className="mt-8">
+          <summary className="min-h-11 cursor-pointer text-sm font-medium text-primary-action focus-visible:outline-2 focus-visible:outline-offset-2">
             {formatMessage({
               id: "public.impact.dialog.sourceRecords",
-              defaultMessage: "Source records",
+              defaultMessage: "Record Details",
             })}
-          </EditorialKicker>
+          </summary>
           <ul className="border border-stroke-soft-200 bg-bg-weak-50">
             {sourceRefs.map((ref, index) => (
               <li
@@ -310,7 +309,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : null}
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-stroke-soft-200 pt-6">
