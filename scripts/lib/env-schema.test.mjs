@@ -23,11 +23,13 @@ import {
 } from "./env-parity.mjs";
 import {
   findSyncProblems,
+  parseSchema,
   parseSchemaText,
   readEnvironment,
   requiredKeysForProfile,
   validateRequiredEnvironment,
 } from "./env-schema.mjs";
+import { createBaselineEnv } from "./setup-env.mjs";
 
 const projectRoot = fileURLToPath(new URL("../..", import.meta.url));
 const checkedInSchemaPath = join(projectRoot, "env.schema");
@@ -150,6 +152,34 @@ test("reports each thing that would break a sync or put a wrong value in .env", 
 
 test("the checked-in env.schema can be synced as written", () => {
   assert.deepEqual(findSyncProblems(readFileSync(checkedInSchemaPath, "utf8")), []);
+});
+
+test("a fresh isolated setup satisfies the checked-in schema's dev profile", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "env-baseline-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const required = requiredKeysForProfile(parseSchema(checkedInSchemaPath), "dev");
+
+  createBaselineEnv(root, "isolated");
+  const baseline = readEnvironment({ source: "file", envFilePath: join(root, ".env") });
+
+  assert.ok(required.length > 0, "env.schema marks no key @required-in dev");
+  assert.deepEqual(validateRequiredEnvironment(required, baseline), { missing: [], empty: [] });
+});
+
+test("env:check defaults to the dev profile and refuses a profile nothing is annotated for", (t) => {
+  const { run } = envScriptSandbox(t, "# @required-in dev\nNEEDED=\n# @required-in production\nLATER=\n");
+  const check = (args, env) => run("env-check.js", ["--env-source", "process", ...args], env);
+
+  assert.equal(check([], { NEEDED: "set" }).status, 0);
+
+  const incomplete = check([], { LATER: "set" });
+  assert.equal(incomplete.status, 1);
+  assert.match(incomplete.stderr, /Missing keys \(1\):\s+- NEEDED/);
+
+  // A mistyped profile used to pass with nothing checked.
+  const mistyped = check(["--profile", "prodution"], { NEEDED: "set", LATER: "set" });
+  assert.equal(mistyped.status, 1);
+  assert.match(mistyped.stderr, /marks no key `@required-in prodution`/);
 });
 
 test("env:sync injects from env.schema, keeps a backup, and restores .env when the inject fails", (t) => {
