@@ -8,7 +8,7 @@ import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type FocusEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
@@ -83,6 +83,16 @@ export const SiteHeader = () => {
     setIsDrawerOpen(false);
   }, [pathname, isDesktop]);
 
+  // The header fades with the scroll but its controls stay in the tab order, so the keyboard
+  // can reach one that is faint or gone. Bring the page to the top, where the header is fully
+  // shown over the hero: what the browser does by itself for a header that scrolls with the
+  // page. A pointer press does not count, so a click on a part-faded header moves nothing.
+  const handleHeaderFocus = useCallback((event: FocusEvent<HTMLElement>) => {
+    if (!event.target.matches(":focus-visible") || window.scrollY <= 0) return;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    setHeaderOpacity(1);
+  }, []);
+
   // Drawer pins the header fully visible regardless of scroll position; the
   // user opened it deliberately and needs to read its CTAs.
   const effectiveOpacity = isDrawerOpen ? 1 : headerOpacity;
@@ -110,7 +120,7 @@ export const SiteHeader = () => {
               isFullyHidden && "pointer-events-none"
             )}
             style={{ opacity: effectiveOpacity }}
-            aria-hidden={isFullyHidden ? "true" : undefined}
+            onFocus={handleHeaderFocus}
             data-variant="transparent"
           >
             {/* GEOMETRY SYNC: the boot header skeleton in index.html mirrors this
