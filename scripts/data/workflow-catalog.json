@@ -77,8 +77,8 @@
       "required": false
     },
     ".github/workflows/supply-chain-guardrails.yml": {
-      "purpose": "Checks manifests, lockfiles, and the release-age rule so a dependency change cannot land unreviewed.",
-      "useCase": "Dependency, lockfile, or workflow changes.",
+      "purpose": "Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations.",
+      "useCase": "Dependency, lockfile, toolchain, or workflow changes; agent guidance, skills, plan hubs, and the QA catalog; the validation policy, selector, and git hooks. Each lane after formatting runs only when its own paths change.",
       "required": false
     }
   }
