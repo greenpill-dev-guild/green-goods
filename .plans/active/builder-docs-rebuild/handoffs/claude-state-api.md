@@ -1,6 +1,7 @@
 # Lane Handoff — mechanics (Phase 1: generators & site mechanics)
 
-**Owner**: claude · **Branch**: `feature/builder-docs-rebuild` · **Status**: in_progress
+**Owner**: claude · **Branch**: `feature/builder-docs-rebuild` (merged in PR #795, then removed) ·
+**Status**: blocked on Afo's review gates since 2026-10-12; delivered, not certified
 **Scope**: plan.todo.md Steps 1.1–1.6. No prose rewrites in this lane — mechanism only.
 
 ## Boundaries
