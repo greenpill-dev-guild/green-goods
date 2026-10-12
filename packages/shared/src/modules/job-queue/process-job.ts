@@ -299,7 +299,8 @@ export function createJobProcessor(deps: ProcessJobDependencies) {
         job,
         processingDuration,
         chainId,
-        deps.config.maxRetries
+        deps.config.maxRetries,
+        error
       );
       return { success: false, error: errorMessage };
     }
