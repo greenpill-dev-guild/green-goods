@@ -52,6 +52,9 @@
 | 41 | The API Index is read from the agent's route registrations and lists every public route (19, up from 9); route constants stay where Shared keeps them; the reader refuses a registration it cannot resolve (2026-10-11, Afo: do the task here, add it to this PR) | Three features had added public routes outside `PUBLIC_AGENT_ROUTES` (join requests, saved offers, profile avatars), so an index read from one constant map went incomplete without any signal. Shared already keeps route constants in three files, so moving them into one map would not have removed the need to read registrations |
 | 42 | An integration's `deployment_fields` may be dotted paths into an artifact, each segment checked against the identity blocklist; the Unlock integration declares the GreenWill registry, the Unlock factory and the three lock addresses (2026-10-11, Codex) | With only `greenWill` declared, a registry deployed ahead of its locks read as deployed although no badge could be granted |
 | 43 | Every integration page declares the implementation files its code map and its behavior claims rely on (2026-10-11, Codex on ENS, applied to all nine pages) | The ENS page described the mint-time skip, catch and refund and the Ethereum receiver while declaring only the Arbitrum sender; the same gap sat on the Cookie Jar and Karma pages, and the others cited code-map files they did not declare |
+| 44 | An integration's completeness counts schema registrations: a deployment field ending in `SchemaUID` holds a schema UID, EAS declares its three registrations beside its resolvers, and Tokenbound declares the garden token; the chain's own EAS addresses are left out (2026-10-11, Codex) | Celo records the three resolvers and only the work schema, so EAS read as deployed there while two record types could not be written. Every artifact records `eas.address` and `eas.schemaRegistry`, including Ethereum where nothing of ours is deployed, so counting them would list Ethereum as a partial deployment |
+| 45 | The ontology's Vault definition states custody as the contracts have it: funders hold the vault's shares, the yield is donated on (by default to the yield resolver), and the garden account is only a fallback destination (2026-10-11, Codex) | The old text said the garden's token-bound account holds the vault, which points integrations at the wrong account for balances and authority. The Garden and Tokenbound definitions keep "treasury": the account does hold the GOODS the Gardens module seeds |
+| 46 | A page that describes module setup at mint, or a cross-chain delivery, says it is best-effort, names the read that shows what exists, and names who can repair it (Gardens, Octant, ENS; Cookie Jar already did) (2026-10-11, Codex) | `GardenHooksLib` swallows every module failure except the hat tree, and the ENS receiver records a name even when the ENS call reverts, so an unconditional flow sends readers to query state that may not exist |
 
 ## Requirements Coverage
 
@@ -190,6 +193,11 @@ Status (2026-10-11, two Codex rounds and the route index): three threads on `2aa
 suggestion (decision 39); the API Index now lists every public agent route (`ea2b5f410`, decision
 41), built at Afo's request and added to this PR by his choice; decisions 39 to 43. The duplicated
 join-request paths in the agent and Shared's transport are left for a follow-up issue.
+
+Status (2026-10-11, Codex on `fee71dd2e`): five more threads, all valid, fixed in `517e8cb49`: EAS
+completeness counts schema registrations (Celo reads Partial), the Vault definition states custody
+as the contracts have it, Gardens setup and ENS delivery are marked best-effort, and the Contracts
+page's two library rows are swapped back; decisions 44 to 46. CI was green on `fee71dd2e`.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

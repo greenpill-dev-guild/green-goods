@@ -447,3 +447,31 @@ renders all 13 skills.
   `packages/agent/src/api` and `packages/shared/src/modules/garden-join-requests/transport.ts`
   with no shared constant. Afo chose a backlog issue for it.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).
+
+## Validation Receipt — Five Codex threads on fee71dd2e (2026-10-11)
+
+- **Scope**: the five threads Codex opened on `fee71dd2e`; all ACTIONABLE, fixed in `517e8cb49`.
+  Decisions 44 to 46. GitHub CI was green on `fee71dd2e` (30 pass, 6 skipped) before this round.
+- **EAS completeness**: `selectSafeDeploymentFields` (renamed from the address-only selector) takes
+  a schema UID for a field ending in `SchemaUID` and an address for any other, and rejects the
+  wrong shape either way. Generated status: Sepolia and Arbitrum One Deployed with six fields, Celo
+  Partial with four.
+- **Vault custody**: verified in `Octant.sol` (the module is the vault's role manager and the
+  donation address defaults to the yield resolver) and `Yield.sol` (three-way split; the garden
+  account is the fallback when a Cookie Jar or treasury is not set).
+- **Best-effort setups**: verified in `GardenHooks.sol`, `Gardens.sol` (`GardenPartiallyInitialized`,
+  `createGardenPools`, `retryCreateCommunity`) and `ENSReceiver.sol` (`NameRegistrationSkipped`,
+  `ENSRegistrationFailed` followed by `NameRegistered`).
+- **Exact commands and results**: `node --test` over the nine suites → 291/291 ·
+  `node scripts/docs/generate.mjs --check` → 16 current · `node scripts/quality/check-ontology.mjs`
+  → all guards passed · `node docs/scripts/docs-audit.mjs --ci` → exit 0, the same two advisory
+  warnings · docs `bun run test` 87/87 and `bun run build` → 70 routes, search index covers 70.
+- **Push gate**: run on `517e8cb49` with the ontology check and the nine docs test files as focus: passed, 12 fresh passes, 0 reused, 0 unrun of 13 selected checks; the thirteenth is the manual browser proof, recorded below.
+- **Rendered proof**: local production build in the desktop app's browser pane, no sign-in. The
+  Gardens, ENS and Octant diagrams render with their new labels and no parse error; the EAS status
+  table shows Celo as Partial; the Contracts page shows the three corrected rows; no console
+  errors.
+- **GitHub writes**: one reply and a resolution on each of the five threads, under Afo's standing
+  request to address and resolve the valid comments.
+- **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge). The
+  Vault and Cookie Jar definitions are canonical glossary text changed in review; worth a read.

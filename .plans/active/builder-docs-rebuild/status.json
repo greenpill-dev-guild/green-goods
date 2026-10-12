@@ -257,6 +257,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Seven Codex threads over two rounds fixed (01dce161d, 6f631c8dc) and the API Index extended to every public agent route (ea2b5f410, 19 routes, read from the registrations); decisions 39 to 43. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T00:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on fee71dd2e fixed in 517e8cb49 (EAS schema registrations, vault custody, Gardens and ENS best-effort, the Contracts page's library rows); decisions 44 to 46. Receipt in handoffs/claude-ui.md."
     }
   ]
 }
