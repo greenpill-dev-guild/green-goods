@@ -15,6 +15,7 @@ next_steps: "/community/steward-guide/managing-members"
 persona_context: "The person setting up a new garden so a community can start recording work in it."
 source_of_truth:
   - packages/admin/src/views/Garden/CreateGarden.tsx
+  - packages/admin/src/components/WalletCancellationRecovery.tsx
   - packages/admin/src/routes/views.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.tsx
@@ -121,6 +122,7 @@ You act next. The garden exists, and it is empty and closed.
 | **You're offline** | Reconnect, then tap **Deploy Garden** again. What you typed is still there |
 | **Cannot deploy yet** | The form does not think it is complete. Check every field in section 01, then try again. If every field is filled and it still appears, tell the Green Goods team |
 | **Transaction cancelled** | You closed the confirmation. Nothing was created. Tap **Retry Deployment** when you are ready |
+| **Awaiting wallet execution** | Your wallet accepted the request and it has not finished. Open your wallet and approve or finish it there, then tap **Check confirmation**. Do not deploy a second time while this one is waiting |
 | **Transaction failed** | Read the message under it, then tap **Retry Deployment**. With your own wallet, the usual cause is not enough ETH for the fee |
 | A person you added is not listed afterwards | Give the list a moment to catch up. If they are still missing, add them from [Manage Members](/community/steward-guide/managing-members) |
 
