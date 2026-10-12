@@ -21,12 +21,13 @@ import {
   collectRenderableAddresses,
   deploymentAddressFields,
   isRecordedAddress,
+  isRecordedDeploymentValue,
   packageExports,
   publicAgentRoutes,
   publicAgentRouteSources,
   readJson,
   routeConstants,
-  selectSafeAddressFields,
+  selectSafeDeploymentFields,
   selectSafeFields,
   supportedChainIds,
   workflowInventory,
@@ -110,20 +111,33 @@ test("projects only allowlisted safe configuration fields", () => {
 test("accepts only valid deployment addresses and treats zero as absent", () => {
   const address = "0x1111111111111111111111111111111111111111";
   const zero = "0x0000000000000000000000000000000000000000";
-  assert.deepEqual(selectSafeAddressFields({ module: address }, ["module"]), { module: address });
+  assert.deepEqual(selectSafeDeploymentFields({ module: address }, ["module"]), { module: address });
   assert.equal(isRecordedAddress(address), true);
   assert.equal(isRecordedAddress(zero), false);
   assert.throws(
-    () => selectSafeAddressFields({ module: "not-an-address" }, ["module"]),
+    () => selectSafeDeploymentFields({ module: "not-an-address" }, ["module"]),
     /Malformed deployment address/,
   );
   // A field may be a path into the artifact; a path through an operator identity is refused.
   const nested = { unlock: { managerDefaults: [address], locks: { genesis: { address } } } };
   assert.deepEqual(
-    selectSafeAddressFields(nested, ["unlock.locks.genesis.address", "unlock.locks.firstWork.address"]),
+    selectSafeDeploymentFields(nested, ["unlock.locks.genesis.address", "unlock.locks.firstWork.address"]),
     { "unlock.locks.genesis.address": address },
   );
-  assert.throws(() => selectSafeAddressFields(nested, ["unlock.managerDefaults"]), /Unsafe configuration field/);
+  assert.throws(() => selectSafeDeploymentFields(nested, ["unlock.managerDefaults"]), /Unsafe configuration field/);
+  // A schema registration is recorded as a UID, and only a field named for one may hold it.
+  const uid = `0x${"ab".repeat(32)}`;
+  assert.deepEqual(selectSafeDeploymentFields({ schemas: { workSchemaUID: uid } }, ["schemas.workSchemaUID"]), {
+    "schemas.workSchemaUID": uid,
+  });
+  assert.throws(() => selectSafeDeploymentFields({ module: uid }, ["module"]), /Malformed deployment address/);
+  assert.throws(
+    () => selectSafeDeploymentFields({ schemas: { workSchemaUID: address } }, ["schemas.workSchemaUID"]),
+    /Malformed deployment schema UID/,
+  );
+  assert.equal(isRecordedDeploymentValue(uid), true);
+  assert.equal(isRecordedDeploymentValue(`0x${"0".repeat(64)}`), false);
+  assert.equal(isRecordedDeploymentValue(address), true);
 });
 
 test("an integration is deployed only when every field it declares is recorded", () => {
@@ -139,12 +153,20 @@ test("an integration is deployed only when every field it declares is recorded",
       JSON.stringify({ networks: { staged: { chainId: 1, name: "Staged" }, complete: { chainId: 2, name: "Complete" } } }),
     );
     writeFileSync(path.join(root, "packages/indexer/config.yaml"), "contracts:\n  - name: Registry\n");
-    // The registry is recorded on both networks; only the second has the lock it depends on.
-    writeFileSync(path.join(root, deployments, "1-latest.json"), JSON.stringify({ registry: address, locks: { first: { address: zero } } }));
-    writeFileSync(path.join(root, deployments, "2-latest.json"), JSON.stringify({ registry: address, locks: { first: { address } } }));
+    // The registry is recorded on both networks; only the second has the lock and the schema it
+    // depends on.
+    const uid = (digit) => `0x${digit.repeat(64)}`;
+    writeFileSync(
+      path.join(root, deployments, "1-latest.json"),
+      JSON.stringify({ registry: address, locks: { first: { address: zero } }, schemas: { firstSchemaUID: uid("0") } }),
+    );
+    writeFileSync(
+      path.join(root, deployments, "2-latest.json"),
+      JSON.stringify({ registry: address, locks: { first: { address } }, schemas: { firstSchemaUID: uid("c") } }),
+    );
     const ontology = {
       integrations: [
-        { id: "badges", display: "Badges", definition: "", deployment_fields: ["registry", "locks.first.address"], indexer_contracts: ["Registry"] },
+        { id: "badges", display: "Badges", definition: "", deployment_fields: ["registry", "locks.first.address", "schemas.firstSchemaUID"], indexer_contracts: ["Registry"] },
       ],
     };
     const sources = [`${deployments}/1-latest.json`, `${deployments}/2-latest.json`, `${deployments}/networks.json`, "packages/indexer/config.yaml"];
@@ -153,7 +175,7 @@ test("an integration is deployed only when every field it declares is recorded",
       badges.networks.map((network) => [network.name, network.status, network.recorded]),
       [
         ["Staged", "Partial", ["registry"]],
-        ["Complete", "Deployed", ["registry", "locks.first.address"]],
+        ["Complete", "Deployed", ["registry", "locks.first.address", "schemas.firstSchemaUID"]],
       ],
     );
   } finally {

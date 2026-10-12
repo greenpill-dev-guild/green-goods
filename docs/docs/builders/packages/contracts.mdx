@@ -4,7 +4,7 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
@@ -37,8 +37,9 @@ sit in `test/` by area, and `deployments/` records the outcome.
 | `src/modules/` | Opt-in integrations plus the pooling and settlement control planes |
 | `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
 | `src/tokens/` | The Garden and Goods tokens |
-| `src/libraries/` | The pooling and settlement libraries the modules link against at deploy time |
-| `src/lib/` and `src/interfaces/` | Shared Solidity helpers (EAS, strings, token-bound accounts) and the interfaces every contract speaks |
+| `src/lib/` | The pooling and settlement libraries the modules link against at deploy time (`CommitmentPooling/`, `Settlement/`), the garden mint hooks, and shared helpers for Hats, Karma, strings, and token-bound accounts |
+| `src/libraries/` | Garden Safe execution and its action codec, the Celo garden account ledger, and the settlement message codec |
+| `src/interfaces/` | The interfaces every contract speaks |
 | `src/markets/` and `src/strategies/` | Hypercert marketplace adapters and their strategies |
 | `src/vendor/` and `src/mocks/` | Vendored partner contracts (Gardens, Octant) and the test doubles |
 | `src/Schemas.sol` and `src/CommonErrors.sol` | EAS schema definitions and the shared error set |

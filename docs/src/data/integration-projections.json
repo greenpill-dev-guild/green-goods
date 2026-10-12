@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:61e24eebd53bf7e522c39eedde76692404783ab299425052fed3944752274563",
+  "digest": "sha256:9eb360922be8635875c4ad17ed9a909a033ca3b2707acfe25b5d94baf9c5bc3d",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",
@@ -42,7 +42,10 @@
           "recorded": [
             "assessmentResolver",
             "workApprovalResolver",
-            "workResolver"
+            "workResolver",
+            "schemas.assessmentSchemaUID",
+            "schemas.workApprovalSchemaUID",
+            "schemas.workSchemaUID"
           ]
         },
         {
@@ -52,17 +55,21 @@
           "recorded": [
             "assessmentResolver",
             "workApprovalResolver",
-            "workResolver"
+            "workResolver",
+            "schemas.assessmentSchemaUID",
+            "schemas.workApprovalSchemaUID",
+            "schemas.workSchemaUID"
           ]
         },
         {
           "chainId": 42220,
           "name": "Celo",
-          "status": "Deployed",
+          "status": "Partial",
           "recorded": [
             "assessmentResolver",
             "workApprovalResolver",
-            "workResolver"
+            "workResolver",
+            "schemas.workSchemaUID"
           ]
         }
       ],
@@ -247,7 +254,8 @@
           "status": "Deployed",
           "recorded": [
             "accountProxy",
-            "gardenAccountImpl"
+            "gardenAccountImpl",
+            "gardenToken"
           ]
         },
         {
@@ -256,7 +264,8 @@
           "status": "Deployed",
           "recorded": [
             "accountProxy",
-            "gardenAccountImpl"
+            "gardenAccountImpl",
+            "gardenToken"
           ]
         },
         {
@@ -265,7 +274,8 @@
           "status": "Deployed",
           "recorded": [
             "accountProxy",
-            "gardenAccountImpl"
+            "gardenAccountImpl",
+            "gardenToken"
           ]
         }
       ],

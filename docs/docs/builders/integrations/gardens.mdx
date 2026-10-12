@@ -12,6 +12,8 @@ source_of_truth:
   - packages/contracts/src/modules/Gardens.sol
   - packages/shared/src/modules/data/gardens.ts
   - packages/shared/src/hooks/conviction
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/GardenHooks.sol
 keywords:
   - gardens
   - conviction voting
@@ -29,12 +31,23 @@ where support should flow, rather than one-off votes.
 
 ## How it flows
 
-The module links a garden to its Gardens community, where members signal support over time.
+When a garden is minted, the module tries to create its Gardens community and the signal pools
+where members signal support over time. That setup is best-effort, so a garden can exist with
+neither, or with a community and no pools:
+
+- Community creation can fail and leave the garden without one, and pool creation can fail on its
+  own. The module emits `GardenPartiallyInitialized` in both cases.
+- A module call that reverts outright is caught by the mint, so the garden still mints.
+
+Read the result before relying on it: `getGardenCommunity` returns the zero address and
+`getGardenSignalPools` an empty list for a garden that has none. A steward of the garden or the
+protocol owner can create missing pools with `createGardenPools`; retrying the community
+(`retryCreateCommunity`) is the protocol owner's.
 
 ```mermaid
 flowchart LR
-  garden["Garden"] -->|Gardens module| community["Gardens community"]
-  community --> pools["Signal pools"]
+  garden["Garden minted"] -->|Gardens module, best-effort| community["Gardens community"]
+  community -->|best-effort| pools["Signal pools"]
   members([Community members]) -->|signal support over time| pools
 ```
 
@@ -43,6 +56,7 @@ flowchart LR
 | Layer | Source |
 |---|---|
 | Module | `packages/contracts/src/modules/Gardens.sol` |
+| Mint-time call | `packages/contracts/src/tokens/Garden.sol`, through `notifyGardens` in `packages/contracts/src/lib/GardenHooks.sol`, which skips a missing module and catches a failed call |
 | Data access | `packages/shared/src/modules/data/gardens.ts` |
 | Conviction hooks | `packages/shared/src/hooks/conviction` |
 

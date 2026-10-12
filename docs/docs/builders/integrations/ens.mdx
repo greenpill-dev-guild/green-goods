@@ -32,13 +32,22 @@ registry, the cross-chain receiver, and the resolution paths that make those nam
 
 ## How it flows
 
-Names are registered on Arbitrum and settled on Ethereum, where `greengoods.eth` lives.
+Names are registered on Arbitrum and settled on Ethereum, where `greengoods.eth` lives. A
+delivered message is not a registered name:
+
+- The receiver skips a name that is invalid, already taken, or whose owner already has one, and
+  emits `NameRegistrationSkipped`.
+- When the ENS registry, resolver, or NameWrapper call reverts, the receiver emits
+  `ENSRegistrationFailed`, and still records the name and emits `NameRegistered`.
+
+So `name.greengoods.eth` can stay unresolved after a successful CCIP message. Resolve the name, or
+look for those two events, before treating it as live.
 
 ```mermaid
 flowchart LR
   claim(["Garden mint or gardener claim"]) --> sender["GreenGoodsENS<br/>(Arbitrum)"]
   sender -->|CCIP message| receiver["GreenGoodsENSReceiver<br/>(Ethereum)"]
-  receiver -->|registers| name["name.greengoods.eth"]
+  receiver -->|registers, best-effort| name["name.greengoods.eth"]
   apps["Apps and wallets"] -->|resolve| name
 ```
 
@@ -47,7 +56,7 @@ flowchart LR
 | Layer | Source |
 |---|---|
 | Registry (Arbitrum sender) | `packages/contracts/src/registries/ENS.sol` |
-| Receiver (Ethereum) | `packages/contracts/src/registries/ENSReceiver.sol`, which validates the CCIP message and registers the name |
+| Receiver (Ethereum) | `packages/contracts/src/registries/ENSReceiver.sol`, which validates the CCIP message, records the name, and sets the ENS records in a try/catch |
 | Mint-time request | `packages/contracts/src/tokens/Garden.sol`, which skips the step without a module or slug, catches a failed registration, and queues the fee for refund |
 | Resolution hooks | `packages/shared/src/hooks/ens` |
 | Recorded components | The `greenGoodsENS` and `ensReceiver` fields in the [deployment record](/builders/reference/deployments) |

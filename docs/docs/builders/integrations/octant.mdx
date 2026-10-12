@@ -13,6 +13,9 @@ source_of_truth:
   - packages/shared/src/modules/data/vaults.ts
   - packages/shared/src/modules/data/vault-repository.ts
   - packages/shared/src/modules/data/yield-allocations.ts
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/GardenHooks.sol
+  - packages/contracts/src/resolvers/Yield.sol
 keywords:
   - octant
   - vaults
@@ -34,15 +37,27 @@ withdrawal entrypoint of its own.
 ## How it flows
 
 Money moves one way for yield and the other way for deposits. Funders can take their deposit
-back; the yield stays with the garden.
+back; the yield does not return to them.
 
 ```mermaid
 flowchart LR
   funder([Funder]) -->|deposits| vault["Garden vault"]
   vault --> strategy["Yield strategy"]
-  strategy -->|yield| garden["The garden's work"]
+  strategy -->|yield, as vault shares| resolver["Yield resolver"]
+  resolver -->|split by the garden's ratios| work["Cookie Jar, Hypercert fractions,<br/>GOODS treasury"]
   vault -.->|withdraw later| funder
 ```
+
+Custody follows from that. Funders hold the vault's shares, the module is each vault's role
+manager, and the yield a strategy harvests is minted as vault shares to the yield resolver, which
+splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the Juicebox treasury
+that backs GOODS. The garden's own account is not the vault's custodian: it receives routed yield
+only as a fallback, when the Cookie Jar or treasury that should receive it is not set.
+
+Vaults are created when a garden is minted, one per supported asset, and that call is best-effort
+like the other module hooks, so a garden can exist with no vault. `getVaultForAsset` returns the
+zero address for one that is missing, and a steward of the garden or the protocol owner can create
+it with `createVaultForAsset`.
 
 <figure className="gg-figure">
   <img src="/img/builders/site-vaults.webp" alt="The public Vaults page: a hero reading Public goods campaigns, powered by Octant vaults, above the list of active campaigns ready for support" loading="lazy" width="2000" height="1250" />
@@ -54,6 +69,8 @@ flowchart LR
 | Layer | Source |
 |---|---|
 | Module | `packages/contracts/src/modules/Octant.sol` |
+| Vault creation at mint | `packages/contracts/src/tokens/Garden.sol`, through `notifyOctant` in `packages/contracts/src/lib/GardenHooks.sol`, which skips a missing module and catches a failed call |
+| Yield split | `packages/contracts/src/resolvers/Yield.sol` |
 | Vault data access | `packages/shared/src/modules/data/vaults.ts` and `vault-repository.ts` |
 | Yield routing | `packages/shared/src/modules/data/yield-allocations.ts` |
 

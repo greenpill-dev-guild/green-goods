@@ -4,7 +4,7 @@ import {
   collectRenderableAddresses,
   deploymentInventory,
   indexerContracts,
-  isRecordedAddress,
+  isRecordedDeploymentValue,
   networkExplorers,
   networkNames,
   packageExports,
@@ -167,7 +167,7 @@ export function renderPersonaSurfaces({ root, sources, digest }) {
 
 
 function deploymentState(values, fields) {
-  const present = fields.filter((field) => isRecordedAddress(values[field]));
+  const present = fields.filter((field) => isRecordedDeploymentValue(values[field]));
   if (present.length === fields.length) return "Deployed";
   if (present.length > 0) return "Partial";
   return "Not deployed";
@@ -405,7 +405,7 @@ export function integrationNetworkRecords({ root, sources, ontology }) {
         chainId: Number(row.chainId),
         name: names.get(Number(row.chainId)) ?? String(row.chainId),
         status: deploymentState(row.values, integration.deployment_fields),
-        recorded: integration.deployment_fields.filter((field) => isRecordedAddress(row.values[field])),
+        recorded: integration.deployment_fields.filter((field) => isRecordedDeploymentValue(row.values[field])),
       }))
       .filter((network) => network.recorded.length > 0);
     integrations[integration.id] = {

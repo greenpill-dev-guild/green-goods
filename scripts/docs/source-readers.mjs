@@ -117,11 +117,12 @@ export function selectSafeFields(value, allowlist) {
 }
 
 /**
- * The recorded addresses for the allowlisted fields, keyed by the field as written. A field may
- * be a dotted path into the artifact (`unlock.locks.genesis.address`); every segment is checked,
- * so a path cannot reach an operator identity through a harmless-looking parent.
+ * The recorded values for the allowlisted fields, keyed by the field as written. A field may be
+ * a dotted path into the artifact (`unlock.locks.genesis.address`); every segment is checked, so
+ * a path cannot reach an operator identity through a harmless-looking parent. A field whose name
+ * ends in `SchemaUID` holds a schema UID, and every other field an address.
  */
-export function selectSafeAddressFields(value, allowlist) {
+export function selectSafeDeploymentFields(value, allowlist) {
   const selected = {};
   for (const field of allowlist) {
     const segments = field.split(".");
@@ -130,8 +131,9 @@ export function selectSafeAddressFields(value, allowlist) {
     }
     const projected = segments.reduce((node, segment) => node?.[segment], value);
     if (projected === undefined || projected === null) continue;
-    if (typeof projected !== "string" || !ADDRESS_VALUE.test(projected)) {
-      throw new Error(`Malformed deployment address for ${field}: ${String(projected)}`);
+    const [shape, kind] = field.endsWith("SchemaUID") ? [SCHEMA_UID, "schema UID"] : [ADDRESS_VALUE, "address"];
+    if (typeof projected !== "string" || !shape.test(projected)) {
+      throw new Error(`Malformed deployment ${kind} for ${field}: ${String(projected)}`);
     }
     selected[field] = projected;
   }
@@ -150,7 +152,7 @@ export function deploymentAddressFields(root, sources) {
     }
   }
   const fields = [...candidates].sort();
-  for (const deployment of deployments) selectSafeAddressFields(deployment, fields);
+  for (const deployment of deployments) selectSafeDeploymentFields(deployment, fields);
   return fields;
 }
 
@@ -372,12 +374,17 @@ export function deploymentInventory(root, sources, fields) {
   return sources.map((source) => {
     const chainId = path.basename(source).split("-")[0];
     const deployment = readJson(root, source);
-    return { chainId, source, values: selectSafeAddressFields(deployment, fields) };
+    return { chainId, source, values: selectSafeDeploymentFields(deployment, fields) };
   });
 }
 
 export function isRecordedAddress(value) {
   return typeof value === "string" && ADDRESS_VALUE.test(value) && !ZERO_ADDRESS.test(value);
+}
+
+/** An address or a schema UID that an artifact records as set: well-formed and not all zeros. */
+export function isRecordedDeploymentValue(value) {
+  return isRecordedAddress(value) || (typeof value === "string" && SCHEMA_UID.test(value) && !ZERO_UID.test(value));
 }
 
 export function readText(root, source) {
