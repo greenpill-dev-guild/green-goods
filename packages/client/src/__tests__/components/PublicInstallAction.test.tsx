@@ -9,7 +9,7 @@
  * @vitest-environment happy-dom
  */
 
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, type NavigateFunction, useNavigate } from "react-router-dom";
@@ -340,7 +340,32 @@ describe("PublicInstallAction", () => {
     expect(screen.queryByText("Open Green Goods from your home screen")).not.toBeInTheDocument();
   });
 
-  it("keeps Open App primary for remembered Android installs and exposes reinstall help", () => {
+  it("returns keyboard focus to the control that opened the install sheet", async () => {
+    mockUseIsBraveBrowser.mockReturnValue(false);
+    mockUseApp.mockReturnValue({
+      isMobile: false,
+      platform: "unknown",
+      isInstalled: false,
+      wasInstalled: false,
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+
+    renderAction();
+    const cta = screen.getByTestId("cta");
+    cta.focus();
+    fireEvent.click(cta);
+    const sheet = screen.getByRole("dialog", { name: "Bring Green Goods into the field" });
+    await waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    // Without a Radix trigger the sheet would leave focus on the page body.
+    await waitFor(() => expect(cta).toHaveFocus());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps Open App primary for remembered Android installs and exposes reinstall help", async () => {
     mockUseIsBraveBrowser.mockReturnValue(false);
     mockUseApp.mockReturnValue({
       isMobile: true,
@@ -378,6 +403,10 @@ describe("PublicInstallAction", () => {
 
     expect(screen.getByText("Install Green Goods on this phone")).toBeInTheDocument();
     expect(mockInstallHandler).not.toHaveBeenCalled();
+
+    // The reinstall control opened this sheet, so closing it hands focus back to that control.
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.getByTestId("fallback")).toHaveFocus());
   });
   it("keeps the shared work destination on the app-opening anchor", () => {
     mockUseIsBraveBrowser.mockReturnValue(false);
