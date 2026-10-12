@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-23T22:55:58.404Z",
-    "updated_at": "2026-10-12T19:35:19.679Z"
+    "updated_at": "2026-10-12T21:42:48.615Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,13 +50,14 @@
   "notes": [
     "Brought forward on 2026-10-12 (plan.todo.md L12): the non-pooling foundation runs now in PR #896. Pooling documentation belongs to the commitment-pooling hub (PRD-1156 for the 2.0.0 release slice, PRD-727 for the full scope); that relationship is a note, not a depends_on_features entry, so this hub stays valid when the pooling hub closes. Insertion points for the later pooling pages are in handoffs/pooling-insertion-points.md.",
     "Lane mapping: ui = community pages, sidebar, redirects, consumer pointers, and screenshots; state_api = the glossary renderer, the ontology gate term-heading guard, and (only if Decision Q3 keeps the page) the claims renderer. Phase progress is tracked in plan.todo.md, not as custom lanes.",
-    "Decisions live in plan.todo.md: locked L1 to L19, executor choices E1 to E11, and open Q2, Q3, Q4, Q9, Q10. No Linear mirror exists; creating one is an external write that waits for Afo (L19).",
-    ".plans/ is the durable repo truth; status.json is authoritative for lane state. A lane stays in_progress until its handoff carries a validation receipt and its owed proof has an owner."
+    "Decisions live in plan.todo.md: locked L1 to L19, executor choices E1 to E23, and open Q2, Q3, Q4, Q9, Q10. No Linear mirror exists; creating one is an external write that waits for Afo (L19).",
+    ".plans/ is the durable repo truth; status.json is authoritative for lane state. A lane stays in_progress until its handoff carries a validation receipt and its owed proof has an owner.",
+    "State on 2026-10-12: the ui and state_api lanes passed on commit 0b22f55cc in the session branch claude/green-goods-community-docs-b0ebe9, which starts at PR #896's head. Nothing is pushed, and the branch has not been merged with develop since that head. qa_pass_1 needs a person's authenticated session; the unassisted read-through (eval.md AC-9) needs people. Open decisions: Q3, Q4, Q9, Q10."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "chore/community-docs-revamp-plan",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -78,22 +79,22 @@
     },
     "state_api": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "chore/community-docs-revamp-plan",
       "depends_on": [],
       "handoff": "handoffs/claude-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "node --test scripts/docs/generate.test.mjs && node --test scripts/quality/check-ontology.test.mjs",
+          "evidence": "2026-10-12T20:11:32Z: both suites failed to load. generate.test.mjs: The requested module './renderers.mjs' does not provide an export named 'glossaryEverydayEntries'. check-ontology.test.mjs: does not provide an export named 'parseGlossaryTermHeadings'."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "node --test scripts/docs/generate.test.mjs && node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs && node scripts/docs/generate.mjs --check",
+          "evidence": "2026-10-12T20:16:13Z: generator suite 44 of 44 passed; ontology suite 69 of 69 passed; check-ontology: all guards passed, 7 baselined; Checked documentation projections (17). Re-run on 0b22f55cc at 2026-10-12T21:03:06Z inside the planner run: docs-authority 72 tests passed, ontology 69 tests passed."
         },
-        "note": "Glossary renderer in scripts/docs/generate.test.mjs; the ontology gate term-heading guard, and the claims renderer if Decision Q3 keeps that page, in scripts/quality/check-ontology.test.mjs (the suite that owns scripts/quality/ontology-render.mjs)."
+        "note": ""
       },
       "skill_tags": ["docs", "scripts"],
       "manual_blocked": false
@@ -121,7 +122,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -188,6 +189,30 @@
       "status": "in_progress",
       "branch": "chore/community-docs-revamp-plan",
       "note": "Glossary step 3.1 started; step 3.2 waits for Q3."
+    },
+    {
+      "timestamp": "2026-10-12T21:42:04.839Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "chore/community-docs-revamp-plan",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-12T21:42:48.188Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "passed",
+      "branch": "chore/community-docs-revamp-plan",
+      "note": "Step 3.1 passed on 0b22f55cc: the glossary leads with everyday terms from human_concepts, every anchor is kept, and the term-heading guard reads the new section. RED/GREEN and the receipt are in handoffs/claude-state-api.md. Step 3.2 (claims renderer headings) is not started and waits on Decision Q3."
+    },
+    {
+      "timestamp": "2026-10-12T21:42:48.616Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "passed",
+      "branch": "chore/community-docs-revamp-plan",
+      "note": "Phases 0 to 2 and steps 4.1 and 4.2 passed on 0b22f55cc: 14 of 14 automated checks, a rendered check of 30 pages at two widths, redirects, anchors, search, and Markdown twins. Receipt in handoffs/claude-ui.md. Not pushed, and not merged with develop since the PR head. The replay on the released product (4.3) and the read-through by people (4.4) are not run."
     }
   ]
 }

@@ -9,8 +9,8 @@
    docs alone. An agent replay does not prove this. It is met by AC-9, a reading by people.
 3. Regression safety: the docs gate chain is green, every moved slug redirects, and no consumer
    points at a moved path.
-4. Evidence quality: screenshots name their source and build, and no page states an availability,
-   money, or privacy fact that its named source does not support.
+4. Evidence quality: screenshots name their source and capture date, and no page states an
+   availability, money, or privacy fact that its named source does not support.
 5. Human judgment: an open decision never ships as a change. Q3 and Q4 keep their pages until
    decided.
 
@@ -21,7 +21,7 @@
 | AC-1 | Structure | The community sidebar matches `spec.md` § Target information architecture: FAQ at `/faq`, a separate Evaluator guide, Formal Ontology on Builders, Brand kit still listed, and the existing Commitment Pool page still listed | `ui` | Sidebar diff plus a docs build |
 | AC-2 | Voice | No em dashes in hand-written community or Reference prose, and every protocol or chain name is inside a "using your own wallet" box or reviewed as necessary | `ui` | The two searches below, each remaining hit reviewed in the `ui` handoff |
 | AC-3 | Page contract | Every task page has a purpose, before you start, numbered steps with on-screen labels, how you know it worked, what happens next, recovery, and one next step | `ui` | Checklist in the `ui` handoff |
-| AC-4 | Screenshots | Every screenshot has alt text and a caption that names its source and build; the steps read complete with images turned off; no image shows a live garden's members or photos | `ui` | Image list in the `ui` handoff |
+| AC-4 | Screenshots | Every screenshot has alt text and a caption that names its source and capture date; the steps read complete with images turned off; no image shows a live garden's members or photos | `ui` | Image list in the `ui` handoff |
 | AC-5 | Truth | Every `ui` item in `spec.md` § Truth fixes is resolved | `ui` | Search results plus a read-through |
 | AC-6 | Glossary generator | The page leads with plain entries for the listed terms; all prior anchors resolve; both canonical tables are unchanged; an undeclared heading in either term section fails the ontology gate | `state_api` | RED/GREEN in `scripts/docs/generate.test.mjs` and `scripts/quality/check-ontology.test.mjs`; `bun run check --only docs-generated` and `bun run check --only ontology` clean |
 | AC-7 | Replay | Every guide is walked on the released product | `qa_pass_1` | Handoff with engine and session labeled per `AGENTS.md` § Browser Evidence |

@@ -151,8 +151,10 @@ Concept pages (Welcome, How It Works) use a one-line definition, an everyday com
 story, and a plain "what it is not".
 
 Screenshots support the text; they never carry a step alone. Each has alt text and a caption that
-names its source and build (for example "Storybook fixture, develop at `<short sha>`"), and comes
-from a fixture, demo, or public page, never a live garden's members or photos.
+names its source and capture date (for example "Storybook fixture, 12 October 2026"), and comes
+from a fixture, demo, or public page, never a live garden's members or photos. The deployed
+Storybook does not expose the commit it was built from, so a caption cannot name a build; add the
+commit when a source does expose one.
 
 ## Voice and tone contract
 
@@ -253,8 +255,9 @@ Decided by Afo on 2026-10-12 (Locked L13):
 
 - PRD-727 keeps the full pooling documentation scope, community and builder. It is not narrowed to
   builder documentation and is not closed into PR #795.
-- PRD-1156 holds the 2.0.0 release-essential slice, planned in the pooling hub's
-  `handoffs/release-essential-docs.md`.
+- PRD-1156 holds the 2.0.0 release-essential slice. Its plan is the pooling hub's
+  `handoffs/release-essential-docs.md`, which on 2026-10-12 existed only in the checkout where
+  that work is being prepared, not on `develop`.
 - This hub writes no pooling tutorial, diagram, or screenshot, does not expand the existing steward
   pooling guide, publishes no placeholder page, makes no availability claim about pooling, and
   changes no capability record.
@@ -288,7 +291,7 @@ write).
   an image.
 - Privacy: the docs are public. Screenshots come from fixtures, demo mode, or public pages, with no
   real addresses, names, or photos of people from a live garden.
-- Freshness: each screenshot caption names its source and build.
+- Freshness: each screenshot caption names its source and capture date.
 
 ## Package / Lane Mapping
 
