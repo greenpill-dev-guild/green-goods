@@ -72,6 +72,9 @@
 | 61 | Decision 57 as applied: product screens are captured at the viewport only (desktop 1440x900 saved 2000x1250, phone 390x844 saved 780x1688), signed-in screens from Storybook's real views with fixture data, public pages from production (2026-10-11) | Afo picked mock auth on localhost as the source, but the deployer mock reads live gardens, whose member names and work photos do not belong in a public repository. Storybook's real views render the same components with seeded data. A component figure (sign-in) is cropped to its content |
 | 62 | A persona journey names the messaging agent only for what the bot's handlers do: choosing a garden for the chat, a text or voice submission the bot holds, and a steward's pending, approve and reject. Joining a garden and following a review are app-only (2026-10-11, Codex) | The first journeys cited handlers by their names. `handlers/join.ts` only records the chat's garden and grants no hat; `handlers/status.ts` shows the chat's own state, not a review. A journey row is a claim about behavior, so its code path is read, not just located |
 | 63 | Pages that describe changing roles say a grant reaches down the tree and a revoke removes one hat (Tokenbound, Hats) (2026-10-11, Codex) | `_grantRole` gives an owner the steward and gardener hats too, while `_revokeRole` burns only the named hat. A previous owner stripped of the owner hat alone stays a steward, and `grantRole` and `revokeRole` are open to any owner or steward |
+| 64 | EAS completeness counts every resolver and schema the artifacts record for Green Goods: the testimony resolver and the Assessment v3 and Community Testimony schemas join the first six (2026-10-11, Codex) | With only Work, Work Approval and Assessment counted, a network without testimony read Deployed. Sepolia now reads Partial and only Arbitrum, with all nine, reads Deployed. The EAS page names the fourth record and says no app surface writes it yet |
+| 65 | Both git hooks select the validation-system suite, and the Supply Chain Guardrails workflow triggers on `.husky/**` (2026-10-11, Codex) | This branch hardened `.husky/pre-push`, but a change to the hook alone selected only format and lint, so the hook had no owning test. The parity suite that reads both hooks runs in that workflow |
+| 66 | Afo asked for the merge once CI is green and chose to have CodeRabbit's changes-requested review of 2026-09-03 dismissed (2026-10-11) | The review predates every fix on the branch and blocked the merge with all threads resolved. Fixes for the five threads Codex opened in the meantime went into one push, with no further review round awaited |
 
 ## Requirements Coverage
 
@@ -249,6 +252,12 @@ request.
 Status (2026-10-11, Codex on `2b9809c9e`): three threads, all valid, fixed in `f156d771e`: two
 persona journey rows claimed the Telegram bot does what only the app does, and the Tokenbound page's
 handoff instruction left a previous owner with the steward hat; decisions 62 and 63.
+
+Status (2026-10-11, Codex on `4fdcfa0cd`, and the merge request): five threads, all valid, fixed in
+`66f5255a6`: EAS completeness, the steward's money row, the Client page's read and write paths,
+the yield resolver's place on the Contracts page, and routing for the git hooks; decisions 64 and
+65. Afo asked for the merge once CI is green (decision 66). The human gates D12, the page-length
+gate and a Reference landing stay open after the merge, with the five captures that lack a source.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

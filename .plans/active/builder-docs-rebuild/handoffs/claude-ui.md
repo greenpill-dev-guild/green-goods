@@ -620,3 +620,23 @@ renders all 13 skills.
   `node scripts/quality/check-ontology.mjs` → all guards passed · drift check → 17 current.
 - **GitHub writes**: one reply and a resolution on each of the three threads.
 - **Human gates open**: unchanged.
+
+## Validation Receipt — Five Codex threads on 4fdcfa0cd, before the merge (2026-10-11)
+
+- **Scope**: the five threads Codex opened on `4fdcfa0cd`; all ACTIONABLE, fixed in `66f5255a6`.
+  Decisions 64 to 66.
+- **Read before changing**: the three deployment artifacts (Arbitrum records the testimony
+  resolver and five schema UIDs, Sepolia three resolvers and three schemas, Celo three resolvers
+  and one schema); `resolvers/Testimony.sol` and `resolvers/Yield.sol` (an `IAccountant`, not a
+  schema resolver); the cockpit's vault view, position card, payouts tab and cookie jar screens;
+  `modules/data/eas.ts` (queries only); and the selector's plan for a hook-only change (format and
+  lint before, the validation-system suite after).
+- **Sensitive surfaces**: `scripts/data/validation-policy.json`, `docs.yml`, `ontology.yml` and
+  `supply-chain-guardrails.yml` gain inputs only: the two hooks and the testimony resolver.
+- **Exact commands and results**: `node --test` over the generator, ontology, twin, selector,
+  workflow-parity, gate, audit and guide suites → 322/322 ·
+  `bun run check -- --intent qa --only docs-authority` → passed ·
+  `node scripts/quality/check-ontology.mjs` → all guards passed · drift check → 17 current ·
+  docs `bun run test` → 90/90.
+- **Human gates open**: D12, the page-length gate, a Reference landing, the five captures without
+  a faithful source, and the two capability records dated 2026-08-15.

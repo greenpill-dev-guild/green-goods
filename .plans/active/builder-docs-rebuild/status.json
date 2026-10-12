@@ -305,6 +305,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Three Codex threads on 2b9809c9e fixed in f156d771e: the persona journeys name the messaging agent only for what the bot's handlers do, and the Tokenbound and Hats pages say a revoke removes one hat; decisions 62 and 63. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T04:33:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on 4fdcfa0cd fixed in 66f5255a6 (EAS counts testimony and both later schemas, the steward's money row, two package-page corrections, git hooks routed to their tests); decisions 64 to 66. Afo asked for the merge once CI is green and for CodeRabbit's stale review to be dismissed. Receipt in handoffs/claude-ui.md."
     }
   ]
 }
