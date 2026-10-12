@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - This new creation recovery control has no existing component suite; wallet state and refusal are proved in hook/module suites, while this test isolates the explicit confirmation interaction.
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../test-utils";

@@ -1596,6 +1596,7 @@
         "packages/shared/src/hooks/ens/useENSClaim.ts",
         "packages/shared/src/hooks/ens/useENSReleaseName.ts",
         "packages/shared/src/hooks/garden/createGardenOperation.ts",
+        "packages/shared/src/hooks/garden/gardenRecovery.ts",
         "packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts",
         "packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts",
         "packages/shared/src/hooks/garden/useGardenDetailData.ts",

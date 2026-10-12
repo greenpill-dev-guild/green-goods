@@ -330,14 +330,12 @@ it("records a recovered garden failure once before removing its checkpoint", asy
 
 it("allows the owner to release a cancelled garden proposal without another send", async () => {
   const account = mocks.address as `0x${string}`;
-  useCreateGardenStore
-    .getState()
-    .recordPendingSubmission({
-      accountAddress: account,
-      chainId: mocks.chainId,
-      gardenName: "Cancelled garden",
-      result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
-    });
+  useCreateGardenStore.getState().recordPendingSubmission({
+    accountAddress: account,
+    chainId: mocks.chainId,
+    gardenName: "Cancelled garden",
+    result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
+  });
   const { result } = renderHookWithProviders(() => useCreateGardenWorkflow());
   act(() => result.current.openFlow());
   await expect(result.current.confirmWalletCancellation(false)).rejects.toThrow(

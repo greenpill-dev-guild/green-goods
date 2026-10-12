@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - Creation-hook tests prove confirmation and ownership refusal; this new shared guard has no existing module suite and its single test isolates checkpoint replacement during the ownership await without React.
 import { expect, it, vi } from "vitest";
 import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import type { TransactionSender } from "../../modules/transactions/types";
