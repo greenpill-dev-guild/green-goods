@@ -27,6 +27,7 @@ import {
   parseSchemaText,
   readEnvironment,
   requiredKeysForProfile,
+  secretSyncReadiness,
   validateRequiredEnvironment,
 } from "./env-schema.mjs";
 import { createBaselineEnv } from "./setup-env.mjs";
@@ -167,7 +168,7 @@ test("a fresh isolated setup satisfies the checked-in schema's dev profile", (t)
 });
 
 test("env:check defaults to the dev profile and refuses a profile nothing is annotated for", (t) => {
-  const { run } = envScriptSandbox(t, "# @required-in dev\nNEEDED=\n# @required-in production\nLATER=\n");
+  const { root, run } = envScriptSandbox(t, "# @required-in dev\nNEEDED=\n# @required-in production\nLATER=\n");
   const check = (args, env) => run("env-check.js", ["--env-source", "process", ...args], env);
 
   assert.equal(check([], { NEEDED: "set" }).status, 0);
@@ -180,6 +181,29 @@ test("env:check defaults to the dev profile and refuses a profile nothing is ann
   const mistyped = check(["--profile", "prodution"], { NEEDED: "set", LATER: "set" });
   assert.equal(mistyped.status, 1);
   assert.match(mistyped.stderr, /marks no key `@required-in prodution`/);
+
+  // The schema is public: for a missing secret the remedy is a reference or the local file.
+  writeFileSync(join(root, ".env"), "LATER=set\n");
+  const fromFile = run("env-check.js");
+  assert.equal(fromFile.status, 1);
+  assert.match(fromFile.stderr, /1Password reference in env\.schema, or set it in your own \.env/);
+  assert.match(fromFile.stderr, /Never write a secret's value into env\.schema/);
+});
+
+test("a missing 1Password CLI fails readiness only when there is no .env to use", () => {
+  const verdict = (state) => secretSyncReadiness({ referenceCount: 18, hasOpCli: false, hasEnvFile: false, ...state });
+
+  // A contributor on the isolated baseline has a .env and never runs the sync.
+  assert.equal(verdict({ hasEnvFile: true }).level, "info");
+  assert.match(verdict({ hasEnvFile: true }).detail, /Only `bun run env:sync` needs it/);
+
+  const blocked = verdict({});
+  assert.equal(blocked.level, "fail");
+  assert.match(blocked.fix, /bun run env:sync/);
+  assert.match(blocked.fix, /npm run setup -- --profile isolated/);
+
+  assert.equal(verdict({ hasOpCli: true }).level, "info");
+  assert.equal(verdict({ referenceCount: 0 }).level, "info");
 });
 
 test("env:sync injects from env.schema, keeps a backup, and restores .env when the inject fails", (t) => {

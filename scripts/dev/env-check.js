@@ -110,8 +110,8 @@ function main() {
   if (options.envSource === "file") {
     console.error("Fix:");
     console.error("  - Run `bun run env:sync` to rewrite .env from env.schema");
-    console.error("  - If the key has no value there, give it one in env.schema (a 1Password reference or a plain value)");
-    console.error("  - Or set the value directly in .env if it's a personal local credential");
+    console.error("  - If a secret has no value there, give its key a 1Password reference in env.schema, or set it in your own .env");
+    console.error("  - Never write a secret's value into env.schema: the file is public. Only a non-secret default may be a plain value there");
   } else {
     console.error("Fix: set the missing values in the invoking process environment.");
   }

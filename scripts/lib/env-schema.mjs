@@ -170,6 +170,50 @@ export function findSyncProblems(text) {
   return problems;
 }
 
+/**
+ * What a readiness report should say about the 1Password CLI. Only `bun run env:sync` needs it,
+ * so a missing CLI fails readiness only while there is no .env for anything else to read: a
+ * contributor on the isolated baseline never runs the sync.
+ */
+export function secretSyncReadiness({ referenceCount, hasOpCli, hasEnvFile }) {
+  if (referenceCount === 0) {
+    return {
+      level: "info",
+      check: "op:schema-refs",
+      title: "No 1Password refs in env.schema",
+      detail: ".env values are direct. Skipping op signin check.",
+      fix: "",
+    };
+  }
+  if (hasOpCli) {
+    // No `op whoami` pre-check: it reports "not signed in" without a session token, while
+    // `op inject` itself triggers Touch ID through the desktop integration at sync time.
+    return {
+      level: "info",
+      check: "op:cli-present",
+      title: "1Password CLI present",
+      detail: `${referenceCount} op:// ref(s) in env.schema will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
+      fix: "",
+    };
+  }
+  if (hasEnvFile) {
+    return {
+      level: "info",
+      check: "op:cli",
+      title: "1Password CLI is not installed",
+      detail: "Only `bun run env:sync` needs it. The existing .env is used as it is.",
+      fix: "",
+    };
+  }
+  return {
+    level: "fail",
+    check: "op:cli",
+    title: "1Password CLI is not installed",
+    detail: `${referenceCount} op:// refs in env.schema require resolution before \`bun run env:sync\` can write .env.`,
+    fix: "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`. For a baseline without secrets, run `npm run setup -- --profile isolated`.",
+  };
+}
+
 export function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return null;
   return parseEnvText(fs.readFileSync(filePath, "utf8"));

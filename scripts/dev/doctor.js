@@ -32,6 +32,7 @@ import {
   readEnginesNodeFloor,
   readPinnedNodeVersion,
 } from "../lib/dev-shared.js";
+import { secretSyncReadiness } from "../lib/env-schema.mjs";
 import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -348,41 +349,14 @@ function checkContractSubmodules() {
   );
 }
 
-function checkOpReadiness(schemaPath) {
-  const opRefKeys = schemaSecretReferenceKeys(schemaPath);
-
-  if (opRefKeys.length === 0) {
-    add(
-      "info",
-      "No 1Password refs in env.schema",
-      ".env values are direct. Skipping op signin check.",
-      "",
-      { check: "op:schema-refs" }
-    );
-    return;
-  }
-
-  if (!commandExists("op")) {
-    add(
-      "fail",
-      "1Password CLI is not installed",
-      `${opRefKeys.length} op:// refs in env.schema require resolution.`,
-      "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`.",
-      { check: "op:cli" }
-    );
-    return;
-  }
-
-  // Don't pre-check `op whoami` — it returns "not signed in" without a session token,
-  // but `op inject` itself triggers Touch ID via the desktop integration at sync time.
-  // The fact that .env exists and `env:check` passes is the real signal that resolution worked.
-  add(
-    "info",
-    "1Password CLI present",
-    `${opRefKeys.length} op:// ref(s) in env.schema will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
-    "",
-    { check: "op:cli-present" }
-  );
+function checkOpReadiness(schemaPath, hasEnvFile) {
+  // That .env exists and `env:check` passes is the real signal that resolution worked.
+  const verdict = secretSyncReadiness({
+    referenceCount: schemaSecretReferenceKeys(schemaPath).length,
+    hasOpCli: commandExists("op"),
+    hasEnvFile,
+  });
+  add(verdict.level, verdict.title, verdict.detail, verdict.fix, { check: verdict.check });
 }
 
 function checkEnvSchemaCompleteness() {
@@ -444,7 +418,7 @@ function checkEnv() {
   if (fs.existsSync(envPath)) {
     checkEnvSchemaCompleteness();
   }
-  checkOpReadiness(schemaPath);
+  checkOpReadiness(schemaPath, fs.existsSync(envPath));
 
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
