@@ -9,6 +9,7 @@ feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
   - packages/contracts/package.json
+  - packages/contracts/src/resolvers/Yield.sol
 keywords:
   - solidity
   - foundry
@@ -33,7 +34,7 @@ sit in `test/` by area, and `deployments/` records the outcome.
 | Directory | What lives there |
 |---|---|
 | `src/accounts/` | Garden token-bound accounts, action routing, Celo relay and coordinator |
-| `src/resolvers/` | EAS resolvers for work, approval, assessment, testimony, and yield |
+| `src/resolvers/` | The EAS resolvers for work, approval, assessment, and testimony, and beside them the yield resolver, which is not an EAS resolver: it is the Octant accountant that distributes vault yield |
 | `src/modules/` | Opt-in integrations plus the pooling and settlement control planes |
 | `src/registries/` | Action, commitment, credit, deployment, ENS, power, GreenWill |
 | `src/tokens/` | The Garden and Goods tokens |

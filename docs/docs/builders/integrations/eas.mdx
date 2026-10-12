@@ -20,6 +20,7 @@ source_of_truth:
   - packages/contracts/config/schemas.json
   - packages/contracts/src/Schemas.sol
   - packages/shared/src/config/blockchain.ts
+  - packages/contracts/src/resolvers/Testimony.sol
 keywords:
   - eas
   - attestation
@@ -48,6 +49,9 @@ never by the person who submitted the work. Meaning is enforced, not implied.
 - A separate **Work Approval** attestation records the steward's decision, referencing the work it
   judges.
 - An **Assessment** attestation records evaluation strategy and its content reference.
+- A **Community Testimony** attestation records what a community member says about a garden or a
+  commitment. Only a wearer of the garden's community hat can write one, and it is append-only.
+  The resolver and schema are recorded for Arbitrum One; no app surface writes testimony yet.
 
 The [Anatomy of a Work Submission](../architecture/anatomy) follows one record through the whole
 stack, and the [Data Model](../architecture/data-model) shows how they relate.
@@ -88,7 +92,8 @@ Schema UIDs and EAS endpoints are different on every chain, so read them from th
 instead of copying them into code or prose. Each chain's deployment artifact lists its schema UIDs
 under `schemas` (for Arbitrum One, `packages/contracts/deployments/42161-latest.json`), and the EAS
 GraphQL endpoints the apps query live in `packages/shared/src/config/blockchain.ts`. The projection
-below lists the networks whose artifacts record the three Green Goods resolvers; the EAS contracts
+below lists the networks whose artifacts record the four Green Goods resolvers and the schemas
+they guard, so a network that has only some of them reads Partial; the EAS contracts
 themselves are the official per-chain deployments linked under upstream docs.
 
 <IntegrationProjection id="eas" />

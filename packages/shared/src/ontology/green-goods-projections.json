@@ -868,11 +868,16 @@
         },
         {
           "when": "When money arrives",
-          "what": "Set up the garden's vault and cookie jar, and choose how yield and payouts are shared.",
+          "what": "Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing.",
           "where": ["admin"],
           "term_refs": ["entity:vault", "entity:cookie-jar"],
           "guide": "/community/steward-guide/funding-and-governance",
-          "code": ["packages/admin/src/views/Garden/Vault.tsx", "packages/admin/src/views/Cookies"]
+          "code": [
+            "packages/admin/src/views/Garden/Vault.tsx",
+            "packages/admin/src/components/Vault/PositionCard.tsx",
+            "packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx",
+            "packages/admin/src/views/Cookies"
+          ]
         },
         {
           "when": "When neighbours make promises",

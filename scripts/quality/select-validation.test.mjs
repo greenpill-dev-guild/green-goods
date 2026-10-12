@@ -51,6 +51,8 @@ test("hook and doctor edits select their behavioral proof", () => {
       "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
       "scripts/lib/vitest-shared-graph.mjs", "scripts/quality/check-shared-graph-tests.mjs",
       "scripts/quality/check-small-test-files.mjs", "scripts/quality/check-test-utils-barrel.mjs",
+      // The parity suite reads both git hooks, so a change to either must run it.
+      ".husky/pre-commit", ".husky/pre-push",
     ]],
   ];
   for (const intent of ["qa", "review", "push"]) {

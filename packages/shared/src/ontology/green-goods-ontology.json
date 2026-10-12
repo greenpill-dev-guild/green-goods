@@ -53,20 +53,24 @@
       "id": "eas",
       "display": "EAS",
       "matrix_column": "EAS",
-      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, and Assessment records; each schema's resolver validates authorization when a record is written.",
+      "definition": "The Ethereum Attestation Service holds Green Goods' Work, Work Approval, Assessment, and Community Testimony records; each schema's resolver validates authorization when a record is written.",
       "contract_source": "packages/contracts/src/resolvers/Work.sol",
       "deployment_fields": [
         "assessmentResolver",
+        "testimonyResolver",
         "workApprovalResolver",
         "workResolver",
         "schemas.assessmentSchemaUID",
+        "schemas.assessmentV3SchemaUID",
+        "schemas.communityTestimonySchemaUID",
         "schemas.workApprovalSchemaUID",
         "schemas.workSchemaUID"
       ],
       "indexer_contracts": ["WorkApprovalResolver"],
       "additional_sources": [
         "packages/contracts/src/resolvers/WorkApproval.sol",
-        "packages/contracts/src/resolvers/Assessment.sol"
+        "packages/contracts/src/resolvers/Assessment.sol",
+        "packages/contracts/src/resolvers/Testimony.sol"
       ]
     },
     {
@@ -4152,6 +4156,7 @@
         "ref": "persona:community-member",
         "label": "Community Member",
         "cells": {
+          "EAS": "Attester",
           "Hats Protocol": "Community Hat",
           "Karma GAP": "Project Explorer",
           "Hypercerts": "Evaluator",

@@ -9,6 +9,8 @@ feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
   - packages/client/package.json
+  - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/modules/job-queue/work-executor.ts
 keywords:
   - pwa
   - offline-first
@@ -77,9 +79,10 @@ don't prove those.
 
 ## How it connects
 
-The client reads garden and membership state through the [indexer](./indexer)'s read models,
-reads and writes work through shared's [EAS data layer](../integrations/eas), and pushes captured
-work through the shared job queue. The
+The client reads garden and membership state through the [indexer](./indexer)'s read models and
+reads work through shared's [EAS data layer](../integrations/eas), which only queries. Writing
+takes a different path: captured work goes into the shared job queue, and its executors encode
+and send the attestations. The
 [Anatomy of a Work Submission](../architecture/anatomy) traces that whole path.
 
 ## Conventions that will bite you
