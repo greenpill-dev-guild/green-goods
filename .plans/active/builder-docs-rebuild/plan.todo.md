@@ -58,6 +58,9 @@
 | 47 | An integration whose contracts sit on two networks is judged across both: `remote_deployment_fields` in the ontology names the network that records a field for another, and ENS declares Arbitrum's receiver on Ethereum; a network that only hosts such a component gets no row of its own (2026-10-11, Codex) | Judged one artifact at a time, both production halves of ENS read Partial forever although the pair was complete, and the matrix and status table reported a staged rollout that was not one. A missing receiver still reads Partial for the sending network |
 | 48 | No page promises an intact deposit: an endowment is vault shares the funder can redeem, subject to strategy and contract risk (Architecture, Octant, the Vault definition) (2026-10-11, Codex) | ERC-4626 shares redeem for what the vault holds; the Octant page already said a loss could reduce a withdrawal, and the other two contradicted it |
 | 49 | Role pages separate holding the garden token from wearing its hats, and name open joining as a way a role is granted (Tokenbound, Hats) (2026-10-11, Codex) | A token transfer hands over the account but moves no hat, so the previous owner keeps authority until the hats are rotated; and with open joining on, `joinGarden` grants the gardener hat to any caller, which "only owners and stewards write roles" hid |
+| 50 | The design page's type samples load the client's own Inter and Fraunces requests, with `font-synthesis` off, instead of the brand kit's files (2026-10-11, Codex) | The brand kit ships the regular weight only, so `app-title` (600), `label-md` (500) and `editorial` (700) were weights the browser made up on a page that presents itself as the token rendering. A docs test pins the requests to `packages/client/index.html` and fails when a token's weight is outside the range they carry. The docs site already loads its own faces from the same host, so no new third party |
+| 51 | The Testing page's Docs row runs the selector-owned `docs-authority` check instead of a copied `node --test` file list (2026-10-11, Codex) | The copied list had fallen behind the Docs workflow and left out the Mermaid parser suite. The validation policy owns the check's file list, and the guide audit already rejects an unknown check id on that page |
+| 52 | Getting Started keeps saying the fork-mode indexer reads live Arbitrum; the review comment asking for the opposite was declined with evidence (2026-10-11, Codex) | `packages/indexer/config.yaml` has no RPC source, so Envio syncs chain 42161 from HyperSync; the compose file passes no RPC variable into the container; `smoke-full.js` skips the head comparison in fork mode; `ONBOARDING.md` says the same. The comment above `applyGroupEnvironment` in `scripts/dev/stack.js` says fork writes land in the local indexer, which the code does not support: flagged to Afo, not changed here |
 
 ## Requirements Coverage
 
@@ -207,6 +210,13 @@ completeness across its two chains, open joining on the Hats page, token ownersh
 ownership on the Tokenbound page, no intact-principal promise, and QA case `DOCS-033` reworded to
 test the persona matrix as a naming rule; decisions 47 to 49. CI was green on `61234a5a4`. Afo is
 doing a final pass on a local production build of the branch.
+
+Status (2026-10-11, Codex on `da0163580`): four more threads, three valid and one declined, in
+`c57faf305`: Architecture's transfer sentence now keeps the roles with their wearers (decision 49
+applied to a second page), the type gallery loads the app's fonts, and the Docs row runs the
+selector's check; the fork-indexer comment was answered with evidence and the sentence kept;
+decisions 50 to 52. Afo sent fifteen items from his final pass the same hour; they are the next
+round and are not in this commit.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

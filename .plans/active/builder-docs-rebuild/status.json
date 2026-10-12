@@ -273,6 +273,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Five Codex threads on 61234a5a4 fixed in fa3811a01 (ENS completeness across two chains, open joining, token against role ownership, no intact-principal promise, QA case DOCS-033); decisions 47 to 49. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T01:23:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Four Codex threads on da0163580 handled in c57faf305: three fixed (roles stay with their wearers on transfer, the type gallery loads the app's fonts, the Docs row runs docs-authority), one declined with evidence (the fork-mode indexer reads live Arbitrum); decisions 50 to 52. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

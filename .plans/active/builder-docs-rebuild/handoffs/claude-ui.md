@@ -505,3 +505,36 @@ renders all 13 skills.
 - **GitHub writes**: one reply and a resolution on each of the five threads, under Auto-fix and
   Afo's standing request to address and resolve the valid comments.
 - **Human gates open**: unchanged (D12, the page-length gate, a Reference landing, the merge).
+
+## Validation Receipt — Four Codex threads on da0163580 (2026-10-11)
+
+- **Scope**: the four threads Codex opened on `da0163580`, relayed by the desktop app's Auto-fix.
+  Three ACTIONABLE and fixed in `c57faf305`; one declined with evidence. Decisions 50 to 52.
+- **Transfer and roles (Architecture)**: re-read `_beforeTokenTransfer` in `tokens/Garden.sol`
+  (restriction only), `isOwner` in `accounts/Garden.sol` (the owner hat), and
+  `_requireOwnerOrOperator` in `modules/Hats.sol` (the garden account, an owner or a steward may
+  rotate roles). The paragraph now matches the Tokenbound page.
+- **Type gallery**: the three brand-kit TTFs have no `fvar` table and `usWeightClass` 400 (read
+  from the files). The samples now link the client's two font stylesheets through
+  `@docusaurus/Head`. New test in `designTokens.test.ts`; it failed as expected with a token
+  weight changed to 800 ("editorial is Fraunces 800, outside the loaded 400..700") and with a
+  request the client does not make, and both files were restored.
+- **Docs row**: `bun run check -- --intent qa --only docs-authority` ran on its own in 5 s: 65
+  tests including the Mermaid parser, the audit, and the projection check (16 current).
+- **Fork-mode indexer (declined)**: `productionProfileEnv("fork")` does set `ARBITRUM_RPC_URL` to
+  Anvil, but only on the process that runs `docker compose`; the compose file forwards no RPC
+  variable, the Envio config has no RPC source, and Envio 3.6.1 reads no RPC URL from the
+  environment. `smoke-full.js` passes no chain head to `checkIndexerLag` in fork mode. Read from
+  the code; the fork stack was not started.
+- **Exact commands and results**: `bun run check -- --intent qa --only docs-authority` → passed ·
+  docs `bun run test` → 88/88 · docs `bun run typecheck` → clean · production build into a side
+  folder → exit 0, search index covers 70 routes.
+- **Push gate**: hand-run with the hook's own arguments on `c57faf305`: passed; 12 fresh passes, 0 reused, 0 unrun of 13 selected checks (push), 68 s; `browser-proof` stays advisory and is recorded above.
+- **Rendered proof**: local production build on a second port, read in a background tab of the
+  desktop app's browser pane, no sign-in. On the Design page the two font stylesheets are linked,
+  the loaded faces include `Inter 100 900` and `Fraunces 400 700`, `document.fonts.check` is true
+  for 600 22px Inter, 500 12px Inter and 700 48px Fraunces, and the samples compute
+  `font-synthesis: none`. The build was then swapped into the folder Afo's preview serves.
+- **GitHub writes**: one reply and a resolution on each of the four threads.
+- **Human gates open**: unchanged, plus one flag for Afo: the fork-indexer comment in
+  `scripts/dev/stack.js` against `ONBOARDING.md`.
