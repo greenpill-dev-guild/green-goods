@@ -598,7 +598,7 @@ renders all 13 skills.
   pane, no sign-in. Anatomy shows two frames at 240x517 with the new caption (before the fix to
   the row's CSS they rendered 240x1688, stretched by their height attribute); the Passkeys page
   shows the cropped sign-in figure at 511x355.
-- **Human gates open**: unchanged, plus the five captures above.
+- **Human gates open**: unchanged, plus the seven captures the plan lists as not replaced.
 
 ## Validation Receipt — Three Codex threads on 2b9809c9e (2026-10-11)
 
@@ -638,5 +638,39 @@ renders all 13 skills.
   `bun run check -- --intent qa --only docs-authority` → passed ·
   `node scripts/quality/check-ontology.mjs` → all guards passed · drift check → 17 current ·
   docs `bun run test` → 90/90.
-- **Human gates open**: D12, the page-length gate, a Reference landing, the five captures without
+- **Human gates open**: D12, the page-length gate, a Reference landing, the seven captures without
   a faithful source, and the two capability records dated 2026-08-15.
+
+## Validation Receipt — The merge of PR #795 (2026-10-12 UTC)
+
+- **Scope**: the record of the merge and one correction. No page, generator or check changed in
+  this entry; lanes stay uncertified.
+- **Merged**: PR #795 into `develop` at 2026-10-12T04:41:41Z as merge commit
+  `5c37667fe48dc159c90a45b4004895fe51290a5f`, parents `b0f1e9e6d` (develop) and `2da291351` (the PR
+  head). A merge commit, not a squash, pinned to the head with `--match-head-commit`.
+- **State at the merge**: CI Gate passed on `2da2913516051f818ec6b551e5c98ff60604b5c1`; all 128
+  review threads resolved; CodeRabbit's changes-requested review of 2026-09-03 dismissed at Afo's
+  direction (decision 66). The last push gate ran on the same head (12 of 13 checks fresh,
+  browser-proof advisory).
+- **Exact commands and results**:
+  `git diff --stat 2da2913516051f818ec6b551e5c98ff60604b5c1 5c37667fe48dc159c90a45b4004895fe51290a5f`
+  → one file, `scripts/dev/stack.js` (develop's own change from PR #1076), so every path the gate
+  and CI validated on the head is what landed ·
+  `git merge-base --is-ancestor 66f5255a6 origin/develop` → exit 0 ·
+  `git ls-remote --heads origin feature/builder-docs-rebuild` → empty (the branch was removed at
+  the merge).
+- **After the merge**: the Linear closeout ran. Vercel built develop at the merge commit. The
+  public docs site still served its production build of 2026-10-06 and returned 404 for
+  `/builders/architecture/personas` (unauthenticated requests, 2026-10-12); the rebuild reaches it
+  with the next production deployment.
+- **Correction**: the receipts above and the plan said five captures lack a faithful source. The
+  plan's own list has seven, and the files agree: `admin-work-queue.png` and `admin-work-detail.png`
+  (last changed 2026-03-08), `client-work-intro.png` and `client-work-details.png` (2026-04-18),
+  `qa-app-journey-view.jpg` (2026-09-03), `qa-app-priority-view.webp` and
+  `qa-app-recorded-issues.webp` (2026-09-01), all under `docs/static/img/screenshots/` and none at
+  the capture size of decision 61. The count is corrected in the plan, in the two receipts above
+  and in the status history.
+- **Human gates open**: D12 (the spine tone and the Anatomy page), the page-length gate, a
+  Reference landing, the seven captures, the commitment and hypercert capability records (last
+  verified 2026-08-15), and the community funder guide's "designed to preserve your principal"
+  wording.

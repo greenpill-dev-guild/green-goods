@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-02T16:54:52.541Z",
-    "updated_at": "2026-10-10T00:30:00.000Z"
+    "updated_at": "2026-10-12T04:53:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -296,7 +296,7 @@
       "lane": "ui",
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
-      "note": "Final pass, second batch: the audit now fails on a missing repository path in a hand-written page (e2548a283), and product screens follow one capture size, with two outdated captures removed (052c8ad82); decisions 60 and 61. Five captures still lack a faithful source and are listed in the plan. Receipt in handoffs/claude-ui.md."
+      "note": "Final pass, second batch: the audit now fails on a missing repository path in a hand-written page (e2548a283), and product screens follow one capture size, with two outdated captures removed (052c8ad82); decisions 60 and 61. Seven captures still lack a faithful source and are listed in the plan. Receipt in handoffs/claude-ui.md."
     },
     {
       "timestamp": "2026-10-12T04:06:00.000Z",
@@ -313,6 +313,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Five Codex threads on 4fdcfa0cd fixed in 66f5255a6 (EAS counts testimony and both later schemas, the steward's money row, two package-page corrections, git hooks routed to their tests); decisions 64 to 66. Afo asked for the merge once CI is green and for CodeRabbit's stale review to be dismissed. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T04:53:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "merged",
+      "branch": null,
+      "note": "PR #795 merged into develop at 2026-10-12T04:41:41Z as merge commit 5c37667fe (not a squash), after CI Gate passed on head 2da291351 with all 128 review threads resolved and CodeRabbit's review of 2026-09-03 dismissed. The merged tree differs from that head only in scripts/dev/stack.js, which develop had from PR #1076. The Linear closeout ran after the merge. Correction: the hub said five captures lack a faithful source and its own list has seven; the count is fixed in the plan, the handoff and the 2026-10-12T03:56 entry. Lanes stay uncertified and the hub stays active: D12, the page-length gate, a Reference landing and the seven captures wait on Afo. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

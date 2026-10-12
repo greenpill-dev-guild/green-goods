@@ -1,9 +1,9 @@
 # Builder Docs Rebuild Plan
 
 **Feature Slug**: `builder-docs-rebuild`
-**Status**: ACTIVE
+**Status**: IMPLEMENTED (PR #795 merged into `develop` on 2026-10-12 UTC; Afo's review gates stay open)
 **Created**: 2026-09-02
-**Last Updated**: 2026-10-10
+**Last Updated**: 2026-10-12
 
 ## Decision Log
 
@@ -257,7 +257,26 @@ Status (2026-10-11, Codex on `4fdcfa0cd`, and the merge request): five threads, 
 `66f5255a6`: EAS completeness, the steward's money row, the Client page's read and write paths,
 the yield resolver's place on the Contracts page, and routing for the git hooks; decisions 64 and
 65. Afo asked for the merge once CI is green (decision 66). The human gates D12, the page-length
-gate and a Reference landing stay open after the merge, with the five captures that lack a source.
+gate and a Reference landing stay open after the merge, with the seven captures that lack a source.
+
+Status (2026-10-12 UTC, merged): PR #795 merged into `develop` at 04:41 UTC as `5c37667fe`, a merge
+commit and not a squash, after CI Gate passed on head `2da291351` with all 128 review threads
+resolved and CodeRabbit's review of 2026-09-03 dismissed (decision 66). The merged tree differs
+from that head in one file, `scripts/dev/stack.js`, which develop already had from PR #1076. The
+Linear closeout ran after the merge. Observed the same hour: Vercel built develop at the merge
+commit, and the public docs site still served its production build of 2026-10-06, so the new
+routes return 404 there until the next production deployment.
+
+Correction in the same record: this hub said five captures lack a faithful source, and its own
+list has seven: the steward guide's two review captures, the gardener guide's Start and Details
+captures, and the three QA app captures. None of the seven files has changed since 2026-09-03 and
+none is at the capture size of decision 61. The count is fixed where it appeared.
+
+Still open, all Afo's: D12 (the spine tone and the Anatomy page), the page-length gate, a
+Reference landing, the seven captures, the commitment and hypercert capability records (last
+verified 2026-08-15, they set three of the personas page's availability notes), and the community
+funder guide's "designed to preserve your principal" wording, which decision 48 did not reach. The
+lanes stay uncertified and the hub stays active until those gates close.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
