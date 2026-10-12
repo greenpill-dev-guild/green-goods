@@ -93,11 +93,7 @@ export function ButtonStates({ rules }: { rules: ClientRules }) {
       <Specimen
         title="pressed corner (simulated)"
         expect={{ radius: rules.cornerPressed, weight: rules.weight }}
-        note={
-          rules.cornerPressed === rules.cornerRest
-            ? "The resting corner token is swapped for the pressed one, which is the same capsule: website buttons do not morph (DL-089)."
-            : "The resting corner token is swapped for the pressed one: one step tighter (DL-001, DL-026). No morph under reduced motion."
-        }
+        note={rules.pressedNote}
       >
         <div data-pressed-demo style={PRESSED} className="flex flex-wrap items-center gap-3">
           <Button>Create Garden</Button>
@@ -322,6 +318,8 @@ export function ClientTokens({ rules, scopeSelector }: { rules: ClientRules; sco
       tokens={[
         { name: "--gg-button-radius", expected: `${rules.cornerRest}px`, note: "every emphasis" },
         { name: "--gg-button-radius-pressed", expected: `${rules.cornerPressed}px`, note: "while pressed" },
+        { name: "--gg-button-radius-compact", expected: `${rules.cornerCompactRest}px`, note: "the 32px compact size" },
+        { name: "--gg-button-radius-compact-pressed", expected: `${rules.cornerCompactPressed}px`, note: "compact, while pressed" },
         { name: "--gg-button-weight", expected: String(rules.weight), note: "label weight" },
         { name: "--radius-squircle", expected: "12px", note: "the app's pressed corner, DesignMD rounded.squircle" },
         { name: "--radius-lg", expected: "16px", note: "fields, DesignMD rounded.lg" },

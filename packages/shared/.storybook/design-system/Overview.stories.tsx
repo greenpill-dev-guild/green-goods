@@ -74,7 +74,7 @@ function ClientColumn({ surface }: { surface: "app" | "website" }) {
         <Specimen
           title="Pressed corner (simulated)"
           expect={{ radius: rules.cornerPressed, weight: rules.weight }}
-          note="The resting token is swapped for the pressed one; a real press tightens one step (DL-001, DL-026)."
+          note={rules.pressedNote}
         >
           <div style={pressed}>
             <Button>Create Garden</Button>
