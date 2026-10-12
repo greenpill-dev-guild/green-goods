@@ -89,7 +89,7 @@ export function ImpactTab({
           ) : null}
 
           {(section === undefined || section === "hypercerts") && (
-            <AdminCard density="none" className="flex flex-1 flex-col">
+            <AdminCard density="none" className="flex flex-col">
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <AdminCardTitle>
@@ -195,30 +195,7 @@ export function ImpactTab({
             </AdminCard>
           )}
 
-          {section === "assessments" ? (
-            <GardenAssessmentsPanel
-              assessments={assessments}
-              isLoading={fetchingAssessments}
-              error={assessmentsError}
-              gardenId={gardenId}
-              chainId={garden.chainId}
-              selectedItem={selectedItem}
-            />
-          ) : null}
-
-          {section === "hypercerts" ? (
-            <GardenHypercertsPanel
-              gardenId={gardenId}
-              gardenAddress={garden.id as Address}
-              hypercerts={hypercerts}
-              isLoading={hypercertsLoading}
-              canManage={canManage}
-            />
-          ) : null}
-        </div>
-
-        <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky">
+          {section === undefined ? (
             <AdminCard density="none">
               <AdminCardHeader className="flex-wrap gap-3">
                 <AdminCardTitle>
@@ -302,7 +279,32 @@ export function ImpactTab({
                 )}
               </AdminCardBody>
             </AdminCard>
+          ) : null}
 
+          {section === "assessments" ? (
+            <GardenAssessmentsPanel
+              assessments={assessments}
+              isLoading={fetchingAssessments}
+              error={assessmentsError}
+              gardenId={gardenId}
+              chainId={garden.chainId}
+              selectedItem={selectedItem}
+            />
+          ) : null}
+
+          {section === "hypercerts" ? (
+            <GardenHypercertsPanel
+              gardenId={gardenId}
+              gardenAddress={garden.id as Address}
+              hypercerts={hypercerts}
+              isLoading={hypercertsLoading}
+              canManage={canManage}
+            />
+          ) : null}
+        </div>
+
+        <aside className="garden-tab-rail">
+          <div className="garden-tab-rail-sticky">
             <AdminCard density="none">
               <AdminCardHeader>
                 <AdminCardTitle>

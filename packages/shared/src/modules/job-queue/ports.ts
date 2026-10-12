@@ -114,7 +114,8 @@ export interface JobQueueAnalytics {
     job: Job,
     processingDuration: number,
     chainId: number,
-    maxRetries: number
+    maxRetries: number,
+    error: unknown
   ): Promise<void>;
   storageWarning(kind: string, quota: StorageQuotaSnapshot, isOnline: boolean): void;
   privateEvent(event: string, properties: Record<string, unknown>): void;

@@ -76,16 +76,16 @@ describe("ImpactTab", () => {
     cleanup();
 
     renderImpact({ openSection, section: "assessments", selectedItem: "a-1", assessments });
-    // The list row and the opened assessments panel both mark the one the steward picked.
+    // The opened list marks the selected record without duplicating the recent list.
     const picked = screen.getAllByText("Canopy baseline");
-    expect(picked).toHaveLength(2);
+    expect(picked).toHaveLength(1);
     for (const title of picked) {
       expect(title.closest("[aria-current]")).toHaveAttribute("aria-current", "true");
     }
-    const other = screen.getByRole("button", { name: /Soil health check/ });
-    expect(other).not.toHaveAttribute("aria-current");
-
-    fireEvent.click(other);
+    expect(screen.getByText("Soil health check").closest("[aria-current]")).toBeNull();
+    cleanup();
+    renderImpact({ openSection, assessments });
+    fireEvent.click(screen.getByRole("button", { name: /Soil health check/ }));
     expect(openSection).toHaveBeenCalledWith("impact", "assessments", "a-2");
   });
 
@@ -99,10 +99,10 @@ describe("ImpactTab", () => {
       ],
     });
 
-    expect(screen.getAllByText("Solar")).toHaveLength(2);
-    expect(screen.getAllByText("Education")).toHaveLength(2);
+    expect(screen.getAllByText("Solar")).toHaveLength(1);
+    expect(screen.getAllByText("Education")).toHaveLength(1);
     expect(screen.queryByText("Agroforestry")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Imported assessment")).toHaveLength(2);
+    expect(screen.getAllByText("Imported assessment")).toHaveLength(1);
   });
 
   it("says a failed assessments read failed, rather than reading as an empty list", () => {

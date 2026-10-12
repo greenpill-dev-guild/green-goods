@@ -33,11 +33,11 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  order: 1;
+  min-width: 0;
 }
 
 .garden-tab-rail {
-  order: 2;
+  min-width: 0;
 }
 
 .garden-tab-rail-sticky {
@@ -85,54 +85,28 @@ button.garden-stat-row:hover {
   }
 }
 
-/* Tablet (768px-1023px): Rail becomes horizontal summary strip ABOVE main content */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .garden-tab-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .garden-tab-rail {
-    order: -1;
-  }
-
-  .garden-tab-rail-sticky {
-    flex-direction: row;
-    gap: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 0.25rem;
-  }
-
-  .garden-tab-rail-sticky::-webkit-scrollbar {
-    display: none;
-  }
-
-  .garden-tab-rail-sticky > * {
-    min-width: 240px;
-    flex: 1 0 auto;
-  }
-}
-
-/* Desktop (1024px+): Two-column grid — main (9fr) + rail sidebar (3fr) */
+/* Desktop (1024px+): Two-column grid — main (5fr) + rail sidebar (3fr) */
 @media (min-width: 1024px) {
+  .garden-tab-shell,
+  .garden-tab-layout {
+    flex: 1 1 auto;
+  }
+
   .garden-tab-layout {
     display: grid;
-    grid-template-columns: minmax(0, 9fr) minmax(260px, 3fr);
-    align-items: start;
+    grid-template-columns: minmax(0, 5fr) minmax(18rem, 3fr);
+    align-items: stretch;
     gap: 1.5rem;
   }
 
   .garden-tab-main {
-    order: 0;
     gap: 1.5rem;
   }
 
-  .garden-tab-rail {
-    order: 0;
+  .garden-tab-main > :only-child {
+    flex: 1 1 auto;
   }
+
 }
 
 @layer utilities {

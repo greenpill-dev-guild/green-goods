@@ -196,12 +196,8 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
     ) : null;
 
   return (
-    <div
-      className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(18rem,3fr)]"
-      data-component="GardenPoolTab"
-      data-region="garden-pool"
-    >
-      <div className="space-y-4">
+    <div className="garden-tab-layout" data-component="GardenPoolTab" data-region="garden-pool">
+      <div className="garden-tab-main">
         {summary}
 
         {preOpen ? (
@@ -240,7 +236,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
 
       {/* Asks sit beside their count and never move the list on the left
           (PRD-1025 D1, D8); on narrow screens this column comes last. */}
-      <aside className="space-y-4">
+      <aside className="garden-tab-rail flex flex-col gap-section">
         {!preOpen && !finished ? (
           <PoolClaimsCard
             console={pool}

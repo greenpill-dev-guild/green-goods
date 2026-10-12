@@ -1,6 +1,7 @@
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
 import messages from "@green-goods/shared/i18n/en.json";
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -14,8 +15,11 @@ vi.mock("@/components/Layout/CanvasRouteState", () => ({
 }));
 
 vi.mock("./CommunityPools", () => ({
-  CommunityPools: (props: object) => (
-    <div data-testid="pools">{Object.keys(props).sort().join(",")}</div>
+  CommunityPools: (props: { railContent?: ReactNode }) => (
+    <>
+      <div data-testid="pools">{Object.keys(props).sort().join(",")}</div>
+      {props.railContent}
+    </>
   ),
 }));
 vi.mock("./CommunityMembersTab", () => ({

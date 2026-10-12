@@ -65,7 +65,7 @@ export function SettlementOperationsCard({
 
   return (
     <AdminCard
-      variant="outlined"
+      variant="elevated"
       className="space-y-3"
       data-component="SettlementOperationsCard"
       data-delivery={enabled === null ? "unread" : enabled ? "on" : "off"}
@@ -120,11 +120,6 @@ export function SettlementOperationsCard({
           id: "cockpit.community.settlementOps.delivery.label",
           defaultMessage: "Gardener delivery",
         })}
-        description={formatMessage({
-          id: "cockpit.community.settlementOps.delivery.description",
-          defaultMessage:
-            "When on, contributor payouts can be prepared and delivered to individual members on Celo. When off, only garden Safe payouts run.",
-        })}
       >
         <div className="flex flex-col items-end gap-2">
           <StatusBadge
@@ -134,40 +129,59 @@ export function SettlementOperationsCard({
           >
             {deliveryLabel}
           </StatusBadge>
-          {operations.canConfigureDelivery && enabled !== null ? (
-            <AdminButton
-              type="button"
-              variant={enabled ? "outlined" : "filled"}
-              size="sm"
-              disabled={operations.isPending || operations.lastAct?.phase === "submitted"}
-              loading={operations.isPending}
-              onClick={() => setConfirming(!enabled)}
-            >
-              {enabled
-                ? formatMessage({
-                    id: "cockpit.community.settlementOps.delivery.disable",
-                    defaultMessage: "Disable Gardener Delivery…",
-                  })
-                : formatMessage({
-                    id: "cockpit.community.settlementOps.delivery.enable",
-                    defaultMessage: "Enable Gardener Delivery…",
-                  })}
-            </AdminButton>
-          ) : null}
         </div>
       </AdminSettingRow>
 
-      {!operations.canConfigureDelivery ? (
-        <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
-          {formatMessage(
-            {
-              id: "cockpit.community.settlementOps.delivery.ownerOnly",
-              defaultMessage: "Only the settlement module owner ({owner}) can change this.",
-            },
-            { owner: operations.owner ? shortAddress(operations.owner) : "—" }
-          )}
-        </p>
-      ) : null}
+      <details className="border-t border-stroke-soft pt-3">
+        <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 body-sm font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">
+          {formatMessage({
+            id: "cockpit.community.settlementOps.delivery.settings",
+            defaultMessage: "Delivery Settings",
+          })}
+        </summary>
+        <div className="mt-3 space-y-3">
+          <p className="body-xs text-text-soft">
+            {formatMessage({
+              id: "cockpit.community.settlementOps.delivery.description",
+              defaultMessage:
+                "When on, contributor payouts can be prepared and delivered to individual members on Celo. When off, only garden Safe payouts run.",
+            })}
+          </p>
+          <div className="flex flex-col items-stretch">
+            {operations.canConfigureDelivery && enabled !== null ? (
+              <AdminButton
+                type="button"
+                variant={enabled ? "outlined" : "filled"}
+                size="sm"
+                disabled={operations.isPending || operations.lastAct?.phase === "submitted"}
+                loading={operations.isPending}
+                onClick={() => setConfirming(!enabled)}
+              >
+                {enabled
+                  ? formatMessage({
+                      id: "cockpit.community.settlementOps.delivery.disable",
+                      defaultMessage: "Disable Gardener Delivery…",
+                    })
+                  : formatMessage({
+                      id: "cockpit.community.settlementOps.delivery.enable",
+                      defaultMessage: "Enable Gardener Delivery…",
+                    })}
+              </AdminButton>
+            ) : null}
+          </div>
+          {!operations.canConfigureDelivery ? (
+            <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
+              {formatMessage(
+                {
+                  id: "cockpit.community.settlementOps.delivery.ownerOnly",
+                  defaultMessage: "Only the settlement module owner ({owner}) can change this.",
+                },
+                { owner: operations.owner ? shortAddress(operations.owner) : "—" }
+              )}
+            </p>
+          ) : null}
+        </div>
+      </details>
 
       {operations.lastAct ? (
         <p
