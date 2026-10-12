@@ -249,13 +249,14 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("Escape key closes the drawer", () => {
+  it("Escape key closes the drawer", async () => {
     renderHeader();
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(document.documentElement).not.toHaveClass("modal-open");
+    // The document lock lets go once Radix has released its own, a moment after the drawer.
+    await waitFor(() => expect(document.documentElement).not.toHaveClass("modal-open"));
   });
 
   it("moves keyboard focus into the drawer and returns it to the trigger on Escape", async () => {
