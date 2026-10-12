@@ -73,10 +73,7 @@ export function CommunityMembersTab({
   return (
     <div className="garden-tab-shell">
       <div className="garden-tab-layout">
-        <div className="garden-tab-main">
-          {canManage && hasValidGardenAddress ? (
-            <CommunityJoinRequests gardenAddress={gardenAddress} />
-          ) : null}
+        <div className="garden-tab-main min-w-0">
           <AdminCard variant="elevated" className="@container space-y-4">
             <div>
               <AdminCardTitle>
@@ -195,32 +192,33 @@ export function CommunityMembersTab({
           </AdminCard>
         </div>
 
-        <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky">
-            <AdminCard variant="filled" className="space-y-3">
-              <AdminCardTitle>
-                {formatMessage({ id: "cockpit.community.members.coverage" })}
-              </AdminCardTitle>
-              <div className="garden-stat-row">
-                <span className="garden-stat-row-label">
-                  {formatMessage({ id: "cockpit.community.members.total" })}
-                </span>
-                <span className="garden-stat-row-value">{memberCount}</span>
-              </div>
-              {missingCriticalRoles.length > 0 ? (
-                <Alert variant="warning" className="p-3">
-                  {formatMessage(
-                    { id: "cockpit.community.members.missingCritical" },
-                    {
-                      roles: missingCriticalRoles
-                        .map((entry) => getRoleLabel(entry.role, formatMessage).plural)
-                        .join(", "),
-                    }
-                  )}
-                </Alert>
-              ) : null}
-            </AdminCard>
-          </div>
+        <aside className="garden-tab-rail flex flex-col gap-section">
+          {canManage && hasValidGardenAddress ? (
+            <CommunityJoinRequests gardenAddress={gardenAddress} />
+          ) : null}
+          <AdminCard variant="elevated" className="space-y-3">
+            <AdminCardTitle>
+              {formatMessage({ id: "cockpit.community.members.coverage" })}
+            </AdminCardTitle>
+            <div className="garden-stat-row">
+              <span className="garden-stat-row-label">
+                {formatMessage({ id: "cockpit.community.members.total" })}
+              </span>
+              <span className="garden-stat-row-value">{memberCount}</span>
+            </div>
+            {missingCriticalRoles.length > 0 ? (
+              <Alert variant="warning" className="p-3">
+                {formatMessage(
+                  { id: "cockpit.community.members.missingCritical" },
+                  {
+                    roles: missingCriticalRoles
+                      .map((entry) => getRoleLabel(entry.role, formatMessage).plural)
+                      .join(", "),
+                  }
+                )}
+              </Alert>
+            ) : null}
+          </AdminCard>
         </aside>
       </div>
       <CommunityMembersDialogs

@@ -57,7 +57,7 @@ policy).
 
 Enforced global thresholds live in each `vitest.config.ts` (branches/functions/lines/statements): **shared** 52/59/62/61 · **client** 56/62/64/63 · **admin** 47/44/53/51. Pull request Test jobs run plain `bun run test`; `.github/workflows/coverage-nightly.yml` enforces these floors nightly and after every push to `main`. Local coverage commands still generate `coverage/index.html`; CI omits HTML.
 
-The September 22 two-point ratchet is closed (Afo, 2026-09-28): the global floors above stay as they are, and eleven measured critical-path floors replace the ratchet. Seven are in Shared (`modules/work`, `modules/job-queue`, `hooks/auth`, `hooks/vault`, and three exact files), two in Client, two in Admin; `scripts/quality/workflow-performance-parity.test.mjs` pins them with the global floors. Raise a floor only from measured coverage, with the matching parity array in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/forge.mdx`.
+The September 22 two-point ratchet is closed (Afo, 2026-09-28): the global floors above stay as they are, and eleven measured critical-path floors replace the ratchet. Seven are in Shared (`modules/work`, `modules/job-queue`, `hooks/auth`, `hooks/vault`, and three exact files), two in Client, two in Admin; `scripts/quality/workflow-performance-parity.test.mjs` pins them with the global floors. Raise a floor only from measured coverage, with the matching parity array in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/index.mdx`.
 
 ## Test budget
 
@@ -108,7 +108,7 @@ shrink when a violation is fixed, while every new or stale entry fails the check
 - Mutation hooks: assert the error path at both hook level (`isError` + handler/`logger.error` called) and component level (error toast surfaced). Errors are never swallowed.
 - Hook cleanup: verify timers cleared, listeners removed, `isMounted` guards on unmount — i.e. `.claude/rules/react-patterns.md` Rules 1-3.
 - Offline: `fake-indexeddb/auto` + `simulateNetworkConditions` / `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
-- E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/playwright.mdx`.
+- E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/index.mdx`.
 
 ## Risk-triggered state and invariant matrix
 

@@ -524,8 +524,11 @@ function productionProfileEnv(group) {
 
 /**
  * Apply a stack profile without re-enabling explicitly disabled local Vite connections.
- * Hosted and fork profiles always use their own indexer: fork writes land only in the
- * local fork indexer, so a configured hosted indexer would hide them.
+ * Hosted and fork profiles always use their own indexer. For fork that is the local indexer this
+ * stack starts and its smoke check reads, so a configured hosted indexer cannot leave the apps
+ * on a service the stack never checked. It is not an indexer of the fork: the indexer's Envio
+ * config has no RPC source and its container is given no RPC variable, so it reads live Arbitrum
+ * through HyperSync and writes made on the Anvil fork never reach indexed reads.
  */
 export function applyGroupEnvironment(app, group) {
   const profileEnv = productionProfileEnv(group);

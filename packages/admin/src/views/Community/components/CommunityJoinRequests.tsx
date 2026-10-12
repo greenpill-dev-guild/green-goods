@@ -134,7 +134,7 @@ function CommunityJoinRequestQueue({
     <>
       <AdminCard
         variant="elevated"
-        className="space-y-4"
+        className="@container space-y-4"
         data-testid={stewardRequest ? "community-steward-requests" : "community-join-requests"}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -155,6 +155,7 @@ function CommunityJoinRequestQueue({
             </p>
           </div>
           <AdminButton
+            className="ml-auto"
             variant="outlined"
             size="sm"
             loading={join.queueState.isLoading}
@@ -200,7 +201,7 @@ function CommunityJoinRequestQueue({
           {queue.map((request) => (
             <article
               key={request.id}
-              className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between"
+              className="flex flex-col gap-3 px-4 py-4 @[560px]:flex-row @[560px]:items-start @[560px]:justify-between"
             >
               <div className="min-w-0 space-y-2">
                 <div>
@@ -230,7 +231,19 @@ function CommunityJoinRequestQueue({
                   </p>
                 ) : null}
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                <AdminButton
+                  variant="outlined"
+                  size="sm"
+                  leadingIcon={<RiCloseLine />}
+                  disabled={Boolean(activeId)}
+                  onClick={() => {
+                    setDeclineError(undefined);
+                    setDeclining(request);
+                  }}
+                >
+                  {formatMessage({ id: "cockpit.community.joinRequests.decline" })}
+                </AdminButton>
                 <AdminButton
                   variant="filled"
                   size="sm"
@@ -243,18 +256,6 @@ function CommunityJoinRequestQueue({
                       ? "cockpit.community.stewardRequests.approve"
                       : "cockpit.community.joinRequests.welcome",
                   })}
-                </AdminButton>
-                <AdminButton
-                  variant="outlined"
-                  size="sm"
-                  leadingIcon={<RiCloseLine />}
-                  disabled={Boolean(activeId)}
-                  onClick={() => {
-                    setDeclineError(undefined);
-                    setDeclining(request);
-                  }}
-                >
-                  {formatMessage({ id: "cockpit.community.joinRequests.decline" })}
                 </AdminButton>
               </div>
             </article>

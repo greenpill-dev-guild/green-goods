@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -16,6 +18,56 @@ const repoRoot = rootArgumentIndex >= 0
   ? path.resolve(process.argv[rootArgumentIndex + 1])
   : path.resolve(__dirname, "../..");
 const docsRoot = path.resolve(repoRoot, "docs/docs");
+
+// A hand-written page that names a repository path promises the reader a place to open, and a
+// renamed file breaks that promise without failing anything. These are the paths checked: a code
+// span that starts at a top-level source folder, and, on a package page, the first column of its
+// directory table, which is written relative to that package.
+const REPO_PATH_ROOTS = /^(?:packages|scripts|docs|tests|\.github|\.claude|\.codex)\//;
+const NOT_ONE_PATH = /[*<>{}$…\s]/;
+const PACKAGE_PAGE = /^docs\/docs\/builders\/packages\/([a-z]+)\.mdx$/;
+
+// Build output and caches exist only on a machine that produced them; git knows which they are.
+function ignoredByGit(candidate) {
+  for (const form of [candidate, `${candidate.replace(/\/$/, "")}/`]) {
+    try {
+      execFileSync("git", ["check-ignore", "-q", form], { cwd: repoRoot, stdio: "ignore" });
+      return true;
+    } catch {
+      // Exit 1 is "not ignored"; outside a repository there is nothing to ask.
+    }
+  }
+  return false;
+}
+
+function missingRepoPaths(relativePath, body) {
+  const prose = body.replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[ \t]*$/gm, "");
+  const missing = [];
+  const check = (written, resolved) => {
+    const target = resolved.replace(/[#:].*$/, "");
+    if (!existsSync(path.join(repoRoot, target)) && !ignoredByGit(target)) missing.push(written);
+  };
+  for (const [, span] of prose.matchAll(/`([^`\n]+)`/g)) {
+    const written = span.trim();
+    if (REPO_PATH_ROOTS.test(written) && !NOT_ONE_PATH.test(written)) check(written, written);
+  }
+  const packageName = PACKAGE_PAGE.exec(relativePath)?.[1];
+  if (packageName && existsSync(path.join(repoRoot, "packages", packageName))) {
+    let inTable = false;
+    for (const line of prose.split("\n")) {
+      if (/^\|\s*(?:Directory|Path)\s*\|/.test(line)) inTable = true;
+      else if (!line.startsWith("|")) inTable = false;
+      else if (inTable) {
+        for (const [, span] of (line.split("|")[1] ?? "").matchAll(/`([^`]+)`/g)) {
+          const written = span.trim();
+          // A cell may also name a path from the repository root, which the first pass covered.
+          if (!NOT_ONE_PATH.test(written) && !REPO_PATH_ROOTS.test(written)) check(written, `packages/${packageName}/${written}`);
+        }
+      }
+    }
+  }
+  return missing;
+}
 const referenceRoot = path.resolve(docsRoot, "reference");
 const introDocPath = path.resolve(docsRoot, "intro.md");
 const glossaryDocPath = path.resolve(docsRoot, "glossary.md");
@@ -35,6 +87,8 @@ const canonicalRoots = [
 
 const approvedEndpointLiteralFiles = new Set([
   "docs/docs/builders/packages/api-index.mdx",
+  // The deployments projection links every schema UID to its EAS explorer page on purpose.
+  "docs/docs/builders/reference/deployments.mdx",
 ]);
 
 const requiredFrontmatter = [
@@ -644,6 +698,10 @@ for (const filePath of allDocs) {
         warn(relativePath, "Live external page makes project-specific usage claims without a local source_of_truth.");
       }
     }
+  }
+
+  if (frontmatter?.generated !== true) {
+    for (const written of missingRepoPaths(relativePath, body)) fail(relativePath, `Repository path not found: ${written}`);
   }
 
   const endpointMatches = raw.match(endpointLiteralPattern) ?? [];

@@ -646,3 +646,52 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── CopyCommand ─────────────────────────────────────────────────── */
+.copyCommand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+}
+
+.copyCommand code {
+  overflow-wrap: anywhere;
+}
+
+.copyCommandButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 8px;
+  color: var(--ifm-font-color-secondary);
+  opacity: 0.75;
+}
+
+.copyCommandButton:hover,
+.copyCommandButton:focus-visible {
+  color: var(--ifm-color-primary);
+  background: var(--ifm-color-emphasis-100);
+  opacity: 1;
+}
+
+.copyCommandFeedback {
+  font-size: 0.75rem;
+  color: var(--ifm-color-primary);
+  white-space: nowrap;
+}
+
+.copyCommandStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
