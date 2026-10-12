@@ -224,6 +224,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Every mobile bottom sheet spans the full viewport width, with padding inside the sheet. Width caps apply only to desktop dialogs and side panels.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
+- **A record drawer or source dialog hands focus back to its opener.** `PublicRecordDrawer` and `PublicSourceDialog` return focus to whatever held it when they opened, and leave the page where it was. A card that opens one takes focus in its press handler first: Safari does not focus a pressed button, so the overlay would otherwise have nothing to return to.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.
 
