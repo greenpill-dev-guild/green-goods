@@ -152,6 +152,8 @@ export function resolveCommand(input) {
     env.PINATA_JWT = ''; env.PINATA_GATEWAY = '';
   }
   if (operation.command === 'release operator' || operation.command === 'migrate action-instructions-v2 check') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
+  // The session blanks these for each stage; blank them for the session itself, so its keystore check starts without them too.
+  if (operation.command === 'release operator') { env.PINATA_JWT = ''; env.PINATA_GATEWAY = ''; }
   if ((isUpgrade && ['arbitrum', 'sepolia'].includes(network)) || operation.command === 'migrate vaults' || operation.command === 'migrate action-instructions-v2' && mode !== 'simulate' || operation.command.startsWith('marketplace ') || operation.command === 'verify' && network === 'arbitrum') env.FOUNDRY_KEYSTORE_ACCOUNT = 'green-goods-deployer';
   if (network === 'arbitrum' && (operation.command.startsWith('marketplace ') || operation.command === 'verify')) env.MARKETPLACE_EXPECTED_OWNER = OPERATOR;
   if (['plan', 'broadcast'].includes(mode) && ((isUpgrade && ['assessment-resolver', 'commitment-pooling'].includes(target)) || operation.handler === 'script/deploy.ts' && ['commitment-schemas', 'pooling', 'pooling-configure'].includes(target))) {

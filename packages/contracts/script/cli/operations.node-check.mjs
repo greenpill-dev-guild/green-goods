@@ -104,7 +104,15 @@ test('operator boundary resolution is fixed and cannot recurse or override netwo
 test('release sessions keep an explicit exact commit and strict flags', () => {
   assert.throws(() => resolve('release operator --stage garden-roles'), /commit/);
   assert.throws(() => resolve('release operator --commit HEAD'), /40-character/);
-  assert.equal(resolve(`release operator --stage garden-roles --commit ${'a'.repeat(40)}`).args[0], 'script/release-operator.ts');
+  const session = resolve(`release operator --stage garden-roles --commit ${'a'.repeat(40)}`);
+  assert.equal(session.args[0], 'script/release-operator.ts');
+  // The session's own process, and the keystore check it starts first, get no upload credentials.
+  assert.equal(session.env.PINATA_JWT, '');
+  assert.equal(session.env.PINATA_GATEWAY, '');
+  // The capability check shares the keystore default and keeps the caller's upload credentials.
+  const capabilityCheck = resolve('migrate action-instructions-v2 check --network arbitrum --mode simulate');
+  assert.equal(capabilityCheck.env.FOUNDRY_KEYSTORE_ACCOUNT, 'green-goods-deployer');
+  assert.ok(!('PINATA_JWT' in capabilityCheck.env));
 });
 test('repeatable selection filters survive forwarding; explanations redact all supplied values', () => {
   const resolution = resolve('migrate action-instructions-v2 --network arbitrum --mode preflight --slug first --slug second --rpc-url https://secret.invalid/token');
