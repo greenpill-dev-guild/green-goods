@@ -23,6 +23,68 @@ const DESIGN_TOKENS_TAG = /^[ \t]*<DesignTokens\s*\/>[ \t]*$/gm;
 const BRAND_ASSETS_TAG = /^[ \t]*<BrandAssets\s*\/>[ \t]*$/gm;
 const HERO_TAG = /^[ \t]*<Hero\s*\/>[ \t]*$/gm;
 const STEWARD_PATH_TAG = /^[ \t]*<StewardPathNav\s*\/>[ \t]*$/gm;
+// The economics explorer only runs in a browser, so its page wraps it in BrowserOnly.
+const REVENUE_EXPLORER_TAG = /^[ \t]*<BrowserOnly>\s*\{\(\) => <ProtocolRevenueExplorer\s*\/>\}\s*<\/BrowserOnly>[ \t]*$/gm;
+
+/** Whole numbers with thousands separators and up to four decimals, the same on every machine. */
+function plainNumber(value) {
+  const [whole, fraction = ""] = Math.abs(value).toFixed(4).split(".");
+  const decimals = fraction.replace(/0+$/, "");
+  return `${value < 0 ? "-" : ""}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${decimals ? `.${decimals}` : ""}`;
+}
+
+const dollars = (value) => `${value < 0 ? "-" : ""}$${plainNumber(Math.abs(Math.round(value)))}`;
+const REVENUE_OUTPUT_ROWS = [
+  ["Total annual revenue", "totalAnnualRevenue", dollars],
+  ["On-chain revenue", "onchainRevenue", dollars],
+  ["Off-chain revenue", "offchainRevenue", dollars],
+  ["Total expenses", "totalExpenses", dollars],
+  ["Net margin (revenue minus expenses)", "netMargin", dollars],
+  ["Coverage (revenue as a share of expenses)", "coverageRatio", (value) => `${plainNumber(Math.round(value * 1000) / 10)}%`],
+  ["Runway in months", "runwayMonths", (value) => plainNumber(Math.round(value * 10) / 10)],
+  ["Treasury after one year", "treasuryAfterOneYear", dollars],
+  ["TVL needed if vault yield alone paid every expense", "requiredTvl", dollars],
+  ["Principal needed if treasury yield alone paid every expense", "requiredPrincipal", dollars],
+  ["Implied valuation", "impliedValuation", dollars],
+  ["Token price", "tokenPrice", (value) => `$${plainNumber(value)}`],
+];
+
+/**
+ * The economics explorer's model as tables: each input with the value every preset gives it, then
+ * what each preset computes and where its revenue comes from. The site draws an interactive
+ * calculator from the same model; the twin carries its starting points.
+ */
+export function revenueExplorerMarkdown(explorer) {
+  const presets = explorer.presets;
+  const columns = presets.map((preset) => preset.label).join(" | ");
+  const rule = presets.map(() => "---").join("|");
+  const lines = [
+    "The site renders an interactive calculator here. Its model is listed below: every input with the value each preset gives it, then what each preset computes. Amounts are per year.",
+    "",
+    "### Presets",
+    "",
+    ...presets.map((preset) => `- **${preset.label}**: ${preset.description} The model places it at the ${preset.stage} stage.`),
+    "",
+    "### Inputs and preset values",
+  ];
+  for (const section of explorer.sections) {
+    lines.push("", `**${section.title}.** ${section.description}`, "", `| Input | What it is | ${columns} |`, `|---|---|${rule}|`);
+    for (const field of section.fields) {
+      const values = presets.map((preset) => `${field.prefix ?? ""}${plainNumber(preset.inputs[field.key])}${field.suffix ?? ""}`);
+      lines.push(`| ${field.label} | ${field.description} | ${values.join(" | ")} |`);
+    }
+  }
+  lines.push("", "### What each preset computes", "", `| Output | ${columns} |`, `|---|${rule}|`);
+  for (const [label, key, format] of REVENUE_OUTPUT_ROWS) {
+    const values = presets.map((preset) => (preset.outputs[key] === null ? "No limit" : format(preset.outputs[key])));
+    lines.push(`| ${label} | ${values.join(" | ")} |`);
+  }
+  lines.push("", "### Revenue streams", "", `| Stream | Kind | ${columns} |`, `|---|---|${rule}|`);
+  for (const [index, stream] of presets[0].streams.entries()) {
+    lines.push(`| ${stream.label} | ${stream.category} | ${presets.map((preset) => dollars(preset.streams[index].amount)).join(" | ")} |`);
+  }
+  return lines.join("\n");
+}
 
 /** The core design tokens as tables: the values the DesignTokens component draws as swatches. */
 export function designTokensMarkdown(tokens) {
@@ -185,14 +247,23 @@ function outsideFencedCode(text, transform) {
  * A page's source as plain Markdown for agents: no frontmatter and no MDX import lines (code
  * examples keep theirs). A component that draws its content from a data file becomes the Markdown
  * of that data when the data is given: the integration projections, the onboarding procedure, the
- * design tokens, the brand kit, and the role and steward-path link lists. Components whose content
+ * design tokens, the brand kit, the role and steward-path link lists, and the economics explorer's
+ * model. Components whose content
  * is already in the page (props or children) stay as written, as does anything interactive, so a
  * reader can tell where the site renders it. Pages without their own H1 get one from the title.
  */
 export function markdownTwin(
   source,
   title,
-  { integrations = null, onboarding = null, designTokens = null, brandKit = null, rolePaths = null, stewardPath = null } = {},
+  {
+    integrations = null,
+    onboarding = null,
+    designTokens = null,
+    brandKit = null,
+    rolePaths = null,
+    stewardPath = null,
+    revenueExplorer = null,
+  } = {},
 ) {
   const withoutFrontmatter = source.replace(/^---\n[\s\S]*?\n---\n/, "");
   const expandProjections = (text) => {
@@ -212,6 +283,7 @@ export function markdownTwin(
     if (brandKit) result = result.replace(BRAND_ASSETS_TAG, () => brandKitMarkdown(brandKit));
     if (rolePaths) result = result.replace(HERO_TAG, () => rolePathsMarkdown(rolePaths));
     if (stewardPath) result = result.replace(STEWARD_PATH_TAG, () => stewardPathMarkdown(stewardPath));
+    if (revenueExplorer) result = result.replace(REVENUE_EXPLORER_TAG, () => revenueExplorerMarkdown(revenueExplorer));
     return result;
   };
   const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))

@@ -32,6 +32,7 @@ export default function llmsTwinsPlugin(context) {
       const brandKit = await data("brand-kit-v3.json");
       const rolePaths = await data("role-paths.json");
       const stewardPath = await data("steward-path.json");
+      const revenueExplorer = await data("revenue-explorer.json");
       const pages = [];
       for (const doc of docs) {
         const source = path.join(context.siteDir, doc.source.replace(/^@site\//, ""));
@@ -44,6 +45,7 @@ export default function llmsTwinsPlugin(context) {
           brandKit,
           rolePaths,
           stewardPath,
+          revenueExplorer,
         });
         await writeFile(twin, markdown);
         // Docusaurus's automatic excerpt can pick up a generated banner, so only a hand-written

@@ -159,6 +159,7 @@ describe("data-backed component fallbacks", () => {
     brandKit: data("brand-kit-v3.json"),
     rolePaths: data("role-paths.json"),
     stewardPath: data("steward-path.json"),
+    revenueExplorer: data("revenue-explorer.json"),
   };
 
   test("each component becomes the Markdown of the data it draws", () => {
@@ -204,7 +205,8 @@ describe("data-backed component fallbacks", () => {
     // A tag with no props and no children carries nothing in the page source, so a twin that kept
     // it would have a hole where the site shows content. Every such component needs a fallback
     // in llms.mjs; this walks the real pages with the real data so a new one cannot slip in.
-    const BARE_TAG = /^[ \t]*<[A-Z][A-Za-z]*\s*\/>[ \t]*$/gm;
+    // A component that only runs in a browser sits inside BrowserOnly, which is the same hole.
+    const BARE_TAG = /^[ \t]*<[A-Z][A-Za-z]*\s*\/>[ \t]*$|^[ \t]*<BrowserOnly>/gm;
     const FENCE = /^(```|~~~)[^\n]*\n[\s\S]*?^\1[ \t]*$/gm;
     const pages = [];
     const walk = (directory) => {
@@ -228,5 +230,59 @@ describe("data-backed component fallbacks", () => {
     assert.match(real("builders/architecture/design.mdx"), /^\| `tertiary-action` \| `#[0-9A-F]{6}` \|$/m);
     assert.match(real("community/welcome.mdx"), /^- \[Gardener\]\(\/community\/gardener-guide\/\)/m);
     assert.match(real("community/steward-guide/reviewing-work.mdx"), /^3\. \[Review and Approve Work\]/m);
+  });
+
+  test("the economics explorer becomes its model: inputs, preset values, and what each preset computes", () => {
+    const explorer = {
+      sections: [
+        {
+          title: "Fees",
+          description: "What stewards pay.",
+          fields: [
+            {key: "gardenFee", label: "Garden fee", description: "Per garden.", prefix: "$"},
+            {key: "takeRate", label: "Take rate", description: "Share kept.", suffix: "%"},
+          ],
+        },
+      ],
+      presets: [
+        {
+          label: "Small",
+          description: "A start.",
+          stage: "Bootstrap",
+          inputs: {gardenFee: 25, takeRate: 0.5},
+          outputs: {totalAnnualRevenue: 1234567.4, netMargin: -62360, coverageRatio: 0.6536, runwayMonths: null, tokenPrice: 0.078455},
+          streams: [{label: "Garden fees", category: "onchain", amount: 200}],
+        },
+        {
+          label: "Large",
+          description: "Later.",
+          stage: "Protocol Scale",
+          inputs: {gardenFee: 75, takeRate: 1.25},
+          outputs: {totalAnnualRevenue: 409830, netMargin: 59830, coverageRatio: 1.171, runwayMonths: 30.84, tokenPrice: 0.4918},
+          streams: [{label: "Garden fees", category: "onchain", amount: 3000}],
+        },
+      ],
+    };
+    // Only the outputs a page lists are needed for a fixture; fill the rest so every row has a value.
+    for (const preset of explorer.presets) {
+      for (const key of ["onchainRevenue", "offchainRevenue", "totalExpenses", "treasuryAfterOneYear", "requiredTvl", "requiredPrincipal", "impliedValuation"]) preset.outputs[key] = 0;
+    }
+    const page = "# T\n\n<BrowserOnly>\n  {() => <ProtocolRevenueExplorer />}\n</BrowserOnly>\n\n## After\n";
+    const twin = markdownTwin(page, "T", {revenueExplorer: explorer});
+    assert.equal(twin.includes("BrowserOnly"), false);
+    assert.match(twin, /^- \*\*Small\*\*: A start\. The model places it at the Bootstrap stage\.$/m);
+    // An input row carries each preset's value with the field's own prefix or suffix.
+    assert.match(twin, /^\| Garden fee \| Per garden\. \| \$25 \| \$75 \|$/m);
+    assert.match(twin, /^\| Take rate \| Share kept\. \| 0\.5% \| 1\.25% \|$/m);
+    // Outputs are rounded for reading, a loss keeps its sign, and an endless runway says so.
+    assert.match(twin, /^\| Total annual revenue \| \$1,234,567 \| \$409,830 \|$/m);
+    assert.match(twin, /^\| Net margin \(revenue minus expenses\) \| -\$62,360 \| \$59,830 \|$/m);
+    assert.match(twin, /^\| Coverage \(revenue as a share of expenses\) \| 65\.4% \| 117\.1% \|$/m);
+    assert.match(twin, /^\| Runway in months \| No limit \| 30\.8 \|$/m);
+    assert.match(twin, /^\| Token price \| \$0\.0785 \| \$0\.4918 \|$/m);
+    assert.match(twin, /^\| Garden fees \| onchain \| \$200 \| \$3,000 \|$/m);
+    assert.ok(twin.indexOf("### Revenue streams") < twin.indexOf("## After"), "the page continues after the model");
+    // Without the data the block stays as written, like every other component.
+    assert.ok(markdownTwin(page, "T").includes("<BrowserOnly>"));
   });
 });

@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 
 import { GENERATOR_PATH, generatedFrontmatter, regenerationHint } from "./generator-core.mjs";
@@ -1221,6 +1222,65 @@ export function renderOnboardingData({ root, sources, digest }) {
     digest,
     source: "ONBOARDING.md",
     text,
+  };
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+const requireSource = createRequire(import.meta.url);
+const SUMMARY_OUTPUTS = [
+  "totalAnnualRevenue",
+  "onchainRevenue",
+  "offchainRevenue",
+  "totalExpenses",
+  "netMargin",
+  "coverageRatio",
+  "runwayMonths",
+  "treasuryAfterOneYear",
+  "requiredTvl",
+  "requiredPrincipal",
+  "impliedValuation",
+  "tokenPrice",
+];
+
+/**
+ * The economics explorer's model as data: every input, each preset's assumptions, and what each
+ * preset computes. The explorer page's Markdown twin is written from this, so an agent reads the
+ * model without running React. The model is TypeScript that imports nothing, which the pinned
+ * Node loads as it is; it is loaded here, when the projection is rendered, and not with the module.
+ */
+export function renderRevenueExplorerData({ root, sources, digest }) {
+  const source = declaredSource(sources, "docs/src/components/docs/protocolRevenueModel.ts");
+  const model = requireSource(path.join(root, source));
+  const presets = Object.values(model.REVENUE_PRESETS).map((preset) => {
+    const summary = model.calculateRevenueSummary(model.getPresetInputs(preset.id));
+    return {
+      id: preset.id,
+      label: preset.label,
+      description: preset.description,
+      stage: summary.stage.label,
+      inputs: preset.inputs,
+      // A value JSON cannot carry (an endless runway) is recorded as null.
+      outputs: Object.fromEntries(SUMMARY_OUTPUTS.map((key) => [key, Number.isFinite(summary[key]) ? summary[key] : null])),
+      streams: summary.streams.map(({ label, category, amount }) => ({ label, category, amount })),
+    };
+  });
+  const sections = model.INPUT_SECTIONS.map((section) => ({
+    title: section.title,
+    description: section.description,
+    fields: section.fields.map(({ key, label, description, prefix, suffix }) => ({ key, label, description, prefix, suffix })),
+  }));
+  for (const field of sections.flatMap((section) => section.fields)) {
+    for (const preset of presets) {
+      if (typeof preset.inputs[field.key] !== "number") throw new Error(`Preset ${preset.id} has no value for the input ${field.key}`);
+    }
+  }
+  const payload = {
+    $generated: `GENERATED FILE: do not edit. ${regenerationHint("design")}`,
+    generator: GENERATOR_PATH,
+    digest,
+    source,
+    sections,
+    presets,
   };
   return `${JSON.stringify(payload, null, 2)}\n`;
 }

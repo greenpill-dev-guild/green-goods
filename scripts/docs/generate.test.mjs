@@ -413,6 +413,23 @@ test("routine connectors drop comments and refuse a list they cannot read", () =
   }
 });
 
+test("the economics explorer's data is computed from its model, with a value for every input in every preset", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/src/data/revenue-explorer.json");
+  assert.ok(projection);
+  const data = JSON.parse(renderProjection(REPO_ROOT, projection));
+  assert.ok(data.sections.length > 0 && data.presets.length > 1);
+  const fields = data.sections.flatMap((section) => section.fields);
+  for (const preset of data.presets) {
+    for (const field of fields) assert.equal(typeof preset.inputs[field.key], "number", `${preset.id}: ${field.key}`);
+    // The outputs hold together the way the model defines them, so they were computed, not typed.
+    const streams = preset.streams.reduce((sum, stream) => sum + stream.amount, 0);
+    assert.ok(Math.abs(streams - preset.outputs.totalAnnualRevenue) < 1e-6, `${preset.id}: streams add up to revenue`);
+    assert.ok(Math.abs(preset.outputs.totalAnnualRevenue - preset.outputs.totalExpenses - preset.outputs.netMargin) < 1e-6, `${preset.id}: margin`);
+    // A preset that is not burning has no runway to run out; JSON carries that as null.
+    if (preset.outputs.netMargin >= 0) assert.equal(preset.outputs.runwayMonths, null, preset.id);
+  }
+});
+
 test("sorts package exports deterministically", () => {
   const root = fixture();
   try {
