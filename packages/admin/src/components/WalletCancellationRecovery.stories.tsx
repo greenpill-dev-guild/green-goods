@@ -14,7 +14,9 @@ export const Pending: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "Review Cancellation" }));
     const dialog = within(canvasElement.ownerDocument.body).getByRole("alertdialog");
-    await waitFor(() => expect(within(dialog).getByText(/First confirm in your wallet/)).toBeVisible());
+    await waitFor(() =>
+      expect(within(dialog).getByText(/First confirm in your wallet/)).toBeVisible()
+    );
     await expect(args.onConfirmCancellation).not.toHaveBeenCalled();
     await userEvent.click(within(dialog).getByRole("button", { name: /^Cancel$/ }));
     await expect(args.onConfirmCancellation).not.toHaveBeenCalled();
