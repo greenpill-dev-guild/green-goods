@@ -251,10 +251,11 @@ The six enforceable invariants of the admin cockpit finish — treat violations 
 In `packages/client`, every action is the shared `Button` (`emphasis` primary / secondary /
 tertiary), `IconButton`, or `Chip`, and every field a shared field primitive (`TextInput`,
 `Textarea`, `NativeSelect`, `Switch`, `FormattedAmountInput`, `DatePicker`, `FileUploadField`;
-DL-025, DL-031). The primitive owns the corner, one per surface for every emphasis: the 16px field
-corner in the app and no corner on the public website (DL-026, DL-029). The height comes from
-`size` on the shared scale 48 / 44 / 40 / 32 (DL-023). Never pass a radius, height, or vertical
-padding class to them, and never a `variant`: the legacy class contract is gone.
+DL-025, DL-031). The primitive owns the corner, one per surface for every emphasis (DL-026): the
+16px field corner in the app (DL-029) and the capsule on the public website, at rest and while
+pressed (DL-089). The height comes from `size` on the shared scale 48 / 44 / 40 / 32 (DL-023).
+Never pass a radius, height, or vertical padding class to them, and never a `variant`: the legacy
+class contract is gone.
 
 A raw element is allowed only when it declares why: a `<button>` with a `role` of `tab`, `switch`,
 or `radio`, or a `data-pressable` of `card`, `row`, `scrim`, `media`, `trigger`, `fab`, or `tab` (a

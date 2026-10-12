@@ -147,7 +147,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's square corner, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with a `Donate` primary and an `Endow` warm secondary on every row, both 40 px (DL-023). Section 3 also carries an always-visible `Manage Endowments` secondary action (the website's capsule, warm tone) aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
@@ -219,7 +219,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - **Source dialogs** (`PublicSourceDialog` on `/actions`, `PublicInstallDialog` from every Install CTA, `VaultCheckoutDialog` on `/vaults`, `PublicEndowmentPanel` on `/fund`, `VaultManagePositionsPanel` on `/vaults`):
   - Desktop: centered, square editorial sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` and `VaultManagePositionsPanel` are the exceptions and open as right-side public panels.
   - Mobile: bottom sheet with square corners, like every other editorial surface (DL-024). The record drawer above keeps its rounded top.
-  - The actions inside these surfaces are the shared buttons (see Buttons and Fields), not square blocks.
+  - The actions inside these surfaces are the shared buttons (see Buttons and Fields): capsules, not square blocks.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Every mobile bottom sheet spans the full viewport width, with padding inside the sheet. Width caps apply only to desktop dialogs and side panels.
 - **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
@@ -230,7 +230,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 
 The public site uses the same button and field system as the installed app (DL-024):
 
-- **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button is square with a semibold label, whatever its emphasis, and does not morph on press (DL-026, DL-029); a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule. The vault and cookie flows follow the same rule: square surfaces, square buttons.
+- **Actions** come from the shared `Button`, `IconButton`, and `Chip`. Every button is a capsule with a semibold label, whatever its emphasis or size, and keeps that shape while pressed (DL-026, DL-089); a text action (arrow links such as `Show more entries`) has no container, a close is a circle, and a filter chip is a capsule. The vault and cookie flows follow the same rule: square surfaces, capsule buttons.
 - **Editorial atoms** (`EditorialPrimaryButton`, `EditorialGhostButton`, their link variants, and `EditorialDomainChip`) are thin wrappers over the shared primitives that pass `size` through and add only the dialect's colors: the warm linen secondary, the walnut-surface secondary, and each domain's ink on an active filter chip.
 - **Sizes** follow the shared scale (DL-023): 48 px for hero actions, 44 px for section actions and dialog actions, 40 px for row actions (Donate, Endow), 32 px chips with a 44 px tap area. One size per context: the `Install App` CTA is 48 px in the hero and 44 px everywhere else, including the header drawer.
 - **Fields** are the editorial underline field (`surface="editorial"`: no box, a hairline in the text color, serif input text) on editorial sections, and the 16px shared field inside funding and account panels (DL-022). Display-size text never changes a field's height: the Get in Touch email and both funding amounts are 44 px, level with the actions beside and below them.
