@@ -303,6 +303,8 @@ a svg[class*="iconExternalLink"] {
   flex: 1 1 180px;
   min-width: 0;
   max-width: 240px;
+  /* The width and height attributes reserve the frame's shape; the row decides its size. */
+  height: auto;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 12px;
 }
