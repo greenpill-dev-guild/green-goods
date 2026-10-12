@@ -254,3 +254,19 @@ Sensitive files changed, for the reviewer: `.claude/context/admin.md` (one path)
 `scripts/data/qa-test-catalog.json` (one path, four titles), `docs/routines/growth-pulse.md` (the
 fallback loop), and the ontology data and gate described in the `state_api` handoff. No permission
 or safety check was loosened.
+
+## Task record
+
+Task record: PR #896, community docs non-pooling foundation | Type: feature (docs) | Outcome: partial
+Agent/model: Claude Code, Opus 5.5 | Coverage: this session on 2026-10-12, from the reconciliation to the hub record; nothing earlier
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | unknown → 2026-10-12T19:36:14Z | Hub reconciled with the review threads and the brief, and promoted to active (`02e3900c4`) |
+| implement | 2026-10-12T19:36:14Z → 2026-10-12T21:02:59Z | Structure, pages, glossary generator, screenshots (`a1bae6de7`, `48c6220d0`, `0b22f55cc`). RED 20:11:32Z, GREEN 20:16:13Z |
+| verify | 2026-10-12T20:54:27Z → 2026-10-12T21:08:59Z | Validation Receipt above: 14 of 14 automated checks, rendered check, focused checks |
+| implement | 2026-10-12T21:08:59Z → 2026-10-12T21:48:33Z | Hub record, handoffs, and artifacts (`685d03ee8`, `3664eec86`) |
+| wait | unknown → ongoing | Merge with `develop`: the host sync tool refused in this worktree. Not resolved |
+| publish | omitted | Not entered. Pushing waits for Afo |
+
+Human corrections: 0 observed in this segment; attention: unknown.
