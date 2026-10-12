@@ -22,7 +22,14 @@ export interface CreateActionSessionDraft {
   currentStep: number;
 }
 
+export interface EditActionSaveAttempt {
+  id: string;
+  scope: string;
+  completedWrites: Record<string, string>;
+}
+
 export interface EditActionSessionDraft extends Record<string, unknown> {
+  saveAttempt?: EditActionSaveAttempt;
   title: string;
   startTime: string | null;
   endTime: string | null;
@@ -67,7 +74,7 @@ export function saveCreateActionMediaDraft(path: string, media: unknown) {
   }
 }
 
-export function getCreateActionMediaDraft(path: string) {
+function getCreateActionMediaDraft(path: string) {
   return createActionMediaDrafts.get(path) ?? [];
 }
 
@@ -129,7 +136,8 @@ export function serializeEditActionDraft(
   instructionConfig: ActionInstructionConfig,
   isEditingInstructions: boolean,
   translations: ActionTranslationMap = {},
-  translationsDirty = false
+  translationsDirty = false,
+  saveAttempt?: EditActionSaveAttempt
 ): EditActionSessionDraft {
   return {
     title: typeof value.title === "string" ? value.title : "",
@@ -139,13 +147,26 @@ export function serializeEditActionDraft(
     translations: normalizeActionTranslations(translations),
     isEditingInstructions,
     translationsDirty,
+    saveAttempt: saveAttempt
+      ? { ...saveAttempt, completedWrites: { ...saveAttempt.completedWrites } }
+      : undefined,
   };
 }
 
 export function restoreEditActionDraft(draft: unknown) {
   if (!isRecord(draft)) return null;
+  const attempt = draft.saveAttempt;
+  const saveAttempt =
+    isRecord(attempt) &&
+    typeof attempt.id === "string" &&
+    typeof attempt.scope === "string" &&
+    isRecord(attempt.completedWrites) &&
+    Object.values(attempt.completedWrites).every((value) => typeof value === "string")
+      ? (attempt as unknown as EditActionSaveAttempt)
+      : undefined;
 
   return {
+    saveAttempt,
     title: typeof draft.title === "string" ? draft.title : "",
     startTime: fromIsoDate(draft.startTime, new Date()),
     endTime: fromIsoDate(draft.endTime, new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),

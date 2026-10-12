@@ -321,4 +321,22 @@ describe("useAssessmentDraft", () => {
       expect(saved).not.toBeNull();
     });
   });
+  it("clears only the confirmed assessment's chain-scoped backup", async () => {
+    const first = renderHook(() =>
+      useAssessmentDraft(GARDEN_ID, OPERATOR_ADDR, { chainId: 11155111 })
+    );
+    const second = renderHook(() =>
+      useAssessmentDraft(GARDEN_ID, OPERATOR_ADDR, { chainId: 42161 })
+    );
+    await act(async () => {
+      await first.result.current.saveDraft(createParams({ title: "First chain assessment" }));
+      await second.result.current.saveDraft(createParams({ title: "Second chain assessment" }));
+      await first.result.current.clearDraft();
+    });
+    expect(await idbGet(first.result.current.draftKey!)).toBeUndefined();
+    expect(await idbGet(second.result.current.draftKey!)).toMatchObject({
+      title: "Second chain assessment",
+      chainId: 42161,
+    });
+  });
 });

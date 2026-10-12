@@ -12,11 +12,16 @@ import {
 } from "../../../utils/action/translations";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import { toSafeDate } from "../../../utils/time";
-import type { ActionOperationResult } from "../../../modules/action/action-operation-command";
+import {
+  fingerprintActionArguments,
+  type ActionOperationResult,
+} from "../../../modules/action/action-operation-command";
+import { TransactionConfirmationPendingError } from "../../../modules/transactions/types";
 import { useActionOperations } from "../../action/useActionOperations";
 import { useActions } from "../../blockchain/useBaseLists";
 import { useAsyncEffect } from "../../utils/useAsyncEffect";
 import {
+  type EditActionSaveAttempt,
   getActionEditDraftPath,
   restoreEditActionDraft,
   serializeEditActionDraft,
@@ -74,7 +79,35 @@ export function useActionEditorController() {
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((candidate) => candidate.id === id);
-  const operations = useActionOperations(DEFAULT_CHAIN_ID);
+  const operations = useActionOperations(DEFAULT_CHAIN_ID, id?.split("-")[1]);
+  const isPendingEdit = operations.pendingEdits.length > 0;
+  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
+  // The owning draft retains this attempt across remounts; consuming it expires the receipts.
+  const completedWrites = useRef(new Map<string, string>());
+  const saveAttempt = useRef<EditActionSaveAttempt | undefined>(undefined);
+  const editScope = `${operations.registrationScope}:${id}`;
+  const activeEditScope = useRef(editScope);
+  activeEditScope.current = editScope;
+  useEffect(() => {
+    completedWrites.current.clear();
+    saveAttempt.current = undefined;
+    const path = getActionEditDraftPath(id);
+    const saved = path
+      ? useSheetOrchestratorStore.getState().restoreViewState(path)?.formState
+      : null;
+    const attempt = restoreEditActionDraft(saved)?.saveAttempt;
+    if (attempt?.scope === editScope) {
+      saveAttempt.current = { ...attempt, completedWrites: { ...attempt.completedWrites } };
+      completedWrites.current = new Map(Object.entries(attempt.completedWrites));
+    }
+  }, [editScope, id]);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const form = useForm<EditActionFormData>({
     resolver: zodResolver(editActionSchema),
     defaultValues: { title: "", startTime: new Date(), endTime: new Date() },
@@ -113,6 +146,13 @@ export function useActionEditorController() {
           useSheetOrchestratorStore.getState().restoreViewState(draftPath)?.formState ?? null;
         const restored = restoreEditActionDraft(saved);
         if (!restored) return false;
+        if (restored.saveAttempt?.scope === editScope) {
+          saveAttempt.current = {
+            ...restored.saveAttempt,
+            completedWrites: { ...restored.saveAttempt.completedWrites },
+          };
+          completedWrites.current = new Map(Object.entries(restored.saveAttempt.completedWrites));
+        }
         form.reset({
           title: restored.title || action.title || "",
           startTime: restored.startTime,
@@ -181,7 +221,8 @@ export function useActionEditorController() {
           instructionConfig,
           isEditingInstructions,
           translations,
-          translationsDirty
+          translationsDirty,
+          saveAttempt.current
         )
       );
     });
@@ -206,7 +247,8 @@ export function useActionEditorController() {
         instructionConfig,
         isEditingInstructions,
         translations,
-        translationsDirty
+        translationsDirty,
+        saveAttempt.current
       )
     );
   }, [
@@ -220,27 +262,73 @@ export function useActionEditorController() {
     translationsDirty,
   ]);
 
+  const persistAttempt = (data = form.getValues()) => {
+    if (!draftPath || !saveAttempt.current) return;
+    saveAttempt.current.completedWrites = Object.fromEntries(completedWrites.current);
+    setDraftFormState(
+      draftPath,
+      serializeEditActionDraft(
+        data,
+        instructionConfig,
+        isEditingInstructions,
+        translations,
+        translationsDirty,
+        saveAttempt.current
+      )
+    );
+  };
+
+  const finishSave = () => {
+    if (!mounted.current || activeEditScope.current !== editScope) return;
+    toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
+    operations.clearCompletedEdits();
+    completedWrites.current.clear();
+    saveAttempt.current = undefined;
+    if (draftPath) clearDraftFormState(draftPath);
+    navigate(actionDetailHref);
+  };
+
   const submit = async (data: EditActionFormData) => {
-    if (!action || !id) return;
+    if (!action || !id || isPendingEdit || operations.isLoading || isCheckingConfirmation) return;
     try {
       await operations.assertReady();
+      saveAttempt.current ??= { id: crypto.randomUUID(), scope: editScope, completedWrites: {} };
+      persistAttempt(data);
       const requireSuccess = (result: ActionOperationResult) => {
+        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
         if (!result.success) throw new Error(result.error?.message ?? "Action update failed");
       };
       const actionUID = id.split("-")[1];
+      const perform = async (
+        name: string,
+        args: unknown[],
+        send: () => Promise<ActionOperationResult>
+      ) => {
+        const fingerprint = fingerprintActionArguments(args);
+        if (completedWrites.current.get(name) === fingerprint) return;
+        if (!mounted.current || activeEditScope.current !== editScope)
+          throw new Error("Action editor scope changed");
+        const result = await send();
+        if (!mounted.current || activeEditScope.current !== editScope)
+          throw new Error("Action editor scope changed");
+        requireSuccess(result);
+        completedWrites.current.set(name, fingerprint);
+        persistAttempt(data);
+      };
       if (data.title !== action.title)
-        requireSuccess(await operations.updateActionTitle(actionUID, data.title));
+        await perform("updateActionTitle", [BigInt(actionUID), data.title], () =>
+          operations.updateActionTitle(actionUID, data.title)
+        );
       if (data.startTime.getTime() !== action.startTime) {
-        requireSuccess(
-          await operations.updateActionStartTime(
-            actionUID,
-            Math.floor(data.startTime.getTime() / 1000)
-          )
+        const seconds = Math.floor(data.startTime.getTime() / 1000);
+        await perform("updateActionStartTime", [BigInt(actionUID), BigInt(seconds)], () =>
+          operations.updateActionStartTime(actionUID, seconds)
         );
       }
       if (data.endTime.getTime() !== action.endTime) {
-        requireSuccess(
-          await operations.updateActionEndTime(actionUID, Math.floor(data.endTime.getTime() / 1000))
+        const seconds = Math.floor(data.endTime.getTime() / 1000);
+        await perform("updateActionEndTime", [BigInt(actionUID), BigInt(seconds)], () =>
+          operations.updateActionEndTime(actionUID, seconds)
         );
       }
       const shouldUpload =
@@ -257,14 +345,72 @@ export function useActionEditorController() {
         });
         const upload = await uploadFileToIPFS(file);
         toastService.dismiss();
-        requireSuccess(await operations.updateActionInstructions(actionUID, upload.cid));
+        await perform("updateActionInstructions", [BigInt(actionUID), upload.cid], () =>
+          operations.updateActionInstructions(actionUID, upload.cid)
+        );
       }
-      toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
-      if (draftPath) clearDraftFormState(draftPath);
-      navigate(actionDetailHref);
+      finishSave();
     } catch (error) {
+      if (!mounted.current || activeEditScope.current !== editScope) return;
+      if (error instanceof TransactionConfirmationPendingError) return;
       logger.error("Failed to update action", { error });
       toastService.error({ title: formatMessage({ id: "app.actions.edit.failed" }) });
+    }
+  };
+
+  const checkConfirmation = async () => {
+    if (isCheckingConfirmation) return;
+    setIsCheckingConfirmation(true);
+    try {
+      const outcome = await operations.reconcileEdits();
+      if (!mounted.current || activeEditScope.current !== editScope || !outcome || !action || !id)
+        return;
+      saveAttempt.current ??= { id: crypto.randomUUID(), scope: editScope, completedWrites: {} };
+      for (const edit of outcome.confirmed)
+        completedWrites.current.set(edit.key.split(":").at(-2)!, edit.fingerprint);
+      persistAttempt();
+      operations.clearCompletedEdits();
+      if (outcome.unresolved || outcome.reverted) return;
+      const uid = BigInt(id.split("-")[1]);
+      const data = form.getValues();
+      const alreadyApplied = (name: string, args: unknown[]) =>
+        completedWrites.current.get(name) === fingerprintActionArguments(args);
+      const hasRemainingFields =
+        (data.title !== action.title && !alreadyApplied("updateActionTitle", [uid, data.title])) ||
+        (data.startTime.getTime() !== action.startTime &&
+          !alreadyApplied("updateActionStartTime", [
+            uid,
+            BigInt(Math.floor(data.startTime.getTime() / 1000)),
+          ])) ||
+        (data.endTime.getTime() !== action.endTime &&
+          !alreadyApplied("updateActionEndTime", [
+            uid,
+            BigInt(Math.floor(data.endTime.getTime() / 1000)),
+          ]));
+      if (hasRemainingFields) return;
+      const needsInstructions =
+        isEditingInstructions ||
+        translationsDirty ||
+        (Object.keys(translations).length > 0 && data.title !== action.title);
+      if (needsInstructions) {
+        const fingerprint = completedWrites.current.get("updateActionInstructions");
+        if (!fingerprint) return;
+        try {
+          const [, cid] = JSON.parse(fingerprint) as [string, string];
+          const file = await getFileByHash(cid, { timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS });
+          const raw = typeof file.data === "string" ? file.data : await file.data.text();
+          if (
+            JSON.stringify(JSON.parse(raw)) !==
+            JSON.stringify(buildActionInstructionsV2(data.title, instructionConfig, translations))
+          )
+            return;
+        } catch {
+          return;
+        }
+      }
+      finishSave();
+    } finally {
+      setIsCheckingConfirmation(false);
     }
   };
 
@@ -277,7 +423,10 @@ export function useActionEditorController() {
     form,
     instructionConfig,
     isEditingInstructions,
-    isLoading: operations.isLoading,
+    isLoading: operations.isLoading || isPendingEdit || isCheckingConfirmation,
+    isPendingEdit,
+    isCheckingConfirmation,
+    checkConfirmation,
     isLoadingInstructions,
     setInstructionConfig,
     setIsEditingInstructions,
