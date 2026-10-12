@@ -79,7 +79,7 @@ editorial dialect on purpose:
 Composed of eight sections in this exact order (pinned by the section-order test in `PublicHome.test.tsx`):
 
 1. **`PublicEditorialHero`** — full-bleed curated Garden image plate. The linen content card sits as a **bottom-left overlay inside the hero image** (no negative overlap, no clipping, fully contained). The card carries the H1 (the tagline `From good intentions to green outcomes`), the one-sentence lede, and the hero CTAs.
-   - **Desktop CTAs:** `Explore Gardens` only (single primary). The `Install App` CTA already lives in the header on desktop, so the hero stays focused on the editorial gesture.
+   - **Desktop CTAs:** `Explore Gardens` (primary, to `/gardens`) and `Support a Garden` (secondary, to `/fund`), side by side. The `Install App` CTA already lives in the header on desktop, so the hero stays focused on the editorial gesture.
    - **Mobile CTAs:** `Install App` (or `Open App`) **first**, then `Explore Gardens` second. A phone visitor lands on the install path; the secondary keeps the editorial route open.
    - The CTAs land **above the fold** on standard browser viewports (1440 / 1024 / 768 / 375 px) because the card is contained inside the image, not protruding below it.
    - **Short screens:** where the viewport is too short for the card (a phone held sideways, a short desktop window), the hero grows past the first screen and the card starts one gutter below the header. It never slides under the header or off the top.
