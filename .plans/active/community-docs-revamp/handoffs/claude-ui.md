@@ -5,7 +5,10 @@
 - Owner: Claude
 - Branch: `chore/community-docs-revamp-plan` (PR #896). Worked in the session branch
   `claude/green-goods-community-docs-b0ebe9`, which starts at that branch's head (`83f71d85c`).
-  Nothing is pushed. The branch has not been merged with `develop` since that head.
+  Merged with `develop` (tip `8d22aabb3`) on 2026-10-12, so the branch is level with it. The app's
+  sync tool refused, because this repository's origin was unconfirmed in the app, and Afo chose a
+  plain `git merge`. One file conflicted, the generated Test Cases page, and it was regenerated
+  from the merged QA catalog.
 - Status: Phases 0, 1, and 2 and steps 4.1 and 4.2 are done and validated. The replay on the
   released product (4.3) and the read-through by people (4.4) are not run.
 
@@ -71,6 +74,10 @@ frontmatter and from `packages/shared/src/i18n/en.json`. The facts most likely t
 | Passkey accounts have their network fees covered; wallet accounts pay | `packages/shared/src/modules/transactions/passkey-sender.ts`, `packages/shared/src/modules/transactions/wallet-sender.ts` |
 
 These are source reads. None of it was replayed on the released product; that is step 4.3.
+
+After `develop` was merged in, every bold on-screen label on the pages was compared with the
+product strings again: none of them changed in those 56 commits. Create a Garden gained one row
+for the new **Awaiting wallet execution** state.
 
 ## Acceptance checks
 
@@ -147,8 +154,7 @@ link (below). `git grep` for `/reference/faq` finds only the redirect entry.
 Label: clean-room Playwright, headless Chromium, run locally against the production docs build of
 the tested commit. The build was answered from disk by request interception, with the host's
 clean-URL rules. It is not the deployed site and not an authenticated session. The script is
-`artifacts/rendered-check.mjs`. The recorded run used the same script from a scratch folder; a
-second run from the hub copy gave the same result.
+`artifacts/rendered-check.mjs`.
 
 - 30 pages at 1440 by 900 and at 390 by 844: every page returned 200 with its heading, no
   horizontal overflow, no broken image, a caption for every figure, and no page error. Requests to
@@ -182,9 +188,9 @@ data is shared; the advisory browser proof is there because the QA catalog chang
 |---|---|
 | `format`, `lint` | Passed |
 | `shared-typecheck`, `agent-typecheck` | Passed |
-| `shared-test` | 610 files passed, 2 skipped; 7,309 tests passed, 19 skipped |
-| `client-test` | 149 files, 1,706 tests passed |
-| `admin-test` | 146 files, 1,296 tests passed |
+| `shared-test` | 615 files passed, 2 skipped; 7,444 tests passed, 19 skipped |
+| `client-test` | 149 files, 1,712 tests passed |
+| `admin-test` | 148 files, 1,313 tests passed |
 | `agent-test` | 46 files passed, 1 skipped (524 tests, 1 skipped), then 21 files (196 tests) |
 | `docs-authority` | 72 generator and audit tests passed; the audit reported no hard errors and two advisory notes on Builders pages this work did not write; 17 projections current |
 | `docs-test` | Passed (90 tests in a direct run) |
@@ -202,18 +208,18 @@ Run separately on the same commit: `bun run check --only docs-generated` (17 pro
 `bun run check --only guidance-links` (91 guidance files OK), `bun run --cwd docs audit -- --ci`
 (no hard errors), and the two voice searches (0 and 24 hits, reviewed above).
 
-An earlier full run on `48c6220d0` passed the same way. It was superseded by the sidebar label
-commit, so the receipt below is for the later commit.
+Two earlier full runs passed the same way before `develop` was merged in: on `48c6220d0`, and on
+`0b22f55cc` after the sidebar label commit. The receipt below is for the merged branch.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `0b22f55ccba3582105b7d3ac38df3f6d1522a8cb`
-- Run at (UTC): `2026-10-12T21:03:06Z`
+- Tested implementation commit SHA: `fb2064f6a86f58b127c351e914c6c517c28fd319`
+- Run at (UTC): `2026-10-12T22:03:39Z`
 - Exact command(s): `bun run check -- --intent qa --no-fail-fast`; `bun run check --only docs-generated`; `bun run check --only vocabulary`; `bun run check --only guidance-links`; `bun run --cwd docs audit -- --ci`; the two searches in `eval.md`; `node .plans/active/community-docs-revamp/artifacts/rendered-check.mjs "$PWD" "$PWD/docs/build" <outDir>`
-- Result: 14 of 14 automated checks passed fresh, with the advisory `browser-proof` pending; 60 rendered page loads clean; 4 redirects, 15 anchors, search, and Markdown twins confirmed. The planner run finished at `2026-10-12T21:07:55Z`; the rendered check started at `2026-10-12T21:08:15Z`, and the focused checks and voice searches at `2026-10-12T21:08:48Z`
+- Result: 14 of 14 automated checks passed fresh, with the advisory `browser-proof` pending; 60 rendered page loads clean; 4 redirects, 15 anchors, search, and Markdown twins confirmed. The planner run finished at `2026-10-12T22:10:11Z`; the rendered check started at `2026-10-12T22:10:31Z`, and the focused checks and voice searches at `2026-10-12T22:10:45Z`
 - Validated paths: `docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 0b22f55ccba3582105b7d3ac38df3f6d1522a8cb..HEAD -- docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology` → exit 0, no output. The commit that carries this handoff changes only `.plans/active/community-docs-revamp/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code fb2064f6a86f58b127c351e914c6c517c28fd319..HEAD -- docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology` → exit 0, no output. The commit that carries this handoff changes only `.plans/active/community-docs-revamp/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- docs .claude/context/admin.md scripts/data/qa-test-catalog.json scripts/docs scripts/quality packages/shared/src/ontology` → empty
 
 ## What remains
@@ -221,8 +227,6 @@ commit, so the receipt below is for the later commit.
 - 4.3, the replay on the released product. Authenticated surfaces (sign-in, passkey and wallet
   signing, the installed app, the offline queue) need a person's Brave session. Not run.
 - 4.4, the read-through by people (AC-9). Not run. An agent replay does not stand in for it.
-- A merge with `develop`. The branch is 53 commits behind. The host tool that syncs this worktree
-  refused, because the merge would touch files the sandbox protects.
 - Start and Details figures for Submit Work, and funder figures, once a fixture story exists.
 - Decisions Q3, Q4, Q9, and Q10.
 
@@ -258,15 +262,17 @@ or safety check was loosened.
 ## Task record
 
 Task record: PR #896, community docs non-pooling foundation | Type: feature (docs) | Outcome: partial
-Agent/model: Claude Code, Opus 5.5 | Coverage: this session on 2026-10-12, from the reconciliation to the hub record; nothing earlier
+Agent/model: Claude Code, Opus 5.5 | Coverage: this session on 2026-10-12, from the reconciliation to the push; nothing earlier
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
 | investigate | unknown → 2026-10-12T19:36:14Z | Hub reconciled with the review threads and the brief, and promoted to active (`02e3900c4`) |
 | implement | 2026-10-12T19:36:14Z → 2026-10-12T21:02:59Z | Structure, pages, glossary generator, screenshots (`a1bae6de7`, `48c6220d0`, `0b22f55cc`). RED 20:11:32Z, GREEN 20:16:13Z |
-| verify | 2026-10-12T20:54:27Z → 2026-10-12T21:08:59Z | Validation Receipt above: 14 of 14 automated checks, rendered check, focused checks |
+| verify | 2026-10-12T20:54:27Z → 2026-10-12T21:08:59Z | Full runs on `48c6220d0` and `0b22f55cc`, before the merge: 14 of 14 automated checks each, rendered check, focused checks |
 | implement | 2026-10-12T21:08:59Z → 2026-10-12T21:48:33Z | Hub record, handoffs, and artifacts (`685d03ee8`, `3664eec86`) |
-| wait | unknown → ongoing | Merge with `develop`: the host sync tool refused in this worktree. Not resolved |
-| publish | omitted | Not entered. Pushing waits for Afo |
+| wait | unknown → unknown | Merge with `develop`: the host sync tool refused in this worktree. Resolved when Afo chose a plain `git merge` |
+| implement | unknown → 2026-10-12T22:03:12Z | Merged `develop` (`b97c09ce1`), regenerated the one conflicted page, added one row to Create a Garden (`fb2064f6a`) |
+| verify | 2026-10-12T22:03:39Z → 2026-10-12T22:10:50Z | Validation Receipt above, on the merged branch |
+| publish | 2026-10-12T22:10:50Z → ongoing | Push to PR #896 and its description, at Afo's choice. CI result: see the pull request |
 
 Human corrections: 0 observed in this segment; attention: unknown.

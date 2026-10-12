@@ -94,13 +94,13 @@ advisory browser proof pending).
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `0b22f55ccba3582105b7d3ac38df3f6d1522a8cb`
-- Run at (UTC): `2026-10-12T21:03:06Z`
+- Tested implementation commit SHA: `fb2064f6a86f58b127c351e914c6c517c28fd319`
+- Run at (UTC): `2026-10-12T22:03:39Z`
 - Exact command(s): `bun run check -- --intent qa --no-fail-fast`; `bun run check --only docs-generated`
-- Result: 14 of 14 automated checks passed fresh, including `docs-authority` (72 tests), `ontology` (69 tests, all guards passed), and the drift check (17 projections). The planner run finished at `2026-10-12T21:07:55Z`; `docs-generated` ran again by itself at `2026-10-12T21:08:48Z`
+- Result: 14 of 14 automated checks passed fresh, including `docs-authority` (72 tests), `ontology` (69 tests, all guards passed), and the drift check (17 projections). The planner run finished at `2026-10-12T22:10:11Z`; `docs-generated` ran again by itself at `2026-10-12T22:10:45Z`. This is the merged branch: `develop` (tip `8d22aabb3`) was merged in before the run, and the two earlier runs on `48c6220d0` and `0b22f55cc` passed the same way
 - Validated paths: `scripts/docs scripts/quality packages/shared/src/ontology docs/docs docs/src/data`
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts/docs scripts/quality packages/shared/src/ontology docs/docs docs/src/data` → empty
-- Evidence-only diff command and result (if applicable): `git diff --exit-code 0b22f55ccba3582105b7d3ac38df3f6d1522a8cb..HEAD -- scripts/docs scripts/quality packages/shared/src/ontology docs/docs docs/src/data` → exit 0, no output. The commit that carries this handoff changes only `.plans/active/community-docs-revamp/`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code fb2064f6a86f58b127c351e914c6c517c28fd319..HEAD -- scripts/docs scripts/quality packages/shared/src/ontology docs/docs docs/src/data` → exit 0, no output. The commit that carries this handoff changes only `.plans/active/community-docs-revamp/`
 - Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- scripts/docs scripts/quality packages/shared/src/ontology docs/docs docs/src/data` → empty
 
 ## Risks / Blockers

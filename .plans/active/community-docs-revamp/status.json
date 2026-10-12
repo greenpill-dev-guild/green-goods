@@ -52,7 +52,7 @@
     "Lane mapping: ui = community pages, sidebar, redirects, consumer pointers, and screenshots; state_api = the glossary renderer, the ontology gate term-heading guard, and (only if Decision Q3 keeps the page) the claims renderer. Phase progress is tracked in plan.todo.md, not as custom lanes.",
     "Decisions live in plan.todo.md: locked L1 to L19, executor choices E1 to E23, and open Q2, Q3, Q4, Q9, Q10. No Linear mirror exists; creating one is an external write that waits for Afo (L19).",
     ".plans/ is the durable repo truth; status.json is authoritative for lane state. A lane stays in_progress until its handoff carries a validation receipt and its owed proof has an owner.",
-    "State on 2026-10-12: the ui and state_api lanes passed on commit 0b22f55cc in the session branch claude/green-goods-community-docs-b0ebe9, which starts at PR #896's head. Nothing is pushed, and the branch has not been merged with develop since that head. qa_pass_1 needs a person's authenticated session; the unassisted read-through (eval.md AC-9) needs people. Open decisions: Q3, Q4, Q9, Q10."
+    "State on 2026-10-12: the ui and state_api lanes passed, first on 0b22f55cc and again on fb2064f6a after develop (tip 8d22aabb3) was merged in. The work was done in the session branch claude/green-goods-community-docs-b0ebe9 and pushed to PR #896's branch at Afo's choice. qa_pass_1 needs a person's authenticated session; the unassisted read-through (eval.md AC-9) needs people. Open decisions: Q3, Q4, Q9, Q10."
   ],
   "lanes": {
     "ui": {

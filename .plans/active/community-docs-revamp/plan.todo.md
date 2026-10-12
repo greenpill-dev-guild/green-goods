@@ -2,7 +2,7 @@
 
 **Feature Slug**: `community-docs-revamp`
 **Stage**: `active`
-**Status**: `ACTIVE: the non-pooling foundation is written and validated on its branch, ready for review in PR #896 once pushed; the replay on the released product and the read-through by people are still to do; pooling documentation is owned by the pooling hub`
+**Status**: `ACTIVE: the non-pooling foundation is written, validated, merged with develop, and in PR #896 for review; the replay on the released product and the read-through by people are still to do; pooling documentation is owned by the pooling hub`
 **Created**: `2026-09-23`
 **Last Updated**: `2026-10-12`
 **Source**: 2026-09-01 Build Sync review and docs audit; reconciled on 2026-09-23 against
@@ -223,8 +223,12 @@ RED/GREEN in its handoff.
 - 2026-10-12: The docs-audit step is removed because the fix already shipped on `develop`.
 - 2026-10-12: Phases 0 to 2, step 3.1, and steps 4.1 and 4.2 are done on the branch. Receipts are
   in `handoffs/claude-ui.md` and `handoffs/claude-state-api.md`; where the pooling pages connect
-  is in `handoffs/pooling-insertion-points.md`. The branch has not been merged with `develop`
-  since PR #896's head; that sync and the push are waiting on Afo.
+  is in `handoffs/pooling-insertion-points.md`.
+- 2026-10-12: `develop` was merged in (tip `8d22aabb3`) with plain git, at Afo's choice, after the
+  app's sync tool refused over an unconfirmed origin. The one conflict was the generated Test
+  Cases page, regenerated from the merged QA catalog. No label the pages quote changed in those
+  56 commits; Create a Garden gained a row for the new "Awaiting wallet execution" state. The
+  full check plan passed again on the merged branch, and Afo chose to push to PR #896.
 - 2026-10-12: Found while reading the product, not fixed here (out of scope for a docs change):
   the Create Garden form may refuse to deploy from a fresh page, the public impact page's evidence
   links point at the wrong explorer, the in-app Help answers use retired names, and one public
