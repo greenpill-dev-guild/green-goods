@@ -576,3 +576,26 @@ renders all 13 skills.
 - **GitHub writes**: none for the explorer note (a review summary with no thread to answer).
 - **Human gates open**: D12, the page-length gate, a Reference landing, the merge, the two
   capability records above, and the three filed tasks.
+
+## Validation Receipt — Path audit and the screenshot pass (2026-10-11)
+
+- **Scope**: the last two of Afo's fifteen notes that belong on this branch. Commits `e2548a283`
+  and `052c8ad82`; decisions 60 and 61.
+- **Path audit**: run on the real pages it checked 178 path mentions and found three: two entry
+  files with the wrong extension on the Client page (fixed in `a195e520e`) and the indexer's
+  generated folder, which git ignores and the rule now skips. With one wrong name put back, the
+  audit exits 1 and names it. A fixture test covers a missing path in a code span and a missing
+  row in a package page's directory table.
+- **Screenshots**: seven frames captured from the deployed Storybook at the standard size. Three
+  were used (the Submit Work media and review steps, and the sign-in component cropped to its
+  content). Four were rejected on sight: the Hub work-queue and work-detail stories render an
+  empty queue and a "Work not found" dialog, and the two protected-surface stories are schematic
+  compositions, not screens.
+- **Exact commands and results**: `node --test docs/scripts/docs-audit.test.mjs` → 12/12 ·
+  `node docs/scripts/docs-audit.mjs --ci` → exit 0 · `bun run check -- --intent qa --only
+  docs-authority` → passed · production build → exit 0, search index covers 70 routes.
+- **Rendered proof**: local production build in a background tab of the desktop app's browser
+  pane, no sign-in. Anatomy shows two frames at 240x517 with the new caption (before the fix to
+  the row's CSS they rendered 240x1688, stretched by their height attribute); the Passkeys page
+  shows the cropped sign-in figure at 511x355.
+- **Human gates open**: unchanged, plus the five captures above.

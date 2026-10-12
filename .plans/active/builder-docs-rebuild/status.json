@@ -289,6 +289,14 @@
       "status": "in_progress",
       "branch": "feature/builder-docs-rebuild",
       "note": "Afo's final pass: nine of fifteen notes fixed in 65e16b847 and a195e520e (personas page from persona journeys, entity matrix rebuilt, MCP guide's connected services, plus six smaller fixes); three filed as separate tasks; screenshot recapture and a path-table drift check still open. Develop merged in 4610170d2 and Codex's explorer-twin note fixed in 154a382db; decisions 53 to 59. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T03:56:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Final pass, second batch: the audit now fails on a missing repository path in a hand-written page (e2548a283), and product screens follow one capture size, with two outdated captures removed (052c8ad82); decisions 60 and 61. Five captures still lack a faithful source and are listed in the plan. Receipt in handoffs/claude-ui.md."
     }
   ]
 }

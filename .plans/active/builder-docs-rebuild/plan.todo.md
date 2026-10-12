@@ -68,6 +68,8 @@
 | 57 | Builder-page screenshots follow one standard and are recaptured in this PR: one viewport per surface, light theme, develop's current UI through mock auth on localhost (Afo, 2026-10-11) | Thirty-one images came from three capture methods in seven sizes. Not done yet at this record |
 | 58 | The MCP guide lists the hosted services agents reach through a connector, joined from a small catalog and the connectors each routine declares in its frontmatter (Afo, 2026-10-11) | The page covered only the repository's own MCP server. The routines already declare Linear, PostHog, Vercel and the rest; a routine may not name a connector the catalog lacks |
 | 59 | The economics explorer's Markdown twin is written from a generated projection of its model (Codex, 2026-10-11) | The twin carried only the literal BrowserOnly block. The model is TypeScript with nothing to import, which the pinned Node loads when the projection is rendered; the twin walk now treats a BrowserOnly block as a hole |
+| 60 | The docs audit fails when a hand-written page names a repository path that does not exist; a package page's directory table is read relative to its package (2026-10-11, from Afo's note on drift) | The hand-written pages carry path tables that nothing checked. Descriptions stay written by hand; the paths are checked against the tree. Paths git ignores, globs, placeholders and fenced examples are skipped. It found two wrong file names on the Client page |
+| 61 | Decision 57 as applied: product screens are captured at the viewport only (desktop 1440x900 saved 2000x1250, phone 390x844 saved 780x1688), signed-in screens from Storybook's real views with fixture data, public pages from production (2026-10-11) | Afo picked mock auth on localhost as the source, but the deployer mock reads live gardens, whose member names and work photos do not belong in a public repository. Storybook's real views render the same components with seeded data. A component figure (sign-in) is cropped to its content |
 
 ## Requirements Coverage
 
@@ -233,6 +235,14 @@ environment file instead of two, and the launcher's fork-indexer comment. Still 
 screenshot recapture (decision 57) and a drift check for hand-written path tables. Develop was
 merged in (`4610170d2`; four generated pages regenerated), and Codex's note on `270f78cb8` is
 fixed in `154a382db` (decision 59).
+
+Status (2026-10-11, final pass, second batch): the path check is in the audit (`e2548a283`,
+decision 60) and the screenshot pass is done as far as a faithful source exists (`052c8ad82`,
+decision 61): two phone frames retaken at the standard size, the sign-in figure cropped, two
+outdated captures removed. Not replaced: the steward guide's two review captures (the Hub work
+stories render an empty queue), the gardener guide's Start and Details captures, and the three QA
+app captures. The launcher's fork-indexer comment went out as its own PR against develop at Afo's
+request.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
