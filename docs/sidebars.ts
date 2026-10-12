@@ -13,22 +13,33 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/gardener-guide/installing-and-updating', label: 'Install and Update'},
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
-        {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recovery and Sync'},
-        {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Status'},
+        {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Your Work'},
+        {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recover Unsent Work'},
       ],
     },
     {
       type: 'category',
-      label: 'Steward and Evaluator',
+      label: 'Steward',
       link: {type: 'doc', id: 'community/steward-guide/index'},
       items: [
         {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
+        {type: 'doc', id: 'community/steward-guide/managing-members', label: 'Manage Members'},
         {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
-        {type: 'doc', id: 'community/steward-guide/making-an-assessment', label: 'Create an Assessment'},
+        // Stewards write assessments too, and an assessment comes before the work it frames.
+        // The page lives in the Evaluator guide; this entry links to it.
+        {type: 'ref', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Assessment'},
         {type: 'doc', id: 'community/steward-guide/reviewing-work', label: 'Review Work'},
         {type: 'doc', id: 'community/steward-guide/commitment-pooling', label: 'Commitment Pool'},
         {type: 'doc', id: 'community/steward-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
         {type: 'doc', id: 'community/steward-guide/funding-and-governance', label: 'Funding and Governance'},
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Evaluator',
+      link: {type: 'doc', id: 'community/evaluator-guide/index'},
+      items: [
+        {type: 'doc', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Assessment'},
       ],
     },
     {
@@ -41,15 +52,14 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Remove an Endowment'},
       ],
     },
+    {type: 'doc', id: 'reference/faq', label: 'FAQ'},
+    {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
     {type: 'doc', id: 'community/green-goods-claims.generated', label: 'Honest Claims'},
     {
       type: 'category',
       label: 'Reference',
       collapsed: true,
       items: [
-        {type: 'doc', id: 'reference/faq', label: 'FAQ'},
-        {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
-        {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
         {type: 'doc', id: 'reference/product-history', label: 'Product History'},
         {type: 'doc', id: 'reference/brand', label: 'Brand kit'},
         {type: 'doc', id: 'reference/credits', label: 'Credits'},
@@ -134,6 +144,7 @@ const sidebars: SidebarsConfig = {
       items: [
         {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
         {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
+        {type: 'doc', id: 'reference/ontology.generated', label: 'Formal Ontology'},
         {type: 'doc', id: 'builders/reference/license', label: 'License'},
       ],
     },

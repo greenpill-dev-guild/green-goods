@@ -4,27 +4,36 @@
     "href": "/community/gardener-guide/",
     "icon": "seedling",
     "roleAccent": "gardener",
-    "audience": "Field workers",
-    "time": "5 min quickstart",
-    "description": "Document regenerative work in the field with photos and structured evidence capture."
+    "audience": "People doing the work",
+    "time": "15 min to a first submission",
+    "description": "Record your work in the field with photos and a few details, even without a signal."
   },
   {
     "title": "Steward",
     "href": "/community/steward-guide/",
     "icon": "shield",
     "roleAccent": "steward",
-    "audience": "Garden managers",
-    "time": "15 min steward setup",
-    "description": "Create and manage your garden community, approve work, and configure actions."
+    "audience": "People running a garden",
+    "time": "5 min to request access",
+    "description": "Bring people in, review their work, and look after the garden's funds."
+  },
+  {
+    "title": "Evaluator",
+    "href": "/community/evaluator-guide/",
+    "icon": "clipboard",
+    "roleAccent": "assessment",
+    "audience": "People who know the subject",
+    "time": "5 min read",
+    "description": "Help a garden write down its starting point and what it will measure."
   },
   {
     "title": "Funder",
     "href": "/community/funder-guide/",
     "icon": "wallet",
     "roleAccent": "funder",
-    "audience": "Capital allocators",
-    "time": "10 min first deposit",
-    "description": "Support garden operations through vault deposits and keep withdrawal controls close at hand."
+    "audience": "People and organizations who give",
+    "time": "5 min to give",
+    "description": "Donate to a garden or endow it, and know where the money goes."
   },
   {
     "title": "Builder",

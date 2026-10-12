@@ -2,97 +2,96 @@
 title: Donate to a Garden
 sidebar_label: Donate to a Garden
 slug: /community/funder-guide/donating-to-a-garden
-description: "Donate directly to a garden through its Cookie Jar from the public Fund page."
+description: "Give directly to a garden's shared fund from the public Fund page, and know where the money goes after you send it."
 audience: funder
 owner: docs
-last_verified: 2026-05-01
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Walk a funder through donating to a garden's Cookie Jar from the public funding flow."
+goal: "Walk a funder through one donation from the public Fund page, with an honest account of what happens to it."
 difficulty: "quickstart"
-estimated_time: "3-5 minutes."
-prereqs: "Connected wallet, supported asset, and a garden with an active Cookie Jar."
-next_steps: "./funding-a-garden"
-persona_context: "Funders sending direct support to a garden for verified work."
+estimated_time: "3 to 5 minutes."
+prereqs: "A crypto wallet with DAI or WETH on the Arbitrum network, and a little ETH there for the fee."
+next_steps: "/community/funder-guide/funding-a-garden"
+persona_context: "Funders giving direct support to a garden whose work they have read."
 source_of_truth:
   - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicGardenRow.tsx
   - packages/client/src/components/Public/PublicFundingCard.tsx
+  - packages/client/src/views/Public/GardenDetail.tsx
   - packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts
+  - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/shared/src/i18n/en.json
 keywords:
   - funder
   - donate
+  - shared fund
   - cookie jar
   - fund page
-  - direct support
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
 # Donate to a Garden
 
-<StatusBadge status="Live" />
-
-## What this helps you do
-
-Donate directly to a garden through its Cookie Jar. This is direct support for verified regenerative work; it is not an endowment and does not create a withdrawable vault position.
-
-Donate and Endow support the garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless the garden has separately configured that outside Green Goods.
+A donation is a gift to one garden. It goes into that garden's shared fund, where the garden can use it right away for things like supplies, transport, and thanking the people who did the work.
 
 ## Before you start
 
-- A wallet or passkey account.
-- A supported token balance for the Cookie Jar you want to fund.
-- A little Arbitrum gas if you are using an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
-- The garden you want to support.
-- A live internet connection.
+- **A crypto wallet,** with **DAI or WETH on the Arbitrum network** and a little ETH there for the network fee. The page does not take cards, and it does not convert other tokens for you.
+- **A garden you want to support.** Read its approved work first, on its page at [greengoods.app/gardens](https://greengoods.app/gardens).
+- **Be sure.** A donation is a gift. Green Goods has no way to send it back to you.
 
-:::tip
-If the garden does not have an active Cookie Jar, the donation dialog tells you. You can pick another garden or ask the steward whether direct donations are enabled.
-:::
+## Steps
 
-## Step-by-step flow
+1. Open [greengoods.app/fund](https://greengoods.app/fund).
+2. Under **Find a Garden to support**, find the garden.
+3. Tap **Donate** on its row. A window opens titled **Donate to**, with the garden's name.
+4. Enter the **Amount**, in dollars.
+5. Under **Payment currency**, choose the token to pay with, usually **DAI** or **WETH**. If you choose WETH, the window shows roughly how much WETH that is at the current price.
+6. Tap **Connect Wallet** if your wallet is not connected yet.
+7. Tap the button that reads **Donate**, your amount, and the token, then confirm in your wallet. The first time you use a token, your wallet asks twice: once to allow the token to be spent, and once for the donation itself.
 
-### Step 1: Open the public Fund page
+You can also start from a garden's own page. **Support This Garden** takes you to the Fund page with that garden picked out.
 
-1. Open `/fund`.
-2. Browse the garden list or open a shared fund link.
-3. Click **Support this Garden** on the garden you want to support.
+## How you know it worked
 
-### Step 2: Choose Donate
+- The window says **Donated**, with your amount and the garden's name.
+- Your wallet's history shows the transaction on Arbitrum.
 
-1. In the support dialog, choose **Donate**.
-2. Choose **Wallet**. If you are not connected yet, the app opens the wallet modal first.
-3. Card payment options stay hidden unless the payment provider is live for that exact garden and destination.
+Tap **Donate Again** to give more, or **Close**.
 
-### Step 3: Deposit into the Cookie Jar
+## What happens next
 
-1. The Cookie Jar dialog opens.
-2. Pick the Cookie Jar if the garden has more than one.
-3. Enter the amount.
-4. Check the wallet balance and any minimum deposit message.
-5. Click **Deposit** and sign the transaction.
-6. Wait for confirmation before closing the flow.
+The money is now in the garden's shared fund. From here, the garden acts.
 
-## How to know it worked
-
-- The dialog closes after the transaction succeeds.
-- The donation transaction appears in your wallet history on Arbitrum.
-- The garden's Cookie Jar balance updates after the app refreshes and indexing catches up.
+- **Who can use it:** the garden's gardeners. Each can claim up to a limit, then has to wait before claiming again. The garden sets the limit and the wait.
+- **What it is for:** the garden decides. Each claim is saved with the reason the gardener gave. Green Goods does not check a claim against a piece of approved work.
+- **What you can see:** the garden's public page shows its approved work. It is the best view of what your support is helping to happen.
 
 ## If something goes wrong
 
-- **Connect wallet prompt appears.** Connect the wallet or passkey account you want to use, then continue.
-- **No active Cookie Jar.** The garden cannot accept direct donations through this flow yet.
-- **Minimum deposit warning.** Increase the amount or choose a different Cookie Jar.
-- **Invalid decimal input.** Match the token's decimal precision.
-- **Transaction cancelled.** Nothing was donated. Try again when ready.
-- **Transaction failed.** Check the wallet error, token balance, chain, and Arbitrum gas.
-- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+| What you see | What to do |
+|---|---|
+| **This Garden has no donation fund configured yet** | This garden cannot take donations here yet. Choose another garden, or contact the garden |
+| **We couldn't load payment options for this Garden** | A temporary problem. Close the window and try again |
+| **The live ETH price isn't reaching us on this network** | The page cannot price WETH right now. Choose **DAI**, or try later |
+| **Enter an amount** on the button | Type an amount first |
+| **Transaction cancelled** | You closed the wallet's confirmation. Nothing was sent |
+| **Transaction failed** | Read the message under it. The usual causes are not enough of the token, or not enough ETH for the fee |
+| The garden is not on the Fund page | Gardens appear there after their first approved work |
+
+For anything else, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
+
+:::note Not a charitable gift
+A donation through Green Goods supports the garden directly. It is not tax-deductible, and no charity or nonprofit stands behind it. If a garden has its own arrangement, that is between you and the garden.
+:::
 
 ## Next step
 
 <NextBestAction
   title="Endow a garden"
-  why="If you want a withdrawable position instead of a direct donation, use the vault endowment flow."
+  why="If you would rather keep your deposit and give the garden its earnings over time, look at an endowment."
   actionLabel="Endow a Garden"
-  actionHref="./funding-a-garden"
+  actionHref="/community/funder-guide/funding-a-garden"
 />

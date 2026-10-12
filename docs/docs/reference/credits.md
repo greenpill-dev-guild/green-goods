@@ -204,10 +204,11 @@ Green Goods is provided "as is" under MIT License. See license above.
 
 ### Privacy
 
-- No personal data collected
-- Wallet addresses are pseudonymous
-- Photos uploaded are public
-- Analytics are anonymized
+- What gardeners submit is public and permanent: their photos, notes, and the record of each piece of work.
+- Account addresses are public. An address is not tied to a legal name unless its owner chooses a name that is.
+- The app and the website record how they are used and any errors. For a signed-in person, that is linked to their account address.
+
+The [FAQ](/faq#privacy) explains each of these in plain words.
 
 ### Disclaimer
 

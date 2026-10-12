@@ -229,7 +229,7 @@ describe("data-backed component fallbacks", () => {
     assert.match(real("reference/brand.mdx"), /^- \[Download the whole kit \(ZIP\)\]\(\/brand\//m);
     assert.match(real("builders/architecture/design.mdx"), /^\| `tertiary-action` \| `#[0-9A-F]{6}` \|$/m);
     assert.match(real("community/welcome.mdx"), /^- \[Gardener\]\(\/community\/gardener-guide\/\)/m);
-    assert.match(real("community/steward-guide/reviewing-work.mdx"), /^3\. \[Review and Approve Work\]/m);
+    assert.match(real("community/steward-guide/reviewing-work.mdx"), /^4\. \[Review Work\]\(\/community\/steward-guide\/reviewing-work\)/m);
   });
 
   test("the economics explorer becomes its model: inputs, preset values, and what each preset computes", () => {

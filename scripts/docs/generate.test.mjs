@@ -40,6 +40,7 @@ import {
   assignOperationGroups,
   assignTaskGroups,
   copyCommand,
+  glossaryEverydayEntries,
   integrationNetworkRecords,
   mutationBoundaryLabel,
   orderCommandManifests,
@@ -615,6 +616,85 @@ test("personas page gives each persona a section, its journey, and the surfaces 
   }
   // One that relies on a term people cannot use yet says so, and names no surface it does not have.
   assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| — \|/);
+});
+
+test("glossary leads with plain entries for the everyday terms and keeps every anchor people link to", () => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/reference/glossary.generated.mdx",
+  );
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const section = (heading) => {
+    const start = rendered.indexOf(`\n## ${heading}\n`);
+    assert.ok(start >= 0, `missing section: ${heading}`);
+    const end = rendered.indexOf("\n## ", start + 1);
+    return { start, text: rendered.slice(start, end === -1 ? undefined : end) };
+  };
+  const everyday = section("Everyday terms");
+  const reference = section("Term Reference");
+  // A reader meets the plain entries before the formal tables the ontology gate locks.
+  assert.ok(everyday.start < section("Domain Entities").start);
+  assert.ok(everyday.start < section("Personas").start);
+  // The anchors packages/client/src/views/Public/Glossary.tsx deep-links land on plain entries.
+  const appAnchors = ["action", "assessment", "cookie-jar", "evaluator", "garden", "gardener", "impact-certificate", "steward", "vault", "work"];
+  for (const anchor of appAnchors) {
+    assert.match(everyday.text, new RegExp(`^### .+ \\{#${anchor}\\}$`, "m"), anchor);
+  }
+  // An entry is the term's plain-language record. Its formal definition stays in the tables.
+  const sidecar = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
+  const projectionData = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-projections.json");
+  const garden = sidecar.entities.find((entity) => entity.id === "garden");
+  const gardenConcept = projectionData.human_concepts.find((concept) => concept.ref === "entity:garden");
+  assert.ok(everyday.text.includes(`**${gardenConcept.plain_name}.**`));
+  assert.ok(everyday.text.includes(gardenConcept.example));
+  assert.ok(!everyday.text.includes(garden.definition));
+  assert.ok(rendered.includes(`| **Garden** | entity |`));
+  // A term has one heading on the page, so no anchor is defined twice.
+  assert.doesNotMatch(reference.text, /^### Garden \{#garden\}$/m);
+  const anchors = [...rendered.matchAll(/\{#([a-z0-9-]+)\}|<a id="([a-z0-9-]+)"><\/a>/g)].map((match) => match[1] ?? match[2]);
+  assert.equal(new Set(anchors).size, anchors.length, "duplicate anchor on the glossary page");
+  // Every term keeps an anchor: canonical entities, personas, supporting terms, and the old aliases.
+  const expected = [
+    ...sidecar.entities.filter((entity) => entity.semantic_status === "canonical").map((entity) => entity.id),
+    ...sidecar.personas.map((persona) => persona.id),
+    ...sidecar.supporting_terms.map((term) => term.id),
+    "operator",
+    "pwa-progressive-web-app",
+    "smart-account-account-abstraction",
+  ];
+  for (const id of expected) assert.ok(anchors.includes(id), `anchor lost: ${id}`);
+});
+
+test("an everyday glossary entry needs a plain-language record and a name the ontology knows", () => {
+  const ontology = {
+    entities: [{ id: "garden", display: "Garden", definition: "Formal.", semantic_status: "canonical" }],
+    personas: [],
+  };
+  const projections = {
+    capabilities: [{ ref: "entity:garden", availability: "in-build" }],
+    human_concepts: [
+      { ref: "entity:garden", plain_name: "A community", why_it_matters: "Why.", example: "An example.", aliases: ["community garden"], not_confused_with: ["a wallet"] },
+    ],
+  };
+  const [entry] = glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", heading: "Community Garden", guide: ["Join", "/join"] }]);
+  assert.equal(entry.heading, "Community Garden");
+  assert.equal(entry.anchor, "community-garden");
+  // The canonical id stays reachable when the heading is an alias.
+  assert.deepEqual(entry.aliasAnchors, ["garden"]);
+  assert.deepEqual(entry.alsoCalled, ["Garden"]);
+  assert.equal(entry.availabilityNote, "Still being built.");
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:vault", guide: ["Endow", "/endow"] }]),
+    /entity:vault is not a canonical entity or persona/,
+  );
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, { ...projections, human_concepts: [] }, [{ ref: "entity:garden", guide: ["Join", "/join"] }]),
+    /entity:garden has no human concept/,
+  );
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", heading: "Plot", guide: ["Join", "/join"] }]),
+    /"Plot" is neither the display name nor a declared alias of entity:garden/,
+  );
 });
 
 test("data model projects layered diagrams, every relationship, and all lifecycles", () => {

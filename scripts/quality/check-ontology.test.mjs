@@ -18,6 +18,7 @@ import {
   parseCanonicalEntityCounts,
   parseClientGlossaryTerms,
   parseGlossaryAnchors,
+  parseGlossaryTermHeadings,
   parseGlossaryTable,
   parseGraphqlEnum,
   parseSolidityEnum,
@@ -372,6 +373,31 @@ test("parseTermReferenceHeadings prefers an explicit anchor over the slug", () =
 
 test("parseTermReferenceHeadings returns null when the section is absent", () => {
   assert.equal(parseTermReferenceHeadings("## Personas\n\n### Gardener\n"), null);
+});
+
+test("parseGlossaryTermHeadings reads the everyday section too, so both are held to declared terms", () => {
+  const source = [
+    "## Everyday terms",
+    "",
+    "### Impact Certificate {#impact-certificate}",
+    "### Made-Up Noun",
+    "",
+    "## Domain Entities",
+    "",
+    "### Not A Term Heading",
+    "",
+    "## Term Reference",
+    "",
+    "### Hat {#hat}",
+  ].join("\n");
+  assert.deepEqual(parseGlossaryTermHeadings(source), [
+    { display: "Impact Certificate", anchor: "impact-certificate" },
+    { display: "Made-Up Noun", anchor: "made-up-noun" },
+    { display: "Hat", anchor: "hat" },
+  ]);
+  // The Term Reference stays required; the everyday section is the optional one.
+  assert.equal(parseGlossaryTermHeadings("## Everyday terms\n\n### Garden\n"), null);
+  assert.deepEqual(parseGlossaryTermHeadings("## Term Reference\n\n### Hat {#hat}\n"), [{ display: "Hat", anchor: "hat" }]);
 });
 
 test("parseGlossaryAnchors collects explicit and slugified anchors at every level", () => {

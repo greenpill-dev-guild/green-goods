@@ -1,53 +1,147 @@
 ---
-title: Recovery and Sync
-sidebar_label: Recovery and Sync
+title: Recover Unsent Work
+sidebar_label: Recover Unsent Work
 slug: /community/gardener-guide/recovery-and-sync
+description: "See what is still waiting on your phone, send it, and fix work that will not upload, without losing it or sending it twice."
 audience: gardener
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Recover a draft or queued submission without duplicating or losing work."
+goal: "Recover a draft or waiting submission without duplicating or losing work."
 difficulty: "standard"
-estimated_time: "5-10 minutes."
-prereqs: "An existing draft or submission attempt."
-next_steps: "./track-status-and-attestations"
-persona_context: "Gardeners documenting and syncing work in intermittent connectivity."
+estimated_time: "2 to 10 minutes."
+prereqs: "The installed app, the account you used to record the work, and a connection when you are ready to send."
+next_steps: "/community/gardener-guide/track-status-and-attestations"
+persona_context: "Gardeners who recorded work with a weak or missing signal and need to get it to their steward."
 source_of_truth:
-  - packages/shared/src/modules/job-queue
-  - packages/shared/src/hooks/work/useDrafts.ts
-  - packages/shared/src/hooks/work/useWorkForm.ts
-  - packages/shared/src/hooks/work/useWorkMutation.ts
-  - packages/shared/src/hooks/work/useWorkUploads.ts
-  - packages/shared/src/hooks/app/useOffline.ts
+  - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
+  - packages/client/src/views/Home/WorkDashboard/buildPendingRows.ts
+  - packages/client/src/views/Home/WorkDashboard/uploadActions.tsx
+  - packages/client/src/components/Cards/Work/queuedWorkCopy.ts
+  - packages/client/src/components/Cards/Work/workUploadGroup.ts
+  - packages/client/src/views/Home/Garden/WorkStatusNotice.tsx
+  - packages/client/src/views/Home/Garden/WorkUploadFooter.tsx
+  - packages/shared/src/modules/work/upload-queued-work.ts
+  - packages/shared/src/modules/work/upload-preparation.ts
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/modules/job-queue/queue-policy.ts
+  - packages/shared/src/modules/job-queue/draft-snapshot.ts
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/providers/Auth.tsx
+  - packages/shared/src/i18n/en.json
+keywords:
+  - offline
+  - upload all
+  - drafts
+  - unsent work
+  - recovery
+  - cannot upload
 ---
 
-# Recovery and Sync
+import {NextBestAction} from "@site/src/components/docs";
 
-Green Goods saves work locally before it reaches the network. A draft is work you have not submitted. A queued item is saved on your device and waiting to upload. A pending item has reached Green Goods and is waiting for steward review.
+# Recover Unsent Work
 
-## Work without a connection
+Green Goods saves your work on your phone first and sends it second. That is what lets you record work with no signal. It also means work can sit on your phone, waiting. This page shows how to see what is waiting, send it, and fix anything that will not go.
 
-1. Start the submission and attach your evidence.
-2. Confirm the media preview before leaving the flow.
-3. Save the draft or submit it. If you are offline, the submission waits on your device.
-4. Reopen the app after connectivity returns. The app gets queued work ready in the background, and nothing sends on its own. Open **Your Work** and tap **Upload all**. Most accounts confirm once for a batch, with one fingerprint or face check or one wallet confirmation. A long queue goes out in a few batches, so you may be asked more than once, and anything a batch already sent stays sent if you decline a later one.
-5. Check the item before creating another submission. Only start over when the original draft or queued item is no longer present.
+One rule covers almost everything here: **never redo work that is still waiting.** It is safe where it is.
 
-The app keeps a bounded number of local drafts. Submit or remove old drafts you no longer need, and recheck photos when reopening a draft after a long gap.
+## Before you start
 
-## Fix a submission that will not send
+- **Open the installed app**, signed in to the account you used when you recorded the work.
+- **Get a steady connection** before you send. Looking at what is waiting works offline.
+
+## Steps
+
+### 1. See what is waiting
+
+1. Open **Home** and tap the **Your Work** button at the top. It shows a number while anything is still on your phone.
+2. Stay on the **Pending** tab. Each item carries a label that says where it stands.
+
+| Label | The line under it | What it means | What to do |
+|---|---|---|---|
+| **Draft** | Step 2 of 4 · 3 photos | You started and did not finish | Tap it to continue, or delete it |
+| **To upload** | Nothing sent yet | Ready and waiting for you | Tap **Upload all** |
+| **To upload** | Uploads when you're connected | You have no signal | Wait for a signal, then tap **Upload all** |
+| **To upload** | Preparing to upload, or A photo is still converting | The app is getting it ready | Give it a moment |
+| **Checking** | Checking whether it was sent | It was sent, and the app has not seen the answer yet | Nothing. The app checks again by itself |
+| **Can't upload** | A short reason, in red | The garden's record would not accept it as it is | Open it to see why (step 3) |
+| **Didn't upload** | Nothing was sent, or The record refused it | A try failed | Open it and tap **Upload now** |
+| **In review** | Waiting for a review | It reached the garden's record | Nothing. It is with your steward |
+
+### 2. Send it
+
+1. Tap **Upload all**. It appears when you are online and something is waiting.
+2. Confirm when your phone asks. A long list goes out a few items at a time, so you may be asked more than once.
+3. Watch the labels change to **In review**.
+
+If you cancel a confirmation partway through, nothing is lost. What already went stays sent, and the rest stays ready for the next time you tap **Upload all**.
+
+To send just one item, tap it, then tap **Upload now**.
+
+### 3. Fix what will not send
+
+Tap an item marked **Can't upload** or **Didn't upload**. The top of its page says what happened, and the bar at the bottom offers your choices.
+
+| The reason | What it means | What to do |
+|---|---|---|
+| Action ended | The action closed before this was sent | Ask your steward whether the action can reopen. If it can, tap **Try Again**. If not, **Discard** |
+| Action removed | The action no longer exists | Tell your steward, then **Discard** |
+| Not a member | You are not a gardener in that garden | [Join the garden](/community/gardener-guide/joining-a-garden), then tap **Try Again** |
+| Not in this garden | That garden does not offer this action | Ask your steward which action to use, then submit the work again under it |
+| A photo won't convert | The app could not read one of the photos | **Discard**, then submit again with a different photo |
+| The record refused it | The garden's record turned it down | Tap **Try Again** once. If it fails again, send your steward the garden, the action, and the message you see |
+
+**Discard** always asks first, and it removes the photos and notes from your phone for good. The app does not offer it while an item might already be on its way.
+
+## How you know it worked
+
+- The item's label reads **In review**.
+- A message says how many items were uploaded and that they were saved to the garden's record.
+- The number on the **Your Work** button drops.
+
+## What happens next
+
+Your steward reviews what you sent. See [Track Your Work](/community/gardener-guide/track-status-and-attestations) for what each result means.
+
+## What keeps your work safe, and what does not
+
+Work marked **Draft** or **To upload** lives on your phone, inside the app.
+
+- **It survives** closing the app, restarting your phone, updating the app, and signing out. It comes back when you sign in to the same account.
+- **It does not survive** tapping **Discard**, clearing the browser's site data or storage for Green Goods, or, on most phones, removing the app.
+- **It is only on that phone.** If the phone is lost before you upload, the work is lost with it. Work marked **In review** is on the garden's record and does not depend on your phone.
+
+When you are back online, the app gets waiting work ready in the background so that sending is quick. That includes uploading its photos and details to the public storage network Green Goods uses for evidence. Getting ready does not add anything to the garden's record. Only **Upload all**, with your confirmation, does that.
+
+One consequence: **Discard** removes work from your phone, but files that were already uploaded while getting ready stay in storage. No Green Goods page shows them, and they cannot be deleted. See [Is what I upload private?](/faq#is-what-i-upload-private)
+
+## Tips for the field
+
+- **Before you leave a place with signal:** open **Your Work** and send what is waiting. Wait for **In review**.
+- **Before you leave the work site:** check that today's work is in **Your Work**, marked **Draft** or **To upload**. If it is there, it is saved.
+- **Finish drafts soon.** The app keeps up to 20 drafts. Photos picked long ago can become unreadable, and the app will ask you to add them again.
+
+## If something goes wrong
 
 | What you see | What to do |
 |---|---|
-| Missing media or required field | Reopen the draft, restore the missing evidence, and review every required field. |
-| Waiting to upload for a long time | Confirm connectivity, open **Your Work**, and tap **Upload all**. While photos are still being prepared, the button shows a spinner and waits. |
-| Needs attention | The line under the work says why, such as an action that has ended. Open the work to try again, or discard it if it can no longer be accepted. |
-| Unauthorized or forbidden | Confirm that you joined the intended Garden and that the Action is still available to you. |
-| Session or signature request | Sign in again with the same account, then retry the existing item. |
-| Transaction rejected | Reopen the item and approve the signature when you are ready. |
+| No **Upload all** button | You are offline, nothing is ready yet, or the list is filtered. Set the filter to **All** and check your signal. With Data Saver on, the button reads **Prepare now** |
+| **Not uploaded yet**, with "still being prepared" | The app is still getting your items ready. Wait a moment and tap **Upload all** again |
+| **Connection unstable** | Nothing was sent. Try again when your signal is steady |
+| **Checking your upload** | It may have been sent. The app is making sure before it lets you send again, so you cannot send it twice |
+| **Not uploaded yet**, asking you to sign in | Sign in again with the same account, then tap **Upload all** |
+| **Work is waiting to sync**, when you open the app | Something has not been uploaded. Tap **Review** to open the list |
+| A draft or item you expected is missing | Check that you are signed in to the account you used. Work is kept per account |
+| The same problem keeps coming back | Tell your steward. Send the garden, the action, about when you recorded it, the label, and the message you see. Never send a password or recovery phrase |
 
-If the same error repeats, ask your steward for help. Share the Garden, Action, approximate time, visible error message, and current item status. Do not share private keys, recovery material, or personal identifiers.
+To reach the community, open **Profile**, then the **Help** tab, and tap **Telegram**.
 
-## Next action
+## Next step
 
-Once the item reads **Pending**, use [Track Status](./track-status-and-attestations) to follow the steward decision. To create a fresh record, return to [Submit Work](./uploading-your-work).
+<NextBestAction
+  title="Track your work"
+  why="Once an item reads In review, follow it through to your steward's decision."
+  actionLabel="Track Your Work"
+  actionHref="/community/gardener-guide/track-status-and-attestations"
+/>

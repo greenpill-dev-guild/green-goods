@@ -2,30 +2,87 @@
 title: Funder Guide
 sidebar_label: Funder Guide
 slug: /community/funder-guide/
-description: "Donate to a Garden, create a long-term endowment, or remove an existing endowment."
+description: "Support a garden with a donation or an endowment, take an endowment back out, and know exactly what Green Goods does and does not promise about your money."
 audience: funder
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Help a funder choose the current funding path."
+goal: "Help a funder choose between donating and endowing with a clear view of where the money goes and what is not guaranteed."
 difficulty: "quickstart"
-estimated_time: "3-10 minutes."
-prereqs: "A connected account, a supported asset, and a Garden with the selected funding destination."
-next_steps: "./donating-to-a-garden"
-persona_context: "Funders supporting Garden operations directly or through long-term principal."
+estimated_time: "3 minutes to read. 5 to 10 minutes to give."
+prereqs: "A crypto wallet with DAI or WETH on the Arbitrum network."
+next_steps: "/community/funder-guide/donating-to-a-garden"
+persona_context: "People and organizations who want to support a garden's work directly."
 source_of_truth:
   - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicGardenRow.tsx
   - packages/client/src/components/Public/PublicFundingCard.tsx
   - packages/client/src/components/Public/PublicEndowmentPanel.tsx
-  - packages/client/src/components/Sheets/EndowmentSheet/index.tsx
+  - packages/shared/src/hooks/public/usePublicGardens.ts
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/contracts/src/modules/Octant.sol
+  - packages/contracts/src/resolvers/Yield.sol
+  - packages/contracts/src/vendor/octant/core/MultistrategyVault.sol
+  - packages/shared/src/i18n/en.json
+keywords:
+  - funder
+  - donate
+  - endow
+  - endowment
+  - support a garden
 ---
+
+import {NextBestAction} from "@site/src/components/docs";
 
 # Funder Guide
 
-Choose the path that matches your intent:
+You can support a garden in two ways. Both go straight to that garden, with no middle step. Before you give, you can read the garden's approved work on its public page, so you know what you are supporting.
 
-- [Donate](/community/funder-guide/donating-to-a-garden) for direct support through the Garden's current donation destination.
-- [Endow](/community/funder-guide/funding-a-garden) to place principal in a Garden Vault whose configured yield can support the Garden.
-- [Remove an Endowment](/community/funder-guide/withdraw-from-a-vault) to withdraw principal from an active position.
+## Choose how to give
 
-Before signing, confirm the Garden, network, asset, amount, and destination. Afterward, inspect the transaction state before retrying; a delayed indexed view is not proof that the transaction failed.
+| | Donate | Endow |
+|---|---|---|
+| **In one line** | A gift the garden can use now | A deposit that stays yours, whose earnings go to the garden |
+| **Where it goes** | The garden's shared fund | The garden's endowment |
+| **Who uses it** | The garden's gardeners claim from it, within limits the garden sets | Most of the earnings go to the garden when a steward collects them. A small share goes to the Green Goods protocol |
+| **Can you get it back?** | No | Yes, by withdrawing. The amount is not guaranteed |
+| **Best for** | Near-term needs: supplies, transport, thanking gardeners | Long-term support that keeps working |
+
+- [Donate to a Garden](/community/funder-guide/donating-to-a-garden)
+- [Endow a Garden](/community/funder-guide/funding-a-garden)
+- [Remove an Endowment](/community/funder-guide/withdraw-from-a-vault)
+
+## What you need
+
+- **A crypto wallet.** Giving is done from your own wallet. There is no card payment today.
+- **DAI or WETH on the Arbitrum network**, plus a little ETH there for the network fee.
+
+## What Green Goods promises, and what it does not
+
+Money deserves plain words.
+
+**What you can count on**
+
+- **Your money goes to the garden you picked.** A donation goes into that garden's shared fund. An endowment goes into that garden's endowment.
+- **The record is public.** A garden's approved work is on its public page, with the photos and details gardeners submitted and the steward's decision.
+- **An endowment has no lock-in period.** You can ask for it back at any time.
+
+**What is not promised**
+
+- **An endowment is not guaranteed.** Your deposit is put to work to earn for the garden, in a lending market outside Green Goods. If that market loses money, or is short of funds when you ask, you can get back less than you put in, or have to wait and try again. If you endow in WETH, its value in dollars also moves with the price of ETH.
+- **Your deposit is not meant to grow.** The earnings go to the garden and the protocol, not to you.
+- **Neither way of giving is tax-deductible or charitable** through Green Goods, and no nonprofit stands behind it. If a garden has its own arrangement, that is between you and the garden.
+- **Approval is a local review.** A steward from the garden has looked at the evidence and stands behind it. It is not an independent audit, and it does not by itself measure environmental results.
+- **Green Goods does not decide how a garden spends its shared fund.** Gardeners claim from it under the garden's own limits and agreements.
+
+Only give what you are comfortable giving on those terms.
+
+<NextBestAction
+  title="Make a donation"
+  why="The simplest way to help: a gift the garden can use right away."
+  actionLabel="Donate to a Garden"
+  actionHref="/community/funder-guide/donating-to-a-garden"
+  alternatives={[
+    { label: "Endow a Garden", href: "/community/funder-guide/funding-a-garden" }
+  ]}
+/>

@@ -148,10 +148,8 @@ const config: Config = {
           {from: ['/operators/managing-actions'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operators/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operators/reporting-impact'], to: '/community/steward-guide/creating-impact-certificates'},
-          {
-            from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
-            to: '/community/how-it-works',
-          },
+          {from: ['/welcome/quickstart-evaluator'], to: '/community/evaluator-guide'},
+          {from: ['/evaluators/accessing-data'], to: '/community/how-it-works'},
           {from: ['/evaluators/exploring-gardens'], to: '/community/how-it-works'},
           {
             from: ['/evaluators/using-attestation-data'],
@@ -159,7 +157,7 @@ const config: Config = {
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: [
@@ -393,24 +391,24 @@ const config: Config = {
           {from: ['/community/operator-guide/creating-impact-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide/earning-recognition'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide'], to: '/community/steward-guide'},
-          {from: ['/community/operator-guide/making-an-assessment'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/community/operator-guide/making-an-assessment'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/community/operator-guide/managing-actions'], to: '/community/steward-guide/managing-actions'},
           {from: ['/community/operator-guide/managing-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide/managing-endowments'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/community/operator-guide/managing-governance'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/community/operator-guide/managing-payouts'], to: '/community/steward-guide/funding-and-governance'},
-          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/community/operator-guide/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           // operator/ → community/steward-guide/
           {from: ['/operator/create-garden'], to: '/community/steward-guide/creating-a-garden'},
-          {from: ['/operator/create-assessments'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/operator/create-assessments'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/operator/review-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operator/mint-and-list-hypercerts'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/operator/vaults-and-treasury'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/operator/conviction-and-signal-pools'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/operator/get-started-and-roles'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operator/manage-actions'], to: '/community/steward-guide/managing-actions'},
-          {from: ['/operator/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/operator/reporting-and-gap'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/operator/cookie-jars'], to: '/community/steward-guide/funding-and-governance'},
 
           // gardener/ → community/gardener-guide/
@@ -420,15 +418,21 @@ const config: Config = {
           {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/recovery-and-sync'},
           {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
 
-          // evaluator/ legacy routes now point to visible docs until evaluator flows return
-          {from: ['/community/evaluator-guide'], to: '/community/how-it-works'},
+          // evaluator/ legacy routes: the role and assessments resolve to the Evaluator guide,
+          // data access to the builder pages.
           {from: ['/evaluator/verify-attestation-chains'], to: '/builders/integrations/eas'},
-          {from: ['/evaluator/get-started'], to: '/community/how-it-works'},
-          {from: ['/evaluator/cross-framework-mapping'], to: '/community/steward-guide/making-an-assessment'},
-          {from: ['/evaluator/export-and-analysis'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/evaluator/get-started'], to: '/community/evaluator-guide'},
+          {from: ['/evaluator/cross-framework-mapping'], to: '/community/evaluator-guide/making-an-assessment'},
+          {from: ['/evaluator/export-and-analysis'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/evaluator/query-eas'], to: '/builders/integrations/eas'},
           {from: ['/evaluator/query-indexer'], to: '/builders/packages/api-index'},
           {from: ['/builders/glossary'], to: '/glossary'},
+          // The FAQ moved to the top level, and Make an Assessment to the Evaluator guide.
+          {from: ['/reference/faq'], to: '/faq'},
+          {
+            from: ['/community/steward-guide/making-an-assessment'],
+            to: '/community/evaluator-guide/making-an-assessment',
+          },
           {from: ['/reference/changelog'], to: '/reference/product-history'},
           {
             from: ['/reference/regenerative-design-framework'],
@@ -471,7 +475,7 @@ const config: Config = {
           },
           {
             from: ['/community/steward-guide/reporting-and-gap'],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: [
@@ -491,7 +495,7 @@ const config: Config = {
               '/community/evaluator-guide/cross-framework-mapping',
               '/community/evaluator-guide/export-and-analysis',
             ],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: ['/community/evaluator-guide/query-eas'],
@@ -624,7 +628,7 @@ const config: Config = {
         {
           title: 'Resources',
           items: [
-            { label: 'FAQ', to: '/reference/faq' },
+            { label: 'FAQ', to: '/faq' },
             { label: 'Glossary', to: '/glossary' },
             { label: 'Brand kit', to: '/brand' },
             { label: 'Credits', to: '/reference/credits' },

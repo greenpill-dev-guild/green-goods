@@ -781,6 +781,84 @@ export function renderSkills({ root, sources, digest }) {
   return body;
 }
 
+// The terms a community reader meets in the guides, in the order the work happens: the place,
+// the work, the review, the plan, the claim, the two funds, then the people. Each leads the
+// glossary with its plain-language record from the projection data and links to its guide.
+// This is a list of terms, not a rule. The ontology's `surfaces` field says where a term may
+// appear in product copy; it does not say who reads it.
+// Commitment terms are left out on purpose until their availability records are reconciled.
+const GLOSSARY_EVERYDAY = [
+  { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
+  { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
+  { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
+  { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
+  { ref: "entity:assessment", guide: ["Make an Assessment", "/community/evaluator-guide/making-an-assessment"] },
+  // The public site and the guides call it an impact certificate; the cockpit says Hypercert.
+  { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
+  { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
+  { ref: "entity:cookie-jar", guide: ["Donate to a Garden", "/community/funder-guide/donating-to-a-garden"] },
+  { ref: "persona:gardener", guide: ["Gardener Guide", "/community/gardener-guide/"] },
+  { ref: "persona:steward", guide: ["Steward Guide", "/community/steward-guide/"] },
+  { ref: "persona:evaluator", guide: ["Evaluator Guide", "/community/evaluator-guide/"] },
+  { ref: "persona:funder", guide: ["Funder Guide", "/community/funder-guide/"] },
+  { ref: "persona:community-member", guide: ["How It Works", "/community/how-it-works"] },
+];
+
+// Anchors older links use for a term. They stay on the page wherever the term's heading lands.
+const GLOSSARY_LEGACY_ANCHORS = {
+  "persona:steward": ["operator"],
+  "supporting:pwa": ["pwa-progressive-web-app"],
+  "supporting:smart-account": ["smart-account-account-abstraction"],
+};
+
+const headingAnchor = (text) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+/**
+ * The glossary's everyday entries: each selected term with the plain-language record the
+ * projection data holds for it. A selection the ontology cannot back fails here, so the page
+ * never shows a term without plain words or under a name nobody declared.
+ */
+export function glossaryEverydayEntries(ontology, projections, selection = GLOSSARY_EVERYDAY) {
+  const terms = new Map([
+    ...ontology.entities
+      .filter((entity) => entity.semantic_status === "canonical")
+      .map((entity) => [`entity:${entity.id}`, entity]),
+    ...ontology.personas.map((persona) => [`persona:${persona.id}`, persona]),
+  ]);
+  const conceptByRef = new Map(projections.human_concepts.map((concept) => [concept.ref, concept]));
+  const availabilityByRef = new Map((projections.capabilities ?? []).map((item) => [item.ref, item.availability]));
+  return selection.map(({ ref, heading, guide }) => {
+    const term = terms.get(ref);
+    if (!term) throw new Error(`Glossary everyday term ${ref} is not a canonical entity or persona`);
+    const concept = conceptByRef.get(ref);
+    if (!concept) throw new Error(`Glossary everyday term ${ref} has no human concept in the projection data`);
+    const aliases = concept.aliases ?? [];
+    const title = heading ?? term.display;
+    if (title !== term.display && !aliases.some((alias) => alias.toLowerCase() === title.toLowerCase())) {
+      throw new Error(`Glossary heading "${title}" is neither the display name nor a declared alias of ${ref}`);
+    }
+    const anchor = title === term.display ? term.id : headingAnchor(title);
+    return {
+      ref,
+      heading: title,
+      anchor,
+      // The canonical id and any older anchor keep resolving when the heading is an alias.
+      aliasAnchors: [...(anchor === term.id ? [] : [term.id]), ...(GLOSSARY_LEGACY_ANCHORS[ref] ?? [])],
+      concept,
+      alsoCalled: [
+        ...(title === term.display ? [] : [term.display]),
+        ...aliases.filter((alias) => alias.toLowerCase() !== title.toLowerCase()),
+      ],
+      availabilityNote: UNAVAILABLE_NOTES.find(([status]) => status === availabilityByRef.get(ref))?.[1] ?? null,
+      guide,
+    };
+  });
+}
+
 export function renderGlossary({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const projections = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-projections.json"));
@@ -788,11 +866,28 @@ export function renderGlossary({ root, sources, digest }) {
   const capabilityByRef = new Map((projections.capabilities ?? []).map((capability) => [capability.ref, capability]));
   const canonicalEntities = ontology.entities.filter((entity) => entity.semantic_status === "canonical");
   const capital = ontology.vocabularies.find((item) => item.id === "capital");
+  const everyday = glossaryEverydayEntries(ontology, projections);
+  const everydayRefs = new Set(everyday.map((entry) => entry.ref));
+  const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
+  const legacyAnchors = (ref) => (GLOSSARY_LEGACY_ANCHORS[ref] ?? []).map((id) => `<a id="${id}"></a>\n\n`).join("");
   let body = pageHeader(
     { title: "Glossary", slug: "/glossary", audience: "all", sources, digest },
     "Glossary",
-    "The ontology owns domain entities, personas, and supporting terms. Capability projections keep current availability separate from meaning, while the vocabulary policy records language that Green Goods does not use."
+    "The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. If you build on Green Goods, the [formal definitions](#formal-definitions) are further down this page."
   );
+  body += "## Everyday terms\n\n";
+  for (const entry of everyday) {
+    for (const id of entry.aliasAnchors) body += `<a id="${id}"></a>\n\n`;
+    body += `### ${entry.heading} {#${entry.anchor}}\n\n`;
+    body += `**${esc(sentence(entry.concept.plain_name))}** ${esc(sentence(entry.concept.why_it_matters))}\n\n`;
+    body += `- **For example:** ${esc(sentence(entry.concept.example))}\n`;
+    if (entry.alsoCalled.length) body += `- **Also called:** ${entry.alsoCalled.map(esc).join(", ")}.\n`;
+    if (entry.concept.not_confused_with?.length) body += `- **Not the same as:** ${entry.concept.not_confused_with.map(esc).join(", ")}.\n`;
+    if (entry.availabilityNote) body += `- **Availability:** ${entry.availabilityNote}\n`;
+    body += `- **Read more:** [${entry.guide[0]}](${entry.guide[1]}).\n\n`;
+  }
+  body += "## Formal definitions {#formal-definitions}\n\n";
+  body += "This part is for builders. The ontology owns domain entities, personas, and supporting terms. Capability projections keep current availability separate from meaning, while the vocabulary policy records language that Green Goods does not use.\n\n";
   body += `The ontology currently declares ${canonicalEntities.length} canonical concepts. Availability is projected separately and does not change what a term means.\n\n`;
   body += "## Domain Entities\n\n| Term | Type | Availability | Allowed surfaces | Definition |\n|---|---|---|---|---|\n";
   for (const entity of canonicalEntities) {
@@ -809,21 +904,22 @@ export function renderGlossary({ root, sources, digest }) {
       .join(", ");
     body += `\nThe canonical machine ordering is the \`Capital\` enum: ${ordering}.\n\n`;
   }
+  // The everyday terms above already have their heading; the rest of the vocabulary gets one here.
   body += "## Term Reference\n\n";
   for (const entity of canonicalEntities) {
-    if (entity.id === "hypercert") body += '<a id="impact-certificate"></a>\n\n';
-    body += `### ${entity.display} {#${entity.id}}\n\n${entity.definition}\n\n`;
-    const capability = capabilityByRef.get(`entity:${entity.id}`);
+    const ref = `entity:${entity.id}`;
+    if (everydayRefs.has(ref)) continue;
+    body += `${legacyAnchors(ref)}### ${entity.display} {#${entity.id}}\n\n${entity.definition}\n\n`;
+    const capability = capabilityByRef.get(ref);
     if (capability?.availability) body += `**Availability:** ${esc(capability.availability)}.\n\n`;
   }
   for (const persona of ontology.personas) {
-    if (persona.id === "steward") body += '<a id="operator"></a>\n\n';
-    body += `### ${persona.display} {#${persona.id}}\n\n${persona.definition}\n\n`;
+    const ref = `persona:${persona.id}`;
+    if (everydayRefs.has(ref)) continue;
+    body += `${legacyAnchors(ref)}### ${persona.display} {#${persona.id}}\n\n${persona.definition}\n\n`;
   }
   for (const term of ontology.supporting_terms ?? []) {
-    if (term.id === "pwa") body += '<a id="pwa-progressive-web-app"></a>\n\n';
-    if (term.id === "smart-account") body += '<a id="smart-account-account-abstraction"></a>\n\n';
-    body += `### ${term.display ?? term.id} {#${term.id}}\n\n${term.reason}\n\n`;
+    body += `${legacyAnchors(`supporting:${term.id}`)}### ${term.display ?? term.id} {#${term.id}}\n\n${term.reason}\n\n`;
   }
   body += "## Language policy\n\n";
   body += `${vocabulary.linter_enforced.rationale}\n\n`;

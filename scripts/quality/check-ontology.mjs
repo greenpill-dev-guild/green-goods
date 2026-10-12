@@ -260,11 +260,12 @@ export function slugifyHeading(text) {
 }
 
 /**
- * The hand-written Term Reference section: every `### Term` heading with its
- * effective anchor (an explicit `{#id}` wins over the slugified heading).
+ * Every `### Term` heading in one level-two glossary section, with its effective
+ * anchor (an explicit `{#id}` wins over the slugified heading). Null when the
+ * section is absent.
  */
-export function parseTermReferenceHeadings(source) {
-  const headingMatch = /^## Term Reference[^\n]*$/m.exec(source);
+function parseSectionTermHeadings(source, sectionPattern) {
+  const headingMatch = sectionPattern.exec(source);
   if (!headingMatch) return null;
   const rest = source.slice(headingMatch.index);
   const nextHeading = /\n## (?!#)/.exec(rest.slice(1));
@@ -279,6 +280,22 @@ export function parseTermReferenceHeadings(source) {
     out.push({ display, anchor: explicit ? explicit[1] : slugifyHeading(display) });
   }
   return out;
+}
+
+/** The Term Reference section's headings: the formal definitions of the remaining vocabulary. */
+export function parseTermReferenceHeadings(source) {
+  return parseSectionTermHeadings(source, /^## Term Reference[^\n]*$/m);
+}
+
+/**
+ * Every term heading the glossary defines, in page order: the plain-language
+ * Everyday terms section when the page has one, then the Term Reference. The
+ * Term Reference stays required, so a page without it still returns null.
+ */
+export function parseGlossaryTermHeadings(source) {
+  const reference = parseTermReferenceHeadings(source);
+  if (reference === null) return null;
+  return [...(parseSectionTermHeadings(source, /^## Everyday terms[^\n]*$/m) ?? []), ...reference];
 }
 
 /** Every heading anchor the glossary exposes, at any level — the docs' public API. */
@@ -1351,13 +1368,14 @@ function runGuards(ontology, projections) {
   }
   counts["docs-glossary"] = 1;
 
-  // G6: the glossary's hand-written Term Reference. Every heading must resolve to a
-  // canonical term, a declared alias, or a supporting term — otherwise orphan nouns
-  // (the "Report" problem) accumulate in prose that nothing checks.
+  // G6: the glossary's term headings, in the Everyday terms section and the Term
+  // Reference. Every heading must resolve to a canonical term, a declared alias, or a
+  // supporting term — otherwise orphan nouns (the "Report" problem) accumulate in
+  // prose that nothing checks.
   let termReferenceChecked = 0;
   const glossaryAnchors = glossary === null ? new Set() : parseGlossaryAnchors(glossary);
   if (glossary !== null) {
-    const headings = parseTermReferenceHeadings(glossary);
+    const headings = parseGlossaryTermHeadings(glossary);
     if (!headings || headings.length === 0) {
       fatal.push(`could not parse the Term Reference section in ${GLOSSARY_PATH}`);
     } else {

@@ -1,4 +1,5 @@
 import {
+  RiClipboardLine,
   RiHammerLine,
   RiSeedlingLine,
   RiShieldCheckLine,
@@ -14,6 +15,7 @@ import styles from "./styles.module.css";
 const ROLE_ICONS = {
   seedling: RiSeedlingLine,
   shield: RiShieldCheckLine,
+  clipboard: RiClipboardLine,
   wallet: RiWallet3Line,
   hammer: RiHammerLine,
 } as const;
@@ -35,7 +37,7 @@ export function Hero() {
     <section className={styles.hero} aria-label="Documentation overview">
       <h1 className={styles.heroHeading}>Green Goods Documentation</h1>
       <p className={styles.heroSubtitle}>
-        Document, verify, and fund regenerative work on-chain
+        Document, verify, and fund regenerative work
       </p>
 
       <div className={styles.heroRoleGrid} role="list">

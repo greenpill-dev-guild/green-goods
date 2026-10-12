@@ -1,218 +1,211 @@
 ---
 title: Frequently Asked Questions
-slug: /reference/faq
+sidebar_label: FAQ
+slug: /faq
+description: "Plain answers to the questions people ask most: getting started, your account, your work, privacy, money, and running a garden."
 audience: all
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
-  - docs/docs/community/welcome.mdx
-  - docs/docs/builders/packages/api-index.mdx
-  - docs/docs/builders/reference/deployments.mdx
-  - packages/client/src/config/routes.tsx
-  - packages/client/src/config/pwaRouting.ts
-  - packages/admin/src/router.tsx
-  - packages/admin/src/routes/views.tsx
+  - packages/client/src/routes/presentationMode.ts
+  - packages/client/src/views/Login/index.tsx
+  - packages/client/src/views/Profile/AccountInfo.tsx
+  - packages/client/src/views/Garden/Details.tsx
+  - packages/client/src/views/Garden/Media.tsx
+  - packages/client/src/views/Public/GardenDetailFieldNotes.tsx
+  - packages/client/src/components/Public/PublicFundingCard.tsx
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/providers/Auth.tsx
+  - packages/shared/src/modules/data/ipfs/pinata.ts
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/modules/work/work-attachments.ts
+  - packages/shared/src/hooks/analytics/useAnalyticsIdentity.ts
+  - packages/shared/src/modules/app/posthog-browser.ts
+  - packages/shared/src/workflows/auth-passkey-adapters.ts
+  - packages/shared/src/modules/transactions/wallet-sender.ts
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/config/schemas.json
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/contracts/src/vendor/octant/core/MultistrategyVault.sol
+  - packages/shared/src/i18n/en.json
+keywords:
+  - faq
+  - questions
+  - privacy
+  - account
+  - rewards
+  - offline
 ---
 
-import {QuickAnswer, StatusBadge} from "@site/src/components/docs";
+Short answers first, with a link when there is more to read. If your question is not here, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 
-Common questions about Green Goods, organized by role.
+## Getting started
 
-## General
+### What is Green Goods?
 
-<QuickAnswer question="What is Green Goods?">
+A way for communities to document their regenerative work, have it reviewed by someone who knows it, and show it to the people who fund that kind of work. [How It Works](/community/how-it-works) tells the whole story in a few minutes.
 
-Green Goods is an offline-first web app for documenting regenerative work, reviewing submissions, and producing verifiable on-chain records.
+### Does a garden have to be an actual garden?
 
-</QuickAnswer>
+No. A garden is a community doing regenerative work together in one place. The word is a picture of something people tend over time. A solar team, a waste crew, a tree-planting group, and a class can each be a garden.
 
-<QuickAnswer question="What chains are currently in scope?">
+### Which Green Goods do I open?
 
-- Arbitrum One (`42161`): the production network for Season One. <StatusBadge status="Live" />
-- Sepolia (`11155111`): testnet for validation and development. <StatusBadge status="Live" />
-- Celo (`42220`): early partial deployment (core contracts only, no vault or badge modules, and not indexed). Not used for production workflows yet. <StatusBadge status="In progress" />
+There are three, and they do different jobs.
 
-</QuickAnswer>
+- **The website**, [greengoods.app](https://greengoods.app): read about gardens and their work, and support them. No account needed.
+- **The app**: installed on your phone from the website. Join a garden, document work, and follow it through review.
+- **The steward cockpit**, [admin.greengoods.app](https://admin.greengoods.app): for stewards and evaluators running a garden. Best on a computer.
 
-<QuickAnswer question="Can Green Goods work offline?">
+### Is it free? Do I need crypto?
 
-Yes. Gardener workflows support offline drafts and queued sync when connectivity returns.
+Documenting work is free, and you do not need crypto. Most people sign in with a passkey, which is your fingerprint, face, or screen lock, and Green Goods covers the network fees for passkey accounts.
 
-</QuickAnswer>
+You need crypto in two cases: if you choose to sign in with your own wallet, you pay your own network fees, and if you want to give money to a garden, you give from a wallet.
 
-<QuickAnswer question="Which Green Goods experience should I use?">
+### Does it work without internet?
 
-- The **public website** ([greengoods.app](https://greengoods.app)) is for exploring public gardens, actions, impact, funding information, and shared terminology.
-- The **installed app** is for signing in, joining gardens, documenting work, working offline, syncing, and tracking submissions.
-- The **admin dashboard** ([admin.greengoods.app](https://admin.greengoods.app), best on a computer) is for operating gardens: reviewing work, creating assessments, and managing actions, funding, governance, and roles.
+Recording work does. Your work is saved on your phone and you send it when you have a signal, by tapping **Upload all** in **Your Work**. Installing the app, signing in, and sending all need a connection. See [Install and Update](/community/gardener-guide/installing-and-updating).
 
-Many stewards use both the installed app and the admin dashboard: they document their own work in the app and review garden work in admin.
+### What languages is it in?
 
-</QuickAnswer>
+The app is in English, Spanish, and Portuguese. Change it under **Profile**, on the **Account** tab, in the **Language** row. These docs are in English only for now.
 
-<QuickAnswer question="Is Green Goods free to use?">
+## My account
 
-- Gardener flows are passkey-first and gasless for common submission workflows.
-- Steward actions that submit transactions can require network gas.
+### How do I sign in without a password?
 
-</QuickAnswer>
+With a passkey. When you tap **Create Account**, your phone saves a passkey for you, and you unlock it with your fingerprint, face, or screen lock. You choose a name when you create the account. Keep that name somewhere safe.
 
-<QuickAnswer question="Is uploaded data private?">
+### I have a new phone. How do I get my account back?
 
-No by default. Garden and attestation data is designed to be publicly verifiable. Do not include sensitive personal information in uploads.
+Tap **Already have an account?**, enter your account name, and tap **Sign in with Passkey**. This works when your passkey travelled with you, which it usually does if the new phone is signed in to the same Apple or Google account as the old one.
 
-</QuickAnswer>
+### I lost my phone, and my passkey was not saved anywhere else. Can you restore my account?
 
-## Gardener
+No. Nobody can, including the Green Goods team. An account is unlocked only by its passkey. Your past work stays on the public record, and you would start again with a new account. This is why it matters to keep your passkey backed up with your Apple or Google account.
 
-<QuickAnswer question="How do I sign up?">
+### Why did my gardens and my work disappear?
 
-1. Open [greengoods.app](https://greengoods.app).
-2. Choose passkey sign in.
-3. Complete device biometric confirmation.
+You are almost certainly signed in to a different account. A passkey account and a wallet are two separate accounts, and so are two different wallets. Sign in the way you did before, and they come back.
 
-</QuickAnswer>
+## My work
 
-<QuickAnswer question="Do I need crypto to submit work?">
+### Is my work safe if I lose signal?
 
-No. Gardener submission flows are designed to work without wallet management.
+Yes. It is saved on your phone the moment you record it, and it waits in **Your Work** until you send it. Do not record it a second time. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) explains each label you might see.
 
-</QuickAnswer>
+### Why has my work not been reviewed yet?
 
-<QuickAnswer question="What if my submission is rejected?">
+Review is done by the stewards of your garden, and there is no fixed time. Green Goods does not send alerts, so message your steward. Do it sooner if the action is about to close: a steward can only decide while the action is still open.
 
-Use steward feedback to update evidence and resubmit. See:
+### My work was rejected. What now?
 
-- [Submit Work](../community/gardener-guide/uploading-your-work)
-- [Recovery and Sync](../community/gardener-guide/recovery-and-sync)
+Open it in **Your Work**, on the **Completed** tab, and read **Review feedback**. Fix what it names, then submit the work again as a new submission. The rejected one cannot be edited. See [Track Your Work](/community/gardener-guide/track-status-and-attestations#if-it-is-rejected).
 
-</QuickAnswer>
+### Can I edit or delete something I submitted?
 
-<QuickAnswer question="How do I track approval status and attestations?">
+No. Once work is sent it is part of the garden's permanent public record, and so is the steward's decision. You can delete a draft, or work that is still waiting on your phone, before it is sent.
 
-See [Track Status and Attestations](../community/gardener-guide/track-status-and-attestations).
+### Will I be paid when my work is approved?
 
-</QuickAnswer>
+Not automatically. Approval and payment are separate, and nothing is paid when a steward approves.
 
-## Steward
+Many gardens have a shared fund that gardeners can claim from, in the app, under **Your Wallet** on the **Cookies** tab. What it is for, and how much you can claim, is up to your garden. Ask your steward. See [How gardeners get rewarded](/community/gardener-guide/track-status-and-attestations#how-gardeners-get-rewarded).
 
-<QuickAnswer question="How do I get steward access?">
+## Privacy
 
-Steward permissions are assigned by admins or existing steward governance in a garden context.
+### Is what I upload private? {#is-what-i-upload-private}
 
-</QuickAnswer>
+No. Treat everything you submit as public and permanent.
 
-<QuickAnswer question="Can I create a new garden?">
+- **Your photos, videos, and voice notes** are stored on a public network. Anyone who has the link to a file can open it, and a file cannot be deleted once it is uploaded.
+- **Your work record** is public: the action, your notes and details, and links to your files. So is the steward's decision.
+- **Approved work is shown on your garden's page** on the public website, with its photos and notes.
+- **Your name:** the page shows your account's name if it has one, and "Garden participant" if it does not. Your account address is part of the record either way.
 
-Use [Create Garden](../community/steward-guide/creating-a-garden). Availability depends on your current permissions.
+Only add what you are comfortable making public.
 
-</QuickAnswer>
+### Does my photo give away where I am?
 
-<QuickAnswer question="Where are endowment and governance workflows documented?">
+Green Goods does not add your location unless you turn on **Share Location** when you submit. If you do, an approximate location, to about 100 meters, is published with the work.
 
-Use [Funding and Governance](../community/steward-guide/funding-and-governance) to choose between Vaults, Cookie Jars, and signal or conviction pools.
+Separately, your phone's camera may save details inside a photo, such as the time and sometimes the place. The app does not reliably remove these. If that matters to you, turn off location tagging in your camera before you take photos for Green Goods.
 
-Check [Deployment and Indexer Status](/builders/reference/deployments) before announcing those flows as live.
+### What should I keep out of my photos?
 
-</QuickAnswer>
+Anything you would not put on a public notice board: people who have not agreed to be photographed, children's faces, identity documents, house numbers, licence plates, and anything that shows where someone lives. Point the camera at the work.
 
-<QuickAnswer question="How much does steward activity cost?">
+### What does Green Goods record about how I use it?
 
-Gas cost depends on chain conditions and operation type. Validate current costs in your wallet before signing.
+The app and the website record how they are used and any errors that happen, so the team can find and fix problems. When you are signed in, this is linked to your account address. There is no setting in the app to turn it off.
 
-</QuickAnswer>
+If you subscribe to the newsletter on the website, Green Goods also has the email address you gave.
 
-## Evaluator
+## Money
 
-<QuickAnswer question="Do I need an account to query data?">
+### Where does my donation go?
 
-No for read-only query access to public surfaces.
+Into the shared fund of the garden you chose. The garden's gardeners can claim from it, within limits the garden sets, and each claim records what it is for. See [Donate to a Garden](/community/funder-guide/donating-to-a-garden).
 
-</QuickAnswer>
+### Can I get my donation back?
 
-<QuickAnswer question="Where are canonical endpoints and schemas listed?">
+No. A donation is a gift, and Green Goods has no way to return it.
 
-Use [API Index](../builders/packages/api-index).
+### Is an endowment safe? Can I lose money?
 
-</QuickAnswer>
+You can lose money. An endowment is a deposit you can withdraw, and it is not guaranteed. It is lent out to earn for the garden, and if that goes badly you can get back less than you put in, or have to wait to withdraw. Read [what you are agreeing to](/community/funder-guide/funding-a-garden#what-you-are-agreeing-to) before you deposit.
 
-<QuickAnswer question="How do I verify attestation chains?">
+### Is giving through Green Goods tax-deductible?
 
-Use [API Index](../builders/packages/api-index) for canonical endpoints and inspect attestation UIDs on the matching EAS explorer for the chain you are working on.
+No. Neither a donation nor an endowment is tax-deductible or charitable through Green Goods, and no nonprofit stands behind them. If a garden has its own arrangement, that is between you and the garden.
 
-</QuickAnswer>
+### Can I give with a card?
 
-<QuickAnswer question="Can I export data for analysis?">
+Not today. You give from a crypto wallet, using DAI or WETH on the Arbitrum network.
 
-Yes. Start with:
+### Who pays the network fees?
 
-- [API Index](../builders/packages/api-index)
-- [EAS Integration](../builders/integrations/eas)
-- [Integrations](../builders/integrations)
+If you signed in with a passkey, Green Goods covers them. If you connected your own wallet, you pay them, so keep a little ETH on the Arbitrum network.
 
-</QuickAnswer>
+## Stewards and evaluators
 
-## Technical
+### How do I become a steward?
 
-<QuickAnswer question="Is Green Goods open source?">
+Open the [steward cockpit](https://admin.greengoods.app), sign in, and tap **Request Steward Access**. Or send your account address to someone who already runs the garden and ask them to add you. See [Get steward access](/community/steward-guide/#get-steward-access).
 
-Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-dev-guild/green-goods)
+### Can I create a new garden?
 
-</QuickAnswer>
+Only with deployer access, which the Green Goods team gives out. Ask in the [Telegram group](https://t.me/+N3o3_43iRec1Y2Jh). See [Create a Garden](/community/steward-guide/creating-a-garden).
 
-<QuickAnswer question="How do I run Green Goods locally?">
+### Can I undo an approval or a rejection?
 
-```bash
-git clone https://github.com/greenpill-dev-guild/green-goods.git
-cd green-goods
-npm run setup
-bun run dev:health
-bun run dev
-bun run dev:smoke -- web
-```
+No. A decision is permanent. If you rejected good work, ask the gardener to submit it again and approve that one. See [Review Work](/community/steward-guide/reviewing-work).
 
-Use `bun run dev -- prod` only when you intentionally want local browser surfaces
-against production Arbitrum, hosted indexer, and hosted agent APIs.
+### Why can I not approve this work?
 
-See [Developer Getting Started](../builders/getting-started).
+One of three reasons. You submitted it yourself, so another steward has to review it. The action it was submitted under has closed, so no decision can be recorded. Or you do not have the Steward or Owner role in that garden.
 
-</QuickAnswer>
+### What can an evaluator do? {#evaluator}
 
-<QuickAnswer question="How do I contribute?">
+Write assessments: a garden's starting point, its goals, and what it will measure. An evaluator cannot approve or reject work, manage members, or handle funds. See the [Evaluator Guide](/community/evaluator-guide/).
 
-Submit a pull request, or say hello in [Discord](https://discord.gg/greenpill) or [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) — accepted work is tracked in Linear. Follow the developer docs in [Developer Hub](../builders/getting-started).
+## What works today
 
-</QuickAnswer>
+### What can people use right now, and what is still being built?
 
-## Troubleshooting
+[Honest Claims](/community/green-goods-claims) keeps the current list. In short: gardens, documenting work, steward review, assessments, donations, and endowments are in use. Impact certificates are still being switched on. Community voting on priorities is not available.
 
-<QuickAnswer question="App does not load">
+## For builders
 
-- Check connection.
-- Refresh and clear browser cache.
-- Confirm service availability in [Discord](https://discord.gg/greenpill).
+### Is Green Goods open source? How do I run it or contribute?
 
-</QuickAnswer>
+Yes. The code is on [GitHub](https://github.com/greenpill-dev-guild/green-goods). Setup, architecture, and how to contribute are in the [builder docs](/builders/getting-started). Network and contract details are on [Deployments & Addresses](/builders/reference/deployments).
 
-<QuickAnswer question="Media upload fails">
+## Still stuck?
 
-- Check file size and permissions.
-- Retry with stable connection.
-- Use offline draft flow if connectivity is unstable.
-
-</QuickAnswer>
-
-<QuickAnswer question="Transaction fails">
-
-- Confirm correct network.
-- Confirm wallet balance for gas.
-- Retry with updated gas estimate.
-
-</QuickAnswer>
-
-## Support
-
-- Telegram: [Join chat](https://t.me/+N3o3_43iRec1Y2Jh)
-- Discord: [Green Goods on Discord](https://discord.gg/greenpill) — questions & technical support
-- Bug reports & feature requests: raise them in Discord or Telegram — maintainers triage accepted items into the Linear backlog
+- **Something will not install, update, or load:** see [Install and Update](/community/gardener-guide/installing-and-updating#if-something-goes-wrong).
+- **Work will not send:** see [Recover Unsent Work](/community/gardener-guide/recovery-and-sync).
+- **Anything else:** ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh). In the app, the same link is under **Profile**, on the **Help** tab.

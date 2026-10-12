@@ -1,68 +1,133 @@
 ---
-title: Managing Actions
-sidebar_label: Managing Actions
+title: Manage Actions
+sidebar_label: Manage Actions
 slug: /community/steward-guide/managing-actions
+description: "Make sure your gardeners can find the right kinds of work to record: how actions reach a garden, how to change what yours shows, and how to ask for a new one."
 audience: steward
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Explain the current action workflow clearly, including the boundary between deployer-managed registry actions and steward-managed garden setup."
+goal: "Let a steward control which actions their gardeners see, know when an action closes, and know who to ask for a change."
 difficulty: "standard"
-estimated_time: "10-20 minutes per action lifecycle update."
-prereqs: "Existing garden and steward permission."
-next_steps: "./reviewing-work"
-persona_context: "Stewards coordinating gardens, approvals, and governance/endowment execution."
+estimated_time: "5 minutes to check or change a garden's areas of work."
+prereqs: "Steward or owner access to the garden."
+next_steps: "/community/evaluator-guide/making-an-assessment"
+persona_context: "Stewards making sure gardeners can record the work the garden actually does."
 source_of_truth:
   - packages/admin/src/views/Actions/index.tsx
   - packages/admin/src/views/Actions/CreateAction.tsx
   - packages/admin/src/views/Actions/EditAction.tsx
-  - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
-  - packages/shared/src/hooks/action/useActionOperations.ts
+  - packages/admin/src/routes/views.tsx
+  - packages/admin/src/components/Garden/GardenSettingsEditor.tsx
+  - packages/client/src/views/Garden/Intro.tsx
+  - packages/client/src/views/Public/Actions.tsx
+  - packages/shared/src/hooks/admin-ui/actions/useActionsController.ts
+  - packages/shared/src/hooks/admin-ui/actions/useCreateActionController.ts
+  - packages/shared/src/hooks/admin-ui/actions/actions.utils.ts
+  - packages/contracts/src/registries/Action.sol
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/shared/src/i18n/en.json
 keywords:
-  - manage actions
-  - action registry
-  - action domains
+  - actions
+  - domains
+  - areas of work
+  - action dates
 ---
 
-import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
-# Managing Actions
+# Manage Actions
 
-<StatusBadge status="Live" />
+An action is a kind of work your garden records, such as planting a tree, sorting a load of waste, or checking a solar panel. Each action says what to photograph and which details to give. When a gardener submits work, they choose an action first.
 
-## Overview
+Actions are shared across all gardens, and the Green Goods team maintains the list. As a steward, your job is to make sure your garden shows the right ones, and to speak up when one is missing or wrong.
 
-Actions live in the shared Action Registry, and gardens expose them based on domain fit and timing. In the current admin app, **creating and editing action definitions is a deployer-level flow** under `/actions`. Stewards still need to understand actions because domain choice, instructions, timing, and acceptance criteria directly shape what gardeners can submit.
+## How an action reaches your gardeners
 
-## Action lifecycle
+A gardener sees an action when both of these are true:
 
-<StepFlow
-  steps={[
-    {title: "Check current registry actions", detail: "Open `/actions` in admin and review the existing catalog by domain, title, and timing."},
-    {title: "Create or edit if you have deployer access", detail: "Define title, instructions, domain, timing, media expectations, and any action-specific guidance. If you do not have deployer access, request the update instead of working around it."},
-    {title: "Match actions to garden domains", detail: "Make sure your garden has the right domains enabled, because gardeners only see actions whose domain matches the garden."},
-    {title: "Monitor real-world fit", detail: "Watch incoming submissions, stale action windows, and recurring confusion from gardeners. Tighten instructions when field reality changes."},
-  ]}
-/>
+- **Your garden covers that area of work.** Every action belongs to one of four areas: Solar, Agroforestry, Education, or Waste. Your garden shows the actions for the areas it has turned on.
+- **The action is open.** Every action has a start date and an end date. Before the start it is upcoming. After the end it is closed.
 
-<img src="/img/screenshots/admin-garden-overview.webp" alt="Garden overview — health metrics, activity feed, and key stats" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+The end date matters twice. Gardeners cannot submit to a closed action, and **you cannot approve or reject work once its action has closed.** Review before the end date. The public list does not show an action's dates, so ask the Green Goods team when you need to know when one closes.
 
-<img src="/img/screenshots/admin-create-action.webp" alt="Action creation form — define title, timeline, capitals, and media" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+## Before you start
 
-## Steward standards
+- Be a steward or owner of the garden, and check that its name shows at the top left of the cockpit.
+- Know which kinds of work your gardeners really do.
 
-- Use explicit acceptance criteria in instructions so review decisions stay consistent
-- Keep action windows realistic for field conditions, connectivity, and seasonality
-- Prefer short action titles and specific instructions with examples of acceptable evidence
-- Use garden domains intentionally, because they are the gate that makes actions visible in a garden
-- If the registry action is wrong and you do not have deployer access, escalate early instead of asking gardeners to guess
+## Steps
+
+### 1. See which actions exist
+
+1. Open [greengoods.app/actions](https://greengoods.app/actions). It lists the published actions.
+2. Use the filter to look at one area of work at a time.
+3. Note the actions your garden needs, and any that are missing.
+
+To see exactly what your gardeners see, open the Green Goods app, tap **Garden**, and look under **Select Your Action** with your garden selected.
+
+### 2. Change your garden's areas of work
+
+1. In the cockpit, open the **Garden** workspace and tap **Edit Garden**.
+2. Under **Domains**, turn areas on or off. At least one stays on.
+3. Tap **Save Changes** and confirm.
+
+### 3. Ask for a new action or a fix
+
+You cannot add or edit an action yourself unless you maintain the list. Ask the Green Goods team in the [Telegram group](https://t.me/+N3o3_43iRec1Y2Jh). To make the request easy to act on, send:
+
+- **What the work is**, in one sentence.
+- **Which area** it belongs to.
+- **What a good photo shows**, and how many photos you want.
+- **The details to ask for**, such as a count, a weight, or a measurement.
+- **The dates** it should be open.
+
+Ask early. A new action has to exist before your gardeners do the work, and it has to stay open long enough for you to review it.
+
+## How you know it worked
+
+- **Areas of work:** after you save, your gardeners see the actions for the areas you turned on, the next time they open the **Garden** tab in the app.
+- **A new action:** it appears on [greengoods.app/actions](https://greengoods.app/actions), and in the app once its start date arrives.
+
+## What happens next
+
+Tell your gardeners which action to use for which work. Most rejected submissions come from the wrong action, not from bad work. A short message in your garden's chat ("for the Saturday clean-up, use this action") saves everyone a round trip.
+
+## If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| A gardener sees **No active actions at this time** | Nothing is open in your garden's areas of work right now. Ask the Green Goods team which actions are open, and to extend or add one |
+| A gardener cannot find an action you can see on the website | Its area of work is turned off for your garden, or the action is not open right now. Check **Edit Garden** first, then ask the Green Goods team about its dates |
+| **Action expired** when you try to review work | The action closed before you decided, and the decision can no longer be recorded. Ask the gardener to submit again under an action that is open |
+| Gardeners keep choosing the wrong action | The instructions are probably unclear. Tell your gardeners which one to use, and ask the Green Goods team to tighten the wording |
+| No **Actions** workspace in the cockpit | That workspace is only for people who maintain the list. Everything on this page works without it |
+
+## If you maintain the action list
+
+This part is for accounts with deployer access. You have an **Actions** workspace in the cockpit.
+
+1. Open **Actions** and tap **Create Action**.
+2. **Basics:** enter the **Title**, the **Slug**, the **Domain**, the **Start date**, and the **End date**.
+3. **Capitals & Media:** choose the **Forms of capital** the work builds, and add example images if you have them.
+4. **Instructions:** set the questions gardeners answer, how many photos the action needs, and what the review screen shows. You can start from a template.
+5. **Review:** read it through, tap **Create Action**, and confirm once.
+
+A finished action reads **Action registered**. To change one later, open it from the **Actions** list and tap **Edit**.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-create-action.webp" alt="The Create Action form on its first step, Basics: fields for Title, Slug, Domain set to Solar, Start date, and End date, with the steps Basics, Capitals and Media, Instructions, and Review listed on the left and a Next button" loading="lazy" width="2000" height="1250" />
+  <figcaption>Create Action, on Basics. The start and end dates decide when gardeners can submit and when stewards can review. Source: Storybook fixture, October 2026.</figcaption>
+</figure>
+
+Write instructions the way a gardener would read them on a phone, in the field: one short title, exactly what the photo should show, and only the questions a reviewer needs answered.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="Once actions are clear, the steward workflow becomes a review discipline problem."
-  actionLabel="Reviewing Work"
-  actionHref="./reviewing-work"
-  alternatives={[
-    {label: "Making An Assessment", href: "./making-an-assessment"},
-  ]}
+  title="Make an assessment"
+  why="Before work starts coming in, write down where the garden is starting from and what it is aiming for."
+  actionLabel="Make an Assessment"
+  actionHref="/community/evaluator-guide/making-an-assessment"
 />

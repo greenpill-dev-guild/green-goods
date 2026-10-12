@@ -1,6 +1,7 @@
 [
   {"label": "Create a Garden", "href": "/community/steward-guide/creating-a-garden"},
-  {"label": "Make an Assessment", "href": "/community/steward-guide/making-an-assessment"},
-  {"label": "Review and Approve Work", "href": "/community/steward-guide/reviewing-work"},
+  {"label": "Manage Members", "href": "/community/steward-guide/managing-members"},
+  {"label": "Make an Assessment", "href": "/community/evaluator-guide/making-an-assessment"},
+  {"label": "Review Work", "href": "/community/steward-guide/reviewing-work"},
   {"label": "Mint Impact Certificate", "href": "/community/steward-guide/creating-impact-certificates"}
 ]

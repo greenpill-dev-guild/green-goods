@@ -2,108 +2,151 @@
 title: Install and Update the App
 sidebar_label: Install and Update
 slug: /community/gardener-guide/installing-and-updating
-description: "Install Green Goods to a phone, understand what it downloads, and move an existing install onto a new version without losing queued work."
+description: "Put Green Goods on your phone, create your account, and keep the app up to date without losing work you have not sent yet."
 audience: gardener
 owner: docs
-last_verified: 2026-09-17
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Get a gardener onto the current version with their drafts and queued work intact, and able to record work without a signal."
-difficulty: "standard"
+goal: "Get a gardener onto the current version, signed in, and able to record work without a signal, with drafts and unsent work intact."
+difficulty: "quickstart"
 estimated_time: "5 minutes, plus download time on a slow connection."
-prereqs: "A phone with a recent Chrome, Edge, Safari, or Brave. A connection for the install itself."
-next_steps: "./recovery-and-sync"
-persona_context: "Gardeners installing or upgrading in the field, and the team walking them through it on a call."
+prereqs: "An Android phone with Chrome, or an iPhone with Safari, and a connection for the install."
+next_steps: "/community/gardener-guide/joining-a-garden"
+persona_context: "Gardeners installing or updating on their own phone, often in the field."
 source_of_truth:
-  - packages/client/src/sw/shell.ts
-  - packages/client/vite/pwa-shell.ts
-  - packages/shared/src/modules/app/service-worker-registration.ts
-  - packages/shared/src/hooks/app/useServiceWorkerUpdate.ts
+  - packages/client/src/components/Public/PublicInstallAction.tsx
+  - packages/client/src/components/Public/PublicInstallDialog.tsx
+  - packages/shared/src/hooks/app/useInstallGuidance.ts
+  - packages/client/src/routes/presentationMode.ts
+  - packages/client/src/views/Login/index.tsx
   - packages/client/src/views/Profile/AppSettings.tsx
+  - packages/client/src/views/Profile/OfflineContentRow.tsx
+  - packages/shared/src/hooks/app/useServiceWorkerUpdate.ts
+  - packages/shared/src/hooks/app/useWorkUpdateGuard.ts
   - packages/shared/src/providers/App.tsx
+  - packages/shared/src/i18n/en.json
+keywords:
+  - install
+  - android
+  - iphone
+  - home screen
+  - update
+  - offline
+  - create account
 ---
+
+import {NextBestAction} from "@site/src/components/docs";
 
 # Install and Update the App
 
-Green Goods runs from the browser, and installing it puts it on the home screen so it opens like any other app. Installing is also what makes it work without a signal: an installed app downloads the extra files it needs to record work offline.
+Green Goods is an app you install from the website, not from an app store. Installing puts it on your home screen, and it is what lets you record work when you have no signal. You only need to do this once per phone.
 
-## Install it
+## Before you start
 
-1. Open Green Goods in Chrome, Edge, Safari, or Brave.
-2. Take the install prompt when it appears, or use the browser menu: **Install app** on Android, **Share → Add to Home Screen** on iOS.
-3. Open it from the home screen, not from the browser tab.
-4. Sign in.
+- **An Android phone with Chrome, or an iPhone with Safari.** Other browsers cannot install the app. Green Goods tells you if you need to switch.
+- **A connection.** Installing and signing in both need one. Recording work afterwards does not.
+- **A few minutes.** The whole app is a few megabytes.
 
-A toast confirms the install and then reports one more step: **Getting it ready to work offline**, settling on **Ready to work offline**. On a good connection that second part is quick enough that you never see it.
+## Install on Android
 
-Signing in needs a connection. Recording work afterwards does not.
+1. Open [greengoods.app](https://greengoods.app) in Chrome.
+2. Tap **Install App**. On a phone it is the first button on the home page. You can also find it at the bottom of the menu.
+3. Confirm when Chrome asks to install.
+4. Open Green Goods from your home screen.
 
-## What it downloads, and when
+If Chrome does not ask, Green Goods shows **Install Green Goods on this phone** with two steps instead: tap Chrome's menu (the three dots), then choose **Add to Home Screen** or **Install App**.
 
-| When | What | Size |
-|---|---|---|
-| First visit, any browser | The app itself | about 1.5 MB |
-| When you install it | Photo handling and your language | about 0.9 MB |
-| Quietly afterwards | Files only needed when sending | about 0.3 MB |
+## Install on iPhone
 
-Nothing here is your garden's photos. Those are a separate, optional download you control in **Profile → Offline content**, which shows its own size and progress and can be paused.
+1. Open [greengoods.app](https://greengoods.app) in Safari.
+2. Tap **Install App**.
+3. Follow the two steps Green Goods shows: tap the Share button in Safari's bar, then scroll down and tap **Add to Home Screen**.
+4. Open Green Goods from your home screen.
 
-Two things to know:
+## Create your account
 
-- **Just browsing the public site downloads only the first row.** The rest waits until someone installs.
-- **Data Saver pauses these downloads.** If a phone has Data Saver on, the app still installs and still works, but it may not be able to handle an iPhone photo offline until Data Saver is off or the phone is on Wi-Fi.
+Always open Green Goods from the home screen. A browser tab shows the public website, not the app.
 
-## Update it
+1. Tap **Create Account**.
+2. Type a name of at least three characters. Write it down somewhere safe. You will need it to sign in on another phone.
+3. Tap **Create Account** again, then confirm with your fingerprint, face, or screen lock when your phone asks.
 
-Green Goods checks for a new version when it opens and when you return to it, no more than about every fifteen minutes. **An update never applies on its own.** It waits for you, so it can never interrupt work you are in the middle of.
+<figure className="gg-figure" style={{maxWidth: '360px'}}>
+  <img src="/img/screenshots/client-sign-in.webp" alt="The first screen of the app: the Green Goods logo above a Create Account button, a Sign in with a Wallet button, and the link Already have an account?" loading="lazy" width="780" height="900" />
+  <figcaption>The first screen when you open the app from your home screen. Source: Storybook fixture, 12 October 2026.</figcaption>
+</figure>
 
-You will find out in one of two ways:
+That is your account. There is no password to remember, because your phone keeps a passkey for you.
 
-- If the app has been open a while, a toast offers **Restart to update**.
-- Otherwise, go to **Profile → Settings → Update**.
+**Already have an account?** Tap **Already have an account?**, enter your name, and tap **Sign in with Passkey**. Your passkey usually travels with your Apple or Google account, so the new phone needs to be signed in to that same account.
 
-Tap **Restart**. The app reloads and confirms with **Updated**. If it needs a moment to get ready for offline use again, it says so and then tells you when it is done.
+**Using your own wallet?** Tap **Sign in with a Wallet** instead. A wallet and a passkey are two different accounts, so pick one and keep using it.
 
-### What the Update row is telling you
+## How you know it worked
 
-| It says | What is happening | What to do |
+- **Android:** a message says **App installed**, then **Getting it ready to work offline**, and finally **Ready to work offline**. On a fast connection the middle step can pass too quickly to see. On an iPhone there is usually no message. The icon on your home screen is the sign.
+- **After signing in:** you land on **Home**. The first time, a message says **You're signed in** and offers **Open Help**.
+
+## What happens next
+
+Nothing is waiting on anyone else. Your next step is to join the garden you work with.
+
+In the background, the app saves what it needs to work without a signal. You can watch it under **Profile**, on the **Account** tab, in the **Offline** row. It keeps your gardens' work lists, plus photos for the garden you have open and for your own work. **Pause** stops it and **Resume** continues. If your phone has Data Saver on, photos wait until you tap **Resume** or turn Data Saver off.
+
+## Update the app
+
+Green Goods checks for a new version when you open it and when you come back to it. **An update never applies on its own.** It waits for you, so it cannot interrupt work you are in the middle of.
+
+1. Open **Profile** and stay on the **Account** tab.
+2. Under **Settings**, find the **Update** row.
+3. Tap **Check**. If a new version is ready, tap **Restart**.
+4. The app reloads and says **Updated**.
+
+If you leave the app open for a long time, a message may offer **Restart to Update**. It does the same thing.
+
+| The Update row says | What is happening | What to do |
 |---|---|---|
 | Check for a newer version. | Nothing yet | Tap **Check** |
 | Looking for a newer version. | Checking now | Wait |
 | Installing the latest version. | Downloading in the background | Wait. You can keep working |
 | A new version is ready. | Waiting for you | Tap **Restart** |
-| Finish saving or sending your work before restarting. | A draft is saving, or work is sending | Let it finish, then **Restart** |
+| Finish saving or sending your work before restarting. | A draft is saving, or work is being sent | Let it finish, then tap **Restart** |
 | Restarting the app. | Applying now | Wait |
-| Close every app window, then open it again. | The restart did not finish | Close the app fully and reopen |
+| Close every app window, then open it again. | The restart did not finish | Close the app fully and open it again |
 | Couldn't finish. Try again. | The download failed | Tap **Try Again** |
 
-"Close the app fully" means removing it from the recent-apps list, not just going to the home screen. On iOS, swipe it away in the app switcher.
+Two tips for updating:
 
-## Moving an existing install to this release
-
-Everything already on the phone is kept. Drafts, queued work, and saved photos carry across, and the app upgrades its own storage the first time it opens on the new version. Queued work now waits in **Your Work** for **Upload all**: nothing sends on its own, and work an older version gave up on is ready to upload again.
-
-What to expect:
-
-- **The restart takes longer than usual this once.** This release changes how the app stores its files, so the first update re-downloads them.
-- **Update while you have a connection, not in the field.** Restarting with no signal works, but the app cannot fetch the new photo-handling file until it is back online, so until then it may not accept an iPhone photo. Everything else still works.
-- **Upload anything queued first.** Open **Your Work** and tap **Upload all**. Not because the update would lose it, but because uploading needs a connection and the field often does not have one.
+- **Update while you have a connection, not in the field.** A restart with no signal still works, but the app cannot fetch its newer files until you are back online.
+- **Send what is waiting first.** Open **Your Work** and tap **Upload all**. The update will not lose it. Uploading needs a connection, and the field often does not have one.
 
 :::warning Never clear site data or app storage
-Clearing the browser's site data, storage, or "app files" for Green Goods **deletes unsent work**: drafts and anything queued and waiting to send. It has stranded installed users before, and there is no in-app button to do it precisely because it is not a safe fix. If someone is stuck, use the steps below instead.
+Clearing the browser's site data or storage for Green Goods **deletes work you have not sent**: drafts, and anything waiting in **Your Work**. Removing the app from your phone can do the same. There is no button for this in the app, because it is never a safe fix. If you are stuck, use the list below.
 :::
 
-## If something is wrong
+## If something goes wrong
 
-| What they report | What to try |
+| What you see | What to do |
 |---|---|
-| "It says a new version is ready but Restart does nothing" | Something is still saving or sending. Wait for it to finish, then tap **Restart** again. Work that is waiting to upload, or being prepared in the background, does not block the update |
-| "It restarted but looks the same" | Close the app fully and reopen. The confirmation toast is easy to miss |
-| "It keeps asking me to restart" | Close every window of the app, including browser tabs on the same site, then reopen |
-| "Photos from my iPhone will not attach" | The photo handling file has not arrived, usually because they installed or restarted with no signal, or Data Saver is on. Turn Data Saver off, open the app on Wi-Fi, give it a minute. The work itself still saves |
-| "It will not load at all offline" | Confirm they opened it from the home screen and not a browser tab. Only the installed app works offline |
-| "I cannot sign in" | Signing in needs a connection. Recording work does not |
-| "Which version am I on?" | The app does not show a version number today. Use **Profile → Settings → Update** and tap **Check** instead |
+| A message says your browser cannot install apps | On Android, tap **Open in Chrome**. On iPhone, tap **Copy Link** and open the link in Safari. This also happens when you open the link inside another app, such as a chat app |
+| On Android, a sheet says **Install in Chrome** | You are in Brave, which saves a shortcut, not the full app. Tap **Open in Chrome** and install from there |
+| You only see the public website, with no sign-in | You opened a browser tab. Open Green Goods from the home screen icon |
+| **A new version is ready**, but **Restart** does nothing | Something is still saving or sending. Wait for it to finish, then tap **Restart** again. Work that is only waiting to upload does not block the update |
+| The app restarted but looks the same | Close it fully and open it again. The **Updated** message is easy to miss |
+| It keeps asking you to restart | Close every window of the app, including browser tabs on the same site, then open it again |
+| A photo from your iPhone will not attach | The file that reads iPhone photos has not arrived yet, usually because you installed or restarted with no signal, or Data Saver is on. Turn Data Saver off, open the app on a good connection, and give it a minute. Your work still saves |
+| You cannot sign in | Signing in needs a connection. Recording work does not |
+| You cannot tell which version you have | The app does not show a version number. Tap **Check** in the **Update** row. **No update available** means you are current |
 
-## What we cannot see
+"Close the app fully" means removing it from your recent apps, not only going back to the home screen.
 
-There is no version number in the app and no way for the team to read which build a phone is on. On a call, the reliable signal is **Profile → Settings → Update**: if it says *No update available*, they are current.
+Still stuck? Open **Profile**, then the **Help** tab, and tap **Telegram** to ask the community.
+
+## Next step
+
+<NextBestAction
+  title="Join a garden"
+  why="The app is installed and you are signed in. Now join the garden where your work belongs."
+  actionLabel="Join a Garden"
+  actionHref="/community/gardener-guide/joining-a-garden"
+/>
