@@ -404,3 +404,39 @@ export function skillCatalogSources(root) {
   }
   return sources.sort();
 }
+
+const FRONTMATTER = /^---\n([\s\S]*?)\n---\n/;
+const CONNECTOR_LIST = /^connectors:[ \t]*\n((?:[ \t]+-[^\n]*(?:\n|$))+)/m;
+
+/**
+ * Routine documents whose frontmatter declares connectors. Read without a YAML package, because
+ * CI Gate lists the projection sources before anything is installed.
+ */
+export function routineConnectorSources(root, directory) {
+  return readdirSync(path.join(root, directory))
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => `${directory}/${name}`)
+    .filter((source) => /^connectors:[ \t]*$/m.test(FRONTMATTER.exec(readText(root, source))?.[1] ?? ""))
+    .sort();
+}
+
+/**
+ * Which routines use each connector, from the routines' own frontmatter: a map from connector id
+ * to sorted routine names. A routine that names connectors this cannot read is an error, never
+ * a silently shorter list.
+ */
+export function routineConnectors(root, sources) {
+  const routinesByConnector = new Map();
+  for (const source of sources) {
+    const frontmatter = FRONTMATTER.exec(readText(root, source))?.[1] ?? "";
+    const routine = /^routine-name:[ \t]*(\S+)[ \t]*$/m.exec(frontmatter)?.[1];
+    const entries = CONNECTOR_LIST.exec(frontmatter)?.[1];
+    if (!routine || !entries) throw new Error(`Routine ${source} has no readable routine-name and connectors list`);
+    for (const line of entries.trimEnd().split("\n")) {
+      const connector = /^[ \t]+-[ \t]*([a-z0-9-]+)[ \t]*(?:#.*)?$/.exec(line)?.[1];
+      if (!connector) throw new Error(`Routine ${source} has an unreadable connector entry: ${line.trim()}`);
+      routinesByConnector.set(connector, [...(routinesByConnector.get(connector) ?? []), routine]);
+    }
+  }
+  return new Map([...routinesByConnector].map(([connector, routines]) => [connector, routines.sort()]));
+}

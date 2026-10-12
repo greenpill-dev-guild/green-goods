@@ -711,6 +711,22 @@ const miniProjections = {
       not_confused_with: ["Operator"],
     },
   ],
+  persona_journeys: [
+    {
+      ref: "persona:gardener",
+      context: "People in the field.",
+      engagements: [
+        {
+          when: "After doing the work",
+          what: "Submit it.",
+          where: ["client"],
+          term_refs: ["entity:garden"],
+          guide: "/community/gardener-guide/uploading-your-work",
+          code: ["a.sol"],
+        },
+      ],
+    },
+  ],
   marketing_claims: [
     {
       id: "garden",
@@ -988,6 +1004,35 @@ test("projection integrity requires capability and human coverage", () => {
   assert.ok(errors.includes("human concepts: missing persona:gardener"));
 });
 
+test("projection integrity requires a journey per persona and a built interaction to say where and show its code", () => {
+  const missing = structuredClone(miniProjections);
+  missing.persona_journeys = [];
+  assert.ok(checkProjectionIntegrity(miniOntology, missing, () => true).includes("persona journeys: missing persona:gardener"));
+
+  const broken = structuredClone(miniProjections);
+  Object.assign(broken.persona_journeys[0].engagements[0], { where: ["kiosk"], code: [], guide: "joining a garden" });
+  broken.persona_journeys[0].engagements.push({ when: "Later", what: "", where: [], term_refs: ["entity:nothing"], code: [] });
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  const first = "persona journey persona:gardener engagement 1";
+  assert.ok(errors.includes(`${first}: unknown surface "kiosk"`));
+  assert.ok(errors.includes(`${first}: code is required once the interaction is built`));
+  assert.ok(errors.some((error) => error.startsWith(`${first}: guide must be a docs route`)));
+  const second = "persona journey persona:gardener engagement 2";
+  assert.ok(errors.includes(`${second}: what is required`));
+  assert.ok(errors.includes(`${second}: unknown term entity:nothing`));
+  assert.ok(errors.includes(`${second}: where is required once the interaction is built`));
+
+  // While a term it relies on is only planned, an interaction may name no surface and no code yet.
+  const planned = structuredClone(miniProjections);
+  Object.assign(planned.capabilities[0], { implementation: "not-implemented", deployment: "not-deployed", activation: "inactive", integration: "not-integrated", availability: "planned" });
+  planned.marketing_claims = [];
+  Object.assign(planned.persona_journeys[0].engagements[0], { where: [], code: [] });
+  assert.deepEqual(checkProjectionIntegrity(miniOntology, planned, () => true), []);
+
+  // A code path a journey points at must exist.
+  const gone = checkProjectionIntegrity(miniOntology, miniProjections, (file) => file !== "a.sol");
+  assert.ok(gone.includes("persona journey persona:gardener engagement 1: code path does not exist: a.sol"));
+});
 test("projection integrity rejects unsupported availability", () => {
   const broken = structuredClone(miniProjections);
   broken.capabilities[0].activation = "inactive";

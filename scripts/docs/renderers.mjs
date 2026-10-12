@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { GENERATOR_PATH, generatedFrontmatter, regenerationHint } from "./generator-core.mjs";
 import { OPERATIONS } from "../../packages/contracts/script/cli/operations.mjs";
 import {
@@ -12,6 +15,7 @@ import {
   readJson,
   readText,
   routeConstants,
+  routineConnectors,
   workflowInventory,
 } from "./source-readers.mjs";
 import {
@@ -73,23 +77,45 @@ export function orderCommandManifests(manifestSources) {
   return [...COMMAND_MANIFEST_ORDER];
 }
 
-export function renderMcpGuide({ root, sources, digest }) {
+const REPO_BLOB = "https://github.com/greenpill-dev-guild/green-goods/blob/develop";
+
+/**
+ * The two ways an agent reaches a tool here: MCP servers checked into the repository, and hosted
+ * services reached through a connector in the coding app. The second list joins the connector
+ * catalog with what each routine declares, and refuses a routine connector the catalog lacks.
+ */
+export function renderMcpGuide({ root, sources, digest, connectorCatalog, routines }) {
   const config = readJson(root, declaredSource(sources, ".mcp.json"));
   const servers = Object.entries(config.mcpServers ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const catalog = readJson(root, declaredSource(sources, connectorCatalog)).connectors;
+  const routinesByConnector = routineConnectors(root, routines.map((source) => declaredSource(sources, source)));
+  for (const connector of routinesByConnector.keys()) {
+    if (!catalog[connector]) throw new Error(`A routine declares the connector "${connector}", which ${connectorCatalog} does not describe`);
+  }
   let body = pageHeader(
     { title: "Agent and MCP Guide", slug: "/builders/agentic/mcp-guide", sources, digest },
     "Agent and MCP Guide",
-    "This inventory is projected from the checked-in MCP configuration. Repository guidance defines how each server may be used; user-level tools are outside this project contract."
+    "An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used."
   );
+  body += "## MCP servers in this repository\n\nProjected from the checked-in MCP configuration, `.mcp.json`.\n\n";
   body += "| Server | Command | Arguments | Scope | Surfaces |\n|---|---|---|---|---|\n";
   for (const [name, server] of servers) {
     const access = config.agentAccess?.[name] ?? {};
     body += `| ${esc(name)} | \`${esc(server.command ?? "—")}\` | ${Array.isArray(server.args) ? server.args.map((arg) => `\`${esc(arg)}\``).join(" ") : "—"} | ${esc(access.scope ?? "—")} | ${Array.isArray(access.surfaces) ? access.surfaces.map(esc).join(", ") : "—"} |\n`;
   }
-  body += "\n## Safety boundary\n\n";
+  body += "\n### Safety boundary {#safety-boundary}\n\n";
   for (const [name] of servers) {
     for (const note of config.agentAccess?.[name]?.notes ?? []) body += `- ${esc(note)}\n`;
   }
+  body += "\n## Connected services\n\n";
+  body += "These are not in `.mcp.json`, and the routines' rules say to keep it that way. Each person connects them once in their coding app (Claude Code or Codex), and an agent may then use them inside the limits its guide sets. The third column is read from the connectors each scheduled routine declares; working sessions use the same services under the same rules.\n\n";
+  body += "| Service | What agents use it for | Routines that declare it | Rules |\n|---|---|---|---|\n";
+  for (const [id, entry] of Object.entries(catalog)) {
+    if (!existsSync(path.join(root, entry.rules))) throw new Error(`Connector ${id} points at a rules file that does not exist: ${entry.rules}`);
+    const users = routinesByConnector.get(id) ?? [];
+    body += `| ${esc(entry.display)} | ${esc(entry.purpose)} | ${users.length ? users.map((name) => `\`${esc(name)}\``).join(", ") : "none"} | [${esc(entry.rules)}](${REPO_BLOB}/${entry.rules}) |\n`;
+  }
+  body += `\nThe routine definitions live in [docs/routines](${REPO_BLOB.replace("/blob/", "/tree/")}/docs/routines), each with the connectors it may use in its frontmatter.\n`;
   return body;
 }
 
@@ -178,42 +204,99 @@ export function renderPackageExports(exports) {
   return body;
 }
 
-// Each surface id a persona may name, in display order, with its column heading and what it is.
-// The renderer throws on an id the ontology names but this table does not.
+// Each product surface, in display order, with its name on the page and what it is. The
+// renderer throws on a surface a persona journey names but this table does not.
 const SURFACES = [
   ["admin", "Admin cockpit", "the steward cockpit at admin.greengoods.app, where gardens, actions, reviews, and pools are run"],
-  ["client", "Client app", "the installed PWA at greengoods.app, where work is captured and tracked in the field"],
-  ["agent", "Messaging agent", "the Telegram bot and the public HTTP API, for people who never install anything"],
-  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens, impact, and funding"],
+  ["client", "Client app", "the installed app at greengoods.app, where work is captured, tracked, and reviewed in the field"],
+  ["agent", "Messaging agent", "the Telegram bot, for people who would rather message than install anything"],
+  ["public", "Public site", "the browser website at greengoods.app, where anyone reads gardens and impact and can fund them"],
   ["community", "Community channels", "the Telegram and Discord spaces around the product"],
   ["docs", "Docs", "this site"],
 ];
 
-export function renderPersonaSurfaces({ root, sources, digest }) {
+// What the page says about an interaction that relies on something people cannot use yet, from
+// the furthest away to the nearest. An interaction takes the furthest status among its terms.
+const UNAVAILABLE_NOTES = [
+  ["vision", "An idea, not planned yet."],
+  ["planned", "Planned, not built yet."],
+  ["in-build", "Still being built."],
+  ["deployed-not-available", "Deployed, not switched on yet."],
+];
+
+const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+/**
+ * The personas page: who each persona is, then what they do, when, and on which surface. The
+ * sidecar owns a persona's name, hat and definition; the projection data owns the plain-language
+ * context and the journey, and each interaction's availability comes from the capabilities it
+ * names, so the page cannot call something usable that the ontology says is still planned.
+ */
+export function renderPersonas({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
-  const known = new Set(SURFACES.map(([id]) => id));
-  for (const persona of ontology.personas) {
-    for (const surface of persona.surfaces) {
-      if (!known.has(surface)) throw new Error(`Persona ${persona.id} names a surface without a label: ${surface}`);
+  const projections = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-projections.json"));
+  const surfaceNames = new Map(SURFACES.map(([id, name]) => [id, name]));
+  const conceptByRef = new Map(projections.human_concepts.map((item) => [item.ref, item]));
+  const journeyByRef = new Map(projections.persona_journeys.map((item) => [item.ref, item]));
+  const availabilityByRef = new Map(projections.capabilities.map((item) => [item.ref, item.availability]));
+  const personas = ontology.personas.map((persona) => {
+    const ref = `persona:${persona.id}`;
+    const concept = conceptByRef.get(ref);
+    const journey = journeyByRef.get(ref);
+    if (!concept || !journey) throw new Error(`Persona ${persona.id} has no ${concept ? "journey" : "human concept"} in the projection data`);
+    for (const engagement of journey.engagements) {
+      for (const surface of engagement.where) {
+        if (!surfaceNames.has(surface)) throw new Error(`Persona ${persona.id} works on a surface without a name: ${surface}`);
+      }
     }
-  }
-  const used = SURFACES.filter(([id]) => ontology.personas.some((persona) => persona.surfaces.includes(id)));
+    return { persona, concept, journey };
+  });
+  const usedBy = (journey) => SURFACES.filter(([id]) => journey.engagements.some((engagement) => engagement.where.includes(id)));
+  const used = SURFACES.filter(([id]) => personas.some(({ journey }) => usedBy(journey).some(([surface]) => surface === id)));
+  const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
+  const names = (list) => list.map(([, name]) => name).join(", ");
+
   let body = pageHeader(
     { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
     "Personas and Surfaces",
-    "Green Goods has five personas. Each one is tied to an on-chain hat, which is how the contracts know who may do what. The ontology owns what a persona means and which surfaces may name it, and this page is generated from it. Read it before the work-submission trace, which names these actors at every step."
+    `Green Goods is built for ${COUNT_WORDS[personas.length] ?? personas.length} kinds of people. Each one is tied to an on-chain hat, which is how the contracts know who may do what. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.`
   );
-  body += "## Personas\n\n| Persona | Hat | Definition |\n|---|---|---|\n";
-  for (const persona of ontology.personas) body += `| ${esc(persona.display)} | \`${esc(persona.hat)}\` | ${esc(persona.definition)} |\n`;
-  body += "\n## Where each persona appears\n\nThe ontology records the surfaces where a persona's name may appear, in copy and in data. That is a vocabulary rule, not an access rule: a surface can name a persona without letting it sign in. Who can open a surface is decided by that surface's code and the garden's hats, and its [package page](/builders/packages) says who it serves. The matrix marks the surfaces, and the list below says what each one is.\n\n";
-  body += `| Persona | ${used.map(([, heading]) => heading).join(" | ")} |\n|---|${used.map(() => "---").join("|")}|\n`;
-  for (const persona of ontology.personas) {
-    body += `| ${esc(persona.display)} | ${used.map(([id]) => (persona.surfaces.includes(id) ? "✓" : "—")).join(" | ")} |\n`;
+  body += "## At a glance\n\n| Persona | In one line | Works in |\n|---|---|---|\n";
+  for (const { persona, concept, journey } of personas) {
+    body += `| [${esc(persona.display)}](#${persona.id}) | ${esc(concept.plain_name)} | ${names(usedBy(journey))} |\n`;
   }
+  body += "\nThe surfaces are:\n\n";
+  for (const [, name, blurb] of used) body += `- **${name}**: ${blurb}.\n`;
   body += "\n";
-  for (const [, heading, blurb] of used) body += `- **${heading}**: ${blurb}.\n`;
-  body += "\n";
-  if (ontology.personas_note) body += `${ontology.personas_note}\n`;
+
+  for (const { persona, concept, journey } of personas) {
+    body += `## ${esc(persona.display)} {#${persona.id}}\n\n`;
+    body += `${journey.context} ${sentence(concept.why_it_matters)}\n\n`;
+    body += `- **On-chain role:** the \`${esc(persona.hat)}\` hat.\n`;
+    body += `- **Definition:** ${esc(persona.definition)}\n`;
+    if (concept.aliases.length) body += `- **Also called:** ${concept.aliases.map(esc).join(", ")}.\n`;
+    if (concept.not_confused_with.length) body += `- **Not the same as:** ${concept.not_confused_with.map(esc).join(", ")}.\n`;
+    body += "\n| When | What they do | Where |\n|---|---|---|\n";
+    for (const engagement of journey.engagements) {
+      const statuses = (engagement.term_refs ?? []).map((ref) => availabilityByRef.get(ref));
+      const note = UNAVAILABLE_NOTES.find(([status]) => statuses.includes(status))?.[1];
+      const guide = engagement.guide ? ` [Guide](${engagement.guide}).` : "";
+      const where = names(SURFACES.filter(([id]) => engagement.where.includes(id))) || "—";
+      body += `| ${esc(engagement.when)} | ${esc(sentence(engagement.what))}${note ? ` *${note}*` : ""}${guide} | ${where} |\n`;
+    }
+    const anchored = journey.engagements.filter((engagement) => engagement.code.length);
+    if (anchored.length) {
+      body += `\n<details>\n<summary>Where this lives in the code</summary>\n\n`;
+      for (const engagement of anchored) {
+        body += `- **${esc(engagement.when)}**: ${engagement.code.map((file) => `\`${esc(file)}\``).join(", ")}\n`;
+      }
+      body += "\n</details>\n";
+    }
+    body += "\n";
+  }
+
+  if (ontology.personas_note) body += `## The owner\n\n${ontology.personas_note}\n\n`;
+  body += "Which surfaces may *name* a persona, in copy and in data, is a separate vocabulary rule. The [glossary](/glossary) carries it in its allowed-surfaces column.\n";
   return body;
 }
 

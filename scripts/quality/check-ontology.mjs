@@ -654,6 +654,48 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
     }
   }
 
+  // Persona journeys: what each persona does, when, and on which surfaces. Every persona has
+  // exactly one, and an interaction that is built must say where it happens and point at its code.
+  // The code paths are pointers for readers, checked for existence whenever this gate runs. They
+  // are not capability evidence, so they stay out of the evidence list the Ontology workflow's
+  // path filter has to cover: that would rerun the workflow on most view changes.
+  const journeys = projections.persona_journeys ?? [];
+  unique("persona journeys", journeys.map((item) => item.ref));
+  const journeyRefs = new Set(journeys.map((item) => item.ref));
+  for (const ref of personaRefs) {
+    if (!journeyRefs.has(ref)) errors.push(`persona journeys: missing ${ref}`);
+  }
+  const surfaces = new Set(ONTOLOGY_SURFACES);
+  for (const journey of journeys) {
+    const label = `persona journey ${journey.ref}`;
+    if (!personaRefs.has(journey.ref)) errors.push(`${label}: unknown persona`);
+    if (!journey.context?.trim()) errors.push(`${label}: context is required`);
+    if (!journey.engagements?.length) errors.push(`${label}: at least one engagement is required`);
+    for (const [index, engagement] of (journey.engagements ?? []).entries()) {
+      const row = `${label} engagement ${index + 1}`;
+      for (const field of ["when", "what"]) {
+        if (!engagement[field]?.trim()) errors.push(`${row}: ${field} is required`);
+      }
+      for (const surface of engagement.where ?? []) {
+        if (!surfaces.has(surface)) errors.push(`${row}: unknown surface "${surface}"`);
+      }
+      for (const ref of engagement.term_refs ?? []) {
+        if (!entityRefs.has(ref)) errors.push(`${row}: unknown term ${ref}`);
+      }
+      const unbuilt = (engagement.term_refs ?? []).some((ref) =>
+        ["planned", "vision"].includes(capabilityByRef.get(ref)?.availability)
+      );
+      if (!unbuilt && !engagement.where?.length) errors.push(`${row}: where is required once the interaction is built`);
+      if (!unbuilt && !engagement.code?.length) errors.push(`${row}: code is required once the interaction is built`);
+      for (const file of engagement.code ?? []) {
+        if (!fileExists(file)) errors.push(`${row}: code path does not exist: ${file}`);
+      }
+      if (engagement.guide !== undefined && !/^\/[a-z0-9/-]+$/.test(engagement.guide)) {
+        errors.push(`${row}: guide must be a docs route such as /community/gardener-guide/joining-a-garden`);
+      }
+    }
+  }
+
   for (const file of collectProjectionFiles(projections)) {
     if (!fileExists(file)) errors.push(`projection evidence does not exist: ${file}`);
   }

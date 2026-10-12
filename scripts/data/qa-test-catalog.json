@@ -9953,9 +9953,9 @@
       "steps": [
         "Follow each stage of the Anatomy page against the shipped client, admin, and contracts",
         "Open the schema and code links on the page",
-        "Check the Personas and Surfaces matrix against the glossary's allowed surfaces for each persona: it records where a persona's name may appear, not who can sign in"
+        "On the Personas and Surfaces page, pick one interaction for each persona, do it on a surface the page names for it, and open the code paths listed under that persona"
       ],
-      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, and the matrix marks for each persona the surfaces where its name may appear, matching the glossary and claiming nothing about access; drift is listed per stage",
+      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, each interaction on the personas page can be done on the surface it names, one marked planned or still being built is not offered as usable, and every code path listed under a persona exists; drift is listed per stage",
       "evidence": "List of drifted statements or dead links with the page path",
       "role": "any",
       "tags": ["docs", "builder-docs"],

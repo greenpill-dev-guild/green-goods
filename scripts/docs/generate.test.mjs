@@ -27,6 +27,7 @@ import {
   publicAgentRouteSources,
   readJson,
   routeConstants,
+  routineConnectors,
   selectSafeDeploymentFields,
   selectSafeFields,
   supportedChainIds,
@@ -375,6 +376,43 @@ test("a field recorded on another network counts for the network that depends on
   }
 });
 
+test("MCP guide lists each connected service with the routines that declare it", () => {
+  const projection = createProjections(REPO_ROOT).find((item) => item.output === "docs/docs/builders/agentic/mcp-guide.mdx");
+  assert.ok(projection);
+  const rendered = renderProjection(REPO_ROOT, projection);
+  const catalog = readJson(REPO_ROOT, "scripts/data/agent-connectors.json").connectors;
+  const declared = routineConnectors(REPO_ROOT, projection.sources.filter((source) => source.startsWith("docs/routines/")));
+  assert.ok(declared.size >= 4, "the routines declare connectors");
+  for (const [connector, routines] of declared) {
+    const row = rendered.split("\n").find((line) => line.startsWith(`| ${catalog[connector]?.display} |`));
+    assert.ok(row, `${connector} has a row`);
+    for (const routine of routines) assert.ok(row.includes(`\`${routine}\``), `${connector}: ${routine}`);
+  }
+  // The guide a row points at must be about that service, or the pointer teaches nothing.
+  for (const [id, entry] of Object.entries(catalog)) {
+    assert.match(readFileSync(path.join(REPO_ROOT, entry.rules), "utf8"), new RegExp(entry.display.split(" ").at(-1), "i"), id);
+  }
+});
+
+test("routine connectors drop comments and refuse a list they cannot read", () => {
+  const root = fixture();
+  try {
+    const routine = (name, list) => writeFileSync(path.join(root, `sources/${name}.md`), `---\nroutine-name: ${name}\nconnectors:\n${list}model: any\n---\n\n# Prompt\n`);
+    routine("b-watch", "  - posthog  # read-only\n  - linear\n");
+    routine("a-intake", "  - linear\n");
+    assert.deepEqual([...routineConnectors(root, ["sources/b-watch.md", "sources/a-intake.md"])], [
+      ["posthog", ["b-watch"]],
+      ["linear", ["a-intake", "b-watch"]],
+    ]);
+    routine("odd", "  - Linear Cloud\n");
+    assert.throws(() => routineConnectors(root, ["sources/odd.md"]), /unreadable connector entry: - Linear Cloud/);
+    writeFileSync(path.join(root, "sources/bare.md"), "---\nconnectors:\n  - linear\n---\n");
+    assert.throws(() => routineConnectors(root, ["sources/bare.md"]), /no readable routine-name and connectors list/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("sorts package exports deterministically", () => {
   const root = fixture();
   try {
@@ -534,22 +572,32 @@ test("every projection source is routed to the Docs workflow", () => {
   }
 });
 
-test("personas page reads from the ontology alone and maps each persona onto its surfaces", () => {
+test("personas page gives each persona a section, its journey, and the surfaces it works in", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/architecture/personas.mdx",
   );
   assert.ok(projection);
-  assert.deepEqual(projection.sources, ["packages/shared/src/ontology/green-goods-ontology.json"]);
+  const sidecar = "packages/shared/src/ontology/green-goods-ontology.json";
+  const projectionData = "packages/shared/src/ontology/green-goods-projections.json";
+  assert.deepEqual(projection.sources, [sidecar, projectionData]);
   const rendered = renderProjection(REPO_ROOT, projection);
   assert.match(rendered, /^title: Personas and Surfaces$/m);
   assert.match(rendered, /^slug: \/builders\/architecture\/personas$/m);
-  assert.ok(rendered.indexOf("## Personas") < rendered.indexOf("## Where each persona appears"));
-  assert.match(rendered, /^\| Gardener \| `gardener` \| /m);
-  assert.match(rendered, /^\| Persona \| Admin cockpit \| Client app \| Messaging agent \| Public site \| Docs \|$/m);
-  assert.match(rendered, /^\| Community Member \| — \| ✓ \| — \| ✓ \| ✓ \|$/m);
-  assert.match(rendered, /^- \*\*Messaging agent\*\*: /m);
-  assert.equal(rendered.includes("Declared route literals"), false);
-  assert.equal(rendered.includes("<details>"), false);
+  // Every persona has its own heading and a summary row that links to it.
+  for (const persona of readJson(REPO_ROOT, sidecar).personas) {
+    assert.ok(rendered.includes(`## ${persona.display} {#${persona.id}}`), persona.id);
+    assert.ok(rendered.includes(`| [${persona.display}](#${persona.id}) |`), persona.id);
+  }
+  // "Works in" is the union of the surfaces the persona's own interactions name, not a naming rule.
+  assert.match(rendered, /^\| \[Gardener\]\(#gardener\) \| [^|]+ \| Client app, Messaging agent \|$/m);
+  // Every interaction in the projection data is on the page.
+  for (const journey of readJson(REPO_ROOT, projectionData).persona_journeys) {
+    for (const engagement of journey.engagements) {
+      assert.ok(rendered.includes(`| ${engagement.when} | ${engagement.what}`), `${journey.ref}: ${engagement.when}`);
+    }
+  }
+  // One that relies on a term people cannot use yet says so, and names no surface it does not have.
+  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| — \|/);
 });
 
 test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
@@ -869,12 +917,18 @@ test("entity matrix derives integration status from the catalog and the artifact
   assert.ok(projection);
   const rendered = renderProjection(REPO_ROOT, projection);
   assert.equal(rendered.includes("Active integrations"), false);
-  assert.match(rendered, /^\| Silvi \| Vocabulary mapping only, no code integration \|/m);
+  // Every column is a protocol the code integrates with, so none reads as a vocabulary-only mapping.
+  assert.equal(/Vocabulary mapping only|Columns without a code integration/.test(rendered), false);
+  assert.match(rendered, /^\| EAS \| \[EAS\]\(\/builders\/integrations\/eas\) \| [^|]*Arbitrum One \(Deployed\)/m);
   assert.match(rendered, /^\| ENS \| \[ENS\]\(\/builders\/integrations\/ens\) \| [^|]*Sepolia Testnet \(Deployed\)/m);
   assert.match(rendered, /^\| Unlock \| \[Unlock Protocol\]\(\/builders\/integrations\/unlock\) \| Arbitrum One \(Deployed\) \| 1 \|$/m);
-  assert.match(rendered, /^- \*\*Silvi\*\*: /m);
   assert.ok(rendered.indexOf("### Karma GAP") < rendered.indexOf("| Garden | Project | Entity |"));
-  assert.ok(rendered.indexOf("### Unlock") < rendered.indexOf("| Badges | Unlock NFT | Concept |"));
+  assert.ok(rendered.indexOf("### Tokenbound") < rendered.indexOf("| Garden | Token-bound account (ERC-6551) | Entity |"));
+  // Each of the five personas has its own rows; the merged and non-canonical rows are gone.
+  for (const persona of ["Gardener", "Steward", "Evaluator", "Funder", "Community Member"]) {
+    assert.match(rendered, new RegExp(`^\\| ${persona} \\| [^|]+ \\| Persona \\|$`, "m"), persona);
+  }
+  assert.equal(/Funder\/Evaluator|Data Scientist|TAM /.test(rendered), false);
   assert.equal(/^\| Green Goods \| Karma GAP \| Hypercerts \|/m.test(rendered), false, "the wide grid is gone");
 });
 

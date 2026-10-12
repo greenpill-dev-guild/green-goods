@@ -742,5 +742,245 @@
       "safe_wording": "Community Needs is a planned layer, not a feature people can use today.",
       "verified_at": "2026-08-15"
     }
+  ],
+  "persona_journeys": [
+    {
+      "ref": "persona:gardener",
+      "context": "Gardeners are the people in the field: planting, cleaning, teaching, repairing. Many work from a phone with a weak signal and have never held a crypto wallet, so they sign in with a passkey and the app keeps working offline.",
+      "engagements": [
+        {
+          "when": "Getting started",
+          "what": "Install the app and sign in with a passkey. No wallet or seed phrase is needed.",
+          "where": ["client"],
+          "guide": "/community/gardener-guide/installing-and-updating",
+          "code": ["packages/client/src/views/Login"]
+        },
+        {
+          "when": "Joining a garden",
+          "what": "Join an open garden directly, or ask to join and wait for a steward to accept.",
+          "where": ["client", "agent"],
+          "guide": "/community/gardener-guide/joining-a-garden",
+          "code": [
+            "packages/client/src/components/Features/Garden/JoinGardenButton.tsx",
+            "packages/client/src/components/Features/Garden/GardenJoinRequestDialog.tsx",
+            "packages/agent/src/handlers/join.ts"
+          ]
+        },
+        {
+          "when": "After doing the work",
+          "what": "Pick the action, add photos and details, and submit. A submission made offline waits in a queue and uploads when the connection returns.",
+          "where": ["client", "agent"],
+          "term_refs": ["entity:work"],
+          "guide": "/community/gardener-guide/uploading-your-work",
+          "code": [
+            "packages/client/src/views/Garden",
+            "packages/shared/src/modules/job-queue",
+            "packages/agent/src/handlers/submit.ts"
+          ]
+        },
+        {
+          "when": "While a steward reviews",
+          "what": "Follow each submission from pending to approved or rejected, and read the steward's feedback.",
+          "where": ["client", "agent"],
+          "term_refs": ["entity:work-approval"],
+          "guide": "/community/gardener-guide/track-status-and-attestations",
+          "code": [
+            "packages/client/src/views/Home/WorkDashboard",
+            "packages/agent/src/handlers/status.ts"
+          ]
+        },
+        {
+          "when": "When the garden pays an allowance",
+          "what": "Claim from the garden's cookie jar, up to its cap.",
+          "where": ["client"],
+          "term_refs": ["entity:cookie-jar"],
+          "code": ["packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx"]
+        },
+        {
+          "when": "When neighbours make promises",
+          "what": "Follow the garden's commitments, confirm one a neighbour has kept, and record work toward one.",
+          "where": ["client"],
+          "term_refs": ["entity:commitment"],
+          "code": [
+            "packages/client/src/views/Home/CommitmentsSheet",
+            "packages/client/src/views/Garden/WorkCommitmentSelection.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "ref": "persona:steward",
+      "context": "Stewards run a garden day to day. They are usually a chapter lead or a program manager: the person who decides what work counts, reviews what comes in, and keeps the garden's roles and money in order. An owner holds the garden itself and can do everything a steward can.",
+      "engagements": [
+        {
+          "when": "Starting a garden",
+          "what": "Create the garden with its name, place and first roles. This needs deployer authority, and whoever creates the garden becomes its owner.",
+          "where": ["admin"],
+          "term_refs": ["entity:garden"],
+          "guide": "/community/steward-guide/creating-a-garden",
+          "code": ["packages/admin/src/views/Garden/CreateGarden.tsx"]
+        },
+        {
+          "when": "Before work starts",
+          "what": "Define the actions gardeners can document.",
+          "where": ["admin"],
+          "term_refs": ["entity:action"],
+          "guide": "/community/steward-guide/managing-actions",
+          "code": ["packages/admin/src/views/Actions"]
+        },
+        {
+          "when": "Before a reporting period",
+          "what": "Write the assessment that sets the baseline, the method and the outcomes to look for.",
+          "where": ["admin"],
+          "term_refs": ["entity:assessment"],
+          "guide": "/community/steward-guide/making-an-assessment",
+          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+        },
+        {
+          "when": "As work comes in",
+          "what": "Review each submission's evidence, then approve it or reject it with feedback.",
+          "where": ["admin", "client", "agent"],
+          "term_refs": ["entity:work-approval"],
+          "guide": "/community/steward-guide/reviewing-work",
+          "code": [
+            "packages/admin/src/views/Hub",
+            "packages/client/src/views/Home/WorkDashboard",
+            "packages/agent/src/handlers/approve.ts"
+          ]
+        },
+        {
+          "when": "As people join",
+          "what": "Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking.",
+          "where": ["admin", "client"],
+          "term_refs": ["entity:hat"],
+          "code": [
+            "packages/admin/src/views/Community/components/CommunityMembersTab.tsx",
+            "packages/admin/src/components/Garden/GardenSettingsEditor.tsx",
+            "packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx"
+          ]
+        },
+        {
+          "when": "When money arrives",
+          "what": "Set up the garden's vault and cookie jar, and choose how yield and payouts are shared.",
+          "where": ["admin"],
+          "term_refs": ["entity:vault", "entity:cookie-jar"],
+          "guide": "/community/steward-guide/funding-and-governance",
+          "code": ["packages/admin/src/views/Garden/Vault.tsx", "packages/admin/src/views/Cookies"]
+        },
+        {
+          "when": "When neighbours make promises",
+          "what": "Run the commitment pool: open a season, review offers and requests, and settle what was kept.",
+          "where": ["admin"],
+          "term_refs": ["entity:commitment-pool"],
+          "guide": "/community/steward-guide/commitment-pooling",
+          "code": ["packages/admin/src/views/Garden/Pool"]
+        },
+        {
+          "when": "At the end of a period",
+          "what": "Bundle approved work into an impact certificate that funders can hold a share of.",
+          "where": ["admin"],
+          "term_refs": ["entity:hypercert"],
+          "guide": "/community/steward-guide/creating-impact-certificates",
+          "code": ["packages/admin/src/views/Hub/CreateHypercert.tsx"]
+        }
+      ]
+    },
+    {
+      "ref": "persona:evaluator",
+      "context": "Evaluators bring the method. They are people with domain expertise, such as an agronomist or a researcher, who help a garden say what it will measure and whether the result holds up. They do not approve or reject work; that stays with stewards.",
+      "engagements": [
+        {
+          "when": "Before a reporting period",
+          "what": "Write or strengthen an assessment: the baseline, the method and the outcomes to look for.",
+          "where": ["admin"],
+          "term_refs": ["entity:assessment"],
+          "guide": "/community/steward-guide/making-an-assessment",
+          "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
+        },
+        {
+          "when": "As evidence builds",
+          "what": "Read the garden's approved work and its record to judge whether the claimed outcomes hold.",
+          "where": ["admin", "public"],
+          "term_refs": ["entity:work"],
+          "code": [
+            "packages/admin/src/views/Hub",
+            "packages/client/src/views/Public/GardenDetail.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "ref": "persona:funder",
+      "context": "Funders are people and organizations who want their money to follow verified work. They need to see the evidence before they give and to check on it afterwards, without learning how any of it works underneath.",
+      "engagements": [
+        {
+          "when": "Deciding where to give",
+          "what": "Browse gardens and read their approved work and impact.",
+          "where": ["public"],
+          "term_refs": ["entity:garden"],
+          "code": [
+            "packages/client/src/views/Public/Gardens.tsx",
+            "packages/client/src/views/Public/Impact.tsx"
+          ]
+        },
+        {
+          "when": "Giving directly",
+          "what": "Donate to a garden's cookie jar. This is direct support and creates no position to withdraw.",
+          "where": ["public"],
+          "term_refs": ["entity:cookie-jar"],
+          "guide": "/community/funder-guide/donating-to-a-garden",
+          "code": ["packages/client/src/views/Public/Fund.tsx"]
+        },
+        {
+          "when": "Giving for the long term",
+          "what": "Endow a garden: deposit into its vault, keep a position they can withdraw, and let the yield support the work.",
+          "where": ["public", "client"],
+          "term_refs": ["entity:vault"],
+          "guide": "/community/funder-guide/funding-a-garden",
+          "code": [
+            "packages/client/src/views/Public/Fund.tsx",
+            "packages/client/src/components/Sheets/EndowmentSheet"
+          ]
+        },
+        {
+          "when": "Any time afterwards",
+          "what": "Check an endowment and withdraw part or all of it.",
+          "where": ["public", "client"],
+          "term_refs": ["entity:vault"],
+          "guide": "/community/funder-guide/withdraw-from-a-vault",
+          "code": [
+            "packages/client/src/views/Public/Vaults.tsx",
+            "packages/client/src/components/Sheets/EndowmentSheet"
+          ]
+        }
+      ]
+    },
+    {
+      "ref": "persona:community-member",
+      "context": "Community members live with the results. They are residents and neighbours who may never submit work themselves, yet they are the people the work is for.",
+      "engagements": [
+        {
+          "when": "Any time",
+          "what": "Read what a garden has done: its work, its field notes and its impact.",
+          "where": ["public"],
+          "term_refs": ["entity:garden"],
+          "code": ["packages/client/src/views/Public/GardenDetail.tsx"]
+        },
+        {
+          "when": "When a garden asks what to back",
+          "what": "Signal support for the impact certificates that matter most to them, in a garden that has governance turned on.",
+          "where": ["client"],
+          "term_refs": ["entity:hypercert"],
+          "code": ["packages/client/src/components/Sheets/ConvictionSheet.tsx"]
+        },
+        {
+          "when": "When something is missing",
+          "what": "Name a community need so stewards and funders can respond to it.",
+          "where": [],
+          "term_refs": ["entity:need"],
+          "code": []
+        }
+      ]
+    }
   ]
 }

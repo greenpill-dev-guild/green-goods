@@ -16,7 +16,7 @@ import {
   renderGlossary,
   renderIntegrationProjections,
   renderMcpGuide,
-  renderPersonaSurfaces,
+  renderPersonas,
   renderQaCatalog,
   renderSkills,
   renderTaskRouting,
@@ -24,6 +24,7 @@ import {
 import {
   publicAgentRouteSources,
   readJson,
+  routineConnectorSources,
   skillCatalogSources,
   supportedChainIds,
   workflowSourcePaths,
@@ -33,6 +34,7 @@ import { renderEntityMatrixMdx } from "../quality/ontology-render.mjs";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ONTOLOGY = "packages/shared/src/ontology/green-goods-ontology.json";
 const PROJECTIONS = "packages/shared/src/ontology/green-goods-projections.json";
+const AGENT_CONNECTORS = "scripts/data/agent-connectors.json";
 const CHAINS = "packages/shared/src/config/chains.ts";
 const NETWORKS = "packages/contracts/deployments/networks.json";
 const TASK_ROUTING = ".claude/context/task-routing.json";
@@ -82,12 +84,18 @@ export function createProjections(root = REPO_ROOT) {
   ];
   const workflows = workflowSourcePaths(root);
   const publicAgentRoutes = publicAgentRouteSources(root, AGENT_API, PUBLIC_ROUTE_CONTRACTS);
+  const connectorRoutines = routineConnectorSources(root, "docs/routines");
   const routedSkillSources = [...new Set((taskRouting.tasks ?? []).map((task) => task.skill).filter(Boolean))]
     .sort()
     .map((skill) => `.claude/skills/${skill}/SKILL.md`);
 
   return [
-    { scope: "package", output: "docs/docs/builders/agentic/mcp-guide.mdx", sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root)], render: renderMcpGuide },
+    {
+      scope: "package",
+      output: "docs/docs/builders/agentic/mcp-guide.mdx",
+      sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root), AGENT_CONNECTORS, ...connectorRoutines],
+      render: (context) => renderMcpGuide({ ...context, connectorCatalog: AGENT_CONNECTORS, routines: connectorRoutines }),
+    },
     { scope: "package", output: "docs/docs/builders/packages/commands.mdx", sources: [
       "package.json",
       "docs/package.json",
@@ -116,7 +124,7 @@ export function createProjections(root = REPO_ROOT) {
           routeSources: publicAgentRoutes,
         }),
     },
-    { scope: "package", output: "docs/docs/builders/architecture/personas.mdx", sources: [ONTOLOGY], render: renderPersonaSurfaces },
+    { scope: "package", output: "docs/docs/builders/architecture/personas.mdx", sources: [ONTOLOGY, PROJECTIONS], render: renderPersonas },
     { scope: "integration", output: "docs/docs/builders/reference/deployments.mdx", sources: integrationCommon, render: renderDeploymentStatus },
     {
       scope: "integration",

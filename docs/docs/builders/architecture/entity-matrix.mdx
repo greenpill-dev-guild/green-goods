@@ -19,7 +19,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/check-ontology.mjs
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:7299764b61721450f67b10be2f56bf08459b38a3c0475dc77f1d728eeecb48b5"
+source_digest: "sha256:915784219d9500032fe29027a335ad952a7ade721ad1990703a62a3b4a12d0dd"
 source_of_truth:
   - packages/contracts/config/schemas.json
   - packages/contracts/deployments/1-latest.json
@@ -50,27 +50,57 @@ The integration catalog (`integrations` in the sidecar) names the protocols Gree
 
 | Protocol | Code integration | Networks with recorded components | Mapped terms |
 |---|---|---|---|
-| Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 10 |
-| Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 11 |
-| Octant | [Octant](/builders/integrations/octant) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 3 |
-| Gardens V2 | [Gardens](/builders/integrations/gardens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
-| Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 6 |
-| Silvi | Vocabulary mapping only, no code integration | — | 1 |
-| Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 1 |
+| EAS | [EAS](/builders/integrations/eas) | Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Partial) | 8 |
+| Tokenbound | [Tokenbound Accounts](/builders/integrations/tokenbound) | Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Deployed) | 1 |
+| Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 7 |
+| Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 9 |
+| Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 12 |
+| Octant | [Octant](/builders/integrations/octant) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 4 |
+| Gardens V2 | [Gardens](/builders/integrations/gardens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 5 |
+| Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 4 |
 | Unlock | [Unlock Protocol](/builders/integrations/unlock) | Arbitrum One (Deployed) | 1 |
-| ENS | [ENS](/builders/integrations/ens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 0 |
-| Lido | Vocabulary mapping only, no code integration | — | 0 |
-| FTC | Vocabulary mapping only, no code integration | — | 0 |
-
-Columns without a code integration:
-
-- **Silvi**: Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
-- **Lido**: Liquid staking. A yield integration is an idea with no entity mappings and no code.
-- **FTC**: Integration scope to be defined; no entity mappings and no code.
+| ENS | [ENS](/builders/integrations/ens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 2 |
 
 ## Mappings by protocol
 
 Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept.
+
+### EAS
+
+Code integration: [EAS](/builders/integrations/eas). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Partial).
+
+| Green Goods | EAS | Kind |
+|---|---|---|
+| Garden | Attestation recipient | Entity |
+| Work | Attestation (Work Submission schema) | Entity |
+| Work Approval | Attestation (Work Approval schema) | Schema |
+| Assessment | Attestation (Assessment schema) | Entity |
+| Attestation | Attestation | Entity |
+| Gardener | Attester | Persona |
+| Steward | Attester | Persona |
+| Evaluator | Attester | Persona |
+
+### Tokenbound
+
+Code integration: [Tokenbound Accounts](/builders/integrations/tokenbound). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Deployed).
+
+| Green Goods | Tokenbound | Kind |
+|---|---|---|
+| Garden | Token-bound account (ERC-6551) | Entity |
+
+### Hats Protocol
+
+Code integration: [Hats Protocol](/builders/integrations/hats). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Hats Protocol | Kind |
+|---|---|---|
+| Garden | Admin Hat | Entity |
+| Hat | Hat | Entity |
+| Gardener | Gardener Hat | Persona |
+| Steward | Steward Hat | Persona |
+| Evaluator | Evaluator Hat | Persona |
+| Funder | Funder Hat | Persona |
+| Community Member | Community Hat | Persona |
 
 ### Karma GAP
 
@@ -79,15 +109,14 @@ Code integration: [Karma GAP](/builders/integrations/karma). Recorded on: Sepoli
 | Green Goods | Karma GAP | Kind |
 |---|---|---|
 | Garden | Project | Entity |
-| Assessment | Project Milestone | Entity |
 | Action | Partial Project Update | Entity |
 | Work | Partial Project Update | Entity |
 | Work Approval | Partial Project Update | Schema |
-| Garden Steward | Project Owner | Persona |
+| Assessment | Project Milestone | Entity |
 | Gardener | Project Member | Persona |
+| Steward | Project Admin | Persona |
+| Evaluator | Grant Evaluator | Persona |
 | Community Member | Project Explorer | Persona |
-| Funder/Evaluator | Grant Evaluator | Concept |
-| Data Scientist/Researcher | Grant Evaluator | Concept |
 
 ### Hypercerts
 
@@ -96,15 +125,16 @@ Code integration: [Hypercerts](/builders/integrations/hypercerts). Recorded on: 
 | Green Goods | Hypercerts | Kind |
 |---|---|---|
 | Garden | Hypercert Holder | Entity |
-| Assessment | Hypercert Data | Entity |
 | Action | Hypercert Data | Entity |
 | Work | Hypercert Data | Entity |
 | Work Approval | Hypercert Data | Schema |
-| Garden Steward | Creator | Persona |
-| Gardener | Creator | Persona |
+| Assessment | Hypercert Data | Entity |
+| Hypercert | Hypercert | Entity |
+| Gardener | Contributor | Persona |
+| Steward | Creator | Persona |
+| Evaluator | Evaluator | Persona |
+| Funder | Funder | Persona |
 | Community Member | Evaluator | Persona |
-| Funder/Evaluator | Funder | Concept |
-| Data Scientist/Researcher | Evaluator | Concept |
 | Impact | Hypercert Token | Concept |
 
 ### Octant
@@ -114,8 +144,9 @@ Code integration: [Octant](/builders/integrations/octant). Recorded on: Sepolia 
 | Green Goods | Octant | Kind |
 |---|---|---|
 | Garden | Vault Owner | Entity |
-| Garden Steward | Vault Admin | Persona |
-| Funder/Evaluator | Vault Depositor | Concept |
+| Vault | Multi-strategy vault (ERC-4626) | Entity |
+| Steward | Vault Admin | Persona |
+| Funder | Vault Depositor | Persona |
 
 ### Gardens V2
 
@@ -124,32 +155,10 @@ Code integration: [Gardens](/builders/integrations/gardens). Recorded on: Sepoli
 | Green Goods | Gardens V2 | Kind |
 |---|---|---|
 | Garden | Community | Entity |
-| Garden Steward | Council Member | Persona |
 | Gardener | Community Member | Persona |
+| Steward | Council Member | Persona |
+| Funder | Community Funder | Persona |
 | Community Member | Community Member | Persona |
-| Funder/Evaluator | Community Funder | Concept |
-| Data Scientist/Researcher | Community Explorer | Concept |
-
-### Hats Protocol
-
-Code integration: [Hats Protocol](/builders/integrations/hats). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
-
-| Green Goods | Hats Protocol | Kind |
-|---|---|---|
-| Garden | Top Hat | Entity |
-| Garden Steward | Steward Hat | Persona |
-| Gardener | Gardener Hat | Persona |
-| Community Member | Community Member | Persona |
-| Funder/Evaluator | Garden Supporter | Concept |
-| Data Scientist/Researcher | Garden Analyst | Concept |
-
-### Silvi
-
-Vocabulary mapping only, no code integration. Forestry and agroforestry partner. The matrix maps Garden to Project as a vocabulary aid; no code integration exists.
-
-| Green Goods | Silvi | Kind |
-|---|---|---|
-| Garden | Project | Entity |
 
 ### Cookie Jar
 
@@ -157,7 +166,10 @@ Code integration: [Cookie Jar](/builders/integrations/cookie-jar). Recorded on: 
 
 | Green Goods | Cookie Jar | Kind |
 |---|---|---|
-| Garden | Jar | Entity |
+| Garden | Jar owner | Entity |
+| Cookie Jar | Jar | Entity |
+| Gardener | Withdrawer | Persona |
+| Funder | Depositor | Persona |
 
 ### Unlock
 
@@ -165,9 +177,16 @@ Code integration: [Unlock Protocol](/builders/integrations/unlock). Recorded on:
 
 | Green Goods | Unlock | Kind |
 |---|---|---|
-| Badges | Unlock NFT | Concept |
+| Badges | Lock (a badge type) and key (a badge held) | Concept |
 
-Protocols in the matrix with no mapped terms yet: ENS, Lido, FTC.
+### ENS
+
+Code integration: [ENS](/builders/integrations/ens). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | ENS | Kind |
+|---|---|---|
+| Garden | Subname of greengoods.eth | Entity |
+| Gardener | Subname of greengoods.eth | Persona |
 
 ## Using the matrix
 
