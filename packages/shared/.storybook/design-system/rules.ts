@@ -57,22 +57,26 @@ export const APP = {
   }),
 };
 
-/** Public website: the same primitives inside data-site="website", square. */
+/**
+ * Public website: the same primitives inside data-site="website", capsules.
+ * The corner tokens resolve to DesignMD `rounded.full` (9999px), at rest and
+ * while pressed.
+ */
 export const WEBSITE = {
   name: "Public website",
   family: "Inter",
-  cornerRest: 0,
-  cornerPressed: 0,
+  cornerRest: 9999,
+  cornerPressed: 9999,
   weight: 600,
   rules: [
-    "Every button: square, no press morph, label weight 600 (DL-026, DL-029)",
+    "Every button: a capsule at every size, no press morph, label weight 600 (DL-026, DL-089)",
     "Same heights as the app: 48 hero, 44 section and dialog, 40 row actions (DL-024)",
     "Fields on editorial sections: underline, serif text (surface=\"editorial\")",
-    "Dialogs, cards, panels, and buttons are all square; icon buttons stay circles, chips capsules",
+    "Dialogs, cards, and panels stay square; buttons and chips are capsules, icon buttons circles",
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
-    radius: 0,
+    radius: "pill",
     weight: 600,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
     family: "Inter",
