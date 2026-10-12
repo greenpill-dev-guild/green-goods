@@ -1,7 +1,8 @@
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useOpenerFocus } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { RiCloseLine } from "@remixicon/react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 
@@ -36,6 +37,17 @@ export function PublicSourceDialog({
 }: PublicSourceDialogProps) {
   const { formatMessage } = useIntl();
   useDocumentScrollLock(open);
+  // Hands focus back to whatever opened the dialog once it closes.
+  useOpenerFocus(open);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
+  // Focus the close control when the dialog opens, and only then. An inline
+  // callback ref is a new function on every render, so React would run it again
+  // each time and pull focus back here. It would also move focus during the
+  // commit, before the opener above has been read.
+  useEffect(() => {
+    if (open) closeRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -78,7 +90,7 @@ export function PublicSourceDialog({
             ) : null}
           </div>
           <IconButton
-            ref={(node) => node?.focus()}
+            ref={closeRef}
             aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
             onClick={onClose}
             icon={<RiCloseLine aria-hidden="true" />}

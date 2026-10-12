@@ -9,6 +9,10 @@
 
 import { useEffect, type RefObject } from "react";
 
+// The trap's companion: hand focus back to the opener when the surface closes. It is exported
+// from this declared leaf so a consuming package needs no new entry in the package manifest.
+export { useOpenerFocus } from "./useOpenerFocus";
+
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])';
 
