@@ -8,6 +8,7 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import type {
   CommitmentSettlementController,
+  PoolFundingControllerView,
   ProtocolFundingOperationsController,
   SettlementOperationsController,
 } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
@@ -230,6 +231,33 @@ export function storySettlementOperations(
 
 /** The garden a protocol funding transfer is for, as the operations stories list it. */
 export const STORY_FUNDED_GARDEN = "0xf7b892886998dae960d64a9db488336684f137a0" as Address;
+
+/**
+ * The protocol Safe on the release's limits: a 7M per-transfer cap and 15M left
+ * on both allowances, with more than either in the Safe. Pass a cap or a balance
+ * to choose the limit an amount runs into; a null cap is one that was not read.
+ */
+export function storyProtocolSafeFunding({
+  cap = 7_000_000n * G,
+  balance = 20_000_000n * G,
+}: {
+  cap?: bigint | null;
+  balance?: bigint;
+} = {}): PoolFundingControllerView {
+  const base = storyPoolFunding().snapshot!;
+  return storyPoolFunding({
+    snapshot: {
+      ...base,
+      balance: { ...base.balance!, value: balance },
+      limits: {
+        ...base.limits,
+        rolesAllowanceRemaining: 15_000_000n * G,
+        periodAllowanceRemaining: 15_000_000n * G,
+        maxTransferAmount: cap,
+      },
+    },
+  });
+}
 
 export function storyProtocolFundingOperations(
   overrides: Partial<ProtocolFundingOperationsController> = {}

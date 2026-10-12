@@ -86,7 +86,7 @@ jobs:
 
       - name: Check source structure
         env:
-          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && (github.base_ref == 'main' && startsWith(github.head_ref, 'release/') && 'origin/develop' || format('origin/{0}', github.base_ref)) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
       - name: Run agent lint

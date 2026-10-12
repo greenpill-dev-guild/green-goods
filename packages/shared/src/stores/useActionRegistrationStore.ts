@@ -3,10 +3,26 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { Address } from "../types/domain";
 import { getTransactionScopeKey, type TxResult } from "../modules/transactions/types";
 
+export interface ActionRegistrationDetails {
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+}
+
+export interface ActionRegistrationSubmission extends TxResult {
+  action?: ActionRegistrationDetails;
+  successTracked?: boolean;
+}
+
 interface ActionRegistrationState {
-  pending: Record<string, TxResult>;
+  pending: Record<string, ActionRegistrationSubmission>;
   edits: Record<string, { result: TxResult; fingerprint: string; confirmed: boolean }>;
-  record: (account: Address, chainId: number, submission: TxResult) => void;
+  record: (
+    account: Address,
+    chainId: number,
+    submission: ActionRegistrationSubmission,
+    action?: ActionRegistrationDetails
+  ) => void;
   clear: (account: Address, chainId: number) => void;
   recordEdit: (key: string, fingerprint: string, result: TxResult) => void;
   confirmEdit: (key: string) => void;
@@ -33,9 +49,14 @@ export const useActionRegistrationStore = create<ActionRegistrationState>()(
           const { [key]: _removed, ...edits } = state.edits;
           return { edits };
         }),
-      record: (account, chainId, submission) =>
+      record: (account, chainId, submission, action) =>
         set((state) => ({
-          pending: { ...state.pending, [getTransactionScopeKey(account, chainId)]: submission },
+          pending: {
+            ...state.pending,
+            [getTransactionScopeKey(account, chainId)]: action
+              ? { ...submission, action }
+              : submission,
+          },
         })),
       clear: (account, chainId) =>
         set((state) => {

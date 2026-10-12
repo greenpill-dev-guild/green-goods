@@ -5,7 +5,7 @@ import {
 import type { ReportingChain } from "./chain";
 import { currentConfirmation } from "./confirmations";
 import { issueContinuation } from "./continuations";
-import { accountLink } from "./coordinator/account-steps";
+import { accountLink } from "./coordinator/account-link";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
 import { gardenLabel } from "./coordinator/prompting";
 import { inTransaction } from "./database";

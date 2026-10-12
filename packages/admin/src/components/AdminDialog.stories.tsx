@@ -1,7 +1,7 @@
 import { RiErrorWarningLine, RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentType, type ReactNode, useState } from "react";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
 import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
@@ -180,6 +180,7 @@ function DialogPreview({
 }
 
 export const Default: Story = {
+  tags: ["storybook-ci"],
   render: () => (
     <DialogPreview
       title="Confirm deposit"
@@ -188,6 +189,26 @@ export const Default: Story = {
       confirmLabel="Deposit"
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(document.body);
+    for (const gesture of ["cancel", "escape"]) {
+      await userEvent.click(canvas.getByRole("button", { name: "Open dialog" }));
+      const dialog = await body.findByRole("dialog", { name: "Confirm deposit" });
+      await waitForDialogSettled(dialog);
+      if (gesture === "cancel") {
+        await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      } else {
+        await userEvent.keyboard("{Escape}");
+      }
+      await waitFor(() => {
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+        expect(document.body).not.toHaveAttribute("data-scroll-locked");
+        expect(document.body.style.pointerEvents).toBe("");
+        expect(canvas.getByRole("button", { name: "Open dialog" })).toBeVisible();
+      });
+    }
+  },
 };
 
 export const WithIcon: Story = {

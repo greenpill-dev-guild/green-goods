@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RouteObject } from "react-router-dom";
+import { matchRoutes } from "react-router-dom";
 import { CLIENT_ROUTE_IDS, publicAppRoutes, pwaAppRoutes } from "../../config/routes";
 
 function collectRouteIds(routes: RouteObject[]): string[] {
@@ -28,6 +29,21 @@ function flatten(routes: RouteObject[]): RouteObject[] {
 }
 
 describe("presentation route trees", () => {
+  it("redirects the installed root entry to Home while preserving its presentation query", async () => {
+    const matches = matchRoutes(pwaAppRoutes, "/?presentation=pwa");
+    const route = matches?.at(-1)?.route;
+    expect(route?.index).toBe(true);
+    if (typeof route?.loader !== "function") throw new Error("The PWA entry has no loader");
+    const result = await route.loader({
+      request: new Request("https://localhost:3001/?presentation=pwa"),
+      url: new URL("https://localhost:3001/?presentation=pwa"),
+      pattern: "/",
+      params: {},
+      context: {},
+    });
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).headers.get("Location")).toBe("/home?presentation=pwa");
+  });
   it("keeps installed routes out of the public tree", () => {
     const ids = collectRouteIds(publicAppRoutes);
     expect(ids).toContain(CLIENT_ROUTE_IDS.publicHome);

@@ -12,7 +12,7 @@ import { confirmationById } from "./confirmations";
 import { issueContinuation } from "./continuations";
 import { readControl } from "./controls";
 import { commitLifecycle, lifecycleState } from "./coordinator/draft-commit";
-import { gardenLabel } from "./coordinator/prompting";
+import { gardenLabel, promptNextStepFor } from "./coordinator/prompting";
 import { inTransaction } from "./database";
 import { type DraftRecord, loadDraft } from "./drafts";
 import { enqueueJob, type ClaimedJob } from "./jobs";
@@ -25,7 +25,7 @@ import {
   setOperationState,
 } from "./operations";
 import { accountById, participantEpoch } from "./participants";
-import { findGarden } from "./gardens";
+import { findGarden, isUnlisted } from "./gardens";
 import type { ReportingCore } from "./runtime";
 import type { EvidenceUploader } from "./uploader";
 import type { JobOutcome } from "./worker";
@@ -50,6 +50,7 @@ type Blocker =
   | "consent_withdrawn"
   | "stale"
   | "role_missing"
+  | "garden_unlisted"
   | "action_ineligible"
   | "dependency_exhausted";
 
@@ -87,7 +88,9 @@ function fail(
   inTransaction(core.db, () => {
     const current = loadDraft(core, draft.id);
     if (!current || lifecycleState(current) !== "preparing") return;
-    commitLifecycle(core, current, [{ type: "PREPARATION_FAILED" }], { participantAction: false });
+    const failed = commitLifecycle(core, current, [{ type: "PREPARATION_FAILED" }], {
+      participantAction: false,
+    }).draft;
     setOperationState(core, operation.id, "preparation_failed", { failureCode: blocker });
     const writer = participantWriter(core, {
       participantId: draft.participantId,
@@ -98,6 +101,10 @@ function fail(
       writer?.say("publish.roleMissing", {
         garden: gardenLabel(core.gardens, draft.content.garden?.address),
       });
+    } else if (blocker === "garden_unlisted") {
+      // Trying again cannot help: the report says why and asks which garden it is for.
+      const account = accountById(core, operation.authorAccountId)?.address ?? null;
+      if (writer) promptNextStepFor(writer, failed, { garden: null, result: null }, account);
     } else if (blocker !== "consent_withdrawn") writer?.say("publish.preparationFailed");
   });
 }
@@ -146,7 +153,9 @@ export async function prepareOperation(
 
   const listed = findGarden(core.gardens, garden.address);
   if (!listed) {
-    fail(core, draft, operation, job.id, "action_ineligible");
+    // A list that has not been read yet is worth another try; a garden that has left it is not.
+    const gone = isUnlisted(core.gardens, garden.address);
+    fail(core, draft, operation, job.id, gone ? "garden_unlisted" : "action_ineligible");
     return { status: "done" };
   }
 

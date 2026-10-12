@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import type { Action, Domain, Garden } from "../../../types/domain";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address-constants";
+import { compareAddresses } from "../../../utils/blockchain/address";
 import { findActionByUID } from "../../../utils/action/parsers";
 import { useActionTranslation } from "../../translation/useActionTranslation";
 import { useGardenTranslation } from "../../translation/useGardenTranslation";
@@ -33,8 +34,10 @@ export function useWorkSubmissionPresentationModel({
   const selectedGarden = useMemo(
     () =>
       gardenAddress
-        ? (gardens.find((garden) => garden.id === gardenAddress) ??
-          (joinableCommunityGarden?.id === gardenAddress ? joinableCommunityGarden : null))
+        ? (gardens.find((garden) => compareAddresses(garden.id, gardenAddress)) ??
+          (compareAddresses(joinableCommunityGarden?.id, gardenAddress)
+            ? (joinableCommunityGarden ?? null)
+            : null))
         : null,
     [gardenAddress, gardens, joinableCommunityGarden]
   );

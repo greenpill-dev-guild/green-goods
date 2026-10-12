@@ -24,9 +24,9 @@ const persistence = createQueryPersistence({
 });
 attachQueryPersistence(queryClient, persistence);
 
+// WalletConnect verifies the requesting origin; a retired build-time URL breaks that match.
 const adminAppUrl =
-  import.meta.env.VITE_ADMIN_APP_URL ||
-  (typeof window !== "undefined" ? window.location.origin : "https://admin.greengoods.app");
+  typeof window !== "undefined" ? window.location.origin : "https://admin.greengoods.app";
 
 /**
  * The admin application tree: query persistence, the app error boundary,

@@ -13,6 +13,10 @@ import type { EligibleAdminGardensResult } from "@green-goods/shared/hooks/garde
 import { useSheetOrchestratorStore } from "@green-goods/shared/stores/useSheetOrchestratorStore";
 import type { Address, Garden } from "@green-goods/shared/types/domain";
 
+vi.mock("@/components/Layout/StewardAccessRequest", () => ({
+  StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
+}));
+
 const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
@@ -313,6 +317,9 @@ vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("@green-goods/shared/hooks/admin-ui/auth/useAdminLoginController", () => ({
   useAdminLoginController: () => ({
+    mode: "entry",
+    changeMode: vi.fn(),
+    createAccountByName: vi.fn(),
     username: "",
     setUsername: vi.fn(),
     error: null,

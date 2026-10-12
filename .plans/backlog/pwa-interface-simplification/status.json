@@ -1,0 +1,155 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "pwa-interface-simplification",
+    "title": "PWA Interface Simplification",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-10-06T05:42:17.126Z",
+    "updated_at": "2026-10-06T05:46:26Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["client", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User authorized creation of this planning hub only. Design acceptance and implementation scope remain open; no application, Linear, deployment, or transaction work is authorized.",
+    "Confirmed direction: garden-scoped Home; recent activity, unfinished work, then participation; selective previews; one-tap existing sheets; familiar bottom navigation; garden context carried into submission.",
+    "Compact journal, management placement, and personal-sheet filtering remain recommendations, not accepted design specifications.",
+    "Existing Community, Commitment Pooling, Credit, CLC, and Steward Cockpit hubs retain their own decisions and execution state.",
+    "No external integration or contract deployment is a prerequisite for the bounded homepage simplification.",
+    "Keep private call evidence and authenticated-session data out of Git. No implementation lane is certified by document validation."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Future behavior-changing implementation requires focused RED/GREEN proof; no implementation or test evidence recorded by this planning task."
+      },
+      "skill_tags": ["ui", "design", "react"],
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Planning only: await accepted design decisions, a bounded implementation scope, and explicit execution authorization."
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Future behavior-changing implementation requires focused RED/GREEN proof; no implementation or test evidence recorded by this planning task."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Planning only: await accepted design decisions, a bounded implementation scope, and explicit execution authorization."
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This hub proposes PWA presentation and garden-context continuity only; contracts, settlement, issuance, and deployment are outside scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-06T05:42:17.130Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "scoped",
+      "note": "Recorded confirmed product direction, open design decisions, source boundaries, conditional delivery steps, and pending evaluation. No implementation dispatched.",
+      "timestamp": "2026-10-06T05:42:17Z",
+      "branch": null
+    }
+  ]
+}

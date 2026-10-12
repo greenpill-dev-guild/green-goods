@@ -25,7 +25,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = "md", className, label 
     <>
       <div
         className={cn(
-          "animate-spin rounded-full border-success-light border-t-primary",
+          "animate-spin rounded-full border-success-light border-t-primary-on-surface",
           sizeClasses[size],
           className
         )}

@@ -229,7 +229,7 @@ function renderCreateAssessment(authOverrides: Partial<AuthContextValue> = {}) {
 // share one persisted draft key. Any test that dirties the form arms a 600ms
 // debounced write to it, which can land during a later test and make a
 // "pristine" form look dirty. Clear it on both sides of each test.
-const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
+const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}_${DEFAULT_CHAIN_ID}`;
 
 describe("CreateAssessment dialog", () => {
   it("shows confirmation checking for an accepted assessment and cannot retry it", async () => {

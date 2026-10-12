@@ -42,6 +42,8 @@ export interface CreateGardenStep {
 }
 
 export interface CreateGardenStore {
+  draftScope: string | null;
+  selectDraftScope: (account: Address, chainId: number) => void;
   // Accepted submissions keep their own chain:address scope across identity changes.
   pendingSubmissions: Record<
     string,
@@ -49,6 +51,7 @@ export interface CreateGardenStore {
       accountAddress: Address;
       chainId: number;
       gardenName: string;
+      successTracked?: boolean;
       result: TxResult;
     }
   >;
@@ -125,6 +128,12 @@ export function isValidAddress(address: string): boolean {
 export const useCreateGardenStore = create<CreateGardenStore>()(
   persist(
     (set, get) => ({
+      draftScope: null,
+      selectDraftScope: (account, chainId) => {
+        const draftScope = getTransactionScopeKey(account, chainId);
+        if (get().draftScope !== draftScope)
+          set({ ...resetGardenTransition(get(), createEmptyGardenForm()), draftScope });
+      },
       pendingSubmissions: {},
       getPendingSubmission: (account, chainId) =>
         get().pendingSubmissions[getTransactionScopeKey(account, chainId)],
@@ -269,6 +278,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         };
         return {
           ...current,
+          draftScope: p.draftScope ?? null,
           pendingSubmissions:
             p.pendingSubmissions ??
             (p.pendingSubmission
@@ -289,6 +299,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
       // Persist the draft and its accepted submission, not static steps or functions
       partialize: (state) =>
         ({
+          draftScope: state.draftScope,
           form: state.form,
           currentStep: state.currentStep,
           pendingSubmissions: state.pendingSubmissions,
@@ -299,6 +310,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
 
 export function resetCreateGardenStore() {
   useCreateGardenStore.setState({
+    draftScope: null,
     pendingSubmissions: {},
     form: createEmptyGardenForm(),
     steps: defaultSteps,

@@ -15,7 +15,7 @@ export interface CommitmentActionBarProps {
   blockedReasonId?: string | null;
   onRun: () => void;
   /**
-   * A second act that belongs to the same seat (Link Work beside Add Proof). The
+   * A second act that belongs to the same seat (optional proof beside required work). The
    * two share one row, the primary rightmost; only this pair ever shares the bar.
    */
   secondary?: { labelId: string; onRun: () => void; disabled?: boolean } | null;

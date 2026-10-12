@@ -151,7 +151,7 @@ export function OfflineContentRow({ controlClassName }: OfflineContentRowProps) 
     <Card>
       <div className="flex items-center gap-3 w-full">
         <Avatar>
-          <RiDownloadCloud2Line className="h-4 w-4 text-primary" aria-hidden="true" />
+          <RiDownloadCloud2Line className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
         </Avatar>
         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
           <div className="text-sm font-medium truncate" title={title}>

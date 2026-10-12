@@ -9,7 +9,10 @@ import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AssessmentWorkflowParams } from "../../../types/domain";
-import type { TransactionSender } from "../../../modules/transactions/types";
+import type {
+  TransactionSender,
+  TransactionSendOptions,
+} from "../../../modules/transactions/types";
 import { useAssessmentSubmissionStore } from "../../../stores/useAssessmentSubmissionStore";
 import { encodeAbiParameters, encodeEventTopics } from "viem";
 import { EASABI } from "../../../utils/blockchain/contracts";
@@ -89,17 +92,20 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: mocks.chainId }),
 }));
 
-vi.mock("../../../hooks/assessment/useAssessmentDraft", () => ({
-  useAssessmentDraft: () => ({
-    draftKey: `assessment_draft_${GARDEN_ID}_${OPERATOR_ADDRESS}`,
-    isLoading: false,
-    lastSavedAt: null,
-    saveDraft: mocks.saveDraft,
-    clearDraft: mocks.clearDraft,
-    peekDraft: mocks.peekDraft,
-    loadDraft: mocks.loadDraft,
-  }),
-}));
+vi.mock("../../../hooks/assessment/useAssessmentDraft", async () => {
+  const { useCallback } = await vi.importActual<typeof import("react")>("react");
+  return {
+    useAssessmentDraft: (_gardenId: string, stewardAddress: string) => ({
+      draftKey: `assessment_draft_${GARDEN_ID}_${stewardAddress}`,
+      isLoading: false,
+      lastSavedAt: null,
+      saveDraft: mocks.saveDraft,
+      clearDraft: useCallback(() => mocks.clearDraft(stewardAddress), [stewardAddress]),
+      peekDraft: mocks.peekDraft,
+      loadDraft: mocks.loadDraft,
+    }),
+  };
+});
 
 vi.mock("../../../modules/data/ipfs/client", () => ({
   getIpfsInitStatus: () => ({ status: mocks.ipfsStatus }),
@@ -307,7 +313,7 @@ describe("useCreateAssessmentWorkflow", () => {
     mocks.assessmentSchema = ASSESSMENT_SCHEMA;
     mocks.progressiveCallback = undefined;
     mocks.saveDraft.mockResolvedValue({ id: "saved-draft" });
-    mocks.clearDraft.mockResolvedValue(undefined);
+    mocks.clearDraft.mockResolvedValue(true);
     mocks.peekDraft.mockResolvedValue(null);
     mocks.uploadFile.mockResolvedValue({ cid: "bafy-evidence" });
     mocks.uploadJson
@@ -393,6 +399,9 @@ describe("useCreateAssessmentWorkflow", () => {
     await waitFor(() => expect(restored.result.current.state.matches("success")).toBe(true));
     expect(restored.result.current.state.context.txHash).toBe(ATTESTATION_UID);
     expect(mocks.send).toHaveBeenCalledOnce();
+    expect(mocks.trackSuccess).toHaveBeenCalledOnce();
+    act(() => restored.result.current.checkConfirmation());
+    expect(mocks.trackSuccess).toHaveBeenCalledOnce();
     await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalled());
     client.clear();
   });
@@ -630,7 +639,16 @@ describe("useCreateAssessmentWorkflow", () => {
     queryClient.clear();
   });
 
-  it("keeps successful evidence uploads, attests in order, clears the draft, and invalidates caches", async () => {
+  it.each([
+    true,
+    false,
+  ])("retains confirmed recovery until draft cleanup succeeds: %s", async (draftCleared) => {
+    mocks.clearDraft.mockResolvedValue(draftCleared);
+    mocks.send.mockImplementation(async (_call: unknown, options?: TransactionSendOptions) => {
+      const hash = `0x${"66".repeat(32)}` as const;
+      await options?.onBroadcastReference?.({ kind: "transaction", hash });
+      return { hash, sponsored: false };
+    });
     const goodFile = new File(["good"], "good.jpg", { type: "image/jpeg" });
     const failedFile = new File(["bad"], "bad.jpg", { type: "image/jpeg" });
     mocks.uploadFile.mockImplementation(async (file: File) => {
@@ -724,6 +742,9 @@ describe("useCreateAssessmentWorkflow", () => {
       mocks.send.mock.invocationCallOrder[0]
     );
     expect(mocks.clearDraft).toHaveBeenCalledBefore(mocks.peekDraft);
+    expect(Object.keys(useAssessmentSubmissionStore.getState().pending)).toHaveLength(
+      draftCleared ? 0 : 1
+    );
     expect(invalidateQueries.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([
       ["greengoods", "assessments", "byGarden", GARDEN_ID, 11155111],
       ["greengoods", "gardens", 11155111],
@@ -731,6 +752,19 @@ describe("useCreateAssessmentWorkflow", () => {
     ]);
     expect(mocks.scheduleIndexerRefetch).toHaveBeenCalledOnce();
     queryClient.clear();
+  });
+
+  it("does not consume the next account's draft after a completed assessment", async () => {
+    const client = createTestQueryClient();
+    const hook = renderWorkflow(client);
+    await startReady(hook.result);
+    await submitAndWaitFor(hook.result, "success");
+    await waitFor(() => expect(mocks.clearDraft).toHaveBeenCalledWith(OPERATOR_ADDRESS));
+    mocks.clearDraft.mockClear();
+    mocks.walletAddress = "0x8888888888888888888888888888888888888888";
+    act(() => hook.rerender());
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
+    client.clear();
   });
 
   it("propagates a metrics upload failure without attesting or clearing the draft", async () => {

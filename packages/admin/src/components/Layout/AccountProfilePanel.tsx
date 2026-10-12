@@ -21,12 +21,14 @@ import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
+import { StewardAccessRequestContainer } from "./StewardAccessRequest";
 
 export interface AccountProfilePanelProps {
   controller: AccountProfileController;
   /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
   layout?: AccountPanelLayout;
   className?: string;
+  stewardAccess?: ReactNode;
 }
 
 /** Quiet capsule label — identity metadata (role, auth method), not a control. */
@@ -55,6 +57,7 @@ export function AccountProfilePanel({
   controller,
   layout = "sheet",
   className,
+  stewardAccess,
 }: AccountProfilePanelProps) {
   const { formatMessage } = useIntl();
   const {
@@ -155,6 +158,7 @@ export function AccountProfilePanel({
             </p>
           )}
         </section>
+        {primaryAddress && stewardAccess ? <div className="pt-3">{stewardAccess}</div> : null}
       </SheetBody>
 
       {/* Sign out — identity action pinned with the identity surface. */}
@@ -182,5 +186,12 @@ export function AccountProfilePanelContainer({
   className,
 }: Pick<AccountProfilePanelProps, "layout" | "className">) {
   const controller = useAccountProfileController();
-  return <AccountProfilePanel controller={controller} layout={layout} className={className} />;
+  return (
+    <AccountProfilePanel
+      controller={controller}
+      layout={layout}
+      className={className}
+      stewardAccess={<StewardAccessRequestContainer />}
+    />
+  );
 }

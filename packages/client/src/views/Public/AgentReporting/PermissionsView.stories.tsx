@@ -37,6 +37,9 @@ const meta: Meta<typeof PermissionsView> = {
   args: {
     account: null,
     connecting: false,
+    failure: null,
+    savedPasskey: false,
+    canFindAccount: true,
     connectWallet: noop,
     connectPasskey: asyncNoop,
     stage: "idle",
@@ -54,6 +57,23 @@ export default meta;
 type Story = StoryObj<typeof PermissionsView>;
 
 export const NotConnected: Story = {};
+/** A browser that remembers a passkey can still reach another account, by its name. */
+export const NotConnectedReturning: Story = { args: { savedPasskey: true } };
+/** With no passkey remembered, Use Passkey asks for the account's name. The status card stays. */
+export const FindAccount: Story = { args: { initialEntry: "find" } };
+/** A failed attempt to connect is said in the status card, which keeps its title. */
+export const FindNameNotFound: Story = {
+  args: {
+    ...FindAccount.args,
+    failure: { reason: "name_not_found", spoken: "No passkey found for that username." },
+  },
+};
+export const ConnectFailed: Story = {
+  args: {
+    ...NotConnectedReturning.args,
+    failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+  },
+};
 export const Connected: Story = { args: { account: ACCOUNT } };
 export const Checking: Story = { args: { account: ACCOUNT, stage: "inspecting" } };
 export const Active: Story = { args: { account: ACCOUNT, stage: "ready", permissions: found } };

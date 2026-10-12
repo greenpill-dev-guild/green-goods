@@ -196,7 +196,10 @@ const NEUTRAL_FALLBACK: Record<string, StatusBand> = {
 };
 
 export function selectStatusBand(input: {
-  commitment: Pick<CommitmentReadModel, "derivedState">;
+  commitment: Pick<CommitmentReadModel, "derivedState"> &
+    Partial<Pick<CommitmentReadModel, "commitmentType">>;
+  hasLinkedWork?: boolean;
+  requiredWorkApproved?: boolean;
   seat: CommitmentSeat | null;
   /**
    * The one act this reader is offered. The provider's lapsed band promises
@@ -207,6 +210,23 @@ export function selectStatusBand(input: {
 }): StatusBand | null {
   const { commitment, seat } = input;
   const phase = commitment.derivedState;
+  if (
+    commitment.commitmentType === "DOMAIN_IMPACT" &&
+    ["ACCEPTED", "ACTIVE", "PARTIALLY_APPROVED", "EVIDENCE_SUBMITTED"].includes(phase)
+  ) {
+    if (seat === "provider" || seat === "contributor") {
+      return {
+        bodyId: input.requiredWorkApproved
+          ? "app.commitment.band.work.approved"
+          : input.hasLinkedWork
+            ? "app.commitment.band.work.linked"
+            : "app.commitment.band.work.required",
+        tone: input.hasLinkedWork || input.requiredWorkApproved ? "waiting" : "attention",
+      };
+    }
+    if (seat === "confirmer")
+      return { bodyId: "app.commitment.band.work.reviewer", tone: "waiting" };
+  }
   const promisesAnActNotOffered =
     seat === "provider" && phase === "EXPIRED" && input.actKind !== "offerAgain";
   if (seat && !promisesAnActNotOffered) {

@@ -1,5 +1,3 @@
-import { Button } from "@green-goods/shared/components/Button";
-import { useApp } from "@green-goods/shared/providers/App";
 import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useIntl } from "react-intl";
 import {
@@ -12,7 +10,6 @@ import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
-import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
@@ -30,7 +27,6 @@ import { publicCuration } from "@/content/publicCuration";
  */
 export default function Home() {
   const { formatMessage } = useIntl();
-  const { isMobile } = useApp();
   const stats = usePublicStats();
 
   const counts = stats.data ?? {
@@ -40,38 +36,20 @@ export default function Home() {
     attestationCount: 0,
   };
 
-  // Mobile: lead with the app CTA so a phone visitor lands on the install
-  // path, then offer Explore as the secondary route. Desktop drops the
-  // secondary entirely — Explore Gardens is the only above-the-fold CTA.
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
     defaultMessage: "Explore Gardens",
   });
 
-  const heroActions = isMobile ? (
+  const heroActions = (
     <>
-      <PublicInstallAction>
-        {({ label, href, onClick, disabled, dataInstallAction }) => (
-          <Button asChild size="lg">
-            <a
-              href={href}
-              onClick={onClick}
-              aria-disabled={disabled || undefined}
-              data-install-action={dataInstallAction}
-            >
-              {label}
-            </a>
-          </Button>
-        )}
-      </PublicInstallAction>
-      <EditorialGhostLink to="/gardens" size="lg">
+      <EditorialPrimaryLink to="/gardens" size="lg">
         {exploreLabel}
+      </EditorialPrimaryLink>
+      <EditorialGhostLink to="/fund" size="lg">
+        {formatMessage({ id: "public.home.hero.support", defaultMessage: "Support a Garden" })}
       </EditorialGhostLink>
     </>
-  ) : (
-    <EditorialPrimaryLink to="/gardens" size="lg">
-      {exploreLabel}
-    </EditorialPrimaryLink>
   );
 
   return (
@@ -92,7 +70,7 @@ export default function Home() {
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste, turning everyday contributions into a trusted public record of how places grow healthier together.",
+            "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding. Explore what’s been done, meet the people doing it, and support what comes next.",
         })}
         actions={heroActions}
       />

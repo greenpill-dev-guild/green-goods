@@ -13,6 +13,8 @@ import { act, renderHook as renderBareHook } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { createElement } from "react";
 import en from "../../i18n/en.json";
+import { trackAdminActionCreateSuccess } from "../../modules/app/analytics-events";
+vi.mock("../../modules/app/analytics-events", () => ({ trackAdminActionCreateSuccess: vi.fn() }));
 import type { TransactionSender } from "../../modules/transactions/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionRegistrationStore } from "../../stores/useActionRegistrationStore";
@@ -35,6 +37,7 @@ vi.mock("../../utils/blockchain/contracts", () => ({
   ActionRegistryABI: [],
   getNetworkContracts: vi.fn(() => ({
     actionRegistry: "0xActionRegistry123",
+    gardenToken: "0xGardenToken",
   })),
 }));
 
@@ -326,7 +329,7 @@ describe("useActionOperations", () => {
           restored.result.current.updateActionTitle("42", "New title")
         );
         expect(resumed.success).toBe(true);
-        expect(send).toHaveBeenCalledTimes(status === "confirmed" ? 1 : 2);
+        expect(send).toHaveBeenCalledTimes(2); // A new save cannot reuse a historical receipt.
       }
     });
 
@@ -404,9 +407,56 @@ describe("useActionOperations", () => {
       const { result } = renderHook(() => useActionOperations(11155111));
       const outcome = await runInAct(() => result.current.reconcileRegistration());
       expect(outcome.success).toBe(status === "confirmed");
+      if (status === "confirmed") {
+        expect(result.current.pendingRegistration?.hash).toBe("0xExecution");
+        await runInAct(async () => result.current.acknowledgeRegistration(outcome.hash));
+      }
       expect(result.current.pendingRegistration).toBeUndefined();
       expect(Object.values(useActionRegistrationStore.getState().pending)).toEqual([pending]);
       expect(send).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "immediate",
+      "recovered",
+    ] as const)("emits exactly one creation success from the %s confirmation", async (mode) => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      send.mockResolvedValueOnce({
+        hash: "0xProposal",
+        sponsored: false,
+        ...(mode === "recovered" ? { confirmation: "pending" } : {}),
+      });
+      sender!.reconcileBroadcast = vi
+        .fn()
+        .mockResolvedValue({ status: "confirmed", transactionHash: "0xExecution" });
+      const view = renderHook(() => useActionOperations(11155111));
+      await runInAct(() =>
+        view.result.current.registerAction({
+          title: "New action",
+          slug: "new-action",
+          domain: 0,
+          startTime: 1,
+          endTime: 2,
+          instructions: "ipfs://instructions",
+          capitals: [],
+          media: [],
+        })
+      );
+      if (mode === "recovered") {
+        expect(trackAdminActionCreateSuccess).not.toHaveBeenCalled();
+        await runInAct(() => view.result.current.reconcileRegistration());
+      }
+      await runInAct(() => view.result.current.reconcileRegistration());
+      expect(trackAdminActionCreateSuccess).toHaveBeenCalledOnce();
+      expect(trackAdminActionCreateSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionTitle: "New action",
+          actionSlug: "new-action",
+          chainId: 11155111,
+          gardenAddress: "0xGardenToken",
+        })
+      );
+      expect(send).toHaveBeenCalledOnce();
     });
 
     it("handles contract errors during execution", async () => {

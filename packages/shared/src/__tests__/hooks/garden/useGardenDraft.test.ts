@@ -401,4 +401,29 @@ describe("useGardenDraft", () => {
       expect(saved).toBeNull();
     });
   });
+  it("keeps backups on different chains separate and refuses a stale owner's save", async () => {
+    withProgress();
+    mockGetState.mockImplementation(() => ({
+      ...mockStoreState,
+      draftScope: `11155111:${OPERATOR_ADDR}`,
+    }));
+    const first = renderHook(() => useGardenDraft(OPERATOR_ADDR, { chainId: 11155111 }));
+    const second = renderHook(() => useGardenDraft(OPERATOR_ADDR, { chainId: 42161 }));
+    await act(() => first.result.current.saveDraft());
+    mockStoreState.form.name = "Second chain garden";
+    mockGetState.mockImplementation(() => ({
+      ...mockStoreState,
+      draftScope: `42161:${OPERATOR_ADDR}`,
+    }));
+    await act(async () => {
+      expect(await first.result.current.saveDraft()).toBeNull();
+      await second.result.current.saveDraft();
+      await first.result.current.clearDraft();
+    });
+    expect(await idbGet(second.result.current.draftKey!)).toMatchObject({
+      form: { name: "Second chain garden" },
+      chainId: 42161,
+    });
+    expect(await idbGet(first.result.current.draftKey!)).toBeUndefined();
+  });
 });

@@ -646,6 +646,40 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
   });
 
+  it("restores staged-photo dirtiness after awaiting work is confirmed reverted", async () => {
+    const onDirtyChange = vi.fn();
+    const panel = () => (
+      <TestProviders>
+        <SubmitWorkPanel layout="page" onDirtyChange={onDirtyChange} />
+      </TestProviders>
+    );
+    const { container, rerender } = render(panel());
+    uploadFile(container, "photo.png", "image/png");
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+    mockState.mutation = {
+      isSuccess: true,
+      data: "0xoffline_confirmation-job",
+      lastSubmissionOutcome: {
+        kind: "awaiting-confirmation",
+        txHash: "0xoffline_confirmation-job",
+      },
+    };
+    rerender(panel());
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
+    mockState.mutation = { ...mockState.mutation, isSuccess: false, isPending: true };
+    rerender(panel());
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    mockState.mutation = {
+      ...mockState.mutation,
+      isSuccess: false,
+      isPending: false,
+      isError: true,
+      lastSubmissionOutcome: null,
+    };
+    rerender(panel());
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+  });
+
   it("allows optional media actions with minImageCount 0 to submit without images", async () => {
     mockState.actions = [createAction({ required: false, minImageCount: 0 })];
     const user = userEvent.setup();

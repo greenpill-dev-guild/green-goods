@@ -109,7 +109,7 @@ function stepCopy(
         description: formatMessage({
           id: "public.impact.pipeline.step.needs.description",
           defaultMessage:
-            "Every season starts from what the place and its people need. A baseline Assessment records the starting conditions and what counts as good, so change can be seen against them.",
+            "Understand what the place and its people need. An assessment can describe the starting conditions and how progress will be measured.",
         }),
       };
     case "commitment":
@@ -130,7 +130,7 @@ function stepCopy(
         description: formatMessage({
           id: "public.impact.pipeline.step.commitment.description",
           defaultMessage:
-            "Work begins as a commitment to someone. A neighbour offers or requests help, another accepts, and the Garden's pool records who will carry it out and by when.",
+            "People agree on what needs to be done, who will do it, and when. Recorded commitments help the community coordinate that work.",
         }),
       };
     case "work":
@@ -142,7 +142,7 @@ function stepCopy(
         description: formatMessage({
           id: "public.impact.pipeline.step.work.description",
           defaultMessage:
-            "Gardeners do the work and document it as it happens — photos, measurements, notes. The person it was for, or another eligible confirmer, records that it was kept.",
+            "Participants document their work with photos, notes, and measurements. Garden stewards review submissions before they appear in the public work record.",
         }),
       };
     case "learnings":
@@ -157,7 +157,7 @@ function stepCopy(
           {
             id: "public.impact.pipeline.step.learnings.description",
             defaultMessage:
-              "Assessments measure what changed from the baseline. What was learned, and the approved Work behind it, anchors into an <certificate>Impact Certificate</certificate> — a portable public record.",
+              "Compare the evidence with the starting conditions. Assessments can explain what changed and help the community decide what to do next.",
           },
           {
             certificate: (chunks) => (
@@ -271,11 +271,6 @@ export function PublicEvidencePipeline({
             labelId: "public.impact.pipeline.readDeeper.community",
             defaultLabel: "How proof works",
             href: "https://docs.greengoods.app/community/how-it-works",
-          }}
-          builder={{
-            labelId: "public.impact.pipeline.readDeeper.builder",
-            defaultLabel: "Why on-chain",
-            href: "https://docs.greengoods.app/builders/architecture",
           }}
         />
       </div>

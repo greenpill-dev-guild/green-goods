@@ -7,6 +7,7 @@ import {
   getBrowserGuidanceLabel,
   getFriendlyLoginErrorMessage,
 } from "../../hooks/client-ui/auth/login-screen-messages";
+import { PasskeyNotFoundError } from "../../workflows/auth-passkey-errors";
 import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 
 const intl = {
@@ -46,11 +47,24 @@ describe("getFriendlyLoginErrorMessage", () => {
     expect(getFriendlyLoginErrorMessage(wrapped, intl)).toBe("No passkey found for that username.");
   });
 
+  it("blames a username only when one was given", () => {
+    expect(getFriendlyLoginErrorMessage(new PasskeyNotFoundError("device"), intl)).toBe(
+      "No passkey is saved in this browser."
+    );
+    expect(getFriendlyLoginErrorMessage(new PasskeyNotFoundError("name"), intl)).toBe(
+      "No passkey found for that username."
+    );
+  });
+
   it("still reports a generic NotAllowedError dismissal as cancellation", () => {
     const cancelled = new Error("The operation was not allowed.");
     cancelled.name = "NotAllowedError";
 
     expect(getFriendlyLoginErrorMessage(cancelled, intl)).toBe("Sign in was cancelled.");
+    // The same dismissal while an account was being made: what matters is that none was.
+    expect(getFriendlyLoginErrorMessage(cancelled, intl, { creating: true })).toBe(
+      "No account was created. Try again."
+    );
   });
 
   it.each([

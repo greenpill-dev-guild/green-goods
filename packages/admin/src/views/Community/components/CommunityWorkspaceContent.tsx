@@ -63,7 +63,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
 
   if (isLoading) {
     return (
-      <div className="mt-4 min-h-0 flex-1">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col">
         <CommunityTabSkeleton mode={workspace.mode} />
       </div>
     );
@@ -86,11 +86,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
       />
     ) : workspace.mode === "coordination" ? (
       // Commitment pooling remains available while conviction governance is disabled.
-      <div className="space-y-6">
-        <CommunityYieldStatus
-          gardenId={workspace.gardenId as Address}
-          enabled={Boolean(workspace.community) && workspace.pools.length > 0}
-        />
+      <div className="garden-tab-shell">
         {GOVERNANCE_ENABLED && (
           <CommunityCoordinationTab
             garden={workspace.garden}
@@ -103,6 +99,12 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           />
         )}
         <CommunityPools
+          railContent={
+            <CommunityYieldStatus
+              gardenId={workspace.gardenId as Address}
+              enabled={Boolean(workspace.community) && workspace.pools.length > 0}
+            />
+          }
           chainId={workspace.garden.chainId}
           garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
           canManage={workspace.canManage}
@@ -125,7 +127,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
     );
 
   return (
-    <div className="mt-4 min-h-0 flex-1">
+    <div className="mt-4 flex min-h-0 flex-1 flex-col">
       <ErrorBoundary context="GardenDetail.CommunityIA">{tab}</ErrorBoundary>
     </div>
   );

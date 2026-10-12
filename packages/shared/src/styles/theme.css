@@ -359,9 +359,9 @@
   --primary-action: var(--gg-design-tertiary-action, var(--green-800));
   --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
   --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
-  /* Green text on a surface (DL-053): the deep action step here (5.72:1 on
+  /* Green labels, icons and selection marks (DL-053, PRD-1150): the deep action step here (5.72:1 on
    * white, 5.25:1 on the primary tint); the dark theme flips it back to the
-   * bright accent. Bright green stays on icons, bars and dots. */
+   * mint accent in the PWA. Filled actions use their theme's foreground pair. */
   --primary-on-surface: var(--gg-design-tertiary-action, var(--green-800));
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
@@ -788,6 +788,27 @@
   --social-amazon: 255 255 255;
   --social-zendesk: 255 255 255;
 }
+/* The PWA restores its pale mint dark palette (DL-088). The boot marker covers
+ * sign-in and portalled sheets as well as the app shell; Storybook declares its
+ * app surface explicitly. Public and admin retain their own green treatments. */
+:root[data-theme="dark"][data-boot-presentation="pwa"]:not(:has([data-site="website"])),
+[data-theme="dark"][data-surface="app"],
+[data-surface="app"] [data-theme="dark"] {
+  --primary-on-surface: var(--gg-design-tertiary-dark, var(--green-200));
+  --primary-action: var(--gg-design-tertiary-dark, var(--green-200));
+  --primary-action-hover: var(--gg-design-tertiary-dark-hover, var(--green-300));
+  --primary-action-foreground: var(--gg-design-on-tertiary-dark, var(--neutral-950));
+}
+
+/* Resolve Tailwind aliases within each theme scope so nested dark surfaces
+ * inherit their own foreground/fill pair rather than the root's light values. */
+:root,
+[data-theme] {
+  --color-primary-on-surface: rgb(var(--primary-on-surface));
+  --color-primary-action: rgb(var(--primary-action));
+  --color-primary-action-hover: rgb(var(--primary-action-hover));
+  --color-primary-action-foreground: rgb(var(--primary-action-foreground));
+}
 } /* End @layer theme */
 
 /* Material system — accessibility fallback.
@@ -1080,7 +1101,7 @@
   }
 
   .gg-control-dropzone:hover:not(:disabled) {
-    border-color: rgb(var(--primary-base));
+    border-color: rgb(var(--tone-action, var(--primary-on-surface)));
     background-color: rgb(var(--bg-weak-50));
   }
 
@@ -1424,7 +1445,7 @@
   }
 
   .gg-icon-button:focus-visible {
-    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-base)));
+    outline: 2px solid rgb(var(--tone-focus-ring, var(--primary-on-surface)));
     outline-offset: 2px;
   }
 
@@ -1484,7 +1505,7 @@
 
   /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
-   * action fill with white text (DL-017). */
+   * theme's action fill/content pair (DL-017, DL-088). */
   .gg-chip {
     position: relative;
     display: inline-flex;
@@ -1624,8 +1645,16 @@
     opacity: 0.5;
   }
 
+  .gg-audio-seek {
+    background: linear-gradient(
+      to right,
+      rgb(var(--primary-on-surface)) var(--audio-progress, 0%),
+      rgb(var(--bg-soft-200)) var(--audio-progress, 0%)
+    );
+  }
+
   .gg-switch[data-state="checked"] {
-    background: rgb(var(--m3-primary, var(--primary-base)));
+    background: rgb(var(--primary-on-surface));
   }
 
   .gg-switch-thumb {

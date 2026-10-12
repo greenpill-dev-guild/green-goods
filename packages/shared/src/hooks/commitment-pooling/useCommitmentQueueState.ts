@@ -23,7 +23,10 @@ import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
-import type { CommitmentJobKind } from "../../modules/commitment-pooling/job-types";
+import type {
+  CommitmentJobKind,
+  ConfirmationJobPayload,
+} from "../../modules/commitment-pooling/job-types";
 import {
   COMMITMENT_JOB_KINDS,
   commitmentJobPrerequisite,
@@ -84,6 +87,8 @@ export interface PendingCommitmentCreation {
 export interface PendingCommitmentAct {
   jobId: string;
   kind: CommitmentJobKind;
+  /** Submission asks the confirmer to review; confirmation records their decision. */
+  confirmationAction?: ConfirmationJobPayload["action"];
   /** Why the last flush left it waiting, when the queue recorded a reason. */
   waitingReason: string | null;
   /** Whether throwing it away is safe (its transaction was never sent). */
@@ -324,6 +329,9 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
         pendingActs.set(commitmentId, {
           jobId: job.id,
           kind: job.kind as CommitmentJobKind,
+          ...(job.kind === "confirmation"
+            ? { confirmationAction: (job.payload as ConfirmationJobPayload).action }
+            : {}),
           waitingReason: pendingActWaitingReason(job),
           discardable: isDiscardableJob(job),
           sendFailure: explainFailedSend(job.lastError),

@@ -14,6 +14,8 @@ export interface WorkCompletion {
   work?: import("../../types/domain").Work;
   /** Keep attestation identity after the indexed read retires the temporary card. */
   workUID?: string;
+  /** Receipt-verified garden scope remains after the temporary card is retired. */
+  gardenAddress?: import("../../types/domain").Address;
   indexedAt?: number;
   jobId: string;
   createdAt: number;

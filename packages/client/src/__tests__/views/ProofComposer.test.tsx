@@ -21,6 +21,10 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const mockUseController = vi.fn();
 let controller: ProofComposerController;
 
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => VIEWER,
+}));
+
 vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
     ...(await importOriginal()),

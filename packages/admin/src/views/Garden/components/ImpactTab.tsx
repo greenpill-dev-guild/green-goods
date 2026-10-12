@@ -1,3 +1,4 @@
+import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { GardenDetailTab } from "@green-goods/shared/types/garden-detail";
@@ -25,7 +26,13 @@ export interface ImpactTabProps {
   selectedItem: string | undefined;
   clearSection: () => void;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
-  assessments: Array<{ id: string; title?: string; assessmentType?: string; createdAt: number }>;
+  assessments: Array<{
+    id: string;
+    title?: string;
+    assessmentType?: string;
+    domain?: number;
+    createdAt: number;
+  }>;
   fetchingAssessments: boolean;
   assessmentsError: Error | null;
   hypercerts: HypercertRecord[];
@@ -82,7 +89,7 @@ export function ImpactTab({
           ) : null}
 
           {(section === undefined || section === "hypercerts") && (
-            <AdminCard density="none" className="flex flex-1 flex-col">
+            <AdminCard density="none" className="flex flex-col">
               <AdminCardHeader className="flex-wrap gap-3">
                 <div>
                   <AdminCardTitle>
@@ -188,30 +195,7 @@ export function ImpactTab({
             </AdminCard>
           )}
 
-          {section === "assessments" ? (
-            <GardenAssessmentsPanel
-              assessments={assessments}
-              isLoading={fetchingAssessments}
-              error={assessmentsError}
-              gardenId={gardenId}
-              chainId={garden.chainId}
-              selectedItem={selectedItem}
-            />
-          ) : null}
-
-          {section === "hypercerts" ? (
-            <GardenHypercertsPanel
-              gardenId={gardenId}
-              gardenAddress={garden.id as Address}
-              hypercerts={hypercerts}
-              isLoading={hypercertsLoading}
-              canManage={canManage}
-            />
-          ) : null}
-        </div>
-
-        <aside className="garden-tab-rail">
-          <div className="garden-tab-rail-sticky">
+          {section === undefined ? (
             <AdminCard density="none">
               <AdminCardHeader className="flex-wrap gap-3">
                 <AdminCardTitle>
@@ -269,18 +253,23 @@ export function ImpactTab({
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p
-                              className="truncate body-sm font-medium text-text-strong"
+                              className="line-clamp-2 break-words body-sm font-medium text-text-strong"
                               title={assessment.title || assessment.assessmentType || undefined}
                             >
                               {assessment.title ||
                                 assessment.assessmentType ||
                                 formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                             </p>
-                            <p className="mt-0.5 body-xs text-text-soft">
-                              {formatDate(normalizeTimestamp(assessment.createdAt), {
-                                dateStyle: "medium",
-                              })}
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                              {assessment.domain !== undefined ? (
+                                <DomainBadge domain={assessment.domain} variant="inline" />
+                              ) : null}
+                              <span className="body-xs text-text-soft">
+                                {formatDate(normalizeTimestamp(assessment.createdAt), {
+                                  dateStyle: "medium",
+                                })}
+                              </span>
+                            </div>
                           </div>
                           <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
                         </div>
@@ -290,7 +279,32 @@ export function ImpactTab({
                 )}
               </AdminCardBody>
             </AdminCard>
+          ) : null}
 
+          {section === "assessments" ? (
+            <GardenAssessmentsPanel
+              assessments={assessments}
+              isLoading={fetchingAssessments}
+              error={assessmentsError}
+              gardenId={gardenId}
+              chainId={garden.chainId}
+              selectedItem={selectedItem}
+            />
+          ) : null}
+
+          {section === "hypercerts" ? (
+            <GardenHypercertsPanel
+              gardenId={gardenId}
+              gardenAddress={garden.id as Address}
+              hypercerts={hypercerts}
+              isLoading={hypercertsLoading}
+              canManage={canManage}
+            />
+          ) : null}
+        </div>
+
+        <aside className="garden-tab-rail">
+          <div className="garden-tab-rail-sticky">
             <AdminCard density="none">
               <AdminCardHeader>
                 <AdminCardTitle>

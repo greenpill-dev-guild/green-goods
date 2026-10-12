@@ -8,6 +8,12 @@ import {
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { sendCheckpointedCall } from "../transactions/confirmation";
 
+export function fingerprintActionArguments(args: readonly unknown[]): string {
+  return JSON.stringify(args, (_key, value) =>
+    typeof value === "bigint" ? value.toString() : value
+  );
+}
+
 export interface ActionOperationCommand {
   functionName: string;
   args: unknown[];

@@ -100,7 +100,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
         <div className="grid gap-3">
           <Choice
             icon={<RiSeedlingLine className="h-5 w-5" />}
-            iconClassName="bg-primary-alpha-10 text-primary"
+            iconClassName="bg-primary-alpha-10 text-primary-on-surface"
             title={formatMessage({ id: "app.pool.door.offer" })}
             description={formatMessage({ id: "app.pool.door.offerHint" })}
             onClick={() => choose("offer")}

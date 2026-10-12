@@ -67,7 +67,7 @@ describe("releaseStuckDialogArtifacts", () => {
   it.each([
     { name: "dialog", Dialog: AdminDialog },
     { name: "side sheet", Dialog: AdminSideSheet },
-  ])("unmounts a stranded $name and restores background accessibility", ({ Dialog }) => {
+  ])("unmounts a stranded $name and restores background accessibility", async ({ Dialog }) => {
     const originalStyle = window.getComputedStyle.bind(window);
     vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
       const style = originalStyle(element, pseudo);
@@ -97,16 +97,27 @@ describe("releaseStuckDialogArtifacts", () => {
     }
     renderWithProviders(<Example />);
     const surface = screen.getByRole("dialog");
+    const overlay = document.querySelector('[data-slot="overlay"]')!;
     fireEvent.animationStart(surface, { animationName: "enter" });
+    fireEvent.animationStart(overlay, { animationName: "enter" });
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(surface).toHaveAttribute("data-state", "closed");
     expect(surface).toBeInTheDocument();
 
-    act(() => releaseStuckDialogArtifacts(document));
+    if (Dialog === AdminDialog) {
+      // A query-backed close need not navigate to a different pathname or
+      // change tab visibility. The dialog must recover without either event.
+      await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull(), {
+        timeout: 2000,
+      });
+    } else {
+      act(() => releaseStuckDialogArtifacts(document));
+    }
 
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(screen.getByRole("button", { name: "Open Again" })).toBeInTheDocument();
     expect(document.body.style.pointerEvents).toBe("");
+    expect(document.body).not.toHaveAttribute("data-scroll-locked");
   });
 
   it("does nothing while a dialog is legitimately open", () => {

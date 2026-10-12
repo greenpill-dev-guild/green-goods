@@ -161,6 +161,13 @@ export interface PoolFundingLimits {
   batchSizeLimit: number | null;
 }
 
+/** A limit one new transfer out of a Safe has to fit under. */
+export type PoolFundingTransferLimit =
+  | "transfer_cap"
+  | "period_allowance"
+  | "roles_allowance"
+  | "balance";
+
 export interface PoolFundingReadinessInput {
   accountConfigured: boolean;
   accountActive: boolean;
@@ -236,4 +243,5 @@ export {
   calculateKnownTransferFeeBuffer,
   calculateUnknownSplitFeeBuffer,
 } from "./pool-funding-calculations";
+export { selectExceededTransferLimit } from "./pool-funding-readiness";
 export { selectPoolFundingSnapshot } from "./pool-funding-selector";

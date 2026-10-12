@@ -12,6 +12,7 @@ import { http } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
+import { PUBLIC_AGENT_ROUTES } from "../public-contracts/routes";
 import {
   normalizePasskeyName,
   PASSKEY_RP_ID,
@@ -41,7 +42,7 @@ type PasskeyServerEnv = {
   PROD?: boolean;
   VITE_PASSKEY_SERVER_ENABLED?: string;
   VITE_PASSKEY_RP_ID?: string;
-  VITE_PASSKEY_DIRECTORY_URL?: string;
+  VITE_API_BASE_URL?: string;
 };
 
 /**
@@ -54,24 +55,21 @@ function readPasskeyServerEnv(): PasskeyServerEnv {
     PROD: import.meta.env.PROD,
     VITE_PASSKEY_SERVER_ENABLED: import.meta.env.VITE_PASSKEY_SERVER_ENABLED,
     VITE_PASSKEY_RP_ID: import.meta.env.VITE_PASSKEY_RP_ID,
-    VITE_PASSKEY_DIRECTORY_URL: import.meta.env.VITE_PASSKEY_DIRECTORY_URL,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
   };
 }
 
 /**
- * Whether this build keeps account names on a passkey server, so an account can be found by
- * name on another device. `VITE_PASSKEY_SERVER_ENABLED` decides it for a build that knows only
- * the hosted server. A build pointed at the Green Goods passkey directory is server-backed
- * whatever that flag says: the directory is a passkey server, and setting its address must not
- * be a silent no-op. Such a build still asks the hosted server for names the directory lacks.
+ * Deployed sites always use the directory. Local development can opt into the local agent
+ * with the existing server flag; otherwise its passkeys remain local-only.
  */
 export function isPasskeyServerEnabled(env: PasskeyServerEnv = readPasskeyServerEnv()): boolean {
-  if (env.VITE_PASSKEY_DIRECTORY_URL?.trim()) return true;
+  if (env.PROD) return true;
   const configured = env.VITE_PASSKEY_SERVER_ENABLED?.trim().toLowerCase();
   if (configured === "true") return true;
   if (configured === "false") return false;
 
-  return Boolean(env.PROD);
+  return false;
 }
 
 export type PasskeyRecoveryContext = {
@@ -110,13 +108,15 @@ export function createPasskeyServerClient(chainId: number) {
 const DIRECTORY_TIMEOUT_MS = 6_000;
 
 /**
- * The Green Goods passkey directory, or nothing while this build still signs people up on the
- * hosted server. `VITE_PASSKEY_DIRECTORY_URL` switches a build to it. The directory speaks the
- * same protocol as the hosted server, so the same client reads both.
+ * The directory uses the same agent API address as other Green Goods features. There is no
+ * separate rollout URL. Local-only development does not create a server client.
  */
 export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskeyServerEnv()) {
-  const url = env.VITE_PASSKEY_DIRECTORY_URL?.trim();
-  if (!url) return null;
+  if (!isPasskeyServerEnabled(env)) return null;
+  const baseUrl =
+    env.VITE_API_BASE_URL?.trim() ||
+    (env.DEV ? "http://127.0.0.1:3005" : "https://agent.greengoods.app");
+  const url = `${baseUrl.replace(/\/$/, "")}${PUBLIC_AGENT_ROUTES.passkeyDirectory}`;
   return createPermissionlessPasskeyServerClient({
     transport: http(url, { timeout: DIRECTORY_TIMEOUT_MS, retryCount: 1 }),
   });
@@ -212,9 +212,10 @@ export function getPasskeyRpId(
   env: PasskeyServerEnv = readPasskeyServerEnv(),
   location?: Pick<Location, "hostname">
 ): string {
-  // Allow override via env var for development/staging
+  // Deployed sites share the apex domain even if a retired staging override remains set.
+  // Stored legacy credentials retain their original RP in the session/sign-in adapters.
   const envRpId = env.VITE_PASSKEY_RP_ID?.trim().toLowerCase();
-  if (envRpId) {
+  if (env.DEV && envRpId) {
     return envRpId;
   }
 

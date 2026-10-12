@@ -1,4 +1,9 @@
-import type { ResourceView } from "@green-goods/shared/modules/agent-reporting";
+import {
+  buildEnvelope,
+  type ResourceView,
+  type WorkEnvelope,
+} from "@green-goods/shared/modules/agent-reporting";
+import { keccak256, toHex } from "viem";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
 import { commitContentChange } from "../../services/reporting/coordinator/draft-commit";
@@ -238,7 +243,8 @@ describe("Kernel accounts and changing Actions", () => {
   const KERNEL = "0x00000000000000000000000000000000000000ca" as const;
   const KERNEL_PROOF = "0x6b65726e656c" as const;
 
-  it("publishes from an existing Kernel account by UserOperation through the owner path", async () => {
+  /** A passkey account links in chat, confirms a report and reserves its attempt to sign. */
+  async function kernelAttempt() {
     harness.chain.kernels.add(KERNEL);
     harness.chain.grantRole(TAS.address, KERNEL, { gardener: true });
     const summary = await reportUntilSummary(harness);
@@ -260,30 +266,21 @@ describe("Kernel accounts and changing Actions", () => {
     const draftId = (access.body.scope as { resourceId: string }).resourceId;
     const view = (await browser.request<ResourceView>("GET", `/messaging/drafts/${draftId}`)).body;
     const envelope = view.operation?.envelope;
-    if (!envelope) throw new Error("expected an envelope");
-    const attempt = await browser.request<{ attemptId: string }>(
-      "POST",
-      `/messaging/operations/${view.operation?.operationId}/attempts`,
-      {
-        body: {
-          expectedAttemptVersion: 0,
-          payloadDigest: envelope.payloadDigest,
-          idempotencyKey: "kernel-attempt",
-        },
-      }
-    );
+    if (envelope?.kind !== "work") throw new Error("expected a work envelope");
+    const attempt = await reserve(browser, view, envelope, "kernel-attempt");
+    return { browser, view, envelope, attemptId: attempt.body.attemptId };
+  }
+
+  it("publishes from an existing Kernel account by UserOperation through the owner path", async () => {
+    const { browser, view, envelope, attemptId } = await kernelAttempt();
     const sent = harness.chain.submitUserOperation({
       account: KERNEL,
       to: envelope.call.to,
       data: envelope.call.data,
     });
-    await browser.request("POST", `/messaging/operations/${view.operation?.operationId}/outcome`, {
-      body: {
-        attemptId: attempt.body.attemptId,
-        idempotencyKey: "kernel-outcome",
-        payloadDigest: envelope.payloadDigest,
-        outcome: { kind: "broadcast", userOperationHash: sent.userOperationHash },
-      },
+    await reportOutcome(browser, view, envelope, attemptId, {
+      kind: "broadcast",
+      userOperationHash: sent.userOperationHash,
     });
     await harness.drain();
     expect(one("SELECT state, transaction_hash FROM execution_operations")).toEqual({
@@ -291,6 +288,52 @@ describe("Kernel accounts and changing Actions", () => {
       transaction_hash: sent.transactionHash,
     });
     expect(one("SELECT attester FROM work_records")).toEqual({ attester: KERNEL });
+  });
+
+  it("reports as confirmed only the transaction that executed the UserOperation, while its attestation is unread", async () => {
+    const { browser, view, envelope, attemptId } = await kernelAttempt();
+    const userOperationHash = keccak256(toHex("kernel-operation"));
+    harness.chain.attestationsUnread = true;
+    // Another report from the same account to the same garden lands first, outside this attempt.
+    const other = buildEnvelope<WorkEnvelope>(harness.chain.deployment, {
+      ...envelope,
+      fields: { ...envelope.fields, title: "Something else" },
+    });
+    harness.chain.submit({ attester: KERNEL, to: other.call.to, data: other.call.data });
+    const before = harness.transport.sent.length;
+    await reportOutcome(browser, view, envelope, attemptId, {
+      kind: "broadcast",
+      userOperationHash,
+    });
+    await harness.drain();
+    // That transaction did not execute this operation, so the chat hears nothing about it.
+    expect(harness.transport.sent).toHaveLength(before);
+    expect(
+      one("SELECT last_error_code FROM processing_jobs WHERE kind = 'reconcile_operation'")
+    ).toEqual({ last_error_code: "receipt_pending" });
+
+    const sent = harness.chain.submitUserOperation({
+      account: KERNEL,
+      to: envelope.call.to,
+      data: envelope.call.data,
+      userOperationHash,
+    });
+    harness.clock.advance(30_000);
+    await harness.drain();
+    expect(harness.transport.sent).toHaveLength(before + 1);
+    const waiting = harness.transport.sent.at(-1)?.message;
+    expect(waiting?.text).toMatch(/^The transaction is confirmed\./);
+    expect(waiting?.records).toEqual([
+      { url: `https://arbiscan.io/tx/${sent.transactionHash}`, label: "View transaction" },
+    ]);
+
+    harness.chain.attestationsUnread = false;
+    harness.clock.advance(30_000);
+    await harness.drain();
+    expect(one("SELECT state, transaction_hash FROM execution_operations")).toEqual({
+      state: "published",
+      transaction_hash: sent.transactionHash,
+    });
   });
 
   it("keeps the confirmed Action snapshot when instructions change while the wallet is open", async () => {

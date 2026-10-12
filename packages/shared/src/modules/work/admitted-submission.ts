@@ -41,7 +41,7 @@ export function queuedOutcome(
   };
 }
 
-function rejectTerminalWork(job: Job | undefined) {
+function rejectTerminalWork(job: Job | undefined, onTerminalUnsentFailure?: () => void) {
   if (!job) return;
   const checkpoint = (job.payload as WorkJobPayload).uploadCheckpoint;
   if (checkpoint?.transactionReverted || job.meta?.workTransactionReverted)
@@ -53,8 +53,10 @@ function rejectTerminalWork(job: Job | undefined) {
     !checkpoint?.broadcast &&
     !checkpoint?.transactionHash &&
     !checkpoint?.broadcastPending
-  )
+  ) {
+    onTerminalUnsentFailure?.();
     throw new Error(job.lastError ?? "submission-requires-retry");
+  }
 }
 
 /** Another holder has the work, another window's Upload all for one; it stays queued for them. */
@@ -105,13 +107,14 @@ async function admitAndSend(
   if (completed)
     return {
       kind: "direct",
+      jobId: completed.jobId,
       sponsored: false,
       clientWorkId: input.clientWorkId,
       txHash: completed.transactionHash as `0x${string}`,
     };
   if (queued.newlyAdmitted === false) {
     const existing = await jobQueueDB.getJob(queued.jobId);
-    rejectTerminalWork(existing);
+    rejectTerminalWork(existing, input.onTerminalUnsentFailure);
     const checkpoint = (existing?.payload as WorkJobPayload | undefined)?.uploadCheckpoint;
     const awaiting = Boolean(
       checkpoint?.broadcast || checkpoint?.transactionHash || checkpoint?.broadcastPending
@@ -145,7 +148,7 @@ async function admitAndSend(
     // The work stays queued; the person is told they cancelled, not that it failed.
     if (result.error === "send-cancelled") throw new WorkSendCancelledError();
     if (!result.success) {
-      rejectTerminalWork(await jobQueueDB.getJob(queued.jobId));
+      rejectTerminalWork(await jobQueueDB.getJob(queued.jobId), input.onTerminalUnsentFailure);
       if (result.error?.includes("work-transaction-reverted"))
         throw new WorkTransactionReverted("0x");
       if (
@@ -180,6 +183,7 @@ async function admitAndSend(
       return completion
         ? {
             kind: "direct",
+            jobId: completion.jobId,
             sponsored: false,
             clientWorkId: input.clientWorkId,
             txHash: completion.transactionHash as `0x${string}`,
@@ -194,7 +198,7 @@ async function admitAndSend(
     };
     await assertOwnership();
     const checkpoint = payload.uploadCheckpoint;
-    rejectTerminalWork(job);
+    rejectTerminalWork(job, input.onTerminalUnsentFailure);
     if (
       job.meta?.legacyConfirmation ||
       checkpoint?.broadcast?.kind === "user-operation" ||
@@ -261,7 +265,13 @@ async function admitAndSend(
       forgetWorkBroadcast(job.id);
       await jobQueueDB.deleteJob(job.id).catch(() => undefined);
       jobQueueEventBus.emit("job:completed", { jobId: job.id, job, txHash });
-      return { kind: "direct", txHash, sponsored: false, clientWorkId: input.clientWorkId };
+      return {
+        kind: "direct",
+        txHash,
+        sponsored: false,
+        clientWorkId: input.clientWorkId,
+        jobId: job.id,
+      };
     } catch (error) {
       if (error instanceof WorkTransactionReverted) {
         job.meta = { ...job.meta, workTransactionReverted: true };
@@ -309,6 +319,7 @@ async function admitAndSend(
         job.id,
         error instanceof Error ? error.message : "submission-failed"
       );
+      if (failure.kind === "not-sent") input.onTerminalUnsentFailure?.();
       throw error;
     }
   } finally {

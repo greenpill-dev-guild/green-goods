@@ -1,4 +1,4 @@
-import type { PublicApiError } from "@green-goods/shared/public-contracts";
+import { PUBLIC_AGENT_ROUTES, type PublicApiError } from "@green-goods/shared/public-contracts";
 import type { Context } from "hono";
 import {
   InMemoryPublicRateLimiter,
@@ -19,22 +19,31 @@ function firstNonEmpty(...values: Array<string | undefined>): string | undefined
   return values.find((value) => Boolean(value?.trim()));
 }
 
-function getAllowedOrigins(deps: ServerDeps): Set<string> {
+function getAllowedOrigins(deps: ServerDeps, request: Request): Set<string> {
   const configuredOrigins = firstNonEmpty(
     process.env.AGENT_ALLOWED_ORIGINS,
     process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
   );
-  return (
+  const origins =
     deps.allowedOrigins ??
     resolveAllowedOrigins(configuredOrigins, {
       includeDevelopmentDefaults:
         process.env.NODE_ENV === "development" || process.env.APP_ENV === "development",
-    })
-  );
+    });
+  // The standalone Cookie Jar consumes only the public upload signer.
+  // Keep this integration out of identity and all other public route allowlists.
+  if (new URL(request.url).pathname !== PUBLIC_AGENT_ROUTES.uploadSign) return origins;
+  const uploadOrigins = new Set(origins);
+  uploadOrigins.add("https://cookies.greengoods.app");
+  if (process.env.APP_ENV === "development" || process.env.NODE_ENV === "development") {
+    uploadOrigins.add("http://127.0.0.1:3041");
+    uploadOrigins.add("http://localhost:3041");
+  }
+  return uploadOrigins;
 }
 
 export function checkOrigin(c: Context, deps: ServerDeps): PublicApiError | undefined {
-  if (isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return undefined;
+  if (isOriginAllowed(c.req.raw, getAllowedOrigins(deps, c.req.raw))) return undefined;
   return safeError("origin_not_allowed", "This origin is not allowed.");
 }
 
@@ -150,7 +159,7 @@ export function releaseMaterialRateLimit(
 
 function setPublicBrowserCorsHeaders(c: Context, deps: ServerDeps): void {
   const origin = c.req.header("origin");
-  if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return;
+  if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps, c.req.raw))) return;
 
   c.header("Access-Control-Allow-Origin", origin);
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");

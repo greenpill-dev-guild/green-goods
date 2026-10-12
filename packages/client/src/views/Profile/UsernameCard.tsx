@@ -158,7 +158,7 @@ export function UsernameCard({
       >
         <div className="flex items-start gap-3">
           <Avatar>
-            <RiAtLine className="h-4 w-4 text-primary" aria-hidden="true" />
+            <RiAtLine className="h-4 w-4 text-primary-on-surface" aria-hidden="true" />
           </Avatar>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

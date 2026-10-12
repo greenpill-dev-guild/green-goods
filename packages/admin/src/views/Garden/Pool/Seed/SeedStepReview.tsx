@@ -116,13 +116,13 @@ export function SeedStepReview({
   const kindLabel =
     values.kind === "GARDEN_WORK"
       ? formatMessage({
-          id: "cockpit.garden.pool.seed.kind.gardenWork",
-          defaultMessage: "Garden work (impact)",
+          id: "cockpit.garden.pool.seed.work.gardenWork",
+          defaultMessage: "Garden work",
         })
       : values.kind === "SERVICE"
         ? formatMessage({
-            id: "cockpit.garden.pool.seed.kind.service",
-            defaultMessage: "Support / service",
+            id: "cockpit.garden.pool.seed.work.support",
+            defaultMessage: "Support",
           })
         : formatMessage({
             id: "cockpit.garden.pool.seed.kind.seasonCampaign",
@@ -186,16 +186,16 @@ export function SeedStepReview({
           formatMessage({ id: "cockpit.garden.pool.seed.step.what", defaultMessage: "What" }),
           [
             [
+              formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
+              cycleLabel,
+            ],
+            [
               formatMessage({ id: "cockpit.garden.pool.seed.kind", defaultMessage: "Type" }),
               `${kindLabel} · ${directionLabel}`,
             ],
             [
               formatMessage({ id: "cockpit.garden.pool.seed.titleField", defaultMessage: "Title" }),
               values.title,
-            ],
-            [
-              formatMessage({ id: "cockpit.garden.pool.seed.cycle", defaultMessage: "Cycle" }),
-              cycleLabel,
             ],
           ]
         )}

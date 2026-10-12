@@ -223,12 +223,12 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                   button_previous: cn(
                     "h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   button_next: cn(
                     "h-7 w-7 flex items-center justify-center rounded-lg",
                     "text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   month_grid: "w-full border-collapse",
                   weekdays: "flex",
@@ -237,18 +237,18 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                   week: "flex mt-1",
                   day: cn(
                     "w-9 h-9 flex items-center justify-center text-sm rounded-lg",
-                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                    "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
                   ),
                   day_button: cn(
                     "w-full h-full flex items-center justify-center rounded-lg",
-                    "hover:bg-bg-soft-200 transition cursor-pointer",
-                    "focus:outline-none"
+                    "hover:bg-bg-soft-200 [[data-selected]_&]:hover:bg-transparent transition cursor-pointer",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0"
                   ),
                   selected: cn(
-                    "bg-primary-base text-white-0 font-semibold",
-                    "hover:bg-primary-dark"
+                    "bg-primary-action text-primary-action-foreground font-semibold",
+                    "hover:bg-primary-action-hover"
                   ),
-                  today: "font-bold text-primary-base",
+                  today: "font-bold [&:not([data-selected])]:text-primary-on-surface",
                   outside: "text-text-disabled opacity-50",
                   disabled: "text-text-disabled opacity-30 cursor-not-allowed hover:bg-transparent",
                   hidden: "invisible",

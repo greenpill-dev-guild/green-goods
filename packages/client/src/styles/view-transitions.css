@@ -104,6 +104,17 @@
   opacity: 0;
 }
 
+/* Record navigation reveals or covers a retained dashboard. Older history
+ * entries may still start a View Transition; finish it immediately so a fresh
+ * Back gesture never waits on a screenshot before the sheet accepts a drag. */
+html:has([data-view-transition-name="work-dashboard"], [data-view-transition-name="promises-dashboard"]) {
+  &::view-transition-group(*),
+  &::view-transition-old(*),
+  &::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* ============================================================================
  * DIRECTIONAL TRANSITIONS (using :active-view-transition-type)
  * These are triggered by passing types to startViewTransition or viewTransition

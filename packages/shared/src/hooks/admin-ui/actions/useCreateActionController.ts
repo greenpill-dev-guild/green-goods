@@ -2,7 +2,6 @@ import type { Step } from "../../../components/Form/StepIndicator";
 import {
   trackAdminActionCreateFailed,
   trackAdminActionCreateStarted,
-  trackAdminActionCreateSuccess,
 } from "../../../modules/app/analytics-events";
 import { logger } from "../../../modules/app/logger";
 import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
@@ -48,6 +47,7 @@ export function useCreateActionController() {
     assertReady,
     pendingRegistration,
     reconcileRegistration,
+    acknowledgeRegistration,
     registrationScope,
   } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
@@ -157,12 +157,15 @@ export function useCreateActionController() {
 
   useEffect(() => {
     if (previousScope.current !== registrationScope) {
+      const hadScope = previousScope.current !== null;
       previousScope.current = registrationScope;
-      sendLockRef.current = false;
-      setSend("idle");
-      setSendError(null);
-      setCurrentStep(0);
-      form.reset(createActionDefaultValues());
+      if (hadScope) {
+        sendLockRef.current = false;
+        setSend("idle");
+        setSendError(null);
+        setCurrentStep(0);
+        form.reset(createActionDefaultValues());
+      }
     }
     if (pendingRegistration) {
       sendLockRef.current = true;
@@ -214,6 +217,7 @@ export function useCreateActionController() {
     sendLockRef.current = true;
     setSend("sending");
     setSendError(null);
+    const submissionScope = registrationScope;
     let mutationStarted = false;
     const actionSlug = data.slug.trim().toLowerCase();
     const actionDomain = data.domain as Domain;
@@ -260,6 +264,7 @@ export function useCreateActionController() {
         instructions: instructionsUpload.cid,
       });
 
+      if (!mounted.current || activeScope.current !== submissionScope) return;
       if (result.confirmation === "pending") {
         setSend("pending");
         return;
@@ -278,16 +283,12 @@ export function useCreateActionController() {
         throw new Error(errorMessage);
       }
 
-      trackAdminActionCreateSuccess({
-        ...telemetryBase,
-        txHash: result.hash ?? "",
-      });
-
       // The flow stays on its Review once the action exists (DL-080): nothing
       // navigates and nothing asks to discard. The draft goes at once, so a
       // reload cannot register the same action twice.
       clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
       clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+      acknowledgeRegistration(result.hash);
       setSend("sent");
     } catch (error) {
       logger.error("Failed to create action", {
@@ -311,6 +312,7 @@ export function useCreateActionController() {
 
       // The Review's status row says what happened; Try Again sends the
       // answers as they stand.
+      if (!mounted.current || activeScope.current !== submissionScope) return;
       setSendError(error);
       setSend("failed");
       sendLockRef.current = false;
@@ -318,7 +320,7 @@ export function useCreateActionController() {
   };
 
   const checkConfirmation = async () => {
-    if (isCheckingConfirmation || isLoading || send === "sending") return;
+    if (isCheckingConfirmation || isLoading || send === "sending" || send === "sent") return;
     const scope = registrationScope;
     setIsCheckingConfirmation(true);
     try {
@@ -328,6 +330,7 @@ export function useCreateActionController() {
       if (result.success) {
         clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
         clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+        acknowledgeRegistration(result.hash);
         setSend("sent");
       } else {
         setSendError(

@@ -1,3 +1,4 @@
+import { DomainBadge } from "@green-goods/shared/components/DomainBadge";
 import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
 import { formatReportingPeriod } from "@green-goods/shared/utils/time";
 import {
@@ -14,7 +15,7 @@ import { Link } from "react-router-dom";
 import { Card } from "@/components/Cards";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
-import { CYNEFIN_LABEL_IDS, domainLabelId, outcomeMeasure } from "./assessmentDisplay";
+import { CYNEFIN_LABEL_IDS, outcomeMeasure } from "./assessmentDisplay";
 
 interface GardenAssessmentsProps {
   records: GardenAssessmentRecord[];
@@ -37,7 +38,6 @@ const AssessmentCard = memo(function AssessmentCard({
   const reportingPeriod =
     formatReportingPeriod(intl, summary.startDate, summary.endDate) ??
     intl.formatMessage({ id: "app.garden.assessments.dateNotSet" });
-  const domainId = domainLabelId(summary.domain);
   const kernel = detail.status === "loaded" ? detail.value : null;
   const outcomesPreview = kernel?.smartOutcomes.slice(0, 3) ?? [];
 
@@ -46,16 +46,12 @@ const AssessmentCard = memo(function AssessmentCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3
-            className="truncate text-base font-semibold text-text-strong-950"
+            className="line-clamp-2 break-words text-base font-semibold text-text-strong-950"
             title={summary.title}
           >
             {summary.title}
           </h3>
-          {domainId ? (
-            <p className="text-xs uppercase tracking-wide text-text-sub-600">
-              {intl.formatMessage({ id: domainId })}
-            </p>
-          ) : null}
+          <DomainBadge domain={summary.domain} variant="inline" className="mt-1" />
           <p className="mt-2 line-clamp-3 text-sm text-text-sub-600" title={summary.description}>
             {summary.description}
           </p>
@@ -72,14 +68,20 @@ const AssessmentCard = memo(function AssessmentCard({
 
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <Badge leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary" />} variant="pill">
+          <Badge
+            leadingIcon={<RiCalendarLine className="h-4 w-4 text-primary-on-surface" />}
+            variant="pill"
+          >
             {intl.formatMessage({ id: "app.garden.assessments.dateRange" })}
           </Badge>
           <span className="px-2 text-xs text-text-sub-600">{reportingPeriod}</span>
         </div>
         {kernel && kernel.cynefinPhase !== null ? (
           <div className="flex flex-col gap-1">
-            <Badge leadingIcon={<RiStackLine className="h-4 w-4 text-primary" />} variant="pill">
+            <Badge
+              leadingIcon={<RiStackLine className="h-4 w-4 text-primary-on-surface" />}
+              variant="pill"
+            >
               {intl.formatMessage({ id: "app.garden.assessments.cynefinPhase" })}
             </Badge>
             <span className="px-2 text-xs text-text-sub-600">
@@ -90,7 +92,7 @@ const AssessmentCard = memo(function AssessmentCard({
         {kernel ? (
           <div className="flex flex-col gap-1 sm:col-span-2">
             <Badge
-              leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary" />}
+              leadingIcon={<RiPriceTag3Line className="h-4 w-4 text-primary-on-surface" />}
               variant="pill"
             >
               {intl.formatMessage({ id: "app.garden.assessments.sdgAlignment" })}

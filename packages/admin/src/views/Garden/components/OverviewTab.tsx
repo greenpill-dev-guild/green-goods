@@ -92,9 +92,9 @@ export function OverviewTab({
   const { formatMessage } = intl;
   const formatActivityTime = useLocalizedRelativeTime();
   const formatEventTime = useLocalizedEventTime();
-  // Below 768px the rail stacks after the main column, so on phones the alerts
-  // card leads above it instead; the rest of the rail still follows (DL-051).
-  const alertsLead = useMediaQuery("(max-width: 767px)");
+  // Below the 1024px desktop split, alerts lead the stacked main column;
+  // the rest of the rail still follows (DL-051).
+  const alertsLead = !useMediaQuery("(min-width: 1024px)");
   const alertsCard = <GardenAlertsCard alerts={overviewAlerts} />;
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
@@ -409,9 +409,9 @@ export function OverviewTab({
 
         <aside className="garden-tab-rail">
           <div className="garden-tab-rail-sticky">
-            {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
-
             {alertsLead ? null : alertsCard}
+
+            {isHealthMode ? <KarmaIntegrationPanel integration={karmaIntegration} /> : null}
 
             <AdminCard density="none">
               <AdminCardHeader>

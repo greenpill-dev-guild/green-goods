@@ -1,6 +1,7 @@
 import { isAddress, type Address } from "viem";
 
 import type { DraftWorkLink } from "../../types/job-queue";
+import type { WorkLinkJobPayload } from "./job-types";
 
 export interface WorkLinkIntent {
   commitmentId: bigint;
@@ -12,7 +13,28 @@ export interface WorkLinkIntent {
   returnTo: string;
 }
 
-export type WorkLinkChoice = WorkLinkIntent;
+/** Read-only choice details; they do not participate in link identity or URL persistence. */
+export interface WorkLinkChoice extends WorkLinkIntent {
+  approvedCount?: number;
+  requiredCount?: number;
+  dueDate?: bigint | null;
+}
+
+/** One operation identity shared by admission, the wizard and queue recovery. */
+export function dependentWorkLinkPayload(
+  clientWorkId: string,
+  target: Pick<WorkLinkIntent, "commitmentId" | "requirementIndex" | "garden">,
+  sourceWorkJobId?: string
+): Omit<Extract<WorkLinkJobPayload, { clientWorkId: string }>, "operationKey"> {
+  return {
+    clientOperationId: `work-link:${clientWorkId}:${target.commitmentId}:${target.requirementIndex}`,
+    commitmentId: target.commitmentId,
+    clientWorkId,
+    ...(sourceWorkJobId ? { sourceWorkJobId } : {}),
+    requirementIndex: target.requirementIndex,
+    gardenAddress: target.garden,
+  };
+}
 
 /** The same requirement of the same promise, for the same action in the same garden. */
 export function sameWorkLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent): boolean {
@@ -26,7 +48,16 @@ export function sameWorkLinkIdentity(left: WorkLinkIntent, right: WorkLinkIntent
 
 /** The link as a work draft keeps it. */
 export function toDraftWorkLink(intent: WorkLinkIntent): DraftWorkLink {
-  return { ...intent, commitmentId: intent.commitmentId.toString() };
+  // A live choice may carry progress and dates; only the intent belongs in a draft.
+  return {
+    commitmentId: intent.commitmentId.toString(),
+    requirementIndex: intent.requirementIndex,
+    actionUID: intent.actionUID,
+    garden: intent.garden,
+    commitmentTitle: intent.commitmentTitle,
+    requirementLabel: intent.requirementLabel,
+    returnTo: intent.returnTo,
+  };
 }
 
 /**

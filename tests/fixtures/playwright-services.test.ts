@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  REPORTING_DRIVER_PORT,
+  REPORTING_DRIVER_URL,
   resolvePlaywrightApps,
   selectedProjectNames,
+  selectsProject,
   shouldUsePlaywrightIndexer,
 } from "./playwright-services";
 
@@ -17,6 +20,22 @@ describe("Playwright service selection", () => {
         "admin-ci",
       ])
     ).toEqual(["client-ci", "admin-ci"]);
+  });
+
+  it.each([
+    ["passkey-mock", true],
+    ["PASSKEY-MOCK", true],
+    ["passkey-*", true],
+    ["*mock", true],
+    ["pass*key*mock", true],
+    ["*", true],
+    ["passkey", false],
+    ["passkey-mock-2", false],
+    ["client-*", false],
+    ["*-mock-*", false],
+  ])("reads the selection %s as Playwright does for passkey-mock: %s", (selector, selected) => {
+    expect(selectsProject([selector], "passkey-mock")).toBe(selected);
+    expect(selectsProject([], "passkey-mock")).toBe(false);
   });
 
   it("starts only the app required by an exact project selection", () => {
@@ -127,6 +146,54 @@ describe("production preview profile", () => {
         VITE_SENTRY_CLIENT_DSN: "",
         GG_ENABLE_SOURCEMAPS: "false",
       },
+    });
+  });
+});
+
+// The account-step spec walks the reporting ceremony, so its project owns the Agent's driver too.
+describe("passkey project", () => {
+  const originalArgv = process.argv;
+  afterEach(() => {
+    process.argv = originalArgv;
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  it.each([
+    "passkey-mock",
+    "passkey-*",
+  ])("owns a reporting driver on the Client's origin for --project=%s", async (selection) => {
+    process.argv = ["node", "playwright", "test", `--project=${selection}`];
+    vi.stubEnv("CI", "true");
+    vi.stubEnv("SKIP_WEBSERVER", "false");
+    vi.stubEnv("SKIP_INDEXER", "true");
+    const { default: config } = await import("../../playwright.config");
+    // One case at a time, as the project's own limit, so that --workers cannot lift it: a
+    // route's first load can make the dev server reload every open page.
+    expect(config.projects?.find((project) => project.name === "passkey-mock")?.workers).toBe(1);
+    expect(config.workers).toBe(2);
+    const servers = [config.webServer].flat();
+    const driver = servers.find((server) => server?.cwd === "./packages/agent");
+    const client = servers.find((server) => server?.cwd === "./packages/client");
+    // A wildcard is an unfamiliar selector to the app resolver, so the Admin starts as well.
+    expect(servers).toHaveLength(selection === "passkey-mock" ? 2 : 3);
+    expect(client?.url).toBe("http://localhost:3001");
+    expect(driver).toMatchObject({
+      command: "bun src/__tests__/reporting/driver/server.ts",
+      cwd: "./packages/agent",
+      url: `${REPORTING_DRIVER_URL}/__driver/outbox`,
+      reuseExistingServer: false,
+      // A killed driver cannot remove its data directory, so it is asked to stop.
+      gracefulShutdown: { signal: "SIGTERM" },
+      env: {
+        REPORTING_DRIVER_PORT: String(REPORTING_DRIVER_PORT),
+        // The driver refuses a page on any origin but this one.
+        REPORTING_DRIVER_ORIGIN: client?.url,
+      },
+    });
+    expect(client).toMatchObject({
+      cwd: "./packages/client",
+      // An empty Agent address keeps a root .env from putting a running Agent behind the test.
+      env: { VITE_PASSKEY_SERVER_ENABLED: "true", REPORTING_AGENT_URL: "", REPORTING_DRIVER_URL },
     });
   });
 });

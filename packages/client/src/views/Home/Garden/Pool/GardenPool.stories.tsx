@@ -48,11 +48,11 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
           <h1 className="line-clamp-2 text-2xl font-bold">Riverside Commons Garden</h1>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-              <RiMapPin2Fill className="h-4 w-4 flex-shrink-0 text-primary" />
+              <RiMapPin2Fill className="h-4 w-4 flex-shrink-0 text-primary-on-surface" />
               <span className="truncate">Riverside District</span>
             </div>
             <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
-              <RiCalendarEventFill className="h-4 w-4 flex-shrink-0 text-primary" />
+              <RiCalendarEventFill className="h-4 w-4 flex-shrink-0 text-primary-on-surface" />
               <span className="truncate">Founded Mar 14, 2024</span>
             </div>
           </div>

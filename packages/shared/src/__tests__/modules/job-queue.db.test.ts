@@ -6,6 +6,7 @@ import "fake-indexeddb/auto";
 // Import directly from db.ts to avoid EAS SDK dependency chain
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { retireWorkCompletionSnapshots } from "../../modules/job-queue/work-completions";
+import { resolveDeferredWorkIdentity } from "../../modules/commitment-pooling/work-identity";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -216,6 +217,15 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
   );
   expect(await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy")).toBeUndefined();
   expect(await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy")).toBeUndefined();
+  const resolveConfirmed = () =>
+    resolveDeferredWorkIdentity({
+      clientWorkId: "confirmed-copy",
+      caller: address,
+      chainId: 11155111,
+      garden,
+      dependencies: { getWorksByGardener: async () => [] },
+    });
+  await expect(resolveConfirmed()).resolves.toEqual({ status: "resolved", workUID: work.id });
   // Real completion records in neighbouring account/chain scopes must not leak
   // through the live read that backs Your Work.
   for (const scope of [
@@ -230,7 +240,7 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
         gardenAddress: garden,
         actionUID: 1,
         feedback: "Other",
-        confirmedWork: work,
+        confirmedWork: { ...work, gardenerAddress: scope.userAddress },
       },
     });
     await jobQueueDB.storeClientWorkIdMapping("confirmed-copy", "0xother", otherId);
@@ -258,17 +268,21 @@ it("retains the receipt-confirmed card after queue and photo cleanup", async () 
     clientWorkId: "confirmed-copy",
     transactionHash: `0x${"cd".repeat(32)}`,
     workUID: work.id,
+    gardenAddress: garden,
     indexedAt: expect.any(Number),
   });
   expect(
     (await jobQueueDB.getWorkCompletion(address, 11155111, "confirmed-copy"))?.work
   ).toBeUndefined();
-  expect((await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy"))?.work).toEqual(
-    work
-  );
-  expect((await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy"))?.work).toEqual(
-    work
-  );
+  await expect(resolveConfirmed()).resolves.toEqual({ status: "resolved", workUID: work.id });
+  expect((await jobQueueDB.getWorkCompletion(address, 42161, "confirmed-copy"))?.work).toEqual({
+    ...work,
+    gardenerAddress: address,
+  });
+  expect((await jobQueueDB.getWorkCompletion(garden, 11155111, "confirmed-copy"))?.work).toEqual({
+    ...work,
+    gardenerAddress: garden,
+  });
   // A late duplicate completion write cannot restore a retired card.
   const db = await jobQueueDB.init();
   await db.jobs.put(originalJob);

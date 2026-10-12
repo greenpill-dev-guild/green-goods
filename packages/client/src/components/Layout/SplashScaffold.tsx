@@ -75,7 +75,8 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
 }) => (
   <div className="min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2">
     {/* Shared anchor — free space splits 11:9 above/below the constant block. */}
-    <div aria-hidden="true" style={{ flexGrow: 11 }} />
+    {/* The upper spacer's 45% remainder lowers the block by 4px. */}
+    <div aria-hidden="true" style={{ flexGrow: 11, flexBasis: "calc(4px * 20 / 9)" }} />
 
     <div className="flex w-full max-w-sm flex-col items-center">
       {/* ───────────────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
           className={cn(
             "text-center transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             titleVoice === "name"
-              ? "text-[1.25rem] font-bold text-primary-dark"
+              ? "text-[1.25rem] font-bold text-primary-on-surface"
               : "text-base font-[650] text-text-strong-950"
           )}
         >
@@ -127,7 +128,6 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
       </div>
     </div>
 
-    {/* Reserve 20px / the upper spacer's 55% share to raise the block by 20px. */}
-    <div aria-hidden="true" style={{ flexGrow: 9, flexBasis: "calc(20px * 20 / 11)" }} />
+    <div aria-hidden="true" style={{ flexGrow: 9 }} />
   </div>
 );

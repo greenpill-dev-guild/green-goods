@@ -15,6 +15,7 @@ import {
 import { useId, useState } from "react";
 import { type MessageDescriptor, useIntl } from "react-intl";
 import { FlowForward } from "@/components/Features/Work";
+import { AccountEntry, type EntryScreen } from "./AccountEntry";
 import { AccountActions, PageAccount } from "./CeremonyActs";
 import { BarStatus } from "./CeremonyBar";
 import { type CeremonyHeading, CeremonyFrame, StageNotice } from "./CeremonyFrame";
@@ -30,13 +31,19 @@ type RecoveryViewProps = Pick<
   | "error"
   | "account"
   | "connecting"
+  | "failure"
+  | "savedPasskey"
+  | "canFindAccount"
   | "connectWallet"
   | "connectPasskey"
   | "start"
   | "prove"
   | "confirmCode"
   | "apply"
->;
+> & {
+  /** Story fixture: the screen the account step opens on. */
+  initialEntry?: EntryScreen;
+};
 
 const CODE_LENGTH = 6;
 
@@ -44,6 +51,10 @@ const CODE_LENGTH = 6;
  * Moving an account to a new chat, drawn as the other ceremonies are: show the account is yours,
  * enter the code the new chat received, then confirm the move after reading what changes. Its
  * steps have no status card until the move is done, so a problem is said in the heading card.
+ *
+ * The account step with no account connected is the one every ceremony has (`AccountEntry`). The
+ * person this page is for is often on a new phone, whose browser remembers no passkey, so the
+ * passkey is found by its account's name. The page never creates an account: it moves one.
  */
 export function RecoveryView(props: RecoveryViewProps) {
   const intl = useIntl();
@@ -162,18 +173,38 @@ export function RecoveryView(props: RecoveryViewProps) {
   const moved = stage === "applied";
   // The account is proven from the code step on, and the page is signed in to it until it closes.
   const signedIn = stage === "code" || confirming || moved;
+  const steps =
+    opening || unusable || moved
+      ? null
+      : {
+          names: [STEP_NAMES.account, STEP_NAMES.code, STEP_NAMES.move].map(text),
+          current: proving ? 1 : stage === "code" ? 2 : 3,
+        };
+
+  if (stage === "connect" && !props.account) {
+    return (
+      <AccountEntry
+        heading={heading}
+        steps={steps}
+        problem={failure}
+        account={<PageAccount account={null} signedIn={false} channel={props.channelLabel} />}
+        failure={props.failure}
+        savedPasskey={props.savedPasskey}
+        canFindAccount={props.canFindAccount}
+        connecting={props.connecting}
+        connectWallet={props.connectWallet}
+        connectPasskey={props.connectPasskey}
+        initialEntry={props.initialEntry}
+      >
+        <WhatHappensNext flow="move" />
+      </AccountEntry>
+    );
+  }
 
   return (
     <CeremonyFrame
       screen={unusable ? "state" : "step"}
-      steps={
-        opening || unusable || moved
-          ? null
-          : {
-              names: [STEP_NAMES.account, STEP_NAMES.code, STEP_NAMES.move].map(text),
-              current: proving ? 1 : stage === "code" ? 2 : 3,
-            }
-      }
+      steps={steps}
       heading={heading}
       problem={moved ? null : failure}
       notice={

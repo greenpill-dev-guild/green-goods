@@ -203,21 +203,17 @@ async function main(): Promise<void> {
     }),
     savedOffersAudience: config.savedOffersAudience,
     savedOffersChainIds: [config.chainId],
-    ...(config.passkeyDirectoryEnabled
-      ? {
-          passkeyDirectory: createPasskeyDirectory({
-            store: createSqlitePasskeyDirectoryStore(),
-            relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
-            hostedNameTaken: config.passkeyHostedDirectoryUrl?.trim()
-              ? createHostedPasskeyNameCheck({
-                  rpcUrl: config.passkeyHostedDirectoryUrl.trim(),
-                  origin: `https://${PASSKEY_RP_ID}`,
-                })
-              : undefined,
-            allowLocalDevelopment: config.isDevelopment,
-          }),
-        }
-      : {}),
+    passkeyDirectory: createPasskeyDirectory({
+      store: createSqlitePasskeyDirectoryStore(),
+      relyingParty: { id: PASSKEY_RP_ID, name: PASSKEY_RP_NAME },
+      hostedNameTaken: config.passkeyHostedDirectoryUrl
+        ? createHostedPasskeyNameCheck({
+            rpcUrl: config.passkeyHostedDirectoryUrl,
+            origin: `https://${PASSKEY_RP_ID}`,
+          })
+        : undefined,
+      allowLocalDevelopment: config.isDevelopment,
+    }),
     gardenJoinRequestsEnabled: config.joinRequestsEnabled,
     gardenJoinRequestStore,
     ...(config.joinRequestsEnabled

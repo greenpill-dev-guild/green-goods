@@ -8,14 +8,14 @@ const DEFAULT_CLIENT_APP_URL = "https://greengoods.app";
  * to its own client rather than to production.
  *
  * `admin.greengoods.app` pairs with the apex, and every prefixed admin host
- * pairs with the matching client host — `beta-admin` with `beta`,
- * `staging-admin` with `staging`. Anything else (localhost, a preview URL) has
+ * pairs with the matching client host — `beta.admin` with `beta`.
+ * Anything else (localhost, a preview URL) has
  * no derivable pair and returns undefined so the caller falls through.
  */
 function clientOriginForAdminHost(hostname?: string): string | undefined {
   if (!hostname?.endsWith(".greengoods.app")) return undefined;
   if (hostname === "admin.greengoods.app") return DEFAULT_CLIENT_APP_URL;
-  const prefixed = /^(.+)-admin\.greengoods\.app$/.exec(hostname);
+  const prefixed = /^(.+)\.admin\.greengoods\.app$/.exec(hostname);
   return prefixed ? `https://${prefixed[1]}.greengoods.app` : undefined;
 }
 

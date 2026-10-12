@@ -13,6 +13,7 @@
     --gg-design-neutral-dark: 28 25 23;
     --gg-design-on-tertiary: 11 70 39;
     --gg-design-on-tertiary-action: 255 255 255;
+    --gg-design-on-tertiary-dark: 12 10 9;
     --gg-design-primary: 41 37 36;
     --gg-design-primary-inverse: 245 245 244;
     --gg-design-secondary: 120 113 108;
@@ -21,6 +22,8 @@
     --gg-design-tertiary: 31 193 107;
     --gg-design-tertiary-action: 26 117 68;
     --gg-design-tertiary-action-hover: 22 100 59;
+    --gg-design-tertiary-dark: 194 245 218;
+    --gg-design-tertiary-dark-hover: 132 235 180;
 
     --gg-radius-2xl: 24px;
     --gg-radius-full: 9999px;

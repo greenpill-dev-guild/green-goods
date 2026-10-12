@@ -33,7 +33,7 @@ export function useCreateGardenController() {
     checkConfirmation,
     draft,
   } = useCreateGardenWorkflow();
-  const { loadDraft } = draft;
+  const { loadDraft, draftKey } = draft;
 
   const isPending = state.matches("pending") || state.matches("reconciling");
   const isSubmitting = state.matches("submitting") || isPending;
@@ -41,11 +41,11 @@ export function useCreateGardenController() {
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
   const plannedMemberCount = form.gardeners.length + form.stewards.length;
-  const initializedRef = useRef(false);
+  const initializedScopeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (!draftKey || initializedScopeRef.current === draftKey) return;
+    initializedScopeRef.current = draftKey;
 
     let cancelled = false;
 
@@ -75,6 +75,9 @@ export function useCreateGardenController() {
 
       const restoredDraft = await loadDraft();
       if (cancelled || !restoredDraft) return;
+      const restored = useCreateGardenStore.getState();
+      if (restored.currentStep === restored.steps.length - 1 && restored.isReviewReady())
+        goToReview();
     };
 
     void initializeFlow();
@@ -82,7 +85,7 @@ export function useCreateGardenController() {
     return () => {
       cancelled = true;
     };
-  }, [openFlow, goToReview, loadDraft]);
+  }, [openFlow, goToReview, loadDraft, draftKey]);
 
   useEffect(() => {
     if (isSuccess) {

@@ -39,6 +39,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [screen, setScreen] = useState<LoginScreen>("entry");
   const recoveryAttemptNameRef = useRef<string | null>(null);
+  // Whether the attempt in flight creates an account: a prompt that closes then made none.
+  const creatingRef = useRef(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
 
   useEffect(() => {
@@ -74,7 +76,9 @@ export function useLoginScreenController(routes: { login: string; home: string }
     if (auth.error && !auth.isAuthenticating) {
       setLoadingState(null);
       setLoadingMessage(undefined);
-      setLoginError(getFriendlyLoginErrorMessage(auth.error, intl));
+      setLoginError(
+        getFriendlyLoginErrorMessage(auth.error, intl, { creating: creatingRef.current })
+      );
     }
   }, [auth.error, auth.isAuthenticating, intl]);
 
@@ -98,7 +102,7 @@ export function useLoginScreenController(routes: { login: string; home: string }
     setLoadingState(null);
     setLoadingMessage(undefined);
     debugError("Authentication failed", error);
-    setLoginError(getFriendlyLoginErrorMessage(error, intl));
+    setLoginError(getFriendlyLoginErrorMessage(error, intl, { creating: operation === "create" }));
     const message = error instanceof Error ? error.message.toLowerCase() : "";
     if (
       !message.includes("cancel") &&
@@ -120,7 +124,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
     }
   };
 
-  const begin = (message: string) => {
+  const begin = (message: string, { creating = false } = {}) => {
+    creatingRef.current = creating;
     setLoginError(null);
     setLoadingMessage(message);
     setLoadingState("welcome");
@@ -182,7 +187,8 @@ export function useLoginScreenController(routes: { login: string; home: string }
       intl.formatMessage({
         id: "app.login.loading.creatingWallet",
         defaultMessage: "Setting up your account...",
-      })
+      }),
+      { creating: true }
     );
     try {
       await auth.createAccount?.(name);

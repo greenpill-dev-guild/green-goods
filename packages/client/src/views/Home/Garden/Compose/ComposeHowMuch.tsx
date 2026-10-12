@@ -200,7 +200,7 @@ export function ComposeHowMuch({
                   onChange={() =>
                     form.setValue("claimMode", mode, { shouldValidate: true, shouldDirty: true })
                   }
-                  className="mt-1 accent-[var(--color-primary)]"
+                  className="mt-1 accent-[var(--color-primary-on-surface)]"
                 />
                 <label htmlFor={`compose-claim-${mode}`} className="min-w-0 cursor-pointer">
                   <span className="block text-sm font-medium text-text-strong-950">

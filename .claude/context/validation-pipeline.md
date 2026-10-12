@@ -61,7 +61,9 @@ automated deadline.
 If a push plan lacks direct behavior proof, or its estimate exceeds the limit while a package
 suite is still unfocused, the selector returns `needs-focus` and executes nothing. A deleted package
 test counts as missing proof unless its whole suite costs no more than a focused run; name the test
-that still proves the same failure. A plan whose
+that still proves the same failure. A changed helper, fixture or setup file under a test directory
+is judged the same way, because no runner can execute it: name a test that exercises it. Notes
+kept beside tests (Markdown) select no test run. A plan whose
 selected suites are all focused runs even when its static estimate exceeds the limit; the hard
 deadline then decides. Supply a focused test with
 `--test-path <surface>:<path>`, narrow the change, or select an existing explicit acceptance check.
@@ -76,7 +78,9 @@ validated paths, environment profile, root `.env` files, or a variable the check
 invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
 git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
 out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
-and the toolchain versions already cover what `PATH` resolves.
+and the toolchain versions already cover what `PATH` resolves. A host tool shim's per-process loop
+guard (`DEV_MACHINE_SHIM_TRIED`) is left out for the same reason; the variables that say where such
+a shim runs a command are not.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
@@ -160,7 +164,8 @@ node scripts/dev/ci-local.js --intent push --reuse-passing-receipts \
   --test-path <surface>:<focused-test-path>
 ```
 
-The focused path may be inferred when the changed file is itself a direct test. The push selector
+The focused path may be inferred when the changed file is itself a direct test (`*.test.*`,
+`*.spec.*` or a Solidity `*.t.sol`), never from a helper or note beside one. The push selector
 chooses changed-path format/lint, direct behavior proof, and owner-package typecheck/build only when
 an interface, route, generated artifact, or runtime composition moved. It also runs the repository
 checks CI applies to those paths: `test-quality` for tests, test helpers and files a certified seam
@@ -172,8 +177,10 @@ implementation changes do not run complete Client, Admin, or Agent suites locall
 responsibilities.
 
 Comparison scope comes from the live PR base when available, otherwise `origin/develop`. A
-successful exact post-commit receipt is reusable by the pre-push hook. Commit, working-tree,
-command, policy, toolchain, or environment drift invalidates it.
+release promotion (a `release/*` head into `main`) compares against `origin/develop`, in CI and
+locally, because its history was already judged as it entered develop. A successful exact
+post-commit receipt is reusable by the pre-push hook. Commit, working-tree, command, policy,
+toolchain, or environment drift invalidates it.
 
 When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
 to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:

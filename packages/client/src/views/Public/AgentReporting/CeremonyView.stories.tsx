@@ -99,7 +99,8 @@ const base: Props = {
   joinSending: false,
   skipCommunity: noop,
   joinCommunity: asyncNoop,
-  lastFailure: null,
+  failure: null,
+  savedPasskey: false,
   canFindAccount: true,
   changeAccount: async () => true,
   createAccount: async () => true,
@@ -191,14 +192,25 @@ export const ProveConnected: Story = {
 export const Proving: Story = { args: { ...ProveConnected.args, stage: "proving" } };
 /** A problem on a screen with no status card is said in the heading card. */
 export const ConnectDeclined: Story = { args: { ...ProveConnected.args, error: "declined" } };
-/** Linking an account asks for one signature, then a code sent in chat. */
+/**
+ * A browser that remembers no passkey cannot tell a newcomer from someone whose account is
+ * elsewhere, so linking opens on two doors and neither opens a prompt.
+ */
 export const LinkConnect: Story = { args: { stage: "connect", purpose: "link_account" } };
-export const CreateAccount: Story = {
-  args: { stage: "connect", purpose: "link_account", initialName: "create" },
+export const LinkConnectSpanish: Story = { ...LinkConnect, parameters: { locale: "es" } };
+export const LinkConnectPortuguese: Story = { ...LinkConnect, parameters: { locale: "pt" } };
+/** Behind "I Have an Account": here the passkey act asks for the account's name first. */
+export const LinkExisting: Story = {
+  args: { ...LinkConnect.args, initialEntry: "existing" },
 };
-/** An account kept on another device is found by the name it was created with. */
+/** A browser that remembers a passkey opens on the acts, with the other ways in as links. */
+export const LinkReturning: Story = { args: { ...LinkConnect.args, savedPasskey: true } };
+export const CreateAccount: Story = {
+  args: { ...LinkConnect.args, initialEntry: "create" },
+};
+/** A passkey this browser does not remember is found by the name its account was created with. */
 export const FindAccount: Story = {
-  args: { stage: "connect", purpose: "link_account", initialName: "find" },
+  args: { ...LinkConnect.args, initialEntry: "find" },
 };
 /**
  * The page starts on the account this browser last used. Under the step's rows, and in the
@@ -251,9 +263,51 @@ export const JoinWrongAccount: Story = {
 export const JoinDisconnected: Story = {
   args: { ...JoinLinked.args, account: null, accountKind: null },
 };
-/** A sign-in that failed says so in the account layer's own words. */
+/**
+ * A failed attempt says what happened and what to do next, in the heading card's two lines. A
+ * prompt that closed is never read as "no account", and nothing is created because of it.
+ */
 export const ConnectFailed: Story = {
-  args: { ...LinkConnect.args, lastFailure: "Sign in was cancelled." },
+  args: {
+    ...LinkReturning.args,
+    failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+  },
+};
+export const PasskeyNotHere: Story = {
+  args: {
+    ...LinkReturning.args,
+    failure: { reason: "passkey_not_here", spoken: "No passkey found for that username." },
+  },
+};
+export const CreateNotMade: Story = {
+  args: {
+    ...CreateAccount.args,
+    failure: { reason: "not_created", spoken: "Sign in was cancelled." },
+  },
+};
+export const CreateNameTaken: Story = {
+  args: {
+    ...CreateAccount.args,
+    failure: { reason: "name_taken", spoken: "That name is already registered." },
+  },
+};
+export const FindNameNotFound: Story = {
+  args: {
+    ...FindAccount.args,
+    failure: { reason: "name_not_found", spoken: "No passkey found for that username." },
+  },
+};
+/** Where no name can be looked up, a browser with nothing saved has no passkey to ask for. */
+export const NoSavedPasskey: Story = {
+  args: {
+    ...Connect.args,
+    canFindAccount: false,
+    failure: { reason: "no_saved_passkey", spoken: "No passkey is saved in this browser." },
+  },
+};
+/** A browser that cannot open a passkey prompt says so before anyone presses for one. */
+export const PasskeysUnavailable: Story = {
+  args: { ...LinkConnect.args, passkeyUnavailable: true },
 };
 export const InAppStart: Story = { args: { stage: "intro", inAppBrowser: true } };
 export const InAppStartSpanish: Story = {

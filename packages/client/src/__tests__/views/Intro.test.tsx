@@ -5,7 +5,7 @@
  * garden selection, domain filtering, and click handler delegation.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -134,6 +134,10 @@ import { type Action, type Address, Domain, type Garden } from "@green-goods/sha
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
+  "app.common.done": "Done",
+  "app.common.close": "Close",
+  "app.garden.commitment.choose": "Choose a Promise",
+  "app.garden.commitment.requirement": "Requirement {requirement}",
   "app.garden.selectYourAction": "Select Your Action",
   "app.garden.whatTypeOfWork": "What type of work are you submitting?",
   "app.garden.selectYourGarden": "Select Your Garden",
@@ -358,13 +362,17 @@ describe("WorkIntro", () => {
       setSelectedCommitmentKey: vi.fn(),
     });
 
-    expect(screen.getByRole("combobox", { name: "Commitment (optional)" })).toHaveValue("9:1");
+    const trigger = screen.getByRole("button", { name: "Choose a Promise" });
+    expect(trigger).toHaveTextContent("Prune the north beds");
+    expect(trigger).toHaveTextContent("Requirement 2");
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Choose a Promise" });
+    expect(dialog).toHaveAccessibleDescription(
+      "Choose the commitment and exact requirement this work fulfils."
+    );
     expect(
-      screen.getByRole("combobox", { name: "Commitment (optional)" })
-    ).toHaveAccessibleDescription("Choose the commitment and exact requirement this work fulfils.");
-    expect(
-      screen.getByRole("option", { name: "Prune the north beds · requirement 2" })
-    ).toBeInTheDocument();
+      within(dialog).getByRole("radio", { name: "Prune the north beds Requirement 2" })
+    ).toBeChecked();
   });
 
   it("lets a generic submission choose an eligible commitment requirement", () => {
@@ -383,9 +391,8 @@ describe("WorkIntro", () => {
       setSelectedCommitmentKey,
     });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Commitment (optional)" }), {
-      target: { value: "9:0" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Choose a Promise" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Prune the north beds Requirement 1" }));
 
     expect(setSelectedCommitmentKey).toHaveBeenCalledWith("9:0");
   });

@@ -39,7 +39,7 @@ export function PinnedPromiseCard({ kind, title, onOpen, className }: PinnedProm
         aria-label={formatMessage({ id: "app.commitment.pinned.open" }, { label, title })}
         className="flex w-full min-w-0 items-center gap-2 rounded-[var(--radius-lg)] border border-primary-alpha-24 bg-primary-alpha-10 p-3 text-left"
       >
-        <RiHandHeartLine aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />
+        <RiHandHeartLine aria-hidden="true" className="h-5 w-5 shrink-0 text-primary-on-surface" />
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-medium text-text-sub-600">{label}</span>
           <span

@@ -37,6 +37,24 @@ export const AIYELOJA: ReportingGarden = {
   label: "Aiyeloja Family Garden",
 };
 
+/** A fixed directory whose reads of an account's gardens a test can make fail or go stale. */
+export interface FixedGardens extends GardenDirectory {
+  /**
+   * While true the indexer is down and every read fails. As with the live directory, an account
+   * the last good read placed in a garden keeps its gardens meanwhile, and one that read placed
+   * nowhere cannot be read. A failed read is left alone for as long as the live directory leaves
+   * it, and only a read that goes through ends that state.
+   */
+  unavailable: boolean;
+  /**
+   * While true an account's gardens are those of the last read, held as long as the live
+   * directory holds them. Otherwise they follow the chain at once.
+   */
+  cached: boolean;
+  /** How many times the list has been read. */
+  reads: number;
+}
+
 /**
  * A fixed garden list; the live directory reads every garden from the indexer. Given the fake
  * chain, an account's gardens follow the roles granted there, as the indexer follows the real
@@ -45,16 +63,45 @@ export const AIYELOJA: ReportingGarden = {
 export function fixedGardens(
   gardens: ReportingGarden[] = [TAS, AIYELOJA],
   chain?: Pick<FakeChain, "roles">
-): GardenDirectory {
-  const reportsTo = (garden: ReportingGarden, account: string): boolean => {
-    const roles = chain?.roles.get(`${garden.address}:${account.toLowerCase()}`);
-    return Boolean(roles && (roles.gardener || roles.operator || roles.owner));
-  };
-  return {
+): FixedGardens {
+  /** The roles as the last good read found them. */
+  let read = new Map(chain?.roles);
+  let readAt: number | null = null;
+  let failedAt: number | null = null;
+  const directory: FixedGardens = {
+    unavailable: false,
+    cached: false,
+    reads: 0,
     list: () => gardens,
-    gardensOf: (account) => gardens.filter((garden) => reportsTo(garden, account)),
-    refresh: async () => undefined,
+    membershipsOf(account) {
+      // With no current read the last good one answers, and only for an account it placed.
+      const down = directory.unavailable || failedAt !== null;
+      const granted = down || directory.cached ? read : chain?.roles;
+      const own = gardens.filter((garden) => {
+        const roles = granted?.get(`${garden.address}:${account.toLowerCase()}`);
+        return Boolean(roles && (roles.gardener || roles.operator || roles.owner));
+      });
+      return own.length > 0 || !down
+        ? { ok: true, gardens: own }
+        : { ok: false, reason: "unavailable" };
+    },
+    async refresh(nowMs, maxAgeMs = 5 * 60 * 1000, retryAfterMs = 30_000) {
+      if (failedAt !== null && nowMs - failedAt < retryAfterMs) return;
+      if (directory.unavailable) {
+        // An uncached list followed the chain until now, so that is what its last read held.
+        if (failedAt === null && !directory.cached) read = new Map(chain?.roles);
+        failedAt = nowMs;
+        readAt = null;
+        throw new Error("indexer unavailable");
+      }
+      failedAt = null;
+      if (readAt !== null && nowMs - readAt < maxAgeMs) return;
+      read = new Map(chain?.roles);
+      readAt = nowMs;
+      directory.reads += 1;
+    },
   };
+  return directory;
 }
 
 export const ACTION_REGISTRY = "0x00000000000000000000000000000000000000b0" as const;

@@ -14,7 +14,7 @@ import { useIntl } from "react-intl";
 import { parseEther, zeroAddress } from "viem";
 import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
-import { AdminDialog } from "../AdminDialog";
+import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
 import { AdminSelect, AdminTextField } from "../AdminTextField";
 import { DiscardChangesDialog } from "../DiscardChangesDialog";
 
@@ -61,10 +61,22 @@ export function CreateListingDialog({
   fractionId,
 }: CreateListingDialogProps) {
   const { formatMessage } = useIntl();
-  const { createListing, step, isCreating, error, reset, checkConfirmation } =
-    useCreateListing(gardenAddress);
+  const {
+    createListing,
+    step,
+    isCreating,
+    error,
+    reset,
+    checkConfirmation,
+    isCheckingConfirmation,
+    confirmWalletCancellation,
+  } = useCreateListing(gardenAddress, hypercertId);
   const [phase, setPhase] = useState<"configure" | "progress">("configure");
   const [submissionError, setSubmissionError] = useState<Error | null>(null);
+  const [reviewCancellation, setReviewCancellation] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const configuring = phase === "configure" && step === "idle";
+  const busy = isCreating && step !== "pending";
 
   const {
     register,
@@ -116,10 +128,10 @@ export function CreateListingDialog({
   };
 
   const handleClose = () => {
-    if (!isCreating) {
+    if (!busy && !isClearing) {
       setPhase("configure");
       setSubmissionError(null);
-      reset();
+      if (step !== "pending") reset();
       onOpenChange(false);
     }
   };
@@ -128,7 +140,7 @@ export function CreateListingDialog({
   // order is signed. Only the configure phase guards — once submission starts,
   // preventClose owns the close and a finished/failed run has nothing to lose.
   const dirtyClose = useDirtyClose({
-    isDirty: phase === "configure" && isDirty,
+    isDirty: configuring && isDirty,
     onClose: handleClose,
   });
 
@@ -147,10 +159,10 @@ export function CreateListingDialog({
         tone="garden"
         title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
         icon={RiExchangeDollarLine}
-        preventClose={isCreating}
-        hideCloseButton={isCreating}
+        preventClose={busy || isClearing}
+        hideCloseButton={busy || isClearing}
         actions={
-          phase === "configure" && step !== "pending" ? (
+          configuring ? (
             <>
               <AdminButton type="button" variant="text" onClick={handleClose}>
                 {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -164,7 +176,7 @@ export function CreateListingDialog({
             </>
           ) : (
             <>
-              {(step === "done" || isErrorState) && (
+              {(step === "done" || step === "pending" || isErrorState) && (
                 <AdminButton type="button" variant="text" onClick={handleClose}>
                   {step === "done"
                     ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
@@ -172,8 +184,22 @@ export function CreateListingDialog({
                 </AdminButton>
               )}
               {step === "pending" && (
-                <AdminButton type="button" onClick={() => void checkConfirmation()}>
+                <AdminButton
+                  type="button"
+                  disabled={isCheckingConfirmation || isClearing}
+                  onClick={() => void checkConfirmation()}
+                >
                   {formatMessage({ id: "app.account.checkConfirmation" })}
+                </AdminButton>
+              )}
+              {step === "pending" && (
+                <AdminButton
+                  type="button"
+                  variant="text"
+                  disabled={isCheckingConfirmation || isClearing}
+                  onClick={() => setReviewCancellation(true)}
+                >
+                  {formatMessage({ id: "app.account.reviewCancellation" })}
                 </AdminButton>
               )}
               {isErrorState && step !== "pending" && (
@@ -192,7 +218,7 @@ export function CreateListingDialog({
           )
         }
       >
-        {phase === "configure" && step !== "pending" ? (
+        {configuring ? (
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Price per unit */}
             <AdminTextField
@@ -280,6 +306,30 @@ export function CreateListingDialog({
           </div>
         )}
       </AdminDialog>
+      <AdminConfirmDialog
+        isOpen={reviewCancellation}
+        onClose={() => setReviewCancellation(false)}
+        tone="garden"
+        title={formatMessage({ id: "app.account.confirmCancellationTitle" })}
+        description={formatMessage({ id: "app.account.confirmCancellationDescription" })}
+        confirmLabel={formatMessage({ id: "app.account.confirmCancellation" })}
+        variant="warning"
+        isLoading={isClearing}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await confirmWalletCancellation(true);
+            setReviewCancellation(false);
+            setPhase("configure");
+          } catch {
+            setSubmissionError(
+              new Error(formatMessage({ id: "app.account.pendingRecoveryUnavailable" }))
+            );
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+      />
       <DiscardChangesDialog
         open={dirtyClose.confirmOpen}
         onKeepEditing={dirtyClose.cancelClose}

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   chainId: 11155111,
   reconcile: vi.fn(),
   clearDraft: vi.fn(),
+  peekDraft: vi.fn(),
   create: vi.fn(),
   updateStatus: vi.fn(),
 }));
@@ -28,7 +29,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     }),
 }));
 vi.mock("../../../hooks/garden/useGardenDraft", () => ({
-  useGardenDraft: () => ({ clearDraft: mocks.clearDraft }),
+  useGardenDraft: () => ({ clearDraft: mocks.clearDraft, peekDraft: mocks.peekDraft }),
 }));
 vi.mock("../../../modules/garden/create-garden-command", () => ({
   createGarden: mocks.create,
@@ -49,11 +50,15 @@ beforeEach(() => {
   resetCreateGardenStore();
   mocks.address = "0x1111111111111111111111111111111111111111";
   mocks.chainId = 11155111;
+  mocks.clearDraft.mockResolvedValue(true);
+  mocks.peekDraft.mockResolvedValue(null);
+  useCreateGardenStore.getState().selectDraftScope(mocks.address as `0x${string}`, mocks.chainId);
 });
 
 it.each([
   "confirmed",
   "unavailable",
+  "cleanup-failed",
 ])("settles only positively confirmed execution: %s", async (outcome) => {
   const pending = {
     accountAddress: mocks.address as `0x${string}`,
@@ -66,7 +71,8 @@ it.each([
     },
   };
   useCreateGardenStore.getState().recordPendingSubmission(pending);
-  if (outcome === "confirmed") {
+  if (outcome === "cleanup-failed") mocks.clearDraft.mockResolvedValue(false);
+  if (outcome !== "unavailable") {
     mocks.reconcile.mockResolvedValueOnce({
       status: "confirmed",
       transactionHash: `0x${"ab".repeat(32)}`,
@@ -79,7 +85,7 @@ it.each([
   await waitFor(() => expect(result.current.state.matches("pending")).toBe(true));
   act(() => result.current.checkConfirmation());
   await waitFor(() =>
-    expect(result.current.state.value).toBe(outcome === "confirmed" ? "success" : "pending")
+    expect(result.current.state.value).toBe(outcome !== "unavailable" ? "success" : "pending")
   );
   if (outcome === "confirmed") {
     expect(
@@ -87,6 +93,14 @@ it.each([
     ).toBeUndefined();
     expect(mocks.clearDraft).toHaveBeenCalled();
     expect(mocks.updateStatus).toHaveBeenCalledWith(pending.result.hash, "confirmed");
+  } else if (outcome === "cleanup-failed") {
+    expect(
+      useCreateGardenStore.getState().getPendingSubmission(pending.accountAddress, pending.chainId)
+        ?.result.confirmation
+    ).toBeUndefined();
+    expect(
+      useCreateGardenStore.getState().getPendingSubmission(pending.accountAddress, pending.chainId)
+    ).toBeDefined();
   } else {
     expect(
       useCreateGardenStore.getState().getPendingSubmission(pending.accountAddress, pending.chainId)
@@ -164,6 +178,7 @@ it.each([
   if (change === "account") mocks.address = "0x2222222222222222222222222222222222222222";
   else mocks.chainId = 42161;
   const store = useCreateGardenStore.getState();
+  store.selectDraftScope(mocks.address as `0x${string}`, mocks.chainId);
   store.setField("name", "Second garden");
   store.setField("slug", "second-garden");
   store.setField("description", "Second description");
@@ -191,4 +206,63 @@ it.each([
   const restored = renderHookWithProviders(() => useCreateGardenWorkflow());
   act(() => restored.result.current.openFlow());
   expect(restored.result.current.state.matches("pending")).toBe(true);
+});
+
+it("selects the remounted account's editable draft while retaining the previous account's proposal", () => {
+  const account = mocks.address as `0x${string}`;
+  useCreateGardenStore.getState().setField("name", "First account's garden");
+  useCreateGardenStore.getState().recordPendingSubmission({
+    accountAddress: account,
+    chainId: mocks.chainId,
+    gardenName: "First",
+    result: { hash: "0xFirst", sponsored: false, confirmation: "pending" },
+  });
+  const first = renderHookWithProviders(() => useCreateGardenWorkflow());
+  first.unmount();
+  mocks.address = "0x2222222222222222222222222222222222222222";
+  const second = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => second.result.current.openFlow());
+  expect(useCreateGardenStore.getState().form.name).toBe("");
+  expect(
+    useCreateGardenStore.getState().getPendingSubmission(account, mocks.chainId)?.result.hash
+  ).toBe("0xFirst");
+});
+
+it("keeps a send that completes after scope switching recoverable without another deployment", async () => {
+  const account = mocks.address as `0x${string}`;
+  const chain = mocks.chainId;
+  const store = useCreateGardenStore.getState();
+  store.setField("name", "First garden");
+  store.setField("slug", "first");
+  store.setField("description", "Description");
+  store.setField("location", "Earth");
+  store.setField("domains", [0]);
+  store.addGardener(account);
+  let finish!: (result: { hash: `0x${string}`; sponsored: boolean }) => void;
+  mocks.create.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  const first = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => {
+    first.result.current.openFlow();
+    first.result.current.goToReview();
+  });
+  act(() => {
+    first.result.current.submitCreation();
+  });
+  await waitFor(() => expect(mocks.create).toHaveBeenCalledOnce());
+  mocks.address = "0x2222222222222222222222222222222222222222";
+  first.rerender();
+  await act(async () => finish({ hash: "0xFirstExecution", sponsored: false }));
+  expect(store.getPendingSubmission(account, chain)?.result.hash).toBe("0xFirstExecution");
+  first.unmount();
+  mocks.address = account;
+  const restored = renderHookWithProviders(() => useCreateGardenWorkflow());
+  act(() => restored.result.current.openFlow());
+  expect(restored.result.current.state.matches("pending")).toBe(true);
+  act(() => restored.result.current.checkConfirmation());
+  await waitFor(() => expect(restored.result.current.state.matches("success")).toBe(true));
+  expect(mocks.create).toHaveBeenCalledOnce();
 });

@@ -72,6 +72,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
 vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     isLoading: false,
+    registrationScope: "11155111:owner",
     pendingEdits: mocks.pendingEdits,
     reconcileEdits: mocks.reconcileEdits,
     clearCompletedEdits: mocks.clearCompletedEdits,
@@ -151,6 +152,7 @@ describe("useActionEditorController", () => {
 
   beforeEach(() => {
     mocks.pendingEdits = [];
+    mocks.reconcileEdits.mockReset();
     vi.clearAllMocks();
     mocks.restoreDraft.mockReturnValue(null);
     mocks.updateEndTime.mockResolvedValue({ success: true });
@@ -221,5 +223,74 @@ describe("useActionEditorController", () => {
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.clearDraft).not.toHaveBeenCalled();
     expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it.each([
+    false,
+    true,
+  ])("consumes a confirmed edit without discarding remaining fields: %s", async (remaining) => {
+    mocks.pendingEdits = [["pending", {}]];
+    mocks.reconcileEdits.mockResolvedValue({
+      confirmed: [
+        {
+          key: "11155111:owner:updateActionTitle:42",
+          fingerprint: JSON.stringify(["42", "Updated action"]),
+        },
+      ],
+      unresolved: false,
+      reverted: false,
+    });
+    const view = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(view.result.current.form.getValues("title")).toBe("Original action")
+    );
+    const data = {
+      title: "Updated action",
+      startTime: remaining ? new Date(originalStart.getTime() + 3600000) : originalStart,
+      endTime: originalEnd,
+    };
+    act(() => view.result.current.form.reset(data));
+    await act(() => view.result.current.checkConfirmation());
+    expect(mocks.clearCompletedEdits).toHaveBeenCalled();
+    expect(mocks.updateTitle).not.toHaveBeenCalled();
+    if (remaining) {
+      expect(mocks.navigate).not.toHaveBeenCalled();
+      expect(mocks.clearDraft).not.toHaveBeenCalled();
+      mocks.pendingEdits = [];
+      view.rerender();
+      await act(() => view.result.current.submit(data));
+      expect(mocks.updateTitle).not.toHaveBeenCalled();
+      expect(mocks.updateStartTime).toHaveBeenCalledOnce();
+    }
+    expect(mocks.navigate).toHaveBeenCalledWith("/actions/action-42");
+    expect(mocks.clearDraft).toHaveBeenCalledOnce();
+  });
+
+  it("does not let a late confirmation navigate or clear a replacement screen", async () => {
+    let finish!: (value: {
+      confirmed: { key: string; fingerprint: string }[];
+      unresolved: boolean;
+      reverted: boolean;
+    }) => void;
+    mocks.pendingEdits = [["pending", {}]];
+    mocks.reconcileEdits.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const view = renderHook(() => useActionEditorController(), { wrapper });
+    await waitFor(() =>
+      expect(view.result.current.form.getValues("title")).toBe("Original action")
+    );
+    let checking!: Promise<void>;
+    act(() => {
+      checking = view.result.current.checkConfirmation();
+    });
+    view.unmount();
+    await act(async () => {
+      finish({ confirmed: [], unresolved: false, reverted: false });
+      await checking;
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
+    expect(mocks.clearDraft).not.toHaveBeenCalled();
   });
 });

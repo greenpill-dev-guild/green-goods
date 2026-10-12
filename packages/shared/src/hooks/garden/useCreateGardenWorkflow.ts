@@ -9,7 +9,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useMachine } from "@xstate/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { isAddress } from "viem";
 import {
   getTransactionScopeKey,
@@ -68,8 +68,12 @@ export function useCreateGardenWorkflow() {
     (state: AdminState) => state.updateTransactionStatus
   );
 
+  useLayoutEffect(() => {
+    if (address) useCreateGardenStore.getState().selectDraftScope(address, selectedChainId);
+  }, [address, selectedChainId]);
+
   // Draft persistence via IndexedDB (auto-saves on store changes)
-  const draft = useGardenDraft(address, { enabled: !!address });
+  const draft = useGardenDraft(address, { enabled: !!address, chainId: selectedChainId });
 
   // Get store actions for step navigation
   const storeNextStep = useCreateGardenStore((s) => s.nextStep);
@@ -159,11 +163,14 @@ export function useCreateGardenWorkflow() {
               transactionSender: currentSender,
               addPending: () => {},
             });
-            const outcome = await ports.sender.reconcile(
-              pending.result.hash,
-              pending.chainId,
-              pending.result.broadcastReference
-            );
+            const outcome =
+              pending.result.confirmation !== "pending"
+                ? { status: "confirmed" as const, transactionHash: pending.result.hash }
+                : await ports.sender.reconcile(
+                    pending.result.hash,
+                    pending.chainId,
+                    pending.result.broadcastReference
+                  );
             if (
               signal.aborted ||
               useCreateGardenStore
@@ -187,21 +194,24 @@ export function useCreateGardenWorkflow() {
             }
             if (outcome.status !== "confirmed") return input;
             dependenciesRef.current.updateTransactionStatus(pending.result.hash, "confirmed");
-            trackAdminGardenCreateSuccess({
-              gardenName: pending.gardenName,
-              gardenAddress: getNetworkContracts(pending.chainId).gardenToken,
-              chainId: pending.chainId,
-              txHash: outcome.transactionHash,
-            });
+            if (!pending.successTracked)
+              trackAdminGardenCreateSuccess({
+                gardenName: pending.gardenName,
+                gardenAddress: getNetworkContracts(pending.chainId).gardenToken,
+                chainId: pending.chainId,
+                txHash: outcome.transactionHash,
+              });
             queryInvalidation
               .invalidateGardens(pending.chainId)
               .forEach((queryKey) =>
                 dependenciesRef.current.queryClient.invalidateQueries({ queryKey })
               );
             dependenciesRef.current.scheduleGardenRefresh();
-            useCreateGardenStore
-              .getState()
-              .clearPendingSubmission(pending.accountAddress, pending.chainId);
+            useCreateGardenStore.getState().recordPendingSubmission({
+              ...pending,
+              successTracked: true,
+              result: { ...pending.result, hash: outcome.transactionHash, confirmation: undefined },
+            });
             return { hash: outcome.transactionHash, sponsored: input.sponsored };
           }),
           submitGarden: fromPromise<TxResult, void>(async () => {
@@ -250,6 +260,8 @@ export function useCreateGardenWorkflow() {
                     gardenName: params.name,
                   }),
                 clearCheckpoint: (result) => {
+                  // A successful send remains recoverable until its draft is consumed.
+                  if (result.confirmation !== "pending") return;
                   const store = useCreateGardenStore.getState();
                   if (
                     store.getPendingSubmission(accountAddress, currentChainId)?.result.hash ===
@@ -272,14 +284,25 @@ export function useCreateGardenWorkflow() {
                 return result;
               }
               const txHash = result.hash;
+              const pending = useCreateGardenStore
+                .getState()
+                .getPendingSubmission(accountAddress, currentChainId);
+              useCreateGardenStore.getState().recordPendingSubmission({
+                accountAddress,
+                chainId: currentChainId,
+                gardenName: params.name,
+                result,
+                successTracked: true,
+              });
               const contracts = getNetworkContracts(currentChainId);
 
-              trackAdminGardenCreateSuccess({
-                gardenName: params.name,
-                gardenAddress: contracts.gardenToken,
-                chainId: currentChainId,
-                txHash,
-              });
+              if (!pending?.successTracked)
+                trackAdminGardenCreateSuccess({
+                  gardenName: params.name,
+                  gardenAddress: contracts.gardenToken,
+                  chainId: currentChainId,
+                  txHash,
+                });
 
               // Invalidate garden queries so the list updates immediately
               queryInvalidation
@@ -343,10 +366,20 @@ export function useCreateGardenWorkflow() {
   useEffect(() => {
     if (state.value === "success" && state.context.txHash) {
       updateTransactionStatus(state.context.txHash, "confirmed");
-      // Clear draft on successful garden creation
-      void draft.clearDraft();
+      // Screen cancellation cannot lose an accepted operation. Consume only this scope.
+      const pending = address
+        ? useCreateGardenStore.getState().getPendingSubmission(address, selectedChainId)
+        : undefined;
+      if (pending && pending.result.hash === state.context.txHash) {
+        void draft.clearDraft().then(async (cleared) => {
+          if (!cleared || (await draft.peekDraft())) return;
+          const store = useCreateGardenStore.getState();
+          if (store.getPendingSubmission(pending.accountAddress, pending.chainId) === pending)
+            store.clearPendingSubmission(pending.accountAddress, pending.chainId);
+        });
+      }
     }
-  }, [state.value, state.context.txHash, updateTransactionStatus, draft]);
+  }, [state.value, state.context.txHash, updateTransactionStatus, draft, address, selectedChainId]);
 
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {

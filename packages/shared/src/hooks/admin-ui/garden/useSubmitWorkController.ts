@@ -171,8 +171,8 @@ export function useSubmitWorkController({
     (published.kind === "direct" || published.kind === "processed") &&
     published.txHash === mutation.data &&
     !isOfflineTxHash(published.txHash);
-  const panelDirty = !sent && (form.formState.isDirty || images.length > 0);
   const submitted = sent || published?.kind === "awaiting-confirmation";
+  const panelDirty = !submitted && (form.formState.isDirty || images.length > 0);
   useEffect(() => {
     onDirtyChange?.(panelDirty);
     return () => onDirtyChange?.(false);

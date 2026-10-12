@@ -43,6 +43,7 @@ import {
 } from "../../../services/reporting/worker";
 import type { ReportingGarden } from "../../../services/reporting/gardens";
 import {
+  type FixedGardens,
   FixtureCatalog,
   FixtureInterpreter,
   fixedGardens,
@@ -110,10 +111,13 @@ export class Harness {
     this.chain.kernels.has(address.toLowerCase())
       ? signature === "0x6b65726e656c"
       : verifyMessage({ address, message, signature });
+  /** The garden directory; a test sets `unavailable` to stand in for an indexer that is down. */
+  readonly gardens: FixedGardens;
   core: ReportingCore;
   private eventCounter = 0;
 
   constructor(private readonly options: HarnessOptions = {}) {
+    this.gardens = fixedGardens(options.gardens, this.chain);
     this.core = this.open();
     ensureControls(this.core, {
       intake: true,
@@ -176,7 +180,7 @@ export class Harness {
         browserOrigin: "https://greengoods.test",
         ...this.options.settings,
       },
-      gardens: fixedGardens(this.options.gardens, this.chain),
+      gardens: this.gardens,
     };
   }
 

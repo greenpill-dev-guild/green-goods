@@ -81,7 +81,7 @@ describe("accepted submission ledgers", () => {
     const store = useListingSubmissionStore.getState();
     store.record(listing);
     store.record({ ...listing, account: other });
-    store.clear(listingSubmissionKey(account, 11155111, garden));
+    store.clear(listingSubmissionKey(account, 11155111, garden, listing.hypercertId));
     expect(Object.values(useListingSubmissionStore.getState().pending)).toEqual([
       { ...listing, account: other },
     ]);
@@ -90,7 +90,7 @@ describe("accepted submission ledgers", () => {
     const store = useListingSubmissionStore.getState();
     store.record(listing);
     store.record({ ...listing, chainId: 42161 });
-    store.clear(listingSubmissionKey(account, 11155111, garden));
+    store.clear(listingSubmissionKey(account, 11155111, garden, listing.hypercertId));
     expect(Object.values(useListingSubmissionStore.getState().pending)).toEqual([
       { ...listing, chainId: 42161 },
     ]);

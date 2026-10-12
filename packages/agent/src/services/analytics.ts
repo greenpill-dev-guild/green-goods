@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { PostHog } from "posthog-node";
 import { createLogger } from "./logger";
 import type { InboundMessage, OutboundResponse, Platform } from "../types";
+import type {
+  GardenJoinRequestedVia,
+  GardenJoinRequestKind,
+} from "@green-goods/shared/public-contracts/join-requests";
 
 const log = createLogger("analytics");
 const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
@@ -25,6 +29,7 @@ type GardenJoinRequestAnalyticsProperties = {
   count?: number;
   error_class?:
     | "already_member"
+    | "already_steward"
     | "authentication_failed"
     | "invalid_request"
     | "open_joining"
@@ -33,8 +38,8 @@ type GardenJoinRequestAnalyticsProperties = {
     | "rate_limited"
     | "service_unavailable";
   is_counterfactual?: boolean;
-  kind?: "garden_membership";
-  requested_via?: "garden_detail";
+  kind?: GardenJoinRequestKind;
+  requested_via?: GardenJoinRequestedVia;
   resolution?: "declined" | "welcomed";
   retry?: boolean;
   /** The dependency a rejected create was waiting on when it failed. */
@@ -42,6 +47,7 @@ type GardenJoinRequestAnalyticsProperties = {
     | "signature_verification"
     | "open_joining_read"
     | "membership_read"
+    | "steward_read"
     | "proof_claim"
     | "store_create";
   state?: "declined" | "none" | "pending" | "welcomed";

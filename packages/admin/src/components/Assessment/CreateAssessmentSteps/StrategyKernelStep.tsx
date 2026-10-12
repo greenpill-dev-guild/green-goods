@@ -2,13 +2,13 @@ import { DOMAIN_METRICS } from "@green-goods/shared/config/domain";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
 import { RiAddLine } from "@remixicon/react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useId, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { AdminButton } from "../../AdminButton";
 import { AdminSelectableCard } from "../../AdminSelectableCard";
 import { AdminTextArea } from "../../AdminTextField";
 import { formatDomainGuidance, knownDomain, Section } from "./shared";
-import { AssessmentOutcomeFields } from "./AssessmentOutcomeFields";
+import { AssessmentOutcomeFields, AssessmentOutcomeHelp } from "./AssessmentOutcomeFields";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -143,6 +143,12 @@ export function StrategyKernelStep({
 }: StrategyKernelStepProps) {
   const intl = useIntl();
   const { formatMessage } = intl;
+  const helpId = useId();
+  const outcomeHelpIds = {
+    description: `${helpId}-outcome`,
+    metric: `${helpId}-metric`,
+    target: `${helpId}-target`,
+  };
 
   const form = useCreateAssessmentStore((s) => s.form);
   const setField = useCreateAssessmentStore((s) => s.setField);
@@ -362,6 +368,7 @@ export function StrategyKernelStep({
           </AdminButton>
         }
       >
+        <AssessmentOutcomeHelp helpIds={outcomeHelpIds} />
         {smartOutcomeExample ? (
           <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
         ) : null}
@@ -375,6 +382,7 @@ export function StrategyKernelStep({
               <AssessmentOutcomeFields
                 key={index}
                 outcome={outcome}
+                helpIds={outcomeHelpIds}
                 metrics={metrics}
                 selectedMetricCounts={selectedMetricCounts}
                 errors={{

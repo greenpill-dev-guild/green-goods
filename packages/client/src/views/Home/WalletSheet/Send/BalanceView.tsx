@@ -154,7 +154,7 @@ export function BalanceView({
                     token.balance === null && !balancePending ? unavailableLabel : balanceText,
                 }
               )}
-              className="flex w-full items-center justify-between gap-3 rounded-lg p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-between gap-3 rounded-lg p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

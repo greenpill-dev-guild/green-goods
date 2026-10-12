@@ -31,13 +31,13 @@ type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeSta
 function badgeIcon(slug: string) {
   switch (slug) {
     case "genesis":
-      return <RiSeedlingLine className="h-5 w-5 text-primary" />;
+      return <RiSeedlingLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-work":
-      return <RiHammerLine className="h-5 w-5 text-primary" />;
+      return <RiHammerLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-support":
-      return <RiCoinsLine className="h-5 w-5 text-primary" />;
+      return <RiCoinsLine className="h-5 w-5 text-primary-on-surface" />;
     default:
-      return <RiAwardLine className="h-5 w-5 text-primary" />;
+      return <RiAwardLine className="h-5 w-5 text-primary-on-surface" />;
   }
 }
 
@@ -379,7 +379,7 @@ export const ProfileBadges: React.FC = () => {
               type="button"
               data-pressable="card"
               onClick={() => setOpenedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/30"
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",

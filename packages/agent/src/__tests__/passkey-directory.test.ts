@@ -16,6 +16,7 @@ import {
 const DOMAIN = "greengoods.app";
 const BETA = "https://beta.greengoods.app";
 const WWW = "https://www.greengoods.app";
+const ADMIN = "https://admin.greengoods.app";
 const PREVIEW = "https://green-goods-git-some-branch-greenpilldevguild.vercel.app";
 const LOCALHOST = "http://localhost:3001";
 const LOOPBACK_ADDRESS = "http://127.0.0.1:3001";
@@ -28,7 +29,7 @@ function createDirectoryApp(
   const store = new MemoryPasskeyDirectoryStore();
   const app = createServer({
     isAIReady: () => true,
-    allowedOrigins: new Set([BETA, WWW, LOCALHOST, LOOPBACK_ADDRESS]),
+    allowedOrigins: new Set([BETA, WWW, ADMIN, LOCALHOST, LOOPBACK_ADDRESS]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     passkeyDirectory: createPasskeyDirectory({
       store,
@@ -109,10 +110,12 @@ describe("passkey directory", () => {
       publicKey: passkey.publicKey,
       userName: "ana",
     });
-    const found = await call(app, "pks_getCredentials", [{ userName: "ana" }], WWW);
-    expect(found.result).toEqual([
-      { id: passkey.credentialId, publicKey: passkey.publicKey, rpId: DOMAIN },
-    ]);
+    for (const origin of [WWW, ADMIN]) {
+      const found = await call(app, "pks_getCredentials", [{ userName: "ana" }], origin);
+      expect(found.result).toEqual([
+        { id: passkey.credentialId, publicKey: passkey.publicKey, rpId: DOMAIN },
+      ]);
+    }
   });
 
   it("holds a name for its first owner, however it is spelled", async () => {
@@ -190,7 +193,48 @@ describe("passkey directory", () => {
     expect(await slow.store.findByName("bea")).toBeUndefined();
   });
 
-  it("answers only sites under its own domain", async () => {
+  it.each([
+    "https://unapproved.greengoods.app",
+    PREVIEW,
+    "https://beta.greengoods.app:444",
+    "http://beta.greengoods.app",
+    "https://example.com",
+    "",
+  ])("refuses every directory call and preflight from an unlisted site: %s", async (origin) => {
+    const { app } = createDirectoryApp();
+    for (const method of [
+      "pks_startRegistration",
+      "pks_verifyRegistration",
+      "pks_getCredentials",
+    ]) {
+      const response = await app.request(PUBLIC_AGENT_ROUTES.passkeyDirectory, {
+        method: "POST",
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [{}] }),
+      });
+      expect(response.status).toBe(403);
+      expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    }
+    const preflight = await app.request(PUBLIC_AGENT_ROUTES.passkeyDirectory, {
+      method: "OPTIONS",
+      headers: { origin, "access-control-request-method": "POST" },
+    });
+    expect(preflight.status).toBe(403);
+    expect(preflight.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("uses the router's decoded path when refusing an unlisted preview", async () => {
+    const { app } = createDirectoryApp();
+    const response = await app.request("/public/passkeys/%72pc", {
+      method: "POST",
+      headers: { origin: PREVIEW, "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "pks_getCredentials", params: [{}] }),
+    });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("requires the listed site's passkey domain, with localhost only in development", async () => {
     const { app } = createDirectoryApp();
 
     const unlisted = await app.request(PUBLIC_AGENT_ROUTES.passkeyDirectory, {
@@ -200,9 +244,6 @@ describe("passkey directory", () => {
     });
     expect(unlisted.status).toBe(403);
 
-    // A preview deployment may call the agent, but a browser would never let it use the domain.
-    const preview = await call(app, "pks_startRegistration", [{ userName: "ana" }], PREVIEW);
-    expect(preview.error?.message).toBe("Passkeys are not available from this origin.");
     const local = await call(app, "pks_startRegistration", [{ userName: "ana" }], LOCALHOST);
     expect(local.error?.message).toBe("Passkeys are not available from this origin.");
 
@@ -253,12 +294,7 @@ describe("passkey directory", () => {
     const { app, advance } = createDirectoryApp();
     const { limit, windowMs } = PUBLIC_RATE_LIMIT_POLICIES[route];
     for (let attempt = 0; attempt < limit; attempt += 1) {
-      const origin =
-        route === "passkey_lookup"
-          ? `https://green-goods-qa-${attempt}-greenpilldevguild.vercel.app`
-          : attempt % 2 === 0
-            ? BETA
-            : WWW;
+      const origin = attempt % 2 === 0 ? BETA : WWW;
       // A valid name must not share the aggregate bucket's internal material.
       const userName = attempt === 0 ? "all-names" : `name-${attempt}`;
       expect((await call(app, method, [{ userName }], origin)).error).toBeUndefined();

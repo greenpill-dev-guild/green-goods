@@ -67,7 +67,6 @@ export function confirmerOf(
 export function CommitmentPeople({
   commitment,
   contributors,
-  seat,
   units,
   viewer,
   stewards,
@@ -93,6 +92,15 @@ export function CommitmentPeople({
     asker && !same(asker, commitment.leadProvider) && !same(asker, confirmer)
   );
   const you = formatMessage({ id: "app.commitment.people.you" });
+  const identity = (address: Address) =>
+    same(address, viewer) ? (
+      <div className="min-w-0 text-right">
+        <span className="block font-semibold text-primary-on-surface">{you}</span>
+        <AddressDisplay address={address} className="text-xs text-text-sub-600" />
+      </div>
+    ) : (
+      <AddressDisplay address={address} />
+    );
   const confirmerIsSteward = Boolean(
     confirmer && stewards.some((steward) => same(steward, confirmer))
   );
@@ -128,8 +136,7 @@ export function CommitmentPeople({
         <Fact
           icon={<RiUserLine />}
           label={formatMessage({ id: "app.commitment.people.provider" })}
-          value={<AddressDisplay address={commitment.leadProvider} />}
-          tag={seat === "provider" ? you : null}
+          value={identity(commitment.leadProvider)}
         />
       ) : null}
 
@@ -137,7 +144,7 @@ export function CommitmentPeople({
         <Fact
           icon={<RiQuestionAnswerLine />}
           label={formatMessage({ id: "app.commitment.people.askedBy" })}
-          value={<AddressDisplay address={asker} />}
+          value={identity(asker)}
         />
       ) : null}
 
@@ -167,11 +174,9 @@ export function CommitmentPeople({
         <Fact
           icon={<RiShieldCheckLine />}
           label={formatMessage({ id: "app.commitment.people.confirmer" })}
-          value={<AddressDisplay address={(confirmer ?? confirmingGarden) as Address} />}
+          value={identity((confirmer ?? confirmingGarden) as Address)}
           tag={
-            seat === "confirmer" ? (
-              you
-            ) : confirmerIsSteward ? (
+            confirmerIsSteward ? (
               <>
                 <RiShieldCheckLine className="h-3 w-3" aria-hidden="true" />
                 {formatMessage({ id: "app.roles.steward" })}

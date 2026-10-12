@@ -88,6 +88,25 @@ describe("useLoginScreenController", () => {
     expect(auth.current[ceremony]).not.toHaveBeenCalled();
   });
 
+  it("says no account was created when the prompt closes on a new account, and only then", async () => {
+    const closed = Object.assign(new Error("The operation was not allowed."), {
+      name: "NotAllowedError",
+    });
+    const { result, rerender } = renderController();
+
+    act(() => result.current.setUsername("ada"));
+    await act(async () => result.current.createAccount());
+    auth.current = { ...auth.current, error: closed };
+    rerender();
+    expect(result.current.loginError).toBe("No account was created. Try again.");
+
+    // The next attempt is a sign-in: the same dismissal reads as a cancelled sign-in again.
+    await act(async () => result.current.loginWithPasskey());
+    auth.current = { ...auth.current, error: Object.assign(new Error(closed.message), closed) };
+    rerender();
+    expect(result.current.loginError).toBe("Sign in was cancelled.");
+  });
+
   it("tells the user when recovery signed in to a different account than the one they named", async () => {
     const show = vi.spyOn(toastService, "show").mockReturnValue("fallback");
     const { result, rerender } = renderController();

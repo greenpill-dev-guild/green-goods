@@ -21,6 +21,9 @@ export interface AppSheetHeaderProps {
 export interface AppSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  covered?: boolean;
+  entryMotion?: "slide" | "instant";
+  viewTransitionName?: string;
   header: AppSheetHeaderProps;
   tabs?: AppSheetTab[];
   activeTab?: string;
@@ -62,6 +65,9 @@ export interface AppSheetProps {
 export const AppSheet: FC<AppSheetProps> = ({
   isOpen,
   onClose,
+  covered,
+  entryMotion,
+  viewTransitionName,
   header,
   tabs = [],
   activeTab,
@@ -132,6 +138,9 @@ export const AppSheet: FC<AppSheetProps> = ({
     <PwaSheet
       open={isOpen}
       onClose={onClose}
+      covered={covered}
+      entryMotion={entryMotion}
+      viewTransitionName={viewTransitionName}
       size={size}
       preventClose={preventClose}
       title={header.title}

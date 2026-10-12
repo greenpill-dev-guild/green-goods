@@ -162,8 +162,8 @@ describe("ImpactPage", () => {
   it("renders confirmed proof markers from usePublicStats", () => {
     renderView();
     expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gardens with approved work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Approved submissions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("30")).toBeInTheDocument();

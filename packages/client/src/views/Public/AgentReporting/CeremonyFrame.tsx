@@ -166,14 +166,15 @@ export function StageNotice({
   /** Replaces the variant's icon: a clock before sending, a spinner while waiting. */
   icon?: ReactNode;
   title: MessageDescriptor;
-  body: MessageDescriptor;
+  /** A message to format, or words that arrive already said, as a failed sign-in's do. */
+  body: MessageDescriptor | string;
   values?: Record<string, string | number>;
 }) {
   const intl = useIntl();
   return (
     <Alert variant={variant} layout="stacked" icon={icon} title={intl.formatMessage(title)}>
       <p id={id} data-component="CeremonyStageNotice">
-        {intl.formatMessage(body, values)}
+        {typeof body === "string" ? body : intl.formatMessage(body, values)}
       </p>
     </Alert>
   );

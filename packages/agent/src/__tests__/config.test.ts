@@ -236,6 +236,8 @@ describe("production Saved Offers configuration", () => {
     "JOIN_REQUESTS_PRODUCTION_READY",
     "AGENT_TRUSTED_PROXY_HOPS",
     "AGENT_TRUSTED_PROXY_CIDRS",
+    "PIMLICO_API_KEY",
+    "VITE_PIMLICO_API_KEY",
   ] as const;
   const original = new Map<string, string | undefined>(
     ENV_KEYS.map((key) => [key, process.env[key]])
@@ -255,6 +257,8 @@ describe("production Saved Offers configuration", () => {
     process.env.JOIN_REQUESTS_PRODUCTION_READY = "true";
     process.env.AGENT_TRUSTED_PROXY_HOPS = "1";
     process.env.AGENT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8";
+    process.env.PIMLICO_API_KEY = "legacy-name-check-key";
+    delete process.env.VITE_PIMLICO_API_KEY;
   });
 
   afterEach(() => {
@@ -271,6 +275,7 @@ describe("production Saved Offers configuration", () => {
     ["JOIN_REQUESTS_PRODUCTION_READY", "JOIN_REQUESTS_PRODUCTION_READY"],
     ["AGENT_TRUSTED_PROXY_HOPS", "AGENT_TRUSTED_PROXY_HOPS"],
     ["AGENT_TRUSTED_PROXY_CIDRS", "AGENT_TRUSTED_PROXY_CIDRS"],
+    ["PIMLICO_API_KEY", "PIMLICO_API_KEY"],
   ] as const)("fails startup when %s is missing", (envKey, message) => {
     delete process.env[envKey];
     expect(() => validateConfig(loadConfig())).toThrow(message);
@@ -278,6 +283,23 @@ describe("production Saved Offers configuration", () => {
 
   it("accepts the complete production Saved Offers configuration", () => {
     expect(() => validateConfig(loadConfig())).not.toThrow();
+  });
+
+  it("reuses the existing Pimlico key for legacy passkey names", () => {
+    const config = loadConfig();
+    expect(config.passkeyHostedDirectoryUrl).toBe(
+      `https://api.pimlico.io/v2/${config.chainId}/rpc?apikey=legacy-name-check-key`
+    );
+  });
+
+  it("accepts the root browser key when no server key is set and encodes it", () => {
+    delete process.env.PIMLICO_API_KEY;
+    process.env.VITE_PIMLICO_API_KEY = "root key&value";
+    const config = loadConfig();
+    expect(config.passkeyHostedDirectoryUrl).toBe(
+      `https://api.pimlico.io/v2/${config.chainId}/rpc?apikey=root%20key%26value`
+    );
+    expect(() => validateConfig(config)).not.toThrow();
   });
 
   it("allows production startup while the join-request queue is disabled", () => {

@@ -17,6 +17,7 @@ export async function createDraftUploadPersistence(
   await onCheckpoint(draft.uploadCheckpoint);
   return {
     clientWorkId: record.clientWorkId,
+    linkIntent: record.linkIntent,
     onCheckpoint,
     onBroadcast: async (hash: `0x${string}`) =>
       onCheckpoint({ ...draft.uploadCheckpoint!, transactionHash: hash }),

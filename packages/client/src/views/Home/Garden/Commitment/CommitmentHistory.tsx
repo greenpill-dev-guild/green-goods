@@ -186,7 +186,7 @@ function HistoryLine({
           local
             ? "border border-dashed border-warning-base"
             : latest
-              ? "bg-primary"
+              ? "bg-primary-on-surface"
               : "bg-stroke-sub-300"
         )}
       />

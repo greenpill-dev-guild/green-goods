@@ -28,14 +28,14 @@ const meta: Meta<typeof SeedStepWhat> = {
     docs: {
       description: {
         component:
-          "Step one of the seeding console. The steward says what kind of commitment this is, which way it runs, which season or campaign holds it, and the words a member will read on it. The title stops at 60 characters and the note at 280, both counted as the steward types.",
+          "Step one of the seeding console. The steward says which season or campaign holds the commitment, whether it is support or garden work, and which way it runs, and the words a member will read on it. The title stops at 60 characters and the note at 280, both counted as the steward types.",
       },
     },
   },
   args: {
     values: {
       ...COMMITMENT_COMPOSER_DEFAULTS,
-      kind: "SEASON_CAMPAIGN",
+      kind: "SERVICE",
       cycleId: "12",
       title: "Market rides for the co-op",
       note: "Riders take produce from the garden to Saturday market.",
@@ -60,6 +60,18 @@ type Story = StoryObj<typeof SeedStepWhat>;
 
 export const SeasonOffer: Story = {};
 
+export const GardenWork: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "GARDEN_WORK",
+      cycleId: "12",
+      title: "Prune the orchard",
+      unitLabel: "hours",
+    },
+  },
+};
+
 export const ServiceRequest: Story = {
   args: {
     values: {
@@ -75,7 +87,7 @@ export const ServiceRequest: Story = {
 
 export const MissingTitle: Story = {
   args: {
-    values: { ...COMMITMENT_COMPOSER_DEFAULTS, kind: "SEASON_CAMPAIGN", cycleId: "12", title: "" },
+    values: { ...COMMITMENT_COMPOSER_DEFAULTS, kind: "SERVICE", cycleId: "12", title: "" },
     errorOf: (field) => (field === "title" ? "Give it a name" : undefined),
   },
 };

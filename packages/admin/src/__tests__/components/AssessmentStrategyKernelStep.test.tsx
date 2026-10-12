@@ -73,7 +73,7 @@ describe("StrategyKernelStep", () => {
     expect(screen.queryByText(/kWh|solar panels|rooftop/i)).not.toBeInTheDocument();
   });
 
-  it("says under each field what it holds, on every outcome row", () => {
+  it("explains outcome fields once while keeping every row and its errors described", () => {
     useCreateAssessmentStore.setState((state) => ({
       form: {
         ...state.form,
@@ -87,6 +87,10 @@ describe("StrategyKernelStep", () => {
 
     renderStrategyStep();
 
+    // One visible explanation serves every row without losing its accessible association.
+    expect(screen.getAllByText("The change you want to see")).toHaveLength(1);
+    expect(screen.getAllByText("What you'll count")).toHaveLength(1);
+    expect(screen.getAllByText("How much")).toHaveLength(1);
     // Outcome is the change, Metric what is counted, Target how much (DL-079).
     for (const outcome of screen.getAllByRole("textbox", { name: "Outcome" })) {
       expect(outcome).toHaveAccessibleDescription("The change you want to see");
@@ -97,7 +101,7 @@ describe("StrategyKernelStep", () => {
     // A field's own error takes its line; the fields beside it keep theirs.
     const [metric, unsetMetric] = screen.getAllByRole("combobox", { name: "Metric" });
     expect(metric).toHaveAccessibleDescription("What you'll count");
-    expect(unsetMetric).toHaveAccessibleDescription("Select a metric");
+    expect(unsetMetric).toHaveAccessibleDescription("Select a metric What you'll count");
   });
 
   it("explains persisted duplicate metric selections", () => {

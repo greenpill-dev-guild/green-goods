@@ -11,8 +11,11 @@ import {
 } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import type { SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
+import { releaseStuckDialogArtifacts } from "./Layout/dialogCloseSafetyNet";
 
 // ============================================================================
 // Types
@@ -34,6 +37,10 @@ export interface AdminDialogProps {
   children: ReactNode;
   actions?: ReactNode;
   size?: "sm" | "md" | "lg";
+  /** Keep a single-purpose flow stable across steps; the body scrolls inside. */
+  height?: "content" | "stable";
+  /** Shared mobile sheet tier (DL-014); desktop uses the dialog's own sizing. */
+  sheetSize?: SheetSize;
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
@@ -118,8 +125,8 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
 // (e.g. the hypercert attestation list resolving on step 1) can't resize the
 // dialog mid-open — the body scrolls inside and the footer stays pinned, the way
 // ActionFlowShell is designed. Centralized so the three flows can't drift.
-export const ADMIN_FLOW_DIALOG_CLASS =
-  "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
+const flowHeightClasses = "[--admin-flow-height:90dvh] sm:[--admin-flow-height:85dvh]";
+export const ADMIN_FLOW_DIALOG_CLASS = `${flowHeightClasses} min-h-[var(--admin-flow-height)] sm:min-h-0 sm:h-[var(--admin-flow-height)] sm:!max-w-3xl lg:!max-w-5xl`;
 
 const mobileSheetClasses = cn(
   "fixed inset-x-0 bottom-0 z-modal flex max-h-[calc(100dvh-1rem)] w-[100dvw] max-w-none flex-col",
@@ -169,6 +176,8 @@ export function AdminDialog({
   children,
   actions,
   size = "md",
+  height = "content",
+  sheetSize,
   variant = "standard",
   bodyClassName,
   actionsClassName,
@@ -185,6 +194,8 @@ export function AdminDialog({
   tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  const rendersAsSheet = useMediaQuery("(max-width: 639px)");
+  const mobileSheetSize = rendersAsSheet ? sheetSize : undefined;
   // Hidden tabs freeze CSS animations, so a close that happens while the tab
   // is backgrounded would never fire animationend — Radix Presence keeps the
   // exit node (and its body pointer-events lock) forever. Closing with
@@ -206,6 +217,14 @@ export function AdminDialog({
     } else if (document.visibilityState === "hidden") {
       setInstantExit(true);
     }
+  }, [open]);
+  useEffect(() => {
+    if (open) return;
+    // Query-backed dialogs can close without navigation or a visibility change.
+    // Give normal exits time to finish, then recover missed animationend events
+    // through Radix's lifecycle; open dialogs and running exits keep their locks.
+    const recovery = window.setTimeout(() => releaseStuckDialogArtifacts(document), 1000);
+    return () => window.clearTimeout(recovery);
   }, [open]);
   // Palette + flow let the consumer own the visible header chrome; the
   // structured header (icon/title/description) is suppressed and the title is
@@ -243,6 +262,7 @@ export function AdminDialog({
           data-variant={variant}
           data-tone={tone}
           data-mobile="sheet"
+          data-sheet-size={mobileSheetSize}
           data-size={size}
           data-instant-exit={instantExit || undefined}
           role={role}
@@ -266,6 +286,7 @@ export function AdminDialog({
             // overflow-hidden clips the footer's raised background to the
             // rounded corners. Body scrolling happens inside the body slot.
             "overflow-hidden p-0",
+            height === "stable" && cn(!mobileSheetSize && "h-[90dvh]", "sm:h-[min(75dvh,42rem)]"),
             sizeClasses[size],
             variantClasses[variant],
             className

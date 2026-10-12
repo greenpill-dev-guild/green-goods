@@ -116,7 +116,10 @@ export const PendingCard: React.FC<PendingCardProps> = ({
           <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-text-sub-600">
             {marker ? (
               <>
-                <RiHandHeartLine className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                <RiHandHeartLine
+                  className="h-3.5 w-3.5 shrink-0 text-primary-on-surface"
+                  aria-hidden="true"
+                />
                 <span
                   className={cn(
                     "shrink-0",

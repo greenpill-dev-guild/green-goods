@@ -31,6 +31,24 @@
 
 import type { Address } from "../types/domain";
 
+/** Editorial discovery policy. Lifetime approved work only; no recency cutoff. */
+const PUBLIC_GARDEN_MIN_APPROVED_WORK = 1;
+
+/** Apply after reading approved work, never to pending or rejected submissions. */
+export function filterGardensWithApprovedWork<T extends { id: string }>(
+  gardens: readonly T[],
+  approvedWorks: readonly { gardenAddress: string }[]
+): T[] {
+  const counts = new Map<string, number>();
+  for (const work of approvedWorks) {
+    const address = work.gardenAddress.toLowerCase();
+    counts.set(address, (counts.get(address) ?? 0) + 1);
+  }
+  return gardens.filter(
+    (garden) => (counts.get(garden.id.toLowerCase()) ?? 0) >= PUBLIC_GARDEN_MIN_APPROVED_WORK
+  );
+}
+
 interface CuratedGarden {
   address: Address;
   /** Garden name when curated. Documentation only — never used to match. */

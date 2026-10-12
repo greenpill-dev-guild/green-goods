@@ -5,6 +5,7 @@
  * Covers the grant: the two one-time approvals a steward gives before listing.
  */
 
+import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 import { type QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +37,8 @@ const mocks = vi.hoisted(() => ({
   sendTransaction: vi.fn(),
   waitForTransactionReceipt: vi.fn(),
   loggerError: vi.fn(),
+  checkApprovals: vi.fn(),
+  getReceipt: vi.fn(),
 }));
 
 vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
@@ -55,10 +58,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
 }));
 
 vi.mock("../../../modules/marketplace/approvals", () => ({
-  checkMarketplaceApprovals: vi.fn(async () => ({
-    exchangeApproved: false,
-    minterApproved: false,
-  })),
+  checkMarketplaceApprovals: mocks.checkApprovals,
   buildApprovalTransactions: mocks.buildApprovalTransactions,
 }));
 
@@ -70,6 +70,7 @@ vi.mock("../../../modules/transactions/chain-guard", () => ({
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
     waitForTransactionReceipt: mocks.waitForTransactionReceipt,
+    getTransactionReceipt: mocks.getReceipt,
   }),
 }));
 
@@ -77,6 +78,10 @@ vi.mock("../../../modules/app/logger", () => ({
   logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: mocks.loggerError },
 }));
 
+import {
+  marketplaceSubmissionScope,
+  useMarketplacePendingStore,
+} from "../../../stores/useMarketplacePendingStore";
 import { useMarketplaceApprovals } from "../../../hooks/hypercerts/useMarketplaceApprovals";
 
 describe("useMarketplaceApprovals grant", () => {
@@ -88,6 +93,8 @@ describe("useMarketplaceApprovals grant", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useMarketplacePendingStore.setState({ pending: {}, active: {} });
+    mocks.checkApprovals.mockResolvedValue({ exchangeApproved: false, minterApproved: false });
     queryClient = createTestQueryClient();
     mocks.authMode = "wallet";
     mocks.address = STEWARD;
@@ -161,8 +168,139 @@ describe("useMarketplaceApprovals grant", () => {
     });
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
     grant();
-    await waitFor(() => expect(mocks.loggerError).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        useMarketplacePendingStore.getState().pending[
+          marketplaceSubmissionScope(CHAIN, STEWARD as `0x${string}`)!
+        ]
+      ).toMatchObject({ kind: "approval", step: "exchangeApproved" })
+    );
     expect(mocks.sendTransaction).toHaveBeenCalledOnce();
-    expect(invalidate).not.toHaveBeenCalled();
+    expect(mocks.loggerError).not.toHaveBeenCalled();
+    expect(invalidate).toHaveBeenCalled();
+  });
+  it.each([
+    0, 1,
+  ])("retains approval step %s across remount and only checks before retry", async (index) => {
+    if (index)
+      mocks.sendTransaction.mockResolvedValueOnce({ hash: "0xconfirmed", sponsored: false });
+    mocks.sendTransaction.mockResolvedValueOnce({ hash: "0xproposal", confirmation: "pending" });
+    const first = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => first.result.current.grantApprovals());
+    await waitFor(() => expect(first.result.current.isPending).toBe(true));
+    const calls = index + 1;
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(calls);
+    expect(first.result.current.error).toBeNull();
+    first.unmount();
+    await useMarketplacePendingStore.persist.rehydrate();
+    const next = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    await waitFor(() => expect(next.result.current.isPending).toBe(true));
+    act(() => next.result.current.grantApprovals());
+    await waitFor(() => expect(next.result.current.isGranting).toBe(false));
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(calls);
+    act(() => next.result.current.checkPending());
+    await waitFor(() => expect(next.result.current.isChecking).toBe(false));
+    expect(next.result.current.isPending).toBe(true);
+    mocks.checkApprovals.mockResolvedValue({
+      exchangeApproved: true,
+      minterApproved: Boolean(index),
+    });
+    mocks.buildApprovalTransactions.mockResolvedValue(
+      index ? {} : { approveMinter: APPROVE_MINTER }
+    );
+    act(() => next.result.current.checkPending());
+    await waitFor(() => expect(next.result.current.isPending).toBe(false));
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(calls);
+    act(() => next.result.current.grantApprovals());
+    if (!index) await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledTimes(2));
+  });
+
+  it("does not let an old confirmation clear a newer pending step", () => {
+    const scope = marketplaceSubmissionScope(CHAIN, STEWARD as `0x${string}`)!;
+    const old = { kind: "approval", step: "exchangeApproved" } as const;
+    const current = { kind: "approval", step: "minterApproved" } as const;
+    useMarketplacePendingStore.getState().checkpoint(scope, old);
+    useMarketplacePendingStore.getState().checkpoint(scope, current);
+    useMarketplacePendingStore.getState().clear(scope, old);
+    expect(useMarketplacePendingStore.getState().pending[scope]).toEqual(current);
+  });
+  it("keeps a checkpoint after receipt lookup fails and allows another account", async () => {
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBeforeBroadcast();
+      await options.onBroadcastReference({ kind: "transaction", hash: "0xproposal" });
+      throw new Error("receipt unavailable");
+    });
+    const first = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => first.result.current.grantApprovals());
+    await waitFor(() => expect(first.result.current.isPending).toBe(true));
+    await waitFor(() => expect(first.result.current.isGranting).toBe(false));
+    act(() => first.result.current.grantApprovals());
+    await waitFor(() => expect(first.result.current.isGranting).toBe(false));
+    expect(mocks.sendTransaction).toHaveBeenCalledOnce();
+    mocks.address = SMART_ACCOUNT;
+    first.rerender();
+    expect(first.result.current.isPending).toBe(false);
+    act(() => first.result.current.grantApprovals());
+    await waitFor(() => expect(mocks.sendTransaction).toHaveBeenCalledTimes(3));
+    mocks.address = STEWARD;
+    first.rerender();
+    expect(first.result.current.isPending).toBe(true);
+  });
+
+  it("allows retry after a rejected prompt before any accepted reference", async () => {
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBeforeBroadcast();
+      throw { code: 4001, message: "User rejected" };
+    });
+    const first = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => first.result.current.grantApprovals());
+    await waitFor(() => expect(mocks.loggerError).toHaveBeenCalled());
+    expect(first.result.current.isPending).toBe(false);
+  });
+  it("releases a confirmed submission even if approval state subsequently changes", async () => {
+    const hash = `0x${"ab".repeat(32)}`;
+    mocks.getReceipt.mockResolvedValue({ status: "success", transactionHash: hash });
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBroadcastReference({ kind: "transaction", hash });
+      throw new Error("receipt unavailable");
+    });
+    const view = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.isPending).toBe(true));
+    act(() => view.result.current.checkPending());
+    await waitFor(() => expect(view.result.current.isPending).toBe(false));
+    expect(mocks.sendTransaction).toHaveBeenCalledOnce();
+    expect(mocks.getReceipt).toHaveBeenCalledWith({ hash });
+  });
+  it("clears a proven pre-broadcast refusal but requires explicit wallet review for an opaque cancellation", async () => {
+    mocks.sendTransaction.mockImplementationOnce(async (_call, options) => {
+      await options.onBeforeBroadcast();
+      throw new WalletWriteNotRetriedError(new Error("switch refused"));
+    });
+    const view = renderHookWithQueryClient(() => useMarketplaceApprovals(), { queryClient });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.error).not.toBeNull());
+    expect(view.result.current.isPending).toBe(false);
+    mocks.sendTransaction.mockResolvedValueOnce({ hash: "0xproposal", confirmation: "pending" });
+    act(() => view.result.current.grantApprovals());
+    await waitFor(() => expect(view.result.current.isPending).toBe(true));
+    await act(async () => {
+      await expect(view.result.current.confirmWalletCancellation(false)).rejects.toThrow(
+        "confirmation-required"
+      );
+    });
+    expect(view.result.current.isPending).toBe(true);
+    mocks.assertOwnership.mockRejectedValueOnce(new Error("account changed"));
+    await act(async () => {
+      await expect(view.result.current.confirmWalletCancellation(true)).rejects.toThrow(
+        "account changed"
+      );
+    });
+    expect(view.result.current.isPending).toBe(true);
+    await act(async () => {
+      await view.result.current.confirmWalletCancellation(true);
+    });
+    expect(view.result.current.isPending).toBe(false);
+    expect(mocks.sendTransaction).toHaveBeenCalledTimes(2);
   });
 });

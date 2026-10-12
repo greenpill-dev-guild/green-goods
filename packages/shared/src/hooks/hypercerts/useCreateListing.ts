@@ -24,7 +24,10 @@ import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useIntl } from "react-intl";
-import { sendCheckpointedCall } from "../../modules/transactions/confirmation";
+import {
+  reconcileTransaction,
+  sendCheckpointedCall,
+} from "../../modules/transactions/confirmation";
 import type { TxResult } from "../../modules/transactions/types";
 import {
   listingSubmissionKey,
@@ -53,9 +56,14 @@ export interface UseCreateListingResult {
   error: Error | null;
   reset: () => void;
   checkConfirmation: () => Promise<void>;
+  isCheckingConfirmation: boolean;
+  confirmWalletCancellation: (confirmedInWallet: boolean) => Promise<void>;
 }
 
-export function useCreateListing(gardenAddress?: Address): UseCreateListingResult {
+export function useCreateListing(
+  gardenAddress: Address | undefined,
+  hypercertId: bigint
+): UseCreateListingResult {
   const signer = usePrimaryAddress();
   const sender = useTransactionSender();
   const { formatMessage } = useIntl();
@@ -65,7 +73,9 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
   const [confirmationError, setConfirmationError] = useState<Error | null>(null);
 
   const scope =
-    signer && gardenAddress ? listingSubmissionKey(signer, chainId, gardenAddress) : null;
+    signer && gardenAddress
+      ? listingSubmissionKey(signer, chainId, gardenAddress, hypercertId)
+      : null;
   const activeScope = useRef(scope);
   activeScope.current = scope;
   const pending = useListingSubmissionStore((state) => (scope ? state.pending[scope] : undefined));
@@ -86,12 +96,8 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     setIsChecking(true);
     refreshListings(pending.garden, pending.chainId);
     try {
-      const outcome = await sender.reconcileBroadcast?.(
-        pending.result.broadcastReference ?? {
-          kind: "transaction",
-          hash: pending.result.hash,
-          chainId: pending.chainId,
-        }
+      const outcome = await reconcileTransaction(sender, pending.result, (hash) =>
+        createPublicClientForChain(pending.chainId).getTransactionReceipt({ hash })
       );
       const isCurrent = () =>
         activeScope.current === scope &&
@@ -147,6 +153,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       if (scope && useListingSubmissionStore.getState().pending[scope]) return;
       setConfirmationError(null);
       if (!gardenAddress) throw new Error("Garden address required");
+      if (params.hypercertId !== hypercertId) throw new Error("listing-identity-changed");
       if (!signer || !sender)
         throw new Error(
           formatMessage({
@@ -324,7 +331,26 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
     mutation.reset();
   }, [scope, mutation]);
 
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    if (!confirmedInWallet) throw new Error("wallet-cancellation-confirmation-required");
+    if (!scope || !pending || !sender || !signer) throw new Error("signer-not-ready");
+    const isCurrent = () =>
+      activeScope.current === scope &&
+      !sending.current &&
+      !isChecking &&
+      useListingSubmissionStore.getState().pending[scope] === pending;
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    await sender.assertOwnership?.(signer, chainId);
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    useListingSubmissionStore.getState().clear(scope);
+    setStep("idle");
+    setConfirmationError(null);
+    mutation.reset();
+  };
+
   return {
+    confirmWalletCancellation,
+    isCheckingConfirmation: isChecking,
     createListing: (params) => mutation.mutateAsync(params),
     step: pending ? "pending" : step,
     isCreating: mutation.isPending || Boolean(pending) || isChecking,

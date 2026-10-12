@@ -118,12 +118,13 @@ export function SeedCommitmentDialog({
   });
   const initial = useMemo(
     () => ({
-      kind: "SEASON_CAMPAIGN" as const,
       direction: "OFFER" as const,
       cycleId: pool.model.season ? pool.model.season.cycleId.toString() : "0",
       claimMode: (protocolContext ? "APPROVAL_GATED" : "OPEN") as "APPROVAL_GATED" | "OPEN",
       protocolFallbackEnabled: protocolPool.isRegistered,
       ...withoutExternalReward(again),
+      // Earlier campaign promises may be copied as support; their cycle stays separate.
+      kind: again?.kind === "GARDEN_WORK" ? ("GARDEN_WORK" as const) : ("SERVICE" as const),
     }),
     [pool.model.season, protocolContext, protocolPool.isRegistered, again]
   );

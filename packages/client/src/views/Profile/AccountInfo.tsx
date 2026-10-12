@@ -68,7 +68,7 @@ export const AccountInfo: React.FC = () => {
       <Card>
         <div className="flex items-center gap-3 w-full">
           <Avatar>
-            <div className="flex items-center justify-center text-center mx-auto text-primary">
+            <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
               {authMode === "passkey" ? (
                 <RiKeyLine className="w-4" />
               ) : (
@@ -110,7 +110,7 @@ export const AccountInfo: React.FC = () => {
         <Card>
           <div className="flex items-center gap-3 w-full">
             <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                 <RiUserLine className="w-4" />
               </div>
             </Avatar>

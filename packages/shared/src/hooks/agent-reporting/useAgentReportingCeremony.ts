@@ -264,19 +264,21 @@ export function useAgentReportingCeremony(
     }
   }, [afterChallenge, client, fail, requestId, update]);
 
-  // The person let go of an account on the account step, and a different one has signed in: the
-  // app remounted for it. They had already continued in this tab, so the page opens its account
-  // step again. The mark is spent either way, so nothing else ever continues by itself.
+  // The person chose an account on the account step, by letting one go or by connecting or
+  // creating one where none was, and a different account than this device last saw has signed
+  // in: the app remounted for it. They had already continued in this tab, so the page opens its
+  // account step again. The mark is spent either way, so nothing else ever continues by itself.
   const connectedRef = useRef(account.account);
   connectedRef.current = account.account;
   useAsyncEffect(
     async ({ isMounted }) => {
       const stored = readCeremony(requestId);
-      if (!stored?.changingAccountFrom) return;
-      const { changingAccountFrom: from, ...kept } = stored;
+      if (!stored?.accountChoice) return;
+      const { accountChoice, ...kept } = stored;
       writeCeremony(requestId, kept);
       const connected = connectedRef.current;
-      const another = connected !== null && connected.toLowerCase() !== from.toLowerCase();
+      const another =
+        connected !== null && connected.toLowerCase() !== accountChoice.from?.toLowerCase();
       // A page that already holds a session resumes that instead, in the effect above.
       if (!another || kept.accessId) return;
       if (isMounted() && stateRef.current.stage === "intro") await start();
@@ -284,9 +286,25 @@ export function useAgentReportingCeremony(
     [requestId]
   );
 
+  // Only the account step is returned to: its challenge is still unused. Anywhere else the page
+  // keeps its place, and what it shows still belongs to the account that proved it.
+  const markAccountChoice = useCallback(
+    (from: Address | null) => {
+      if (stateRef.current.stage !== "connect") return;
+      const stored = readCeremony(requestId);
+      // A choice that began by letting an account go keeps naming that account.
+      if (from === null && stored?.accountChoice) return;
+      writeCeremony(requestId, { ...stored, accountChoice: { from } });
+    },
+    [requestId]
+  );
+
   const prove = useCallback(async () => {
     const challengeId = challengeRef.current;
     if (!challengeId) return;
+    // The account is chosen: a mark that no remount came for is not left for a later reload.
+    const stored = readCeremony(requestId);
+    if (stored?.accountChoice) writeCeremony(requestId, { ...stored, accountChoice: undefined });
     update({ stage: "proving", error: null });
     try {
       await afterChallenge(await account.prove(client, challengeId));
@@ -299,7 +317,7 @@ export function useAgentReportingCeremony(
       update({ stage: "connect" });
       fail(error);
     }
-  }, [account, afterChallenge, client, fail, update]);
+  }, [account, afterChallenge, client, fail, requestId, update]);
 
   const publish = useCallback(async () => {
     const { operation, access } = stateRef.current;
@@ -407,14 +425,19 @@ export function useAgentReportingCeremony(
   const changeAccount = useCallback(async () => {
     const from = connectedRef.current;
     const released = await letGo();
-    // Only the account step is returned to: its challenge is still unused. Anywhere else the
-    // page keeps its place, and what it shows still belongs to the account that proved it.
-    if (released && from && stateRef.current.stage === "connect") {
-      writeCeremony(requestId, { ...readCeremony(requestId), changingAccountFrom: from });
-    }
+    if (released && from) markAccountChoice(from);
     update({ error: null });
     return released;
-  }, [letGo, requestId, update]);
+  }, [letGo, markAccountChoice, update]);
+
+  // The account about to be connected or created may be another than this device last saw,
+  // which remounts the page as letting one go does.
+  const choosing =
+    <Args extends unknown[], Result>(act: (...args: Args) => Result) =>
+    (...args: Args): Result => {
+      markAccountChoice(connectedRef.current);
+      return act(...args);
+    };
 
   const installGrant = useGrantInstallation({
     account: account.account,
@@ -445,6 +468,9 @@ export function useAgentReportingCeremony(
     issues: issuesFor(state.operation),
     error: state.error,
     changeAccount,
+    connectPasskey: choosing(account.connectPasskey),
+    connectWallet: choosing(account.connectWallet),
+    createAccount: choosing(account.createAccount),
     start,
     prove,
     publish,

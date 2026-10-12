@@ -1,19 +1,29 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { type ComponentProps, useState } from "react";
+import { type ComponentProps, useId, useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { AssessmentOutcomeFields } from "./AssessmentOutcomeFields";
+import { AssessmentOutcomeFields, AssessmentOutcomeHelp } from "./AssessmentOutcomeFields";
 
 function OutcomeFieldsStory(args: ComponentProps<typeof AssessmentOutcomeFields>) {
   const [outcome, setOutcome] = useState(args.outcome);
+  const id = useId();
+  const helpIds = {
+    description: `${id}-description`,
+    metric: `${id}-metric`,
+    target: `${id}-target`,
+  };
   return (
-    <AssessmentOutcomeFields
-      {...args}
-      outcome={outcome}
-      onChange={(field, value) => {
-        setOutcome((current) => ({ ...current, [field]: value }));
-        args.onChange(field, value);
-      }}
-    />
+    <div className="space-y-3">
+      <AssessmentOutcomeHelp helpIds={helpIds} />
+      <AssessmentOutcomeFields
+        {...args}
+        outcome={outcome}
+        helpIds={helpIds}
+        onChange={(field, value) => {
+          setOutcome((current) => ({ ...current, [field]: value }));
+          args.onChange(field, value);
+        }}
+      />
+    </div>
   );
 }
 
@@ -29,12 +39,13 @@ const meta = {
       </div>
     ),
   ],
-  argTypes: { selectedMetricCounts: { control: false } },
+  argTypes: { selectedMetricCounts: { control: false }, helpIds: { control: false } },
   args: {
     outcome: { description: "", metric: "", target: 0 },
     metrics: [{ key: "treesPlanted", label: "Trees planted", unit: "trees" }],
     selectedMetricCounts: new Map(),
     errors: {},
+    helpIds: { description: "description-help", metric: "metric-help", target: "target-help" },
     isSubmitting: false,
     canRemove: true,
     onChange: fn(),
@@ -50,6 +61,7 @@ export const Editable: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const outcome = canvas.getByRole("textbox", { name: "Outcome" });
+    await expect(outcome).toHaveAccessibleDescription("The change you want to see");
     await userEvent.type(outcome, "Native habitat recovers");
     await expect(outcome).toHaveValue("Native habitat recovers");
     await userEvent.click(canvas.getByRole("combobox", { name: "Metric" }));

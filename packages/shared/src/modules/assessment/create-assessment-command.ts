@@ -34,6 +34,16 @@ export interface AssessmentSubmission {
   easAddress: string;
   schemaUid: string;
   result: TxResult;
+  assessmentType?: string;
+  confirmedUid?: string;
+  successTracked?: boolean;
+}
+
+export class AssessmentReceiptMismatchError extends Error {
+  constructor(readonly assessmentSubmission: AssessmentSubmission) {
+    super("assessment-receipt-mismatch");
+    this.name = "AssessmentReceiptMismatchError";
+  }
 }
 
 export class AssessmentSubmissionPendingError extends TransactionConfirmationPendingError {
@@ -312,11 +322,7 @@ export function createDefaultCreateAssessmentPorts(input: {
         }
         if (receipt.status !== "success") throw new Error("Assessment transaction reverted");
         const uid = readAssessmentUid(receipt, submission);
-        if (!uid)
-          throw new AssessmentConfirmationUnavailableError(
-            submission,
-            "Assessment receipt has no matching attestation"
-          );
+        if (!uid) throw new AssessmentReceiptMismatchError(submission);
         input.clearCheckpoint?.(submission);
         return uid;
       },
@@ -363,7 +369,10 @@ export async function reconcileAssessmentSubmission(
   submission: AssessmentSubmission,
   sender: TransactionSender
 ): Promise<
-  { status: "confirmed"; uid: string } | { status: "unresolved" } | { status: "reverted" }
+  | { status: "confirmed"; uid: string }
+  | { status: "unresolved" }
+  | { status: "reverted" }
+  | { status: "mismatched" }
 > {
   let receipt: TransactionReceipt | undefined;
   const client = createClients(submission.chainId).publicClient;
@@ -376,7 +385,7 @@ export async function reconcileAssessmentSubmission(
     receipt ??= await client.getTransactionReceipt({ hash: outcome.transactionHash });
     if (receipt.status === "reverted") return { status: "reverted" };
     const uid = readAssessmentUid(receipt, submission);
-    return uid ? { status: "confirmed", uid } : { status: "unresolved" };
+    return uid ? { status: "confirmed", uid } : { status: "mismatched" };
   } catch {
     return { status: "unresolved" };
   }

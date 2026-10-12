@@ -2,6 +2,9 @@ import { isHex, type Hex } from "viem";
 import { getWorksByGardener } from "../data/eas";
 import { getJsonByHash } from "../data/ipfs/resolve";
 import type { Address } from "../../types/domain";
+import { jobQueueDB } from "../job-queue/db";
+import { compareAddresses } from "../../utils/blockchain/address";
+import { logger } from "../app/logger";
 
 export type DeferredWorkIdentityResolution =
   | { status: "waiting" }
@@ -10,6 +13,7 @@ export type DeferredWorkIdentityResolution =
   | { status: "conflict"; reason: "work-identity-conflict" };
 
 export interface ResolveDeferredWorkIdentityDependencies {
+  getWorkCompletion: typeof jobQueueDB.getWorkCompletion;
   getWorksByGardener: typeof getWorksByGardener;
   readMetadata: (raw: string) => Promise<unknown>;
 }
@@ -38,6 +42,37 @@ export async function resolveDeferredWorkIdentity(input: {
   caller: Address;
   dependencies?: Partial<ResolveDeferredWorkIdentityDependencies>;
 }): Promise<DeferredWorkIdentityResolution> {
+  let completion;
+  try {
+    completion = await (
+      input.dependencies?.getWorkCompletion ?? jobQueueDB.getWorkCompletion.bind(jobQueueDB)
+    )(input.caller, input.chainId, input.clientWorkId);
+  } catch (error) {
+    logger.warn("Could not read confirmed Work identity; checking the indexer", { error });
+  }
+  if (completion) {
+    if (
+      completion.chainId !== input.chainId ||
+      completion.clientWorkId !== input.clientWorkId ||
+      !compareAddresses(completion.userAddress, input.caller)
+    )
+      return { status: "conflict", reason: "work-identity-conflict" };
+    const garden = completion.gardenAddress ?? completion.work?.gardenAddress;
+    const uid = completion.workUID ?? completion.work?.id;
+    if (garden && uid) {
+      if (
+        !compareAddresses(garden, input.garden) ||
+        !isHex(uid, { strict: true }) ||
+        uid.length !== 66 ||
+        (completion.work &&
+          (!compareAddresses(completion.work.gardenAddress, input.garden) ||
+            !compareAddresses(completion.work.gardenerAddress, input.caller) ||
+            completion.work.id.toLowerCase() !== uid.toLowerCase()))
+      )
+        return { status: "conflict", reason: "work-identity-conflict" };
+      return { status: "resolved", workUID: uid as Hex };
+    }
+  }
   const getWorks = input.dependencies?.getWorksByGardener ?? getWorksByGardener;
   const readMetadata = input.dependencies?.readMetadata ?? defaultReadMetadata;
   const works = await getWorks(input.caller, input.chainId);
@@ -66,9 +101,11 @@ export async function resolveDeferredWorkIdentity(input: {
   }
   if (
     candidates.length !== 1 ||
+    !compareAddresses(candidates[0].gardenerAddress, input.caller) ||
     candidates[0].gardenAddress.toLowerCase() !== input.garden.toLowerCase() ||
     !isHex(candidates[0].id, { strict: true }) ||
-    candidates[0].id.length !== 66
+    candidates[0].id.length !== 66 ||
+    (completion?.workUID && completion.workUID.toLowerCase() !== candidates[0].id.toLowerCase())
   ) {
     return { status: "conflict", reason: "work-identity-conflict" };
   }

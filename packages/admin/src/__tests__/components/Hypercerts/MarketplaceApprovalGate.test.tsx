@@ -77,6 +77,11 @@ const DEFAULT_APPROVALS_STATE = {
   error: null,
   grantApprovals: mockGrantApprovals,
   isGranting: false,
+  isPending: false,
+  isChecking: false,
+  isClearing: false,
+  confirmWalletCancellation: vi.fn(),
+  checkPending: vi.fn(),
 };
 
 const READY_READINESS = {
@@ -226,5 +231,37 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
       expect(screen.getByText(/wallet rejected the request/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /approve all/i })).toBeInTheDocument();
     });
+  });
+  it("blocks approval retry and provides a read-only check for an accepted proposal", async () => {
+    const checkPending = vi.fn();
+    mockUseMarketplaceApprovals.mockReturnValue({
+      ...DEFAULT_APPROVALS_STATE,
+      isFullyApproved: false,
+      isPending: true,
+      checkPending,
+    });
+    mockGetMarketplaceReadiness.mockReturnValue(READY_READINESS);
+    renderGate();
+    expect(screen.getByRole("button", { name: "Approve All" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Check confirmation" }));
+    expect(checkPending).toHaveBeenCalledOnce();
+    expect(mockGrantApprovals).not.toHaveBeenCalled();
+  });
+  it("requires a separate cancellation confirmation before clearing the local block", async () => {
+    const confirmWalletCancellation = vi.fn().mockResolvedValue(undefined);
+    mockUseMarketplaceApprovals.mockReturnValue({
+      ...DEFAULT_APPROVALS_STATE,
+      isFullyApproved: false,
+      isPending: true,
+      confirmWalletCancellation,
+    });
+    mockGetMarketplaceReadiness.mockReturnValue(READY_READINESS);
+    renderGate();
+    await userEvent.click(screen.getByRole("button", { name: "Review Cancellation" }));
+    expect(confirmWalletCancellation).not.toHaveBeenCalled();
+    expect(screen.getByText(/does not cancel the proposal/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "I confirmed cancellation" }));
+    expect(confirmWalletCancellation).toHaveBeenCalledWith(true);
+    expect(mockGrantApprovals).not.toHaveBeenCalled();
   });
 });

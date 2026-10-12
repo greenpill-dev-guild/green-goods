@@ -7,7 +7,7 @@ import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { useProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController";
 import { formatCommitmentUnits } from "@green-goods/shared/i18n/commitmentUnits";
-import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { useDashboardNavigation } from "@green-goods/shared/hooks/client-ui/useDashboardNavigation";
 import { RiCheckboxCircleFill, RiFileFill, RiImageFill } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -16,7 +16,6 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ImagePreviewDialog } from "@/components/Display";
 import { PinnedPromiseCard, describeProofContents } from "@/components/Features/Commitments";
 import { MediaRulePill } from "@/components/Features/Work";
-import { APP_ROUTES } from "@/config/pwaRouting";
 import { confirmerOf } from "../Commitment/CommitmentPeople";
 import { ProofBar } from "./ProofBar";
 import { type NoteHint, ProofDetails } from "./ProofDetails";
@@ -44,6 +43,7 @@ export function ProofComposer() {
   const intl = useIntl();
   const { formatMessage } = intl;
   const navigate = useNavigate();
+  const dashboardNavigation = useDashboardNavigation();
   const location = useLocation();
   const { commitmentId: commitmentIdParam, id: gardenAddress } = useParams<{
     commitmentId: string;
@@ -60,9 +60,8 @@ export function ProofComposer() {
   // "Couldn't add proof" may speak after this screen is gone, so it opens
   // Your Work from Home rather than from here.
   const openYourWork = useCallback(() => {
-    useUIStore.getState().openWorkDashboard("pending");
-    navigate(APP_ROUTES.home);
-  }, [navigate]);
+    dashboardNavigation.openWork();
+  }, [dashboardNavigation]);
   const controller = useProofComposerController({
     chainId: DEFAULT_CHAIN_ID,
     commitmentId,
@@ -81,13 +80,13 @@ export function ProofComposer() {
     const parent = location.pathname.replace(/\/proof\/?$/, "");
     if (location.state?.proofOrigin === parent) navigate(-1);
     else
-      navigate("..", {
+      dashboardNavigation.returnTo(parent, {
         relative: "path",
         replace: true,
         state:
           location.state?.from === "dashboard" ? { from: "dashboard" } : { proofDirectEntry: true },
       });
-  }, [location.pathname, location.state, navigate]);
+  }, [dashboardNavigation, location.pathname, location.state, navigate]);
   // Once the proof is admitted and no prompt waits here, the proof screens
   // give way to the promise (D7, D18). Never before: a proof the queue never
   // took is still this form.
@@ -108,7 +107,9 @@ export function ProofComposer() {
     return (
       <ProofState
         kind={controller.status === "ready" ? "loading" : (controller.status as ProofStateKind)}
-        onBack={toPromise}
+        onBack={() => {
+          if (!dashboardNavigation.back()) toPromise();
+        }}
         onRetry={
           controller.status === "draftRestoreFailed"
             ? controller.retryDraftRestore
@@ -209,7 +210,10 @@ export function ProofComposer() {
   return (
     <>
       <ProofShell
-        onBack={() => (beatIndex === 0 ? toPromise() : setBeat(BEATS[beatIndex - 1] as ProofBeat))}
+        onBack={() => {
+          if (beatIndex > 0) setBeat(BEATS[beatIndex - 1] as ProofBeat);
+          else if (!dashboardNavigation.back()) toPromise();
+        }}
         progress={beatIndex + 1}
         heading={heading}
         pinned={

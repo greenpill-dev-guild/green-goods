@@ -1,9 +1,15 @@
 /** Real virtual-authenticator ceremony; a strict substitute rejects server verification. */
 // TEST-QUALITY: allow-small-test-file - one browser ceremony owns this integration boundary
 import { expect, test } from "@playwright/test";
+import { PUBLIC_AGENT_ROUTES } from "../../packages/shared/src/public-contracts/routes";
 import { TEST_URLS } from "../helpers/test-utils";
 
 test.use({ baseURL: TEST_URLS.client, serviceWorkers: "block" });
+// The login is the unbundled dev client's first paint after a navigation. On a cold server, or
+// beside another case's first load, it takes longer than the five seconds an assertion waits, so
+// those two waits get a minute each and the case gets room for both.
+test.describe.configure({ timeout: 150_000 });
+const FIRST_PAINT = { timeout: 60_000 };
 
 test("server rejection after credential creation stays signed out and permits retry", async ({
   page,
@@ -25,7 +31,10 @@ test("server rejection after credential creation stays signed out and permits re
   page.on("pageerror", (error) => {
     throw error;
   });
-  await page.route("https://api.pimlico.io/**", async (route) => {
+  await page.route(`**${PUBLIC_AGENT_ROUTES.passkeyDirectory}`, async (route) => {
+    expect(route.request().url()).toBe(
+      `http://localhost:3005${PUBLIC_AGENT_ROUTES.passkeyDirectory}`
+    );
     const { id, method, params } = route.request().postDataJSON();
     calls.push(method);
     let result: unknown;
@@ -68,7 +77,7 @@ test("server rejection after credential creation stays signed out and permits re
   });
   try {
     await page.goto("/home/login?presentation=pwa");
-    await expect(page.getByTestId("login-button")).toHaveText("Create Account");
+    await expect(page.getByTestId("login-button")).toHaveText("Create Account", FIRST_PAINT);
     await expect(page.getByTestId("secondary-action-button")).toBeVisible();
     await page.getByTestId("login-button").click();
     await expect(page.getByTestId("username-input")).toBeVisible();
@@ -87,7 +96,7 @@ test("server rejection after credential creation stays signed out and permits re
     await expect(page.getByTestId("username-input")).toHaveValue(username);
     await expect(page.getByTestId("login-button")).toBeEnabled();
     await page.reload();
-    await expect(page.getByTestId("login-button")).toHaveText("Create Account");
+    await expect(page.getByTestId("login-button")).toHaveText("Create Account", FIRST_PAINT);
     await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
     await test
       .info()

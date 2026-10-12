@@ -1,7 +1,9 @@
 import { Button } from "@green-goods/shared/components/Button";
-import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { useId, useState } from "react";
 import {
   RiCloseLine,
+  RiArrowDownSLine,
   RiErrorWarningLine,
   RiHandHeartLine,
   RiLoader4Line,
@@ -15,6 +17,10 @@ export interface WorkCommitmentChoice {
   commitmentId: bigint;
   requirementIndex: number;
   title: string;
+  actionTitle?: string;
+  approvedCount?: number;
+  requiredCount?: number;
+  dueDate?: bigint | null;
 }
 
 interface WorkCommitmentSelectionProps {
@@ -37,6 +43,24 @@ export function WorkCommitmentSelection({
   onSelectedKeyChange,
 }: WorkCommitmentSelectionProps) {
   const intl = useIntl();
+  const [open, setOpen] = useState(false);
+  const choiceId = useId();
+  const selectedChoice = choices.find((choice) => choice.key === selectedKey);
+  const requirementText = (choice: WorkCommitmentChoice) =>
+    intl.formatMessage(
+      { id: "app.garden.commitment.requirement", defaultMessage: "Requirement {requirement}" },
+      { requirement: choice.requirementIndex + 1 }
+    );
+  const progressText = (choice: WorkCommitmentChoice) =>
+    choice.requiredCount === undefined
+      ? null
+      : intl.formatMessage(
+          { id: "app.garden.commitment.progress", defaultMessage: "{done} of {total} approved" },
+          {
+            done: Math.min(choice.approvedCount ?? 0, choice.requiredCount),
+            total: choice.requiredCount,
+          }
+        );
   const description = intl.formatMessage({
     id: "app.garden.commitment.description",
     defaultMessage: "Choose the promise and exact requirement this work fulfils.",
@@ -128,39 +152,126 @@ export function WorkCommitmentSelection({
       ) : null}
       {choices.length > 0 ? (
         <>
-          <label htmlFor="work-commitment-selection" className="sr-only">
-            {intl.formatMessage({
-              id: "app.garden.commitment.label",
-              defaultMessage: "Promise",
+          {/* A field trigger keeps the selected promise and requirement readable on multiple lines. */}
+          <button
+            type="button"
+            data-pressable="trigger"
+            onClick={() => setOpen(true)}
+            disabled={loading || readFailed || !onSelectedKeyChange}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            aria-describedby={`${choiceId}-selection`}
+            aria-label={intl.formatMessage({
+              id: "app.garden.commitment.choose",
+              defaultMessage: "Choose a Promise",
             })}
-          </label>
-          <p id="work-commitment-selection-description" className="sr-only">
-            {description}
-          </p>
-          <NativeSelect
-            id="work-commitment-selection"
-            aria-describedby="work-commitment-selection-description"
-            value={selectedKey ?? ""}
-            onChange={(event) => onSelectedKeyChange?.(event.target.value || null)}
+            className="flex min-h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-left text-sm text-text-strong-950 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface"
           >
-            <option value="">
-              {intl.formatMessage({
-                id: "app.garden.commitment.none",
-                defaultMessage: "Not for a Promise",
-              })}
-            </option>
-            {choices.map((choice) => (
-              <option key={choice.key} value={choice.key}>
-                {intl.formatMessage(
-                  {
-                    id: "app.garden.commitment.option",
-                    defaultMessage: "{title} · requirement {requirement}",
-                  },
-                  { title: choice.title, requirement: choice.requirementIndex + 1 }
-                )}
-              </option>
-            ))}
-          </NativeSelect>
+            <span id={`${choiceId}-selection`} className="min-w-0 whitespace-normal">
+              <span className="block">
+                {selectedChoice?.title ??
+                  intl.formatMessage({
+                    id: "app.garden.commitment.none",
+                    defaultMessage: "Not for a Promise",
+                  })}
+              </span>
+              {selectedChoice ? (
+                <span className="mt-0.5 block text-xs font-normal text-text-sub-600">
+                  {[
+                    requirementText(selectedChoice),
+                    selectedChoice.actionTitle,
+                    progressText(selectedChoice),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+              ) : null}
+            </span>
+            <RiArrowDownSLine
+              className="h-5 w-5 shrink-0 text-primary-on-surface"
+              aria-hidden="true"
+            />
+          </button>
+          <DialogShell
+            open={open}
+            onOpenChange={setOpen}
+            title={intl.formatMessage({
+              id: "app.garden.commitment.choose",
+              defaultMessage: "Choose a Promise",
+            })}
+            description={description}
+            size="md"
+            sheetSize="tall"
+            actions={{
+              primary: {
+                label: intl.formatMessage({ id: "app.common.done" }),
+                onClick: () => setOpen(false),
+              },
+            }}
+          >
+            <fieldset disabled={loading || readFailed || !onSelectedKeyChange}>
+              <legend className="sr-only">{description}</legend>
+              <div className="space-y-2">
+                {[null, ...choices].map((choice) => {
+                  const selected = choice ? choice.key === selectedKey : selectedKey === null;
+                  return (
+                    <label
+                      key={choice?.key ?? "none"}
+                      className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-[var(--radius-lg)] border p-3 text-left focus-within:ring-2 focus-within:ring-primary-on-surface ${selected ? "border-primary-on-surface bg-primary-alpha-10" : "border-stroke-soft-200 bg-bg-white-0"}`}
+                    >
+                      <input
+                        type="radio"
+                        name={choiceId}
+                        value={choice?.key ?? ""}
+                        checked={selected}
+                        onChange={() => {
+                          onSelectedKeyChange?.(choice?.key ?? null);
+                        }}
+                        className="mt-1 shrink-0 accent-primary-on-surface"
+                      />
+                      <span className="min-w-0 text-sm">
+                        <span className="block font-medium text-text-strong-950">
+                          {choice?.title ??
+                            intl.formatMessage({
+                              id: "app.garden.commitment.none",
+                              defaultMessage: "Not for a Promise",
+                            })}
+                        </span>
+                        {choice ? (
+                          <>
+                            <span className="mt-1 block text-xs text-text-sub-600">
+                              {[requirementText(choice), choice.actionTitle]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                            {progressText(choice) ? (
+                              <span className="mt-0.5 block text-xs text-text-sub-600">
+                                {progressText(choice)}
+                              </span>
+                            ) : null}
+                            {choice.dueDate ? (
+                              <span className="mt-0.5 block text-xs text-text-sub-600">
+                                {intl.formatMessage(
+                                  { id: "app.garden.commitment.due", defaultMessage: "Due {date}" },
+                                  {
+                                    date: intl.formatDate(new Date(Number(choice.dueDate) * 1000), {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    }),
+                                  }
+                                )}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </DialogShell>
         </>
       ) : null}
     </div>

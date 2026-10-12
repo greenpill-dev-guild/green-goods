@@ -28,6 +28,7 @@ import {
   type DevMockAuthRole,
 } from "../src/providers/DevAuthProvider";
 import { useAdminStore, type Garden as AdminStoreGarden } from "../src/stores/useAdminStore";
+import { type ListingSubmission, listingSubmissionKey, useListingSubmissionStore } from "../src/stores/useListingSubmissionStore";
 import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
@@ -516,6 +517,21 @@ export function withSeededQueryClient(
         <Story />
       </QueryClientProvider>
     );
+  };
+}
+
+export function withPendingListing(submission: ListingSubmission): Decorator {
+  return (Story, context) => {
+    useLayoutEffect(() => {
+      const store = useListingSubmissionStore.getState();
+      store.record(submission);
+      const key = listingSubmissionKey(submission.account, submission.chainId, submission.garden, submission.hypercertId);
+      return () => {
+        if (useListingSubmissionStore.getState().pending[key] === submission)
+          useListingSubmissionStore.getState().clear(key);
+      };
+    }, [context.id]);
+    return <Story {...context} />;
   };
 }
 

@@ -14,6 +14,7 @@ import {
   createAssessment,
   createDefaultCreateAssessmentPorts,
   AssessmentConfirmationUnavailableError,
+  AssessmentReceiptMismatchError,
   AssessmentSubmissionPendingError,
   reconcileAssessmentSubmission,
 } from "../../modules/assessment/create-assessment-command";
@@ -58,6 +59,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   // Draft persistence
   const draft = useAssessmentDraft(draftGardenId, address, {
     enabled: !!draftGardenId && !!address,
+    chainId: selectedChainId,
   });
   const { saveDraft, clearDraft, peekDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
@@ -104,6 +106,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
       ? assessmentSubmissionKey(address, selectedChainId, draftGardenId)
       : null;
   const activeKeyRef = useRef(scope);
+  const completionRef = useRef<{ key: string; uid: string } | null>(null);
   const pendingSubmission = useAssessmentSubmissionStore((state) =>
     scope ? state.pending[scope] : undefined
   );
@@ -144,7 +147,9 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               chainIdRef.current !== pending.chainId
             )
               return null;
-            const outcome = await reconcileAssessmentSubmission(pending, currentSender);
+            const outcome = pending.confirmedUid
+              ? { status: "confirmed" as const, uid: pending.confirmedUid }
+              : await reconcileAssessmentSubmission(pending, currentSender);
             if (
               signal.aborted ||
               activeKeyRef.current !== key ||
@@ -154,12 +159,32 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
             )
               return null;
             if (outcome.status === "unresolved") return null;
-            useAssessmentSubmissionStore.getState().clear(key);
-            if (outcome.status === "reverted") throw new Error("Assessment transaction reverted");
+            if (outcome.status === "reverted" || outcome.status === "mismatched") {
+              useAssessmentSubmissionStore.getState().clear(key);
+              throw new Error(
+                formatMessageRef.current({
+                  id:
+                    outcome.status === "mismatched"
+                      ? "app.assessment.receiptMismatch"
+                      : "app.account.transactionReverted",
+                })
+              );
+            }
+            useAssessmentSubmissionStore
+              .getState()
+              .record({ ...pending, confirmedUid: outcome.uid, successTracked: true });
+            if (!pending.successTracked)
+              trackAdminAssessmentCreateSuccess({
+                gardenId: pending.gardenId,
+                assessmentType: pending.assessmentType ?? "unknown",
+                chainId: pending.chainId,
+                attestationUid: outcome.uid,
+              });
+            completionRef.current = { key, uid: outcome.uid };
             return outcome.uid;
           }),
           submitAssessment: fromPromise<string, AssessmentWorkflowParams & { gardenId: Address }>(
-            async ({ input: params }) => {
+            async ({ input: params, signal }) => {
               const { address: currentAddress, sender: currentSender } = identityRef.current;
               const currentChainId = chainIdRef.current;
               if (getPending())
@@ -194,8 +219,11 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                     account: currentAddress,
                     transactionSender: currentSender,
                     checkpoint: (submission) =>
-                      useAssessmentSubmissionStore.getState().record(submission),
+                      useAssessmentSubmissionStore
+                        .getState()
+                        .record({ ...submission, assessmentType: params.assessmentType }),
                     clearCheckpoint: (submission) => {
+                      if (submission.result.confirmation !== "pending") return;
                       const key = assessmentSubmissionKey(
                         submission.account,
                         submission.chainId,
@@ -242,22 +270,49 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                     },
                   })
                 );
-                trackAdminAssessmentCreateSuccess({
-                  gardenId: params.gardenId,
-                  assessmentType: params.assessmentType,
-                  chainId: currentChainId,
-                  attestationUid: newAttestationUID,
-                });
+                const submissionKey = assessmentSubmissionKey(
+                  currentAddress,
+                  currentChainId,
+                  params.gardenId
+                );
+                const pending = useAssessmentSubmissionStore.getState().pending[submissionKey];
+                if (pending)
+                  useAssessmentSubmissionStore
+                    .getState()
+                    .record({ ...pending, confirmedUid: newAttestationUID, successTracked: true });
+                if (!pending?.successTracked)
+                  trackAdminAssessmentCreateSuccess({
+                    gardenId: params.gardenId,
+                    assessmentType: params.assessmentType,
+                    chainId: currentChainId,
+                    attestationUid: newAttestationUID,
+                  });
+                if (!signal.aborted)
+                  completionRef.current = { key: submissionKey, uid: newAttestationUID };
                 return newAttestationUID;
               } catch (error) {
                 if (
                   error instanceof AssessmentConfirmationUnavailableError ||
                   error instanceof AssessmentSubmissionPendingError
                 ) {
-                  useAssessmentSubmissionStore.getState().record(error.assessmentSubmission);
+                  useAssessmentSubmissionStore.getState().record({
+                    ...error.assessmentSubmission,
+                    assessmentType: params.assessmentType,
+                  });
                   // Accepted execution is neither a failed assessment nor permission to retry.
                   throw new Error(
                     formatMessageRef.current({ id: "app.account.transactionPending" })
+                  );
+                }
+                if (error instanceof AssessmentReceiptMismatchError) {
+                  const key = assessmentSubmissionKey(
+                    currentAddress,
+                    currentChainId,
+                    params.gardenId
+                  );
+                  useAssessmentSubmissionStore.getState().clear(key);
+                  throw new Error(
+                    formatMessageRef.current({ id: "app.assessment.receiptMismatch" })
                   );
                 }
                 const message =
@@ -392,15 +447,34 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     INDEXER_LAG_SCHEDULE_MS
   );
   useEffect(() => {
-    if (!isSuccess) return;
+    const completion = completionRef.current;
+    if (
+      !isSuccess ||
+      !completion ||
+      completion.uid !== state.context.txHash ||
+      completion.key !== activeKeyRef.current
+    )
+      return;
 
     let cancelled = false;
 
     const finalizeSuccess = async () => {
-      await clearDraft();
+      const completedKey = completion.key;
+      const completed = completedKey
+        ? useAssessmentSubmissionStore.getState().pending[completedKey]
+        : undefined;
+      const draftCleared = await clearDraft();
       const persistedDraft = await peekDraft();
+      if (
+        draftCleared &&
+        !persistedDraft &&
+        completedKey &&
+        completed &&
+        useAssessmentSubmissionStore.getState().pending[completedKey] === completed
+      )
+        useAssessmentSubmissionStore.getState().clear(completedKey);
       if (!cancelled) {
-        if (persistedDraft) {
+        if (!draftCleared || persistedDraft) {
           notifyDraftPersistenceIssue("clear");
         } else {
           draftPersistenceWarningShownRef.current = false;
@@ -424,6 +498,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     };
   }, [
     isSuccess,
+    state.context.txHash,
     clearDraft,
     peekDraft,
     notifyDraftPersistenceIssue,

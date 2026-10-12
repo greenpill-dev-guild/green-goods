@@ -370,7 +370,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               <CarouselItem className="basis-full max-w-full">
                 <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary-on-surface">
                       <RiPlantFill className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">

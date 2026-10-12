@@ -100,7 +100,7 @@ export function resolveE2e(argv) {
 }
 
 export function assertQualifiedReport(report, preset, startedAt) {
-  const expected = { passkey: ['passkey-mock', 1], explore: ['work-exploration', 2], 'pwa-preview': ['pwa-preview', 1] }[preset];
+  const expected = { passkey: ['passkey-mock', 3], explore: ['work-exploration', 2], 'pwa-preview': ['pwa-preview', 1] }[preset];
   const stats = report?.stats;
   if (!Number.isFinite(Date.parse(stats?.startTime)) || Date.parse(stats.startTime) < startedAt) throw new Error(`Qualified ${preset} proof report is stale or missing`);
   const collect = suites => (suites ?? []).flatMap(suite => [...(suite.specs ?? []).flatMap(spec => spec.tests ?? []), ...collect(suite.suites)]);

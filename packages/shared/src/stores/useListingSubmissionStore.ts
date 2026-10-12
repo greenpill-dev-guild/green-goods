@@ -13,8 +13,13 @@ export interface ListingSubmission {
   hypercertId: string;
   currency: Address;
 }
-export function listingSubmissionKey(account: Address, chainId: number, garden: Address): string {
-  return `${getTransactionScopeKey(account, chainId)}:${garden.toLowerCase()}`;
+export function listingSubmissionKey(
+  account: Address,
+  chainId: number,
+  garden: Address,
+  hypercertId?: string | bigint
+): string {
+  return `${getTransactionScopeKey(account, chainId)}:${garden.toLowerCase()}${hypercertId === undefined ? "" : `:${hypercertId}`}`;
 }
 interface State {
   pending: Record<string, ListingSubmission>;
@@ -40,8 +45,12 @@ export const useListingSubmissionStore = create<State>()(
         set((state) => ({
           pending: {
             ...state.pending,
-            [listingSubmissionKey(submission.account, submission.chainId, submission.garden)]:
-              submission,
+            [listingSubmissionKey(
+              submission.account,
+              submission.chainId,
+              submission.garden,
+              submission.hypercertId
+            )]: submission,
           },
         })),
       clear: (key) =>
@@ -54,6 +63,24 @@ export const useListingSubmissionStore = create<State>()(
       name: "green-goods:listing-submissions",
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({ pending: state.pending, cancellations: state.cancellations }),
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<State>;
+        return {
+          ...current,
+          cancellations: saved.cancellations ?? {},
+          pending: Object.fromEntries(
+            Object.values(saved.pending ?? {}).map((submission) => [
+              listingSubmissionKey(
+                submission.account,
+                submission.chainId,
+                submission.garden,
+                submission.hypercertId
+              ),
+              submission,
+            ])
+          ),
+        };
+      },
     }
   )
 );

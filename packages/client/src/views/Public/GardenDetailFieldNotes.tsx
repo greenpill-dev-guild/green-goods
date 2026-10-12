@@ -50,11 +50,12 @@ export function FieldNotesSection({
       })}
       heading={formatMessage({
         id: "public.gardenDetail.notes.heading",
-        defaultMessage: "Latest field notes",
+        defaultMessage: "Recent approved work",
       })}
       helper={formatMessage({
         id: "public.gardenDetail.notes.helper",
-        defaultMessage: "What gardeners have logged from the field, most recent first.",
+        defaultMessage:
+          "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
       })}
     >
       {loading ? (

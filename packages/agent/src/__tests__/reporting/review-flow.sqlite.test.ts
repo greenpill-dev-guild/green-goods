@@ -94,6 +94,9 @@ describe("steward review", () => {
     expect(await harness.say(BOLA, "REVIEW")).toEqual([
       "Work waiting for your review in TAS. Choose one to start:\n1. Tree planting (TAS)",
     ]);
+    // A decision's answers have nothing to do with a garden's activities, so none are read, even
+    // for a steward whose account is in a single garden.
+    const activityReads = harness.catalog.calls;
     expect(await harness.say(BOLA, "1")).toEqual([
       `Do you approve or reject “Tree planting” by ${adaAccount.address.toLowerCase()}?\n1. Approve\n2. Reject`,
     ]);
@@ -102,6 +105,7 @@ describe("steward review", () => {
     ]);
     await harness.press(BOLA, "High");
     const summary = await harness.say(BOLA, "Well documented, thank you");
+    expect(harness.catalog.calls).toBe(activityReads);
     expect(summary[0]).toContain(
       "• Decision: Approve\n• Confidence: High\n• Feedback: Well documented, thank you\n• Method: human review"
     );
@@ -141,13 +145,24 @@ describe("steward review", () => {
       transactionHash: hash,
     });
     await harness.drain();
-    expect(sentTexts().at(-1)).toBe(
-      `Your review is recorded ✅\nTransaction: https://arbiscan.io/tx/${hash}`
-    );
-    expect(harness.transport.sent.at(-1)?.message.link).toEqual({
-      url: `https://arbitrum.easscan.org/attestation/view/${workUID}`,
-      label: "View the work",
-    });
+    const { decisionUID } = harness.core.db
+      .query(
+        "SELECT attestation_uid AS decisionUID FROM execution_operations WHERE kind = 'review'"
+      )
+      .get() as { decisionUID: string };
+    // Three 32-byte identifiers that must not trade places: the decision's own attestation, the
+    // transaction that carried it, and the work it decided.
+    expect(new Set([decisionUID, hash, workUID]).size).toBe(3);
+    const recorded = harness.transport.sent.at(-1)?.message;
+    expect(recorded?.text).toBe("Your review is recorded ✅");
+    expect(recorded?.records).toEqual([
+      {
+        url: `https://arbitrum.easscan.org/attestation/view/${decisionUID}`,
+        label: "View attestation",
+      },
+      { url: `https://arbiscan.io/tx/${hash}`, label: "View transaction" },
+      { url: `https://arbitrum.easscan.org/attestation/view/${workUID}`, label: "View the work" },
+    ]);
     expect(harness.chain.works.get(workUID)?.approved).toBe(true);
     expect(harness.core.db.query("SELECT lifecycle FROM review_intents").get()).toEqual({
       lifecycle: "recorded",

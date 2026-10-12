@@ -309,7 +309,7 @@ describe("the passkey assessment sender", () => {
     expect(outcome).toEqual(
       status === "confirmed"
         ? { status: "confirmed", uid: attestationUid }
-        : { status: "unresolved" }
+        : { status: status === "mismatched" ? "mismatched" : "unresolved" }
     );
     expect(f.sendContractCall).not.toHaveBeenCalled();
     if (status === "opaque") expect(mocks.getReceipt).not.toHaveBeenCalled();
@@ -377,7 +377,7 @@ describe("the passkey assessment sender", () => {
     { schemaUID: zeroHash },
     { uid: zeroHash },
   ])("refuses a receipt from another contract/account/garden/schema or an empty UID: %j", async (override) => {
-    await expect(fixture(override).send()).rejects.toThrow("no matching attestation");
+    await expect(fixture(override).send()).rejects.toThrow("assessment-receipt-mismatch");
   });
   it("refuses a reverted receipt", async () => {
     const f = fixture();

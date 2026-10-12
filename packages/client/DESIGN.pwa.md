@@ -42,7 +42,7 @@ dialect: installed-pwa
 - Step flows (DL-058): each step is named under its marker (Submit Work: Start, Media, Details, Review; adding proof: Media, Details, Review). Once a promise is chosen, every step opens with its FormInfo heading card and then the pinned promise card ("Work for" or "Proof for", the title on at most two lines), which sticks under the 80px top bar as the page scrolls. Tapping it opens the promise in a sheet (Submit Work's offers Not for This Promise), and closing the sheet returns to the same step
 - Toasts (DL-060): the status icon sits on the title's line (on the message's first line when there is no title), and the message, description, and action run the toast's full width below it; the action's text takes `--primary-on-surface`. The toast is shared, so the admin cockpit renders the same anatomy
 - Garden header (DL-020): page actions (notifications, endowment, share) are 32px icon buttons stacked in the banner's top right, with Share last so the others keep their places. The title row carries at most one text action, Join Garden or Request to Join, at the `compact` button size (32px tall, 14px label, no icon, 48px tap area), and its location and founded lines truncate instead of running under the button
-- Logo screens (DL-084): every screen that draws the logo shares one geometry, so nothing moves between them: sign-in in all its states, the loading screen, and the screen shown when the app could not open. `SplashScaffold` owns it: the logo (96px, 112px from 640px), one line under it, two 44px control slots, the message zone and the text link, with the free space split 11:9 above and below and extra space reserved below to raise the block another 20px when space permits. The line is the app's name in the wordmark's voice (20px bold, green) or a sentence in the status voice (16px semibold, ink: "Signing you in...", "Green Goods is loading."), centred in the same slot and one line long from 320px in every language. A button on a logo screen is full width with the app's corner in sign-in's first slot; anything longer than the line becomes a quiet note under the button, never a second line above it. The loading screen is static HTML that paints before React (`.boot-pwa-shell` in `index.html`) and mirrors the scaffold slot for slot; `bootFallbackGeometry.test.ts` fails when either side changes alone
+- Logo screens (DL-084): every screen that draws the logo shares one geometry, so nothing moves between them: sign-in in all its states, the loading screen, and the screen shown when the app could not open. `SplashScaffold` owns it: the logo (96px, 112px from 640px), one line under it, two 44px control slots, the message zone and the text link, with the free space split 11:9 above and below and extra space reserved above to lower the block another 4px when space permits. This places the block 24px below the previous anchor. The line is the app's name in the wordmark's voice (20px bold, green) or a sentence in the status voice (16px semibold, ink: "Signing you in...", "Green Goods is loading."), centred in the same slot and one line long from 320px in every language. A button on a logo screen is full width with the app's corner in sign-in's first slot; anything longer than the line becomes a quiet note under the button, never a second line above it. The loading screen is static HTML that paints before React (`.boot-pwa-shell` in `index.html`) and mirrors the scaffold slot for slot; `bootFallbackGeometry.test.ts` fails when either side changes alone
 - Failure states (DL-085): a failure is drawn where it happened, and only as large as what failed. One screen failing keeps the shell: the empty state's anatomy (DL-056) in place of the screen, with the bottom bar where the route shows it. It has the error mark, a title, one line saying nothing was lost, a full-width Reload at sign-in's width, and an outlined Back on routes that hide the bar (`AppScreenError`). The app itself failing (it could not open, or its shell failed) is the logo screen above: one line, Reload in sign-in's first slot, and a quiet note (`AppLaunchError`), in the language the app would have chosen. Offline is a wait, not a fault: the calm mark, a line saying the screen loads when the connection returns, and it does, by itself. A screen whose code is from an older build reloads itself once and shows no error. The state belongs to the screen that failed: moving to another screen clears it, including inside a garden, whose page stays mounted across its child pages. No screen shows an error message, a stack, a copy-details action or a restart that clears data: the report is kept on the device and sent to PostHog as soon as it can be. `ErrorRecovery` owns the behaviour; `RouteErrorBoundary` and `AppErrorBoundary` only place it
 - Scrolling: content scrolls inside `#app-scroll`, within a full-height `main` that clips and is positioned, so the document itself never scrolls. Android stretches every fixed element when the document overscrolls; with no document scroll, the AppBar and page headers hold still while native pull-to-refresh still reaches the document
 - Persistent chrome (AppBar, offline banner) has its own view-transition name and never animates, so tab cross-fades pass beneath it
@@ -72,12 +72,13 @@ dialect: installed-pwa
 
 ## Color Adaptation
 
-The PWA inherits the Warm Earth core. The current green rhythm is protected:
-- Bright tertiary garden green stays on text-free marks: icons, active nav marks (the icon and indicator bar, not the label), dots, progress lines, soft highlights, and value-flow indicators.
-- Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action tokens with white text, never bright green (DL-017).
-- Green text on a surface (active tab and AppBar labels, the open FAQ title, links, selected titles) uses `--primary-on-surface`: deep green in light, the bright accent in dark. In an active tab the label takes it while the icon and indicator bar keep the bright accent (DL-053).
+The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
+- Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and pale mint `tertiary-dark` (`#C2F5DA`) in dark.
+- Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action pair: deep green with white content in light, mint with near-black `on-tertiary-dark` ink in dark. Dark hover uses `tertiary-dark-hover` (`#84EBB4`).
+- Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause uses the theme's filled-action pair.
+- Soft green highlights may retain the tertiary tint. Domain and status colors stay independent; success, warning, error and information marks are not brand accents.
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
-- No PWA-specific token overrides; values come from shared tokens.
+- Shared runtime aliases scope the mint palette to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. The static boot fallback mirrors the dark action pair before styles load.
 
 **Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. Foundation palette remains — only the accent shifts.
 
@@ -97,12 +98,12 @@ The PWA inherits the Warm Earth core. The current green rhythm is protected:
 
 **Do:**
 - Test PWA layouts at 375px and on a real phone when layout or navigation changes
-- Preserve the bright green accent rhythm in `/home`, `/home/garden`, and `/home/profile`
+- Preserve the theme-aware green hierarchy in `/home`, `/home/garden`, and `/home/profile`
 - Use container queries for components that can appear in both client modes
 - Keep copy warm, personal, and community-facing
 
 **Don't:**
 - Show `SiteHeader` or hamburger navigation in installed PWA mode
 - Use editorial serif in the PWA — it is an app, not a magazine
-- Replace bright accent states with admin workspace colors
+- Replace the PWA green roles with admin workspace colors
 - Make the funding or submission flow feel transactional

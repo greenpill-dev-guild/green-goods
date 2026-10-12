@@ -9,6 +9,14 @@
  * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
 
+.admin-loading-screen {
+  background: rgb(var(--m3-surface-container-low));
+}
+
+[data-theme="dark"] .admin-loading-screen {
+  background: rgb(var(--m3-surface));
+}
+
 /* Toast / Snackbar (react-hot-toast) — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
   background: rgb(var(--m3-inverse-surface)) !important;

@@ -25,8 +25,7 @@ describe("public garden redirects", () => {
   it("pairs each admin host with its own client host when no base URL is set", () => {
     const pairs: Array<[string, string]> = [
       ["admin.greengoods.app", "https://greengoods.app/gardens"],
-      ["beta-admin.greengoods.app", "https://beta.greengoods.app/gardens"],
-      ["staging-admin.greengoods.app", "https://staging.greengoods.app/gardens"],
+      ["beta.admin.greengoods.app", "https://beta.greengoods.app/gardens"],
     ];
     for (const [hostname, expected] of pairs) {
       expect(buildClientGardenRedirectUrl(undefined, "", "", undefined, "", hostname)).toBe(
