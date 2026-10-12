@@ -160,7 +160,7 @@ describe("AppKit config", () => {
     });
 
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("(or in env.template + run `bun run env:sync`")
+      expect.stringContaining("Set it in .env (or run `bun run env:sync`")
     );
   });
 });

@@ -1,4 +1,6 @@
+import { Button } from "@green-goods/shared/components/Button";
 import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { useApp } from "@green-goods/shared/providers/App";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
@@ -10,6 +12,7 @@ import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
+import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
@@ -27,6 +30,7 @@ import { publicCuration } from "@/content/publicCuration";
  */
 export default function Home() {
   const { formatMessage } = useIntl();
+  const { isMobile } = useApp();
   const stats = usePublicStats();
 
   const counts = stats.data ?? {
@@ -41,7 +45,32 @@ export default function Home() {
     defaultMessage: "Explore Gardens",
   });
 
-  const heroActions = (
+  // A phone visitor is on the device they would garden with, so the hero leads
+  // with the install path and keeps Explore Gardens as the editorial route.
+  // Desktop carries Install App in the header, so its hero pairs discovery with
+  // funding. `isMobile` is the device, not the width: a narrow desktop window
+  // keeps the desktop pair (DESIGN.browser.md § Homepage).
+  const heroActions = isMobile ? (
+    <>
+      <PublicInstallAction>
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
+          <Button asChild size="lg">
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+            >
+              {label}
+            </a>
+          </Button>
+        )}
+      </PublicInstallAction>
+      <EditorialGhostLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialGhostLink>
+    </>
+  ) : (
     <>
       <EditorialPrimaryLink to="/gardens" size="lg">
         {exploreLabel}

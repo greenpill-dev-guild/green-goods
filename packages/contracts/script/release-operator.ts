@@ -1009,7 +1009,6 @@ async function runSession(candidateCommit: string, stage?: CeremonyStage): Promi
       GG_RELEASE_OPERATOR_SESSION: candidateCommit,
       PINATA_GATEWAY: "",
       PINATA_JWT: "",
-      PINATA_JWT_OP_REF: "",
     };
     if (stage) {
       const definition = CEREMONY_STAGES.get(stage);

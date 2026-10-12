@@ -23,7 +23,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026, DL-029: the 16px field corner in the app, square on the website), and the admin cockpit keeps its M3 pills on the DL-011 / DL-030 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
+          "The three button and control systems side by side, rendered from the real components and measured live: the installed app and public website share one primitive family with one corner per surface (DL-026: the 16px field corner in the app, DL-029; the capsule on the website, DL-089), and the admin cockpit keeps its M3 pills on the DL-011 / DL-030 compact metric. Each specimen reads its own height, corner, label size, weight, font, and hit area from the browser and grades them against that surface's rules.",
       },
     },
   },
@@ -74,7 +74,7 @@ function ClientColumn({ surface }: { surface: "app" | "website" }) {
         <Specimen
           title="Pressed corner (simulated)"
           expect={{ radius: rules.cornerPressed, weight: rules.weight }}
-          note="The resting token is swapped for the pressed one; a real press tightens one step (DL-001, DL-026)."
+          note={rules.pressedNote}
         >
           <div style={pressed}>
             <Button>Create Garden</Button>
@@ -256,7 +256,7 @@ export const ThreeSystems: Story = {
   render: () => (
     <Page
       title="Button and control systems"
-      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, square on the website); the admin cockpit keeps AdminButton pills on its compact metric. Every specimen below is the real component measured in this browser."
+      lede="Three surfaces, two systems. The installed app and the public website share the shared Button, IconButton, Chip, and field primitives and differ only in the corner and label weight the surface sets (16px like the fields in the app, a capsule on the website); the admin cockpit keeps AdminButton pills on its compact metric. Every specimen below is the real component measured in this browser."
     >
       <Section title="Side by side">
         <div className="sb-ds-columns">
@@ -303,10 +303,12 @@ export const ThreeSystems: Story = {
     await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
     await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Inter");
 
-    // Public website: square, weight 600, serif editorial field (DL-029).
+    // Public website: capsule, weight 600, serif editorial field (DL-089).
     const site = within(column("website") as HTMLElement);
     const sitePrimary = site.getAllByRole("button", { name: "Create Garden" })[0];
-    await expect(px(getComputedStyle(sitePrimary).borderTopLeftRadius)).toBe(0);
+    await expect(px(getComputedStyle(sitePrimary).borderTopLeftRadius)).toBeGreaterThanOrEqual(
+      sitePrimary.getBoundingClientRect().height / 2
+    );
     await expect(getComputedStyle(sitePrimary).fontWeight).toBe("600");
     const editorial = site.getByRole("textbox", { name: "Email" });
     await expect(first(getComputedStyle(editorial).fontFamily)).toBe("Fraunces");

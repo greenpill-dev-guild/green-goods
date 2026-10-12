@@ -8,7 +8,7 @@ import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type FocusEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
@@ -62,6 +62,7 @@ export const SiteHeader = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [headerOpacity, setHeaderOpacity] = useState(1);
   const homeLinkRef = useRef<HTMLAnchorElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
@@ -82,13 +83,26 @@ export const SiteHeader = () => {
     setIsDrawerOpen(false);
   }, [pathname, isDesktop]);
 
+  // The header fades with the scroll but its controls stay in the tab order, so the keyboard
+  // can reach one that is faint or gone. Bring the page to the top, where the header is fully
+  // shown over the hero: what the browser does by itself for a header that scrolls with the
+  // page. A pointer press does not count, so a click on a part-faded header moves nothing.
+  const handleHeaderFocus = useCallback((event: FocusEvent<HTMLElement>) => {
+    if (!event.target.matches(":focus-visible") || window.scrollY <= 0) return;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    setHeaderOpacity(1);
+  }, []);
+
   // Drawer pins the header fully visible regardless of scroll position; the
   // user opened it deliberately and needs to read its CTAs.
   const effectiveOpacity = isDrawerOpen ? 1 : headerOpacity;
   const isFullyHidden = effectiveOpacity <= 0.02;
 
   return (
-    <PublicInstallAction>
+    // The drawer's Install App closes the drawer before the sheet opens, so when the sheet
+    // closes that control is gone. Focus then goes where closing the drawer would have put it:
+    // the menu button, or the home link at widths that hide the menu button.
+    <PublicInstallAction focusFallbackRef={isDesktop ? homeLinkRef : menuButtonRef}>
       {({
         label,
         href,
@@ -106,7 +120,7 @@ export const SiteHeader = () => {
               isFullyHidden && "pointer-events-none"
             )}
             style={{ opacity: effectiveOpacity }}
-            aria-hidden={isFullyHidden ? "true" : undefined}
+            onFocus={handleHeaderFocus}
             data-variant="transparent"
           >
             {/* GEOMETRY SYNC: the boot header skeleton in index.html mirrors this
@@ -166,6 +180,7 @@ export const SiteHeader = () => {
                   {/* Mobile hamburger: light ink over the hero image */}
                   <Dialog.Trigger asChild>
                     <IconButton
+                      ref={menuButtonRef}
                       className="text-static-white/90 hover:bg-static-white/10 hover:text-static-white md:hidden"
                       aria-label={intl.formatMessage({
                         id: "public.nav.openMenu",

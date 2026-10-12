@@ -1,4 +1,5 @@
 {
+  "app.garden.previousCreationComplete": "Este jardim já foi criado. Escolha Criar outro para começar um novo jardim.",
   "admin.actions.createAction": "Criar ação",
   "admin.actions.description": "{count} {count, plural, one {ação disponível} other {ações disponíveis}}",
   "admin.actions.imageUnavailable": "Imagem indisponível",
@@ -6908,5 +6909,11 @@
   "app.garden.joinRequest.error.alreadySteward": "Você já tem acesso como responsável a este jardim.",
   "cockpit.stewardAccess.checkingAvailability": "Verificando a disponibilidade de solicitações…",
   "cockpit.stewardAccess.availabilityError": "Não foi possível verificar as solicitações. Tente novamente ou copie o endereço da sua conta e compartilhe com um proprietário ou responsável do jardim.",
-  "cockpit.community.joinRequests.assignmentRecovery": "Confira as solicitações para atualizar a fila antes de tentar novamente."
+  "cockpit.community.joinRequests.assignmentRecovery": "Confira as solicitações para atualizar a fila antes de tentar novamente.",
+  "admin.garden.deploy.pendingTitle": "Aguardando execução da carteira",
+  "admin.garden.deploy.pendingMessage": "Sua carteira aceitou este envio, mas a execução não foi confirmada. Verifique a aprovação ou execução na carteira. Não envie outra implantação enquanto esta estiver pendente.",
+  "app.account.checkConfirmation": "Verificar confirmação",
+  "app.account.transactionRevertedTitle": "Transação revertida",
+  "app.account.transactionReverted": "A transação foi revertida. A alteração não foi registrada.",
+  "app.assessment.receiptMismatch": "A transação foi confirmada, mas o registro da avaliação não correspondeu. Verifique o recibo antes de enviar outra avaliação."
 }

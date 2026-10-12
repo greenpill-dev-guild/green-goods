@@ -3,11 +3,14 @@ import {
   useCreateGardenStore,
 } from "@green-goods/shared/stores/useCreateGardenStore";
 import {
+  type CreateGardenContext,
   type CreateGardenFormStatus,
   createGardenMachine,
 } from "@green-goods/shared/workflows/createGarden";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createActor, fromPromise, waitFor } from "xstate";
+
+type GardenSubmission = NonNullable<CreateGardenContext["submission"]>;
 
 const GARDENER_ONE = "0x1234567890123456789012345678901234567890";
 const GARDENER_TWO = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
@@ -99,7 +102,10 @@ describe("createGarden workflow", () => {
     const actor = createActor(
       createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise(async () => "0xhash"),
+          submitGarden: fromPromise<GardenSubmission, void>(async () => ({
+            hash: "0xhash" as const,
+            sponsored: false,
+          })),
         },
       })
     );
@@ -137,12 +143,12 @@ describe("createGarden workflow", () => {
     const actor = createActor(
       createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise(async () => {
+          submitGarden: fromPromise<GardenSubmission, void>(async () => {
             attempt += 1;
             if (attempt === 1) {
               throw new Error("boom");
             }
-            return "0xhash";
+            return { hash: "0xhash" as const, sponsored: false };
           }),
         },
       })

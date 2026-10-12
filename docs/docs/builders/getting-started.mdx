@@ -228,18 +228,18 @@ this in the wider contribution flow.
 
 Green Goods uses one `.env` at the repository root. Packages never carry their own.
 
-- **`env.schema` owns the rules.** It names every variable and whether it's required.
-  `bun run env:check` validates your `.env` against it.
-- **`env.template` holds references, not secrets.** Team members resolve those references from
-  1Password with `bun run env:sync`, which needs the 1Password CLI and access to the shared
-  vault. If the template is missing, `node scripts/dev/env-template-init.js` recreates its shape;
-  fill in the team references, then sync.
+- **`env.schema` is the one checked-in environment file.** It names every variable, marks the
+  ones each profile requires, and holds the value a sync writes: a plain default, nothing, or a
+  1Password reference. It never holds a secret. `bun run env:check` validates your `.env`
+  against it.
+- **Team members resolve the references with `bun run env:sync`.** It needs the 1Password CLI
+  and access to the shared vault, and it writes the result to the root `.env`.
 - **Some capabilities need their own credentials.** `ENVIO_API_TOKEN` keeps indexer replay
   reliable on the team stack, uploads and messaging need their service keys, and passkeys and
-  wallets bring their own. Personal credentials stay in your `.env`, never in the shared template.
+  wallets bring their own. Personal credentials stay in your `.env`, never in `env.schema`.
 - **Setup never overwrites your `.env`.** A rerun keeps the file as it is; it doesn't merge in new
-  keys or repair old ones. The sync is an explicit write to it, so check what it would change
-  before you run it on an existing file.
+  keys or repair old ones. The sync is an explicit write to it: it keeps the previous file as
+  `.env.bak` and replaces it, so check what it would change before you run it on an existing file.
 - **Capabilities have their own checks.** `bun run dev:health -- --profile upload`, for example,
   explains what uploads still need.
 - **Secrets stay out of the repo.** Never put a value in docs, logs, test fixtures, package-level

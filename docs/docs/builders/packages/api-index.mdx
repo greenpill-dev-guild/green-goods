@@ -86,6 +86,8 @@ Every route the agent registers under `/public/`, and every route a shared route
 
 A listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.
 
+The agent also registers routes that are not public contracts, and this table leaves them out: the `/health` and `/ready` probes; `/api/messages` and `/reporting/ops/`, which answer only to the agent's API token; and `/messaging/`, the private same-origin API behind the browser messaging ceremonies (host-only session cookies, with the exact Origin and a CSRF token required on requests that change state).
+
 The route constants are exported by these Shared files:
 
 - `packages/shared/src/public-contracts/profile-avatar.ts`: `PROFILE_AVATAR_BATCH_ROUTE`, `PROFILE_AVATAR_ROUTE`

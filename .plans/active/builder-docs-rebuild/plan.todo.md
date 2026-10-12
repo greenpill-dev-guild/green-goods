@@ -1,9 +1,9 @@
 # Builder Docs Rebuild Plan
 
 **Feature Slug**: `builder-docs-rebuild`
-**Status**: ACTIVE
+**Status**: IMPLEMENTED (PR #795 merged into `develop` on 2026-10-12 UTC; Afo's review gates stay open)
 **Created**: 2026-09-02
-**Last Updated**: 2026-10-10
+**Last Updated**: 2026-10-12
 
 ## Decision Log
 
@@ -257,7 +257,54 @@ Status (2026-10-11, Codex on `4fdcfa0cd`, and the merge request): five threads, 
 `66f5255a6`: EAS completeness, the steward's money row, the Client page's read and write paths,
 the yield resolver's place on the Contracts page, and routing for the git hooks; decisions 64 and
 65. Afo asked for the merge once CI is green (decision 66). The human gates D12, the page-length
-gate and a Reference landing stay open after the merge, with the five captures that lack a source.
+gate and a Reference landing stay open after the merge, with the seven captures that lack a source.
+
+Status (2026-10-12 UTC, merged): PR #795 merged into `develop` at 04:41 UTC as `5c37667fe`, a merge
+commit and not a squash, after CI Gate passed on head `2da291351` with all 128 review threads
+resolved and CodeRabbit's review of 2026-09-03 dismissed (decision 66). The merged tree differs
+from that head in one file, `scripts/dev/stack.js`, which develop already had from PR #1076. The
+Linear closeout ran after the merge. Observed the same hour: Vercel built develop at the merge
+commit, and the public docs site still served its production build of 2026-10-06, so the new
+routes return 404 there until the next production deployment.
+
+After the merge: at 04:51 UTC, ten minutes later, Codex opened five more threads on the merged
+head, which brings the PR to 133 threads with five unanswered at this record. Four have a basis in
+the code at a first read. The Hats page calls the self-join counter a member cap, though it counts
+only `joinGarden` calls and never goes down, and says nothing else writes the tree, though the
+token holder can grant and revoke through the garden account. The Contracts page and a link on the
+Gardens page still call the modules opt-in (decision 38 corrected that on Architecture). The CI
+page's Supply Chain Guardrails entry names its dependency lane and not its formatting, guidance and
+parity lanes. The fifth asks for the agent's messaging routes in the API Index. Those 26 routes are
+a private same-origin API behind a session cookie and a CSRF token (`routes/messaging/http.ts`),
+and the page's contract is public routes, so the answer there is a sentence saying they exist and
+are left out, not a listing. Afo asked for all five to go into one follow-up PR against develop.
+
+Correction in the same record: this hub said five captures lack a faithful source, and its own
+list has seven: the steward guide's two review captures, the gardener guide's Start and Details
+captures, and the three QA app captures. None of the seven files has changed since 2026-09-03 and
+none is at the capture size of decision 61. The count is fixed where it appeared.
+
+Still open, all Afo's: D12 (the spine tone and the Anatomy page), the page-length gate, a
+Reference landing, the seven captures, the commitment and hypercert capability records (last
+verified 2026-08-15, they set three of the personas page's availability notes), and the community
+funder guide's "designed to preserve your principal" wording, which decision 48 did not reach.
+
+Lane state after the merge: the `ui` and `state_api` lanes are `blocked` on those gates, not
+`in_progress` on a branch the merge removed, and not certified. The hub's overall status is
+`blocked` and it stays in `active/`: a closeout has to give every open item a destination and
+archive the hub, and that is Afo's decision once he has judged the gates. The Linear mirror is set
+to preserve the issue's existing state, because the stage-derived manifest for blocked lanes would
+move it behind where the post-merge closeout left it.
+
+Status (2026-10-12 UTC, the five late threads): fixed in `81ac2789c` on their own branch, as Afo
+asked. The Hats page says what the join limit counts and names the token holder's path through
+the garden account, with that path in the diagram. The Contracts and Gardens pages no longer call
+the modules opt-in. The CI page's Supply Chain Guardrails entry names its four lanes. The API Index
+names the route families its table leaves out, the private messaging API among them; the route
+reader now refuses an unlisted route outside those families, and a family nothing registers, so
+that sentence cannot go stale. One question is left for Afo and is not a docs matter:
+`maxGardeners` counts joins and never goes down, while the cockpit's setting reads "Limit
+gardeners". The page states the behavior; whether the contract should count members is his call.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only

@@ -73,7 +73,8 @@ describe("standalone policy operation boundaries", () => {
       const live = policyForgeCommand(plan(), "https://rpc.invalid", true);
       expect(live.args.slice(-3)).toEqual(["--broadcast", "--account", "green-goods-deployer"]);
       expect(live.env.SINGLE_ATTESTATION_POLICY_NONCE).toBe("7");
-      expect(live.env.PINATA_JWT_OP_REF).toBe("");
+      expect(live.env.PINATA_JWT).toBe("");
+      expect(live.env.PINATA_GATEWAY).toBe("");
     } finally {
       if (before === undefined) delete process.env.ETH_PASSWORD;
       else process.env.ETH_PASSWORD = before;

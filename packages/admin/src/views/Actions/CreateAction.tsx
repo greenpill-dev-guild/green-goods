@@ -1,3 +1,4 @@
+import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
 import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
 import { useCreateActionController } from "@green-goods/shared/hooks/admin-ui/actions/useCreateActionController";
 import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
@@ -49,6 +50,7 @@ export default function CreateAction() {
 
   // One reading of the send, so the status row and the footer never disagree.
   const status = actionSendStatus({
+    pending: createAction.isPendingRegistration,
     phase: flowSendPhase({
       sending: createAction.isSending,
       sent: createAction.isSent,
@@ -80,7 +82,14 @@ export default function CreateAction() {
 
   const activeStep = createAction.stepConfigs[createAction.currentStep];
 
-  const footer = (
+  const footer = createAction.isPendingRegistration ? (
+    <WalletCancellationRecovery
+      key={createAction.recoveryKey}
+      onCheck={createAction.checkConfirmation}
+      onConfirmCancellation={createAction.confirmWalletCancellation}
+      disabled={createAction.isCheckingConfirmation}
+    />
+  ) : (
     <FlowSendFooter
       stepIndex={createAction.currentStep}
       isLast={createAction.currentStep === createAction.stepConfigs.length - 1}

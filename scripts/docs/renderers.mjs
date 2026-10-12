@@ -5,6 +5,7 @@ import path from "node:path";
 import { GENERATOR_PATH, generatedFrontmatter, regenerationHint } from "./generator-core.mjs";
 import { OPERATIONS } from "../../packages/contracts/script/cli/operations.mjs";
 import {
+  UNLISTED_AGENT_ROUTE_FAMILIES,
   collectRenderableAddresses,
   deploymentInventory,
   indexerContracts,
@@ -142,6 +143,9 @@ export function renderApiIndex({ root, sources, digest, manifests, agentApi, rou
   if (routeSources.some((source) => /\bif \([^)]*\) \{\s*register[A-Za-z]+Routes\(/.test(readText(root, source)))) {
     body += "\nA listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.\n";
   }
+  // The reader refuses an unlisted route outside these families, so this sentence stays complete.
+  const unlisted = UNLISTED_AGENT_ROUTE_FAMILIES.map((family) => family.described);
+  body += `\nThe agent also registers routes that are not public contracts, and this table leaves them out: ${unlisted.slice(0, -1).join("; ")}; and ${unlisted.at(-1)}.\n`;
   const symbolsBySource = new Map(contractSources.map((source) => [source, new Set()]));
   for (const [name, constant] of routeConstants(root, contractSources)) {
     symbolsBySource.get(constant.source).add(name.split(".")[0]);

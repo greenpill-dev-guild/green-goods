@@ -61,6 +61,11 @@ export interface PublicInstallDialogProps {
   guidance: InstallGuidance;
   onOpenChange: (open: boolean) => void;
   onPrimaryAction?: MouseEventHandler<HTMLButtonElement>;
+  /**
+   * Runs as the sheet hands focus back. The sheet has no Radix trigger, so whoever opens it
+   * places focus here; left alone, focus falls to the page body.
+   */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 function cleanInstructionText(value: string): string {
@@ -87,6 +92,7 @@ export function PublicInstallDialog({
   guidance,
   onOpenChange,
   onPrimaryAction,
+  onCloseAutoFocus,
 }: PublicInstallDialogProps) {
   const { formatMessage } = useIntl();
   const isDesktopQr = mode === "desktopQr";
@@ -106,6 +112,7 @@ export function PublicInstallDialog({
             "bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
             isDesktopQr ? "sm:max-w-[44rem]" : "sm:max-w-lg"
           )}
+          onCloseAutoFocus={onCloseAutoFocus}
         >
           <InstallDialogScrollLock />
           <div className="flex max-h-[calc(100vh-2rem)] flex-col overflow-y-auto p-5 sm:p-7">

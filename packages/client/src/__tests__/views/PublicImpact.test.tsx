@@ -232,6 +232,17 @@ describe("ImpactPage", () => {
     expect(screen.getByRole("dialog", { name: "Cleanup Event" })).toBeInTheDocument();
   });
 
+  it("returns focus to the evidence card when its record closes", () => {
+    renderView();
+    const card = screen.getByRole("button", { name: "Composting Pilot" });
+    // A bare click moves no focus, as a click or tap on a button moves none in Safari.
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(card).toHaveFocus();
+  });
+
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();

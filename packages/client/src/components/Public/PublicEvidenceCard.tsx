@@ -242,7 +242,12 @@ export function PublicEvidenceCard({
     <button
       type="button"
       data-pressable="card"
-      onClick={() => onOpen(record)}
+      onClick={(event) => {
+        // Safari leaves a pressed button unfocused, and the drawer returns focus to the opener
+        // that holds it.
+        event.currentTarget.focus({ preventScroll: true });
+        onOpen(record);
+      }}
       className="group flex h-full cursor-pointer flex-col gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
       aria-label={title}
     >
