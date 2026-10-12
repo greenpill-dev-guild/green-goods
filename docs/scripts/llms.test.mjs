@@ -58,6 +58,11 @@ describe("markdown twins", () => {
       },
       ens: {display: "ENS", definition: "Names.", networks: [], totalNetworks: 4, indexedContracts: []},
     };
+    const crossChain = {
+      ...integrations.ens,
+      networks: [{chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["ensReceiver", "greenGoodsENS"], remote: {ensReceiver: "Ethereum Mainnet"}}],
+    };
+    assert.match(projectionMarkdown(crossChain), /\| Deployed \| `ensReceiver` \(on Ethereum Mainnet\), `greenGoodsENS` \|/);
     const twin = markdownTwin("# Hats\n\n<IntegrationProjection id=\"hats\" />\n\nAfter.\n", "Hats", {integrations});
     assert.doesNotMatch(twin, /<IntegrationProjection/);
     assert.match(twin, /^## Checked-in deployment projection$/m);

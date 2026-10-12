@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/data/banned-vocabulary.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:e734ae860feba0fffb702a6e7fb395e263818f1f74716fad2b980bcc9b21396d"
+source_digest: "sha256:67065a6cdf9689b78e7665a3911a480363b4dd11d489aff339bf346f33293dba"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -36,7 +36,7 @@ The ontology currently declares 21 canonical concepts. Availability is projected
 | **Work Approval** | entity | available | admin · client · public · docs | The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it. |
 | **Assessment** | entity | available | admin · client · public · docs | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). |
 | **Hypercert** | entity | in-build | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
-| **Vault** | entity | available | admin · client · public · docs | A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, so the deposit stays theirs to withdraw; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios. |
+| **Vault** | entity | available | admin · client · public · docs | A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios. |
 | **Cookie Jar** | entity | available | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. |
 | **Attestation** | entity | available | admin · client · public · docs | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. |
 | **Hat** | entity | available | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
@@ -106,7 +106,7 @@ An on-chain claim of impact bundling approved Work into a fractional impact cert
 
 ### Vault {#vault}
 
-A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, so the deposit stays theirs to withdraw; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios.
+A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios.
 
 **Availability:** available.
 

@@ -151,7 +151,9 @@ export function projectionMarkdown(integration) {
   } else {
     lines.push("| Network | Status | Recorded components |", "|---|---|---|");
     for (const network of integration.networks) {
-      const recorded = network.recorded.map((field) => `\`${field}\``).join(", ");
+      const recorded = network.recorded
+        .map((field) => `\`${field}\`${network.remote?.[field] ? ` (on ${network.remote[field]})` : ""}`)
+        .join(", ");
       lines.push(`| ${network.name} (\`${network.chainId}\`) | ${network.status} | ${recorded} |`);
     }
     if (integration.networks.length < integration.totalNetworks) {

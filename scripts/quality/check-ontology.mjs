@@ -745,6 +745,17 @@ export function checkSidecarIntegrity(ontology, fileExists) {
     } else if (new Set(integration.deployment_fields).size !== integration.deployment_fields.length) {
       errors.push(`integration ${integration.id}: deployment_fields contains duplicates`);
     }
+    // A field recorded on another network's artifact: { field: { chainId: hostChainId } }.
+    for (const [field, hosts] of Object.entries(integration.remote_deployment_fields ?? {})) {
+      if (!integration.deployment_fields?.includes(field)) {
+        errors.push(`integration ${integration.id}: remote_deployment_fields names ${field}, which is not a deployment field`);
+      }
+      for (const [chain, host] of Object.entries(hosts ?? {})) {
+        if (!/^\d+$/.test(chain) || !Number.isInteger(host) || Number(chain) === host) {
+          errors.push(`integration ${integration.id}: remote_deployment_fields.${field} must map a chain id to a different chain id`);
+        }
+      }
+    }
     for (const key of ["indexer_contracts", "additional_sources"]) {
       if (!Array.isArray(integration[key])) {
         errors.push(`integration ${integration.id ?? "?"}: ${key} must be an array`);

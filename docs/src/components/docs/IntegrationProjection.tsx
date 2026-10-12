@@ -7,6 +7,8 @@ type IntegrationNetwork = {
   name: string;
   status: string;
   recorded: string[];
+  /** Recorded fields that live on another network's artifact, by the network's name. */
+  remote?: Record<string, string>;
 };
 
 type IntegrationRecord = {
@@ -67,6 +69,7 @@ export function IntegrationProjection({id}: IntegrationProjectionProps) {
                       <span key={field}>
                         {index > 0 ? ", " : null}
                         <code>{field}</code>
+                        {network.remote?.[field] ? ` (on ${network.remote[field]})` : null}
                       </span>
                     ))}
                   </td>

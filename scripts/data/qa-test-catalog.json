@@ -9949,13 +9949,13 @@
       "kind": "content",
       "area": "Builder Docs",
       "scenario": "Anatomy of a Work Submission traces the shipped flow",
-      "preconditions": ["The Anatomy of a Work Submission page and the Persona Surfaces matrix"],
+      "preconditions": ["The Anatomy of a Work Submission page and the Personas and Surfaces page"],
       "steps": [
         "Follow each stage of the Anatomy page against the shipped client, admin, and contracts",
         "Open the schema and code links on the page",
-        "Check the persona surfaces matrix against the five surfaces it names: admin, client, agent, public, and docs"
+        "Check the Personas and Surfaces matrix against the glossary's allowed surfaces for each persona: it records where a persona's name may appear, not who can sign in"
       ],
-      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, and the matrix assigns each persona to the surfaces that ship; drift is listed per stage",
+      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, and the matrix marks for each persona the surfaces where its name may appear, matching the glossary and claiming nothing about access; drift is listed per stage",
       "evidence": "List of drifted statements or dead links with the page path",
       "role": "any",
       "tags": ["docs", "builder-docs"],

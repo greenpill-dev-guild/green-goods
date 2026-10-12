@@ -11,6 +11,7 @@ source_of_truth:
   - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Hats.sol
   - packages/shared/src/utils/blockchain/garden-roles.ts
+  - packages/contracts/src/accounts/Garden.sol
 keywords:
   - hats
   - roles
@@ -30,12 +31,17 @@ tree, its whole authority structure is inspectable at once.
 
 ## How it flows
 
-Stewards and the garden's owner manage the tree through the Hats module. Everything else only reads
-it.
+Stewards and the garden's owner grant and revoke roles through the Hats module. One role can also
+be self-served: while a garden has open joining on, anyone who is not yet a member can call
+`joinGarden` on the garden account and receives the gardener hat, up to the garden's member cap
+when one is set. A steward or the owner turns that on or off with `setOpenJoining`. Everything
+else only reads the tree.
 
 ```mermaid
 flowchart LR
   steward([Owner or steward]) -->|grants or revokes| module["Hats module"]
+  joiner([Anyone, while open joining is on]) -->|joinGarden| account["Garden account"]
+  account -->|grants the gardener hat| module
   module --> tree["Garden hat tree<br/>(Hats Protocol)"]
   resolvers["EAS resolvers"] -->|check the signer's hat| tree
   apps["Client and admin"] -->|read roles| tree
@@ -46,6 +52,7 @@ flowchart LR
 | Layer | Source |
 |---|---|
 | Module | `packages/contracts/src/modules/Hats.sol` |
+| Open joining | `packages/contracts/src/accounts/Garden.sol` (`joinGarden`, `setOpenJoining`, the member cap) |
 | Role helpers | `packages/shared/src/utils/blockchain/garden-roles.ts` |
 | Persona mapping | The [ontology](../architecture/data-model), which binds each persona to its hat |
 

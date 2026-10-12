@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope integration`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:9eb360922be8635875c4ad17ed9a909a033ca3b2707acfe25b5d94baf9c5bc3d",
+  "digest": "sha256:a9afcd5a6d3758d5e25f8bd6e12f88591bd30dfb487210c88286c24b0720365f",
   "integrations": {
     "cookie-jar": {
       "display": "Cookie Jar",
@@ -83,14 +83,6 @@
       "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
       "networks": [
         {
-          "chainId": 1,
-          "name": "Ethereum Mainnet",
-          "status": "Partial",
-          "recorded": [
-            "ensReceiver"
-          ]
-        },
-        {
           "chainId": 11155111,
           "name": "Sepolia Testnet",
           "status": "Deployed",
@@ -102,10 +94,14 @@
         {
           "chainId": 42161,
           "name": "Arbitrum One",
-          "status": "Partial",
+          "status": "Deployed",
           "recorded": [
+            "ensReceiver",
             "greenGoodsENS"
-          ]
+          ],
+          "remote": {
+            "ensReceiver": "Ethereum Mainnet"
+          }
         }
       ],
       "totalNetworks": 4,

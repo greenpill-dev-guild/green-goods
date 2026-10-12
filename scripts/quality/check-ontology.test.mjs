@@ -837,6 +837,7 @@ test("integration metadata requires unique deployment fields and existing source
       definition: "Broken fixture.",
       contract_source: "missing.sol",
       deployment_fields: ["module", "module"],
+      remote_deployment_fields: { receiver: { 2: 1 }, module: { 2: 2 } },
       indexer_contracts: [],
       additional_sources: ["missing.ts"],
     },
@@ -847,6 +848,8 @@ test("integration metadata requires unique deployment fields and existing source
   assert.ok(errors.includes("integration Bad Integration: deployment_fields contains duplicates"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.sol"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.ts"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields names receiver, which is not a deployment field"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields.module must map a chain id to a different chain id"));
 });
 
 test("specified constraints and state machines require specs and planned anchors", () => {

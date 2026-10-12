@@ -336,6 +336,44 @@ test("API index lists every public path the Agent API and its route contracts wr
   );
 });
 
+test("a field recorded on another network counts for the network that depends on it", () => {
+  const root = fixture();
+  try {
+    const address = "0x1111111111111111111111111111111111111111";
+    const zero = "0x0000000000000000000000000000000000000000";
+    const deployments = "packages/contracts/deployments";
+    mkdirSync(path.join(root, deployments), { recursive: true });
+    mkdirSync(path.join(root, "packages/indexer"), { recursive: true });
+    writeFileSync(
+      path.join(root, deployments, "networks.json"),
+      JSON.stringify({ networks: { home: { chainId: 1, name: "Home" }, rollup: { chainId: 2, name: "Rollup" }, testnet: { chainId: 3, name: "Testnet" } } }),
+    );
+    writeFileSync(path.join(root, "packages/indexer/config.yaml"), "contracts: []\n");
+    const write = (chainId, artifact) => writeFileSync(path.join(root, deployments, `${chainId}-latest.json`), JSON.stringify(artifact));
+    // The rollup holds the outbox, the home chain receives for it, and the testnet keeps both ends.
+    write(2, { outbox: address, receiver: zero });
+    write(3, { outbox: address, receiver: address });
+    const ontology = {
+      integrations: [
+        { id: "names", display: "Names", definition: "", deployment_fields: ["receiver", "outbox"], remote_deployment_fields: { receiver: { 2: 1 } }, indexer_contracts: [] },
+      ],
+    };
+    const sources = [1, 2, 3].map((chainId) => `${deployments}/${chainId}-latest.json`).concat(`${deployments}/networks.json`, "packages/indexer/config.yaml");
+    const networks = () => integrationNetworkRecords({ root, sources, ontology }).names.networks;
+
+    write(1, { outbox: zero, receiver: address });
+    assert.deepEqual(networks(), [
+      { chainId: 2, name: "Rollup", status: "Deployed", recorded: ["receiver", "outbox"], remote: { receiver: "Home" } },
+      { chainId: 3, name: "Testnet", status: "Deployed", recorded: ["receiver", "outbox"] },
+    ]);
+    // Without its receiver the rollup is a staged deployment, and the home chain still has no row.
+    write(1, { outbox: zero, receiver: zero });
+    assert.deepEqual(networks()[0], { chainId: 2, name: "Rollup", status: "Partial", recorded: ["outbox"] });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("sorts package exports deterministically", () => {
   const root = fixture();
   try {
@@ -646,6 +684,10 @@ test("integration projections move to one data file with per-network and indexin
     "unlock.locks.firstWork.address",
     "unlock.locks.firstSupport.address",
   ]);
+  // ENS is cross-chain: Arbitrum's receiver is recorded on Ethereum, which gets no row of its own.
+  const ens = payload.integrations.ens.networks;
+  assert.deepEqual(ens.find((network) => network.chainId === 42161).remote, { ensReceiver: "Ethereum Mainnet" });
+  assert.equal(ens.some((network) => network.chainId === 1), false);
   assert.equal(typeof payload.digest, "string");
   assert.ok(hats.totalNetworks >= hats.networks.length);
 });

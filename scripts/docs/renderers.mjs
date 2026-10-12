@@ -399,15 +399,41 @@ export function integrationNetworkRecords({ root, sources, ontology }) {
   const indexed = indexerContracts(root, declaredSource(sources, "packages/indexer/config.yaml"));
   const integrations = {};
   for (const integration of [...(ontology.integrations ?? [])].sort((a, b) => a.id.localeCompare(b.id))) {
-    const rows = deploymentInventory(root, deploymentSources, integration.deployment_fields);
-    const networks = rows
-      .map((row) => ({
-        chainId: Number(row.chainId),
-        name: names.get(Number(row.chainId)) ?? String(row.chainId),
-        status: deploymentState(row.values, integration.deployment_fields),
-        recorded: integration.deployment_fields.filter((field) => isRecordedDeploymentValue(row.values[field])),
-      }))
-      .filter((network) => network.recorded.length > 0);
+    const fields = integration.deployment_fields;
+    const rows = deploymentInventory(root, deploymentSources, fields);
+    const valuesByChain = new Map(rows.map((row) => [Number(row.chainId), row.values]));
+    // A cross-chain integration keeps one of its contracts on another network: the ENS receiver
+    // for Arbitrum lives on Ethereum. That network's artifact answers for the field, and a network
+    // that only hosts such a component is part of the other deployment, not one of its own.
+    const remote = integration.remote_deployment_fields ?? {};
+    const hostOf = (field, chainId) => remote[field]?.[chainId] ?? chainId;
+    const hosted = new Set(
+      Object.entries(remote).flatMap(([field, hosts]) => Object.values(hosts).map((host) => `${host}:${field}`)),
+    );
+    const networks = [];
+    for (const row of rows) {
+      const chainId = Number(row.chainId);
+      const values = {};
+      const remoteHosts = {};
+      for (const field of fields) {
+        const host = hostOf(field, chainId);
+        if (!valuesByChain.has(host)) {
+          throw new Error(`Integration ${integration.id}: ${field} is hosted on chain ${host}, which has no deployment artifact among the sources`);
+        }
+        values[field] = valuesByChain.get(host)[field];
+        if (host !== chainId && isRecordedDeploymentValue(values[field])) remoteHosts[field] = names.get(host) ?? String(host);
+      }
+      const recorded = fields.filter((field) => isRecordedDeploymentValue(values[field]));
+      const own = fields.filter((field) => isRecordedDeploymentValue(row.values[field]));
+      if (recorded.length === 0 || (own.length > 0 && own.every((field) => hosted.has(`${chainId}:${field}`)))) continue;
+      networks.push({
+        chainId,
+        name: names.get(chainId) ?? String(chainId),
+        status: deploymentState(values, fields),
+        recorded,
+        ...(Object.keys(remoteHosts).length > 0 ? { remote: remoteHosts } : {}),
+      });
+    }
     integrations[integration.id] = {
       display: integration.display,
       definition: integration.definition,
