@@ -667,14 +667,18 @@ renders all 13 skills.
   with the next production deployment.
 - **Late review**: Codex opened five threads on the merged head at 2026-10-12T04:51:05Z, after the
   merge. A paged read of the PR's threads now returns 133, five of them unresolved; the 128 above
-  was the count at the merge. First read against the code: the files under
-  `packages/agent/src/api/routes/messaging/` register 26 routes, rate limited through the
-  `messaging_*` values of `PublicRouteClass` in `public-protection.ts`, while the API Index reader
-  counts a route public only under `/public/` or a Shared contract path;
-  `Garden.sol` increments `gardenMemberCount` only in `joinGarden` and never decrements it;
-  `packages/contracts.mdx` and a link on `integrations/gardens.mdx` still say opt-in; the Supply Chain
-  Guardrails workflow has formatting, guidance and parity jobs its catalog entry does not name. None
-  is answered or fixed in this entry.
+  was the count at the merge. First read against the code: `Garden.sol` increments
+  `gardenMemberCount` only in `joinGarden` and never decrements it; `packages/contracts.mdx` and a
+  link on `integrations/gardens.mdx` still say opt-in; the Supply Chain Guardrails workflow has
+  formatting, guidance and parity jobs its catalog entry does not name. The thread on the API Index
+  needs reframing, not a listing: the files under `packages/agent/src/api/routes/messaging/`
+  register 26 routes, and `http.ts` there describes them as a private same-origin API (session
+  cookie, exact Origin, CSRF token, private responses); `PublicRouteClass` only names their rate
+  limits. None is answered or fixed in this entry; Afo asked for one follow-up PR.
+- **Linear mirror**: `linear.stateSyncMode` is now `preserve_existing`. Before it,
+  `plan-hub.mjs linear-sync --feature builder-docs-rebuild --json` returned a parent update with
+  state `Todo` (it would have been `In Progress` while the lanes said `in_progress`); after it,
+  the parent is a read-only `preserve` entry. No manifest was applied.
 - **Correction**: the receipts above and the plan said five captures lack a faithful source. The
   plan's own list has seven, and the files agree: `admin-work-queue.png` and `admin-work-detail.png`
   (last changed 2026-03-08), `client-work-intro.png` and `client-work-details.png` (2026-04-18),

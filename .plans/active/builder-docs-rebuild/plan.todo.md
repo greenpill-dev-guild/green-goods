@@ -268,15 +268,16 @@ commit, and the public docs site still served its production build of 2026-10-06
 routes return 404 there until the next production deployment.
 
 After the merge: at 04:51 UTC, ten minutes later, Codex opened five more threads on the merged
-head, which brings the PR to 133 threads with five unanswered at this record. Each has a basis in
-the code at a first read. The API Index omits the agent's messaging routes, which the agent rate
-limits through the `messaging_*` values of its `PublicRouteClass`. The Hats page calls the
-self-join counter a member cap, though it counts only `joinGarden` calls and never goes down, and
-says nothing else writes the tree, though the token holder can grant and revoke through the garden
-account. The Contracts page and a link on the Gardens page still call the modules opt-in (decision
-38 corrected that on Architecture). The CI page's Supply Chain Guardrails entry names its
-dependency lane and not its formatting, guidance and parity lanes. They need a follow-up PR against
-develop; none is open at this record.
+head, which brings the PR to 133 threads with five unanswered at this record. Four have a basis in
+the code at a first read. The Hats page calls the self-join counter a member cap, though it counts
+only `joinGarden` calls and never goes down, and says nothing else writes the tree, though the
+token holder can grant and revoke through the garden account. The Contracts page and a link on the
+Gardens page still call the modules opt-in (decision 38 corrected that on Architecture). The CI
+page's Supply Chain Guardrails entry names its dependency lane and not its formatting, guidance and
+parity lanes. The fifth asks for the agent's messaging routes in the API Index. Those 26 routes are
+a private same-origin API behind a session cookie and a CSRF token (`routes/messaging/http.ts`),
+and the page's contract is public routes, so the answer there is a sentence saying they exist and
+are left out, not a listing. Afo asked for all five to go into one follow-up PR against develop.
 
 Correction in the same record: this hub said five captures lack a faithful source, and its own
 list has seven: the steward guide's two review captures, the gardener guide's Start and Details
@@ -292,7 +293,9 @@ decision 48 did not reach.
 Lane state after the merge: the `ui` and `state_api` lanes are `blocked` on those gates, not
 `in_progress` on a branch the merge removed, and not certified. The hub's overall status is
 `blocked` and it stays in `active/`: a closeout has to give every open item a destination and
-archive the hub, and that is Afo's decision once he has judged the gates.
+archive the hub, and that is Afo's decision once he has judged the gates. The Linear mirror is set
+to preserve the issue's existing state, because the stage-derived manifest for blocked lanes would
+move it behind where the post-merge closeout left it.
 
 ## CLAUDE.md Compliance
 - [x] No package-level env files touched; docs generators read repo sources only
