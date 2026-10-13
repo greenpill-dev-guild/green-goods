@@ -14,12 +14,11 @@ export interface PublicProofBandProps {
   contributors: number | null;
   works: number | null;
   assessments: number | null;
-  /** Exact counts from the Agent snapshot, formatted without narrowing to `number`. */
-  commitmentsMade: bigint | null;
+  /** Exact count from the Agent snapshot, formatted without narrowing to `number`. */
   commitmentsKept: bigint | null;
   /** The record counts (Gardens through Assessments) are still loading. */
   isLoading?: boolean;
-  /** The commitment counts come from a separate read and settle on their own. */
+  /** The commitment count comes from a separate read and settles on its own. */
   isCommitmentsLoading?: boolean;
 }
 
@@ -30,6 +29,7 @@ interface ProofMarkerProps {
   defaultLabel: string;
   noteId: string;
   defaultNote: string;
+  className?: string;
 }
 
 function ProofMarker({
@@ -39,10 +39,11 @@ function ProofMarker({
   defaultLabel,
   noteId,
   defaultNote,
+  className,
 }: ProofMarkerProps) {
   const { formatMessage, formatNumber } = useIntl();
   return (
-    <div>
+    <div className={className}>
       <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
         {isLoading ? (
           <EditorialStatSkeleton className="h-12 w-24 md:h-14 md:w-28" />
@@ -73,9 +74,9 @@ function ProofMarker({
 /**
  * PublicProofBand — confirmed counts only. Editorial "Living Public Record"
  * band on the warm linen surface: what the listed Gardens have documented
- * (Gardens, members, approved submissions, Assessments), then what members have
- * committed to across Green Goods (commitments made and kept, in the `/impact`
- * band's words; the Agent's snapshot spans every pool, not only listed Gardens).
+ * (Gardens, members, approved submissions, Assessments), then the commitments
+ * members have kept across Green Goods (in the `/impact` band's words; the Agent's
+ * snapshot spans every pool, not only listed Gardens).
  * Treats numerals as public proof, not KPI tiles — no card chrome, no shadows,
  * no domain coloring. Link arrows out to `/impact` for the evidence view.
  */
@@ -84,7 +85,6 @@ export function PublicProofBand({
   contributors,
   works,
   assessments,
-  commitmentsMade,
   commitmentsKept,
   isLoading = false,
   isCommitmentsLoading = false,
@@ -94,7 +94,7 @@ export function PublicProofBand({
   const allEmpty =
     !isLoading &&
     !isCommitmentsLoading &&
-    [gardens, contributors, works, assessments, commitmentsMade, commitmentsKept].every(
+    [gardens, contributors, works, assessments, commitmentsKept].every(
       (count) => count === 0 || count === 0n
     );
 
@@ -124,7 +124,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "Documented activity across the Gardens listed here, and what members have committed to across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
+                  "Documented activity across the Gardens listed here, and the commitments members have kept across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
@@ -155,8 +155,11 @@ export function PublicProofBand({
             </p>
           </div>
         ) : (
-          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-8 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:grid-cols-3 @min-[70rem]:gap-x-16 @min-[70rem]:gap-y-12 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
+          // Five figures on doubled tracks, each spanning two, so the short last row can
+          // start halfway and sit centred: 2 + 2 + 1, and 3 + 2 on the wide layout.
+          <dl className="grid grid-cols-4 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-8 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:grid-cols-6 @min-[70rem]:gap-x-16 @min-[70rem]:gap-y-12 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
             <ProofMarker
+              className="col-span-2"
               value={gardens}
               isLoading={isLoading}
               labelId="public.home.proof.gardens"
@@ -165,6 +168,7 @@ export function PublicProofBand({
               defaultNote="Each with at least one approved submission."
             />
             <ProofMarker
+              className="col-span-2"
               value={contributors}
               isLoading={isLoading}
               labelId="public.home.proof.contributors"
@@ -173,6 +177,7 @@ export function PublicProofBand({
               defaultNote="Gardeners and stewards, each counted once."
             />
             <ProofMarker
+              className="col-span-2"
               value={works}
               isLoading={isLoading}
               labelId="public.home.proof.works"
@@ -181,6 +186,7 @@ export function PublicProofBand({
               defaultNote="Work reviewed by a Garden's stewards."
             />
             <ProofMarker
+              className="col-span-2 @min-[70rem]:col-[2/span_2]"
               value={assessments}
               isLoading={isLoading}
               labelId="public.home.proof.assessments"
@@ -189,14 +195,7 @@ export function PublicProofBand({
               defaultNote="Starting conditions, evidence standards, or progress."
             />
             <ProofMarker
-              value={commitmentsMade}
-              isLoading={isCommitmentsLoading}
-              labelId="public.pool.impact.made.label"
-              defaultLabel="Commitments made"
-              noteId="public.pool.impact.made.note"
-              defaultNote="What members have offered or asked for across Green Goods."
-            />
-            <ProofMarker
+              className="col-[2/span_2] @min-[70rem]:col-span-2"
               value={commitmentsKept}
               isLoading={isCommitmentsLoading}
               labelId="public.pool.impact.kept.label"

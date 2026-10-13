@@ -1,10 +1,11 @@
 import type { MessageDescriptor } from "react-intl";
 
 /**
- * The Garden cycle, told the same way on the home page (`PublicRecordLoop`) and on
- * `/impact` (`PublicEvidencePipeline`): Needs → Commitment → Work → Learnings
- * (experience audit AD-9). The array is the single source of the order and the
- * descriptors the single source of the words, so the two pages cannot drift.
+ * The Garden cycle as `/impact` tells it (`PublicEvidencePipeline`): Needs →
+ * Commitment → Work → Learnings (experience audit AD-9). The array is the single
+ * source of the order and the descriptors the single source of the words. The home
+ * page's "How it works" (`PublicRecordLoop`) borrows the first three stages' names
+ * and descriptions under its own action titles, so the two pages cannot drift.
  *
  * Descriptions stay in one length band so the four columns on `/impact` end level.
  */

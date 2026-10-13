@@ -113,7 +113,6 @@ export default function Home() {
         works={counts.fieldNoteCount}
         assessments={counts.attestationCount}
         // A commitment read that settled without data is unknown, never zero.
-        commitmentsMade={commitments.data?.commitmentsMade ?? null}
         commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
         isLoading={stats.isLoading}
         isCommitmentsLoading={commitments.isLoading}

@@ -558,9 +558,9 @@ describe("FundPage", () => {
     });
   });
 
-  // Oct 7 moved the explanation under the list and folded the endowment figures into
-  // toggles; the QA review (2026-10-12) put context first and every figure on the page.
-  it("explains the two ways to support first, then the Gardens, then the endowment totals, with nothing behind a toggle", () => {
+  // Oct 7 put the list first and folded the endowment totals into a toggle at the foot;
+  // the QA review (2026-10-12/13) restored the earlier order with every figure open.
+  it("opens with the endowment totals, then the ways to support, then the Gardens, with nothing behind a toggle", () => {
     const { container } = renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
@@ -570,13 +570,13 @@ describe("FundPage", () => {
       name: /Endowment capital already supporting Gardens/i,
     });
 
-    expect(hero.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(gardens.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(container.querySelector("details")).toBeNull();
-    expect(screen.getByText("§ 01: Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 02: Choose a Garden")).toBeInTheDocument();
-    expect(screen.getByText("§ 03: Endowment engine")).toBeInTheDocument();
+    expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
+    expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
+    expect(screen.getByText("§ 03: Choose a Garden")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {

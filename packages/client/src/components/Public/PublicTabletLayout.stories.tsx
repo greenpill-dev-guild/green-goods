@@ -45,7 +45,6 @@ const meta = {
         contributors={48}
         works={125}
         assessments={8}
-        commitmentsMade={18n}
         commitmentsKept={2n}
       />
       <PublicRecordLoop />

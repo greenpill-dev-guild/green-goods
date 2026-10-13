@@ -1,28 +1,62 @@
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
-import { useIntl } from "react-intl";
+import { type MessageDescriptor, useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EditorialHeading, EditorialKicker, EditorialNumeral } from "./atoms";
-import {
-  CYCLE_LOOP_MESSAGE,
-  CYCLE_STEP_MESSAGES,
-  CYCLE_STEPS,
-  type CycleStepKind,
-} from "./cycleSteps";
+import { CYCLE_LOOP_MESSAGE, CYCLE_STEP_MESSAGES } from "./cycleSteps";
 
-/** Where each step can be seen on the site. */
-const STEP_DESTINATIONS: Record<CycleStepKind, string> = {
-  needs: "/impact",
-  commitment: "/gardens",
-  work: "/actions",
-  learnings: "/impact",
-};
+interface LoopStep {
+  /** The stage the step belongs to, shown as a small label over its action. */
+  label: MessageDescriptor;
+  /** What the step asks of the people involved, as the row's title. */
+  action: MessageDescriptor;
+  description: MessageDescriptor;
+  /** Where the step can be seen on the site. */
+  to: string;
+}
 
 /**
- * PublicRecordLoop — the home page's "How it works": the Garden cycle in the
- * same four steps and words as the `/impact` figure (`./cycleSteps`), so a
- * visitor meets one story, commitments included. Each step is a hairline row
- * with an italic numeral, a Fraunces title, and a short body, linking to where
- * that step can be seen on the site.
+ * The visitor's plan (Afo, 2026-10-13): the first three stages of the `/impact`
+ * cycle in its names and words, each led by the action it asks for, then funding.
+ * `/impact` keeps Learnings as its fourth stage; here the loop line closes it.
+ */
+const LOOP_STEPS: readonly LoopStep[] = [
+  {
+    label: CYCLE_STEP_MESSAGES.needs.title,
+    action: { id: "public.home.loop.step.needs.action", defaultMessage: "Assess the needs." },
+    description: CYCLE_STEP_MESSAGES.needs.description,
+    to: "/impact",
+  },
+  {
+    label: CYCLE_STEP_MESSAGES.commitment.title,
+    action: {
+      id: "public.home.loop.step.commitment.action",
+      defaultMessage: "Plan, then commit.",
+    },
+    description: CYCLE_STEP_MESSAGES.commitment.description,
+    to: "/gardens",
+  },
+  {
+    label: CYCLE_STEP_MESSAGES.work.title,
+    action: { id: "public.home.loop.step.work.action", defaultMessage: "Report the work." },
+    description: CYCLE_STEP_MESSAGES.work.description,
+    to: "/actions",
+  },
+  {
+    label: { id: "public.home.loop.step.funding.label", defaultMessage: "Funding" },
+    action: { id: "public.home.loop.step.funding.action", defaultMessage: "Fund what grows." },
+    description: {
+      id: "public.home.loop.step.funding.description",
+      defaultMessage:
+        "Supporters donate to a Garden's shared fund or endow its Vault, whose yield supports the work.",
+    },
+    to: "/fund",
+  },
+];
+
+/**
+ * PublicRecordLoop — the home page's "How it works": four steps a Garden repeats,
+ * each a hairline row with its number and stage, a Fraunces action title, and a
+ * short body, linking to where that step can be seen on the site.
  */
 export function PublicRecordLoop() {
   const { formatMessage } = useIntl();
@@ -45,39 +79,40 @@ export function PublicRecordLoop() {
           </EditorialKicker>
           <EditorialHeading id="public-loop-title">
             {formatMessage({
-              id: "public.impact.pipeline.title",
-              defaultMessage: "From need to learning, season after season.",
+              id: "public.home.loop.title",
+              defaultMessage: "Four steps, season after season.",
             })}
           </EditorialHeading>
         </div>
 
         <ol className="mt-12">
-          {CYCLE_STEPS.map((kind, index) => (
+          {LOOP_STEPS.map((step, index) => (
             <li
-              key={kind}
-              className={index === CYCLE_STEPS.length - 1 ? "border-b border-stroke-soft-200" : ""}
+              key={step.to + step.label.id}
+              className={index === LOOP_STEPS.length - 1 ? "border-b border-stroke-soft-200" : ""}
             >
               <Link
-                to={STEP_DESTINATIONS[kind]}
+                to={step.to}
                 viewTransition
                 className="group grid grid-cols-[3rem_1fr] gap-4 border-t border-stroke-soft-200 py-7 transition-colors hover:bg-bg-white-0/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-x-6 xl:grid-cols-[7rem_1.1fr_1fr] xl:gap-12"
               >
-                <span className="pt-2">
-                  <EditorialNumeral>{`${index + 1}.`}</EditorialNumeral>
-                </span>
-                <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action sm:justify-between md:text-3xl xl:justify-start xl:text-4xl">
-                  <span className="min-w-0">{formatMessage(CYCLE_STEP_MESSAGES[kind].title)}</span>
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 text-base text-text-soft-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-action md:text-2xl"
-                  >
-                    →
+                <EditorialNumeral className="leading-5">{`${index + 1}.`}</EditorialNumeral>
+                <div className="min-w-0">
+                  <span className="mb-2 block font-mono text-[11px] font-medium uppercase leading-5 tracking-[0.16em] text-text-soft-400">
+                    {formatMessage(step.label)}
                   </span>
-                </h3>
-                <p className="col-start-2 min-w-0 max-w-prose text-sm leading-[1.6] text-text-sub-600 md:text-base xl:col-start-auto">
-                  {formatMessage(CYCLE_STEP_MESSAGES[kind].description, {
-                    certificate: (chunks) => chunks,
-                  })}
+                  <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action sm:justify-between md:text-3xl xl:justify-start xl:text-4xl">
+                    <span className="min-w-0">{formatMessage(step.action)}</span>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-base text-text-soft-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-action md:text-2xl"
+                    >
+                      →
+                    </span>
+                  </h3>
+                </div>
+                <p className="col-start-2 min-w-0 max-w-prose text-sm leading-[1.6] text-text-sub-600 md:text-base xl:col-start-auto xl:mt-7">
+                  {formatMessage(step.description)}
                 </p>
               </Link>
             </li>

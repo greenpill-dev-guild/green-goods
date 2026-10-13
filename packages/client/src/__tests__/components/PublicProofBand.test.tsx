@@ -1,11 +1,11 @@
 /**
  * PublicProofBand empty + populated state tests.
  *
- * Locks the band's contract: six confirmed counts (what the listed Gardens have
- * documented, then what their members committed to). When every count is zero
- * the band shows one explanatory line instead of six "0"s that read as a broken
+ * Locks the band's contract: five confirmed counts (what the listed Gardens have
+ * documented, then the commitments members kept). When every count is zero the
+ * band shows one explanatory line instead of five "0"s that read as a broken
  * state; a count that could not be read is a dash, never zero; and the commitment
- * counts load on their own.
+ * count loads on its own.
  *
  * @vitest-environment happy-dom
  */
@@ -35,7 +35,6 @@ const LABELS = [
   en["public.home.proof.contributors"],
   en["public.home.proof.works"],
   en["public.home.proof.assessments"],
-  en["public.pool.impact.made.label"],
   en["public.pool.impact.kept.label"],
 ];
 
@@ -44,7 +43,6 @@ const ZERO: PublicProofBandProps = {
   contributors: 0,
   works: 0,
   assessments: 0,
-  commitmentsMade: 0n,
   commitmentsKept: 0n,
 };
 
@@ -81,16 +79,14 @@ describe("PublicProofBand", () => {
       contributors: 41,
       works: 38,
       assessments: 2,
-      commitmentsMade: 18n,
-      commitmentsKept: 2n,
+      commitmentsKept: 5n,
     });
     expect(figures()).toEqual([
       [LABELS[0], "8"],
       [LABELS[1], "41"],
       [LABELS[2], "38"],
       [LABELS[3], "2"],
-      [LABELS[4], "18"],
-      [LABELS[5], "2"],
+      [LABELS[4], "5"],
     ]);
   });
 
@@ -101,7 +97,7 @@ describe("PublicProofBand", () => {
   });
 
   it("keeps the figures when only the commitments are non-zero", () => {
-    renderBand({ ...ZERO, commitmentsMade: 3n });
+    renderBand({ ...ZERO, commitmentsKept: 3n });
     for (const label of LABELS) expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.queryByText(en["public.home.proof.empty"])).toBeNull();
   });
@@ -118,10 +114,9 @@ describe("PublicProofBand", () => {
       contributors: 40,
       works: null,
       assessments: 2,
-      commitmentsMade: null,
       commitmentsKept: null,
     });
-    expect(screen.getAllByText(en["public.impact.proof.unavailable"])).toHaveLength(3);
+    expect(screen.getAllByText(en["public.impact.proof.unavailable"])).toHaveLength(2);
     expect(screen.queryByText("0")).toBeNull();
     expect(screen.queryByText(en["public.home.proof.empty"])).toBeNull();
   });
@@ -130,7 +125,7 @@ describe("PublicProofBand", () => {
     const { container } = renderBand({ ...ZERO, isCommitmentsLoading: true });
     for (const label of LABELS) expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.queryByText(en["public.home.proof.empty"])).toBeNull();
-    // Only the two commitment figures wait; the record counts have settled.
-    expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(2);
+    // Only the commitment figure waits; the record counts have settled.
+    expect(container.querySelectorAll("[data-editorial-skeleton]")).toHaveLength(1);
   });
 });

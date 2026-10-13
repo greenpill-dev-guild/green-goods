@@ -1,8 +1,9 @@
 /**
  * PublicRecordLoop Component Tests
  *
- * Locks the home page's "How it works": the same four-step Garden cycle, in the
- * same words, as the `/impact` figure, each step a link to where it can be seen.
+ * Locks the home page's "How it works": four steps, each an action under its stage,
+ * the first three in the `/impact` cycle's names and words and the last one funding,
+ * each a link to where it can be seen.
  *
  * @vitest-environment happy-dom
  */
@@ -39,40 +40,45 @@ function renderLoop() {
 }
 
 describe("PublicRecordLoop", () => {
-  it("tells the /impact cycle in its words, each step linking to where it can be seen", () => {
+  it("leads each step with its action under the cycle's stage, ending on funding", () => {
     renderLoop();
 
     expect(
-      screen.getByRole("heading", { level: 2, name: en["public.impact.pipeline.title"] })
+      screen.getByRole("heading", { level: 2, name: en["public.home.loop.title"] })
     ).toBeInTheDocument();
     const steps = screen.getAllByRole("listitem").map((item) => {
-      const link = item.querySelector("a");
+      const heading = item.querySelector("h3");
       return [
-        item.querySelector("h3")?.textContent?.replace("→", "").trim(),
+        heading?.previousElementSibling?.textContent,
+        heading?.textContent?.replace("→", "").trim(),
         item.querySelector("p")?.textContent,
-        link?.getAttribute("href"),
+        item.querySelector("a")?.getAttribute("href"),
       ];
     });
     expect(steps).toEqual([
       [
         en["public.impact.pipeline.step.needs.title"],
+        en["public.home.loop.step.needs.action"],
         en["public.impact.pipeline.step.needs.description"],
         "/impact",
       ],
       [
         en["public.impact.pipeline.step.commitment.title"],
+        en["public.home.loop.step.commitment.action"],
         en["public.impact.pipeline.step.commitment.description"],
         "/gardens",
       ],
       [
         en["public.impact.pipeline.step.work.title"],
+        en["public.home.loop.step.work.action"],
         en["public.impact.pipeline.step.work.description"],
         "/actions",
       ],
       [
-        en["public.impact.pipeline.step.learnings.title"],
-        en["public.impact.pipeline.step.learnings.description"],
-        "/impact",
+        en["public.home.loop.step.funding.label"],
+        en["public.home.loop.step.funding.action"],
+        en["public.home.loop.step.funding.description"],
+        "/fund",
       ],
     ]);
     expect(screen.getByText(en["public.impact.pipeline.loop"])).toBeInTheDocument();

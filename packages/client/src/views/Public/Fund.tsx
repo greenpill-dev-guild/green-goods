@@ -132,7 +132,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.fund.vaults.kicker",
-              defaultMessage: "§ 03: Endowment engine",
+              defaultMessage: "§ 01: Endowment engine",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-fund-vaults-title">
@@ -354,9 +354,6 @@ function FundPageContent() {
   const manageQuery = searchParams.get("manage");
 
   const resolved = useMemo(() => resolveGardenQuery(gardenQuery, gardens), [gardenQuery, gardens]);
-  // A receipt or a Garden-query notice sits between the hero and § 01 and clears the hero card.
-  const leadNoticeShown =
-    Boolean(intentId) || resolved.status === "stale" || resolved.status === "ambiguous";
 
   const orderedGardens = useMemo(() => {
     if (resolved.status !== "match" || !resolved.garden) return gardens;
@@ -471,48 +468,50 @@ function FundPageContent() {
         })}
       />
 
-      {intentId ? (
-        <section className="bg-bg-weak-50 px-6 pt-32 pb-8 sm:px-10 sm:pt-36 md:pt-40">
-          <div className="mx-auto max-w-3xl">
-            <PublicFundingReceipt intentId={intentId} />
-          </div>
-        </section>
-      ) : null}
+      {/* The first block after the hero clears its card: a receipt, a Garden-query notice, or § 01. */}
+      <div className="bg-bg-weak-50 pt-32 sm:pt-36 md:pt-40">
+        {intentId ? (
+          <section className="px-6 pb-8 sm:px-10">
+            <div className="mx-auto max-w-3xl">
+              <PublicFundingReceipt intentId={intentId} />
+            </div>
+          </section>
+        ) : null}
 
-      {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
-        <section className="bg-bg-weak-50 px-6 pt-32 pb-4 sm:px-10 sm:pt-36 md:pt-40">
-          <div className="mx-auto max-w-3xl">
-            <p
-              role="status"
-              className="border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600"
-            >
-              {formatMessage(
-                {
-                  id:
-                    resolved.status === "ambiguous"
-                      ? "public.fund.gardenQuery.ambiguous"
-                      : "public.fund.gardenQuery.stale",
-                  defaultMessage:
-                    resolved.status === "ambiguous"
-                      ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
-                      : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
-                },
-                { query: resolved.rawQuery ?? "" }
-              )}
-            </p>
-          </div>
-        </section>
-      ) : null}
+        {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
+          <section className="px-6 pb-4 sm:px-10">
+            <div className="mx-auto max-w-3xl">
+              <p
+                role="status"
+                className="border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600"
+              >
+                {formatMessage(
+                  {
+                    id:
+                      resolved.status === "ambiguous"
+                        ? "public.fund.gardenQuery.ambiguous"
+                        : "public.fund.gardenQuery.stale",
+                    defaultMessage:
+                      resolved.status === "ambiguous"
+                        ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
+                        : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
+                  },
+                  { query: resolved.rawQuery ?? "" }
+                )}
+              </p>
+            </div>
+          </section>
+        ) : null}
 
-      {/* § 01 — Ways to support: Donate + Endow explained before the Garden list */}
+        {/* § 01: the endowment totals, so a visitor first sees what already supports Gardens */}
+        <VaultAggregationSection summary={vaultSummary} />
+      </div>
+
+      {/* § 02: Ways to support, Donate and Endow explained before the Garden list */}
       <section
         ref={pathsRef}
         data-revealed={pathsRevealed}
-        className={
-          leadNoticeShown
-            ? "editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-            : "editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
-        }
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
         aria-labelledby="public-fund-paths-title"
       >
         <div className="editorial-cascade mx-auto max-w-7xl">
@@ -520,7 +519,7 @@ function FundPageContent() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.fund.paths.kicker",
-                defaultMessage: "§ 01: Ways to support",
+                defaultMessage: "§ 02: Ways to support",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-fund-paths-title">
@@ -594,7 +593,7 @@ function FundPageContent() {
         </div>
       </section>
 
-      {/* § 02 — Choose a Garden to donate to or endow */}
+      {/* § 03: Choose a Garden to donate to or endow */}
       <section
         ref={gardensRef}
         data-revealed={gardensRevealed}
@@ -608,7 +607,7 @@ function FundPageContent() {
                 <EditorialKicker className="mb-3">
                   {formatMessage({
                     id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 02: Choose a Garden",
+                    defaultMessage: "§ 03: Choose a Garden",
                   })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
@@ -702,9 +701,6 @@ function FundPageContent() {
           </PublicSurfaceState>
         </div>
       </section>
-
-      {/* § 03 — Endowment totals, open on the page */}
-      <VaultAggregationSection summary={vaultSummary} />
 
       <div className="bg-bg-weak-50 px-6 pb-16 sm:px-10">
         <div className="mx-auto max-w-7xl border-t border-stroke-soft-200 pt-10">

@@ -72,10 +72,9 @@ vi.mock("@/components/Public/PublicFeaturedGardens", () => ({
   PublicFeaturedGardens: () => createElement("div", { "data-testid": "stub-featured" }),
 }));
 vi.mock("@/components/Public/PublicProofBand", () => ({
-  PublicProofBand: (props: { commitmentsMade: bigint | null; commitmentsKept: bigint | null }) =>
+  PublicProofBand: (props: { commitmentsKept: bigint | null }) =>
     createElement("div", {
       "data-testid": "stub-proof",
-      "data-commitments-made": String(props.commitmentsMade),
       "data-commitments-kept": String(props.commitmentsKept),
     }),
 }));
@@ -253,12 +252,12 @@ describe("Public Home — hero CTAs", () => {
     }
   });
 
-  // The record band's commitment figures come from their own read; a read that
+  // The record band's commitment figure comes from its own read; a read that
   // settled without data must reach the band as unknown, never as zero.
   it.each([
-    ["the snapshot", { data: { commitmentsMade: 18n, commitmentsFulfilled: 2n } }, "18", "2"],
-    ["a read that settled without data", { data: undefined }, "null", "null"],
-  ])("hands the commitment counts from %s to the record band", (_, read, made, kept) => {
+    ["the snapshot", { data: { commitmentsMade: 18n, commitmentsFulfilled: 2n } }, "2"],
+    ["a read that settled without data", { data: undefined }, "null"],
+  ])("hands the kept commitments from %s to the record band", (_, read, kept) => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: false,
@@ -272,9 +271,7 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
-    const band = screen.getByTestId("stub-proof");
-    expect(band).toHaveAttribute("data-commitments-made", made);
-    expect(band).toHaveAttribute("data-commitments-kept", kept);
+    expect(screen.getByTestId("stub-proof")).toHaveAttribute("data-commitments-kept", kept);
   });
 
   it("renders the record loop after proof and before the funding bridge", () => {
