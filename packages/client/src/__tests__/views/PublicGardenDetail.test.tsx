@@ -194,24 +194,24 @@ const messages: Record<string, string> = {
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
-  "public.gardenDetail.stats.entries": "Approved work",
+  "public.gardenDetail.stats.entries": "Approved submissions",
   "public.gardenDetail.stats.handsAtWork": "Garden members",
   "public.gardenDetail.stats.assessments": "Assessments",
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
-  "public.gardenDetail.section.notes": "§ 01: Field notes",
+  "public.gardenDetail.section.notes": "§ 01: Approved submissions",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
   "public.gardenDetail.section.stewards": "§ 04: Stewards",
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
-  "public.gardenDetail.notes.heading": "Recent approved work",
+  "public.gardenDetail.notes.heading": "Recent approved submissions",
   "public.gardenDetail.notes.helper":
     "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
-  "public.gardenDetail.notes.empty": "No field notes yet.",
+  "public.gardenDetail.notes.empty": "No approved submissions yet.",
   "public.gardenDetail.notes.untitled": "Untitled entry",
   "public.gardenDetail.notes.showing": "Showing {shown} of {total}",
-  "public.gardenDetail.notes.loadMore": "Show more entries",
+  "public.gardenDetail.notes.loadMore": "Show more submissions",
   "public.gardenDetail.notes.unavailable": "Field notes could not be loaded right now.",
   "public.gardenDetail.notes.mediaAlt": "Photo logged with {title}",
   "public.gardenDetail.notes.noDescription": "No description was logged.",
@@ -379,7 +379,7 @@ describe("GardenDetail", () => {
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows approved work and stewards while omitting confirmed empty future sections", () => {
+  it("keeps every record section in place and says which are empty", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [] }));
     const { container } = renderView();
     // Scoped to the record ladder: PublicInstallCta is a labelled section with
@@ -387,17 +387,17 @@ describe("GardenDetail", () => {
     const headings = Array.from(
       container.querySelectorAll('section[aria-labelledby^="public-garden-detail-"] h2')
     ).map((h) => h.textContent ?? "");
-    expect(headings).toEqual(["Recent approved work", "Stewards"]);
-    // Empty future sections do not distract from the Garden’s work.
-    expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
-    expect(screen.queryByText("No Impact Certificates yet.")).not.toBeInTheDocument();
+    expect(headings).toEqual(["Recent approved submissions", "Impact Certificates", "Stewards"]);
+    // An absent thing says it is absent, so § 03 never drops out of the ladder.
+    expect(screen.getByText("No approved submissions yet.")).toBeInTheDocument();
+    expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
   });
 
   it("renders an em dash rather than 0 when the works read failed", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [], works: true }));
     renderView();
 
-    const entries = screen.getByText("Approved work").closest("div") as HTMLElement;
+    const entries = screen.getByText("Approved submissions").closest("div") as HTMLElement;
     expect(within(entries).getByText("—")).toBeInTheDocument();
     expect(within(entries).queryByText("0")).not.toBeInTheDocument();
     expect(within(entries).getByText("Not available")).toBeInTheDocument();
@@ -408,7 +408,7 @@ describe("GardenDetail", () => {
 
     // The section says it could not load; it does not claim the Garden is empty.
     expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
-    expect(screen.queryByText("No field notes yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No approved submissions yet.")).not.toBeInTheDocument();
   });
 
   it("dashes only the failed source", () => {
@@ -418,7 +418,7 @@ describe("GardenDetail", () => {
     const assessments = screen.getByText("Assessments").closest("div") as HTMLElement;
     expect(within(assessments).getByText("—")).toBeInTheDocument();
 
-    const entries = screen.getByText("Approved work").closest("div") as HTMLElement;
+    const entries = screen.getByText("Approved submissions").closest("div") as HTMLElement;
     expect(within(entries).getByText("2")).toBeInTheDocument();
   });
 
@@ -461,10 +461,10 @@ describe("GardenDetail", () => {
 
     expect(screen.getByText("Showing 12 of 14")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Show more entries" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show more submissions" }));
 
     expect(screen.getByText("Showing 14 of 14")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Show more entries" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show more submissions" })).not.toBeInTheDocument();
     // Paging is local. Asking the hook for a bigger page would be silently
     // useless: `queryKeys.public.gardenDetail` carries no page size, so the
     // cached result would come back unchanged.

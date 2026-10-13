@@ -235,27 +235,30 @@ function renderView(
 }
 
 /**
- * What the mock Garden rows say in each language: the first one five months after its last
- * activity, then the second one's counts.
+ * What the mock Garden rows say in each language: place and members on the first
+ * line, then approved submissions and the latest one's date (formatted per locale).
  */
-const rowCopy: Array<[string, Record<string, string>, string[], string[]]> = [
+const rowCopy: Array<[string, Record<string, string>, string[], string[], string]> = [
   [
     "en",
     en,
-    ["2 members", "1 approved submission", "Latest work 5 months ago"],
-    ["1 member", "0 approved submissions"],
+    ["Austin, TX", "2 members", "1 approved submission"],
+    ["Portland, OR", "1 member", "0 approved submissions"],
+    "Latest",
   ],
   [
     "es",
     es,
-    ["2 miembros", "1 trabajo aprobado", "Último trabajo hace 5 meses"],
-    ["1 miembro", "0 trabajos aprobados"],
+    ["Austin, TX", "2 miembros", "1 trabajo aprobado"],
+    ["Portland, OR", "1 miembro", "0 trabajos aprobados"],
+    "Último",
   ],
   [
     "pt",
     pt,
-    ["2 membros", "1 trabalho aprovado", "Último trabalho há 5 meses"],
-    ["1 membro", "0 trabalhos aprovados"],
+    ["Austin, TX", "2 membros", "1 trabalho aprovado"],
+    ["Portland, OR", "1 membro", "0 trabalhos aprovados"],
+    "Último",
   ],
 ];
 
@@ -371,20 +374,22 @@ describe("FundPage", () => {
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
   });
 
-  it.each(rowCopy)("counts and dates Garden rows in %s", (locale, catalog, solar, composting) => {
-    // 150 days after the first Garden's last activity.
-    const now = mockGardens[0].lastActivityAt * 1000 + 150 * 86_400_000;
-    vi.useFakeTimers({ toFake: ["Date"], now });
-    try {
-      renderView(["/fund"], { locale, catalog });
+  it.each(
+    rowCopy
+  )("counts and dates Garden rows in %s", (locale, catalog, solar, composting, latest) => {
+    renderView(["/fund"], { locale, catalog });
 
-      const solarRow = screen.getByRole("group", { name: /Solar Community Garden/ });
-      for (const label of solar) expect(within(solarRow).getByText(label)).toBeVisible();
-      const compostingRow = screen.getByRole("group", { name: /Urban Composting Hub/ });
-      for (const label of composting) expect(within(compostingRow).getByText(label)).toBeVisible();
-    } finally {
-      vi.useRealTimers();
+    const date = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(mockGardens[0].lastActivityAt * 1000);
+    const solarRow = screen.getByRole("group", { name: /Solar Community Garden/ });
+    for (const label of [...solar, `${latest} ${date}`]) {
+      expect(within(solarRow).getByText(label)).toBeVisible();
     }
+    const compostingRow = screen.getByRole("group", { name: /Urban Composting Hub/ });
+    for (const label of composting) expect(within(compostingRow).getByText(label)).toBeVisible();
   });
 
   it("explains Donate and Endow once in Ways to support, with Donate leading", () => {
@@ -399,7 +404,7 @@ describe("FundPage", () => {
     expect(screen.getAllByText(/Garden's shared fund/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Garden's Vault endowment/i).length).toBeGreaterThan(0);
 
-    // The rows keep bare CTAs — the two paths are explained once in § 02,
+    // The rows keep bare CTAs — the two paths are explained once in § 01,
     // not restated as helper captions under every card.
     expect(screen.queryByText("Shared fund support")).toBeNull();
     expect(screen.queryByText("Garden Vault endowment")).toBeNull();
@@ -484,13 +489,6 @@ describe("FundPage", () => {
     expect(gardenCard).toHaveClass("min-w-0");
     expect(gardenCard.parentElement).toHaveClass("h-full");
     expect(gardenCard.parentElement).toHaveClass("min-w-0");
-
-    const vaultMetrics = within(gardenCard)
-      .getByText(/2,005 DAI/)
-      .closest("p");
-    expect(vaultMetrics).toHaveClass("min-w-0");
-    expect(vaultMetrics).toHaveClass("max-w-full");
-    expect(vaultMetrics?.className).toContain("[overflow-wrap:anywhere]");
   });
 
   it("keeps compact Garden media rectangular with fitted fallback initials", () => {
@@ -560,23 +558,25 @@ describe("FundPage", () => {
     });
   });
 
-  it("leads with Gardens and keeps endowment metrics in a closed details section", () => {
-    renderView();
+  // Oct 7 moved the explanation under the list and folded the endowment figures into
+  // toggles; the QA review (2026-10-12) put context first and every figure on the page.
+  it("explains the two ways to support first, then the Gardens, then the endowment totals, with nothing behind a toggle", () => {
+    const { container } = renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
+    const paths = screen.getByRole("heading", { name: /Choose how your support helps/i });
+    const gardens = screen.getByRole("heading", { name: /Find a Garden to support/i });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Choose how your support helps/i });
-    const gardens = screen.getByRole("heading", { name: /Find a Garden to support/i });
 
-    expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(paths.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(vaults.closest("details")).not.toHaveAttribute("open");
-    expect(gardens.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
-    expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 01: Choose a Garden")).toBeInTheDocument();
+    expect(hero.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(gardens.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.getByText("§ 01: Ways to support")).toBeInTheDocument();
+    expect(screen.getByText("§ 02: Choose a Garden")).toBeInTheDocument();
+    expect(screen.getByText("§ 03: Endowment engine")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {
@@ -644,8 +644,39 @@ describe("FundPage", () => {
     const gardenCard = screen.getByRole("group", {
       name: "Solar Community Garden funding options",
     });
-    expect(gardenCard).toHaveTextContent("2,005 DAI · 1.25 ETH");
-    expect(gardenCard).toHaveTextContent("Yield accrued 25 DAI / 0.15 ETH");
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    for (const figure of ["2,005 DAI", "1.25 ETH", "Yield accrued 25 DAI / 0.15 ETH"]) {
+      expect(within(endowment).getByText(figure)).toBeVisible();
+    }
+  });
+
+  // Most Gardens' Vaults hold nothing yet; a row of zeros read as noise once the line was visible.
+  it("says None yet for a Garden whose Vaults hold nothing, instead of listing zeros", () => {
+    // The summary beforeEach set up, with the first Garden's Vaults emptied.
+    const summary = mockUsePublicVaultSummary();
+    const emptyAssets = summary.assets.map((asset: Record<string, unknown>) => ({
+      ...asset,
+      currentValue: 0n,
+      accruedYield: 0n,
+    }));
+    mockUsePublicVaultSummary.mockReturnValue({
+      ...summary,
+      gardensByAddress: {
+        "0x1111111111111111111111111111111111111111": {
+          garden: "0x1111111111111111111111111111111111111111",
+          hasVaults: true,
+          assets: emptyAssets,
+        },
+      },
+    });
+    renderView();
+
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    expect(within(endowment).getByText("None yet")).toBeVisible();
+    expect(endowment).not.toHaveTextContent(/\b0 (DAI|ETH)\b|Yield accrued/);
   });
 
   it("keeps DAI and ETH endowment cards visible (empty state) when no indexed vaults exist", () => {

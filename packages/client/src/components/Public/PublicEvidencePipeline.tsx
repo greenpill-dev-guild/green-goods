@@ -7,6 +7,12 @@ import {
   EditorialReadDeeper,
   EditorialTermTooltip,
 } from "./atoms";
+import {
+  CYCLE_LOOP_MESSAGE,
+  CYCLE_STEP_MESSAGES,
+  CYCLE_STEPS,
+  type CycleStepKind,
+} from "./cycleSteps";
 
 /**
  * The Impact page's anchor figure. Four steps — **Needs → Commitment →
@@ -31,8 +37,6 @@ import {
  * or filter.
  */
 
-type CycleStepKind = "needs" | "commitment" | "work" | "learnings";
-
 type ToneClasses = { surface: string; ink: string };
 
 /**
@@ -45,9 +49,6 @@ const STEP_TONES: Record<CycleStepKind, ToneClasses> = {
   work: { surface: "bg-domain-agro-soft", ink: "text-domain-agro" },
   learnings: { surface: "bg-domain-solar-soft", ink: "text-domain-solar" },
 };
-
-/** Display order of the figure. The array is the single source of the order. */
-const CYCLE_STEPS: readonly CycleStepKind[] = ["needs", "commitment", "work", "learnings"];
 
 interface CycleStepProps {
   kind: CycleStepKind;
@@ -86,11 +87,11 @@ function CycleStep({ kind, numeral, title, description }: CycleStepProps) {
 }
 
 /**
- * Localized title and description per step (experience audit AD-9 draft).
- * The two vocabulary terms a first-time reader may not know — Commitment and
- * Impact Certificate — wrap in `EditorialTermTooltip`; the commitment term
- * comes from the shared `public.pool.terms.*` family so every public surface
- * gives the same first-exposure meaning.
+ * Localized title and description per step, from the words the home page shares
+ * (`./cycleSteps`). The two vocabulary terms a first-time reader may not know —
+ * Commitment and Impact Certificate — wrap in `EditorialTermTooltip`; the
+ * commitment term comes from the shared `public.pool.terms.*` family so every
+ * public surface gives the same first-exposure meaning.
  *
  * A plain formatter rather than a hook: custom hooks belong in
  * `@green-goods/shared`, and this is component-local copy selection.
@@ -99,81 +100,40 @@ function stepCopy(
   kind: CycleStepKind,
   formatMessage: IntlShape["formatMessage"]
 ): { title: ReactNode; description: ReactNode } {
-  switch (kind) {
-    case "needs":
-      return {
-        title: formatMessage({
-          id: "public.impact.pipeline.step.needs.title",
-          defaultMessage: "Needs",
-        }),
-        description: formatMessage({
-          id: "public.impact.pipeline.step.needs.description",
-          defaultMessage:
-            "Understand what the place and its people need. An assessment can describe the starting conditions and how progress will be measured.",
-        }),
-      };
-    case "commitment":
-      return {
-        title: (
-          <EditorialTermTooltip
-            term={formatMessage({
-              id: "public.impact.pipeline.step.commitment.title",
-              defaultMessage: "Commitment",
-            })}
-            definition={formatMessage({
-              id: "public.pool.terms.commitment",
-              defaultMessage:
-                "An offer or request recorded in a Garden's pool, naming who will carry it out and the window to deliver it in.",
-            })}
-          />
-        ),
-        description: formatMessage({
-          id: "public.impact.pipeline.step.commitment.description",
-          defaultMessage:
-            "People agree on what needs to be done, who will do it, and when. Recorded commitments help the community coordinate that work.",
-        }),
-      };
-    case "work":
-      return {
-        title: formatMessage({
-          id: "public.impact.pipeline.step.work.title",
-          defaultMessage: "Work",
-        }),
-        description: formatMessage({
-          id: "public.impact.pipeline.step.work.description",
-          defaultMessage:
-            "Participants document their work with photos, notes, and measurements. Garden stewards review submissions before they appear in the public work record.",
-        }),
-      };
-    case "learnings":
-      return {
-        title: formatMessage({
-          id: "public.impact.pipeline.step.learnings.title",
-          defaultMessage: "Learnings",
-        }),
-        // One translatable sentence; the <certificate> tag lets each locale
-        // place the term where its own word order wants it.
-        description: formatMessage(
-          {
-            id: "public.impact.pipeline.step.learnings.description",
+  const messages = CYCLE_STEP_MESSAGES[kind];
+  const title = formatMessage(messages.title);
+  if (kind === "commitment") {
+    return {
+      title: (
+        <EditorialTermTooltip
+          term={title}
+          definition={formatMessage({
+            id: "public.pool.terms.commitment",
             defaultMessage:
-              "Compare the evidence with the starting conditions. Assessments can explain what changed and help the community decide what to do next.",
-          },
-          {
-            certificate: (chunks) => (
-              <EditorialTermTooltip
-                term={chunks}
-                definition={formatMessage({
-                  id: "public.pool.terms.certificate",
-                  defaultMessage:
-                    "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
-                })}
-              />
-            ),
-          }
-        ),
-      };
+              "An offer or request recorded in a Garden's pool, naming who will carry it out and the window to deliver it in.",
+          })}
+        />
+      ),
+      description: formatMessage(messages.description),
+    };
   }
+  return {
+    title,
+    // One translatable sentence; a <certificate> tag lets a locale mark the
+    // term where its own word order wants it.
+    description: formatMessage(messages.description, {
+      certificate: (chunks) => (
+        <EditorialTermTooltip
+          term={chunks}
+          definition={formatMessage({
+            id: "public.pool.terms.certificate",
+            defaultMessage:
+              "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
+          })}
+        />
+      ),
+    }),
+  };
 }
 
 function LocalizedCycleStep({ kind, index }: { kind: CycleStepKind; index: number }) {
@@ -252,10 +212,7 @@ export function PublicEvidencePipeline({
           {/* The loop closes for the whole figure: a full-width footer under
               all four columns, never a caption inside the last one (AD-9). */}
           <p className="mt-10 border-t border-stroke-soft-200 pt-6 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
-            {formatMessage({
-              id: "public.impact.pipeline.loop",
-              defaultMessage: "→ and what was learned shapes the next season's needs.",
-            })}
+            {formatMessage(CYCLE_LOOP_MESSAGE)}
           </p>
         </div>
 

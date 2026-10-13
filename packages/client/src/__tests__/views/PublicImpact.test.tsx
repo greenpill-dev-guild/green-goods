@@ -102,7 +102,6 @@ const messages: Record<string, string> = {
   "public.impact.totalAssessments": "Assessments",
   "public.impact.totalGardens": "Gardens",
   "public.impact.totalWork": "Work",
-  "public.impact.totalCertificates": "Impact Certificates",
   "public.impact.evidence.empty": "Assessment evidence will appear here.",
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
@@ -113,7 +112,7 @@ const messages: Record<string, string> = {
   "public.impact.proof.notPublicYet": "Not public yet",
   "public.impact.kind.all": "All",
   "public.impact.kind.assessment": "Assessment",
-  "public.impact.kind.work": "Work",
+  "public.impact.kind.work": "Submission",
   "public.impact.kind.certificate": "Impact Certificate",
   "public.impact.filters.kind": "Kind",
   "public.impact.filters.domain": "Domain",
@@ -159,14 +158,22 @@ describe("ImpactPage", () => {
     );
   });
 
-  it("renders confirmed proof markers from usePublicStats", () => {
+  it("renders confirmed proof markers from usePublicStats, and no figure it cannot read", () => {
     renderView();
-    expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens with approved work").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Approved submissions").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("7")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("30")).toBeInTheDocument();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    const markers = Array.from(proof.querySelectorAll("dl > div")).map((marker) => [
+      marker.querySelector("dt")?.textContent,
+      marker.querySelector("dd")?.textContent,
+    ]);
+    expect(markers).toEqual([
+      ["Approved submissions", "30"],
+      ["Assessments", "7"],
+      ["Gardens", "5"],
+    ]);
+    // No certificate count exists to read yet, so the row does not carry one.
+    expect(within(proof).queryByText(/Impact Certificates/)).toBeNull();
   });
 
   it("renders a stats read that settled without data as unavailable, never as zero", () => {
@@ -175,10 +182,8 @@ describe("ImpactPage", () => {
     const proof = document.querySelector(
       'section[aria-labelledby="public-impact-proof-title"]'
     ) as HTMLElement;
-    // Three live markers dash out with a screen-reader label; the certificates
-    // marker is a confirmed "not public yet", not a failed read, and keeps its phrase.
     expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
-    expect(within(proof).getAllByText("Not public yet")).toHaveLength(1);
+    expect(within(proof).queryByText("Not public yet")).toBeNull();
     expect(within(proof).queryByText("0")).toBeNull();
   });
 
@@ -241,6 +246,49 @@ describe("ImpactPage", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(card).toHaveFocus();
+  });
+
+  // Prev and Next sit under the last card; staying there after a page turn left the
+  // visitor looking at the bottom of a list they had not seen (QA review, 2026-10-12).
+  it("brings the visitor to the ledger's top, with focus on its heading, when the page turns", () => {
+    const records = Array.from({ length: 13 }, (_, index) => ({
+      id: `work:${index}`,
+      kind: "work" as const,
+      gardenId: "0x1",
+      gardenName: "Solar Garden",
+      title: `Record ${index + 1}`,
+      domain: 0,
+      sourceAvailable: true,
+      createdAt: 1710000000 - index,
+    }));
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, records, totalFetchedRecords: records.length },
+      isLoading: false,
+    });
+    const scrollIntoView = vi.fn();
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    try {
+      renderView();
+      const heading = screen.getByRole("heading", {
+        level: 2,
+        name: "Recent evidence across Gardens.",
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /Next/ }));
+
+      expect(screen.getByText("Record 13")).toBeInTheDocument();
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+      expect(scrollIntoView.mock.contexts[0]).toBe(heading.closest("header"));
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
+      expect(heading).toHaveFocus();
+    } finally {
+      if (original) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", original);
+      else delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
   });
 
   it("shows loading skeletons while evidence is loading", () => {

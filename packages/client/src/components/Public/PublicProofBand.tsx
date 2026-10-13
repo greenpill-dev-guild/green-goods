@@ -14,7 +14,12 @@ export interface PublicProofBandProps {
   contributors: number | null;
   works: number | null;
   assessments: number | null;
+  commitmentsMade: number | null;
+  commitmentsKept: number | null;
+  /** The record counts (Gardens through Assessments) are still loading. */
   isLoading?: boolean;
+  /** The commitment counts come from a separate read and settle on their own. */
+  isCommitmentsLoading?: boolean;
 }
 
 interface ProofMarkerProps {
@@ -34,7 +39,7 @@ function ProofMarker({
   noteId,
   defaultNote,
 }: ProofMarkerProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatNumber } = useIntl();
   return (
     <div>
       <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
@@ -51,7 +56,7 @@ function ProofMarker({
             </span>
           </>
         ) : (
-          new Intl.NumberFormat().format(value)
+          formatNumber(value)
         )}
       </p>
       <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
@@ -66,21 +71,30 @@ function ProofMarker({
 
 /**
  * PublicProofBand — confirmed counts only. Editorial "Living Public Record"
- * band on the warm linen surface. Treats numerals as public proof, not KPI
- * tiles — no card chrome, no shadows, no domain coloring. Link arrows out to
- * `/impact` for the evidence view.
+ * band on the warm linen surface: what the listed Gardens have documented
+ * (Gardens, members, approved submissions, Assessments) and what their members
+ * have committed to (commitments made and kept, in the `/impact` band's words).
+ * Treats numerals as public proof, not KPI tiles — no card chrome, no shadows,
+ * no domain coloring. Link arrows out to `/impact` for the evidence view.
  */
 export function PublicProofBand({
   gardens,
   contributors,
   works,
   assessments,
+  commitmentsMade,
+  commitmentsKept,
   isLoading = false,
+  isCommitmentsLoading = false,
 }: PublicProofBandProps) {
   const { formatMessage } = useIntl();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
   const allEmpty =
-    !isLoading && gardens === 0 && contributors === 0 && works === 0 && assessments === 0;
+    !isLoading &&
+    !isCommitmentsLoading &&
+    [gardens, contributors, works, assessments, commitmentsMade, commitmentsKept].every(
+      (count) => count === 0
+    );
 
   return (
     <section
@@ -108,7 +122,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "These counts show documented activity across the Gardens listed here. Steward approval confirms a work submission was reviewed; environmental outcomes need their own measurements and assessments.",
+                  "What the Gardens listed here have documented and committed to. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
@@ -139,38 +153,54 @@ export function PublicProofBand({
             </p>
           </div>
         ) : (
-          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-8 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:gap-x-16 @min-[70rem]:gap-y-12 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
+          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-8 sm:border-l-0 sm:border-t sm:pl-0 sm:pt-8 @min-[70rem]:grid-cols-3 @min-[70rem]:gap-x-16 @min-[70rem]:gap-y-12 @min-[70rem]:border-t-0 @min-[70rem]:border-l @min-[70rem]:pl-16 @min-[70rem]:pt-0">
             <ProofMarker
               value={gardens}
               isLoading={isLoading}
               labelId="public.home.proof.gardens"
-              defaultLabel="Gardens tended"
+              defaultLabel="Gardens"
               noteId="public.home.proof.gardensNote"
-              defaultNote="Active places under continuous documentation."
+              defaultNote="Each with at least one approved submission."
             />
             <ProofMarker
               value={contributors}
               isLoading={isLoading}
               labelId="public.home.proof.contributors"
-              defaultLabel="Hands at work"
+              defaultLabel="Garden members"
               noteId="public.home.proof.contributorsNote"
-              defaultNote="Gardeners and stewards in any Garden. Each address counted once."
+              defaultNote="Gardeners and stewards, each counted once."
             />
             <ProofMarker
               value={works}
               isLoading={isLoading}
               labelId="public.home.proof.works"
-              defaultLabel="Entries logged"
+              defaultLabel="Approved submissions"
               noteId="public.home.proof.worksNote"
-              defaultNote="Panel checks, soil cores, workshop notes, compost batches, each timestamped."
+              defaultNote="Work reviewed by a Garden's stewards."
             />
             <ProofMarker
               value={assessments}
               isLoading={isLoading}
               labelId="public.home.proof.assessments"
-              defaultLabel="Assessments recorded"
+              defaultLabel="Assessments"
               noteId="public.home.proof.assessmentsNote"
-              defaultNote="Season baselines each Garden sets before the work begins, anchored to a public reference."
+              defaultNote="Starting conditions, evidence standards, or progress."
+            />
+            <ProofMarker
+              value={commitmentsMade}
+              isLoading={isCommitmentsLoading}
+              labelId="public.pool.impact.made.label"
+              defaultLabel="Commitments made"
+              noteId="public.pool.impact.made.note"
+              defaultNote="What members have offered or asked for across Green Goods."
+            />
+            <ProofMarker
+              value={commitmentsKept}
+              isLoading={isCommitmentsLoading}
+              labelId="public.pool.impact.kept.label"
+              defaultLabel="Commitments kept"
+              noteId="public.pool.impact.kept.note"
+              defaultNote="Work carried out and confirmed by the people involved."
             />
           </dl>
         )}

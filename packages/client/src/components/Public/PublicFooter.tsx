@@ -2,50 +2,26 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 
-type FooterLinkKind = "internal" | "external";
-
 interface FooterLink {
-  to: string;
+  href: string;
   labelId: string;
   defaultLabel: string;
-  kind: FooterLinkKind;
 }
 
+// Only the project's outside homes. The site's own routes are the header's job
+// (DESIGN.browser.md § Compact utility footer).
 const FOOTER_LINKS: readonly FooterLink[] = [
-  { to: "/gardens", labelId: "public.footer.gardens", defaultLabel: "Gardens", kind: "internal" },
-  { to: "/impact", labelId: "public.footer.impact", defaultLabel: "Impact", kind: "internal" },
-  { to: "/fund", labelId: "public.footer.fund", defaultLabel: "Fund", kind: "internal" },
-  { to: "/actions", labelId: "public.footer.actions", defaultLabel: "Actions", kind: "internal" },
   {
-    to: "/glossary",
-    labelId: "public.footer.glossary",
-    defaultLabel: "Glossary",
-    kind: "internal",
-  },
-  {
-    to: "https://x.com/greengoodsapp",
+    href: "https://x.com/greengoodsapp",
     labelId: "public.footer.twitter",
     defaultLabel: "Twitter",
-    kind: "external",
   },
   {
-    to: "https://admin.greengoods.app",
-    labelId: "public.footer.admin",
-    defaultLabel: "Admin",
-    kind: "external",
-  },
-  {
-    to: "https://docs.greengoods.app",
-    labelId: "public.footer.docs",
-    defaultLabel: "Docs",
-    kind: "external",
-  },
-  {
-    to: "https://github.com/greenpill-dev-guild/green-goods",
+    href: "https://github.com/greenpill-dev-guild/green-goods",
     labelId: "public.footer.github",
     defaultLabel: "GitHub",
-    kind: "external",
   },
+  { href: "https://docs.greengoods.app", labelId: "public.footer.docs", defaultLabel: "Docs" },
 ] as const;
 
 export type PublicFooterVariant = "default" | "soil";
@@ -58,8 +34,9 @@ interface PublicFooterProps {
  * PublicFooter — compact utility footer for every public-browser page.
  *
  * Single row at desktop with a small wordmark, restored provenance line, and
- * right-aligned public nav. Stacks gracefully on mobile. Schedule-a-Call lives
- * in `PublicGetInTouch` above the footer; the footer stays quiet.
+ * right-aligned links to Twitter, GitHub, and Docs. Stacks gracefully on
+ * mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the
+ * footer stays quiet.
  *
  * Variants:
  * - `default` — light surface, used on Home.
@@ -120,27 +97,22 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             defaultMessage: "Footer links",
           })}
         >
-          {FOOTER_LINKS.map(({ to, labelId, defaultLabel, kind }) => {
-            const linkClass = cn(
-              "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-              isSoil
-                ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
-                : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
-            );
-            const label = formatMessage({ id: labelId, defaultMessage: defaultLabel });
-            if (kind === "internal") {
-              return (
-                <Link key={to} to={to} viewTransition className={linkClass}>
-                  {label}
-                </Link>
-              );
-            }
-            return (
-              <a key={to} href={to} target="_blank" rel="noreferrer noopener" className={linkClass}>
-                {label}
-              </a>
-            );
-          })}
+          {FOOTER_LINKS.map(({ href, labelId, defaultLabel }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={cn(
+                "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                isSoil
+                  ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
+                  : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
+              )}
+            >
+              {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+            </a>
+          ))}
         </nav>
       </div>
     </footer>

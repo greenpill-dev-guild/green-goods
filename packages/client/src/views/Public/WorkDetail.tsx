@@ -27,7 +27,10 @@ export default function WorkDetail() {
   // A stored title can end in timestamps older submissions appended; readers see the title alone.
   const title = toWorkDisplayTitle(
     note?.title,
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+    formatMessage({
+      id: "public.gardenDetail.notes.untitled",
+      defaultMessage: "Untitled submission",
+    })
   );
 
   return (
@@ -78,7 +81,7 @@ export default function WorkDetail() {
               {note.feedback ||
                 formatMessage({
                   id: "public.gardenDetail.notes.noDescription",
-                  defaultMessage: "No description was logged with this entry.",
+                  defaultMessage: "No description was logged with this submission.",
                 })}
             </p>
             <div className="mt-8 space-y-6">
@@ -107,7 +110,7 @@ export default function WorkDetail() {
                   ? "public.gardenDetail.notes.unavailable"
                   : "public.sharedLink.unavailableHelp",
                 defaultMessage: unavailable
-                  ? "Field notes could not be loaded right now."
+                  ? "Approved submissions could not be loaded right now."
                   : "This record may require sign-in or may no longer be available. Open it in the app and sign in to check access.",
               })}
             </p>

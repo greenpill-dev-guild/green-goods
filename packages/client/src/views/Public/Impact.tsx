@@ -13,7 +13,7 @@ import {
   type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
 } from "@green-goods/shared/public-contracts/public-impact";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   type EditorialDomain,
@@ -55,7 +55,7 @@ const KIND_FILTERS: readonly KindEntry[] = [
     id: "work",
     domain: "agro",
     labelId: "public.impact.kind.work",
-    defaultLabel: "Work",
+    defaultLabel: "Submission",
   },
   {
     id: "certificate",
@@ -116,6 +116,7 @@ export default function ImpactPage() {
   const [page, setPage] = useState(1);
   const { ref: proofRef, revealed: proofRevealed } = useInViewReveal<HTMLElement>();
   const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
+  const ledgerHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const gardensById = useMemo(() => {
     const map = new Map<string, PublicGardenSummary>();
@@ -223,9 +224,18 @@ export default function ImpactPage() {
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
-  // § 01 proof markers. A confirmed zero reads as "Not public yet" rather than
-  // as a numeral, and the certificate figure is pinned there until the first
-  // issuance is public.
+  // Prev/Next sit under the cards: a new page starts at the ledger's top, focus on its heading.
+  const goToPage = (next: number) => {
+    setPage(next);
+    ledgerHeadingRef.current?.closest("header")?.scrollIntoView?.({
+      block: "start",
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+    ledgerHeadingRef.current?.focus({ preventScroll: true });
+  };
+
+  // § 01 proof markers: a confirmed zero reads "Not public yet", never a numeral. Impact
+  // Certificates join once one is public; until then the row shows no figure it cannot read.
   const notPublicYet = formatMessage({
     id: "public.impact.proof.notPublicYet",
     defaultMessage: "Not public yet",
@@ -234,14 +244,13 @@ export default function ImpactPage() {
     key: string,
     label: string,
     note: string,
-    value: number | null,
-    fromStats = true
+    value: number | null
   ): PublicProofMarker => ({
     key,
     label,
     note,
-    loading: fromStats && stats.isLoading,
-    unavailable: fromStats && (statsUnavailable || value === null),
+    loading: stats.isLoading,
+    unavailable: statsUnavailable || value === null,
     ...(value !== null && value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
   });
   const proofMarkers: PublicProofMarker[] = [
@@ -250,7 +259,7 @@ export default function ImpactPage() {
       formatMessage({ id: "public.home.proof.works", defaultMessage: "Approved submissions" }),
       formatMessage({
         id: "public.home.proof.worksNote",
-        defaultMessage: "Work documented by participants and reviewed by Garden stewards.",
+        defaultMessage: "Work reviewed by a Garden's stewards.",
       }),
       counts.fieldNoteCount
     ),
@@ -259,7 +268,7 @@ export default function ImpactPage() {
       formatMessage({ id: "public.impact.totalAssessments", defaultMessage: "Assessments" }),
       formatMessage({
         id: "public.home.proof.assessmentsNote",
-        defaultMessage: "Records describing starting conditions, evidence standards, or progress.",
+        defaultMessage: "Starting conditions, evidence standards, or progress.",
       }),
       counts.attestationCount
     ),
@@ -267,26 +276,13 @@ export default function ImpactPage() {
       "gardens",
       formatMessage({
         id: "public.home.proof.gardens",
-        defaultMessage: "Gardens with approved work",
+        defaultMessage: "Gardens",
       }),
       formatMessage({
         id: "public.home.proof.gardensNote",
-        defaultMessage: "At least one submission approved by a local steward.",
+        defaultMessage: "Each with at least one approved submission.",
       }),
       counts.gardenCount
-    ),
-    proofMarker(
-      "certificates",
-      formatMessage({
-        id: "public.impact.totalCertificates",
-        defaultMessage: "Impact Certificates",
-      }),
-      formatMessage({
-        id: "public.impact.proof.certificatesNote",
-        defaultMessage: "Not public yet. First issuance pending.",
-      }),
-      0,
-      false
     ),
   ];
 
@@ -364,24 +360,24 @@ export default function ImpactPage() {
         aria-labelledby="public-impact-ledger-title"
       >
         <div className="editorial-cascade mx-auto max-w-7xl">
-          <header className="border-b border-stroke-soft-200 pb-6">
+          <header className="scroll-mt-8 border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.impact.ledger.kicker",
                 defaultMessage: "§ 04: Evidence ledger",
               })}
             </EditorialKicker>
-            <EditorialHeading id="public-impact-ledger-title">
+            <EditorialHeading ref={ledgerHeadingRef} id="public-impact-ledger-title" tabIndex={-1}>
               {formatMessage({
                 id: "public.impact.ledger.title",
-                defaultMessage: "Recent work and assessments.",
+                defaultMessage: "Recent submissions and assessments.",
               })}
             </EditorialHeading>
             <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
               {formatMessage({
                 id: "public.impact.ledger.intro",
                 defaultMessage:
-                  "Filter by record kind or domain. Each row links to the source: the full assessment, work entry, or certificate behind the line.",
+                  "Filter by record kind or domain. Each row links to the source: the full assessment, submission, or certificate behind the line.",
               })}
             </p>
           </header>
@@ -544,7 +540,7 @@ export default function ImpactPage() {
                   <Button
                     type="button"
                     emphasis="tertiary"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => goToPage(Math.max(1, page - 1))}
                     disabled={!canPrev}
                     leadingIcon={<span aria-hidden="true">←</span>}
                     className="-ml-4"
@@ -563,7 +559,7 @@ export default function ImpactPage() {
                   <Button
                     type="button"
                     emphasis="tertiary"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => goToPage(Math.min(totalPages, page + 1))}
                     disabled={!canNext}
                     trailingIcon={<span aria-hidden="true">→</span>}
                     className="-mr-4"

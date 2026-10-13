@@ -184,21 +184,21 @@ const messages: Record<string, string> = {
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
-  "public.gardenDetail.stats.entries": "Approved work",
+  "public.gardenDetail.stats.entries": "Approved submissions",
   "public.gardenDetail.stats.handsAtWork": "Garden members",
   "public.gardenDetail.stats.assessments": "Assessments",
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
-  "public.gardenDetail.section.notes": "§ 01: Field notes",
+  "public.gardenDetail.section.notes": "§ 01: Approved submissions",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
   "public.gardenDetail.section.stewards": "§ 04: Stewards",
   "public.pool.garden.kicker": "§ 02: Commitments",
   "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
-  "public.gardenDetail.notes.heading": "Recent approved work",
+  "public.gardenDetail.notes.heading": "Recent approved submissions",
   "public.gardenDetail.notes.helper":
     "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
-  "public.gardenDetail.notes.empty": "No field notes yet.",
+  "public.gardenDetail.notes.empty": "No approved submissions yet.",
   "public.gardenDetail.certificates.heading": "Impact Certificates",
   "public.gardenDetail.certificates.helper":
     "Shareable records bringing together approved work and the assessments supporting its claims.",
@@ -233,7 +233,8 @@ describe("GardenDetail section semantics (P3-4)", () => {
 
     const expected = [
       ["public-garden-description-title", "About this garden"],
-      ["public-garden-detail-notes", "Recent approved work"],
+      ["public-garden-detail-notes", "Recent approved submissions"],
+      ["public-garden-detail-certificates", "Impact Certificates"],
       ["public-garden-detail-stewards", "Stewards"],
     ] as const;
 
@@ -248,17 +249,21 @@ describe("GardenDetail section semantics (P3-4)", () => {
     // The sections appear at h2 level and do not collide with the page h1,
     // which carries the Garden name.
     const h2Texts = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent ?? "");
-    expect(h2Texts).toEqual(["About this garden", "Recent approved work", "Stewards"]);
+    expect(h2Texts).toEqual([
+      "About this garden",
+      "Recent approved submissions",
+      "Impact Certificates",
+      "Stewards",
+    ]);
   });
 
-  it("keeps the current work record and omits empty future sections", () => {
+  it("keeps the record sections labelled, including an empty § 03", () => {
     const { container } = renderView();
 
-    // Current work and coordinator sections remain labelled, while
-    // confirmed empty future sections are omitted.
-    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(3);
-    expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
-    expect(screen.queryByText("No Impact Certificates yet.")).not.toBeInTheDocument();
+    // Every record section stays labelled; an empty one says so.
+    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(4);
+    expect(screen.getByText("No approved submissions yet.")).toBeInTheDocument();
+    expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
     expect(screen.queryByText("This Garden is preparing its pool")).not.toBeInTheDocument();
   });
 });

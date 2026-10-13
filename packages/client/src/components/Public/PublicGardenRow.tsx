@@ -1,4 +1,3 @@
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type {
@@ -9,8 +8,9 @@ import type { PublicFundingIntentKind } from "@green-goods/shared/public-contrac
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
-import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
+import { EditorialGhostButton, EditorialMetaRow, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
+import { PublicGardenMeta } from "./PublicGardenMeta";
 import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 
 export interface PublicGardenRowProps {
@@ -22,11 +22,13 @@ export interface PublicGardenRowProps {
 /**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
- * Anatomy: small thumbnail (left) → garden name + meta (center) → Donate +
- * Endow CTAs (right). Tapping the thumbnail/title block routes to the public
- * Garden detail page; tapping a CTA opens the funding card with the matching
- * intent pre-set. The two paths are explained once in the § 02 "Ways to
- * support" section, so the buttons carry no per-card helper captions.
+ * Anatomy: small thumbnail (left) → garden name, details, description and, when
+ * the Garden has Vaults, its endowment line (center) → Donate + Endow CTAs
+ * (right). Thumbnail, name and actions share one top edge. Tapping the
+ * thumbnail/title block routes to the public Garden detail page; tapping a CTA
+ * opens the funding card with the matching intent pre-set. The two paths are
+ * explained once in the § 01 "Ways to support" section above the list, so the
+ * buttons carry no per-card helper captions.
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.
@@ -39,35 +41,7 @@ export interface PublicGardenRowProps {
  */
 export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
-  const formatAge = useLocalizedRelativeTime();
   const description = getPublicGardenDescription(garden, formatMessage);
-  const meta: string[] = [
-    formatMessage(
-      {
-        id: "public.gardens.gardeners",
-        defaultMessage: "{count, plural, one {# member} other {# members}}",
-      },
-      { count: garden.gardenerCount }
-    ),
-    formatMessage(
-      {
-        id: "public.gardens.works",
-        defaultMessage:
-          "{count, plural, one {# approved submission} other {# approved submissions}}",
-      },
-      { count: garden.actionCount }
-    ),
-  ];
-  if (garden.lastActivityAt > 0) {
-    meta.push(
-      formatMessage(
-        {
-          id: "public.gardens.lastActive",
-        },
-        { when: formatAge(garden.lastActivityAt) }
-      )
-    );
-  }
 
   return (
     <div
@@ -82,11 +56,11 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
       )}
       className="@container h-full min-w-0"
     >
-      <div className="flex h-full min-w-0 flex-wrap content-between items-stretch gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
+      <div className="flex h-full min-w-0 flex-wrap content-between items-start gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
         <Link
           to={`/gardens/${garden.slug}`}
           viewTransition
-          className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
+          className="group flex min-w-0 flex-1 basis-0 items-start gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
           aria-label={garden.name}
         >
           <div
@@ -107,12 +81,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
             />
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-            {garden.location ? (
-              <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
-                {garden.location}
-              </EditorialKicker>
-            ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <h3
               className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
               title={garden.name}
@@ -121,23 +90,22 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
                 {garden.name || garden.slug}
               </span>
             </h3>
-            <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
-              {meta.map((label, index) => (
-                <span key={label} className="flex min-w-0 items-center gap-x-2">
-                  {index > 0 ? <span aria-hidden="true">·</span> : null}
-                  <span className="[overflow-wrap:anywhere]">{label}</span>
-                </span>
-              ))}
-            </p>
+            <PublicGardenMeta garden={garden} />
             {description ? (
-              <p className="line-clamp-2 text-xs leading-relaxed text-text-sub-600">
+              // The height cap matches the clamp: without it the grid sizes the
+              // row from the unclamped text and the slack lands above the actions.
+              <p
+                className="line-clamp-3 max-h-[3lh] text-xs leading-relaxed text-text-sub-600"
+                title={description}
+              >
                 {description}
               </p>
             ) : null}
+            <GardenVaultMetrics summary={vaultSummary} />
           </div>
         </Link>
 
-        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col @[28rem]:justify-center">
+        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col">
           <EditorialPrimaryButton
             size="sm"
             className="flex-1 @[28rem]:flex-none"
@@ -155,47 +123,49 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
           </EditorialGhostButton>
         </div>
       </div>
-      {vaultSummary?.hasVaults ? (
-        <details className="border-t border-stroke-soft-200 pt-2">
-          <summary className="min-h-11 cursor-pointer text-xs font-medium text-primary-action focus-visible:outline-2 focus-visible:outline-offset-2">
-            {formatMessage({ id: "public.fund.endowmentDetails" })}
-          </summary>
-          <GardenVaultMetrics summary={vaultSummary} />
-        </details>
-      ) : null}
     </div>
   );
 }
 
+/**
+ * The Garden's endowment in its Vaults, shown in the row itself rather than behind a
+ * toggle. Only assets that hold something are listed, and yield only once some has
+ * accrued; Vaults that hold nothing yet say so in words instead of a row of zeros.
+ */
 function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary }) {
   const { formatMessage } = useIntl();
   if (!summary?.hasVaults || summary.assets.length === 0) return null;
 
-  const balanceLabels = summary.assets.map((asset) => formatGardenVaultAmount(asset));
+  const items = summary.assets
+    .filter((asset) => asset.currentValue > 0n)
+    .map((asset) => ({ label: formatGardenVaultAmount(asset) }));
   const accruedLabels = summary.assets
-    .filter((asset) => asset.accruedYield !== undefined)
+    .filter((asset) => (asset.accruedYield ?? 0n) > 0n)
     .map((asset) => formatGardenVaultAmount(asset, asset.accruedYield ?? 0n));
-
-  if (balanceLabels.length === 0) return null;
+  if (accruedLabels.length > 0) {
+    items.push({
+      label: formatMessage(
+        {
+          id: "public.fund.gardenAccruedYield",
+          defaultMessage: "Yield accrued {assets}",
+        },
+        { assets: accruedLabels.join(" / ") }
+      ),
+    });
+  }
+  if (items.length === 0) {
+    items.push({
+      label: formatMessage({ id: "public.fund.gardenEndowmentNone", defaultMessage: "None yet" }),
+    });
+  }
 
   return (
-    <p className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-[1.45] text-text-sub-600 [overflow-wrap:anywhere]">
-      <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
-        {balanceLabels.join(" · ")}
+    <div className="flex min-w-0 items-baseline gap-3 pt-0.5">
+      <span className="shrink-0 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage({ id: "public.fund.gardenEndowmentLabel", defaultMessage: "Endowment" })}
       </span>
-      {accruedLabels.length > 0 ? (
-        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
-          {" · "}
-          {formatMessage(
-            {
-              id: "public.fund.gardenAccruedYield",
-              defaultMessage: "Yield accrued {assets}",
-            },
-            { assets: accruedLabels.join(" / ") }
-          )}
-        </span>
-      ) : null}
-    </p>
+      <EditorialMetaRow items={items} className="min-w-0 text-text-sub-600" />
+    </div>
   );
 }
 

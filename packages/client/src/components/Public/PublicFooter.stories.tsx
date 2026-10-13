@@ -5,15 +5,10 @@ import { expect, within } from "storybook/test";
 import { PublicFooter } from "./PublicFooter";
 
 const messages = {
-  "public.footer.contact": "Contact",
   "public.footer.wordmark": "Green Goods",
   "public.footer.navLabel": "Footer links",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
-  "public.nav.actions": "Actions",
-  "public.nav.fund": "Fund",
-  "public.nav.gardens": "Gardens",
-  "public.nav.impact": "Impact",
 };
 
 const meta: Meta<typeof PublicFooter> = {
@@ -22,19 +17,10 @@ const meta: Meta<typeof PublicFooter> = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const footer = within(canvasElement).getByRole("navigation", { name: "Footer links" });
-    for (const label of [
-      "Gardens",
-      "Impact",
-      "Fund",
-      "Actions",
-      "Glossary",
-      "Twitter",
-      "Admin",
-      "Docs",
-      "GitHub",
-    ]) {
+    for (const label of ["Twitter", "GitHub", "Docs"]) {
       await expect(within(footer).getByRole("link", { name: label })).toBeVisible();
     }
+    await expect(within(footer).getAllByRole("link")).toHaveLength(3);
     const document = canvasElement.ownerDocument;
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
@@ -52,10 +38,10 @@ const meta: Meta<typeof PublicFooter> = {
     docs: {
       description: {
         component:
-          "Compact utility footer for every public-browser page — small Fraunces " +
-          "wordmark, restored provenance message, and public route links in a " +
-          "single quiet row (stacks on mobile). Wayfinding + provenance only — " +
-          "Schedule-a-Call lives in PublicGetInTouch above the footer.",
+          "Compact utility footer for every public-browser page: small Fraunces " +
+          "wordmark, restored provenance message, and links to Twitter, GitHub, " +
+          "and Docs in a single quiet row (stacks on mobile). Schedule-a-Call " +
+          "lives in PublicGetInTouch above the footer.",
       },
     },
   },

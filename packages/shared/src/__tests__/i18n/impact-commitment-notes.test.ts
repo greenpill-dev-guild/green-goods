@@ -10,7 +10,6 @@ const COPY_KEYS = [
   "public.pool.impact.lifecycle",
   "public.pool.impact.made.note",
   "public.pool.impact.kept.note",
-  "public.pool.impact.support.note",
 ];
 
 describe("community commitment copy", () => {

@@ -40,7 +40,14 @@ const meta = {
   render: () => (
     <>
       <PublicFundingBridge />
-      <PublicProofBand gardens={13} contributors={48} works={125} assessments={8} />
+      <PublicProofBand
+        gardens={13}
+        contributors={48}
+        works={125}
+        assessments={8}
+        commitmentsMade={18}
+        commitmentsKept={2}
+      />
       <PublicRecordLoop />
       <PublicFooter />
     </>
