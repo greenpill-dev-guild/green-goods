@@ -1,6 +1,6 @@
-# Monday announcement — October 12, 2026
+# Community announcement draft — Green Goods 2.0.0
 
-Owner: Afo. Publish after the Sunday deployment and link checks pass. Channels and posting time need their final selection. This file is copy, not an instruction to send messages now.
+Owner: Afo. Originally scheduled for October 12, 2026. Publish after production verification and link checks pass. Replacement date, channels and posting time need their final selection. This file is copy, not an instruction to send messages now.
 
 ## English
 

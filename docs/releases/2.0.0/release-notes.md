@@ -1,6 +1,6 @@
 # October 2026 — v2.0.0
 
-Prepared copy for publication after the October 11 production checks pass.
+Prepared copy for publication after production checks pass in the owner's approved replacement cut window. The original October 11 date is not a deployment receipt.
 
 Green Goods 2.0 brings a Garden's commitments, documented work, and review into one connected flow. It also rebuilds the steward workspace and improves the installed app for work in the field.
 
