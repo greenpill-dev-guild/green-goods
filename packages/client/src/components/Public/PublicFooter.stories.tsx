@@ -17,10 +17,10 @@ const meta: Meta<typeof PublicFooter> = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const footer = within(canvasElement).getByRole("navigation", { name: "Footer links" });
-    for (const label of ["Twitter", "GitHub", "Docs"]) {
+    for (const label of ["Twitter", "LinkedIn", "GitHub", "Docs"]) {
       await expect(within(footer).getByRole("link", { name: label })).toBeVisible();
     }
-    await expect(within(footer).getAllByRole("link")).toHaveLength(3);
+    await expect(within(footer).getAllByRole("link")).toHaveLength(4);
     const document = canvasElement.ownerDocument;
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
@@ -39,8 +39,8 @@ const meta: Meta<typeof PublicFooter> = {
       description: {
         component:
           "Compact utility footer for every public-browser page: small Fraunces " +
-          "wordmark, restored provenance message, and links to Twitter, GitHub, " +
-          "and Docs in a single quiet row (stacks on mobile). Schedule-a-Call " +
+          "wordmark, restored provenance message, and links to Twitter, LinkedIn, " +
+          "GitHub, and Docs in a single quiet row (stacks on mobile). Schedule-a-Call " +
           "lives in PublicGetInTouch above the footer.",
       },
     },
