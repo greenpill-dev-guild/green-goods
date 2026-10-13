@@ -2,7 +2,7 @@
 
 **Feature Slug**: `community-docs-revamp`
 **Stage**: `active`
-**Status**: `CLOSED: approved implementation prepared for delivery in PR #896; L34 requires exact-head CI before the authorized develop merge. Human QA remains separate.`
+**Status**: `CLOSED: approved implementation merged in PR #896 at f98a3543a after current-head CI passed. Human QA remains separate.`
 
 **Created**: `2026-09-23`
 **Last Updated**: `2026-10-13`
@@ -414,8 +414,8 @@ Keep the Docs dialect and all L20 to L22 boundaries. See the review queue in
 - [x] 9.5 Run selected proof and required readiness checks on the final source tree; verify
   phone/desktop pages, search, redirects, anchors, image provenance and Markdown twins.
   Source/consumer proof is recorded; L34 delegates only Chromium qualification to exact-head GitHub CI.
-- [ ] 9.6 Update the existing PR with the proven tree, verify publication identity, address valid
-  current-head CI failures and new review feedback, and record exact green checks. L33/L34 then authorize the develop merge and release handoff.
+- [x] 9.6 Update the existing PR with the proven tree, verify publication identity, address valid
+  current-head CI failures and new review feedback, and record exact green checks. Merged into develop at f98a3543a on 2026-10-13T16:57:03Z; all 11 workflows passed on 6e1122844. Release handoff follows archival; production remains held.
 - [x] 9.7 Record the honest closeout resolution and destination of every deferred/human-owned
   item, commit the closeout separately, and leave archival until after the human merge.
 
@@ -465,11 +465,13 @@ replay, unfamiliar readers, later QA and external publication are not falsely ma
 ## Closeout (2026-10-13)
 
 Closed as `closed` for the approved English foundation, QA revision and visual implementation
-prepared in PR #896. This record precedes publication/merge; 9.6 remains open until the exact
-published tree, required CI and authorized develop merge are verified. The resolution is not
-`completed`: released-product, unfamiliar-reader and owner visual certification remain pending.
-Fifteen remaining local automated checks pass under L34 in 114 seconds. Only the unavailable
-Chromium qualification is delegated to the matching GitHub job; no policy or hook changed.
+merged in PR #896 at f98a3543acba084e997ebfa4f92f879cc8df3d0a on 2026-10-13T16:57:03Z.
+Step 9.6 is verified: all 11 workflows passed on 6e112284462f8d5576d025c7094ccadbd214533b;
+its tree, the merge tree and tested local 20b3bbf22 all equal 01eb5e6714c3dc8b8ea3463d3c91273bb47a0186.
+The resolution is not `completed`: released-product, unfamiliar-reader and owner visual
+certification remain pending. Fifteen remaining local automated checks passed fresh under L34
+in 108 seconds. Chromium qualification passed in the matching GitHub job, including both seed-17
+recovery cases; no policy or hook changed. Exact proof is in the final-merge-preparation handoff.
 
 Still open and destinations:
 
@@ -482,8 +484,9 @@ Still open and destinations:
 - Q3 claims structure → explicitly dropped from this delivery until a new owner decision; working
   page, renderer and navigation retained. Q9 translated docs and Q10 Linear mirror → explicitly
   dropped from this delivery pending separate selection; no new issue, translation or mirror created.
-- Publication, exact-head CI and develop merge → PR #896 / step 9.6; production merge/deploy/tagging
-  remain unperformed and separately gated. The release session receives the verified merge facts.
+- Publication, exact-head CI and develop merge → completed in PR #896 / step 9.6. Production
+  merge/deploy/tagging remain unperformed and separately gated. The release session receives
+  verified merge facts and remaining operator QA; release preparation is a separate task.
 - Archive → after the authorized merge, as separate housekeeping with plan-hub tooling and the
   pre-archive commit preserved for the pooling insertion handoff. No report edited or hand-deleted.
 

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-23T22:55:58.404Z",
-    "updated_at": "2026-10-13T16:19:25.000Z"
+    "updated_at": "2026-10-13T16:57:21.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -67,7 +67,8 @@
     "L32 D1/D2/E1/E2/F/W2 implementation complete on f4dcad12b. Final 29-page/two-width sweep and targeted Docs proof pass. Full readiness: 30 fresh passes; required browser-work-exploration fails at macOS Chromium registration before tests. Publication/current-head CI and closeout blocked; no guard weakened. Final receipt, scope and task record: handoffs/final-merge-preparation.md. Prior missing phone capture is resolved as Storybook evidence, not released-product replay.",
     "L33 authorizes the completed/current-head-green docs merge into develop, then an existing release-session handoff for release-branch preparation. Production merge/deployment/tagging/signing remain separate. Required local Chromium still unavailable; explicit publication-for-CI exception pending. Release message drafted but not sent; no merge performed. Current handoff and pooling insertion table updated.",
     "L34: owner explicitly delegates the unavailable local Chromium qualification to GitHub CI only. Every other local gate and exact-head required CI remain mandatory. Publishing/merge work resumes; merge develop only after the matching CI qualification is green, then send the authorized release handoff. No validation-policy, production merge/deployment or live-write exception.",
-    "Closeout recorded as closed, not completed, for approved implementation delivery in #896. On 10c410d50 all 15 remaining automatic Push checks pass fresh in 114s; stock mandatory Chromium filtering is not used, L34 delegates only that check via the exported runner with unchanged 180s limit. Publication/exact-head CI/merge remain pending. Human lanes uncertified; Q3/Q9/Q10 dropped from this delivery and later pooling remains with PRD-1156/PRD-727. Archive only after the authorized merge."
+    "Closeout recorded as closed, not completed, for approved implementation delivery in #896. On 10c410d50 all 15 remaining automatic Push checks pass fresh in 114s; stock mandatory Chromium filtering is not used, L34 delegates only that check via the exported runner with unchanged 180s limit. Publication/exact-head CI/merge remain pending. Human lanes uncertified; Q3/Q9/Q10 dropped from this delivery and later pooling remains with PRD-1156/PRD-727. Archive only after the authorized merge.",
+    "Final delivery verified: #896 merged into develop at f98a3543acba084e997ebfa4f92f879cc8df3d0a on 2026-10-13T16:57:03Z. All 11 workflows pass on published 6e1122844, including qualified Chromium seed 17; tested/published/merged trees match 01eb5e671. All 15 retained local checks pass fresh in 108s. Closed, not completed; human lanes remain uncertified. Archive follows as separate housekeeping; release handoff carries remaining QA. No production merge/deploy or Linear write."
   ],
   "lanes": {
     "ui": {
@@ -451,6 +452,13 @@
       "status": "closeout_recorded",
       "resolution": "closed",
       "note": "Approved implementation prepared for #896; retained exact-head CI condition and uncertified human evidence. Separate closeout commit before publication; archive after authorized merge."
+    },
+    {
+      "timestamp": "2026-10-13T16:57:21.000Z",
+      "actor": "codex",
+      "status": "closeout_recorded",
+      "resolution": "closed",
+      "note": "Verified develop merge and current-head CI; step 9.6 complete. Final closeout record committed before archival; human lanes stay uncertified, and remaining work has explicit destinations."
     }
   ]
 }

@@ -308,3 +308,58 @@ checks on the committed tree and verify the GitHub-created tree matches it exact
 actual published SHA and CI in the PR body; local SHA alone is not publication evidence. Resolve
 new valid findings before merge. Archive is separate post-merge housekeeping; the release
 handoff carries the source/merge identities and explicit remaining QA boundaries.
+
+## Verified delivery and final closeout
+
+PR #896 merged into `develop` at `2026-10-13T16:57:03Z`, merge SHA
+`f98a3543acba084e997ebfa4f92f879cc8df3d0a`. Raw PR/ref/commit reads at
+`2026-10-13T16:57:21Z` confirm the closed/merged PR, develop ref and two parents.
+Published `6e112284462f8d5576d025c7094ccadbd214533b`, tested local
+`20b3bbf22608e8bf5bf7f3d85d2486eb3caa394c` and the merge all share tree
+`01eb5e6714c3dc8b8ea3463d3c91273bb47a0186`. Native Git transport was unavailable;
+connector publication verified immutable blob/tree identities and fast-forward leases, with no
+force push or rewrite of local history. This supersedes the earlier pending publication intervals.
+
+Latest local receipt: `bun run scripts/dev/node-cli.js node /private/tmp/community-docs-approved-push.mjs`,
+using the same full selector and direct paths listed above, ran on 20b3bbf22 from
+`2026-10-13T16:44:57.284Z` to `2026-10-13T16:46:45.252Z`: 15 fresh passes, zero reused,
+failed or unrun, within the retained 180-second budget. CodeQL's unused G6 binding was removed;
+G7 retained; the entity-matrix source digest regenerated through its owner. The first cleanup
+run correctly stopped on generated drift; that failed result was never reused.
+
+All 11 current-head workflows completed successfully by the fresh read at
+`2026-10-13T16:56:40Z`; pagination page 2 was empty.
+[CI Gate](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38433409945),
+[Docs](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38433409981),
+[Client](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38433409970),
+Admin, Shared, Agent, Design, Ontology, Supply Chain Guardrails and both code-scanning workflows
+all pass on 6e1122844. Chromium evidence is **CI Playwright (clean-room)**:
+[Playwright Client CI](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38433409970/job/115421144995)
+passed its qualified browser-proof step, including both seed-17 exploration/recovery cases.
+This is not authenticated Brave, physical device, live signing or financial proof.
+
+Final feedback refresh: 21 inline comments, five reviews, three conversations, empty terminal
+REST pages; original thread/reply completeness remains in the feedback snapshot. No new source
+finding remains. CodeRabbit's changed description warning analyzes the old five-file planning
+diff, while the verified live PR has 143 files, so its recommendation to revert the final
+description is unsupported. No review decision was dismissed and no conversational reply or
+thread-resolution write was performed. PR metadata now carries the observed merge and CI results.
+
+The honest resolution remains `closed`, not certified human-QA completion. Preserve the
+remaining-work destinations in the closeout section and pooling-insertion-points handoff.
+Archival uses the owning tool after this final record is committed; Git history preserves it.
+The release message is sent only after these observed merge facts, with production held.
+No Linear issue is linked; no Linear record is created or closed.
+
+Task record: #896 | Type: docs/review/publish | Outcome: approved implementation merged;
+human/product QA separate. Agent: Codex; model unknown. Coverage: L34 delivery segment.
+
+| Phase | Start → end (UTC) | Result / evidence |
+|---|---|---|
+| Verify | 2026-10-13T16:44:57.284Z → 2026-10-13T16:46:45.252Z | 15 fresh local passes under the explicit one-check CI delegation |
+| Publish | 2026-10-13T16:47:35Z → 2026-10-13T16:48:10Z | Lease-safe current head/tree verified; published SHA differs from local, tree identical |
+| Wait/review | 2026-10-13T16:48:10Z → 2026-10-13T16:56:40Z | Current-head CI and complete review delta; all 11 workflows green |
+| Publish/merge | 2026-10-13T16:56:40Z → 2026-10-13T16:57:21Z | Authorized develop merge verified; production untouched |
+
+Earlier phases remain historical above; do not sum overlapping intervals as active effort.
+Human corrections in this segment: zero; human attention unknown.
