@@ -55,6 +55,7 @@ const mockSliceReady = {
   totalFetchedRecords: 2,
   partialData: false,
   sourceLimitReached: false,
+  certificateCount: 0,
   status: "ready" as const,
 };
 
@@ -179,8 +180,8 @@ describe("ImpactPage", () => {
     expect(within(proof).queryByText(/Impact Certificates/)).toBeNull();
   });
 
-  // The row carries the certificate figure once one is public, counted as the ledger's own
-  // filter counts it, so the two can never disagree.
+  // The row carries the certificate figure once one is public, from the slice's count, which
+  // runs past the ledger's record cap.
   it("adds Impact Certificates to the proof row once the evidence holds one", () => {
     const certificate = {
       id: "certificate:1",
@@ -192,7 +193,11 @@ describe("ImpactPage", () => {
       createdAt: 1715000000,
     };
     mockUsePublicImpactEvidence.mockReturnValue({
-      data: { ...mockSliceReady, records: [...mockSliceReady.records, certificate] },
+      data: {
+        ...mockSliceReady,
+        records: [...mockSliceReady.records, certificate],
+        certificateCount: 1,
+      },
       isLoading: false,
     });
     renderView();

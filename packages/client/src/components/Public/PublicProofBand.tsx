@@ -72,8 +72,9 @@ function ProofMarker({
 /**
  * PublicProofBand — confirmed counts only. Editorial "Living Public Record"
  * band on the warm linen surface: what the listed Gardens have documented
- * (Gardens, members, approved submissions, Assessments) and what their members
- * have committed to (commitments made and kept, in the `/impact` band's words).
+ * (Gardens, members, approved submissions, Assessments), then what members have
+ * committed to across Green Goods (commitments made and kept, in the `/impact`
+ * band's words; the Agent's snapshot spans every pool, not only listed Gardens).
  * Treats numerals as public proof, not KPI tiles — no card chrome, no shadows,
  * no domain coloring. Link arrows out to `/impact` for the evidence view.
  */
@@ -122,7 +123,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "What the Gardens listed here have documented and committed to. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
+                  "Documented activity across the Gardens listed here, and what members have committed to across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
