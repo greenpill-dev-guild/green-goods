@@ -2,9 +2,11 @@
 
 The Docusaurus site serves two audiences from one source tree:
 
-- **Community** explains current Green Goods flows for gardeners, stewards/evaluators, and funders.
+- **Community** explains current Green Goods flows for gardeners, stewards, evaluators, and funders.
 - **Builders** explains architecture, package boundaries, integrations, testing, and agent workflows.
 - **Reference** holds the shared glossary, formal ontology, product history, design rationale, FAQ, brand kit, and credits.
+
+A page's sidebar can differ from its folder. The FAQ (served at `/faq`), the glossary, product history, the brand kit, and credits live in `docs/reference/` and are listed in the Community sidebar. The formal ontology lives there too and is listed under Builders. `sidebars.ts` owns placement.
 
 Implementation facts come from code and configuration. Authored pages explain flows and stable rationale; generated pages project routes, exports, deployment artifacts, ontology, workflows, and QA scenarios from their owning sources.
 
@@ -51,6 +53,59 @@ Every live page must be reachable from a sidebar or its role/category index. Do 
 Use authored pages for user goals, prerequisites, steps, recovery, stable concepts, rationale, and navigation. Keep changing inventories out of prose. Link to the owning package guide, code, configuration, ontology, workflow, or generated page instead.
 
 Frontmatter must name the audience, owner, status, and exact `source_of_truth` paths. The docs audit treats broken local authority paths and links as errors, and on a hand-written page so is a repository path in a code span that does not exist (a package page's directory table is read relative to its package).
+
+### Community task pages
+
+A community guide page covers one job. It follows the same order on every page, modeled on Submit Work:
+
+1. **Title:** a verb phrase naming the job.
+2. **Purpose:** one or two sentences in the reader's words.
+3. **Before you start:** a short list, including physical needs such as being at the garden.
+4. **Steps:** numbered Markdown lists that use the exact on-screen labels in bold.
+5. **How you know it worked:** what the screen shows.
+6. **What happens next:** who acts next, and what the reader sees when they do.
+7. **If something goes wrong:** each problem beside its fix, then one support path.
+8. **Next step:** exactly one primary link.
+
+Each page must make sense when opened directly from a message or a search result. Concept pages (Welcome, How It Works, Why We Build) use a one-line definition, an everyday comparison, a short story, and a plain "what it is not" instead.
+
+Check every label against the owning view or `packages/shared/src/i18n/en.json`, and every statement about review, rewards, privacy, or money against the code that enforces it, before it goes on a page.
+
+Screenshots support the text and never carry a step alone. Each one needs alt text that says what is shown and a caption that names its source, capture date, viewport/crop where relevant, and build revision when available. If the deployed fixture exposes no revision, say so. Take them from a Storybook fixture, a demo, or a public page, never from a live garden's members or photos. The docs audit fails on an image nothing uses, but it does not check that an `<img>` path exists, so confirm each new path yourself.
+
+### Glossary and ontology ownership
+
+The Community glossary is generated from selected `human_concepts`; formal definitions and
+technical vocabulary live in the generated Builders ontology. Both use the canonical ontology
+and its projection data. Former glossary anchors remain useful links to their formal destination.
+Update sources and run both generators, then docs-generated and ontology checks. Never copy
+formal definitions into authored pages. The ontology gate locks definitions/surfaces and checks
+public links; deterministic check mode rejects stale outputs. Authored explanations still need
+source review when business meaning or availability changes.
+
+### FAQ interaction and stable links
+
+`reference/faq.mdx` uses the docs-owned `FaqQuestions` and `FaqQuestion` components. Each question
+keeps an explicit published ID. Native disclosures support keyboard use; direct links reveal
+answers, and highlighted search visits open them. Open all answers provides a browser-find path.
+The Markdown twin exposes every question and complete answer, without the interaction wrappers.
+Keep important privacy and funding warnings visible in the relevant task guide as well.
+
+Generated formal table destinations use `TermAnchor`, which registers the real DOM target with
+Docusaurus's link checker. The twin emits a native HTML anchor. Test preserved destinations and
+regenerate through the owning renderer; do not silence broken-anchor checking to make a move pass.
+
+### Voice
+
+Community and Builders pages share one voice:
+
+- Second person, active voice, plain words, about an 8th-grade reading level.
+- Why before what, condition before instruction, one idea per sentence.
+- The product's own labels are the vocabulary. Explain "garden" as a community doing regenerative work together, so nobody reads it as gardening only.
+- Community pages leave out protocol names, standards, and network names, except where a reader paying or signing with their own wallet has to choose one. Technical depth belongs on Builders.
+- No em dashes, sentence-case section headings, and no superlatives.
+- Reassure where people hesitate. Be firm only where the integrity of the record is at stake: your own photos, real dates, real places.
+- Money and privacy statements describe what the contracts and code do. They never repeat a guarantee from interface copy.
 
 ### Brand downloads
 

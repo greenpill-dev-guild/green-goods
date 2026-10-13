@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   BASELINE_MAX_DAYS,
   checkProjectionIntegrity,
+  checkDomainDocumentation,
   checkQaCatalogRoles,
   checkSidecarIntegrity,
   collectAnchorFiles,
@@ -18,6 +19,7 @@ import {
   parseCanonicalEntityCounts,
   parseClientGlossaryTerms,
   parseGlossaryAnchors,
+  parseGlossaryTermHeadings,
   parseGlossaryTable,
   parseGraphqlEnum,
   parseSolidityEnum,
@@ -374,18 +376,44 @@ test("parseTermReferenceHeadings returns null when the section is absent", () =>
   assert.equal(parseTermReferenceHeadings("## Personas\n\n### Gardener\n"), null);
 });
 
-test("parseGlossaryAnchors collects explicit and slugified anchors at every level", () => {
+test("parseGlossaryTermHeadings reads the everyday section too, so both are held to declared terms", () => {
+  const source = [
+    "## Everyday terms",
+    "",
+    "### Impact Certificate {#impact-certificate}",
+    "### Made-Up Noun",
+    "",
+    "## Domain Entities",
+    "",
+    "### Not A Term Heading",
+    "",
+    "## Term Reference",
+    "",
+    "### Hat {#hat}",
+  ].join("\n");
+  assert.deepEqual(parseGlossaryTermHeadings(source), [
+    { display: "Impact Certificate", anchor: "impact-certificate" },
+    { display: "Made-Up Noun", anchor: "made-up-noun" },
+    { display: "Hat", anchor: "hat" },
+  ]);
+  // The community section can stand alone once formal terms move to Builders.
+  assert.deepEqual(parseGlossaryTermHeadings("## Everyday terms\n\n### Garden\n"), [{display: "Garden", anchor: "garden"}]);
+  assert.deepEqual(parseGlossaryTermHeadings("## Term Reference\n\n### Hat {#hat}\n"), [{ display: "Hat", anchor: "hat" }]);
+});
+
+test("parseGlossaryAnchors follows Docusaurus headings and does not invent a title target", () => {
   const anchors = parseGlossaryAnchors("# Glossary\n## Domain Entities\n### Garden Operator {#operator}\n");
-  assert.ok(anchors.has("glossary"));
+  assert.ok(!anchors.has("glossary"));
   assert.ok(anchors.has("domain-entities"));
   assert.ok(anchors.has("operator"));
   assert.ok(!anchors.has("garden-operator"));
 });
 
 test("parseGlossaryAnchors includes explicit HTML compatibility anchors", () => {
-  assert.deepEqual([...parseGlossaryAnchors('<a id="impact-certificate"></a>\n### Hypercert {#hypercert}')], [
+  assert.deepEqual([...parseGlossaryAnchors('<a id="impact-certificate"></a>\n### Hypercert {#hypercert}\n<TermAnchor id="garden" />')], [
     "hypercert",
     "impact-certificate",
+    "garden",
   ]);
 });
 
@@ -1112,4 +1140,49 @@ test("projection evidence collection includes chain-scoped records", () => {
     },
   };
   assert.ok(collectProjectionFiles(projections).has("chain-readback.json"));
+});
+
+
+test("formal documentation owns definition locks and all glossary pointers have a destination", () => {
+  const ontology = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  const formal = renderOntologyMdx(ontology, projections);
+  const checked = checkDomainDocumentation(ontology, projections, glossary, formal);
+  assert.deepEqual(checked.fatal, []);
+  assert.deepEqual(checked.findings, []);
+  for (const term of [...ontology.entities, ...ontology.personas, ...ontology.supporting_terms]) {
+    assert.ok(parseGlossaryAnchors(formal).has(term.id), term.id);
+  }
+  const garden = ontology.entities.find(term => term.id === "garden");
+  const tampered = formal.replace(garden.definition, "A stale meaning from another version.");
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, tampered).findings.some(f => f.subject === "docs:definition:garden"));
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace('id="garden"', 'id="lost-garden"')).findings.some(f => f.guard === "docs-formal-anchor"));
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace("## Entities", "## Removed Entities")).fatal.length > 0);
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace('id="attestation"', 'id="removed-attestation"')).findings.some(f => f.guard === "docs-glossary-link"));
+});
+
+test("a canonical definition change updates formal content without copying it to community prose", () => {
+  const ontology = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const before = renderOntologyMdx(ontology, projections);
+  ontology.entities.find(term => term.id === "garden").definition = "A deliberately changed canonical definition.";
+  const after = renderOntologyMdx(ontology, projections);
+  assert.notEqual(before, after);
+  assert.ok(after.includes("A deliberately changed canonical definition."));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, before).findings.some(f => f.subject === "docs:definition:garden"));
+});
+
+
+test("regenerated formal definitions with MDX-sensitive text remain equal to their canonical source", () => {
+  const changed = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  changed.entities.find(term => term.id === "garden").definition += " Compare <value> & {target} | \`count\`.";
+  changed.personas.find(term => term.id === "gardener").definition += " Keep {role} & <scope>.";
+  const formal = renderOntologyMdx(changed, projections);
+  assert.deepEqual(checkDomainDocumentation(changed, projections, glossary, formal).findings, []);
+  const tampered = formal.replace("&lt;value&gt;", "&lt;different&gt;");
+  assert.ok(checkDomainDocumentation(changed, projections, glossary, tampered).findings.some(f => f.subject === "docs:definition:garden"));
 });

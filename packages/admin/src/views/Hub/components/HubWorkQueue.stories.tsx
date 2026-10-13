@@ -6,6 +6,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, mocked, within } from "storybook/test";
 import { daysAgo, FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
 import { HubWorkQueue } from "./HubWorkQueue";
 
 const GARDENER = "0x1111111111111111111111111111111111111111" as Address;
@@ -72,6 +73,22 @@ const meta: Meta<typeof HubWorkQueue> = {
 
 export default meta;
 type Story = StoryObj<typeof HubWorkQueue>;
+
+/** One coherent fictional record with the sourced docs photograph; default scenarios remain. */
+export const WithExamplePhoto: Story = {
+  args: {
+    selectedGardenName: "Riverside Commons Garden",
+    items: [
+      {
+        ...work("documentation-seedlings", DOCUMENTATION_SUBMISSION.note, 1, 5, 1),
+        media: [DOCUMENTATION_SUBMISSION.photo],
+      },
+    ],
+    actionsMap: new Map([[5, { title: "Seedling Transplant", domain: Domain.AGRO }]]),
+    worksLoading: false,
+    hasDataError: false,
+  },
+};
 
 export const WithData: Story = {
   args: {

@@ -12,10 +12,10 @@ export function StewardPathNav() {
   const {pathname} = useLocation();
 
   return (
-    <nav className={styles.pathNav} aria-label="Steward guide path">
-      <span className={styles.pathNavLabel}>Steward path</span>
-      <ol className={styles.pathNavList}>
-        {STEWARD_PATH_ITEMS.map((item, index) => {
+    <nav className={styles.pathNav} aria-label="Steward tasks">
+      <span className={styles.pathNavLabel}>Steward guide</span>
+      <ul className={styles.pathNavList}>
+        {STEWARD_PATH_ITEMS.map((item) => {
           const active = pathname === item.href;
 
           return (
@@ -23,15 +23,15 @@ export function StewardPathNav() {
               <Link
                 className={styles.pathNavLink}
                 data-active={active ? "true" : undefined}
+                aria-current={active ? "page" : undefined}
                 to={item.href}
               >
-                <span className={styles.pathNavIndex}>{index + 1}</span>
                 <span>{item.label}</span>
               </Link>
             </li>
           );
         })}
-      </ol>
+      </ul>
     </nav>
   );
 }

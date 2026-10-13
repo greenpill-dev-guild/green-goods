@@ -2,108 +2,126 @@
 title: Submit Work
 sidebar_label: Submit Work
 slug: /community/gardener-guide/uploading-your-work
-description: "Document regenerative work with media, details, review, and offline-safe upload guidance."
+description: "Document work you did in a garden, with photos and details, and send it to a steward for review. Works with weak or no signal."
 audience: gardener
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Complete one work submission successfully on the first try, including in low-connectivity field conditions."
 difficulty: "standard"
-estimated_time: "3-8 minutes per submission."
-prereqs: "Signed in, joined a garden, an active action available, photos or notes ready."
-next_steps: "/community/gardener-guide/"
+estimated_time: "3 to 8 minutes per submission."
+prereqs: "Signed in, a member of the garden, an action that matches your work, and your photos or notes."
+next_steps: "/community/gardener-guide/track-status-and-attestations"
 persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
   - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Garden/Intro.tsx
   - packages/client/src/views/Garden/Media.tsx
   - packages/client/src/views/Garden/Details.tsx
   - packages/client/src/views/Garden/Review.tsx
-  - packages/shared/src/hooks/work/useWorkForm.ts
+  - packages/client/src/views/Garden/WorkCommitmentSelection.tsx
+  - packages/client/src/components/Sheets/DraftSheet.tsx
+  - packages/shared/src/modules/work/work-attachments.ts
+  - packages/shared/src/modules/work/submission-flow.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
-  - packages/shared/src/hooks/work/useWorkUploads.ts
-  - packages/shared/src/modules/job-queue
+  - packages/shared/src/hooks/work/useDraftAutoSave.ts
+  - packages/shared/src/hooks/work/workSubmissionFeedback.ts
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/modules/work/upload-preparation.ts
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/modules/work/upload-kinds.ts
+  - packages/shared/src/utils/eas/encoders.ts
+  - packages/shared/src/i18n/en.json
 keywords:
   - submit work
   - upload work
   - work submission
   - submit work offline
-  - media details review
+  - photos
   - offline
   - drafts
-  - sync
-  - queue
 ---
 
-import {StatusBadge} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
 # Submit Work
 
-<StatusBadge status="Live" />
-
-## What this helps you do
-
-Submit a clear record of work you completed in a garden so a steward can review it. You will pick the right garden and action, attach evidence, fill in the details, and send it in.
+Submit a clear record of something you did in your garden so a steward can review it. You pick what you did and where, add photos, fill in a few details, and send it.
 
 ## Before you start
 
-- Sign in with the same account that joined the garden.
-- Confirm you are in the right garden. Many gardeners belong to more than one.
-- Check that the garden has an active action matching the work you completed. If you are not sure which action to use, ask the steward before submitting.
-- Keep your photos, short video, audio note, measurements, or field notes ready.
-- Weak signal is okay. Drafts and queued submissions stay on your device until you upload them.
+- **Sign in with the account that joined the garden.**
+- **Be a member of the garden.** Only gardens you belong to appear when you submit. See [Join a Garden](/community/gardener-guide/joining-a-garden).
+- **Know which action matches your work.** An action is the kind of work your garden has agreed to track, such as planting, a clean-up, or a panel check. If two seem close, ask your steward before you submit.
+- **Have your evidence ready:** photos, and a short video or voice note if it helps.
+- **Weak signal is fine.** Your work is saved on your phone as you go, and you can send it later.
 
-:::tip
-If you do not see any actions, check that you joined the right garden and ask the steward whether the action is active.
-:::
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table." width="1536" height="1024" decoding="async" />
+  <figcaption>Give the evidence enough context for someone else to understand the work. Editorial illustration reused from Green Goods' website Actions imagery; not a real submission.</figcaption>
+</figure>
 
-## Step-by-step flow
+## Steps
+
+The top of the screen shows where you are: **Start**, **Media**, **Details**, **Review**.
 
 ### Step 1: Choose the action and garden
 
 Every submission starts with what you did and where you did it.
 
-1. From your home screen, open the work flow and tap **Start Gardening**.
-2. If your garden covers more than one domain, use the tabs along the top, such as **Solar**, **Agroforestry**, **Education**, or **Waste**, to narrow the action list.
-3. Tap the action that matches the work you actually completed. Ask the steward if two actions seem close.
-4. Tap the garden you are submitting for.
-5. Continue only after both the action and garden are selected.
+1. Tap **Garden** in the bar at the bottom of the app.
+2. Under **Select Your Action**, tap the action that matches the work you completed. If your garden covers more than one area of work, use the tabs along the top, such as **Solar**, **Agro**, **Education**, or **Waste**, to narrow the list.
+3. Under **Select Your Garden**, tap the garden you are submitting for.
+4. Tap **Start Gardening**. It stays grey until you have picked both.
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-intro.png" alt="Work flow intro showing one domain tab active, one action selected, and one garden selected" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+A **Promise** section may appear once you have picked both. Your work does not need one. If it says **No eligible promises match this garden and action**, there is nothing to choose.
+
+If you left work unfinished earlier, the app asks **Continue Previous Work?** first. Tap **Continue Draft** to pick it up, or **Start Fresh** to begin a new one. The draft stays in **Your Work** either way.
 
 > Choose the action and garden before you add evidence. A correct submission is much easier to approve.
 
 ### Step 2: Add evidence
 
-Evidence should make the completed work easy to verify.
+Evidence should make the work easy to verify.
 
-1. Use the photo or camera controls to attach images.
-2. Add a short video or audio note when the action supports it and it helps explain the work.
-3. Read the action's media requirements. They tell you how many files are needed and what they should show.
-4. Retake blurry, dark, or incomplete evidence before you move on.
-5. When the action requirements are met, tap **Details**.
+:::warning Choose what you make public
+Uploaded photos and other media are public. When you are online, the app can prepare queued photos and details in public storage before you tap **Upload all**. Preparing those files is separate from sending the work record. Only include what you are comfortable making public; see [what to keep out of your photos](/faq#what-should-i-keep-out-of-my-photos).
+:::
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-media.webp" alt="Work media step showing one photo added and its preview" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+1. Read the line under **Upload Media**. It says what this action needs to see.
+2. Use **Choose from Your Photos** or **Take a Photo**. Turn on **Record a voice note** if a spoken explanation would help.
+3. Watch the counter, for example **1 of 2 photos**. It turns into **2 photos added** when you have enough.
+4. Retake anything blurry, dark, or incomplete before you move on.
+5. Tap **Details**. It stays grey until the action has the photos it needs.
 
-> Add evidence that matches the action requirements. A clear photo usually beats a long explanation.
+Limits: up to 10 files and 50 MB in one submission. Each photo can be up to 10 MB. A video can be up to 20 MB and 30 seconds long. A video does not count toward the photos an action needs.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-media-current.png" alt="The Media step: the heading Upload Media, a line saying what to photograph, the counter 1 photo added, one photo preview, and buttons to choose a photo, take a photo, or record a voice note beside the Details button" loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>Step 2: check the photo rule.</strong> Read what this action asks you to photograph. The counter tells you when you have enough; <strong className="gg-inline-label">Details</strong> takes you to the questions.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork, Media With Example Photo.
+    Captured 13 October 2026, 390 × 844; fixture build recorded in the Plan Hub image ledger.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    The photo illustrates this fictional example. Use your own work photos when submitting.</span>
+  </figcaption>
+</figure>
+
+> A clear photo usually beats a long explanation.
+
+Use your own photos, taken where and when the work happened. That is what makes the record worth trusting.
 
 ### Step 3: Add details
 
-Details are different for each action and follow the template the steward set up.
+Details are different for each action. Your steward's team chose the questions.
 
-1. Fill in each field shown for this action.
-2. Use real values. Do not enter placeholder text or "N/A" where a number is expected.
-3. Add short notes when they help the steward understand what happened in the field.
-4. If a required field is missing, the app blocks the next step until it is complete.
-5. When the form is valid, tap **Review Work**.
-
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-details.png" alt="Work details step showing action-specific fields filled in with real values" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+1. Fill in each field. A red star marks a field you must answer.
+2. Use real numbers. Do not type placeholder text where a count or a measurement belongs.
+3. **Time Spent (hours)** is optional. Decimals are fine, so 1.5 means an hour and a half.
+4. **Share Location** is optional and off until you turn it on. It adds your approximate location, to about 100 meters, and that location is published with the work.
+5. Add a note under **Feedback** if it helps the steward understand what happened.
+6. Tap **Review Work**. It stays grey until every required field is filled.
 
 > Make the details concrete enough for a steward to verify without guessing.
 
@@ -111,48 +129,70 @@ Details are different for each action and follow the template the steward set up
 
 One last look prevents most rework.
 
-1. Check the action, garden, evidence, and details.
-2. If anything is wrong, go back and fix it before you submit.
-3. Tap **Upload Work** when the record is complete.
+1. Check the garden, the photos, and your answers.
+2. If anything is wrong, use the back arrow and fix it.
+3. Tap **Upload Work**.
+4. Confirm when your phone or wallet asks. With a passkey, use your fingerprint, face, or screen lock.
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-review.webp" alt="Work review step showing the promise, the garden, the media, and the submission summary" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
-
-> This is your last chance to catch the wrong garden, wrong action, or missing evidence.
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-review-example.png" alt="The scrolled Review step shows part of a seedling photo, Seedling Transplant, Time Spent of 1h 30m, Plants moved of 36, a field note and Upload Work." loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>Step 4: check the recorded details.</strong> This view is scrolled to the action, time, count and note. Check your garden and full photo above, then use <strong className="gg-inline-label">Upload Work</strong> when everything matches.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork,
+    Review With Example Photo. Captured 13 October 2026, 390 × 844, scrolled to Details;
+    fixture build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    The garden, 36-plant count, 90-minute duration and note are fictional sample data,
+    not facts verified by this photograph.</span>
+  </figcaption>
+</figure>
 
 ### If you are offline
 
-Green Goods is built for field conditions.
+Green Goods is built for the field.
 
-- If the app says you are offline, your work is saved on your device.
-- When the network returns, the app gets your photos ready in the background. Nothing sends on its own.
-- Open **Your Work** and tap **Upload all** to send everything that is ready. Most accounts confirm once per batch, and a long queue goes out in a few batches.
-- Do not create a duplicate submission just because the first one has not uploaded yet.
+- The steps are the same without a signal, as long as you have opened the app online before. When you tap **Upload Work**, a message says **Saved offline**, and the work waits on your phone.
+- When you are back online, open **Your Work** and tap **Upload all**. Nothing is added to the garden's record until you do.
+- Do not submit the same work twice because the first one has not gone yet. Keep the queued copy; clearing app storage or removing the app can lose work you have not sent.
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-work-offline.webp" alt="Your Work while offline, with queued items waiting on the device until the connection returns" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-offline-example.png" alt="Your Work while offline, showing one Seedling Transplant record marked To upload and the saved time." loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>The work waits when there is no signal.</strong> <strong className="gg-inline-label">To upload</strong> is waiting for you to send it. Media may already have been prepared in public storage while you were online; the status describes the work record.
+    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Offline With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
+  </figcaption>
+</figure>
 
-> Offline does not mean lost. Leave the draft or queued item in place and upload it from **Your Work**.
+## How you know it worked
 
-## How to know it worked
+- **Online:** a message says **Work uploaded**. The app takes you to **Your Work**, where the item is marked **In review**.
+- **Offline:** a message says **Saved offline**. In **Your Work** the item is marked **To upload**.
 
-After you tap **Upload Work**, open **Your Work** from your home screen.
+## What happens next
 
-1. A new submission saved while you were offline first shows as **To upload**.
-2. Once uploaded, it stays in **Pending** while a steward reviews it.
-3. After review, it moves to **Approved** or **Rejected** with any steward feedback.
-4. If it is rejected, read the feedback, fix the issue, and submit a corrected record for the right garden and action.
+A steward of your garden reviews the work. They either approve it or reject it with a note on what to fix. Green Goods does not send you an alert when they decide, so check **Your Work** from time to time. [Track Your Work](/community/gardener-guide/track-status-and-attestations) explains every status you can see there.
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/builders/client-work-dashboard.webp" alt="Your Work showing queued submissions on the Pending tab" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+Once work is sent, it becomes part of the garden's public record and cannot be edited or deleted. If you made a mistake, tell your steward. They can reject it so you can submit a corrected one.
 
 ## If something goes wrong
 
-- **The next button is disabled.** A required field or media item is missing. Scroll back and look for an empty field or unmet media count.
-- **Media disappeared from a draft.** Reopen the draft from **Your Work** and reattach the files before submitting.
-- **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Do not create a duplicate draft for the same work.
-- **Your submission was rejected.** Use the steward's feedback as the checklist for your corrected submission.
-- **You need help.** Open Profile help in the app or use the Green Goods Telegram support link in the docs footer.
+| What you see | What to do |
+|---|---|
+| No actions to choose from | The garden has no action open right now. Ask your steward |
+| Your garden is not in the list | You are not a member yet, or you are signed in to a different account. See [Join a Garden](/community/gardener-guide/joining-a-garden) |
+| **Start Gardening**, **Details**, or **Review Work** stays grey | Something is missing on this step: an action or garden, a photo the action needs, or a field with a red star |
+| **Some files were not added** | The file is not a photo or video the app can read, or it is over the size limits above |
+| **Upload cancelled** | You closed the signing confirmation. The work record was not sent. Find it in **Your Work**, on **Pending**, ready to upload or discard. Media may already have been prepared in public storage |
+| **Connection unstable** | The work is saved and waiting. Send it from **Your Work** when your signal is steady |
+| A draft says a photo is no longer readable | Remove that photo, then add it again from the **Media** step |
+| **You have 20 drafts** | Delete a draft you no longer need to make room. Your other drafts are safe |
+
+For anything that will not send, see [Recover Unsent Work](/community/gardener-guide/recovery-and-sync). To reach a person, open **Profile**, then the **Help** tab, and tap **Telegram**.
+
+## Next step
+
+<NextBestAction
+  title="Track your work"
+  why="See whether your work is still queued, with a steward, or reviewed, and what to do next."
+  actionLabel="Track Your Work"
+  actionHref="/community/gardener-guide/track-status-and-attestations"
+/>

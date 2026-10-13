@@ -170,13 +170,13 @@ export function brandKitMarkdown(kit) {
 /** The welcome page's role cards as a list: who each path is for and where it starts. */
 export function rolePathsMarkdown(rolePaths) {
   return rolePaths
-    .map((role) => `- [${role.title}](${role.href}) (${role.audience}, ${role.time}): ${role.description}`)
+    .map((role) => `- [${role.title}](${role.href}): ${role.description}`)
     .join("\n");
 }
 
-/** The steward guide's path navigation as an ordered list. */
+/** The steward guide's task navigation, matching the visible links. */
 export function stewardPathMarkdown(stewardPath) {
-  return ["Steward path:", "", ...stewardPath.map((step, index) => `${index + 1}. [${step.label}](${step.href})`)].join("\n");
+  return ["Steward tasks:", "", ...stewardPath.map((step) => `- [${step.label}](${step.href})`)].join("\n");
 }
 
 /** The per-integration status table as Markdown, the same facts the IntegrationStatusTable renders. */
@@ -286,7 +286,10 @@ export function markdownTwin(
     if (revenueExplorer) result = result.replace(REVENUE_EXPLORER_TAG, () => revenueExplorerMarkdown(revenueExplorer));
     return result;
   };
-  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, ""))))
+  const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, "")))
+      .replace(/<TermAnchor id="([^"]+)" \/>/g, '<a id="$1"></a>')
+      .replace(/<FaqQuestion id="([^"]+)" question="([^"]+)">/g, (_, id, question) => `### ${question.replaceAll("&quot;", '"')} {#${id}}`)
+      .replace(/<\/?FaqQuestions>|<\/FaqQuestion>/g, ""))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return `${/^#\s/m.test(body) ? "" : `# ${title}\n\n`}${body}\n`;

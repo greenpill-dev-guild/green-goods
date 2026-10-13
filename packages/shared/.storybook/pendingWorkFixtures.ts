@@ -15,6 +15,7 @@ import {
   todayAt,
 } from "./clientJourneyFixtures";
 import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR, FIXTURE_WORK_MEDIA } from "./fixtures";
+import { DOCUMENTATION_SUBMISSION } from "./submitWorkFixtures";
 
 const HOUR = 3_600_000;
 
@@ -184,8 +185,23 @@ export interface PendingWorkFixture {
  * (`work-cancelled`), or after Compost Turn was discarded (`work-discarded`).
  */
 export function pendingWorkFixture(
-  moment: "all" | "afterCancel" | "afterDiscard" = "all"
+  moment: "all" | "afterCancel" | "afterDiscard" = "all",
+  documentationPhoto = false
 ): PendingWorkFixture {
+  if (documentationPhoto) {
+    return {
+      submissions: [{
+        ...SEEDLING_QUEUED,
+        feedback: DOCUMENTATION_SUBMISSION.note,
+        media: [DOCUMENTATION_SUBMISSION.photo],
+      }],
+      drafts: [],
+      proofs: [],
+      linkedWorkIds: new Set(),
+      linkedWorkUIDs: new Set(),
+      onPhone: 1,
+    };
+  }
   const afterCancel = moment !== "all";
   const submissions = [
     SEEDS,

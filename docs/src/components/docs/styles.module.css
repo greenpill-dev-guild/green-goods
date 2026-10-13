@@ -178,16 +178,12 @@
 .pathNavLink {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 999px;
-  padding: 0.35rem 0.55rem;
-  background: var(--ifm-background-color);
+  min-height: 44px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
   color: var(--ifm-font-color-base);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  line-height: 1.3;
 }
 
 .pathNavLink:hover,
@@ -197,18 +193,7 @@
   text-decoration: none;
 }
 
-.pathNavIndex {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--docs-role-accent) 12%, var(--ifm-background-surface-color));
-  color: var(--docs-role-accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  font-size: 0.72rem;
-}
+
 
 .stepFlow {
   list-style: none;
@@ -412,78 +397,35 @@
 }
 
 .nextAction {
-  border-top: 1px solid var(--ifm-color-emphasis-200);
-  padding: 1rem 0 0;
-  margin-top: 3rem;
-  background: transparent;
+  margin-top: 2rem;
 }
 
-.nextActionMarker {
-  margin: 0 0 0.35rem;
-  color: var(--ifm-color-emphasis-700);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.nextActionTitle {
-  margin: 0;
-  font-size: 1.1rem;
+:global(h2) + .nextAction {
+  margin-top: 0;
 }
 
 .nextActionWhy {
-  margin: 0.5rem 0 0.75rem;
-  color: var(--ifm-font-color-secondary);
-}
-
-.nextActionPrimary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--ifm-color-primary) 35%, var(--ifm-color-emphasis-200));
-  border-radius: 8px;
-  padding: 0.42rem 0.75rem;
-  background: color-mix(in srgb, var(--ifm-color-primary) 6%, transparent);
-  color: var(--ifm-color-primary);
-  font-weight: 700;
-  text-decoration: none;
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-
-.nextActionPrimary svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.nextActionPrimary:hover {
-  color: var(--ifm-color-primary);
-  text-decoration: none;
-  border-color: var(--ifm-color-primary);
-  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  margin-bottom: 1rem;
 }
 
 .nextActionAlternatives {
-  margin: 0.7rem 0 0;
-  padding-left: 1rem;
+  margin-top: 1rem;
+}
+
+/* The task's recommended destination uses the same paginator as Builders. Its previous link
+   comes from Docusaurus; hide only the extra footer paginator on pages with this section. */
+:global(article):has(.nextAction) + :global(.pagination-nav) {
+  display: none;
 }
 
 /* Keyboard accessibility: focus-visible mirrors hover states */
 .roleCard:focus-visible,
 .stepFlowItem:focus-visible,
-.featureState:focus-visible,
-.nextAction:focus-visible {
+.featureState:focus-visible {
   border-color: var(--ifm-color-primary-light);
   box-shadow: 0 2px 12px color-mix(in srgb, var(--ifm-color-primary) 8%, transparent);
   outline: 2px solid var(--ifm-color-primary);
   outline-offset: 2px;
-}
-
-.nextActionPrimary:focus-visible {
-  outline: 2px solid var(--ifm-color-primary);
-  outline-offset: 2px;
-  border-color: var(--ifm-color-primary);
-  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
 }
 
 @keyframes cardEnter {
@@ -545,59 +487,48 @@
 
 }
 
-/* ── Hero Section ────────────────────────────────────────────────────── */
-
-.hero {
-  padding: 3rem 0 2rem;
-  text-align: center;
-  background: linear-gradient(
-    160deg,
-    rgba(26, 117, 68, 0.06),
-    rgba(26, 117, 68, 0.02)
-  );
-  border-radius: 16px;
-  margin-bottom: 2rem;
-}
-
-:global([data-theme="dark"]) .hero {
-  background: linear-gradient(
-    160deg,
-    rgba(26, 117, 68, 0.12),
-    rgba(26, 117, 68, 0.04)
-  );
-}
-
-.heroHeading {
-  margin: 0;
-  font-size: 2.8rem;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-
-.heroSubtitle {
-  margin: 0.75rem 0 0;
-  font-size: 1.15rem;
-  color: var(--ifm-font-color-secondary);
-}
-
+/* Welcome role navigation */
 .heroRoleGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+  padding: 0;
+  margin: 1rem 0 1.5rem;
+  list-style: none;
+}
+
+.heroRoleLink {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
-  padding: 0 1.5rem;
-  text-align: left;
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-surface-color);
 }
 
-.heroRoleItem {
-  animation: cardEnter 400ms ease both;
-  animation-delay: var(--card-delay, 0ms);
+.heroRoleLink:hover {
+  border-color: var(--ifm-color-primary);
+  text-decoration: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .heroRoleItem {
-    animation: none;
-  }
+.heroRoleLink:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 3px;
+}
+
+.heroRoleIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--ifm-color-primary);
+}
+
+.heroRoleDescription {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.92rem;
 }
 
 @media (max-width: 768px) {
@@ -612,19 +543,6 @@
 
   .pathNavList {
     width: 100%;
-  }
-
-  .heroHeading {
-    font-size: 2rem;
-  }
-
-  .heroSubtitle {
-    font-size: 1rem;
-  }
-
-  .heroRoleGrid {
-    grid-template-columns: 1fr;
-    padding: 0 0.75rem;
   }
 
   .metaList {

@@ -43,6 +43,36 @@ describe("markdown twins", () => {
     assert.match(twin, /<IntegrationProjection id="hats" \/>/);
   });
 
+  test("FAQ twins expose every answer and preserve its deep link without interactive wrappers", () => {
+    const source = `<FaqQuestions>
+
+## Privacy
+
+<FaqQuestion id="is-what-i-upload-private" question="Is what I upload private?">
+
+No. Treat submissions as public. [Recovery](/community/gardener-guide/recovery-and-sync).
+
+</FaqQuestion>
+
+</FaqQuestions>
+
+\`\`\`mdx
+<FaqQuestion id="example" question="Example?">
+\`\`\`
+`;
+    const twin = markdownTwin(source, "FAQ");
+    assert.match(twin, /### Is what I upload private\? \{#is-what-i-upload-private\}/);
+    assert.match(twin, /No\. Treat submissions as public\. \[Recovery\]/);
+    assert.doesNotMatch(twin, /<FaqQuestions>|<\/FaqQuestion>/);
+    assert.match(twin, /\`\`\`mdx\n<FaqQuestion id="example" question="Example\?">/);
+  });
+
+  test("formal table destinations remain usable HTML anchors in Markdown twins", () => {
+    const twin = markdownTwin('import TermAnchor from "@site/src/components/docs/TermAnchor";\n\n| Term | Meaning |\n|---|---|\n| <TermAnchor id="attestation" />Attestation | A record |\n', "Ontology");
+    assert.match(twin, /<a id="attestation"><\/a>Attestation/);
+    assert.doesNotMatch(twin, /TermAnchor/);
+  });
+
   test("give a title to pages without their own heading", () => {
     assert.equal(markdownTwin("---\nslug: /x\n---\nJust text.\n", "Plain Page"), "# Plain Page\n\nJust text.\n");
   });
@@ -195,10 +225,11 @@ describe("data-backed component fallbacks", () => {
     assert.ok(brand.includes("| Inter | Body copy | [Inter source](https://example.org/inter) |"));
     assert.ok(brand.trimEnd().endsWith("## Usage"), "the page's own prose still follows the inventory");
 
-    const roles = twin("<Hero />", {rolePaths: [{title: "Gardener", href: "/g/", audience: "Field workers", time: "5 min", description: "Document work."}]});
-    assert.ok(roles.includes("- [Gardener](/g/) (Field workers, 5 min): Document work."), roles);
+    const roles = twin("<Hero />", {rolePaths: [{title: "Gardener", href: "/g/", description: "Document work."}]});
+    assert.ok(roles.includes("- [Gardener](/g/): Document work."), roles);
+    assert.ok(!roles.includes("undefined"), "the twin needs only the fields shown in the role chooser");
     const stewardNav = twin("<StewardPathNav />", {stewardPath: [{label: "Create a Garden", href: "/a"}, {label: "Review Work", href: "/b"}]});
-    assert.ok(stewardNav.includes("Steward path:\n\n1. [Create a Garden](/a)\n2. [Review Work](/b)"), stewardNav);
+    assert.ok(stewardNav.includes("Steward tasks:\n\n- [Create a Garden](/a)\n- [Review Work](/b)"), stewardNav);
   });
 
   test("no page's twin is left with a bare component tag where content should be", () => {
@@ -229,7 +260,7 @@ describe("data-backed component fallbacks", () => {
     assert.match(real("reference/brand.mdx"), /^- \[Download the whole kit \(ZIP\)\]\(\/brand\//m);
     assert.match(real("builders/architecture/design.mdx"), /^\| `tertiary-action` \| `#[0-9A-F]{6}` \|$/m);
     assert.match(real("community/welcome.mdx"), /^- \[Gardener\]\(\/community\/gardener-guide\/\)/m);
-    assert.match(real("community/steward-guide/reviewing-work.mdx"), /^3\. \[Review and Approve Work\]/m);
+    assert.match(real("community/steward-guide/reviewing-work.mdx"), /^- \[Review Work\]\(\/community\/steward-guide\/reviewing-work\)/m);
   });
 
   test("the economics explorer becomes its model: inputs, preset values, and what each preset computes", () => {

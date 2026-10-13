@@ -391,9 +391,13 @@
       "plain_name": "A community and its shared place",
       "why_it_matters": "It gives people, roles, records, and funds one accountable home.",
       "who_touches_it": ["Gardener", "Steward", "Evaluator", "Funder", "Community Member"],
-      "example": "A neighborhood garden coordinating planting, evidence, and funding.",
+      "example": "A campus solar team, a neighborhood waste crew, or a tree-planting group, each with its own people, records, and funds.",
       "aliases": ["community garden"],
-      "not_confused_with": ["a personal wallet", "a single project"]
+      "not_confused_with": [
+        "a place only for growing plants",
+        "a personal wallet",
+        "a single project"
+      ]
     },
     {
       "ref": "entity:action",
@@ -409,7 +413,7 @@
       "plain_name": "A field record of completed activity",
       "why_it_matters": "It turns local action into portable evidence without waiting for approval to exist.",
       "who_touches_it": ["Gardener", "Steward"],
-      "example": "A photo and description submitted as a Work attestation, then approved separately.",
+      "example": "Photos and a short description of trees a gardener planted, sent to a steward for review.",
       "aliases": ["work submission", "field record"],
       "not_confused_with": ["Work Approval", "Assessment"]
     },
@@ -424,7 +428,7 @@
     },
     {
       "ref": "entity:assessment",
-      "plain_name": "A baseline and strategy",
+      "plain_name": "A starting point and a plan",
       "why_it_matters": "It states what a place needs and what good evidence should demonstrate.",
       "who_touches_it": ["Evaluator", "Steward"],
       "example": "A soil-health baseline with targets and selected Actions.",
@@ -433,7 +437,7 @@
     },
     {
       "ref": "entity:hypercert",
-      "plain_name": "A portable impact certificate",
+      "plain_name": "One claim that bundles a body of approved work",
       "why_it_matters": "It lets approved contribution records become a fundable impact claim.",
       "who_touches_it": ["Funder", "Gardener", "Steward"],
       "example": "A certificate bundling a season of approved Work.",
@@ -442,19 +446,19 @@
     },
     {
       "ref": "entity:vault",
-      "plain_name": "A Garden's long-term treasury",
-      "why_it_matters": "Principal can remain deposited while yield supports ongoing work.",
+      "plain_name": "A Garden's long-term fund",
+      "why_it_matters": "A deposit can stay in place while what it earns supports ongoing work.",
       "who_touches_it": ["Funder", "Steward"],
-      "example": "A funder endows a Garden and the yield supports operations.",
+      "example": "A funder endows a Garden, and what the deposit earns supports the Garden's work.",
       "aliases": ["endowment"],
-      "not_confused_with": ["Cookie Jar"]
+      "not_confused_with": ["Cookie Jar", "a guaranteed deposit"]
     },
     {
       "ref": "entity:cookie-jar",
-      "plain_name": "A bounded near-term fund",
-      "why_it_matters": "It supports smaller operational needs with explicit claim limits.",
+      "plain_name": "A shared fund for near-term needs",
+      "why_it_matters": "It covers smaller costs, with a limit on each claim.",
       "who_touches_it": ["Steward", "Gardener", "Funder"],
-      "example": "An allowlisted member claims a capped amount for supplies.",
+      "example": "A gardener claims a small, capped amount for supplies and says what it is for.",
       "aliases": ["jar"],
       "not_confused_with": ["Vault"]
     },
@@ -580,7 +584,7 @@
       "plain_name": "A person doing and documenting the work",
       "why_it_matters": "Green Goods begins with evidence captured by people caring for a place.",
       "who_touches_it": ["Steward", "Evaluator"],
-      "example": "A gardener records planting while offline and syncs later.",
+      "example": "A gardener records a planting with no signal and uploads it once back in range.",
       "aliases": ["field contributor"],
       "not_confused_with": ["Commitment Contributor"]
     },
@@ -589,7 +593,7 @@
       "plain_name": "A person stewarding Garden operations",
       "why_it_matters": "Stewards turn community policy into accountable review and coordination.",
       "who_touches_it": ["Gardener", "Evaluator", "Funder", "Community Member"],
-      "example": "A steward creates Actions and approves or rejects Work.",
+      "example": "A steward adds members and approves or rejects submitted Work.",
       "aliases": ["Garden Steward", "Garden Operator", "operator"],
       "not_confused_with": ["Evaluator"]
     },
@@ -616,7 +620,7 @@
       "plain_name": "A local person affected by the work",
       "why_it_matters": "Community voice should shape needs and accountability, not sit outside the record.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "A resident signals support for a Need.",
+      "example": "A resident reads the public record of approved Work in a nearby Garden.",
       "aliases": ["resident"],
       "not_confused_with": ["Gardener"]
     }
@@ -832,7 +836,7 @@
           "what": "Write the assessment that sets the baseline, the method and the outcomes to look for.",
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
-          "guide": "/community/steward-guide/making-an-assessment",
+          "guide": "/community/evaluator-guide/making-an-assessment",
           "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
         },
         {
@@ -906,7 +910,7 @@
           "what": "Write or strengthen an assessment: the baseline, the method and the outcomes to look for.",
           "where": ["admin"],
           "term_refs": ["entity:assessment"],
-          "guide": "/community/steward-guide/making-an-assessment",
+          "guide": "/community/evaluator-guide/making-an-assessment",
           "code": ["packages/admin/src/views/Hub/CreateAssessment.tsx"]
         },
         {

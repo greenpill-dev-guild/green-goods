@@ -11,6 +11,9 @@ import { WorkTab } from "../src/stores/workFlowTypes";
 import type { Action } from "../src/types/domain";
 import { JOURNEY_GARDEN, JOURNEY_GARDEN_RECORD } from "./clientJourneyFixtures";
 import SEEDLINGS_SVG from "./fixture-art/seedlings.svg?raw";
+import DOCUMENTATION_SEEDLINGS_JPEG from "./fixture-art/documentation-seedlings.jpg?inline";
+import DOCUMENTATION_SEEDLINGS_URL from "./fixture-art/documentation-seedlings.jpg?url";
+import { stagedWorkPhoto } from "./workPhotoFixtures";
 
 type SubmitWorkController = ReturnType<typeof useWorkSubmissionFlowController>;
 
@@ -69,6 +72,16 @@ function seedlingPhoto(name: string): File {
 
 const noop = () => undefined;
 
+/** One fictional record for docs captures; the sourced photo does not prove these values. */
+export const DOCUMENTATION_SUBMISSION = {
+  action: SEEDLING_ACTION,
+  photo: DOCUMENTATION_SEEDLINGS_URL,
+  fileDataUrl: DOCUMENTATION_SEEDLINGS_JPEG,
+  timeSpentMinutes: 90,
+  values: { plantsMoved: 36 },
+  note: "Moved 36 lettuce seedlings into the east bed and watered them after transplanting.",
+};
+
 /**
  * The page's controller on one step: Media with one photo, or Review with the
  * details filled in. Everything the page asks of it answers as it would once
@@ -76,12 +89,19 @@ const noop = () => undefined;
  */
 export function submitWorkControllerFixture(
   step: "media" | "review",
-  { linked = true }: { linked?: boolean } = {}
+  {
+    linked = true,
+    documentationPhoto = false,
+  }: { linked?: boolean; documentationPhoto?: boolean } = {}
 ): SubmitWorkController {
-  const images = step === "media" ? [seedlingPhoto("seedlings-1.svg")] : [
-    seedlingPhoto("seedlings-1.svg"),
-    seedlingPhoto("seedlings-2.svg"),
-  ];
+  // Leon Brooks' public-domain Seedlings photograph illustrates this fictional
+  // example. It is not evidence of the garden, count, time or note below.
+  // Source and normalization are recorded in the community-docs image ledger.
+  const images = documentationPhoto
+    ? [stagedWorkPhoto("lettuce-seedlings.jpg", 0, DOCUMENTATION_SUBMISSION.fileDataUrl)]
+    : step === "media"
+      ? [seedlingPhoto("seedlings-1.svg")]
+      : [seedlingPhoto("seedlings-1.svg"), seedlingPhoto("seedlings-2.svg")];
   return {
     actionUID: 5,
     actions: [SEEDLING_ACTION],
@@ -109,7 +129,7 @@ export function submitWorkControllerFixture(
     },
     ensureWorkSubmissionJourneyId: () => "journey-seedlings",
     exit: noop,
-    feedback: "",
+    feedback: documentationPhoto ? DOCUMENTATION_SUBMISSION.note : "",
     gardenAddress: JOURNEY_GARDEN,
     gardens: [JOURNEY_GARDEN_RECORD],
     hasJoinedGardens: true,
@@ -159,7 +179,7 @@ export function submitWorkControllerFixture(
     submissionCompleted: false,
     submissionOutcome: null,
     submit: noop,
-    timeSpentMinutes: undefined,
+    timeSpentMinutes: documentationPhoto ? DOCUMENTATION_SUBMISSION.timeSpentMinutes : undefined,
     toggleAudioRecording: noop,
     values: { plantsMoved: 36 },
     workSubmissionJourneyId: "journey-seedlings",

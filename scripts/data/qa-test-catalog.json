@@ -9623,7 +9623,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Gardener Guide",
-      "scenario": "Recovery and Sync guide page walks true against the live product",
+      "scenario": "Recover Unsent Work guide page walks true against the live product",
       "preconditions": ["The gardener-guide/recovery-and-sync page open beside the live product"],
       "steps": [
         "Follow every step in the app, including the offline queue",
@@ -9644,7 +9644,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Gardener Guide",
-      "scenario": "Track Status and Attestations guide page walks true against the live product",
+      "scenario": "Track Your Work guide page walks true against the live product",
       "preconditions": [
         "The gardener-guide/track-status-and-attestations page open beside the live product"
       ],
@@ -9685,7 +9685,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Steward Guide",
-      "scenario": "Managing Actions guide page walks true against the live product",
+      "scenario": "Manage Actions guide page walks true against the live product",
       "preconditions": ["The steward-guide/managing-actions page open beside the live product"],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping actions registry (ADM-100, ADM-101); drift is listed with the page path",
@@ -9704,7 +9704,9 @@
       "kind": "content",
       "area": "Steward Guide",
       "scenario": "Make an Assessment guide page walks true against the live product",
-      "preconditions": ["The steward-guide/making-an-assessment page open beside the live product"],
+      "preconditions": [
+        "The evaluator-guide/making-an-assessment page open beside the live product"
+      ],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping assessment flow (ADM-046); drift is listed with the page path",
       "evidence": "List of drifted steps with the page path",
@@ -9721,7 +9723,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Steward Guide",
-      "scenario": "Review and Approve Work guide page walks true against the live product",
+      "scenario": "Review Work guide page walks true against the live product",
       "preconditions": ["The steward-guide/reviewing-work page open beside the live product"],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping work review (ADM-012); drift is listed with the page path",
