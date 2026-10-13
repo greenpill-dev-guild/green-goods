@@ -20,12 +20,14 @@ const {
   mockUsePublicInstallHandler,
   mockInstallHandler,
   mockUsePublicStats,
+  mockUsePublicCommitmentImpact,
 } = vi.hoisted(() => ({
   mockUseApp: vi.fn(),
   mockUseInstallGuidance: vi.fn(),
   mockUsePublicInstallHandler: vi.fn(),
   mockInstallHandler: vi.fn(),
   mockUsePublicStats: vi.fn(),
+  mockUsePublicCommitmentImpact: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -56,6 +58,10 @@ vi.mock("@green-goods/shared/hooks/public/usePublicStats", () => ({
   usePublicStats: mockUsePublicStats,
 }));
 
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: mockUsePublicCommitmentImpact,
+}));
+
 vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),
 }));
@@ -66,7 +72,11 @@ vi.mock("@/components/Public/PublicFeaturedGardens", () => ({
   PublicFeaturedGardens: () => createElement("div", { "data-testid": "stub-featured" }),
 }));
 vi.mock("@/components/Public/PublicProofBand", () => ({
-  PublicProofBand: () => createElement("div", { "data-testid": "stub-proof" }),
+  PublicProofBand: (props: { commitmentsKept: bigint | null }) =>
+    createElement("div", {
+      "data-testid": "stub-proof",
+      "data-commitments-kept": String(props.commitmentsKept),
+    }),
 }));
 vi.mock("@/components/Public/PublicFundingBridge", () => ({
   PublicFundingBridge: () => createElement("div", { "data-testid": "stub-funding" }),
@@ -132,6 +142,10 @@ describe("Public Home — hero CTAs", () => {
     mockUsePublicInstallHandler.mockReturnValue(mockInstallHandler);
     mockUsePublicStats.mockReturnValue({
       data: { gardenCount: 0, contributorCount: 0, fieldNoteCount: 0, attestationCount: 0 },
+      isLoading: false,
+    });
+    mockUsePublicCommitmentImpact.mockReturnValue({
+      data: { commitmentsMade: 18n, commitmentsFulfilled: 2n },
       isLoading: false,
     });
   });
@@ -236,6 +250,28 @@ describe("Public Home — hero CTAs", () => {
         `${orderedStubs[i].dataset.testid} should precede ${orderedStubs[i + 1].dataset.testid}`
       ).toBeTruthy();
     }
+  });
+
+  // The record band's commitment figure comes from its own read; a read that
+  // settled without data must reach the band as unknown, never as zero.
+  it.each([
+    ["the snapshot", { data: { commitmentsMade: 18n, commitmentsFulfilled: 2n } }, "2"],
+    ["a read that settled without data", { data: undefined }, "null"],
+  ])("hands the kept commitments from %s to the record band", (_, read, kept) => {
+    mockUseApp.mockReturnValue({
+      isPwaPresentation: false,
+      isMobile: false,
+      isInstalled: false,
+      wasInstalled: false,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUsePublicCommitmentImpact.mockReturnValue({ ...read, isLoading: false });
+
+    renderHome();
+
+    expect(screen.getByTestId("stub-proof")).toHaveAttribute("data-commitments-kept", kept);
   });
 
   it("renders the record loop after proof and before the funding bridge", () => {

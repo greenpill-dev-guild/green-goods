@@ -100,6 +100,7 @@ const seeds = [
       totalFetchedRecords: 1,
       partialData: false,
       sourceLimitReached: false,
+      certificateCount: 0,
       status: "ready",
     },
   ],
