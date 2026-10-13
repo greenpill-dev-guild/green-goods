@@ -471,6 +471,18 @@ test("normalizeDocText strips markup and collapses whitespace", () => {
   );
 });
 
+test("normalizeDocText decodes entities once while removing encoded backtick markup", () => {
+  for (const [input, expected] of [
+    ["&#96;Garden&#96;", "Garden"],
+    ["Garden &amp; Work", "Garden & Work"],
+    ["&amp;#96;", "&#96;"],
+    ["&amp;amp;", "&amp;"],
+    ["A &amp;#96;Garden&amp;#96; B", "A &#96;Garden&#96; B"],
+  ]) {
+    assert.equal(normalizeDocText(input), expected, input);
+  }
+});
+
 test("titleCase converts SCREAMING members", () => {
   assert.equal(titleCase("SOCIAL"), "Social");
 });
