@@ -1197,7 +1197,6 @@ export function checkDomainDocumentation(ontology, projections, glossary, refere
   // supporting term — otherwise orphan nouns (the "Report" problem) accumulate in
   // prose that nothing checks.
   let termReferenceChecked = 0;
-  const glossaryAnchors = glossary === null ? new Set() : parseGlossaryAnchors(glossary);
   if (glossary !== null) {
     const headings = (parseGlossaryTermHeadings(glossary) ?? []).map(heading => ({...heading, file: GLOSSARY_PATH}));
     for (const section of ["Entities", "Personas", "Supporting terms"]) {

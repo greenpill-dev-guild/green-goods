@@ -57,3 +57,13 @@ thread shape), SHA-256 `0e7b2c46f76ee95654330682640dfac020e80f1d3e5fe3d3df84e63e
 All five actionable source fixes are local and await publication. No submitted review dismissed
 or unresolved thread marked resolved. Required Chromium capability and fresh published-head CI
 remain blocking evidence, not a documentation failure to rewrite around.
+
+## Published-head follow-up
+
+Head 78e1f650 has the exact tested source tree. The complete refreshed surface contains 21
+inline comments, five reviews and three conversation comments. New finding 4261365764 is valid:
+CodeQL reports unused glossaryAnchors inside checkDomainDocumentation. Remove that pure unused
+G6 local binding only; keep the separate G7 binding and its client-anchor membership check.
+This is behavior-preserving cleanup, so no implementation-mirroring test is added. Existing
+ontology/authority and retained local gates will be rerun, followed by exact new-head CI.
+The qualified browser proof step passed on 78e1f650; it does not certify the next changed head.
