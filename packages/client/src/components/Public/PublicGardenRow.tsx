@@ -97,7 +97,6 @@ export function PublicGardenRow({
                 {garden.name || garden.slug}
               </span>
             </h3>
-            <PublicGardenMeta garden={garden} />
             {description ? (
               // The height cap matches the clamp: without it the grid sizes the
               // row from the unclamped text and the slack lands above the actions.
@@ -108,6 +107,7 @@ export function PublicGardenRow({
                 {description}
               </p>
             ) : null}
+            <PublicGardenMeta garden={garden} />
             <GardenVaultMetrics summary={vaultSummary} unavailable={vaultsUnavailable} />
           </div>
         </Link>

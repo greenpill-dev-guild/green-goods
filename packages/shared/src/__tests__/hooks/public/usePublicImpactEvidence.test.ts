@@ -39,6 +39,7 @@ vi.mock("../../../modules/data/hypercerts-fetch", () => ({
 vi.mock("../../../config/default-chain", () => ({ DEFAULT_CHAIN_ID: 11155111 }));
 
 import { usePublicImpactEvidence } from "../../../hooks/public/usePublicImpactEvidence";
+import { PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP } from "../../../public-contracts/public-impact";
 
 describe("usePublicImpactEvidence", () => {
   let queryClient: ReturnType<typeof createTestQueryClient>;
@@ -100,18 +101,38 @@ describe("usePublicImpactEvidence", () => {
     expect(result.current.data?.partialData).toBe(true);
   });
 
-  // A certificate total read short would undercount /impact's proof row, so it is unknown.
-  it("leaves the certificate count unknown when a certificate read fails", async () => {
+  // A certificate total read short would undercount /impact's proof row, so it is unknown:
+  // after a failed read, and when a Garden holds more certificates than one read takes.
+  it.each([
+    [
+      "a certificate read fails",
+      () => mockGetGardenHypercerts.mockRejectedValue(new Error("Hypercerts down")),
+      { partialData: true },
+    ],
+    [
+      "a Garden holds more certificates than one read takes",
+      () =>
+        mockGetGardenHypercerts.mockResolvedValue(
+          Array.from({ length: PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1 }, (_, index) => ({
+            id: `certificate-${index}`,
+            tokenId: BigInt(index),
+            metadataUri: "ipfs://certificate",
+            mintedAt: 1_700_000_000 + index,
+            title: `Certificate ${index}`,
+          }))
+        ),
+      { partialData: true, sourceLimitReached: true },
+    ],
+  ])("leaves the certificate count unknown when %s", async (_case, arrange, flags) => {
     const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
     mockGetGardens.mockResolvedValue([garden]);
     mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
-    mockGetGardenHypercerts.mockRejectedValue(new Error("Hypercerts down"));
+    arrange();
 
     const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.partialData).toBe(true);
-    expect(result.current.data?.certificateCount).toBeNull();
+    expect(result.current.data).toMatchObject({ certificateCount: null, ...flags });
   });
 
   it("joins checksummed Work recipients to lowercase Garden identifiers", async () => {

@@ -55,7 +55,8 @@ export function EditorialListRowSkeleton({ className }: { className?: string }) 
           <EditorialSkeleton className="h-20 w-28 shrink-0 sm:h-24 sm:w-36" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <EditorialSkeleton className="h-[1lh] w-3/4 text-lg leading-[1.15]" />
-            {/* The two details lines of PublicGardenMeta: place and members, then submissions. */}
+            {/* The description, then PublicGardenMeta: place and members, then submissions. */}
+            <EditorialSkeleton className="h-[2lh] w-full text-xs leading-relaxed" />
             <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
               <EditorialSkeleton className="h-[1lh] w-2/3" />
               <span className="editorial-skeleton w-fit max-w-full [overflow-wrap:anywhere]">
