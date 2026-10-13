@@ -207,6 +207,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         page,
         pageSize,
         easFailed,
+        certificatesFailed: certFailed,
         partialData: easFailed || certFailed || worksPartial,
       });
     },

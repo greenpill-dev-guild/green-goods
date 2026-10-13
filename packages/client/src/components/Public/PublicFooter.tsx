@@ -17,6 +17,11 @@ const FOOTER_LINKS: readonly FooterLink[] = [
     defaultLabel: "Twitter",
   },
   {
+    href: "https://www.linkedin.com/company/greengoodsapp/",
+    labelId: "public.footer.linkedin",
+    defaultLabel: "LinkedIn",
+  },
+  {
     href: "https://github.com/greenpill-dev-guild/green-goods",
     labelId: "public.footer.github",
     defaultLabel: "GitHub",
@@ -34,7 +39,7 @@ interface PublicFooterProps {
  * PublicFooter — compact utility footer for every public-browser page.
  *
  * Single row at desktop with a small wordmark, restored provenance line, and
- * right-aligned links to Twitter, GitHub, and Docs. Stacks gracefully on
+ * right-aligned links to Twitter, LinkedIn, GitHub, and Docs. Stacks gracefully on
  * mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the
  * footer stays quiet.
  *

@@ -42,9 +42,6 @@ export default function Home() {
     fieldNoteCount: 0,
     attestationCount: 0,
   };
-  // A commitment read that settled without data is unknown, never zero.
-  const commitmentCount = (count: bigint | null | undefined) =>
-    count === null || count === undefined ? null : Number(count);
 
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
@@ -115,8 +112,9 @@ export default function Home() {
         contributors={counts.contributorCount}
         works={counts.fieldNoteCount}
         assessments={counts.attestationCount}
-        commitmentsMade={commitmentCount(commitments.data?.commitmentsMade)}
-        commitmentsKept={commitmentCount(commitments.data?.commitmentsFulfilled)}
+        // A commitment read that settled without data is unknown, never zero.
+        commitmentsMade={commitments.data?.commitmentsMade ?? null}
+        commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
         isLoading={stats.isLoading}
         isCommitmentsLoading={commitments.isLoading}
       />

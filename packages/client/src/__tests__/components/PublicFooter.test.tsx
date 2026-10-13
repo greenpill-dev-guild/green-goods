@@ -1,8 +1,8 @@
 /**
  * PublicFooter - compact footer tests.
  *
- * Locks the restored provenance line, the three outside links (Twitter, GitHub,
- * Docs) and nothing else, and neutral-by-default footer link styling.
+ * Locks the restored provenance line, the four outside links (Twitter, LinkedIn,
+ * GitHub, Docs) and nothing else, and neutral-by-default footer link styling.
  *
  * @vitest-environment happy-dom
  */
@@ -19,6 +19,7 @@ const messages: Record<string, string> = {
   "public.footer.github": "GitHub",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
+  "public.footer.linkedin": "LinkedIn",
   "public.footer.navLabel": "Footer links",
   "public.footer.twitter": "Twitter",
   "public.footer.wordmark": "Green Goods",
@@ -45,7 +46,7 @@ describe("PublicFooter", () => {
 
   // The route links came back once after they were removed (Sep 30), because the
   // brief still said the footer owned wayfinding. The list is the whole contract.
-  it("links only to Twitter, GitHub, and Docs, each in a new tab", () => {
+  it("links only to Twitter, LinkedIn, GitHub, and Docs, each in a new tab", () => {
     renderFooter();
 
     const nav = screen.getByRole("navigation", { name: "Footer links" });
@@ -56,6 +57,7 @@ describe("PublicFooter", () => {
     ]);
     expect(links).toEqual([
       ["Twitter", "https://x.com/greengoodsapp", "_blank"],
+      ["LinkedIn", "https://www.linkedin.com/company/greengoodsapp/", "_blank"],
       ["GitHub", "https://github.com/greenpill-dev-guild/green-goods", "_blank"],
       ["Docs", "https://docs.greengoods.app", "_blank"],
     ]);

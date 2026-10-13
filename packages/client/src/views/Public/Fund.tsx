@@ -345,6 +345,8 @@ function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading, isError, refetch } = usePublicGardens();
   const vaultSummary = usePublicVaultCatalogSummary();
+  // A cold Vault read that failed: rows say so rather than look like Gardens without Vaults.
+  const vaultsUnavailable = vaultSummary.isError && !vaultSummary.hasVaults;
   const [searchParams, setSearchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
@@ -690,6 +692,7 @@ function FundPageContent() {
                     <PublicGardenRow
                       garden={garden}
                       vaultSummary={getGardenVaultSummary(vaultSummary, garden)}
+                      vaultsUnavailable={vaultsUnavailable}
                       onSupport={handleSupport}
                     />
                   </div>

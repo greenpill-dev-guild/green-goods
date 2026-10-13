@@ -143,6 +143,7 @@ const allowedIdenticalProductValues = new Set([
   "kg",
   "kWh",
   "Linear (1-2-3)",
+  "LinkedIn",
   "m²",
   "ManeNet DAO",
   "Marketplace",

@@ -702,6 +702,11 @@ describe("FundPage", () => {
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     // The cards explain the absence of live figures rather than rendering blank.
     expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
+    // A Garden without Vaults has no endowment to report, so its row leaves the line out.
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    expect(within(gardenCard).queryByText("Endowment")).toBeNull();
   });
 
   it("uses editorial skeletons while endowment metrics load", () => {
@@ -742,7 +747,7 @@ describe("FundPage", () => {
     expect(screen.queryByRole("button", { name: "Donate" })).toBeNull();
   });
 
-  it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {
+  it("says the endowment is unavailable, in the cards and on each row, when the metrics fetch fails", () => {
     mockUsePublicVaultSummary.mockReturnValue({
       hasVaults: false,
       isLoading: false,
@@ -760,5 +765,11 @@ describe("FundPage", () => {
     expect(screen.getByText("DAI endowment balance")).toBeInTheDocument();
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     expect(screen.getAllByText(/couldn't load these endowment metrics/i)).toHaveLength(2);
+    // A failed read must not look like a Garden without Vaults: the row says so.
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    expect(within(endowment).getByText("Not available right now")).toBeVisible();
   });
 });

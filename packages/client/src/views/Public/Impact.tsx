@@ -233,7 +233,7 @@ export default function ImpactPage() {
   };
 
   // § 01 proof markers: a confirmed zero reads "Not public yet", never a numeral. Impact
-  // Certificates join once one is public, counted across the Gardens read, past the record cap.
+  // Certificates join once one is public and every certificate read succeeded (an exact total).
   const notPublicYet = formatMessage({
     id: "public.impact.proof.notPublicYet",
     defaultMessage: "Not public yet",
@@ -280,7 +280,7 @@ export default function ImpactPage() {
       counts.gardenCount
     ),
   ];
-  if (slice && slice.certificateCount > 0) {
+  if (slice?.certificateCount) {
     proofMarkers.push({
       key: "certificates",
       label: formatMessage({ id: "public.impact.totalCertificates" }),

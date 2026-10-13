@@ -35,8 +35,11 @@ export type PublicImpactSlice = {
   totalFetchedRecords: number;
   partialData: boolean;
   sourceLimitReached: boolean;
-  /** Impact Certificates in the Gardens read, counted before the record cap trims `records`. */
-  certificateCount: number;
+  /**
+   * Impact Certificates in the Gardens read, counted before the record cap trims `records`;
+   * `null` when a certificate read failed, so the total is unknown.
+   */
+  certificateCount: number | null;
   status: "loading" | "empty" | "ready" | "partial" | "error";
   errorCode?: "eas_unavailable";
 };
@@ -47,6 +50,7 @@ export function createPublicImpactSlice(input: {
   page?: number;
   pageSize?: number;
   easFailed?: boolean;
+  certificatesFailed?: boolean;
   partialData?: boolean;
 }): PublicImpactSlice {
   const page = Math.max(1, input.page ?? 1);
@@ -63,7 +67,9 @@ export function createPublicImpactSlice(input: {
   const scopedRecords = [...gardenRecords]
     .sort((left, right) => right.createdAt - left.createdAt)
     .slice(0, PUBLIC_IMPACT_RECORD_FETCH_CAP);
-  const certificateCount = gardenRecords.filter((record) => record.kind === "certificate").length;
+  const certificateCount = input.certificatesFailed
+    ? null
+    : gardenRecords.filter((record) => record.kind === "certificate").length;
 
   const start = (page - 1) * pageSize;
   const pageRecords = scopedRecords.slice(start, start + pageSize);

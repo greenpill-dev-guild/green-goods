@@ -210,7 +210,8 @@ describe("@green-goods/shared/public-contracts", () => {
   });
 
   // /impact's proof row reports a total, so a certificate older than the 100-record window
-  // still counts; one in a Garden past the Garden cap is not read at all.
+  // still counts; one in a Garden past the Garden cap is not read at all, and a failed
+  // certificate read leaves the total unknown rather than short.
   it("counts certificates across the Gardens read, before the record cap", () => {
     const gardens = Array.from({ length: 51 }, (_, index) => ({
       id: `garden-${index.toString().padStart(2, "0")}`,
@@ -242,6 +243,9 @@ describe("@green-goods/shared/public-contracts", () => {
     const slice = createPublicImpactSlice({ gardens, records });
     expect(slice.records.some((entry) => entry.kind === "certificate")).toBe(false);
     expect(slice.certificateCount).toBe(1);
+    expect(
+      createPublicImpactSlice({ gardens, records, certificatesFailed: true }).certificateCount
+    ).toBeNull();
   });
 
   it("preserves the kind discriminator across the slice and respects createdAt order", () => {

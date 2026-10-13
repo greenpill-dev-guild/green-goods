@@ -100,6 +100,20 @@ describe("usePublicImpactEvidence", () => {
     expect(result.current.data?.partialData).toBe(true);
   });
 
+  // A certificate total read short would undercount /impact's proof row, so it is unknown.
+  it("leaves the certificate count unknown when a certificate read fails", async () => {
+    const garden = createMockGarden({ id: "0x1111111111111111111111111111111111111111" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([createMockWork({ id: "work", gardenAddress: garden.id })]);
+    mockGetGardenHypercerts.mockRejectedValue(new Error("Hypercerts down"));
+
+    const { result } = renderHookWithQueryClient(() => usePublicImpactEvidence(), { queryClient });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.partialData).toBe(true);
+    expect(result.current.data?.certificateCount).toBeNull();
+  });
+
   it("joins checksummed Work recipients to lowercase Garden identifiers", async () => {
     const checksummedGarden: Address = "0x04D60647836bcA09c37B379550038BdaaFD82503";
     const lowercaseGarden = checksummedGarden.toLowerCase();

@@ -14,8 +14,9 @@ export interface PublicProofBandProps {
   contributors: number | null;
   works: number | null;
   assessments: number | null;
-  commitmentsMade: number | null;
-  commitmentsKept: number | null;
+  /** Exact counts from the Agent snapshot, formatted without narrowing to `number`. */
+  commitmentsMade: bigint | null;
+  commitmentsKept: bigint | null;
   /** The record counts (Gardens through Assessments) are still loading. */
   isLoading?: boolean;
   /** The commitment counts come from a separate read and settle on their own. */
@@ -23,7 +24,7 @@ export interface PublicProofBandProps {
 }
 
 interface ProofMarkerProps {
-  value: number | null;
+  value: number | bigint | null;
   isLoading: boolean;
   labelId: string;
   defaultLabel: string;
@@ -94,7 +95,7 @@ export function PublicProofBand({
     !isLoading &&
     !isCommitmentsLoading &&
     [gardens, contributors, works, assessments, commitmentsMade, commitmentsKept].every(
-      (count) => count === 0
+      (count) => count === 0 || count === 0n
     );
 
   return (

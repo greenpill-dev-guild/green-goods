@@ -16,6 +16,8 @@ import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 export interface PublicGardenRowProps {
   garden: PublicGardenSummary;
   vaultSummary?: PublicGardenVaultSummary;
+  /** The Vault catalog read failed, so the row cannot tell an endowment from none. */
+  vaultsUnavailable?: boolean;
   onSupport: (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => void;
 }
 
@@ -39,7 +41,12 @@ export interface PublicGardenRowProps {
  * ("Provisionar") left the name 62px at 360px. `EditorialListRowSkeleton`
  * mirrors this row; change the two together.
  */
-export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGardenRowProps) {
+export function PublicGardenRow({
+  garden,
+  vaultSummary,
+  vaultsUnavailable = false,
+  onSupport,
+}: PublicGardenRowProps) {
   const { formatMessage } = useIntl();
   const description = getPublicGardenDescription(garden, formatMessage);
 
@@ -101,7 +108,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
                 {description}
               </p>
             ) : null}
-            <GardenVaultMetrics summary={vaultSummary} />
+            <GardenVaultMetrics summary={vaultSummary} unavailable={vaultsUnavailable} />
           </div>
         </Link>
 
@@ -132,14 +139,22 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
  * toggle. Only assets that hold something are listed, and yield only once some has
  * accrued; Vaults that hold nothing yet say so in words instead of a row of zeros.
  */
-function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary }) {
+function GardenVaultMetrics({
+  summary,
+  unavailable,
+}: {
+  summary?: PublicGardenVaultSummary;
+  unavailable: boolean;
+}) {
   const { formatMessage } = useIntl();
-  if (!summary?.hasVaults || summary.assets.length === 0) return null;
+  const assets = summary?.hasVaults ? summary.assets : [];
+  // A Garden without Vaults leaves the line out; a failed read says so instead of vanishing.
+  if (assets.length === 0 && !unavailable) return null;
 
-  const items = summary.assets
+  const items = assets
     .filter((asset) => asset.currentValue > 0n)
     .map((asset) => ({ label: formatGardenVaultAmount(asset) }));
-  const accruedLabels = summary.assets
+  const accruedLabels = assets
     .filter((asset) => (asset.accruedYield ?? 0n) > 0n)
     .map((asset) => formatGardenVaultAmount(asset, asset.accruedYield ?? 0n));
   if (accruedLabels.length > 0) {
@@ -155,7 +170,13 @@ function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary })
   }
   if (items.length === 0) {
     items.push({
-      label: formatMessage({ id: "public.fund.gardenEndowmentNone", defaultMessage: "None yet" }),
+      label:
+        assets.length > 0
+          ? formatMessage({ id: "public.fund.gardenEndowmentNone", defaultMessage: "None yet" })
+          : formatMessage({
+              id: "public.fund.gardenEndowmentUnavailable",
+              defaultMessage: "Not available right now",
+            }),
     });
   }
 

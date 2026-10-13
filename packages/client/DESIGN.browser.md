@@ -91,7 +91,7 @@ Composed of eight sections in this exact order (pinned by the section-order test
 5. **`PublicWhoTendsAGarden`** — five persona portraits walking outward from the field: Gardener → Steward → Evaluator → Funder → Community Member, mirroring the canonical user-archetypes doc (personas themselves are canon in `v1-0.mdx` § 3.1). Gardener CTA is the install path; Steward and Evaluator CTAs route to docs because those roles are invited by an existing Garden, not open sign-ups.
 6. **`PublicFundingBridge`** — cardless trust section explaining the two public support paths: `Donate` through a Garden Cookie Jar for direct support, or `Endow` through a Garden Vault designed so yield supports the Garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-Garden funding selector lives on Home.
 7. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
-8. **`PublicFooter`** — compact provenance row with restored living-public-record message and links to Twitter, GitHub, and Docs. Footer links are neutral by default; green is a hover/focus affordance only.
+8. **`PublicFooter`** — compact provenance row with restored living-public-record message and links to Twitter, LinkedIn, GitHub, and Docs. Footer links are neutral by default; green is a hover/focus affordance only.
 
 No final sitemap-style "choose your path" route grid.
 
@@ -100,7 +100,7 @@ No final sitemap-style "choose your path" route grid.
 Every public-browser page ends with `PublicFooter` — a single quiet row containing:
 
 - Small wordmark (`Green Goods`, regular Fraunces, base size — **not** the oversized italic display treatment).
-- Twitter, GitHub, and Docs, each opening in a new tab, and nothing else: no site routes, Glossary, or Admin (Afo, 2026-10-12; `PublicFooter.test.tsx` pins the list).
+- Twitter, LinkedIn, GitHub, and Docs, each opening in a new tab, and nothing else: no site routes, Glossary, or Admin (Afo, 2026-10-12; LinkedIn added 2026-10-13; `PublicFooter.test.tsx` pins the list).
 - Copyright/provenance (`© <year> Green Goods. A living public record, rooted in regenerative work.`).
 
 Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
@@ -137,7 +137,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 
 ## `/impact`
 
-- § 01 proof markers: Approved submissions · Assessments · Gardens, in the home band's words. Impact Certificates join the row once one is public, counted across the Gardens the ledger reads before its record cap (`PublicImpactSlice.certificateCount`); until then the row carries no figure it cannot read.
+- § 01 proof markers: Approved submissions · Assessments · Gardens, in the home band's words. Impact Certificates join the row once one is public, counted across the Gardens the ledger reads before its record cap (`PublicImpactSlice.certificateCount`). The row carries no figure it cannot read: the marker stays out before the first certificate, and whenever a certificate read fails (the count is then `null`, and the ledger's partial notice explains the gap).
 - § 02 Commitments band between the proof markers and the cycle: header and record both on the linen. "Commitments within communities" introduces the community story before two lifetime figures: commitments made (offers plus requests) and commitments kept (confirmed fulfilled count). **No money figure** (Afo, 2026-10-12): "funding" framed a mutual-aid record as a funding product, and its historical USD valuation is often unavailable. It returns only by his decision, under a name chosen then. The "some figures are unavailable" note shows only when the counts themselves are missing. `See the Gardens` closes the record. No open-pool count, percentage, per-garden table, or ordering. This band labels unavailable figures in words and uses no em dashes in its copy.
 - Evidence cards from `usePublicImpactEvidence`, twelve to a page. **Prev and Next take the visitor to the top of the ledger**, with focus on its heading, so the next Tab continues from the first card; staying put left them at the bottom of a page they had not seen. Cards open `PublicEvidenceDialog` (a `PublicRecordDrawer` composition) with a readable Assessment summary and an EAS reference link when available.
 - Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
@@ -146,7 +146,7 @@ An ordinary editorial page, not a modal. It was briefly wired to a Radix dialog 
 ## `/fund`
 
 - **Order: § 01 Ways to support → § 02 Choose a Garden → § 03 Endowment engine**, then the closing "Discuss Funding" line. The two paths are explained before the list so a visitor has the context before choosing (restored 2026-10-12 after a 7 Oct change put the list first).
-- **Nothing on `/fund` hides behind a toggle.** A Garden with Vaults shows its endowment in its row (`Endowment 2,005 DAI · 1.25 ETH · Yield accrued …`), and the endowment totals are an open section after the list.
+- **Nothing on `/fund` hides behind a toggle.** A Garden with Vaults shows its endowment in its row (`Endowment 2,005 DAI · 1.25 ETH · Yield accrued …`), and the endowment totals are an open section after the list. A Garden without Vaults leaves the line out; when the Vault read fails, every row says `Not available right now` instead, so a failed read never looks like a Garden without Vaults.
 - **Donate is always present on `/fund`, beside Endow (DL-027).** The hero lede names both paths, § 01 Ways to Support explains them once (Donate is direct support to a Garden's shared fund through its Cookie Jar; Endow is a withdrawable deposit in the Garden Vault whose yield supports the Garden), and every Garden row in § 02 carries both actions. Do not hide Donate. A Garden without a donation jar keeps the button, and its funding card says donations are not enabled yet.
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.

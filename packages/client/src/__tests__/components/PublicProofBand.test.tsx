@@ -44,8 +44,8 @@ const ZERO: PublicProofBandProps = {
   contributors: 0,
   works: 0,
   assessments: 0,
-  commitmentsMade: 0,
-  commitmentsKept: 0,
+  commitmentsMade: 0n,
+  commitmentsKept: 0n,
 };
 
 function renderBand(props: PublicProofBandProps) {
@@ -81,8 +81,8 @@ describe("PublicProofBand", () => {
       contributors: 41,
       works: 38,
       assessments: 2,
-      commitmentsMade: 18,
-      commitmentsKept: 2,
+      commitmentsMade: 18n,
+      commitmentsKept: 2n,
     });
     expect(figures()).toEqual([
       [LABELS[0], "8"],
@@ -101,9 +101,15 @@ describe("PublicProofBand", () => {
   });
 
   it("keeps the figures when only the commitments are non-zero", () => {
-    renderBand({ ...ZERO, commitmentsMade: 3 });
+    renderBand({ ...ZERO, commitmentsMade: 3n });
     for (const label of LABELS) expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.queryByText(en["public.home.proof.empty"])).toBeNull();
+  });
+
+  // The Agent sends the counts as integer strings; narrowing them to `number` would round.
+  it("prints a commitment count exactly, past the largest safe number", () => {
+    renderBand({ ...ZERO, commitmentsKept: 9_007_199_254_740_993n });
+    expect(screen.getByText("9,007,199,254,740,993")).toBeInTheDocument();
   });
 
   it("dashes out a count that could not be read instead of publishing zero", () => {

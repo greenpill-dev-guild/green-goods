@@ -72,7 +72,7 @@ vi.mock("@/components/Public/PublicFeaturedGardens", () => ({
   PublicFeaturedGardens: () => createElement("div", { "data-testid": "stub-featured" }),
 }));
 vi.mock("@/components/Public/PublicProofBand", () => ({
-  PublicProofBand: (props: { commitmentsMade: number | null; commitmentsKept: number | null }) =>
+  PublicProofBand: (props: { commitmentsMade: bigint | null; commitmentsKept: bigint | null }) =>
     createElement("div", {
       "data-testid": "stub-proof",
       "data-commitments-made": String(props.commitmentsMade),
