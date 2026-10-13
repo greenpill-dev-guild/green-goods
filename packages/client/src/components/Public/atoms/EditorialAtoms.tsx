@@ -170,7 +170,7 @@ export function EditorialDivider({ tone = "default", className }: EditorialDivid
 
 export interface EditorialMetaItem {
   label: string;
-  /** Text someone typed (a place name): longer than the row, it ends in an ellipsis and keeps its full text as a tooltip. */
+  /** Text someone typed (a place name): longer than the row, it ends in an ellipsis with a tooltip; other labels wrap. */
   truncate?: boolean;
 }
 
@@ -193,14 +193,14 @@ export function EditorialMetaRow({ items, tone = "default", className }: Editori
         {items.map((item, index) => (
           <li
             key={`${item.label}-${index}`}
-            className={cn("relative flex items-center gap-2 pl-5", item.truncate && "min-w-0")}
+            className="relative flex min-w-0 items-center gap-2 pl-5"
           >
             <span
               aria-hidden="true"
               className="absolute top-1/2 left-2.5 h-0.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current opacity-50"
             />
             <span
-              className={cn(item.truncate && "truncate")}
+              className={item.truncate ? "truncate" : "[overflow-wrap:anywhere]"}
               title={item.truncate ? item.label : undefined}
             >
               {item.label}

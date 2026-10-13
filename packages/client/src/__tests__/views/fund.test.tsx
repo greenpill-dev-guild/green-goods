@@ -251,14 +251,14 @@ const rowCopy: Array<[string, Record<string, string>, string[], string[], string
     es,
     ["Austin, TX", "2 miembros", "1 trabajo aprobado"],
     ["Portland, OR", "1 miembro", "0 trabajos aprobados"],
-    "Último",
+    "Último trabajo:",
   ],
   [
     "pt",
     pt,
     ["Austin, TX", "2 membros", "1 trabalho aprovado"],
     ["Portland, OR", "1 membro", "0 trabalhos aprovados"],
-    "Último",
+    "Último trabalho:",
   ],
 ];
 

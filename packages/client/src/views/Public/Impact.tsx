@@ -201,12 +201,8 @@ export default function ImpactPage() {
     setPage(1);
   };
 
-  // Sort gardens alphabetically for the dropdown so the visitor scans
-  // predictably; the data itself comes back in latest-activity order.
-  const gardenOptions = useMemo(
-    () => [...gardens].sort((a, b) => a.name.localeCompare(b.name)),
-    [gardens]
-  );
+  // Gardens sorted by name so the visitor scans predictably; the data comes back by latest
+  // activity. One memo, not a sorted list feeding a second (react-patterns Rule 9).
   const gardenSelectOptions = useMemo<EditorialSelectOption[]>(
     () => [
       {
@@ -216,9 +212,11 @@ export default function ImpactPage() {
           defaultMessage: "All Gardens",
         }),
       },
-      ...gardenOptions.map((garden) => ({ value: garden.id, label: garden.name })),
+      ...[...gardens]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((garden) => ({ value: garden.id, label: garden.name })),
     ],
-    [gardenOptions, formatMessage]
+    [gardens, formatMessage]
   );
 
   const canPrev = page > 1;
@@ -235,7 +233,7 @@ export default function ImpactPage() {
   };
 
   // § 01 proof markers: a confirmed zero reads "Not public yet", never a numeral. Impact
-  // Certificates join once one is public; until then the row shows no figure it cannot read.
+  // Certificates join once one is public, counted as the ledger's own filter counts them.
   const notPublicYet = formatMessage({
     id: "public.impact.proof.notPublicYet",
     defaultMessage: "Not public yet",
@@ -274,10 +272,7 @@ export default function ImpactPage() {
     ),
     proofMarker(
       "gardens",
-      formatMessage({
-        id: "public.home.proof.gardens",
-        defaultMessage: "Gardens",
-      }),
+      formatMessage({ id: "public.home.proof.gardens", defaultMessage: "Gardens" }),
       formatMessage({
         id: "public.home.proof.gardensNote",
         defaultMessage: "Each with at least one approved submission.",
@@ -285,6 +280,14 @@ export default function ImpactPage() {
       counts.gardenCount
     ),
   ];
+  if (counted.certificate > 0) {
+    proofMarkers.push({
+      key: "certificates",
+      label: formatMessage({ id: "public.impact.totalCertificates" }),
+      note: formatMessage({ id: "public.impact.proof.certificatesNote" }),
+      value: formatNumber(counted.certificate),
+    });
+  }
 
   return (
     <>

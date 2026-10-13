@@ -91,7 +91,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
             })}
           </EditorialLede>
           <PublicProofMarkers layout="panel" markers={[made, kept]} unavailableDisplay="label" />
-          {failed || unavailable?.commitmentPools === true ? (
+          {made.unavailable || kept.unavailable ? (
             <p role="status" className="mt-6 max-w-xl text-sm leading-relaxed text-text-sub-600">
               {formatMessage({
                 id: "public.pool.impact.partial",

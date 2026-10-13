@@ -114,6 +114,9 @@ const messages: Record<string, string> = {
   "public.impact.kind.assessment": "Assessment",
   "public.impact.kind.work": "Submission",
   "public.impact.kind.certificate": "Impact Certificate",
+  "public.impact.totalCertificates": "Impact Certificates",
+  "public.impact.proof.certificatesNote":
+    "Approved submissions bundled into a shareable public record.",
   "public.impact.filters.kind": "Kind",
   "public.impact.filters.domain": "Domain",
   "public.impact.pipeline.kicker": "§ 01 — The cycle",
@@ -174,6 +177,31 @@ describe("ImpactPage", () => {
     ]);
     // No certificate count exists to read yet, so the row does not carry one.
     expect(within(proof).queryByText(/Impact Certificates/)).toBeNull();
+  });
+
+  // The row carries the certificate figure once one is public, counted as the ledger's own
+  // filter counts it, so the two can never disagree.
+  it("adds Impact Certificates to the proof row once the evidence holds one", () => {
+    const certificate = {
+      id: "certificate:1",
+      kind: "certificate" as const,
+      gardenId: "0x1",
+      gardenName: "Solar Garden",
+      title: "First harvest",
+      sourceAvailable: true,
+      createdAt: 1715000000,
+    };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, records: [...mockSliceReady.records, certificate] },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    const last = Array.from(proof.querySelectorAll("dl > div")).at(-1) as HTMLElement;
+    expect(last.querySelector("dt")).toHaveTextContent("Impact Certificates");
+    expect(last.querySelector("dd")).toHaveTextContent("1");
   });
 
   it("renders a stats read that settled without data as unavailable, never as zero", () => {
