@@ -216,8 +216,8 @@ export function normalizeDocText(text) {
   return text
     .replace(/<TermAnchor id="[^"]+" \/>/g, "")
     .replace(/<a\s+id=["\'][^"\']+["\']><\/a>/g, "")
-    .replaceAll("&amp;", "&")
     .replaceAll("&#96;", "")
+    .replaceAll("&amp;", "&")
     .replaceAll("**", "")
     .replaceAll("*", "")
     .replaceAll("`", "")
