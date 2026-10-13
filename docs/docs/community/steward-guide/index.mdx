@@ -5,9 +5,9 @@ slug: /community/steward-guide/
 description: "Run a garden: get access, bring people in, keep the right actions available, review work, and look after the garden's funds."
 audience: steward
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
-goal: "Get a steward into the cockpit with the right access, and send them to the page for the job in front of them."
+goal: "Get a steward into the dashboard with the right access, and send them to the page for the job in front of them."
 difficulty: "standard"
 estimated_time: "5 minutes to request access. Each job has its own page."
 prereqs: "A Green Goods account, and a garden you help run or want to help run."
@@ -29,7 +29,7 @@ source_of_truth:
   - packages/shared/src/i18n/en.json
 keywords:
   - steward
-  - cockpit
+  - dashboard
   - steward access
   - roles
   - garden
@@ -43,25 +43,30 @@ A steward looks after a garden. You bring people in, make sure the right kinds o
 
 What you get:
 
-- **One place to run the garden.** Members, submissions, assessments, and funds sit together in the steward cockpit.
+- **One place to run the garden.** Members, submissions, assessments, and funds sit together in the steward dashboard.
 - **A clear queue.** Work waits for you in one list, and nothing is approved without a person deciding.
 - **A record that outlasts you.** Every decision is saved with your reason, so the next steward can see what happened and why.
 
 ## Where you work
 
-- **The steward cockpit**, at [admin.greengoods.app](https://admin.greengoods.app). It is best on a computer. The bar at the bottom holds its workspaces: **Hub** for reviews and records, **Garden** for the garden's profile and health, and **Community** for members and funds.
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-actions.webp" alt="A field notebook, camera and tools ready to record community work." width="1536" height="1024" decoding="async" />
+  <figcaption>Agree what evidence your garden needs before people start recording work. Editorial illustration reused from Green Goods' website Actions imagery; not a real garden or submission.</figcaption>
+</figure>
+
+- **The steward dashboard**, at [admin.greengoods.app](https://admin.greengoods.app). It is best on a computer. The bar at the bottom holds its workspaces: **Hub** for reviews and records, **Garden** for the garden's profile and health, and **Community** for members and funds.
 - **The Green Goods app**, on your phone. You can review work there too, which helps when you are at the garden.
 
-Before you change anything, look at the garden name at the top left of the cockpit. Everything you do applies to that garden.
+Before you change anything, look at the garden name at the top left of the dashboard. Everything you do applies to that garden.
 
 <figure className="gg-figure">
-  <img src="/img/screenshots/admin-hub.webp" alt="The steward cockpit on the Hub workspace: the garden's name at the top left, the buttons Create Assessment, Create Hypercert, and Submit Work, the tabs Work, Confirm, Assessments, and Hypercerts, an empty review queue reading All caught up, and a bar at the bottom with Hub, Garden, and Community" loading="lazy" width="2000" height="1250" />
-  <figcaption>The cockpit's Hub with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <img src="/img/screenshots/admin-hub.webp" alt="The steward dashboard on the Hub workspace: the garden's name at the top left, the buttons Create Assessment, Create Hypercert, and Submit Work, the tabs Work, Confirm, Assessments, and Hypercerts, an empty review queue reading All caught up, and a bar at the bottom with Hub, Garden, and Community" loading="lazy" width="2000" height="1250" />
+  <figcaption>The dashboard's Hub with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 ## Get steward access
 
-You need access to at least one garden before the cockpit opens. There are two ways in: ask from inside the cockpit, or have someone who already runs the garden add you.
+You need access to at least one garden before the dashboard opens. There are two ways in: ask from inside the dashboard, or have someone who already runs the garden add you.
 
 ### Before you start
 
@@ -77,12 +82,13 @@ You need access to at least one garden before the cockpit opens. There are two w
 5. Under **Review Your Request**, add a short note about how you plan to help. It is optional, and it helps the person deciding.
 6. Tap **Send Request** and sign the message. This is a signature, not a payment.
 
-<figure className="gg-figure" style={{maxWidth: '480px'}}>
+<figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/admin-request-steward-access.webp" alt="The Request Steward Access dialog for a garden named Comunidad Verde: under Review Your Request, the account that will receive access, an optional note box, a line saying access is granted only after a garden owner or steward assigns the role, a Check Status link, and the buttons Change Garden and Send Request" loading="lazy" width="960" height="1400" />
-  <figcaption>The request, ready to send. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption><strong>Ask to help run this garden.</strong> Check which account receives access and add a note for the person deciding. Sending the request does not give you the role.
+  <span className="gg-overview-source">Source: deployed Storybook, StewardAccessRequest fixture, 12 October 2026; 960 × 1400 capture with fictional request data. Build revision unavailable.</span></figcaption>
 </figure>
 
-**Prefer to be added directly?** Open your profile in the cockpit, copy your account address, and send it to a garden owner or steward. They can add you from [Manage Members](/community/steward-guide/managing-members).
+**Prefer to be added directly?** Open your profile in the dashboard, copy your account address, and send it to a garden owner or steward. They can add you from [Manage Members](/community/steward-guide/managing-members).
 
 ### How you know it worked
 
@@ -90,44 +96,35 @@ The request shows **Pending review**. Tap **View Steward Request** at any time t
 
 ### What happens next
 
-A garden owner or steward reviews your request in their cockpit and assigns the role. When they do, the request reads **Steward access confirmed** and the garden opens for you. Sending a request does not give access by itself.
+A garden owner or steward reviews your request in their dashboard and assigns the role. When they do, the request reads **Steward access confirmed** and the garden opens for you. Sending a request does not give access by itself.
 
 ### If something goes wrong
 
 | What you see | What to do |
 |---|---|
 | **Steward requests are unavailable right now** | Requests are switched off for the moment. Copy your account address from the same screen and send it to a garden owner or steward |
-| **Wallet required** | You signed in with an email or social login, which the cockpit does not accept. Tap **Sign Out & Connect Wallet**, then use a passkey or a wallet |
+| **Wallet required** | You signed in with an email or social login, which the dashboard does not accept. Tap **Sign Out & Connect Wallet**, then use a passkey or a wallet |
 | **No steward request was found for this account and garden** | You are signed in to a different account than the one you asked with. Sign in with that one |
 | **Request declined** | Read the reason shown beside it. You can ask again when the garden allows a new request |
 | **The request may have been saved** | Tap **Check Status** before you send another one |
 | **Can't load garden access** | A temporary problem reading the gardens. Tap **Try Again** in a moment |
 
-## Roles in a garden
+<a id="roles-in-a-garden"></a>
 
-Six roles exist in every garden. A person can hold more than one.
+For what each role can do, see [Roles in a garden](/community/steward-guide/managing-members#roles-in-a-garden).
 
-| Role | What it is for |
-|---|---|
-| **Owner** | Everything a steward can do, plus renaming the garden and pausing its endowment in an emergency |
-| **Steward** | Running the garden: members, settings, reviewing work, certificates, and funds |
-| **Evaluator** | Writing assessments. An evaluator cannot approve or reject work |
-| **Gardener** | Submitting work, and claiming from the garden's shared fund |
-| **Funder** | Marks a supporter of the garden. It does not open the cockpit |
-| **Community member** | Marks someone in the garden's wider community. It does not open the cockpit |
+## Choose your next task
 
-Giving someone the Steward role also gives them the Evaluator and Gardener roles. Giving someone Owner also gives them Steward.
+- [Manage Members](/community/steward-guide/managing-members): bring people in, change roles, and answer requests.
+- [Make an Assessment](/community/evaluator-guide/making-an-assessment): record the starting point and goals.
+- [Review Work](/community/steward-guide/reviewing-work): check evidence and record your decision.
+- [Run a Commitment Pool](/community/steward-guide/commitment-pooling): look after the garden's promises using the available tools.
+- [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates): bundle approved work into one claim.
+- [Funding and Governance](/community/steward-guide/funding-and-governance): look after the shared fund and endowment.
 
-## The jobs, in order
+## Setting up a new garden
 
-1. [Create a Garden](/community/steward-guide/creating-a-garden). Set up a new garden and its profile. Creating one needs extra permission.
-2. [Manage Members](/community/steward-guide/managing-members). Add people, change roles, and answer requests to join.
-3. [Manage Actions](/community/steward-guide/managing-actions). Make sure gardeners see the right kinds of work.
-4. [Make an Assessment](/community/evaluator-guide/making-an-assessment). Write down the starting point and the goals before the work begins.
-5. [Review Work](/community/steward-guide/reviewing-work). Approve good evidence, and reject with a reason that helps.
-6. [Run a Commitment Pool](/community/steward-guide/commitment-pooling). Set up and look after the garden's promises.
-7. [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates). Bundle approved work into one claim.
-8. [Funding and Governance](/community/steward-guide/funding-and-governance). Look after the garden's shared fund and endowment.
+[Create a Garden](/community/steward-guide/creating-a-garden) and maintaining the shared [action list](/community/steward-guide/managing-actions#if-you-maintain-the-action-list) require deployer access. These setup guides are under **Builders → Reference → Garden setup (deployer)**. Ordinary stewards can [choose their garden's areas of work](/community/steward-guide/managing-actions#2-change-your-gardens-areas-of-work) without maintaining that list.
 
 :::note Using your own wallet
 If you signed in with a passkey, Green Goods covers the network fees. If you connected your own wallet, each change is a transaction you pay for on the Arbitrum network, so keep a little ETH there.

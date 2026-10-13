@@ -1,3 +1,5 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { getEASExplorerUrl } from "@green-goods/shared/utils/eas/explorers";
 import { Button } from "@green-goods/shared/components/Button";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
@@ -125,12 +127,16 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
     : (shortHex(record.id.split(":")[1]) ?? "—");
   const timeWindowLabel = formatTimeWindow(intl, record.timeWindow);
 
+  const citationHref = record.easUid ? getEASExplorerUrl(DEFAULT_CHAIN_ID, record.easUid) : null;
+
   const sourceRefs: SourceRef[] = [];
-  if (record.easUid) {
+  if (record.easUid && citationHref) {
     sourceRefs.push({
       label: kindLabel,
-      path: `easscan.org/attestation/${shortHex(record.easUid)}`,
-      href: `https://easscan.org/attestation/view/${record.easUid}`,
+      path: citationHref
+        .replace("https://", "")
+        .replace(record.easUid, shortHex(record.easUid) ?? record.easUid),
+      href: citationHref,
     });
   }
   if (record.hypercertId) {
@@ -162,10 +168,6 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
       pending: true,
     });
   }
-
-  const citationHref = record.easUid
-    ? `https://easscan.org/attestation/view/${record.easUid}`
-    : null;
 
   const handleCite = () => {
     if (!citationHref) return;

@@ -2,7 +2,7 @@
 title: Create a Garden
 sidebar_label: Create a Garden
 slug: /community/steward-guide/creating-a-garden
-description: "Set up a new garden in the steward cockpit: its name, place, areas of work, and first team. Creating a garden needs deployer access."
+description: "Set up a new garden in the steward dashboard: its name, place, areas of work, and first team. Creating a garden needs deployer access."
 audience: steward
 owner: docs
 last_verified: 2026-10-12
@@ -35,11 +35,9 @@ keywords:
   - garden setup
 ---
 
-import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
 # Create a Garden
-
-<StewardPathNav />
 
 A garden is the home for one community's work: its people, its records, and its funds. This page is for the person who sets a new one up.
 
@@ -61,7 +59,7 @@ Have these ready so you can finish in one sitting:
 
 ### 1. Open the form
 
-1. Sign in to the steward cockpit at [admin.greengoods.app](https://admin.greengoods.app).
+1. Sign in to the steward dashboard at [admin.greengoods.app](https://admin.greengoods.app).
 2. Tap the search button at the top, or press Ctrl+K (Cmd+K on a Mac), and choose **Create Garden**.
 
 If you do not have a garden yet, the **No garden access yet** screen has its own **Create Garden** button.
@@ -78,8 +76,8 @@ The form is one page with three numbered sections.
 6. Under **Action domains**, choose the areas of work.
 
 <figure className="gg-figure">
-  <img src="/img/screenshots/admin-create-garden.webp" alt="The Create Garden form in the steward cockpit, with the Garden details section showing fields for the name, location, ENS subdomain, description, and banner image, and the Action domains choices" loading="lazy" width="2000" height="1250" />
-  <figcaption>Create Garden, section 01. Every field here except the banner is required. Source: Storybook fixture, October 2026.</figcaption>
+  <img src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="lazy" width="1104" height="440" />
+  <figcaption>Garden details, cropped to the fields in the desktop form. Source: deployed Storybook, Admin/Workspaces/Garden, Create Garden Route fixture; captured 12 October 2026. The deployed build identifier is not exposed.</figcaption>
 </figure>
 
 ### 3. Add your first team
@@ -99,7 +97,7 @@ Stewards can already do everything a gardener can, so you do not need to add the
 ## How you know it worked
 
 - A message says **Garden created**.
-- The cockpit takes you to the **Garden** workspace.
+- The dashboard takes you to the **Garden** workspace.
 - If you added people, a second message asks you to **Verify planned members**.
 
 You are the garden's first owner.

@@ -325,15 +325,19 @@ export function useCreateGardenWorkflow() {
     send({ type: "REVIEW", formStatus });
   }, [send]);
   const submitCreation = useCallback((): boolean => {
-    const machineState = state.value;
-    if (state.matches("submitting")) {
+    const snapshot = actor.getSnapshot();
+    if (snapshot.matches("submitting")) {
       logger.warn("submitCreation called while already submitting", {
         source: "useCreateGardenWorkflow.submitCreation",
-        machineState,
+        machineState: snapshot.value,
       });
       return false;
     }
     const formStatus = getFormStatus();
+    // The one-page form has no Next button. Use the machine's guarded review
+    // transition, then read its live snapshot rather than a previous render.
+    if (snapshot.matches("collecting")) send({ type: "REVIEW", formStatus });
+    const machineState = actor.getSnapshot().value;
     // Pre-flight check: catch guard failures before XState silently drops the event
     if (machineState !== "review") {
       logger.error("Cannot submit: machine not in review state", {
@@ -360,7 +364,7 @@ export function useCreateGardenWorkflow() {
       send({ type: "SUBMIT", formStatus });
     });
     return true;
-  }, [send, state, runWithLock]);
+  }, [send, actor, runWithLock]);
   const estimateCreationCost = useCallback(async () => {
     const params = useCreateGardenStore.getState().getParams();
     if (!params) {

@@ -2,10 +2,10 @@
 title: Funding and Governance
 sidebar_label: Funding and Governance
 slug: /community/steward-guide/funding-and-governance
-description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the cockpit does not offer yet."
+description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
 audience: steward
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Let a steward look after the garden's shared fund and endowment, and set honest expectations with gardeners and funders."
 difficulty: "advanced"
@@ -19,6 +19,7 @@ source_of_truth:
   - packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx
   - packages/admin/src/views/Garden/Vault.tsx
   - packages/admin/src/components/Vault/PositionCard.tsx
+  - packages/admin/src/components/Vault/HarvestOutcomeAlerts.tsx
   - packages/admin/src/views/Hub/components/CookieJarPayoutPanel.tsx
   - packages/admin/src/views/Hub/components/CookieJarPayoutCard.tsx
   - packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx
@@ -42,23 +43,23 @@ import {NextBestAction} from "@site/src/components/docs";
 
 # Funding and Governance
 
-A garden can hold money in two ways. This page explains both, shows what you can do with each from the cockpit, and is plain about what is not there yet. Everything here is in the **Community** workspace.
+A garden can hold money in two ways. This page explains both, shows what you can do with each from the dashboard, and is plain about what is not there yet. Everything here is in the **Community** workspace.
 
 ## The two funds
 
 | | Shared fund | Endowment |
 |---|---|---|
-| **The cockpit calls it** | Cookie Jar | Endowment, or vault |
+| **The dashboard calls it** | Cookie Jar | Endowment, or vault |
 | **What it is for** | Money the garden uses now: supplies, transport, thanking gardeners | Long-term support that is meant to stay in place |
-| **How money gets in** | Donations from the public Fund page, deposits from the cockpit, and the garden's share of the endowment's earnings | Deposits from funders, who can take their deposit back out |
-| **How money gets out** | Gardeners claim from it, up to a limit per claim | Only its earnings move to the garden, when a steward runs a harvest |
+| **How money gets in** | Donations from the public Fund page, deposits from the dashboard, and the garden's share of the endowment's earnings | Deposits from funders, who can take their deposit back out |
+| **How money gets out** | Gardeners claim from it, up to a limit per claim | Funders request withdrawals of their deposits; eligible earnings are collected and split separately |
 | **Where it is** | **Community**, **Payouts** tab | **Community**, **Endowment** tab |
 
 Both are normally set up when the garden is created. If **Payouts** says **No cookie jars found for this garden**, or **Endowment** says **No vault available yet**, ask the Green Goods team.
 
 ## Before you start
 
-- Be a steward or owner of the garden, and check that its name shows at the top left of the cockpit.
+- Be a steward or owner of the garden, and check that its name shows at the top left of the dashboard.
 - Agree with your community what the shared fund is for. The app records every claim and does not judge it.
 - Be online. Every change here is confirmed and saved straight away.
 
@@ -68,7 +69,7 @@ Open **Community** and choose the **Payouts** tab. The **Cookie Jars** card show
 
 <figure className="gg-figure">
   <img src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="lazy" width="2000" height="736" />
-  <figcaption>The Cookie Jars card. Its subtitle speaks of rewards for completed work, but a jar does not check a claim against any submission. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>The Cookie Jars card. Its subtitle speaks of rewards for completed work, but a jar does not check a claim against any submission. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 ### How claims work
@@ -104,7 +105,10 @@ Open **Community** and choose the **Endowment** tab. There is one card for each 
 
 ### Move the earnings to the garden
 
-The endowment's earnings do not reach the garden by themselves. A steward or owner has to move them.
+Only a steward or owner can collect earnings from the endowment. Once collected, anyone can
+trigger their distribution when its conditions are met. The dashboard offers both steps together;
+your garden does not control distribution timing exclusively. A deposit does not itself trigger
+either step.
 
 1. On the card, tap **Harvest & Distribute**. If a harvest was already done, the button reads **Distribute Yield**.
 2. Read **Harvest and Distribute Yield**. It shows the estimated total and how it will be split between the garden's cookie jar, certificate funding, and the protocol treasury.
@@ -112,7 +116,7 @@ The endowment's earnings do not reach the garden by themselves. A steward or own
 
 Small amounts wait. If the card says an amount "is waiting until the minimum is reached", there is nothing to do yet.
 
-The cockpit shows the split and has no control for changing it.
+The dashboard shows the split and has no control for changing it.
 
 ### Deposit or withdraw your own money
 
@@ -126,18 +130,19 @@ The cockpit shows the split and has no control for changing it.
 
 - **Deposit to the shared fund:** the jar's balance goes up.
 - **Limit or cooldown:** the card shows the new value.
-- **Harvest:** the **Harvest count** goes up, and **Payouts so far**, on the **Payouts** tab, shows the new payout once the records catch up.
+- **Collection:** the **Harvest count** can go up while distribution is still waiting. This alone does not prove a payout.
+- **Distribution:** **Yield distributed** shows the reported amounts and destinations. Check these rather than assuming every planned destination received its share.
 
 ## What happens next
 
 - **After money reaches the shared fund,** gardeners can claim it in the app, from **Your Wallet**, on the **Cookies** tab. Tell them it is there and remind them what it is for.
-- **After a harvest,** part of the earnings is in the shared fund. The rest is held for certificate funding and the protocol treasury, as the confirmation showed.
+- **After a confirmed distribution,** the reported amounts reached their destinations. A destination that could not receive its share may have funds held for it or routed to the garden treasury; read the result. Collection alone can leave earnings waiting.
 
 ## What is not here yet
 
 Say these plainly when your community asks.
 
-- **Community voting on priorities.** Green Goods has designed tools for members to signal what matters most. They are switched off in the cockpit today. Decide how to use your funds the way your community already decides things.
+- **Community voting on priorities.** Green Goods has designed tools for members to signal what matters most. They are switched off in the dashboard today. Decide how to use your funds the way your community already decides things.
 - **Changing how earnings are split.** There is no control for it.
 - **Creating or pausing a shared fund.** A garden's jars are created with the garden.
 - **Paying a gardener when work is approved.** Approval and payment are separate. Nothing is paid automatically.
@@ -149,7 +154,7 @@ Funders and gardeners will ask you questions. These answers are safe because the
 - **An endowment is not guaranteed.** A funder can normally take their deposit back out, and the amount they get back can be less than they put in if the place the money is held loses value or is short of funds at that moment.
 - **A funder's deposit is not meant to grow.** The earnings go to the garden, not to the funder.
 - **A donation is a gift.** Green Goods has no way for a donor to take a donation back out of the shared fund.
-- **Neither is a tax-deductible or charitable gift** through Green Goods.
+- **Green Goods does not promise a charitable receipt, nonprofit backing or a tax deduction.** Explain any separate arrangement your garden offers directly.
 
 ## If something goes wrong
 
@@ -158,9 +163,14 @@ Funders and gardeners will ask you questions. These answers are safe because the
 | **No cookie jars found for this garden** | The garden has no shared fund. Ask the Green Goods team about adding one |
 | **Limit too low** on a jar | The per-claim limit is too small to be useful. Raise it from the owner's wallet |
 | **Only the garden owner's wallet can change this jar** | Sign in with the account shown, or ask the owner to make the change |
-| **Paused** on a jar | Claims are stopped. Ask the Green Goods team, because the cockpit cannot resume a jar |
+| **Paused** on a jar | Claims are stopped. Ask the Green Goods team, because the dashboard cannot resume a jar |
 | **Deposits disabled** on the endowment | The endowment is not accepting deposits right now, usually because it was paused |
 | **Yield distribution is not available for this vault on this network** | Earnings cannot be moved for this garden yet. Ask the Green Goods team |
+| A harvest or distribution is still being checked | Use **Check Status**. Do not repeat a transaction while its outcome is uncertain |
+| **Yield harvested and waiting** | The earnings have not reached the minimum for distribution. Wait for enough to build up |
+| **Distribution still pending** with **Retry Distribution** | Collection completed; retry only the distribution using that button |
+| **Harvest did not complete** with **Retry Harvest** | Retry using that button. If the message says new shares could not be registered, contact the Green Goods team instead; another harvest cannot recover them |
+| **Distribution confirmed, result unverified** | Do not distribute again. Refresh after the balances update to see the outcome |
 | A harvest or deposit does not show up | Give the records a moment before you try again. Do not repeat the action only because the screen is slow |
 
 To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).

@@ -341,3 +341,88 @@ a svg[class*="iconExternalLink"] {
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }
+
+/* Overview photography stays within the article. The product view has its own text beside it,
+   so readers can understand the connection without reading labels inside a small screenshot. */
+.gg-overview-photo img {
+  width: 100%;
+  aspect-ratio: 2.4;
+  object-fit: cover;
+  object-position: center 62%;
+}
+
+.gg-overview-product,
+.gg-guide-product {
+  display: grid;
+  grid-template-columns: minmax(0, 210px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  margin-block: 2rem;
+}
+
+.gg-guide-product {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+}
+
+.gg-overview-product figcaption,
+.gg-guide-product figcaption {
+  font-size: 1rem;
+  color: var(--ifm-font-color-base);
+}
+
+.gg-overview-product figcaption strong,
+.gg-guide-product figcaption strong:not(.gg-inline-label) {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.gg-overview-source {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+@media (max-width: 600px) {
+  .gg-overview-photo img {
+    aspect-ratio: 1.5;
+  }
+
+  .gg-overview-product,
+  .gg-guide-product {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .gg-overview-product img {
+    max-width: 210px;
+    justify-self: center;
+  }
+
+  .gg-guide-product img {
+    max-width: min(100%, 320px);
+    justify-self: center;
+  }
+}
+
+/* Legacy term aliases and formal table anchors must stay below the sticky navbar. */
+.theme-doc-markdown a[id] {
+  display: inline-block;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+
+/* Keep FAQ questions compact while using the browser's disclosure and focus behavior. */
+.gg-faq-question {
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  padding: 0.85rem 0;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+.gg-faq-question summary { cursor: pointer; }
+.gg-faq-question summary h3 { display: inline; font-size: 1rem; line-height: 1.6; }
+.gg-faq-question summary:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 4px; }
+.gg-faq-answer { padding-top: 0.75rem; }
+.gg-faq-answer > :last-child { margin-bottom: 0; }
+
+.gg-faq-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+
+.gg-faq-question h3 { scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem); }

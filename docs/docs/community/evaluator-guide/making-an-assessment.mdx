@@ -5,7 +5,7 @@ slug: /community/evaluator-guide/making-an-assessment
 description: "Write a garden's assessment: the starting point, the challenge, what you will measure, and the period it covers."
 audience: evaluator
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Walk an evaluator or steward through the four steps of the assessment form, with enough judgment to write one worth reviewing against."
 difficulty: "standard"
@@ -44,7 +44,7 @@ Evaluators, stewards, and owners can all write one. If you are new to the role, 
 
 ## Before you start
 
-- **Have the Evaluator, Steward, or Owner role** in the garden, and check that its name shows at the top left of the cockpit.
+- **Have the Evaluator, Steward, or Owner role** in the garden, and check that its name shows at the top left of the dashboard.
 - **Pick one area of work.** Each assessment covers one: Solar, Agroforestry, Education, or Waste. A garden that does two needs two assessments.
 - **Know the problem in a sentence or two:** what is wrong, and why.
 - **Have at least one outcome you can measure,** with a number to aim for.
@@ -57,11 +57,11 @@ An outcome is a change you expect to see, a way to measure it, and a target. "He
 
 ## Steps
 
-The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions & Reporting Period**, and **Review**. Nothing is sent until the last one. Your answers are saved on this device as you go.
+The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions & Reporting Period**, and **Review**. Nothing is sent until the last one. Your answers are saved on this device as you go. The screenshots use separate example assessments; enter the answers for your own garden.
 
 ### 1. Open the form
 
-1. Open **Hub** in the steward cockpit.
+1. Open **Hub** in the steward dashboard.
 2. Tap **Create Assessment**.
 
 ### 2. Domain & Context
@@ -74,7 +74,7 @@ The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions 
 
 <figure className="gg-figure">
   <img src="/img/screenshots/admin-create-assessment.webp" alt="The Create Assessment form on its first step, Domain and Context: the four areas of work, Solar, Agroforestry, Education, and Waste, as choices under Domain, then Title, Location, and Description fields under Assessment Context, with the four steps listed on the left and a Next button" loading="lazy" width="2000" height="1250" />
-  <figcaption>Create Assessment, on Domain &amp; Context. The four steps are listed on the left. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>Create Assessment, on Domain &amp; Context. The four steps are listed on the left. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 ### 3. Challenge & Goals
@@ -92,11 +92,21 @@ The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions 
 
 4. Tap **Next**.
 
+<figure className="gg-figure" style={{maxWidth: '800px'}}>
+  <img src="/img/screenshots/admin-assessment-goals.png" alt="Challenge and Goals with a filled challenge, three outcomes with a metric and target each, and Complex selected under How Predictable Is This Work" loading="lazy" width="800" height="864" />
+  <figcaption>Challenge &amp; Goals, with example answers. Source: deployed Storybook, StrategyKernelStep / Prefilled, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
+
 ### 4. Actions & Reporting Period
 
 1. Under **Which Actions Count**, select the actions this assessment covers. Only actions in the area you chose appear. This is optional.
 2. Under **Reporting Period**, set the start and the end.
 3. Tap **Next**.
+
+<figure className="gg-figure" style={{maxWidth: '800px'}}>
+  <img src="/img/screenshots/admin-assessment-period.png" alt="Two of three example Agroforestry actions selected above a reporting period from January 1 to March 31, 2026" loading="lazy" width="800" height="504" />
+  <figcaption>Actions &amp; Reporting Period. Source: deployed Storybook, ActionsHarvestStep / WithSelection, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
 
 ### 5. Review and submit
 
@@ -104,6 +114,11 @@ The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions 
 2. Tap **Edit** on a section to go back and change it.
 3. Tap **Submit Assessment** and confirm. You are asked once.
 4. Keep the form open until it finishes.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-assessment-review.png" alt="The Create Assessment dialog on Review, showing the permanent-record warning, example answers, Edit controls, and the Submit Assessment button" loading="lazy" width="1024" height="854" />
+  <figcaption>Review before submitting. Scroll through the form to check every section. Source: deployed Storybook, ReviewStep / InFlowReady, 12 October 2026; cropped from 1440×1000. Build revision unavailable. No assessment was submitted for this capture.</figcaption>
+</figure>
 
 ## How you know it worked
 
@@ -113,7 +128,7 @@ The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions 
 
 <figure className="gg-figure">
   <img src="/img/screenshots/admin-assessments-tab.webp" alt="The Hub's Assessments tab listing one assessment, Rainforest canopy strategy, marked Agroforestry, with a short description and the line Recorded Jan 3, 2026" loading="lazy" width="2000" height="764" />
-  <figcaption>The Assessments tab, with one assessment on record. This fixture has no reporting period, so only the recorded date shows. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>The Assessments tab, with one assessment on record. This fixture has no reporting period, so only the recorded date shows. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 ## What happens next
@@ -124,15 +139,17 @@ The assessment is public. Anyone can read it, including funders deciding whether
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| No **Create Assessment** button | Your account does not have the Evaluator, Steward, or Owner role in this garden. Ask a steward to add it |
-| The area of work you need is missing | It is not turned on for this garden. A steward can turn it on under **Edit Garden** |
-| An action you expected is missing | It belongs to a different area of work, so it goes in a separate assessment |
-| **Choose a domain**, or another field marked in red | Fill it in. The area of work, title, location, description, challenge, one outcome, and both dates are required |
-| **End date can't be before start date** | Fix the reporting period |
-| **Incomplete form** | Check the fields marked on each step, then submit again |
-| The submission was cancelled or failed | Nothing was sent, and your answers are still there. Tap **Try Again** |
+### Access or choices are missing
+
+If **Create Assessment** is missing, ask a steward to add the Evaluator, Steward, or Owner role. A missing area of work must be enabled under **Edit Garden**. An action from a different area belongs in a separate assessment.
+
+### A field is marked in red
+
+Fill in the area of work, title, location, description, challenge, at least one complete outcome, and both dates. **End date can't be before start date** means the reporting period needs correcting. For **Incomplete form**, check the marked fields on each step.
+
+### The submission was cancelled or failed
+
+Your answers remain on this device. Read the status, then tap **Try Again** when you are ready. Keep the form open while it sends.
 
 To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 

@@ -10,11 +10,14 @@ last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
   - packages/client/src/views/Public/Home.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Public/Gardens.tsx
   - packages/client/src/views/Public/Fund.tsx
   - packages/client/src/views/Garden/index.tsx
   - packages/admin/src/views/Hub/index.tsx
   - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
 keywords:
@@ -33,11 +36,30 @@ import {Hero, NextBestAction} from "@site/src/components/docs";
 
 **Green Goods helps communities document their regenerative work, get it verified, and get it funded.**
 
-People who plant trees, clear waste, keep solar panels running, or teach a class record what they did in a phone app that works without a signal. Someone from their own community reviews it. The approved record is public, so the people who fund this kind of work can see it and choose to support it.
+People who care for soil and trees, clear waste, maintain solar panels, or teach a class record their work in a phone app, even without a signal. Someone from their community reviews it. The public record helps supporters see what happened and decide what to fund.
+
+<figure className="gg-figure gg-overview-photo">
+  <img
+    src="/img/community/editorial-home.webp"
+    alt="A tended growing space with tools, a field notebook, and compost bins beside a wooden shelter."
+    width="1672"
+    height="941"
+    fetchPriority="high"
+    decoding="async"
+  />
+  <figcaption>
+    Work in the field becomes a record others can read. Editorial illustration reused from
+    Green Goods' website Home imagery; it does not identify a real location.
+  </figcaption>
+</figure>
+
+## Find your path
+
+Choose the guide for what you came to do.
 
 <Hero />
 
-## What a garden is
+## What is a Green Goods garden? {#what-a-garden-is}
 
 A garden is a community doing regenerative work together in one place.
 
@@ -45,7 +67,7 @@ The word is a picture, not a job description. A garden is something a group of p
 
 - a campus team keeping solar panels working,
 - a neighborhood crew that collects and sorts waste,
-- a collective restoring land with trees,
+- a farming collective caring for soil and growing trees alongside crops,
 - a group running classes and workshops.
 
 Every garden has its own people, its own list of the work it tracks, and its own funds. Green Goods currently covers four areas of work: **solar**, **agroforestry**, **education**, and **waste**.
@@ -58,7 +80,24 @@ Every garden has its own people, its own list of the work it tracks, and its own
 4. **Certify.** Approved work can be bundled into one claim, called an impact certificate. This step is still being switched on.
 5. **Fund.** Supporters give to the garden, and the garden uses that support to do more work.
 
+**Commitment Pooling connects the plan to specific promises.** A pool gives a garden shared rules for offering or requesting work and support. People record evidence toward a promise, and its designated reviewers check whether it was kept. Any agreed payment has its own conditions and steps; approving work alone does not pay anyone.
+
+Commitment Pooling is being prepared for release. Check with your steward before planning around it. [How It Works](/community/how-it-works#commitment-pooling) explains the connection.
+
 [How It Works](/community/how-it-works) walks through each step.
+
+<figure className="gg-figure gg-overview-product">
+  <img src="/img/screenshots/client-work-media-current.png" alt="The app's Media step shows Upload Media, one added image, and the Details button." width="390" height="844" loading="lazy" />
+  <figcaption>
+    <strong>Start with the work in front of you.</strong> The app asks what to photograph,
+    then gives you space for the details. Someone from your garden reviews the record you send.
+    <a href="/community/gardener-guide/uploading-your-work">Submit Work</a> walks through it.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork,
+    Media With Example Photo; 13 October 2026, 390 × 844. Fixture build is recorded in the Plan Hub image ledger.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    This is a fictional example, not a real Green Goods submission.</span>
+  </figcaption>
+</figure>
 
 ## What Green Goods is not
 
@@ -67,20 +106,9 @@ Every garden has its own people, its own list of the work it tracks, and its own
 - **It is not an outside audit.** An approval means a steward from the garden looked at the evidence and stands behind it. It does not by itself measure environmental results.
 - **It is not private.** What gardeners submit becomes a public, permanent record. That is the point, and it is worth knowing before you take the first photo.
 
-## Find your path
-
-The docs are organized by who you are and what you came to do.
-
-| You are… | Start here |
-|---|---|
-| **A gardener**, doing and documenting the work | [Gardener Guide](/community/gardener-guide/), then [Install and Update](/community/gardener-guide/installing-and-updating) |
-| **A steward**, running a garden | [Steward Guide](/community/steward-guide/) |
-| **An evaluator**, helping a garden set its goals | [Evaluator Guide](/community/evaluator-guide/) |
-| **A funder**, supporting a garden | [Funder Guide](/community/funder-guide/) |
-| **Exploring, or a partner organization** | [How It Works](/community/how-it-works), then [Why We Build](/community/why-we-build) and [Honest Claims](/community/green-goods-claims) |
-| **A builder or researcher** | [Builders: Getting Started](/builders/getting-started) |
-
 Have a question first? The [FAQ](/faq) answers the common ones, and the [Glossary](/glossary) explains the words.
+
+## Next step
 
 <NextBestAction
   title="Next: How It Works"

@@ -5,7 +5,7 @@ slug: /community/funder-guide/funding-a-garden
 description: "Make a deposit that stays yours while its earnings support a garden, and understand the risks before you do."
 audience: funder
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Walk a funder through one endowment from the public Fund page, with a plain account of where the money sits and what is not guaranteed."
 difficulty: "standard"
@@ -37,14 +37,14 @@ import {NextBestAction} from "@site/src/components/docs";
 
 # Endow a Garden
 
-An endowment is a deposit, not a gift. Your money stays yours and you can take it back out. While it sits there, it earns, and those earnings go to the garden. It is a way to support a garden for as long as you leave the deposit in place.
+An endowment is a deposit, not a gift. The deposit belongs to your wallet, and you can request a withdrawal. It is used to earn support for the garden; neither earnings nor the amount you can withdraw is guaranteed. It is a way to support a garden for as long as you leave the deposit in place.
 
 Read the next section before you deposit. An endowment carries risks a donation does not.
 
 ## What you are agreeing to
 
 - **Where the money sits.** Your deposit goes into the garden's endowment, which lends it out through a lending market outside Green Goods to earn interest.
-- **Where the earnings go.** Not to you. When a steward of the garden collects them, they are split: part goes to the garden's shared fund, part is set aside to fund the garden's impact certificates, and a small part goes to the Green Goods protocol.
+- **Where the earnings go.** Not to you. The configured split can support the garden's shared fund, impact certificates and the Green Goods protocol. The proportions and available destinations depend on the garden's configuration; ask its steward to show you the split.
 - **Your deposit is not guaranteed.** If the lending market loses money, your share of the loss comes out of your deposit. You can get back less than you put in.
 - **Withdrawals depend on what is available.** There is no lock-in and no notice period. If the lending market is short of funds when you ask, you may only be able to take part of it out, or have to try again later.
 - **The token's price is your risk.** A deposit in WETH is worth more or fewer dollars as the price of ETH moves.
@@ -58,15 +58,39 @@ If any of that is not acceptable, [donate](/community/funder-guide/donating-to-a
 - **A garden you want to support.** Read its approved work first, on its page at [greengoods.app/gardens](https://greengoods.app/gardens).
 - **Use a wallet you will keep.** Your endowment belongs to the wallet that made it. You need the same wallet to take it back out.
 
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-fund.webp" alt="A shared work table with a notebook and supplies for a community project." width="1536" height="1024" decoding="async" />
+  <figcaption>Longer-term support still needs a clear purpose and an account of how money moves. Editorial illustration reused from Green Goods' website Fund imagery; not a real payment or promise of earnings.</figcaption>
+</figure>
+
 ## Steps
+
+### 1. Choose the garden
 
 1. Open [greengoods.app/fund](https://greengoods.app/fund).
 2. Under **Find a Garden to support**, find the garden.
 3. Tap **Endow** on its row. A window opens titled **Endow to**, with the garden's name.
-4. Enter the **Amount**, in dollars.
-5. Under **Payment currency**, choose the token to deposit, usually **DAI** or **WETH**.
-6. Tap **Connect Wallet** if your wallet is not connected yet.
-7. Tap the button that reads **Endow**, your amount, and the token, then confirm in your wallet. The first time you use a token, your wallet asks twice: once to allow the token to be spent, and once for the deposit itself.
+
+If the garden has no endowment fund configured, choose another garden or [donate](/community/funder-guide/donating-to-a-garden).
+
+### 2. Set the amount and currency
+
+1. Enter the **Amount**, in dollars by default.
+2. Under **Payment currency**, choose **DAI** or **WETH**, according to what the garden accepts and what you hold. With WETH selected, **Enter amount in** lets you switch between dollars and WETH. Check the unit beside the amount.
+3. Tap **Connect Wallet** if your wallet is not connected yet.
+
+<figure className="gg-figure" style={{maxWidth: '448px'}}>
+  <img src="/img/screenshots/public-endowment-amount.png" alt="The Amount input showing a dollar sign and the example amount 20.00" loading="lazy" width="448" height="240" />
+  <figcaption>The amount control in isolation, with an example dollar amount. Source: deployed Storybook, PublicFundingCard / AmountInputWithValue, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
+
+If the live ETH price is unavailable, choose DAI or try again later. The page cannot convert other tokens for you.
+
+### 3. Confirm the deposit
+
+1. Check the garden, amount, and currency again.
+2. Tap the button that reads **Endow**, your amount, and the token, then confirm in your wallet. The first time you use a token, your wallet asks twice: once to allow the token to be spent, and once for the deposit itself.
+3. Keep the window open while it sends. If you cancel, the deposit is not made.
 
 ## How you know it worked
 
@@ -74,29 +98,36 @@ If any of that is not acceptable, [donate](/community/funder-guide/donating-to-a
 - Your wallet's history shows the transaction on Arbitrum.
 - On the Fund page, **Manage Endowments** now lists your deposit. It can take a moment to appear.
 
+<figure className="gg-figure" style={{maxWidth: '448px'}}>
+  <img src="/img/screenshots/public-endowment-result.png" alt="An example endowment result saying Endowed $100.00 to Muizenberg Community Garden, with Endow Again and Close buttons" loading="lazy" width="448" height="400" />
+  <figcaption>An example result, not a receipt for a real payment. Source: deployed Storybook, PublicFundingCard / SuccessEndow, 12 October 2026; cropped from 1440×1000. Build revision unavailable. No wallet transaction was made.</figcaption>
+</figure>
+
 ## What happens next
 
 Your deposit is in place, and it is yours.
 
-- **The garden's side.** Earnings build up over time. They reach the garden only when one of its stewards or owners collects them. Nothing does this automatically, so the timing is up to the garden.
+- **The garden's side.** Earnings can build up over time. A steward or owner collects them from the endowment. Once collected, anyone can trigger their distribution when its conditions are met, so the garden does not control payout timing exclusively. The dashboard offers both steps together. A deposit does not itself trigger a payout, and future earnings are not guaranteed.
 - **Your side.** You can check your deposit, and take some or all of it out, from **Manage Endowments**. See [Remove an Endowment](/community/funder-guide/withdraw-from-a-vault).
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| **This Garden has no endowment fund configured yet** | This garden cannot take endowments here yet. Choose another garden, or [donate](/community/funder-guide/donating-to-a-garden) |
-| **We couldn't load payment options for this Garden** | A temporary problem. Close the window and try again |
-| **The live ETH price isn't reaching us on this network** | The page cannot price WETH right now. Choose **DAI**, or try later |
-| A message says the endowment is not accepting deposits right now | Deposits are paused for this garden. Try another garden, or ask the garden |
-| **Transaction cancelled** | You closed the wallet's confirmation. Nothing was deposited |
-| **Transaction failed** | Read the message under it. The usual causes are not enough of the token, or not enough ETH for the fee |
-| Your deposit is not listed under **Manage Endowments** | Check that you connected the wallet you deposited from, then give the page a moment to catch up |
+### Payment options will not load
+
+For **We couldn't load payment options for this Garden**, close the window and try again. If deposits are paused, choose another garden or ask the garden's steward.
+
+### Your wallet cancels or the transaction fails
+
+**Transaction cancelled** means no deposit was made. For **Transaction failed**, read the message. Check that you have enough of the chosen token and enough ETH on Arbitrum for the fee before trying again.
+
+### Your deposit is not listed
+
+Connect the wallet you deposited from, then give **Manage Endowments** a moment to catch up. Check the transaction in your wallet before repeating it.
 
 For anything else, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 
-:::note Not a charitable gift or an investment
-An endowment through Green Goods is not tax-deductible, and no charity or nonprofit stands behind it. It is also not an investment: it is not meant to earn anything for you. This page is not financial advice.
+:::note Check any separate arrangements
+Green Goods does not promise a charitable receipt, nonprofit backing or a tax deduction. Ask the garden about any separate arrangement. Endowment earnings support the garden's configured destinations rather than earning a return for you.
 :::
 
 ## Next step

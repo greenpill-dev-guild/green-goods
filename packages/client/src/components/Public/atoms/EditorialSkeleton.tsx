@@ -50,41 +50,31 @@ export function EditorialListRowSkeleton({ className }: { className?: string }) 
       data-editorial-skeleton-layout="list-row"
       className={cn("@container h-full min-w-0", className)}
     >
-      <div className="flex h-full min-w-0 flex-wrap content-between items-stretch gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
-        <div className="flex min-w-0 flex-1 basis-0 items-stretch gap-4 sm:gap-5">
+      <div className="flex h-full min-w-0 flex-wrap content-between items-start gap-4 py-4 sm:gap-5 @[28rem]:flex-nowrap">
+        <div className="flex min-w-0 flex-1 basis-0 items-start gap-4 sm:gap-5">
           <EditorialSkeleton className="h-20 w-28 shrink-0 sm:h-24 sm:w-36" />
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-            <EditorialSkeleton className="-mb-0.5 h-[1lh] w-1/2 text-[11px]" />
-            <EditorialSkeleton className="h-[2lh] w-3/4 text-lg leading-[1.15]" />
-            <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
-              {[
-                formatMessage(
-                  {
-                    id: "public.gardens.gardeners",
-                    defaultMessage: "{count, plural, one {# member} other {# members}}",
-                  },
-                  { count: 0 }
-                ),
-                formatMessage(
-                  {
-                    id: "public.gardens.works",
-                    defaultMessage:
-                      "{count, plural, one {# approved submission} other {# approved submissions}}",
-                  },
-                  { count: 0 }
-                ),
-              ].map((label, index) => (
-                <span key={label} className="flex min-w-0 items-center gap-x-2">
-                  {index > 0 ? <span className="invisible">·</span> : null}
-                  <span className="editorial-skeleton [overflow-wrap:anywhere]">
-                    <span className="invisible">{label}</span>
-                  </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <EditorialSkeleton className="h-[1lh] w-3/4 text-lg leading-[1.15]" />
+            {/* The description, then PublicGardenMeta: place and members, then submissions. */}
+            <EditorialSkeleton className="h-[2lh] w-full text-xs leading-relaxed" />
+            <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+              <EditorialSkeleton className="h-[1lh] w-2/3" />
+              <span className="editorial-skeleton w-fit max-w-full [overflow-wrap:anywhere]">
+                <span className="invisible">
+                  {formatMessage(
+                    {
+                      id: "public.gardens.works",
+                      defaultMessage:
+                        "{count, plural, one {# approved submission} other {# approved submissions}}",
+                    },
+                    { count: 0 }
+                  )}
                 </span>
-              ))}
-            </p>
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col @[28rem]:justify-center">
+        <div className="flex basis-full flex-row items-stretch gap-3 @[28rem]:shrink-0 @[28rem]:basis-auto @[28rem]:flex-col">
           <EditorialPrimaryButton
             disabled
             size="sm"

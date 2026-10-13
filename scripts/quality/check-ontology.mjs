@@ -15,6 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  escapeMdxTableCode,
   renderAgentManifest,
   renderMarketingClaimsMdx,
   renderOntologyMdx,
@@ -213,6 +214,10 @@ export function parseTsPropertyUnion(source, container, property) {
 
 export function normalizeDocText(text) {
   return text
+    .replace(/<TermAnchor id="[^"]+" \/>/g, "")
+    .replace(/<a\s+id=["\'][^"\']+["\']><\/a>/g, "")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&#96;", "")
     .replaceAll("**", "")
     .replaceAll("*", "")
     .replaceAll("`", "")
@@ -234,15 +239,16 @@ export function parseGlossaryTable(source, sectionHeading) {
   const sectionEnd = nextHeading ? nextHeading.index + 1 : -1;
   const section = sectionEnd === -1 ? rest : rest.slice(0, sectionEnd);
   const rows = [];
-  for (const line of section.split("\n")) {
-    // Every data row counts — an unbolded row must surface as drift, not vanish.
-    if (!line.startsWith("|")) continue;
+  const lines = section.split("\n").filter(line => line.startsWith("|"));
+  const header = lines.length ? splitTableRow(lines[0]).map(normalizeDocText) : [];
+  const surfacesIndex = header.findIndex(label => label === "Surfaces" || label === "Allowed surfaces");
+  const definitionIndex = header.findIndex(label => label === "Definition" || label === "Why it is not an entity");
+  for (const line of lines.slice(1)) {
     const cells = splitTableRow(line);
-    // cells[0] is the empty string before the leading pipe.
-    if (cells.length < 5) continue;
+    if (cells.length < 4) continue;
     const name = normalizeDocText(cells[1]);
-    if (!name || name === "Term" || /^-+$/.test(name)) continue;
-    rows.push({ name, surfaces: normalizeDocText(cells.at(-3)), definition: cells.at(-2) });
+    if (!name || /^[-: ]+$/.test(name)) continue;
+    rows.push({ name, surfaces: normalizeDocText(cells[surfacesIndex] ?? ""), definition: cells[definitionIndex] ?? "" });
   }
   return rows;
 }
@@ -288,21 +294,21 @@ export function parseTermReferenceHeadings(source) {
 }
 
 /**
- * Every term heading the glossary defines, in page order: the plain-language
- * Everyday terms section when the page has one, then the Term Reference. The
- * Term Reference stays required, so a page without it still returns null.
+ * Every community term heading, including the legacy formal section when present.
+ * Either section can stand alone during the migration; a page with neither fails.
  */
 export function parseGlossaryTermHeadings(source) {
   const reference = parseTermReferenceHeadings(source);
-  if (reference === null) return null;
-  return [...(parseSectionTermHeadings(source, /^## Everyday terms[^\n]*$/m) ?? []), ...reference];
+  const everyday = parseSectionTermHeadings(source, /^## Everyday terms[^\n]*$/m);
+  if (reference === null && everyday === null) return null;
+  return [...(everyday ?? []), ...(reference ?? [])];
 }
 
-/** Every heading anchor the glossary exposes, at any level — the docs' public API. */
+/** Public heading and explicit targets. Docusaurus strips IDs from H1 headings. */
 export function parseGlossaryAnchors(source) {
   const anchors = new Set();
   for (const line of source.split("\n")) {
-    const match = /^#{1,6} (.+?)\s*$/.exec(line);
+    const match = /^#{2,6} (.+?)\s*$/.exec(line);
     if (!match) continue;
     const explicit = /\{#([A-Za-z0-9_-]+)\}\s*$/.exec(match[1]);
     anchors.add(
@@ -312,6 +318,7 @@ export function parseGlossaryAnchors(source) {
   for (const match of source.matchAll(/<a\s+id=["']([A-Za-z0-9_-]+)["']\s*><\/a>/g)) {
     anchors.add(match[1]);
   }
+  for (const match of source.matchAll(/<TermAnchor id="([A-Za-z0-9_-]+)" \/>/g)) anchors.add(match[1]);
   return anchors;
 }
 
@@ -1056,6 +1063,201 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   return errors;
 }
 
+export function checkDomainDocumentation(ontology, projections, glossary, reference) {
+  const fatal = [];
+  const findings = [];
+  const counts = {};
+  const projectionAliases = (projections.human_concepts ?? []).flatMap(concept => (concept.aliases ?? []).map(alias => ({alias, ref: concept.ref})));
+  if (glossary === null || parseGlossaryTermHeadings(glossary) === null) fatal.push(`could not parse Everyday terms in ${GLOSSARY_PATH}`);
+  // G5: formal ontology tables and canonical definition lock.
+  if (reference === null) fatal.push(`missing formal reference ${GENERATED_REFERENCE_PATH}`);
+  if (reference !== null) {
+    const liveEntities = ontology.entities;
+    const canonicalCount = liveEntities.filter(entity => entity.semantic_status === "canonical").length;
+    const proseCounts = parseCanonicalEntityCounts(reference);
+    if (proseCounts.length === 0) {
+      fatal.push(`could not parse a canonical entity count in ${GENERATED_REFERENCE_PATH}`);
+    } else {
+      const staleCounts = proseCounts.filter((count) => count !== canonicalCount);
+      if (staleCounts.length > 0) {
+        findings.push({
+          guard: "docs-glossary",
+          subject: "docs:entity-count",
+          file: GENERATED_REFERENCE_PATH,
+          detail: `expected ${canonicalCount}; found [${proseCounts.join(", ")}]`,
+          message: "formal reference canonical entity count deviates from the sidecar",
+        });
+      }
+    }
+    const entityRows = parseGlossaryTable(reference, "Entities");
+    if (!entityRows || entityRows.length === 0) fatal.push(`could not parse the Domain Entities table in ${GENERATED_REFERENCE_PATH}`);
+    else {
+      const nameDiffs = compareMembers(
+        liveEntities.map((e) => e.display),
+        entityRows.map((r) => r.name),
+        { ordered: true }
+      );
+      if (nameDiffs.length > 0) {
+        findings.push({
+          guard: "docs-glossary",
+          subject: "docs:entities",
+          file: GENERATED_REFERENCE_PATH,
+          detail: nameDiffs.join("; "),
+          message: "formal reference Entities table deviates from the sidecar entity set",
+        });
+      } else {
+        for (let i = 0; i < liveEntities.length; i += 1) {
+          const wantSurfaces = liveEntities[i].surfaces.join(" · ");
+          if (wantSurfaces !== entityRows[i].surfaces) {
+            findings.push({
+              guard: "docs-glossary",
+              subject: `docs:surfaces:${liveEntities[i].id}`,
+              file: GENERATED_REFERENCE_PATH,
+              detail: `surfaces expected "${wantSurfaces}" found "${entityRows[i].surfaces}"`,
+              message: `formal reference allowed surfaces for ${liveEntities[i].display} deviate from the sidecar`,
+            });
+          }
+          const want = normalizeDocText(escapeMdxTableCode(liveEntities[i].definition).replaceAll("\\|", "|"));
+          const got = normalizeDocText(entityRows[i].definition);
+          if (want !== got) {
+            findings.push({
+              guard: "docs-glossary",
+              subject: `docs:definition:${liveEntities[i].id}`,
+              file: GENERATED_REFERENCE_PATH,
+              detail: `definition mismatch — sidecar "${want}" vs glossary "${got}"`,
+              message: `formal reference definition for ${liveEntities[i].display} deviates from the sidecar canon`,
+            });
+          }
+        }
+      }
+    }
+    const personaRows = parseGlossaryTable(reference, "Personas");
+    if (!personaRows || personaRows.length === 0) fatal.push(`could not parse the Personas table in ${GENERATED_REFERENCE_PATH}`);
+    else {
+      const personaDiffs = compareMembers(
+        ontology.personas.map((p) => p.display),
+        personaRows.map((r) => r.name),
+        { ordered: true }
+      );
+      if (personaDiffs.length > 0) {
+        findings.push({
+          guard: "docs-glossary",
+          subject: "docs:personas",
+          file: GENERATED_REFERENCE_PATH,
+          detail: personaDiffs.join("; "),
+          message: "formal reference Personas table deviates from the sidecar persona set",
+        });
+      } else {
+        for (let i = 0; i < ontology.personas.length; i += 1) {
+          const wantSurfaces = ontology.personas[i].surfaces.join(" · ");
+          if (wantSurfaces !== personaRows[i].surfaces) {
+            findings.push({
+              guard: "docs-glossary",
+              subject: `docs:surfaces:persona:${ontology.personas[i].id}`,
+              file: GENERATED_REFERENCE_PATH,
+              detail: `surfaces expected "${wantSurfaces}" found "${personaRows[i].surfaces}"`,
+              message: `formal reference allowed surfaces for ${ontology.personas[i].display} deviate from the sidecar`,
+            });
+          }
+          const want = normalizeDocText(escapeMdxTableCode(ontology.personas[i].definition).replaceAll("\\|", "|"));
+          const got = normalizeDocText(personaRows[i].definition);
+          if (want !== got) {
+            findings.push({
+              guard: "docs-glossary",
+              subject: `docs:definition:persona:${ontology.personas[i].id}`,
+              file: GENERATED_REFERENCE_PATH,
+              detail: `definition mismatch — sidecar "${want}" vs glossary "${got}"`,
+              message: `formal reference definition for ${ontology.personas[i].display} deviates from the sidecar canon`,
+            });
+          }
+        }
+      }
+    }
+    const capitalsNote = parseCapitalsNote(reference);
+    const capitalVocabulary = ontology.vocabularies.find((v) => v.id === "capital");
+    if (!capitalsNote) fatal.push(`could not parse the Capital machine-ordering note in ${GENERATED_REFERENCE_PATH}`);
+    else if (capitalVocabulary) {
+      const expected = capitalVocabulary.canonical.members.map((m, i) => `${titleCase(m)}:${i}`);
+      const actual = capitalsNote.map((c) => `${c.name}:${c.value}`);
+      const capitalDiffs = compareMembers(expected, actual, { ordered: true });
+      if (capitalDiffs.length > 0) {
+        findings.push({
+          guard: "docs-glossary",
+          subject: "docs:capital-order",
+          file: GENERATED_REFERENCE_PATH,
+          detail: capitalDiffs.join("; "),
+          message: "formal reference Capital machine-ordering note deviates from the canonical order",
+        });
+      }
+    }
+  }
+  counts["docs-glossary"] = 1;
+
+  // G6: community headings and formal ontology rows must resolve to a term, alias, or a
+  // supporting term — otherwise orphan nouns (the "Report" problem) accumulate in
+  // prose that nothing checks.
+  let termReferenceChecked = 0;
+  const glossaryAnchors = glossary === null ? new Set() : parseGlossaryAnchors(glossary);
+  if (glossary !== null) {
+    const headings = (parseGlossaryTermHeadings(glossary) ?? []).map(heading => ({...heading, file: GLOSSARY_PATH}));
+    for (const section of ["Entities", "Personas", "Supporting terms"]) {
+      const rows = reference === null ? null : parseGlossaryTable(reference, section);
+      if (!rows?.length) fatal.push(`could not parse ${section} in ${GENERATED_REFERENCE_PATH}`);
+      for (const row of rows ?? []) headings.push({display: row.name, anchor: slugifyHeading(row.name), file: GENERATED_REFERENCE_PATH});
+    }
+    if (!headings || headings.length === 0) {
+      fatal.push(`could not parse the Term Reference section in ${GLOSSARY_PATH}`);
+    } else {
+      const resolvable = new Map();
+      const remember = (label, owner) => {
+        if (label?.trim()) resolvable.set(label.trim().toLowerCase(), owner);
+      };
+      for (const entity of ontology.entities) remember(entity.display, `entity:${entity.id}`);
+      for (const persona of ontology.personas) remember(persona.display, `persona:${persona.id}`);
+      for (const concept of projectionAliases) remember(concept.alias, concept.ref);
+      const supportingSeen = new Set();
+      for (const term of ontology.supporting_terms) remember(term.display, `supporting:${term.id}`);
+
+      for (const heading of headings) {
+        termReferenceChecked += 1;
+        const owner = resolvable.get(heading.display.toLowerCase());
+        if (!owner) {
+          findings.push({
+            guard: "docs-term-reference",
+            subject: `docs:term:${heading.anchor}`,
+            file: heading.file,
+            detail: `"${heading.display}" resolves to no entity, persona, declared alias, or supporting term`,
+            message: "documentation defines an undeclared term",
+          });
+        } else if (owner.startsWith("supporting:")) {
+          supportingSeen.add(owner.slice("supporting:".length));
+        }
+      }
+      for (const term of ontology.supporting_terms) {
+        if (!supportingSeen.has(term.id)) {
+          findings.push({
+            guard: "docs-term-reference",
+            subject: `sidecar:supporting-term:${term.id}`,
+            file: SIDECAR_PATH,
+            detail: `no formal reference entry for ${term.display}`,
+            message: "supporting term is declared but no longer defined in the formal reference",
+          });
+        }
+      }
+    }
+  }
+  counts["docs-term-reference"] = termReferenceChecked;
+
+  const formalAnchors = reference === null ? new Set() : parseGlossaryAnchors(reference);
+  for (const term of [...ontology.entities, ...ontology.personas, ...ontology.supporting_terms]) {
+    if (!formalAnchors.has(term.id)) findings.push({guard: "docs-formal-anchor", subject: `docs:anchor:${term.id}`, file: GENERATED_REFERENCE_PATH, detail: "declared term has no formal destination", message: "formal term anchor is missing"});
+  }
+  for (const match of (glossary ?? "").matchAll(/\]\(\/reference\/ontology#([a-z0-9-]+)\)/g)) {
+    if (!formalAnchors.has(match[1])) findings.push({guard: "docs-glossary-link", subject: `docs:link:${match[1]}`, file: GLOSSARY_PATH, detail: "formal destination anchor is missing", message: "glossary points at a missing formal definition"});
+  }
+  return {fatal, findings, counts};
+}
+
 function runGuards(ontology, projections) {
   // Aliases are the third way a glossary heading can resolve: `Impact Certificate`
   // is Hypercert, `Work Submission` is Work, `Garden Operator` is the Steward persona.
@@ -1245,179 +1447,13 @@ function runGuards(ontology, projections) {
   counts["eas-schemas"] = schemaChecked;
   counts["eas-schemas-skipped"] = schemaSkipped;
 
-  // G5: glossary tables + definition lock.
   const glossary = sourceOf(GLOSSARY_PATH);
-  if (glossary !== null) {
-    const liveEntities = ontology.entities.filter((e) => e.semantic_status === "canonical");
-    const proseCounts = parseCanonicalEntityCounts(glossary);
-    if (proseCounts.length === 0) {
-      fatal.push(`could not parse a canonical entity count in ${GLOSSARY_PATH}`);
-    } else {
-      const staleCounts = proseCounts.filter((count) => count !== liveEntities.length);
-      if (staleCounts.length > 0) {
-        findings.push({
-          guard: "docs-glossary",
-          subject: "docs:entity-count",
-          file: GLOSSARY_PATH,
-          detail: `expected ${liveEntities.length}; found [${proseCounts.join(", ")}]`,
-          message: "glossary canonical entity count deviates from the sidecar",
-        });
-      }
-    }
-    const entityRows = parseGlossaryTable(glossary, "Domain Entities");
-    if (!entityRows || entityRows.length === 0) fatal.push(`could not parse the Domain Entities table in ${GLOSSARY_PATH}`);
-    else {
-      const nameDiffs = compareMembers(
-        liveEntities.map((e) => e.display),
-        entityRows.map((r) => r.name),
-        { ordered: true }
-      );
-      if (nameDiffs.length > 0) {
-        findings.push({
-          guard: "docs-glossary",
-          subject: "docs:entities",
-          file: GLOSSARY_PATH,
-          detail: nameDiffs.join("; "),
-          message: "glossary Domain Entities table deviates from the sidecar entity set",
-        });
-      } else {
-        for (let i = 0; i < liveEntities.length; i += 1) {
-          const wantSurfaces = liveEntities[i].surfaces.join(" · ");
-          if (wantSurfaces !== entityRows[i].surfaces) {
-            findings.push({
-              guard: "docs-glossary",
-              subject: `docs:surfaces:${liveEntities[i].id}`,
-              file: GLOSSARY_PATH,
-              detail: `surfaces expected "${wantSurfaces}" found "${entityRows[i].surfaces}"`,
-              message: `glossary allowed surfaces for ${liveEntities[i].display} deviate from the sidecar`,
-            });
-          }
-          const want = normalizeDocText(liveEntities[i].definition);
-          const got = normalizeDocText(entityRows[i].definition);
-          if (want !== got) {
-            findings.push({
-              guard: "docs-glossary",
-              subject: `docs:definition:${liveEntities[i].id}`,
-              file: GLOSSARY_PATH,
-              detail: `definition mismatch — sidecar "${want}" vs glossary "${got}"`,
-              message: `glossary definition for ${liveEntities[i].display} deviates from the sidecar canon`,
-            });
-          }
-        }
-      }
-    }
-    const personaRows = parseGlossaryTable(glossary, "Personas");
-    if (!personaRows || personaRows.length === 0) fatal.push(`could not parse the Personas table in ${GLOSSARY_PATH}`);
-    else {
-      const personaDiffs = compareMembers(
-        ontology.personas.map((p) => p.display),
-        personaRows.map((r) => r.name),
-        { ordered: true }
-      );
-      if (personaDiffs.length > 0) {
-        findings.push({
-          guard: "docs-glossary",
-          subject: "docs:personas",
-          file: GLOSSARY_PATH,
-          detail: personaDiffs.join("; "),
-          message: "glossary Personas table deviates from the sidecar persona set",
-        });
-      } else {
-        for (let i = 0; i < ontology.personas.length; i += 1) {
-          const wantSurfaces = ontology.personas[i].surfaces.join(" · ");
-          if (wantSurfaces !== personaRows[i].surfaces) {
-            findings.push({
-              guard: "docs-glossary",
-              subject: `docs:surfaces:persona:${ontology.personas[i].id}`,
-              file: GLOSSARY_PATH,
-              detail: `surfaces expected "${wantSurfaces}" found "${personaRows[i].surfaces}"`,
-              message: `glossary allowed surfaces for ${ontology.personas[i].display} deviate from the sidecar`,
-            });
-          }
-          const want = normalizeDocText(ontology.personas[i].definition);
-          const got = normalizeDocText(personaRows[i].definition);
-          if (want !== got) {
-            findings.push({
-              guard: "docs-glossary",
-              subject: `docs:definition:persona:${ontology.personas[i].id}`,
-              file: GLOSSARY_PATH,
-              detail: `definition mismatch — sidecar "${want}" vs glossary "${got}"`,
-              message: `glossary definition for ${ontology.personas[i].display} deviates from the sidecar canon`,
-            });
-          }
-        }
-      }
-    }
-    const capitalsNote = parseCapitalsNote(glossary);
-    const capitalVocabulary = ontology.vocabularies.find((v) => v.id === "capital");
-    if (!capitalsNote) fatal.push(`could not parse the Capital machine-ordering note in ${GLOSSARY_PATH}`);
-    else if (capitalVocabulary) {
-      const expected = capitalVocabulary.canonical.members.map((m, i) => `${titleCase(m)}:${i}`);
-      const actual = capitalsNote.map((c) => `${c.name}:${c.value}`);
-      const capitalDiffs = compareMembers(expected, actual, { ordered: true });
-      if (capitalDiffs.length > 0) {
-        findings.push({
-          guard: "docs-glossary",
-          subject: "docs:capital-order",
-          file: GLOSSARY_PATH,
-          detail: capitalDiffs.join("; "),
-          message: "glossary Capital machine-ordering note deviates from the canonical order",
-        });
-      }
-    }
-  }
-  counts["docs-glossary"] = 1;
-
-  // G6: the glossary's term headings, in the Everyday terms section and the Term
-  // Reference. Every heading must resolve to a canonical term, a declared alias, or a
-  // supporting term — otherwise orphan nouns (the "Report" problem) accumulate in
-  // prose that nothing checks.
-  let termReferenceChecked = 0;
+  const reference = sourceOf(GENERATED_REFERENCE_PATH);
+  const docs = checkDomainDocumentation(ontology, projections, glossary, reference);
+  fatal.push(...docs.fatal);
+  findings.push(...docs.findings);
+  Object.assign(counts, docs.counts);
   const glossaryAnchors = glossary === null ? new Set() : parseGlossaryAnchors(glossary);
-  if (glossary !== null) {
-    const headings = parseGlossaryTermHeadings(glossary);
-    if (!headings || headings.length === 0) {
-      fatal.push(`could not parse the Term Reference section in ${GLOSSARY_PATH}`);
-    } else {
-      const resolvable = new Map();
-      const remember = (label, owner) => {
-        if (label?.trim()) resolvable.set(label.trim().toLowerCase(), owner);
-      };
-      for (const entity of ontology.entities) remember(entity.display, `entity:${entity.id}`);
-      for (const persona of ontology.personas) remember(persona.display, `persona:${persona.id}`);
-      for (const concept of projectionAliases) remember(concept.alias, concept.ref);
-      const supportingSeen = new Set();
-      for (const term of ontology.supporting_terms) remember(term.display, `supporting:${term.id}`);
-
-      for (const heading of headings) {
-        termReferenceChecked += 1;
-        const owner = resolvable.get(heading.display.toLowerCase());
-        if (!owner) {
-          findings.push({
-            guard: "docs-term-reference",
-            subject: `docs:term:${heading.anchor}`,
-            file: GLOSSARY_PATH,
-            detail: `"${heading.display}" resolves to no entity, persona, declared alias, or supporting term`,
-            message: "glossary Term Reference defines an undeclared term",
-          });
-        } else if (owner.startsWith("supporting:")) {
-          supportingSeen.add(owner.slice("supporting:".length));
-        }
-      }
-      for (const term of ontology.supporting_terms) {
-        if (!supportingSeen.has(term.id)) {
-          findings.push({
-            guard: "docs-term-reference",
-            subject: `sidecar:supporting-term:${term.id}`,
-            file: SIDECAR_PATH,
-            detail: `no "### ${term.display}" heading in the glossary Term Reference`,
-            message: "supporting term is declared but no longer defined in the glossary",
-          });
-        }
-      }
-    }
-  }
-  counts["docs-term-reference"] = termReferenceChecked;
 
   // G7: the client's editorial glossary. Its ids must resolve to canonical terms and
   // its docsPath anchors must exist, so a renamed heading cannot silently break the

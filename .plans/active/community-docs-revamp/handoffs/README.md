@@ -1,9 +1,19 @@
 # Handoffs
 
-Keep lane handoffs short and factual. Use one file per lane:
+Start a continuation with `final-merge-preparation.md`, then `qa-revision.md` and the current decisions and pending phases in
+`../plan.todo.md`. Content and ontology receipts are in the current lane handoffs. The new visual
+pass is Phase 8; use `qa-revision.md` § Visual review queue for the next owner review.
+Passing implementation checks are not visual approval.
 
-- `claude-ui.md`
-- `claude-state-api.md`
+Current implementation handoffs:
+
+- `final-merge-preparation.md` (latest L32 results, publication blocker and review packet)
+- `codex-ui.md` (earlier QA revision and visual batches)
+- `codex-state-api.md` (formal-reference migration and drift proof)
+
+First-foundation evidence remains in `claude-ui.md` and `claude-state-api.md`. It is historical
+and does not certify the new scope. Other lane handoffs:
+
 - `codex-contracts.md` (not applicable: no contract work)
 - `claude-qa-pass-1.md`
 - `codex-qa-pass-2.md`

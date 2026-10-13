@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/data/banned-vocabulary.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:d1a639da6fe9bd6a8a2e91be7e411954c91d1d235e46d180f00c84c5ca23247e"
+source_digest: "sha256:9d5b4080c4deb43025f1cbfe64022e80a2c504fda1c5e984afdde3d191ac6f78"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -20,9 +20,13 @@ source_of_truth:
 ---
 
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
+import TermAnchor from "@site/src/components/docs/TermAnchor";
+
+<TermAnchor id="glossary" />
+
 # Glossary
 
-The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. If you build on Green Goods, the [formal definitions](#formal-definitions) are further down this page.
+The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. Formal definitions and technical reference live in the [Builders ontology](/reference/ontology).
 
 ## Everyday terms
 
@@ -148,249 +152,82 @@ The words you will meet in Green Goods, in plain language. Each entry says what 
 - **Not the same as:** Gardener.
 - **Read more:** [How It Works](/community/how-it-works).
 
-## Formal definitions {#formal-definitions}
+## Builder reference {#formal-definitions}
 
-This part is for builders. The ontology owns domain entities, personas, and supporting terms. Capability projections keep current availability separate from meaning, while the vocabulary policy records language that Green Goods does not use.
+Definitions, allowed surfaces, and technical terms are generated together in the [ontology](/reference/ontology). Older links still work below.
 
-The ontology currently declares 21 canonical concepts. Availability is projected separately and does not change what a term means.
+#### [Domain entities](/reference/ontology#entities) {#domain-entities}
 
-## Domain Entities
+#### [Personas](/reference/ontology#personas) {#personas}
 
-| Term | Type | Availability | Allowed surfaces | Definition |
-|---|---|---|---|---|
-| **Garden** | entity | available | admin · client · agent · public · docs | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. |
-| **Action** | entity | available | admin · client · agent · public · docs | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). |
-| **Work** | entity | available | admin · client · agent · public · docs | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation. |
-| **Work Approval** | entity | available | admin · client · public · docs | The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it. |
-| **Assessment** | entity | available | admin · client · public · docs | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). |
-| **Hypercert** | entity | in-build | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
-| **Vault** | entity | available | admin · client · public · docs | A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios. |
-| **Cookie Jar** | entity | available | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead. |
-| **Attestation** | entity | available | admin · client · public · docs | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. |
-| **Hat** | entity | available | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
-| **Season** | entity | planned | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. |
-| **Need** | entity | planned | community · admin · client · public · docs | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. |
-| **Commitment Pool** | entity | available | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. |
-| **Commitment Cycle** | entity | deployed-not-available | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. |
-| **Commitment Series** | entity | deployed-not-available | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. |
-| **Commitment Provider Exposure** | entity | deployed-not-available | admin · client · docs | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. |
-| **Commitment Unit Summary** | entity | deployed-not-available | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. |
-| **Commitment Series Cycle Summary** | entity | deployed-not-available | admin · client · docs | Current lifecycle counts for the instances of one commitment series within one cycle. |
-| **Commitment** | entity | deployed-not-available | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. |
-| **Commitment Contributor** | entity | deployed-not-available | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. |
-| **Commitment Payout Plan** | entity | deployed-not-available | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. |
+#### [Formal term reference](/reference/ontology#entities) {#term-reference}
 
-## Personas
+#### [Language policy](/reference/ontology#language-policy) {#language-policy}
 
-| Term | Type | Allowed surfaces | Definition |
-|---|---|---|---|
-| **Gardener** | persona | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
-| **Steward** | persona | admin · client · agent · public · docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
-| **Evaluator** | persona | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
-| **Funder** | persona | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
-| **Community Member** | persona | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
+#### [Vocabulary policy](/reference/ontology#language-policy) {#lint-enforced-terms}
 
-The canonical machine ordering is the `Capital` enum: Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
+#### [Admin vocabulary](/reference/ontology#language-policy) {#admin-prompt-vocabulary}
 
-## Term Reference
+#### [Client vocabulary](/reference/ontology#language-policy) {#client-prompt-vocabulary}
 
-### Attestation {#attestation}
+#### [Attestation](/reference/ontology#attestation) {#attestation}
 
-An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims.
+#### [Hat](/reference/ontology#hat) {#hat}
 
-**Availability:** available.
+#### [Season](/reference/ontology#season) {#season}
 
-### Hat {#hat}
+#### [Need](/reference/ontology#need) {#need}
 
-A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest.
+#### [Commitment Pool](/reference/ontology#commitment-pool) {#commitment-pool}
 
-**Availability:** available.
+#### [Commitment Cycle](/reference/ontology#commitment-cycle) {#commitment-cycle}
 
-### Season {#season}
+#### [Commitment Series](/reference/ontology#commitment-series) {#commitment-series}
 
-A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.
+#### [Commitment Provider Exposure](/reference/ontology#commitment-provider-exposure) {#commitment-provider-exposure}
 
-**Availability:** planned.
+#### [Commitment Unit Summary](/reference/ontology#commitment-unit-summary) {#commitment-unit-summary}
 
-### Need {#need}
+#### [Commitment Series Cycle Summary](/reference/ontology#commitment-series-cycle-summary) {#commitment-series-cycle-summary}
 
-A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself.
+#### [Commitment](/reference/ontology#commitment) {#commitment}
 
-**Availability:** planned.
+#### [Commitment Contributor](/reference/ontology#commitment-contributor) {#commitment-contributor}
 
-### Commitment Pool {#commitment-pool}
+#### [Commitment Payout Plan](/reference/ontology#commitment-payout-plan) {#commitment-payout-plan}
 
-A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter.
+#### [Domain](/reference/ontology#domain) {#domain}
 
-**Availability:** available.
+#### [EAS (Ethereum Attestation Service)](/reference/ontology#eas) {#eas}
 
-### Commitment Cycle {#commitment-cycle}
+#### [Eight Forms of Capital](/reference/ontology#eight-forms-of-capital) {#eight-forms-of-capital}
 
-A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open.
+#### [Impact Token](/reference/ontology#impact-token) {#impact-token}
 
-**Availability:** deployed-not-available.
+#### [Indicator](/reference/ontology#indicator) {#indicator}
 
-### Commitment Series {#commitment-series}
+#### [IPFS (InterPlanetary File System)](/reference/ontology#ipfs) {#ipfs}
 
-The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.
+#### [Karma GAP (Grantee Accountability Protocol)](/reference/ontology#karma-gap) {#karma-gap}
 
-**Availability:** deployed-not-available.
+#### [MDR (Media-Details-Review)](/reference/ontology#mdr) {#mdr}
 
-### Commitment Provider Exposure {#commitment-provider-exposure}
+#### [On-Chain](/reference/ontology#on-chain) {#on-chain}
 
-The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events.
+#### [Outcome](/reference/ontology#outcome) {#outcome}
 
-**Availability:** deployed-not-available.
+#### [Owner](/reference/ontology#owner) {#owner}
 
-### Commitment Unit Summary {#commitment-unit-summary}
-
-Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined.
-
-**Availability:** deployed-not-available.
-
-### Commitment Series Cycle Summary {#commitment-series-cycle-summary}
-
-Current lifecycle counts for the instances of one commitment series within one cycle.
-
-**Availability:** deployed-not-available.
-
-### Commitment {#commitment}
-
-A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.
-
-**Availability:** deployed-not-available.
-
-### Commitment Contributor {#commitment-contributor}
-
-A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.
-
-**Availability:** deployed-not-available.
-
-### Commitment Payout Plan {#commitment-payout-plan}
-
-A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.
-
-**Availability:** deployed-not-available.
-
-### Domain {#domain}
-
-The `domain` controlled vocabulary — the four action domains — not an entity.
-
-### EAS (Ethereum Attestation Service) {#eas}
-
-The external attestation protocol; the record it produces is the Attestation entity.
-
-### Eight Forms of Capital {#eight-forms-of-capital}
-
-The impact framework behind the `capital` vocabulary, not an entity.
-
-### Impact Token {#impact-token}
-
-The broader tokenized-impact concept; the Green Goods implementation of it is Hypercert.
-
-### Indicator {#indicator}
-
-The unit an outcome is measured in, carried inside Assessment fields rather than as its own record.
-
-### IPFS (InterPlanetary File System) {#ipfs}
-
-External storage protocol, referenced by CID from attestations.
-
-### Karma GAP (Grantee Accountability Protocol) {#karma-gap}
-
-External reporting protocol, tracked in the integration matrix rather than the entity set.
-
-### MDR (Media-Details-Review) {#mdr}
-
-The client's three-step submission workflow, not a domain record.
-
-### On-Chain {#on-chain}
-
-A property of where data lives, not something the protocol tracks.
-
-### Outcome {#outcome}
-
-A SMART target held inside an Assessment, not a separate record.
-
-### Owner {#owner}
-
-A `garden-role` member with no dedicated persona — see personas_note.
-
-### Passkey {#passkey}
-
-Authentication credential; account infrastructure, not domain vocabulary.
+#### [Passkey](/reference/ontology#passkey) {#passkey}
 
 <a id="pwa-progressive-web-app"></a>
 
-### PWA (Progressive Web App) {#pwa}
+#### [PWA (Progressive Web App)](/reference/ontology#pwa) {#pwa}
 
-A delivery surface, listed under Surfaces rather than entities.
+#### [Resolver](/reference/ontology#resolver) {#resolver}
 
-### Resolver {#resolver}
-
-The contract that gates an attestation; declared per schema as `resolver`, not modelled as an entity.
-
-### Schema {#schema}
-
-The attestation template layer; the sidecar's `schemas` section is its canon.
+#### [Schema](/reference/ontology#schema) {#schema}
 
 <a id="smart-account-account-abstraction"></a>
 
-### Smart Account (Account Abstraction) {#smart-account}
-
-Wallet infrastructure, not domain vocabulary.
-
-## Language policy
-
-These terms signal growth-hacking or FOMO patterns that conflict with the regenerative design review lens. See DESIGN.md and .claude/skills/design/review-checklist.md.
-
-### Lint-enforced terms
-
-- `streak`
-- `countdown`
-- `leaderboard`
-- `FOMO`
-- `urgent`
-- `limited time`
-- `re-engagement`
-- `retention hook`
-
-### Admin prompt vocabulary
-
-Admin is a restrained steward cockpit. Hero moments belong to the client PWA. Glass is restricted to Navigation and FAB chrome; dense surfaces remain solid.
-
-- `hero moment`
-- `hero section`
-- `celebration`
-- `gallery`
-- `masonry gallery`
-- `decorative gradient`
-- `ambient gradient wash`
-- `marketing banner`
-- `promo band`
-- `landing-page`
-- `dashboard card mosaic`
-- `feature cards`
-- `floating stats`
-- `stat chips floating above content`
-- `liquid`
-- `glass`
-- `frosted`
-
-### Client prompt vocabulary
-
-The client PWA is a garden journal, not a steward cockpit. It uses warm narrative copy and Inter; cockpit and KPI language belongs to admin.
-
-- `operator cockpit`
-- `steward cockpit`
-- `workbench row`
-- `inspector pattern`
-- `utility copy`
-- `dashboard`
-- `KPI tile`
-- `metric grid`
-- `Plus Jakarta Sans`
-- `trading floor`
-- `financial terminal`
-- `gamification`
-- `dark pattern`
+#### [Smart Account (Account Abstraction)](/reference/ontology#smart-account) {#smart-account}

@@ -41,11 +41,18 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Green Goods is an app you install from the website, not from an app store. Installing puts it on your home screen, and it is what lets you record work when you have no signal. You only need to do this once per phone.
 
+Choose [Android](#install-on-android) or [iPhone](#install-on-iphone) below. Already installed? Go to [Update the app](#update-the-app).
+
 ## Before you start
 
-- **An Android phone with Chrome, or an iPhone with Safari.** Other browsers cannot install the app. Green Goods tells you if you need to switch.
+- **An Android phone with Chrome, or an iPhone with Safari.** Use the browser Green Goods recommends for your phone. It tells you if you need to switch.
 - **A connection.** Installing and signing in both need one. Recording work afterwards does not.
-- **A few minutes.** The whole app is a few megabytes.
+- **A few minutes.** Allow time for the app to download before you head out.
+
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-field-preparation.webp" alt="A phone lies face down beside a notebook, work gloves, and a water bottle on a wooden bench." width="1774" height="887" decoding="async" />
+  <figcaption>Get your phone ready while you have a connection. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real location or an app screen.</figcaption>
+</figure>
 
 ## Install on Android
 
@@ -67,20 +74,28 @@ If Chrome does not ask, Green Goods shows **Install Green Goods on this phone** 
 
 Always open Green Goods from the home screen. A browser tab shows the public website, not the app.
 
+**A passkey lets you sign in without a password.** Your phone or passkey manager keeps a sign-in key. When Green Goods asks you to confirm, you use your fingerprint, face, or screen lock. Choose **Create Account** to use this route.
+
+If you already use a wallet, **Sign in with a Wallet** connects that account instead. A wallet and a passkey are different accounts. Choose one route and keep using it so your garden membership and work stay together.
+
 1. Tap **Create Account**.
 2. Type a name of at least three characters. Write it down somewhere safe. You will need it to sign in on another phone.
 3. Tap **Create Account** again, then confirm with your fingerprint, face, or screen lock when your phone asks.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
+<figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-sign-in.webp" alt="The first screen of the app: the Green Goods logo above a Create Account button, a Sign in with a Wallet button, and the link Already have an account?" loading="lazy" width="780" height="900" />
-  <figcaption>The first screen when you open the app from your home screen. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>
+    <strong>Choose how you will sign in.</strong> Use <strong className="gg-inline-label">Create Account</strong> for a passkey or <strong className="gg-inline-label">Sign in with a Wallet</strong> for your existing wallet. Keep using that same route.
+    <span className="gg-overview-source">Source: deployed Storybook, Client/Layout/Splash,
+    Entry First Install fixture. Captured 12 October 2026; 780 × 900 image from a 390 × 844
+    phone viewport at 2×, cropped to the sign-in controls. Build revision unavailable.
+    This shows the entry screen, not a completed account creation.</span>
+  </figcaption>
 </figure>
-
-That is your account. There is no password to remember, because your phone keeps a passkey for you.
 
 **Already have an account?** Tap **Already have an account?**, enter your name, and tap **Sign in with Passkey**. Your passkey usually travels with your Apple or Google account, so the new phone needs to be signed in to that same account.
 
-**Using your own wallet?** Tap **Sign in with a Wallet** instead. A wallet and a passkey are two different accounts, so pick one and keep using it.
+Keep access to the passkey you created. If your passkey manager did not save or sync it, signing in to an Apple or Google account alone will not restore it. Green Goods cannot replace a lost passkey for you.
 
 ## How you know it worked
 
@@ -104,16 +119,11 @@ Green Goods checks for a new version when you open it and when you come back to 
 
 If you leave the app open for a long time, a message may offer **Restart to Update**. It does the same thing.
 
-| The Update row says | What is happening | What to do |
-|---|---|---|
-| Check for a newer version. | Nothing yet | Tap **Check** |
-| Looking for a newer version. | Checking now | Wait |
-| Installing the latest version. | Downloading in the background | Wait. You can keep working |
-| A new version is ready. | Waiting for you | Tap **Restart** |
-| Finish saving or sending your work before restarting. | A draft is saving, or work is being sent | Let it finish, then tap **Restart** |
-| Restarting the app. | Applying now | Wait |
-| Close every app window, then open it again. | The restart did not finish | Close the app fully and open it again |
-| Couldn't finish. Try again. | The download failed | Tap **Try Again** |
+While the row says **Looking for a newer version** or **Installing the latest version**, wait. You can keep working while it downloads. **No update available** means you already have the current version.
+
+If it says **Finish saving or sending your work before restarting**, let that operation finish, then tap **Restart** again. Work that is only waiting to upload does not block the update.
+
+If it says **Couldn't finish. Try again**, check your connection and tap **Try Again**. If it asks you to **Close every app window, then open it again**, close the app and any browser tabs on the same site, then reopen it from the home screen.
 
 Two tips for updating:
 
@@ -126,19 +136,21 @@ Clearing the browser's site data or storage for Green Goods **deletes work you h
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| A message says your browser cannot install apps | On Android, tap **Open in Chrome**. On iPhone, tap **Copy Link** and open the link in Safari. This also happens when you open the link inside another app, such as a chat app |
-| On Android, a sheet says **Install in Chrome** | You are in Brave, which saves a shortcut, not the full app. Tap **Open in Chrome** and install from there |
-| You only see the public website, with no sign-in | You opened a browser tab. Open Green Goods from the home screen icon |
-| **A new version is ready**, but **Restart** does nothing | Something is still saving or sending. Wait for it to finish, then tap **Restart** again. Work that is only waiting to upload does not block the update |
-| The app restarted but looks the same | Close it fully and open it again. The **Updated** message is easy to miss |
-| It keeps asking you to restart | Close every window of the app, including browser tabs on the same site, then open it again |
-| A photo from your iPhone will not attach | The file that reads iPhone photos has not arrived yet, usually because you installed or restarted with no signal, or Data Saver is on. Turn Data Saver off, open the app on a good connection, and give it a minute. Your work still saves |
-| You cannot sign in | Signing in needs a connection. Recording work does not |
-| You cannot tell which version you have | The app does not show a version number. Tap **Check** in the **Update** row. **No update available** means you are current |
+### You cannot install, or you only see the website
 
-"Close the app fully" means removing it from your recent apps, not only going back to the home screen.
+On Android, tap **Open in Chrome** if Green Goods asks you to switch browsers. On iPhone, tap **Copy Link** and open it in Safari. Links opened inside a chat app may need the same step. Once installed, use the home screen icon; a browser tab keeps showing the website.
+
+### You cannot sign in
+
+Check your connection and use the same account route as before. For passkey sign-in, the passkey must be available on this device or a nearby phone. Do not create another account to recover your existing membership.
+
+### The update keeps asking you to restart
+
+Close every app window and browser tab on the same site, then open Green Goods again. If the app looks unchanged after restarting, try the same step. “Close fully” means removing it from your recent apps, not only returning to the home screen.
+
+### An iPhone photo will not attach
+
+The app may still need to download the file that reads iPhone photos. Turn Data Saver off, open the app on a good connection, and give it a minute. Your work still saves.
 
 Still stuck? Open **Profile**, then the **Help** tab, and tap **Telegram** to ask the community.
 

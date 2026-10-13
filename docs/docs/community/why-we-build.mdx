@@ -13,9 +13,11 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
   - packages/shared/src/i18n/en.json
   - packages/client/src/views/Public/Home.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Public/Actions.tsx
   - packages/shared/src/providers/JobQueue.tsx
   - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/interfaces/ICommitmentPoolingModule.sol
 keywords:
   - mission
   - values
@@ -28,23 +30,28 @@ import {NextBestAction} from "@site/src/components/docs";
 
 # Why We Build
 
-Green Goods exists because the people doing regenerative work are often the last to be seen for it. Someone plants the trees, clears the waste, keeps the panels running, or teaches the class. Then the proof of that work lives in a notebook, a chat thread, or nowhere, and the funding goes to whoever writes the best report.
+Green Goods helps communities make their regenerative work visible. Someone cares for soil and trees, clears waste, maintains panels, or teaches a class. The evidence may be scattered across photos, notebooks, and chat threads. A supporter who was not there needs a way to understand what happened and who checked it.
 
 We are building the tools to change that.
+
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-fund.webp" alt="Two people work together to place a young tree in a pot, with tools close by." width="1536" height="1024" fetchPriority="high" decoding="async" />
+  <figcaption>There are people behind every piece of work. Editorial illustration reused from Green Goods' website Fund imagery; no real people or project are identified.</figcaption>
+</figure>
 
 ## The problem
 
 Three things get in the way of good work being recognized.
 
-- **Proof costs more than the work.** Showing a funder what happened can take longer than doing it: forms, reports, spreadsheets. Small groups do not have that time.
-- **The tools were built for someone else.** Most reporting tools assume an office, a staff, and a steady internet connection. Field work has none of those.
-- **The record lives on someone else's server.** When a community's history sits inside one company's platform, the community does not really own it.
+- **Evidence takes time to organize.** Photos and notes need context before someone else can judge them. That work competes with time in the field.
+- **Field work needs field tools.** A weak signal should not stop someone recording what they did. A long reporting form should not be the only way to show it.
+- **Supporters need a basis for trust.** A claim is more useful when they can see the evidence, the review, and who stands behind it.
 
 ## What we believe
 
 - **The people who do the work should be the ones who are seen for it.** Not an intermediary, and not a platform.
 - **Trust starts with neighbors.** A steward who knows the place and the people is a better first reviewer than a distant form. So review in Green Goods is local.
-- **Tools should fit the field.** The app works without a signal, signs you in with your fingerprint, and is available in English, Spanish, and Portuguese.
+- **Tools should fit the field.** You can record without a signal, sign in with a passkey, and use the app in English, Spanish, or Portuguese.
 - **Records should outlive the tool.** What a garden records is public and stays readable outside Green Goods.
 - **Honesty beats polish.** We say what works today and what does not yet. [Honest Claims](/community/green-goods-claims) keeps that list.
 
@@ -57,13 +64,36 @@ Green Goods is shaped by the kinds of communities it serves:
 - **Solar teams** who keep panels and batteries working for a campus or a neighborhood, and need to show the upkeep that nobody sees.
 - **Waste crews** who collect, sort, and compost, and want a record of what was kept out of the landfill.
 - **Tree-planting and land-restoration groups** whose work takes years to show, and who need a way to mark each season.
+- **Agroforestry and farming collectives** who care for soil and grow trees alongside crops, and want to document the work that keeps the land productive.
 - **Educators** who run classes and workshops, and want to show what people actually learned and used.
 
 Their work is small in any one day and large over a year. Green Goods is built to honor the small work: one tree, one bag, one panel, one class.
 
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/community-waste-sorting.jpg" alt="Three Wings of the Ocean volunteers sort waste collected from a beach into separate groups." width="1280" height="853" loading="lazy" />
+  <figcaption>
+    A real community example: Wings of the Ocean volunteers sorting waste in Mallorca in 2021.
+    This illustrates the kind of work a waste crew does; it is not a Green Goods project.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Wings_of_the_Ocean_-_Tri_d%C3%A9chets_%C3%A0_Majorque_(2021).jpg">Victor Janjić</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; Wikimedia's resized version, cropped for display.
+  </figcaption>
+</figure>
+
+## From shared goals to promises
+
+A garden also needs to agree on what happens next: who will do the work, what support they need, and how the community will know it was done.
+
+**Commitment Pooling** gives those promises a shared home and rules for checking them. It connects planning with evidence and confirmation, so a community can follow a promise from agreement to review. Financial support, when agreed, has its own conditions and payment steps. It is not guaranteed by a work approval.
+
+This is part of the product being prepared for release. [How It Works](/community/how-it-works#commitment-pooling) explains how it fits alongside the garden's existing funding flows.
+
 ## More than money
 
 A tree is not only carbon. It is also food, shade, a lesson for someone's child, and a reason for neighbors to meet. Green Goods uses a framework called the **eight forms of capital** to name the kinds of value that work creates, so a garden is not judged by money alone.
+
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-solar-workshop.webp" alt="Two adults' hands inspect a small solar panel on a wooden workbench, with a notebook and tools beside it." width="1774" height="887" loading="lazy" />
+  <figcaption>Tools, shared knowledge, and practical skills are part of a garden's value, too. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real person, workshop, or location.</figcaption>
+</figure>
 
 | Form | What it means |
 |---|---|
@@ -80,7 +110,9 @@ When a garden's actions are set up, each one is marked with the forms of capital
 
 ## A wider frame
 
-The work gardens do lines up with several of the United Nations Sustainable Development Goals: good health (3), clean water (6), clean energy (7), sustainable communities (11), responsible consumption (12), and life on land (15). We mention them so a funder who thinks in those terms can find their place. A garden does not need to.
+The United Nations Sustainable Development Goals give communities and supporters a common way to discuss their aims. Agriculture can relate to [sustainable food production (Goal 2)](https://sdgs.un.org/goals/goal2), solar work to [clean energy (Goal 7)](https://sdgs.un.org/goals/goal7), and restoration to [life on land (Goal 15)](https://sdgs.un.org/goals/goal15).
+
+Those connections help explain the purpose of a project. Recording an action does not by itself prove progress against an SDG target. A garden still needs to decide what to measure and show the results.
 
 ## Built in the open
 

@@ -301,7 +301,7 @@ export function renderPersonas({ root, sources, digest }) {
   }
 
   if (ontology.personas_note) body += `## The owner\n\n${ontology.personas_note}\n\n`;
-  body += "Which surfaces may *name* a persona, in copy and in data, is a separate vocabulary rule. The [glossary](/glossary) carries it in its allowed-surfaces column.\n";
+  body += "Which surfaces may *name* a persona, in copy and in data, is a separate vocabulary rule. The [formal ontology](/reference/ontology#personas) carries it in its surfaces column.\n";
   return body;
 }
 
@@ -863,13 +863,56 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
   });
 }
 
+// Stable published links: removing or renaming a source term needs an explicit replacement.
+const PUBLISHED_GLOSSARY_TERMS = [
+  ["entity:garden", "garden"],
+  ["entity:action", "action"],
+  ["entity:work", "work"],
+  ["entity:work-approval", "work-approval"],
+  ["entity:assessment", "assessment"],
+  ["entity:hypercert", "hypercert"],
+  ["entity:vault", "vault"],
+  ["entity:cookie-jar", "cookie-jar"],
+  ["entity:attestation", "attestation"],
+  ["entity:hat", "hat"],
+  ["entity:season", "season"],
+  ["entity:need", "need"],
+  ["entity:commitment-pool", "commitment-pool"],
+  ["entity:commitment-cycle", "commitment-cycle"],
+  ["entity:commitment-series", "commitment-series"],
+  ["entity:commitment-provider-exposure", "commitment-provider-exposure"],
+  ["entity:commitment-unit-summary", "commitment-unit-summary"],
+  ["entity:commitment-series-cycle-summary", "commitment-series-cycle-summary"],
+  ["entity:commitment", "commitment"],
+  ["entity:commitment-contributor", "commitment-contributor"],
+  ["entity:commitment-payout-plan", "commitment-payout-plan"],
+  ["persona:gardener", "gardener"],
+  ["persona:steward", "steward"],
+  ["persona:evaluator", "evaluator"],
+  ["persona:funder", "funder"],
+  ["persona:community-member", "community-member"],
+  ["supporting:domain", "domain"],
+  ["supporting:eas", "eas"],
+  ["supporting:eight-forms-of-capital", "eight-forms-of-capital"],
+  ["supporting:impact-token", "impact-token"],
+  ["supporting:indicator", "indicator"],
+  ["supporting:ipfs", "ipfs"],
+  ["supporting:karma-gap", "karma-gap"],
+  ["supporting:mdr", "mdr"],
+  ["supporting:on-chain", "on-chain"],
+  ["supporting:outcome", "outcome"],
+  ["supporting:owner", "owner"],
+  ["supporting:passkey", "passkey"],
+  ["supporting:pwa", "pwa"],
+  ["supporting:resolver", "resolver"],
+  ["supporting:schema", "schema"],
+  ["supporting:smart-account", "smart-account"],
+];
+
 export function renderGlossary({ root, sources, digest }) {
   const ontology = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-ontology.json"));
   const projections = readJson(root, declaredSource(sources, "packages/shared/src/ontology/green-goods-projections.json"));
   const vocabulary = readJson(root, declaredSource(sources, "scripts/data/banned-vocabulary.json"));
-  const capabilityByRef = new Map((projections.capabilities ?? []).map((capability) => [capability.ref, capability]));
-  const canonicalEntities = ontology.entities.filter((entity) => entity.semantic_status === "canonical");
-  const capital = ontology.vocabularies.find((item) => item.id === "capital");
   const everyday = glossaryEverydayEntries(ontology, projections);
   const everydayRefs = new Set(everyday.map((entry) => entry.ref));
   const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
@@ -877,8 +920,9 @@ export function renderGlossary({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Glossary", slug: "/glossary", audience: "all", sources, digest },
     "Glossary",
-    "The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. If you build on Green Goods, the [formal definitions](#formal-definitions) are further down this page."
+    "The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. Formal definitions and technical reference live in the [Builders ontology](/reference/ontology)."
   );
+  body = body.replace(/^# Glossary$/m, 'import TermAnchor from "@site/src/components/docs/TermAnchor";\n\n<TermAnchor id="glossary" />\n\n# Glossary');
   body += "## Everyday terms\n\n";
   for (const entry of everyday) {
     for (const id of entry.aliasAnchors) body += `<a id="${id}"></a>\n\n`;
@@ -890,51 +934,28 @@ export function renderGlossary({ root, sources, digest }) {
     if (entry.availabilityNote) body += `- **Availability:** ${entry.availabilityNote}\n`;
     body += `- **Read more:** [${entry.guide[0]}](${entry.guide[1]}).\n\n`;
   }
-  body += "## Formal definitions {#formal-definitions}\n\n";
-  body += "This part is for builders. The ontology owns domain entities, personas, and supporting terms. Capability projections keep current availability separate from meaning, while the vocabulary policy records language that Green Goods does not use.\n\n";
-  body += `The ontology currently declares ${canonicalEntities.length} canonical concepts. Availability is projected separately and does not change what a term means.\n\n`;
-  body += "## Domain Entities\n\n| Term | Type | Availability | Allowed surfaces | Definition |\n|---|---|---|---|---|\n";
-  for (const entity of canonicalEntities) {
-    const capability = capabilityByRef.get(`entity:${entity.id}`);
-    body += `| **${esc(entity.display)}** | entity | ${esc(capability?.availability ?? "not projected")} | ${entity.surfaces.map(esc).join(" · ")} | ${esc(entity.definition)} |\n`;
-  }
-  body += "\n## Personas\n\n| Term | Type | Allowed surfaces | Definition |\n|---|---|---|---|\n";
-  for (const persona of ontology.personas) {
-    body += `| **${esc(persona.display)}** | persona | ${persona.surfaces.map(esc).join(" · ")} | ${esc(persona.definition)} |\n`;
-  }
-  if (capital) {
-    const ordering = capital.canonical.members
-      .map((member, index) => `${member[0]}${member.slice(1).toLowerCase()} (${index})`)
-      .join(", ");
-    body += `\nThe canonical machine ordering is the \`Capital\` enum: ${ordering}.\n\n`;
-  }
-  // The everyday terms above already have their heading; the rest of the vocabulary gets one here.
-  body += "## Term Reference\n\n";
-  for (const entity of canonicalEntities) {
-    const ref = `entity:${entity.id}`;
+  body += "## Builder reference {#formal-definitions}\n\n";
+  body += "Definitions, allowed surfaces, and technical terms are generated together in the [ontology](/reference/ontology). Older links still work below.\n\n";
+  for (const [anchor, target, label] of [
+    ["domain-entities", "entities", "Domain entities"],
+    ["personas", "personas", "Personas"],
+    ["term-reference", "entities", "Formal term reference"],
+    ["language-policy", "language-policy", "Language policy"],
+    ["lint-enforced-terms", "language-policy", "Vocabulary policy"],
+    ["admin-prompt-vocabulary", "language-policy", "Admin vocabulary"],
+    ["client-prompt-vocabulary", "language-policy", "Client vocabulary"],
+   ]) body += `#### [${label}](/reference/ontology#${target}) {#${anchor}}\n\n`;
+  const terms = new Map([
+    ...ontology.entities.map(term => [`entity:${term.id}`, term]),
+    ...ontology.personas.map(term => [`persona:${term.id}`, term]),
+    ...ontology.supporting_terms.map(term => [`supporting:${term.id}`, term]),
+  ]);
+  for (const [ref, anchor] of PUBLISHED_GLOSSARY_TERMS) {
+    const term = terms.get(ref);
+    if (!term) throw new Error(`Published glossary link ${anchor} needs a declared replacement for ${ref}`);
     if (everydayRefs.has(ref)) continue;
-    body += `${legacyAnchors(ref)}### ${entity.display} {#${entity.id}}\n\n${entity.definition}\n\n`;
-    const capability = capabilityByRef.get(ref);
-    if (capability?.availability) body += `**Availability:** ${esc(capability.availability)}.\n\n`;
+    body += `${legacyAnchors(ref)}#### [${esc(term.display)}](/reference/ontology#${term.id}) {#${anchor}}\n\n`;
   }
-  for (const persona of ontology.personas) {
-    const ref = `persona:${persona.id}`;
-    if (everydayRefs.has(ref)) continue;
-    body += `${legacyAnchors(ref)}### ${persona.display} {#${persona.id}}\n\n${persona.definition}\n\n`;
-  }
-  for (const term of ontology.supporting_terms ?? []) {
-    body += `${legacyAnchors(`supporting:${term.id}`)}### ${term.display ?? term.id} {#${term.id}}\n\n${term.reason}\n\n`;
-  }
-  body += "## Language policy\n\n";
-  body += `${vocabulary.linter_enforced.rationale}\n\n`;
-  body += "### Lint-enforced terms\n\n";
-  for (const term of vocabulary.linter_enforced.terms) body += `- \`${esc(term)}\`\n`;
-  body += "\n### Admin prompt vocabulary\n\n";
-  body += `${vocabulary.prompt_vocabulary_admin_banned.rationale}\n\n`;
-  for (const term of vocabulary.prompt_vocabulary_admin_banned.terms) body += `- \`${esc(term)}\`\n`;
-  body += "\n### Client prompt vocabulary\n\n";
-  body += `${vocabulary.prompt_vocabulary_client_banned.rationale}\n\n`;
-  for (const term of vocabulary.prompt_vocabulary_client_banned.terms) body += `- \`${esc(term)}\`\n`;
   return body;
 }
 

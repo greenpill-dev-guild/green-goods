@@ -5,7 +5,7 @@ slug: /community/funder-guide/withdraw-from-a-vault
 description: "Take some or all of your endowment back out of a garden, from the public Fund page."
 audience: funder
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Walk a funder through withdrawing part or all of an endowment, and explain what the amounts on screen mean."
 difficulty: "quickstart"
@@ -19,6 +19,7 @@ source_of_truth:
   - packages/shared/src/hooks/public/usePublicEndowmentPositions.ts
   - packages/shared/src/hooks/vault/useVaultWithdraw.ts
   - packages/shared/src/hooks/vault/useVaultPreview.ts
+  - packages/shared/src/utils/blockchain/vaults.ts
   - packages/client/src/components/Sheets/EndowmentSheet/MyDepositRow.tsx
   - packages/contracts/src/vendor/octant/core/MultistrategyVault.sol
   - packages/contracts/src/strategies/AaveV3ERC4626.sol
@@ -50,7 +51,8 @@ Take some or all of your endowment back out. There is no lock-in and no notice p
 4. Under **What you've supported**, find the garden and the token.
 5. Tap **Withdraw** on that row.
 6. Enter the **Withdrawal amount**, or tap **Max** to take everything that is available now.
-7. Tap the button that reads **Withdraw** and your amount, then confirm in your wallet.
+7. Check that you accept the withdrawal's allowance of up to **1% loss during processing**. The amount received can be lower than the amount you request.
+8. Tap the button that reads **Withdraw** and your amount, then confirm in your wallet.
 
 ### What the numbers mean
 
@@ -65,22 +67,22 @@ Take some or all of your endowment back out. There is no lock-in and no notice p
 
 ## How you know it worked
 
-- A message says the amount was **returned to your wallet**.
-- The row's **Available if needed** drops by what you took out.
-- Your wallet's history shows the transaction on Arbitrum, and the token is back in your wallet.
+- A message says the amount was **returned to your wallet**. It uses the amount requested, so it is not proof of the exact amount received.
+- The row's **Available if needed** updates once the records catch up.
+- Check your wallet's transaction and the token amount actually received. This is the result to rely on.
 
 ## What happens next
 
-Nothing else is needed. Whatever you left in keeps earning for the garden. You can deposit again whenever you like, from [Endow a Garden](/community/funder-guide/funding-a-garden).
+Nothing else is needed. Whatever you leave in remains deposited and may earn support for the garden; earnings are not guaranteed. You can deposit again whenever you like, from [Endow a Garden](/community/funder-guide/funding-a-garden).
 
 ## If something goes wrong
 
 | What you see | What to do |
 |---|---|
-| **No endowments for this wallet yet** | This wallet has no deposit on record. Check that you connected the wallet you endowed from. A very recent deposit can take a moment to appear |
+| **No endowments for this wallet yet** | No current endowment is shown for this wallet. Check the wallet you connected; a recent deposit can take a moment to appear. A fully withdrawn endowment no longer appears here |
 | **Amount is higher than the current withdrawable amount** | Enter less, or tap **Max** |
 | **Available if needed** reads **Unavailable** | The page could not read the amount. Close the panel and open it again |
-| **Available** is less than you deposited | The money held for the endowment has lost value, or not all of it can be paid out right now. Take what is available, and check again later for the rest |
+| **Available** is less than you deposited | The endowment may have lost value, or funds may be temporarily unavailable. Losses can be permanent; do not assume the difference will become available later |
 | **Enter a valid number**, or **Too many decimal places** | Fix the amount |
 | **Transaction cancelled** | You closed the wallet's confirmation. Nothing was withdrawn |
 | **Transaction failed** | One cause is that not enough can be paid out right now for the amount you asked. Try a smaller amount, or try later |

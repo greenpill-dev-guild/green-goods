@@ -24,9 +24,7 @@ const sidebars: SidebarsConfig = {
       label: 'Steward',
       link: {type: 'doc', id: 'community/steward-guide/index'},
       items: [
-        {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
         {type: 'doc', id: 'community/steward-guide/managing-members', label: 'Manage Members'},
-        {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
         // Stewards write assessments too, and an assessment comes before the work it frames.
         // The page lives in the Evaluator guide; this entry links to it.
         {type: 'ref', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Assessment'},
@@ -144,6 +142,14 @@ const sidebars: SidebarsConfig = {
       label: 'Reference',
       collapsed: true,
       items: [
+        {
+          type: 'category',
+          label: 'Garden setup (deployer)',
+          items: [
+            {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
+            {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
+          ],
+        },
         {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
         {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
         {type: 'doc', id: 'reference/ontology.generated', label: 'Ontology'},

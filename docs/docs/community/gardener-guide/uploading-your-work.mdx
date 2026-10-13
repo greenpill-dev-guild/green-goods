@@ -5,7 +5,7 @@ slug: /community/gardener-guide/uploading-your-work
 description: "Document work you did in a garden, with photos and details, and send it to a steward for review. Works with weak or no signal."
 audience: gardener
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Complete one work submission successfully on the first try, including in low-connectivity field conditions."
 difficulty: "standard"
@@ -15,6 +15,7 @@ next_steps: "/community/gardener-guide/track-status-and-attestations"
 persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
   - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Garden/Intro.tsx
   - packages/client/src/views/Garden/Media.tsx
   - packages/client/src/views/Garden/Details.tsx
@@ -26,6 +27,11 @@ source_of_truth:
   - packages/shared/src/hooks/work/useWorkMutation.ts
   - packages/shared/src/hooks/work/useDraftAutoSave.ts
   - packages/shared/src/hooks/work/workSubmissionFeedback.ts
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/modules/work/upload-preparation.ts
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/modules/work/upload-kinds.ts
+  - packages/shared/src/utils/eas/encoders.ts
   - packages/shared/src/i18n/en.json
 keywords:
   - submit work
@@ -51,6 +57,11 @@ Submit a clear record of something you did in your garden so a steward can revie
 - **Have your evidence ready:** photos, and a short video or voice note if it helps.
 - **Weak signal is fine.** Your work is saved on your phone as you go, and you can send it later.
 
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table." width="1536" height="1024" decoding="async" />
+  <figcaption>Give the evidence enough context for someone else to understand the work. Editorial illustration reused from Green Goods' website Actions imagery; not a real submission.</figcaption>
+</figure>
+
 ## Steps
 
 The top of the screen shows where you are: **Start**, **Media**, **Details**, **Review**.
@@ -74,17 +85,27 @@ If you left work unfinished earlier, the app asks **Continue Previous Work?** fi
 
 Evidence should make the work easy to verify.
 
+:::warning Choose what you make public
+Uploaded photos and other media are public. When you are online, the app can prepare queued photos and details in public storage before you tap **Upload all**. Preparing those files is separate from sending the work record. Only include what you are comfortable making public; see [what to keep out of your photos](/faq#what-should-i-keep-out-of-my-photos).
+:::
+
 1. Read the line under **Upload Media**. It says what this action needs to see.
-2. Use the three buttons at the bottom to choose from your photos, take a photo, or record a voice note.
+2. Use **Choose from Your Photos** or **Take a Photo**. Turn on **Record a voice note** if a spoken explanation would help.
 3. Watch the counter, for example **1 of 2 photos**. It turns into **2 photos added** when you have enough.
 4. Retake anything blurry, dark, or incomplete before you move on.
 5. Tap **Details**. It stays grey until the action has the photos it needs.
 
 Limits: up to 10 files and 50 MB in one submission. Each photo can be up to 10 MB. A video can be up to 20 MB and 30 seconds long. A video does not count toward the photos an action needs.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
-  <img src="/img/screenshots/client-work-media.webp" alt="The Media step: the heading Upload Media, a line saying what to photograph, the counter 1 photo added, one photo preview, and buttons to choose a photo, take a photo, or record a voice note beside the Details button" loading="lazy" width="780" height="1688" />
-  <figcaption>Step 2, Media. The counter tells you when the action has what it needs. Source: Storybook fixture, October 2026.</figcaption>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-media-current.png" alt="The Media step: the heading Upload Media, a line saying what to photograph, the counter 1 photo added, one photo preview, and buttons to choose a photo, take a photo, or record a voice note beside the Details button" loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>Step 2: check the photo rule.</strong> Read what this action asks you to photograph. The counter tells you when you have enough; <strong className="gg-inline-label">Details</strong> takes you to the questions.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork, Media With Example Photo.
+    Captured 13 October 2026, 390 × 844; fixture build recorded in the Plan Hub image ledger.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    The photo illustrates this fictional example. Use your own work photos when submitting.</span>
+  </figcaption>
 </figure>
 
 > A clear photo usually beats a long explanation.
@@ -111,11 +132,18 @@ One last look prevents most rework.
 1. Check the garden, the photos, and your answers.
 2. If anything is wrong, use the back arrow and fix it.
 3. Tap **Upload Work**.
-4. Confirm when your phone asks, with your fingerprint, face, or screen lock.
+4. Confirm when your phone or wallet asks. With a passkey, use your fingerprint, face, or screen lock.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
-  <img src="/img/screenshots/client-work-review.webp" alt="The Review step: the heading Review Work, a card reading Work for Transplant 36 seedlings into the east beds, then the garden, two photos, and the details, above the Upload Work button" loading="lazy" width="780" height="1688" />
-  <figcaption>Step 4, Review. Your last chance to catch the wrong garden, the wrong action, or a missing photo. This example was sent for a promise, so it shows a Work for card. Yours may not. Source: Storybook fixture, October 2026.</figcaption>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-review-example.png" alt="The scrolled Review step shows part of a seedling photo, Seedling Transplant, Time Spent of 1h 30m, Plants moved of 36, a field note and Upload Work." loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>Step 4: check the recorded details.</strong> This view is scrolled to the action, time, count and note. Check your garden and full photo above, then use <strong className="gg-inline-label">Upload Work</strong> when everything matches.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork,
+    Review With Example Photo. Captured 13 October 2026, 390 × 844, scrolled to Details;
+    fixture build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    The garden, 36-plant count, 90-minute duration and note are fictional sample data,
+    not facts verified by this photograph.</span>
+  </figcaption>
 </figure>
 
 ### If you are offline
@@ -124,11 +152,14 @@ Green Goods is built for the field.
 
 - The steps are the same without a signal, as long as you have opened the app online before. When you tap **Upload Work**, a message says **Saved offline**, and the work waits on your phone.
 - When you are back online, open **Your Work** and tap **Upload all**. Nothing is added to the garden's record until you do.
-- Do not submit the same work twice because the first one has not gone yet. It is safe where it is.
+- Do not submit the same work twice because the first one has not gone yet. Keep the queued copy; clearing app storage or removing the app can lose work you have not sent.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
-  <img src="/img/screenshots/client-work-offline.webp" alt="Your Work while offline: the line Offline with a time, and items marked Can't upload, To upload, and Draft waiting on the phone" loading="lazy" width="780" height="1688" />
-  <figcaption>Your Work with no signal. Everything here is still on the phone. Source: Storybook fixture, October 2026.</figcaption>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-offline-example.png" alt="Your Work while offline, showing one Seedling Transplant record marked To upload and the saved time." loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>The work waits when there is no signal.</strong> <strong className="gg-inline-label">To upload</strong> is waiting for you to send it. Media may already have been prepared in public storage while you were online; the status describes the work record.
+    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Offline With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
+  </figcaption>
 </figure>
 
 ## How you know it worked
@@ -150,7 +181,7 @@ Once work is sent, it becomes part of the garden's public record and cannot be e
 | Your garden is not in the list | You are not a member yet, or you are signed in to a different account. See [Join a Garden](/community/gardener-guide/joining-a-garden) |
 | **Start Gardening**, **Details**, or **Review Work** stays grey | Something is missing on this step: an action or garden, a photo the action needs, or a field with a red star |
 | **Some files were not added** | The file is not a photo or video the app can read, or it is over the size limits above |
-| **Upload cancelled** | You closed the confirmation. Nothing was sent. The work is in **Your Work**, on the **Pending** tab, ready to upload or discard |
+| **Upload cancelled** | You closed the signing confirmation. The work record was not sent. Find it in **Your Work**, on **Pending**, ready to upload or discard. Media may already have been prepared in public storage |
 | **Connection unstable** | The work is saved and waiting. Send it from **Your Work** when your signal is steady |
 | A draft says a photo is no longer readable | Remove that photo, then add it again from the **Media** step |
 | **You have 20 drafts** | Delete a draft you no longer need to make room. Your other drafts are safe |
@@ -161,7 +192,7 @@ For anything that will not send, see [Recover Unsent Work](/community/gardener-g
 
 <NextBestAction
   title="Track your work"
-  why="Your work is with a steward now. See what each status means and what to do if it comes back."
+  why="See whether your work is still queued, with a steward, or reviewed, and what to do next."
   actionLabel="Track Your Work"
   actionHref="/community/gardener-guide/track-status-and-attestations"
 />

@@ -5,7 +5,7 @@ slug: /community/steward-guide/reviewing-work
 description: "Review what gardeners submit: what good evidence looks like, how to choose a confidence level, and how to reject in a way that helps."
 audience: steward
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Walk a steward through approving or rejecting a submission, with the judgment to do it consistently."
 difficulty: "standard"
@@ -44,11 +44,11 @@ import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
 Reviewing is the heart of a steward's job. A gardener says "I did this." You look at the evidence and decide whether the garden stands behind it. Your decision is saved next to their work, with your reason, for anyone to read.
 
-This page has two halves: how to judge a submission, then the steps on the screen.
+Start with the judgment below, then follow either the [dashboard steps](#steps-in-the-dashboard) or the [phone steps](#steps-in-the-app).
 
 ## Before you start
 
-- **Be a steward or owner of the garden.** Evaluators cannot approve or reject work, and the cockpit does not show them the review queue.
+- **Be a steward or owner of the garden.** Evaluators cannot approve or reject work, and the dashboard does not show them the review queue.
 - **Review while the action is still open.** Once an action's end date passes, no decision can be recorded for work submitted under it.
 - **You cannot review your own work.** Another steward has to.
 - **Decisions are permanent.** You cannot change or undo one, so take the minute it needs.
@@ -85,17 +85,20 @@ A rejection is the gardener's fix list. Say exactly what to change so the next t
 
 A rejected submission cannot be edited. The gardener submits a new one, so your note is all they have to go on.
 
-## Steps in the cockpit
+<a id="steps-in-the-cockpit"></a>
 
-Use the cockpit when you have several submissions to get through.
+## Steps in the dashboard
+
+Use the dashboard when you have several submissions to get through.
 
 1. Open **Hub**. You land on the **Work** tab, filtered to **Pending**.
 2. Tap a submission to open it. The evidence is on the left and **Steward Review** is on the right.
 3. Look through **Media Evidence**, then read **Submission Details**, including **Gardener notes**.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-review-queue.webp" alt="Four submissions waiting in the cockpit's review queue, one from each area of work: Planted 50 native saplings, Cleared 40kg of debris, Led composting workshop, and Solar panel maintenance. Each card shows its action, who submitted it, when, and a Pending label" loading="lazy" width="2000" height="486" />
-  <figcaption>Submissions waiting for review. Each card names the work, its action, and who sent it. Source: Storybook fixture, 12 October 2026.</figcaption>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="lazy" width="366" height="358" />
+  <figcaption><strong>Open the record behind the card.</strong> The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.
+  <span className="gg-overview-source">Source: local static Storybook, HubWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 × 900. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The garden, sender and work record are fictional.</span></figcaption>
 </figure>
 
 To approve:
@@ -106,7 +109,7 @@ To approve:
 
 <figure className="gg-figure" style={{maxWidth: '560px'}}>
   <img src="/img/screenshots/admin-review-form.webp" alt="The Steward Review form: a Confidence level row with Low, Medium, and High and the line Choose a confidence level to approve, an optional Feedback box, an optional Audio review note with a Record Audio Note button, a note saying who will see the decision, and the buttons Reject and Approve, with Approve greyed out" loading="lazy" width="1152" height="1080" />
-  <figcaption>Steward Review before a confidence level is chosen. Approve stays grey until you pick one. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>Steward Review before a confidence level is chosen. Approve stays grey until you pick one. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 To reject:
@@ -117,7 +120,7 @@ To reject:
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>
   <img src="/img/screenshots/admin-reject-work.webp" alt="The Reject Work dialog for a submission named Planted 50 native saplings: the line The gardener sees your reason, a required box labeled Why are you rejecting this? holding the text Details are missing, the suggestions Photos don't show the work, Details are missing, and Wrong action chosen, and the buttons Cancel and Reject Work" loading="lazy" width="960" height="900" />
-  <figcaption>Reject Work, with one of the three suggestions chosen. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>Reject Work, with one of the three suggestions chosen. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 ## Steps in the app
@@ -127,14 +130,26 @@ Use the app on your phone when you are at the garden.
 1. Open the garden from **Home** and tap its **Work** tab. Or open **Your Work**, stay on **Pending**, and set the filter to **Needs review**.
 2. Tap a submission. Its heading reads **Evaluate Work**.
 3. Tap **Approve** or **Reject**.
-4. In **Add Feedback**, check the **Confidence**. It starts on Medium, so change it if that is not right. Feedback is optional when you approve and required when you reject.
+4. In **Add Feedback**, check **Confidence** if you are approving. It starts on Medium, so change it if that is not right. Write feedback if it helps; a reason is required when you reject.
 5. Tap **Submit** and confirm.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-review-work.png" alt="Evaluate Work on a phone, showing the garden, a seedling photograph and the Approve and Reject controls." loading="lazy" width="390" height="844" />
+  <figcaption><strong>Check the garden and the evidence.</strong> Scroll down for the recorded numbers and note before choosing <strong className="gg-inline-label">Approve</strong> or <strong className="gg-inline-label">Reject</strong>.
+  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Evaluate Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. Fictional work; not evidence of the sample count or time.</span></figcaption>
+</figure>
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-review-feedback.png" alt="Add Feedback on the phone with Medium confidence selected, an example review note, Cancel and Submit." loading="lazy" width="390" height="844" />
+  <figcaption><strong>Make the decision your own.</strong> Medium is the starting confidence in the app. Change it when needed and write feedback that will help the gardener.
+  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Feedback Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. All record and review data is fictional. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. No decision was submitted.</span></figcaption>
+</figure>
 
 With no signal, the app saves your decision on the phone. Send it later from **Your Work** with **Upload all**.
 
 ## How you know it worked
 
-- **In the cockpit:** a message says **Approval submitted** or **Decision submitted**, and the submission leaves the **Pending** list. Approved work appears under the **Approved** filter.
+- **In the dashboard:** a message says **Approval submitted** or **Decision submitted**, and the submission leaves the **Pending** list. Approved work appears under the **Approved** filter.
 - **In the app:** a message says **Work approved** or **Work rejected**, and the submission shows **Approved** or **Rejected** with no buttons.
 
 ## What happens next
@@ -147,16 +162,25 @@ Approving does not pay the gardener. If your garden rewards work from its shared
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| **Independent review required** | You submitted this work. Ask another steward of the garden to review it |
-| **Action expired** | The action closed before a decision was made, and none can be recorded now. Ask the gardener to submit again under an action that is open |
-| **Owner or steward access required** | You can see the work, but your role does not allow a decision. Ask an owner or steward to add the Steward role |
-| **Approve** stays grey | Choose a confidence level first |
-| **This work has already been reviewed** | Another steward decided first. Open it to read the **Review Summary** |
-| **Decision failed** | Nothing was recorded. Check your connection and try again |
-| **Connection unstable** | Your decision was not sent. Try again when your connection is steady |
-| You decided wrongly | It cannot be changed. If you rejected good work, ask the gardener to submit it again and approve that one. If you approved weak work, tell the garden's owner before it goes into a certificate |
+### Your account cannot decide
+
+**Independent review required** means you submitted the work; ask another steward to review it. **Owner or steward access required** means your role cannot record the decision; ask an owner or steward to add the Steward role.
+
+### Approve stays grey
+
+Choose a confidence level first. If **Action expired** appears, the action closed before a decision was recorded. Ask the gardener to submit again under an open action.
+
+### Someone already reviewed it
+
+For **This work has already been reviewed**, open the **Review Summary**. A second decision cannot replace it.
+
+### Sending failed
+
+For **Decision failed** or **Connection unstable**, check the status and connection before trying again. In the phone app, a saved offline decision waits in **Your Work** for **Upload all**; do not enter it a second time. See [Recover Unsent Work](/community/gardener-guide/recovery-and-sync).
+
+### You decided wrongly
+
+A recorded decision cannot be changed. If you rejected good work, ask the gardener to submit it again and review that new submission. If you approved weak work, tell the garden's owner before it goes into a certificate.
 
 To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 

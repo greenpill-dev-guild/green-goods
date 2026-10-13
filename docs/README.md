@@ -71,7 +71,29 @@ Each page must make sense when opened directly from a message or a search result
 
 Check every label against the owning view or `packages/shared/src/i18n/en.json`, and every statement about review, rewards, privacy, or money against the code that enforces it, before it goes on a page.
 
-Screenshots support the text and never carry a step alone. Each one needs alt text that says what is shown and a caption that names its source and date. Take them from a Storybook fixture, a demo, or a public page, never from a live garden's members or photos. The docs audit fails on an image nothing uses, but it does not check that an `<img>` path exists, so confirm each new path yourself.
+Screenshots support the text and never carry a step alone. Each one needs alt text that says what is shown and a caption that names its source, capture date, viewport/crop where relevant, and build revision when available. If the deployed fixture exposes no revision, say so. Take them from a Storybook fixture, a demo, or a public page, never from a live garden's members or photos. The docs audit fails on an image nothing uses, but it does not check that an `<img>` path exists, so confirm each new path yourself.
+
+### Glossary and ontology ownership
+
+The Community glossary is generated from selected `human_concepts`; formal definitions and
+technical vocabulary live in the generated Builders ontology. Both use the canonical ontology
+and its projection data. Former glossary anchors remain useful links to their formal destination.
+Update sources and run both generators, then docs-generated and ontology checks. Never copy
+formal definitions into authored pages. The ontology gate locks definitions/surfaces and checks
+public links; deterministic check mode rejects stale outputs. Authored explanations still need
+source review when business meaning or availability changes.
+
+### FAQ interaction and stable links
+
+`reference/faq.mdx` uses the docs-owned `FaqQuestions` and `FaqQuestion` components. Each question
+keeps an explicit published ID. Native disclosures support keyboard use; direct links reveal
+answers, and highlighted search visits open them. Open all answers provides a browser-find path.
+The Markdown twin exposes every question and complete answer, without the interaction wrappers.
+Keep important privacy and funding warnings visible in the relevant task guide as well.
+
+Generated formal table destinations use `TermAnchor`, which registers the real DOM target with
+Docusaurus's link checker. The twin emits a native HTML anchor. Test preserved destinations and
+regenerate through the owning renderer; do not silence broken-anchor checking to make a move pass.
 
 ### Voice
 

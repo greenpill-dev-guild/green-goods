@@ -19,7 +19,7 @@ const prismDark = {
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions on-chain',
-  favicon: 'img/favicon.ico', // Green Goods favicon from client app
+  favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -565,7 +565,7 @@ const config: Config = {
       logo: {
         alt: 'Green Goods Logo',
         src: 'img/green-goods-logo.png',
-        srcDark: 'img/green-goods-logo.png', // Same logo for dark mode
+        srcDark: 'img/green-goods-logo.png', // Canonical dark green in both modes
         style: { height: '32px', width: 'auto' }, // Preserve aspect ratio (819x464 = 1.76:1)
       },
       items: [

@@ -3,45 +3,30 @@
     "title": "Gardener",
     "href": "/community/gardener-guide/",
     "icon": "seedling",
-    "roleAccent": "gardener",
-    "audience": "People doing the work",
-    "time": "15 min to a first submission",
     "description": "Record your work in the field with photos and a few details, even without a signal."
   },
   {
     "title": "Steward",
     "href": "/community/steward-guide/",
     "icon": "shield",
-    "roleAccent": "steward",
-    "audience": "People running a garden",
-    "time": "5 min to request access",
     "description": "Bring people in, review their work, and look after the garden's funds."
   },
   {
     "title": "Evaluator",
     "href": "/community/evaluator-guide/",
     "icon": "clipboard",
-    "roleAccent": "assessment",
-    "audience": "People who know the subject",
-    "time": "5 min read",
     "description": "Help a garden write down its starting point and what it will measure."
   },
   {
     "title": "Funder",
     "href": "/community/funder-guide/",
     "icon": "wallet",
-    "roleAccent": "funder",
-    "audience": "People and organizations who give",
-    "time": "5 min to give",
     "description": "Donate to a garden or endow it, and know where the money goes."
   },
   {
     "title": "Builder",
     "href": "/builders/getting-started",
     "icon": "hammer",
-    "roleAccent": "builder",
-    "audience": "Developers",
-    "time": "30 min setup",
     "description": "Integrate with Green Goods contracts, APIs, and the shared component library."
   }
 ]

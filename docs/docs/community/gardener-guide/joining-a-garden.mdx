@@ -15,6 +15,7 @@ next_steps: "/community/gardener-guide/uploading-your-work"
 persona_context: "New gardeners joining the community they already work with, usually after a steward invites them."
 source_of_truth:
   - packages/client/src/views/Home/index.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Home/GardenFilters/index.tsx
   - packages/client/src/views/Home/Garden/index.tsx
   - packages/client/src/components/Features/Garden/JoinGardenButton.tsx
@@ -49,6 +50,11 @@ Every garden decides how people get in. Some are open to anyone. Others let a st
 - **Be online.** Joining needs a connection.
 - **Use one account.** Your membership belongs to the account that joined. If you sign in a different way later, the app treats you as someone new.
 
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-garden.webp" alt="A person holds a tray of seedlings beside growing beds and a wooden fence." width="1857" height="847" decoding="async" />
+  <figcaption>Join the community that will review your work. Editorial illustration reused from Green Goods' website Gardens imagery; no real garden or person is identified.</figcaption>
+</figure>
+
 ## Steps
 
 ### 1. Find the garden
@@ -57,9 +63,15 @@ Every garden decides how people get in. Some are open to anyone. Others let a st
 2. To see only gardens anyone can join, tap the filter button at the top of the list, then choose **Open gardens** in the **Filter Gardens** sheet.
 3. Tap the garden to open it. Check the name and location before you go on.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
-  <img src="/img/screenshots/client-garden-filters.webp" alt="The Filter Gardens sheet: under Show, the choices All gardens, My gardens, and Open gardens with the line Anyone can join without an invitation. Below are the four areas of work and the sorting choices" loading="lazy" width="780" height="1448" />
-  <figcaption>Open gardens narrows the list to gardens anyone can join. Source: Storybook fixture, 12 October 2026.</figcaption>
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-garden-filters.webp" alt="Filter Gardens with All gardens selected, My gardens and Open gardens below it, followed by domains and sorting choices." loading="lazy" width="780" height="1448" />
+  <figcaption>
+    <strong>Find an open garden.</strong> Under <strong className="gg-inline-label">Show</strong>, choose <strong className="gg-inline-label">Open gardens</strong> to narrow the list to gardens anyone can join. If your steward gave you a name, check the garden's name and location too.
+    <span className="gg-overview-source">Source: deployed Storybook, Client/Sheets/GardensFilterSheet,
+    Defaults fixture, with sample counts. Captured 12 October 2026; 780 × 1448 image from a
+    390 × 844 phone viewport at 2×, cropped to the sheet. Build revision unavailable.
+    All gardens is selected in this example.</span>
+  </figcaption>
 </figure>
 
 If a steward sent you a link, open it and tap **Open This Garden in the App**.
@@ -68,15 +80,25 @@ If a steward sent you a link, open it and tap **Open This Garden in the App**.
 
 What you see on the garden's page tells you which path to take.
 
+:::note Using your own wallet
+If you signed in with a passkey, Green Goods covers the network fee for joining an open garden. If you signed in with your own wallet, joining is a transaction you pay for, on the Arbitrum network, so keep a little ETH there. Sending a request to join has no fee.
+:::
+
 **If you see Join Garden.** The garden is open.
 
 1. Tap **Join Garden**.
 2. Read the message: you will join as a Gardener and can submit work right away.
 3. Tap **Join**, then confirm when your phone asks.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
+<figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-join-garden.webp" alt="The Join Garden sheet: the message You'll join Green Goods Community Garden as a Gardener and can submit work right away, above a Join button and a Cancel button" loading="lazy" width="780" height="588" />
-  <figcaption>The confirmation for an open garden. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>
+    <strong>Check the name before joining.</strong> The sheet names the garden you will join. Tap <strong className="gg-inline-label">Join</strong> to continue, or <strong className="gg-inline-label">Cancel</strong> if it is the wrong one.
+    <span className="gg-overview-source">Source: deployed Storybook, Client/Sheets/JoinGardenConfirmDialog,
+    Default fixture, with an example garden. Captured 12 October 2026; 780 × 588 image from a
+    390 × 844 phone viewport at 2×, cropped to the sheet. Build revision unavailable.
+    This is a confirmation screen, not proof of membership.</span>
+  </figcaption>
 </figure>
 
 **If you see Request to Join.** A steward approves each person.
@@ -107,21 +129,27 @@ In every case, a garden you belong to shows up in **My gardens** on your Profile
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| **Failed to join garden** | Check your connection and try again. This message also appears if you cancel the confirmation. If it keeps failing, the garden may have closed open joining or reached its limit, so ask the steward |
-| **You are already a member of this garden** | Nothing to fix. Go ahead and submit work |
-| No join button on a garden you expected to join | You may already be a member, or the garden takes members only through a steward. Check **My gardens**, then send the steward your **Account ID** |
-| You only see a public page with no way to join | You opened the garden in a browser tab. Tap **Open This Garden in the App**, or open Green Goods from your home screen and find the garden on **Home** |
-| The steward says they cannot find you | Send the **Account ID** shown in the app again. It is easy to send a different address by mistake |
-| You joined the wrong garden | Tell that garden's steward, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it |
-| You joined, but the garden is missing when you submit work | Wait a few seconds, then leave the **Garden** tab and open it again. Your membership shows at once, and the list of gardens catches up shortly after |
+### Joining fails
+
+**Failed to join garden:** check your connection and try again. This can also appear if you cancel your wallet or passkey confirmation. If it keeps failing, the garden may have closed open joining or reached its limit, so ask the steward.
+
+**You are already a member of this garden:** nothing to fix. Go ahead and submit work.
+
+### There is no join button
+
+Check **My gardens** first. You may already be a member. If you are not, the garden may take members only through a steward. Send the steward your **Account ID**.
+
+If you only see the public website, tap **Open This Garden in the App**, or open Green Goods from your home screen and find the garden on **Home**.
+
+### Your membership is missing or in the wrong garden
+
+If the steward cannot find you, send the **Account ID** shown in the app again. It is easy to send a different address by mistake.
+
+If you joined the wrong garden, tell that garden's steward, then join the right one. You can belong to more than one garden. Submit each piece of work to the garden that will review it.
+
+If you joined but the garden is missing when you submit work, wait a few seconds, then leave the **Garden** tab and open it again. Your membership shows at once, and the list of gardens catches up shortly after.
 
 Still stuck? Open **Profile**, then the **Help** tab, and tap **Telegram** to ask the community.
-
-:::note Using your own wallet
-If you signed in with a passkey, Green Goods covers the network fee for joining. If you signed in with your own wallet, joining is a transaction you pay for, on the Arbitrum network, so keep a little ETH there.
-:::
 
 ## Next step
 

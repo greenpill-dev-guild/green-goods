@@ -1,4 +1,5 @@
 import { Button } from "@green-goods/shared/components/Button";
+import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
 import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useIntl } from "react-intl";
@@ -25,13 +26,15 @@ import { publicCuration } from "@/content/publicCuration";
  * through the manifest `start_url` at `/home`.
  *
  * Composition order matches the editorial dialect:
- *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
+ *   Hero → Featured Gardens → Living Public Record → How it works (the
+ *   Needs → Commitment → Work → Learnings cycle) → Who Tends a Garden →
+ *   Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
   const { isMobile } = useApp();
   const stats = usePublicStats();
+  const commitments = usePublicCommitmentImpact();
 
   const counts = stats.data ?? {
     gardenCount: 0,
@@ -109,7 +112,10 @@ export default function Home() {
         contributors={counts.contributorCount}
         works={counts.fieldNoteCount}
         assessments={counts.attestationCount}
+        // A commitment read that settled without data is unknown, never zero.
+        commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
         isLoading={stats.isLoading}
+        isCommitmentsLoading={commitments.isLoading}
       />
       <PublicRecordLoop />
       <PublicWhoTendsAGarden />

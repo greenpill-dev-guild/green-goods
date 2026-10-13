@@ -43,11 +43,11 @@ export function FieldNotesSection({
       id="public-garden-detail-notes"
       kicker={formatMessage({
         id: "public.gardenDetail.section.notes",
-        defaultMessage: "§ 01: Field notes",
+        defaultMessage: "§ 01: Approved submissions",
       })}
       heading={formatMessage({
         id: "public.gardenDetail.notes.heading",
-        defaultMessage: "Recent approved work",
+        defaultMessage: "Recent approved submissions",
       })}
       helper={formatMessage({
         id: "public.gardenDetail.notes.helper",
@@ -61,14 +61,14 @@ export function FieldNotesSection({
         <SectionNotice
           message={formatMessage({
             id: "public.gardenDetail.notes.unavailable",
-            defaultMessage: "Field notes could not be loaded right now.",
+            defaultMessage: "Approved submissions could not be loaded right now.",
           })}
         />
       ) : notes.length === 0 ? (
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.notes.empty",
-            defaultMessage: "No field notes yet. They appear when Work is approved.",
+            defaultMessage: "No approved submissions yet. They appear when Work is approved.",
           })}
         />
       ) : (
@@ -101,7 +101,7 @@ export function FieldNotesSection({
               >
                 {formatMessage({
                   id: "public.gardenDetail.notes.loadMore",
-                  defaultMessage: "Show more entries",
+                  defaultMessage: "Show more submissions",
                 })}
               </Button>
             ) : null}
@@ -124,7 +124,7 @@ function FieldNoteTile({ note, onOpen }: { note: PublicFieldNote; onOpen: () => 
     note.title,
     formatMessage({
       id: "public.gardenDetail.notes.untitled",
-      defaultMessage: "Untitled entry",
+      defaultMessage: "Untitled submission",
     })
   );
   const cover = note.media[0];

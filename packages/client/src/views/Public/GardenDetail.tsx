@@ -190,7 +190,7 @@ export default function GardenDetail() {
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.entries",
-                defaultMessage: "Approved work",
+                defaultMessage: "Approved submissions",
               })}
               value={detail?.totalFieldNotes}
               loading={detailLoading}

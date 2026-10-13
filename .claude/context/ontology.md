@@ -6,7 +6,8 @@ ontology constraints or state machines, capability evidence, or the ontology sid
 ## Quick reference
 
 ```bash
-node scripts/quality/check-ontology.mjs --generate    # Regenerate all five projections from the sidecar and projection data
+bun ./scripts/quality/check-ontology.mjs --generate # Formal reference, claims, agent manifest
+bun ./scripts/docs/generate.mjs --scope ontology    # Community glossary and other docs projections
 bun run check --only ontology       # Verify declarations, anchors, generated output, and accepted drift
 node --test scripts/quality/check-ontology.test.mjs   # Run the checker fixtures directly
 ```
@@ -25,7 +26,7 @@ loads `agent-manifest.generated.json`.
 ## What the gate proves
 
 `bun run check --only ontology` performs exact checks for declared Solidity, GraphQL, and TypeScript
-vocabularies; EAS schema shapes; mappings; glossary definitions; stable source symbols; generated
+vocabularies; EAS schema shapes; mappings; formal definitions and public glossary links; stable source symbols; generated
 artifacts; and the bidirectional drift baseline. It validates state-machine structure, planned
 implementation arrival, and evidence-file presence.
 
@@ -38,15 +39,18 @@ that its contents still support a claim.
 - **On-chain wins for chain-backed vocabularies.** When a Solidity enum exists, its member names,
   order, and values are canonical. TypeScript and GraphQL representations declare their spelling
   in the sidecar; unexplained deviation is drift.
-- **The glossary wins for entity and persona prose.** Sidecar definitions and the glossary's Domain
-  Entities and Personas tables are locked together after normalization.
+- **The ontology owns entity and persona meaning.** Its generated Builders reference projects
+  the sidecar definitions, surfaces, and supporting terms. The Community glossary projects selected
+  human concepts and retains old public links. The drift gate locks formal tables to their source
+  and checks both destinations; neither authored prose nor a copied glossary definition overrides it.
 - **Each layer's spelling is explicit.** GraphQL sentinels, numeric enums, lowercase slugs, and
   other layer-specific forms belong in declared representations or mappings, not assumptions.
 
 ## Change protocol
 
 1. Edit the implementation, sidecar, and projection data together.
-2. Run `node scripts/quality/check-ontology.mjs --generate`; never hand-edit generated projections.
+2. Run `bun ./scripts/quality/check-ontology.mjs --generate` and
+   `bun ./scripts/docs/generate.mjs --scope ontology`; never hand-edit generated projections.
 3. Run `bun run check --only ontology` and fix every unlisted or stale finding.
 4. If temporary drift is intentional, add one bounded baseline entry with an owner, expiry, and
    concrete burn-down direction.
@@ -80,7 +84,8 @@ Never merge or cross-map these vocabularies because they share only an identifie
 
 ## Generated projections
 
-`node scripts/quality/check-ontology.mjs --generate` owns all five outputs:
+The quality generator owns the formal ontology, claims, and agent manifest. The docs generator
+owns the community glossary and entity matrix (and other documentation views):
 
 - `docs/docs/reference/ontology.generated.mdx`
 - `docs/docs/builders/architecture/entity-matrix.mdx`

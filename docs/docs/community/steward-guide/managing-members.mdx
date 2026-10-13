@@ -5,13 +5,13 @@ slug: /community/steward-guide/managing-members
 description: "Add people to your garden, change their roles, answer requests to join, and decide whether anyone can join without asking."
 audience: steward
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 goal: "Let a steward bring the right people into a garden with the right roles, and keep the door set the way the garden wants."
 difficulty: "standard"
 estimated_time: "2 to 10 minutes."
 prereqs: "Steward or owner access to the garden, and each person's account address or name."
-next_steps: "/community/steward-guide/managing-actions"
+next_steps: "/community/evaluator-guide/making-an-assessment"
 persona_context: "Stewards onboarding gardeners and fellow stewards, and answering requests to join."
 source_of_truth:
   - packages/admin/src/views/Community/index.tsx
@@ -41,11 +41,11 @@ import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
 <StewardPathNav />
 
-Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward cockpit, in the **Community** workspace.
+Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward dashboard, in the **Community** workspace.
 
 ## Before you start
 
-- **Be a steward or owner of the garden**, and check that its name shows at the top left of the cockpit.
+- **Be a steward or owner of the garden**, and check that its name shows at the top left of the dashboard.
 - **Get each person's Account ID.** Gardeners find it in the app, under **Profile**, on the **Account** tab. A name ending in `.eth` works too. Ask them to copy it from the app. People often own more than one address.
 - **Be online.** Each change is confirmed and saved one at a time.
 
@@ -60,10 +60,26 @@ Bring people into your garden, give them the right role, and decide how new peop
 
 <figure className="gg-figure">
   <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="lazy" width="2000" height="1250" />
-  <figcaption>The Members tab. Add Member is at the top right, and Manage Roles is on each person's row. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption><strong>Work on one member at a time.</strong> Add Member is at the top right. Use Manage Roles on the person's row when their access needs to change.
+  <span className="gg-overview-source">Source: deployed Storybook, Community / Members fixture, 12 October 2026; 2000 × 1250, fictional member directory. Build revision unavailable.</span></figcaption>
 </figure>
 
-**Which role?** Gardeners submit work. Stewards run the garden with you. Evaluators write assessments. The [steward guide](/community/steward-guide/#roles-in-a-garden) lists all six. Giving someone Steward also gives them Evaluator and Gardener.
+**Which role?** Gardeners submit work. Stewards run the garden with you. Evaluators write assessments. The [steward guide](#roles-in-a-garden) lists all six. Giving someone Steward also gives them Evaluator and Gardener.
+
+## Roles in a garden
+
+Six roles exist in every garden. A person can hold more than one.
+
+| Role | What it is for |
+|---|---|
+| **Owner** | Everything a steward can do, plus renaming the garden and pausing its endowment in an emergency |
+| **Steward** | Running the garden: members, settings, reviewing work, certificates, and funds |
+| **Evaluator** | Writing assessments. An evaluator cannot approve or reject work |
+| **Gardener** | Submitting work, and claiming from the garden's shared fund |
+| **Funder** | Marks a supporter of the garden. It does not open the dashboard |
+| **Community member** | Marks someone in the garden's wider community. It does not open the dashboard |
+
+Giving someone the Steward role also gives them the Evaluator and Gardener roles. Giving someone Owner also gives them Steward.
 
 ## Change or remove a role
 
@@ -99,7 +115,7 @@ By default a garden is invite only: people join when you add them or approve the
 
 <figure className="gg-figure" style={{maxWidth: '520px'}}>
   <img src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" />
-  <figcaption>Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
 </figure>
 
 Two things to know about the limit. It counts people who join by themselves, not members you add. And the count does not go down when someone leaves, so raise the limit if you need more room.
@@ -113,7 +129,7 @@ Two things to know about the limit. It counts people who join by themselves, not
 
 ## What happens next
 
-The person acts next. A new gardener sees your garden under **My gardens** in the app and can submit work right away. A new steward can open the cockpit with the account you added. Tell them it is done, because Green Goods does not send them an alert.
+The person acts next. A new gardener sees your garden under **My gardens** in the app and can submit work right away. A new steward can open the dashboard with the account you added. Tell them it is done, because Green Goods does not send them an alert.
 
 ## If something goes wrong
 
@@ -124,7 +140,7 @@ The person acts next. A new gardener sees your garden under **My gardens** in th
 | You added someone and they still cannot see the garden | They are probably signed in to a different account. Compare the address you added with the Account ID in their app |
 | **Missing coverage** next to the member list | The garden has nobody in one of the key roles: Owner, Steward, or Evaluator. Add someone to it |
 | A request shows as still catching up | The role was given. The member list will show it shortly |
-| **The current limit hasn't loaded yet, so it can't be changed** | The cockpit is still reading the garden's limit. Close **Edit Garden**, wait a moment, and open it again |
+| **The current limit hasn't loaded yet, so it can't be changed** | The dashboard is still reading the garden's limit. Close **Edit Garden**, wait a moment, and open it again |
 | No **Community** workspace | Your account is an evaluator in this garden, not a steward or owner. Ask a steward to add the role |
 
 To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
@@ -132,8 +148,8 @@ To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t
 ## Next step
 
 <NextBestAction
-  title="Check your garden's actions"
-  why="Your people are in. Now make sure they can find the kinds of work your garden does."
-  actionLabel="Manage Actions"
-  actionHref="/community/steward-guide/managing-actions"
+  title="Write down the starting point"
+  why="With people in place, agree what your garden is trying to change and how you will measure it."
+  actionLabel="Make an Assessment"
+  actionHref="/community/evaluator-guide/making-an-assessment"
 />

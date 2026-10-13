@@ -5,7 +5,7 @@ slug: /community/gardener-guide/track-status-and-attestations
 description: "Follow a submission from your phone to your steward's decision: what each status means, what approval brings, and what to do when work comes back."
 audience: gardener
 owner: docs
-last_verified: 2026-10-12
+last_verified: 2026-10-13
 feature_status: Live
 image: /img/social/track-status-and-attestations.webp
 goal: "Let a gardener read any status in Your Work, act on a rejection, and understand what approval does and does not bring."
@@ -23,6 +23,10 @@ source_of_truth:
   - packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx
   - packages/client/src/views/Profile/Badges.tsx
   - packages/shared/src/hooks/client-ui/work/useWorkDetailController.ts
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/modules/work/upload-kinds.ts
+  - packages/shared/src/utils/eas/encoders.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/modules/CookieJar.sol
   - packages/shared/src/i18n/en.json
@@ -47,6 +51,11 @@ import {NextBestAction} from "@site/src/components/docs";
 - Open the installed app, signed in to the account you submit with.
 - You do not need a signal to look. The list shows what was saved the last time you were online.
 
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-solar-workshop.webp" alt="Two adults' hands inspect a small solar panel on a wooden workbench beside a notebook and tools." width="1774" height="887" decoding="async" />
+  <figcaption>Follow the record of the work you did, from a panel check to a tree-planting task. AI-generated editorial illustration, created for these docs on 12 October 2026; not real people, a location, or reviewed work.</figcaption>
+</figure>
+
 ## Steps
 
 ### 1. Open Your Work
@@ -60,20 +69,25 @@ There are two tabs. **Pending** holds everything that is not decided yet. **Comp
 
 On the **Pending** tab, each item carries a label.
 
-| Label | Where the work is | What it means |
-|---|---|---|
-| **Draft** | On your phone | You started and did not finish. Tap it to continue |
-| **To upload** | On your phone | Ready to send. Tap **Upload all** when you have a signal |
-| **Checking** | On its way | It was sent, and the app is confirming that it arrived |
-| **Can't upload** | On your phone | The garden's record would not accept it as it is. Open it to see why |
-| **Didn't upload** | On your phone | A try failed. Open it and tap **Upload now** |
-| **In review** | On the garden's record | It arrived. A steward has not decided yet |
+| Label | What it means and who acts next |
+|---|---|
+| **Draft** | Saved on your phone, unfinished. Tap it to continue |
+| **To upload** | The work record is ready to send. Tap **Upload all** when you have a signal |
+| **Checking** | The app is checking whether the record arrived. Wait; do not submit a duplicate |
+| **Can't upload** | The record cannot be sent as it is. Open it to see why |
+| **Didn't upload** | A try failed. Open it and tap **Upload now** |
+| **In review** | The record arrived. A steward acts next |
 
-Anything that is not **In review** has not reached your steward. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) covers each of those labels.
+**Checking** means the outcome is still uncertain; do not assume the work failed or submit a duplicate. **In review** means your steward can review it. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) covers each of those labels.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
-  <img src="/img/builders/client-work-dashboard.webp" alt="Your Work on the Pending tab: an Upload all button and a list of items labeled Can't upload, To upload, and Draft, each with a line saying where it stands" loading="lazy" width="780" height="1688" />
-  <figcaption>The Pending tab. Each label says where that piece of work stands. Source: Storybook fixture, October 2026.</figcaption>
+These labels describe the work record. Queued photos and details may already have been prepared in public storage before the record is sent. [The privacy answers](/faq#is-what-i-upload-private) explain what becomes public.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-pending-example.png" alt="Your Work on Pending, with one Seedling Transplant item marked To upload and an Upload all button." loading="lazy" width="390" height="844" />
+  <figcaption>
+    <strong>Check the saved item before you send it.</strong> This example is <strong className="gg-inline-label">To upload</strong>. Use <strong className="gg-inline-label">Upload all</strong> when you are online and it is ready. “Nothing sent yet” describes the work record, not whether media is already public.
+    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
+  </figcaption>
 </figure>
 
 ### 3. See the decision
@@ -84,10 +98,18 @@ Anything that is not **In review** has not reached your steward. [Recover Unsent
 
 The **Completed** tab starts on the last month. If you are looking for something older, change the time filter to **Year**.
 
+If you also review other people's work, choose **My work** in the Completed filter to see the decisions on your own submissions.
+
 ## How you know it worked
 
 - **Approved:** the item is on the **Completed** tab, marked **Approved**. Its page says **Your submission has been approved**.
 - **Rejected:** the item is marked **Rejected**, and its page says **Not yet approved**, with the steward's reason under **Review feedback**.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-work-completed-example.png" alt="Your Work on Completed with My work selected and a Seedling Transplant item marked Approved." loading="lazy" width="390" height="844" />
+  <figcaption><strong>Find your own reviewed work.</strong> On Completed, choose <strong className="gg-inline-label">My work</strong>. Open the item to read the decision; an approval is not a payment.
+  <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Completed With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. Fictional reviewed record; no real approval was made.</span></figcaption>
+</figure>
 
 ## What happens next
 
@@ -119,15 +141,27 @@ What approval does not do:
 
 Rewards are separate from approval, and each garden decides how to use them.
 
-- **The garden's shared fund.** If your garden has a cookie jar with money in it, gardeners can claim from it. Open **Home**, tap the wallet button at the top to open **Your Wallet**, and choose the **Cookies** tab. Each jar shows how much you can take per claim and how often. Enter an amount, say what it is for under **Purpose**, and tap **Claim**. The purpose is recorded with the payout. Ask your steward what your garden's jar is meant for before you claim.
-- **Badges.** Open **Profile**, then the **Badges** tab. **First Work** can be claimed after your first submitted work.
+**The garden's shared fund.** If your garden has a cookie jar with money in it, gardeners can claim from it. Ask your steward what the jar is meant for before you claim.
 
-<figure className="gg-figure" style={{maxWidth: '360px'}}>
+1. Open **Home**, tap the wallet button at the top to open **Your Wallet**, and choose **Cookies**.
+2. Read the jar's limit per claim and how often you can claim.
+3. Enter an amount and say what it is for under **Purpose**. The purpose is recorded with the payout.
+4. Tap **Claim** and confirm when asked.
+
+<figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-cookie-jar-claim.webp" alt="A cookie jar on the Cookies tab for Green Goods Community Garden: up to 4 DAI per claim, once every 7 days, the line Jar holds 12 DAI, an amount box with a Max button, a Purpose box reading Seedlings for the nursery, and a Claim button" loading="lazy" width="780" height="900" />
-  <figcaption>A claim from a garden's shared fund. The garden sets the limit and the wait between claims. Source: Storybook fixture, 12 October 2026.</figcaption>
+  <figcaption>
+    <strong>A separate claim, if your garden offers one.</strong> Read the jar's limits and enter a purpose before <strong className="gg-inline-label">Claim</strong>. These example amounts are not promised rewards for approved work.
+    <span className="gg-overview-source">Source: deployed Storybook, Client/Wallet/CookieJarTab,
+    Claimable Jar fixture, with example amounts and purpose. Captured 12 October 2026;
+    780 × 900 image cropped from a 390 × 844 phone viewport at 2×. Build revision unavailable.
+    This is a form, not a payment receipt.</span>
+  </figcaption>
 </figure>
 
 If **Cookies** says **No cookie jars yet**, your garden has no jar you can claim from. Your steward can tell you whether one is planned.
+
+**Badges.** Open **Profile**, then **Badges**. **First Work** can be claimed after your first submitted work.
 
 ### If it is rejected
 

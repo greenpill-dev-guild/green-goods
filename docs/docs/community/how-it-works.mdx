@@ -14,6 +14,7 @@ source_of_truth:
   - packages/client/src/views/Public/GardenDetail.tsx
   - packages/client/src/views/Public/Fund.tsx
   - packages/client/src/views/Public/Actions.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/admin/src/views/Hub/index.tsx
   - packages/shared/src/providers/JobQueue.tsx
   - packages/shared/src/modules/app/locale-messages.ts
@@ -23,6 +24,9 @@ source_of_truth:
   - packages/contracts/src/modules/CookieJar.sol
   - packages/contracts/src/resolvers/Yield.sol
   - packages/shared/src/ontology/green-goods-projections.json
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/modules/Settlement/Plans.sol
   - docs/docusaurus.config.ts
 keywords:
   - how it works
@@ -42,13 +46,38 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Good work often leaves no trace. Someone plants forty trees or clears a riverbank, and a month later there is nothing to show a funder except a memory. Green Goods fixes that one problem: it turns work into a record that the community itself has checked.
 
-Here is the whole loop.
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table, with notes about the work and the place." width="1536" height="1024" fetchPriority="high" decoding="async" />
+  <figcaption>Evidence needs context: what happened, where, and why. Editorial illustration reused from Green Goods' website Actions imagery; not a real work submission.</figcaption>
+</figure>
+
+## One piece of work, start to finish
+
+An example, with made-up names.
+
+1. **Record the work.** Ama plants twelve mango seedlings on a hillside with no signal. She chooses the tree-planting action, takes two photos, enters “12”, and taps **Upload Work**. The app says **Saved offline**.
+2. **Send it.** Back in town, she opens **Your Work** and taps **Upload all**. The item changes to **In review**.
+3. **Review the evidence.** Kofi, a steward, checks the photos and count. He knows the place from a recent visit. He chooses **Medium** confidence and taps **Approve**.
+4. **See the result.** Ama sees **Approved** in **Your Work**. The public record shows her work and the steward's decision to anyone considering supporting the garden.
+
+<figure className="gg-figure" style={{maxWidth: '560px'}}>
+  <img src="/img/screenshots/admin-review-form.webp" alt="Steward Review in the dashboard, with Low, Medium, and High confidence choices, a Feedback field, and Reject and Approve buttons." width="1152" height="1080" loading="lazy" />
+  <figcaption>The steward adds a decision to the evidence. In this fixture, Approve waits for a confidence choice. Source: Storybook fixture, 12 October 2026, 1152 × 1080 image; build revision unavailable. This is example data, not Ama's record.</figcaption>
+</figure>
+
+## Where the tools meet
+
+The app and dashboard work with the same public record. The website lets other people read it. A review adds a separate decision; it does not send a payment.
 
 ```mermaid
-flowchart LR
-    A["1. Plan"] --> B["2. Document"] --> C["3. Review"] --> D["4. Certify"] --> E["5. Fund"]
-    E -->|more work| B
+flowchart TB
+    A["Phone app<br/>Record work"] -->|Upload all| R["Public record<br/>Work and separate review"]
+    R -->|Read evidence| S["Steward<br/>Review in app or dashboard"]
+    S -->|Add a decision| R
+    R --> W["Public website<br/>Read the garden's work"]
 ```
+
+The arrows show records and decisions. A supporter chooses whether to fund a garden separately. The [Funder Guide](/community/funder-guide/) explains those choices; the [builder architecture](/builders/architecture) has the technical map.
 
 ## The loop, step by step
 
@@ -75,18 +104,6 @@ When a garden has a body of approved work that tells one story, a steward can bu
 ### 5. Fund
 
 Anyone can read a garden's approved work on its public page. A supporter who likes what they see can **donate** to the garden's shared fund, or **endow** it with a deposit whose earnings go to the garden. The garden uses that support to do more work, and the loop starts again.
-
-## One piece of work, start to finish
-
-An example, with made-up names.
-
-Ama is a gardener in a tree-planting garden. On Saturday she plants twelve mango seedlings on a hillside with no signal. She opens the app, picks the tree-planting action, takes two photos of the rows, enters "12", and taps **Upload Work**. The app says **Saved offline**.
-
-Back in town, she opens **Your Work** and taps **Upload all**. The item changes to **In review**.
-
-On Monday Kofi, a steward in her garden, opens his queue. The photos show the rows, and the count matches. He was on that hillside the week before, so he knows the place. He chooses **Medium** confidence and taps **Approve**.
-
-Ama sees **Approved** in **Your Work**. Her twelve trees are now on the garden's public page, where anyone considering supporting the garden can see them.
 
 ## What an approval is, and is not {#impact-reporting-verification}
 
@@ -129,9 +146,21 @@ Three things are worth saying plainly:
 
 - **Approval and payment are separate.** How a garden rewards its people is the garden's decision.
 - **An endowment is not guaranteed.** A supporter can get back less than they put in.
-- **Giving through Green Goods is not a tax-deductible gift.**
+- **Green Goods does not promise a charitable receipt or tax deduction.** Check any separate arrangement with the garden.
 
 The [Funder Guide](/community/funder-guide/) has the details.
+
+## Where Commitment Pooling fits {#commitment-pooling}
+
+A shared fund supports a garden as a whole. **Commitment Pooling** helps the community organize specific promises: an offer to do work or provide support, or a request for it. A pool holds the shared rules for those promises, including who can confirm that one was kept.
+
+For example, a garden could agree on a promise to plant and care for seedlings. Work records can provide evidence toward it. Reviewing those records and confirming the promise are related decisions, but they are separate: linking work does not by itself mean the promise is fulfilled.
+
+If the promise includes financial support, payment follows its agreed conditions and a separate payment process. **Work approval alone does not release money.** A donation to the shared fund and an endowment also remain separate ways to support a garden.
+
+:::info Availability
+The pooling product flow is being prepared for release. Check with your steward before relying on it for a task or payment. The existing [Commitment Pool guide](/community/steward-guide/commitment-pooling) explains the steward tools; availability still depends on the garden and the selected action.
+:::
 
 ## Built for the field
 

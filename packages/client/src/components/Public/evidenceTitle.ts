@@ -15,6 +15,9 @@ export function evidenceRecordTitle(
   if (record.kind !== "work") return record.title;
   return toWorkDisplayTitle(
     record.title,
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+    formatMessage({
+      id: "public.gardenDetail.notes.untitled",
+      defaultMessage: "Untitled submission",
+    })
   );
 }

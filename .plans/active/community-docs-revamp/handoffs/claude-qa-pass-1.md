@@ -4,8 +4,9 @@
 
 - Owner: Claude
 - Branch: `chore/community-docs-revamp-plan` (PR #896)
-- Status: not started. The implementation lanes have passed, so the replay can begin once a
-  person's session is available.
+- Status: not started. The first foundation's implementation passed, but the post-QA revision
+  reopened both implementation lanes. See `qa-revision.md`; replay follows the revised pages
+  and requires the appropriate session. Owner feedback alone does not complete this lane.
 
 ## Scope
 

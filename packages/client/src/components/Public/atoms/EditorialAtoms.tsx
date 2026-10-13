@@ -1,7 +1,7 @@
 import { Button, type ButtonProps, type ButtonSize } from "@green-goods/shared/components/Button";
 import { Chip } from "@green-goods/shared/components/Chip";
 import { cn } from "@green-goods/shared/utils/styles/cn";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 
 /**
@@ -55,13 +55,12 @@ export function EditorialTitleAccent({ children, className }: EditorialTitleAcce
 }
 
 export type EditorialHeadingSize = "display" | "section" | "sub";
-export interface EditorialHeadingProps {
+/** Native heading props pass through (`id`, and `ref` + `tabIndex={-1}` for a heading that takes focus). */
+export interface EditorialHeadingProps extends Omit<ComponentProps<"h2">, "children"> {
   children: ReactNode;
   size?: EditorialHeadingSize;
   tone?: Tone;
   as?: "h1" | "h2" | "h3" | "h4";
-  className?: string;
-  id?: string;
 }
 
 const HEADING_SIZE_CLASS: Record<EditorialHeadingSize, string> = {
@@ -80,15 +79,17 @@ export function EditorialHeading({
   tone = "default",
   as: Tag = "h2",
   className,
-  id,
+  ...rest
 }: EditorialHeadingProps) {
   return (
     <Tag
-      id={id}
+      {...rest}
       className={cn(
         "font-serif font-normal",
         HEADING_SIZE_CLASS[size],
         tone === "dark" ? "text-editorial-deep-fg" : "text-text-strong-950",
+        rest.tabIndex !== undefined &&
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4",
         className
       )}
     >
@@ -169,7 +170,8 @@ export function EditorialDivider({ tone = "default", className }: EditorialDivid
 
 export interface EditorialMetaItem {
   label: string;
-  icon?: ReactNode;
+  /** Text someone typed (a place name): longer than the row, it ends in an ellipsis with a tooltip; other labels wrap. */
+  truncate?: boolean;
 }
 
 export interface EditorialMetaRowProps {
@@ -179,36 +181,34 @@ export interface EditorialMetaRowProps {
 }
 
 /**
- * `location · 47 contributors · 312 entries` — restrained metadata row with dot
- * separators. Use for Garden cards and Action card metadata.
+ * `Awka, Nigeria · 13 members`: a metadata row with dot separators. Each dot sits in
+ * front of its item and the list starts one gap left of a clipping box, so a wrapped
+ * row never starts or ends on a dot.
  */
 export function EditorialMetaRow({ items, tone = "default", className }: EditorialMetaRowProps) {
   const textClass = tone === "dark" ? "text-editorial-deep-fg/72" : "text-text-soft-400";
   return (
-    <ul
-      className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-relaxed tracking-[0.02em]",
-        textClass,
-        className
-      )}
-    >
-      {items.map((item, index) => (
-        <li key={`${item.label}-${index}`} className="flex items-center gap-2">
-          {item.icon ? (
-            <span className="inline-flex h-3 w-3 items-center" aria-hidden="true">
-              {item.icon}
-            </span>
-          ) : null}
-          <span>{item.label}</span>
-          {index < items.length - 1 ? (
+    <div className={cn("overflow-hidden", textClass, className)}>
+      <ul className="-ml-5 flex flex-wrap items-center gap-y-1 text-xs leading-relaxed tracking-[0.02em]">
+        {items.map((item, index) => (
+          <li
+            key={`${item.label}-${index}`}
+            className="relative flex min-w-0 items-center gap-2 pl-5"
+          >
             <span
               aria-hidden="true"
-              className="ml-3 inline-block h-0.5 w-0.5 rounded-full bg-current opacity-50"
+              className="absolute top-1/2 left-2.5 h-0.5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current opacity-50"
             />
-          ) : null}
-        </li>
-      ))}
-    </ul>
+            <span
+              className={item.truncate ? "truncate" : "[overflow-wrap:anywhere]"}
+              title={item.truncate ? item.label : undefined}
+            >
+              {item.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -378,23 +378,21 @@ export function EditorialLinkArrow({
   const arrowClasses =
     "transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:group-hover:translate-x-1 motion-safe:group-focus-visible:translate-x-1";
 
-  if (external) {
-    return (
-      <a href={to} target="_blank" rel="noreferrer noopener" className={baseClasses}>
-        {children}
-        <span aria-hidden="true" className={arrowClasses}>
-          →
-        </span>
-      </a>
-    );
-  }
-
-  return (
-    <Link to={to} className={baseClasses} viewTransition>
+  const content = (
+    <>
       {children}
       <span aria-hidden="true" className={arrowClasses}>
         →
       </span>
+    </>
+  );
+  return external ? (
+    <a href={to} target="_blank" rel="noreferrer noopener" className={baseClasses}>
+      {content}
+    </a>
+  ) : (
+    <Link to={to} className={baseClasses} viewTransition>
+      {content}
     </Link>
   );
 }
