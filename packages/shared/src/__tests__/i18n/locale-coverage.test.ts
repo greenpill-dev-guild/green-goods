@@ -612,5 +612,21 @@ describe("i18n locale coverage", () => {
         `Likely English fallbacks in localized catalogs:\n${suspicious.join("\n")}`
       ).toHaveLength(0);
     });
+
+    // Endowment is provisión and provisão across the product (#1026, 5 Oct 2026). Two days
+    // later a polish commit brought "dotación" back on /fund and Home, and nothing caught it.
+    it("should say provisión and provisão for endowment, never dotación or dotação", () => {
+      const strays = Object.entries({ ...prefixKeys("es", es), ...prefixKeys("pt", pt) })
+        .filter(([, value]) => /dotaci[oó]n|dotaç[aã]o/i.test(value))
+        .map(([key]) => key);
+
+      expect(strays, `Use provisión / provisão instead:\n${strays.join("\n")}`).toEqual([]);
+    });
   });
 });
+
+function prefixKeys(locale: string, catalog: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(catalog).map(([key, value]) => [`${locale}:${key}`, value])
+  );
+}
