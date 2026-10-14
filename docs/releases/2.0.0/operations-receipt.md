@@ -4,6 +4,7 @@ owner: docs
 status: prepared
 source_of_truth:
   - packages/agent/src/services/db/core.ts
+  - packages/agent/src/services/db/schema.ts
   - docs/releases/2.0.0/deployment-runbook.md
 ---
 
@@ -21,7 +22,7 @@ claim that Afo performed the commands or that a live failover was exercised.
 | Consistent backup | SQLite `VACUUM INTO` completed; the new backup was restricted to mode 600 |
 | Backup recovery | A fresh volume snapshot was restored into a separate encrypted 1 GB volume |
 | Test isolation | A temporary machine used the existing v426 Agent image, the restored volume and an idle command; its actual configuration had no services or checks |
-| Restored backup | SHA-256 matched the source backup; SQLite integrity OK, schema version 8, 15 tables, per-kind pending-request uniqueness intact |
+| Restored backup | SHA-256 matched the source backup; SQLite integrity OK, schema version 8, 15 tables; the unique key on `(gardenAddress, accountAddressKey, kind)` for rows with `state = 'pending'` remained intact |
 | Key pairing | Existing encryption configuration names were confirmed in Fly's secret metadata; no secret values were read or rotated |
 | Cleanup | Only the temporary test machine and restored test volume were removed |
 | Retained recovery inputs | The consistent backup and production-volume snapshot are retained in the existing private operational environment |
