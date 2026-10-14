@@ -56,7 +56,12 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
 - [ ] After the approved production merge, deploy the final indexer, verify schema/sync, update production environment variables, rebuild Client/Admin and verify their production reads. This is a post-merge cut gate, not a prerequisite for the develop PR or release sync.
 - [x] Verify the live Agent's compiled JavaScript and complete Shared source match the published `56dfefd76ea2ef135226d60806e8c9861caeced6` inputs. Read-only checks confirm SQLite v8, pending-request uniqueness on `(gardenAddress, accountAddressKey, kind)`, and advertised `garden_membership`/`steward_access` support. No request lifecycle or restore rehearsal is claimed.
 - [x] Owner reports live request acceptance complete.
-- [ ] Record a consistent backup/restore rehearsal and the rollback operator. Existing snapshots alone do not establish restoration.
+- [x] Record Afo as rollback operator and complete the October 13 backup/restore rehearsal.
+  A consistent SQLite backup was restored into a separate encrypted volume and opened read-only
+  on a temporary machine with no services. The restored checksum matched, integrity was OK,
+  schema v8 and the per-kind pending-request index were intact. The temporary resources were
+  removed; the backup and volume snapshot are retained privately. This proves restoration of
+  the database copy, not a live application failover or a blind rollback of later writes.
 
 The checked-in `e6edffd` fallback serves pooling schema and representative Garden/promise records;
 the October 13 simultaneous sample was current within two blocks of the Arbitrum/Celo RPC reads.

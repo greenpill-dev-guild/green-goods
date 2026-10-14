@@ -6,6 +6,15 @@ Afo confirmed that he will handle rollback for this cut. The user authorized mer
 after the applicable gates pass; manual indexer deployment and environment updates remain
 operator-guided steps. Follow [indexer-cut-guide.md](indexer-cut-guide.md) after that merge.
 
+October 13 closeout: Afo reports today's latest-beta passkey, request and installed-PWA
+acceptance passed on Android mobile and Brave desktop. Keep this as owner-reported evidence,
+with the private build binding and observations; do not relabel it as agent-observed signing.
+The consistent SQLite backup was restored into a separate encrypted volume on a temporary
+machine with no services. Its checksum matched, integrity was OK, schema v8 and per-kind
+pending-request uniqueness were preserved. Test resources were removed and the backup/snapshot
+retained privately. A live failover and reconciliation of writes made after that backup are
+not claimed.
+
 ## App-only scope and remaining gates
 
 Afo approved deferring unverified settlement features on October 13. Retain Garden promises,

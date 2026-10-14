@@ -21,7 +21,7 @@ The [six prepared request-flow screenshots](media/README.md) show selection, rev
 - 25–40s: show no-access Profile, address copy, Garden selection, and request review. Use a disposable approved test identity for any sent request.
 - 40–45s: show the app and release-note links.
 
-Caption: **Green Goods 2.0 — promises, work, and review in one Garden flow.**
+Caption: **Green Goods 2.0: promises, work, and review in one Garden flow.**
 
 No final recording is claimed yet. Afo selects cleared screenshots, publishing channels and a new posting time after production verification. The original Monday date has passed. Actual acceptance receipts remain in the private QA record.
 
