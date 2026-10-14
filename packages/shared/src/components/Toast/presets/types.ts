@@ -138,6 +138,11 @@ export const toastMessageIds = {
 } as const;
 
 export const toastMessageIdsUpdate = {
+  codeUnavailable: {
+    title: "app.toast.update.codeUnavailable.title",
+    message: "app.toast.update.codeUnavailable.message",
+    action: "app.update.button",
+  },
   checking: {
     title: "app.toast.update.checking.title",
     message: "app.toast.update.checking.message",

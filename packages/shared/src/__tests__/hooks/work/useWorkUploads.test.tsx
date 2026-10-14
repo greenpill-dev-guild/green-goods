@@ -56,6 +56,7 @@ vi.mock("../../../modules/work/upload-queued-work-defaults", () => ({
 import { useWorkUploads } from "../../../hooks/work/useWorkUploads";
 import en from "../../../i18n/en.json";
 import { connectivityStore } from "../../../stores/connectivity";
+import { appCodeRecovery } from "../../../modules/app/cache-recovery";
 
 const CHECKED = "2026-09-17T10:00:00.000Z";
 const WORK_UID = `0x${"AB".repeat(32)}`;
@@ -82,6 +83,27 @@ beforeEach(() => {
 });
 
 describe("useWorkUploads", () => {
+  it("requests app recovery for missing upload code and leaves the queued job intact", async () => {
+    const job = queued("work", { preparation: { status: "ready", checkedAt: CHECKED } });
+    mocks.jobs = [job];
+    const before = structuredClone(job);
+    const failure = new Error("Failed to fetch dynamically imported module");
+    mocks.createPorts.mockRejectedValueOnce(failure);
+    const report = vi.spyOn(appCodeRecovery, "report").mockReturnValue(true);
+    const { result, unmount } = renderHookWithProviders(() => useWorkUploads());
+    try {
+      await act(async () => {
+        await expect(result.current.upload()).rejects.toBe(failure);
+      });
+      expect(report).toHaveBeenCalledWith(failure);
+      expect(mocks.toast.error).not.toHaveBeenCalled();
+      expect(mocks.uploadQueuedWork).not.toHaveBeenCalled();
+      expect(job).toEqual(before);
+    } finally {
+      report.mockRestore();
+      unmount();
+    }
+  });
   it("counts what is ready, still preparing, or needs attention, and the decisions still waiting", async () => {
     mocks.jobs = [
       queued("work", { preparation: { status: "ready", checkedAt: CHECKED } }),
