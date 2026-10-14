@@ -248,20 +248,22 @@ export function PoolCommitmentsCard({
                     })}
                 </span>
                 <StatusBadge variant={row.failed ? "error" : "info"} size="sm">
-                  {row.failed
-                    ? formatMessage({
-                        id: "cockpit.garden.pool.queued.failed",
-                        defaultMessage: "Failed to send",
-                      })
-                    : row.waitingForMembership
+                  {row.settlementDeferred
+                    ? formatMessage({ id: "app.pool.queued.settlementDeferred" })
+                    : row.failed
                       ? formatMessage({
-                          id: "cockpit.garden.pool.queued.waiting",
-                          defaultMessage: "Waiting for membership",
+                          id: "cockpit.garden.pool.queued.failed",
+                          defaultMessage: "Failed to send",
                         })
-                      : formatMessage({
-                          id: "cockpit.garden.pool.queued.queued",
-                          defaultMessage: "Queued",
-                        })}
+                      : row.waitingForMembership
+                        ? formatMessage({
+                            id: "cockpit.garden.pool.queued.waiting",
+                            defaultMessage: "Waiting for membership",
+                          })
+                        : formatMessage({
+                            id: "cockpit.garden.pool.queued.queued",
+                            defaultMessage: "Queued",
+                          })}
                 </StatusBadge>
                 <span className="body-xs text-text-soft">
                   {`${row.targetUnits} ${row.unitLabel}`}
@@ -286,6 +288,7 @@ export function PoolCommitmentsCard({
                     variant="outlined"
                     size="sm"
                     disabled={
+                      row.settlementDeferred ||
                       !isOnline ||
                       busyJobId !== null ||
                       (!row.hasRecordedSend &&
@@ -307,6 +310,11 @@ export function PoolCommitmentsCard({
                   </AdminButton>
                 </span>
                 <div className="basis-full">
+                  {row.settlementDeferred ? (
+                    <p className="body-xs text-text-soft">
+                      {formatMessage({ id: "app.pool.queued.settlementDeferredNote" })}
+                    </p>
+                  ) : null}
                   {!row.hasRecordedSend &&
                   isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
                     <p className="body-xs text-text-soft">

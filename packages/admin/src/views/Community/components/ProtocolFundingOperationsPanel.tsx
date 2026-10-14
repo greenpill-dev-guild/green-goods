@@ -12,7 +12,11 @@ export function ProtocolFundingOperationsPanel(props: {
   protocolGarden: Address;
   renderLayout?: ComponentProps<typeof ProtocolFundingOperationsCard>["renderLayout"];
 }) {
-  return SETTLEMENT_ENABLED ? <EnabledProtocolFundingOperationsPanel {...props} /> : null;
+  return SETTLEMENT_ENABLED ? (
+    <EnabledProtocolFundingOperationsPanel {...props} />
+  ) : (
+    (props.renderLayout?.(null, null) ?? null)
+  );
 }
 
 function EnabledProtocolFundingOperationsPanel({

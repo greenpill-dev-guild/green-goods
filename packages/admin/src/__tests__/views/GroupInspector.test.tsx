@@ -40,7 +40,11 @@ const [GROUP] = groupCommitmentsForDisplay({
 }) as [PoolCommitmentGroup];
 
 function inspector(
-  overrides: { canEditReward?: boolean; waitingOnYou?: ReadonlySet<string> } = {}
+  overrides: {
+    canEditReward?: boolean;
+    canSeedMore?: boolean;
+    waitingOnYou?: ReadonlySet<string>;
+  } = {}
 ) {
   const handlers = {
     onClose: vi.fn(),
@@ -58,6 +62,7 @@ function inspector(
       terms={[["Asks for", "1 survey · The pool requests"]]}
       rewarded
       canEditReward={overrides.canEditReward ?? false}
+      canSeedMore={overrides.canSeedMore}
       events={STORY_GROUP_EVENTS}
       waitingOnYou={overrides.waitingOnYou ?? new Set()}
       {...handlers}
@@ -69,6 +74,14 @@ function inspector(
 const people = () => within(screen.getByTestId("group-people")).getAllByRole("listitem");
 
 describe("GroupInspector", () => {
+  it("shows rewarded copies without offering to clone them when deferred", () => {
+    inspector({ canSeedMore: false });
+    expect(screen.queryByRole("button", { name: "Seed More Like This" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("G$ reward promises cannot be copied in this release.")
+    ).toBeInTheDocument();
+    expect(people()).toHaveLength(7);
+  });
   it("leads each taken copy with its person and its facts, and folds the rest into one row", () => {
     inspector();
     const rows = people();

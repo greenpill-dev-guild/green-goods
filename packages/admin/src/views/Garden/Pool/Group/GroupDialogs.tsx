@@ -133,6 +133,10 @@ export function GroupDialogs({
         terms={terms}
         rewarded={reward.currentWei !== null}
         canEditReward={canEditReward}
+        canSeedMore={
+          SETTLEMENT_ENABLED ||
+          !group.children.some((child) => child.considerationRail === "CELO_SETTLEMENT")
+        }
         events={activity.events}
         waitingOnYou={pool.waitingOnYou}
         onOpenCommitment={onOpenCommitment}

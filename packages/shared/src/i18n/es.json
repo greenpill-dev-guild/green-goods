@@ -6905,5 +6905,8 @@
   "app.account.checkConfirmation": "Comprobar confirmación",
   "app.account.transactionRevertedTitle": "Transacción revertida",
   "app.account.transactionReverted": "La transacción se revirtió. El cambio no se registró.",
-  "app.assessment.receiptMismatch": "La transacción se confirmó, pero su registro de evaluación no coincidió. Revisa el recibo antes de enviar otra evaluación."
+  "app.assessment.receiptMismatch": "La transacción se confirmó, pero su registro de evaluación no coincidió. Revisa el recibo antes de enviar otra evaluación.",
+  "app.pool.queued.settlementDeferred": "Recompensa en G$ aplazada",
+  "app.pool.queued.settlementDeferredNote": "Guardado en este dispositivo. No se pueden enviar compromisos con recompensa en G$ en esta versión.",
+  "cockpit.garden.pool.group.rewardDeferredNote": "No se pueden copiar compromisos con recompensa en G$ en esta versión."
 }

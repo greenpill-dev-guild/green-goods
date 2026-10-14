@@ -27,6 +27,8 @@ export interface GroupInspectorProps {
   rewarded: boolean;
   /** Edit Reward stays open until one copy is kept (D14). */
   canEditReward: boolean;
+  /** Rewarded templates cannot be copied while settlement is deferred. */
+  canSeedMore?: boolean;
   /** The pool's recent activity, for when each copy was taken, proven and confirmed. */
   events: readonly CommitmentEventRecord[];
   /** Copies whose next act is this steward's own, marked "Needs you". */
@@ -57,6 +59,7 @@ export function GroupInspector({
   terms,
   rewarded,
   canEditReward,
+  canSeedMore = true,
   events,
   waitingOnYou,
   onOpenCommitment,
@@ -124,10 +127,12 @@ export function GroupInspector({
               id: "cockpit.garden.pool.group.editRewardNote",
               defaultMessage: "Edit Reward is open until one of this group is kept.",
             })
-          : formatMessage({
-              id: "cockpit.garden.pool.group.seedMoreNote",
-              defaultMessage: "Seed More Like This can add to this group or start a new one.",
-            })}
+          : !canSeedMore
+            ? formatMessage({ id: "cockpit.garden.pool.group.rewardDeferredNote" })
+            : formatMessage({
+                id: "cockpit.garden.pool.group.seedMoreNote",
+                defaultMessage: "Seed More Like This can add to this group or start a new one.",
+              })}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         {canEditReward ? (
@@ -138,17 +143,19 @@ export function GroupInspector({
             })}
           </AdminButton>
         ) : null}
-        <AdminButton
-          type="button"
-          variant="outlined"
-          leadingIcon={<RiSeedlingLine className="h-4 w-4" />}
-          onClick={onSeedMore}
-        >
-          {formatMessage({
-            id: "cockpit.garden.pool.seedMore.title",
-            defaultMessage: "Seed More Like This",
-          })}
-        </AdminButton>
+        {canSeedMore ? (
+          <AdminButton
+            type="button"
+            variant="outlined"
+            leadingIcon={<RiSeedlingLine className="h-4 w-4" />}
+            onClick={onSeedMore}
+          >
+            {formatMessage({
+              id: "cockpit.garden.pool.seedMore.title",
+              defaultMessage: "Seed More Like This",
+            })}
+          </AdminButton>
+        ) : null}
       </div>
     </div>
   );

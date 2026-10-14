@@ -13,6 +13,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
+import { SETTLEMENT_ENABLED } from "../../../config/app";
+import { CONSIDERATION_RAIL_ORDINAL } from "../../../modules/commitment-pooling/job-types";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -151,6 +153,11 @@ export function useAddToGroup(input: {
       group.templateCommitmentId
     );
     if (!canAddToGroup(template, owner)) return "not-creator";
+    if (
+      !SETTLEMENT_ENABLED &&
+      template.terms.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
+    )
+      return "blocked";
     const copies = identity.copyIds.map((clientCommitmentId) => ({
       clientCommitmentId,
       setId: group.displayGroupId,

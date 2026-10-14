@@ -298,6 +298,19 @@ describe("ProtocolFundingOperationsCard", () => {
 });
 
 describe("app-only release funding", () => {
+  it("retains the supplied protocol workspace layout without funding controls", () => {
+    releaseScope.settlementEnabled = false;
+    const layout = vi.fn(() => <div>Protocol promises and review</div>);
+    renderWithProviders(
+      <ProtocolFundingOperationsPanel
+        chainId={42161}
+        protocolGarden={PROTOCOL}
+        renderLayout={layout}
+      />
+    );
+    expect(layout).toHaveBeenCalledWith(null, null);
+    expect(screen.getByText("Protocol promises and review")).toBeInTheDocument();
+  });
   it("does not mount the protocol funding controls while settlement is deferred", () => {
     releaseScope.settlementEnabled = false;
     const { container } = renderWithProviders(

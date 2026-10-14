@@ -6905,5 +6905,8 @@
   "app.account.checkConfirmation": "Check confirmation",
   "app.account.transactionRevertedTitle": "Transaction reverted",
   "app.account.transactionReverted": "Transaction reverted. Your change was not recorded.",
-  "app.assessment.receiptMismatch": "The transaction was confirmed, but its assessment record did not match. Check the receipt before submitting another assessment."
+  "app.assessment.receiptMismatch": "The transaction was confirmed, but its assessment record did not match. Check the receipt before submitting another assessment.",
+  "app.pool.queued.settlementDeferred": "G$ reward deferred",
+  "app.pool.queued.settlementDeferredNote": "Saved on this device. Sending G$ reward promises is unavailable in this release.",
+  "cockpit.garden.pool.group.rewardDeferredNote": "G$ reward promises cannot be copied in this release."
 }
