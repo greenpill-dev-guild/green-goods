@@ -138,7 +138,7 @@ export function hasAddress(value: unknown): value is Address {
   return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
 }
 
-function hasTransactionHash(value: unknown): value is OctantVaultTransactionHash {
+export function hasTransactionHash(value: unknown): value is OctantVaultTransactionHash {
   return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/.test(value);
 }
 

@@ -1,3 +1,14 @@
+---
+audience: community
+owner: docs
+status: prepared
+source_of_truth:
+  - packages/client/index.html
+  - packages/admin/index.html
+  - docs/docusaurus.config.ts
+  - docs/releases/2.0.0/announcement.md
+---
+
 # 2.0.0 social preview readiness
 
 Review of the scoped candidate, October 13, 2026. This is a publishing checklist and

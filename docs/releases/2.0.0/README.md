@@ -59,7 +59,8 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
 - [x] Record Afo as rollback operator and complete the October 13 backup/restore rehearsal.
   A consistent SQLite backup was restored into a separate encrypted volume and opened read-only
   on a temporary machine with no services. The restored checksum matched, integrity was OK,
-  schema v8 and the per-kind pending-request index were intact. The temporary resources were
+  schema v8 and the per-kind pending-request index were intact. The [operational receipt](operations-receipt.md)
+  records the observed checks and their limits. The temporary resources were
   removed; the backup and volume snapshot are retained privately. This proves restoration of
   the database copy, not a live application failover or a blind rollback of later writes.
 

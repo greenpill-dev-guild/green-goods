@@ -1,3 +1,14 @@
+---
+audience: builder
+owner: docs
+status: prepared
+source_of_truth:
+  - packages/indexer/config.yaml
+  - packages/indexer/package.json
+  - env.schema
+  - docs/releases/2.0.0/deployment-runbook.md
+---
+
 # Final indexer and environment cut
 
 Operator: Afo. Follow this after the verified #1057 merge into main. The final endpoint does
@@ -27,10 +38,9 @@ not exist until the selected indexer deployment is built and synced. Do not inve
    Keep Preview/Development and unrelated secrets unchanged. Check project and team-level
    overrides. Environment changes apply only to new builds; existing deployments keep
    their old values. [Vercel environment variables](https://vercel.com/docs/environment-variables).
-5. **Align the checked-in fallbacks.** PRD-1122 also owns all seven source fallback locations
-   and the PM2 hosted-indexer fallback. Update them through the established PR workflow,
-   using the now-verified endpoint, before closing that issue. A production environment
-   override alone does not complete its source acceptance criteria.
+5. **Align the checked-in fallbacks.** PRD-1122 also owns the complete inventory below.
+   Update these through the established PR workflow, using the now-verified endpoint,
+   before closing the issue. A production environment override alone does not complete it.
 6. **Build, verify and promote.** Rebuild Client and Admin from the verified source after
    the environment update. Check the actual bundled endpoint, app reads and settlement
    containment before promotion. Record both deployment IDs, SHAs and production domain
@@ -49,3 +59,19 @@ space without first confirming its rollback purpose.
 
 Operational authority and stop conditions remain in [deployment-runbook.md](deployment-runbook.md).
 This guide does not claim a deployment, environment update, promotion or tag has been performed.
+
+## Fallback inventory
+
+| Source | Role |
+|---|---|
+| [Shared chain configuration](../../../packages/shared/src/config/blockchain.ts) | Runtime protocol-read fallback |
+| [Client Vite configuration](../../../packages/client/vite.config.ts) | Client build fallback |
+| [Admin Vite configuration](../../../packages/admin/vite.config.ts) | Admin build fallback |
+| [IPFS repinning](../../../scripts/ops/ipfs-repin.ts) | Operational read fallback |
+| [Production smoke](../../../scripts/dev/smoke-prod.js) | Smoke-check endpoint |
+| [Service coordinator](../../../scripts/dev/stack.js) | Production-backed local service endpoint |
+| [Doctor](../../../scripts/dev/doctor.js) | Reported production configuration endpoint |
+| [PM2 configuration](../../../ecosystem.config.cjs) | Hosted-indexer fallback for external service mode |
+
+These are seven source references and the separate PM2 reference. The doctor entry is part
+of the inventory even though it reports configuration rather than making a GraphQL request.

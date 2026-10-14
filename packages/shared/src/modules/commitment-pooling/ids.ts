@@ -19,6 +19,16 @@ export const getCommitmentContributorId = (
   commitmentId: bigint,
   contributor: Address | string
 ) => `${chainId}-${commitmentId}-${address(contributor)}`;
+export const getCommitmentWorkAttributionId = (chainId: number, workUID: string) =>
+  `${chainId}-${hex(workUID)}`;
+export const getCommitmentEvidenceAttributionId = (
+  chainId: number,
+  commitmentId: bigint,
+  cidHash: string,
+  contributor: Address | string
+) => `${chainId}-${commitmentId}-${hex(cidHash)}-${address(contributor)}`;
+export const getCommitmentEvidenceAttributionIndexId = (chainId: number, commitmentId: bigint) =>
+  getCommitmentId(chainId, commitmentId);
 export const getCommitmentClaimRequestId = (
   chainId: number,
   commitmentId: bigint,
@@ -30,8 +40,15 @@ export const getCommitmentUnitSummaryId = (
   scopeId: bigint,
   unitLabelHash: string
 ) => `${chainId}-${scope}-${scopeId}-${hex(unitLabelHash)}`;
+export const getCommitmentProviderExposureId = (
+  chainId: number,
+  poolId: bigint,
+  provider: Address | string
+) => `${chainId}-${poolId}-${address(provider)}`;
 export const getNeedCommitmentIndexId = (chainId: number, needUID: string) =>
   `${chainId}-${hex(needUID)}`;
+export const getCommitmentCounterIndexId = (chainId: number, commitmentId: bigint) =>
+  getCommitmentId(chainId, commitmentId);
 export const getCommitmentExchangeId = (
   chainId: number,
   poolId: bigint,

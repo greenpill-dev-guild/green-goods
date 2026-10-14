@@ -19,7 +19,7 @@
 import type { CommitmentMetadataLink } from "./metadata";
 
 /** Bumped only for a change old readers cannot understand. */
-const COMMITMENT_EVIDENCE_VERSION = 1;
+export const COMMITMENT_EVIDENCE_VERSION = 1;
 
 export interface CommitmentEvidenceMedia {
   cid: string;

@@ -76,3 +76,23 @@ export function useErc20Metadata(
   if (query.isLoading) return { status: "loading" };
   return erc20MetadataFromResults(query.data?.[0]?.result, query.data?.[1]?.result);
 }
+
+/** Read the units of every distinct external reward token in a seed tray. */
+export function useErc20MetadataMany(
+  chainId: number,
+  tokens: readonly string[]
+): ReadonlyMap<string, Erc20MetadataRead> {
+  const addresses = [...new Set(tokens.map((token) => token.trim().toLowerCase()))].filter(
+    (token): token is Address => isAddress(token)
+  );
+  const query = useReadContracts({
+    contracts: addresses.flatMap((address) => [
+      { address, abi: ERC20_DECIMALS_ABI, functionName: "decimals" as const, chainId },
+      { address, abi: ERC20_SYMBOL_ABI, functionName: "symbol" as const, chainId },
+    ]),
+    allowFailure: true,
+    query: { enabled: addresses.length > 0, staleTime: STALE_TIME_MEDIUM },
+  });
+
+  return erc20MetadataMap(addresses, query.data, query.isLoading);
+}

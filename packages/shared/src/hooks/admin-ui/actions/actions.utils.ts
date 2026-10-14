@@ -85,6 +85,13 @@ export function buildActionsHeaderStats({
   ];
 }
 
+export const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
+  { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },
+  { id: "active", labelId: "cockpit.actions.stage.active", defaultLabel: "Active" },
+  { id: "upcoming", labelId: "cockpit.actions.stage.upcoming", defaultLabel: "Upcoming" },
+  { id: "completed", labelId: "cockpit.actions.stage.completed", defaultLabel: "Completed" },
+];
+
 function normalizeTimestamp(value: number): number {
   return value > 10_000_000_000 ? value : value * 1000;
 }
