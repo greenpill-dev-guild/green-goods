@@ -398,14 +398,27 @@ export function queuedCreationChip(
   formatMessage: FormatMessage
 ): { label: string; variant: ChipVariant } {
   if (row.settlementDeferred)
-    return { label: formatMessage({ id: "app.pool.queued.settlementDeferred" }), variant: "info" };
+    return {
+      label: formatMessage({
+        id: "app.pool.queued.settlementDeferred",
+        defaultMessage: "G$ reward deferred",
+      }),
+      variant: "info",
+    };
   if (row.failed)
-    return { label: formatMessage({ id: "cockpit.garden.pool.queued.failed" }), variant: "error" };
+    return {
+      label: formatMessage({
+        id: "cockpit.garden.pool.queued.failed",
+        defaultMessage: "Failed to send",
+      }),
+      variant: "error",
+    };
   return {
     label: formatMessage({
       id: row.waitingForMembership
         ? "cockpit.garden.pool.queued.waiting"
         : "cockpit.garden.pool.queued.queued",
+      defaultMessage: row.waitingForMembership ? "Waiting for membership" : "Queued",
     }),
     variant: "info",
   };
