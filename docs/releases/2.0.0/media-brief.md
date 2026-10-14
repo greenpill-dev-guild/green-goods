@@ -21,6 +21,20 @@ The [six prepared request-flow screenshots](media/README.md) show selection, rev
 - 25–40s: show no-access Profile, address copy, Garden selection, and request review. Use a disposable approved test identity for any sent request.
 - 40–45s: show the app and release-note links.
 
-Caption: **Green Goods 2.0 — promises, work, and review in one Garden flow.**
+Caption: **Green Goods 2.0: promises, work, and review in one Garden flow.**
 
 No final recording is claimed yet. Afo selects cleared screenshots, publishing channels and a new posting time after production verification. The original Monday date has passed. Actual acceptance receipts remain in the private QA record.
+
+## Announcement attachments
+
+The approved [channel copy](announcement.md) covers Telegram, WhatsApp, public socials and
+a five-post X thread. Use the public homepage hero as an evergreen brand image if needed;
+it is marketing artwork, not evidence of authenticated 2.0 behavior. The request selection,
+review and pending illustrations may be used only with a visible "Illustrative demo using
+synthetic data" caption. They contain fixture Garden names and a fixture account placeholder.
+
+Prefer two cleared screenshots from the deployed scoped candidate for the release:
+Garden Promises and the steward Hub. Capture permitted public data or approved fixtures;
+exclude private notes, identities, request details and settlement controls. Clearance remains
+pending until that capture is reviewed. See [social-preview-readiness.md](social-preview-readiness.md)
+for the existing images and description corrections.
