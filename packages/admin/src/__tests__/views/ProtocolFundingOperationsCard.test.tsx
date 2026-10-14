@@ -19,6 +19,18 @@ const RECIPIENT = "0xa23716f7b0dbbb0387fb1274f1ae8247670dcc37" as Address;
 const G = 10n ** 18n;
 const TX_HASH = `0x${"1".repeat(64)}` as HexString;
 const TAS = "0xa2df8eb73444a3f3cf9b8e3749313c7471d7d5e3" as Address;
+// Existing settlement cases explicitly exercise the future enabled lane.
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
+beforeEach(() => {
+  releaseScope.settlementEnabled = true;
+});
+
 const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   gardensRefetch: vi.fn(async () => undefined),
@@ -282,5 +294,15 @@ describe("ProtocolFundingOperationsCard", () => {
 
     expect(screen.getByText("Acknowledgment pending")).toBeInTheDocument();
     expect(screen.queryByText("Confirmed")).not.toBeInTheDocument();
+  });
+});
+
+describe("app-only release funding", () => {
+  it("does not mount the protocol funding controls while settlement is deferred", () => {
+    releaseScope.settlementEnabled = false;
+    const { container } = renderWithProviders(
+      <ProtocolFundingOperationsPanel chainId={42161} protocolGarden={PROTOCOL} />
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

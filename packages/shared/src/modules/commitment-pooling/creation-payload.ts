@@ -12,6 +12,7 @@
  */
 
 import type { CommitmentComposerValues } from "../../hooks/commitment-pooling/useCommitmentComposerForm";
+import { SETTLEMENT_ENABLED } from "../../config/app";
 import type { Address } from "../../types/domain";
 import { parseUsdCents } from "../wallet/good-dollar-price";
 import { CONSIDERATION_RAIL_ORDINAL, type CommitmentCreationPayload } from "./job-types";
@@ -98,6 +99,9 @@ export function buildCommitmentCreationPayload(input: {
   capturedFor?: Address;
 }): Omit<CommitmentCreationPayload, "creationRequestKey"> {
   const { values, clientCommitmentId, poolId, gardenAddress } = input;
+  if (!SETTLEMENT_ENABLED && values.considerationRail === "CELO_SETTLEMENT") {
+    throw new Error("G$ reward promises are unavailable in this release");
+  }
   const dueDate = input.dueDate ?? BigInt(input.nowSeconds + values.dueInDays * 24 * 60 * 60);
   const isGardenWork = values.kind === "GARDEN_WORK";
   const confirmers = [

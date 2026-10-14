@@ -48,6 +48,18 @@ type TrayModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useSeed
 /** What the dialog's builder made of one copy. */
 type BuiltCopy = ReturnType<Parameters<TrayModule["useSeedTray"]>[0]["buildCopy"]>;
 
+// Existing settlement cases explicitly exercise the future enabled lane.
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
+beforeEach(() => {
+  releaseScope.settlementEnabled = true;
+});
+
 const mocks = vi.hoisted(() => ({
   protocolRegistered: true,
   settlementActive: false,
@@ -819,5 +831,15 @@ describe("SeedCommitmentDialog", () => {
     settleQueries();
 
     expect(cycleSelect().value).toBe("13");
+  });
+});
+
+describe("app-only release promises", () => {
+  it("keeps the seed flow usable without offering a G$ reward", async () => {
+    releaseScope.settlementEnabled = false;
+    renderSeed();
+    await toProof();
+    expect(within(dialog()).queryByTestId("seed-reward")).not.toBeInTheDocument();
+    expect(within(dialog()).queryByRole("radio", { name: /^yes/i })).not.toBeInTheDocument();
   });
 });

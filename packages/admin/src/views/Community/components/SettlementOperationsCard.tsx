@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type { SettlementOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
@@ -12,6 +13,10 @@ import { AdminSettingRow } from "@/components/AdminSettingRow";
 
 /** The protocol pool's mount point: reads through the shared controller, renders the card. */
 export function SettlementOperationsPanel({ chainId }: { chainId: number }) {
+  return SETTLEMENT_ENABLED ? <EnabledSettlementOperationsPanel chainId={chainId} /> : null;
+}
+
+function EnabledSettlementOperationsPanel({ chainId }: { chainId: number }) {
   const operations = useSettlementOperationsController({ chainId });
   return <SettlementOperationsCard operations={operations} />;
 }

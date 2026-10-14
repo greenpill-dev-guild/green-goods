@@ -2,6 +2,10 @@
 
 Use product screens to show three concrete changes: promises, the steward workspace, and getting access. Keep account addresses, names, private notes, and live request details out of public media.
 
+October 13 scope decision: use cleared app screenshots for this announcement. Do not show G$
+settlement controls, reward setup or contributor payouts as available features. The short demo is
+optional follow-up material and does not gate the release or announcement.
+
 ## Screenshots
 
 1. Garden **Promises**: show a readable season and representative commitments, with permitted public or fixture data.
@@ -19,4 +23,4 @@ The [six prepared request-flow screenshots](media/README.md) show selection, rev
 
 Caption: **Green Goods 2.0 — promises, work, and review in one Garden flow.**
 
-No final recording is claimed yet. Afo selects the cleared shots/clip and publishing channels before Monday. Actual acceptance receipts remain in the private QA record.
+No final recording is claimed yet. Afo selects cleared screenshots, publishing channels and a new posting time after production verification. The original Monday date has passed. Actual acceptance receipts remain in the private QA record.

@@ -1,19 +1,21 @@
 import type { Hex } from "viem";
+import { SETTLEMENT_ENABLED } from "../../config/app";
 import {
   hashCommitmentCreationPayload,
   hashSeriesCreationPayload,
   hashWorkLinkPayload,
 } from "./job-identity";
-import type {
-  CommitmentCreationPayload,
-  CommitmentJob,
-  EvidenceJobPayload,
-  CommitmentJobExecutionDependencies,
-  CommitmentJobExecutionResult,
-  CommitmentJobKind,
-  CommitmentJobPayloadMap,
-  CommitmentSeriesJobPayload,
-  WorkLinkJobPayload,
+import {
+  CONSIDERATION_RAIL_ORDINAL,
+  type CommitmentCreationPayload,
+  type CommitmentJob,
+  type EvidenceJobPayload,
+  type CommitmentJobExecutionDependencies,
+  type CommitmentJobExecutionResult,
+  type CommitmentJobKind,
+  type CommitmentJobPayloadMap,
+  type CommitmentSeriesJobPayload,
+  type WorkLinkJobPayload,
 } from "./job-types";
 
 const ZERO_HASH = `0x${"00".repeat(32)}` as Hex;
@@ -66,6 +68,16 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
         : { status: "identity-conflict", reason: "commitment-payload-mismatch" };
     }
     if (job.submittedTxHash) return { status: "waiting", reason: "pending-first-send" };
+  }
+
+  // Reconcile submitted work above first; retain unsent reward jobs without a new signature.
+  if (
+    !SETTLEMENT_ENABLED &&
+    job.kind === "commitment" &&
+    (job.payload as CommitmentCreationPayload).consideration.rail ===
+      CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
+  ) {
+    return { status: "waiting", reason: "settlement-unavailable" };
   }
 
   if (job.kind === "workLink") {
