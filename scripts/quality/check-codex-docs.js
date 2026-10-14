@@ -428,8 +428,8 @@ function validateRepoDerivedGuidanceFacts() {
     .map((name) => `docs/docs/builders/agentic/${name}`);
   for (const relPath of agenticDocs) {
     const doc = read(relPath);
-    if (doc.includes(".claude/context/intent.md") || /(?:^|[^/])intent\.md\b/m.test(doc)) {
-      fail(`${relPath}: references nonexistent intent.md; use product.md and values.md`);
+    if (doc.includes(".claude/context/intent.md" /* retired */) || /(?:^|[^/])intent\.md\b/m.test(doc)) {
+      fail(`${relPath}: references retired intent.md; use product.md and values.md`);
     }
   }
 

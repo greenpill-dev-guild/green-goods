@@ -182,7 +182,13 @@ function runGit(args, { allowFailure = false } = {}) {
 function acceptedPromotionSource(base) {
   const main = runGit(["rev-parse", "--verify", "origin/main^{commit}"], { allowFailure: true });
   const resolvedBase = base && runGit(["rev-parse", "--verify", `${base}^{commit}`], { allowFailure: true });
-  if (!main || resolvedBase !== main) return undefined;
+  if (!main || !resolvedBase) return undefined;
+  if (resolvedBase !== main) {
+    const head = runGit(["rev-parse", "HEAD"]);
+    const previousMain = runGit(["rev-parse", "--verify", `${main}^1`], { allowFailure: true });
+    // The main push compares its merged tip against event.before, the first parent.
+    if (head !== main || resolvedBase !== previousMain) return undefined;
+  }
   const develop = runGit(["rev-parse", "--verify", "origin/develop^{commit}"], { allowFailure: true });
   if (!develop || develop === main) return undefined;
   try {

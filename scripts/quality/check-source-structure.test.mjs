@@ -266,6 +266,19 @@ test("main promotion retains the existing cap only for unchanged accepted develo
   const unchanged = run();
   assert.equal(unchanged.status, 0, `${unchanged.stdout}${unchanged.stderr}`);
 
+  // Main push CI compares the merged tip with the previous main commit.
+  git("checkout", "--detach", main);
+  git("merge", "--no-ff", accepted, "-m", "promote develop into main");
+  const promoted = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/main", promoted);
+  const afterMerge = run();
+  assert.equal(afterMerge.status, 0, `${afterMerge.stdout}${afterMerge.stderr}`);
+  writeFileSync(join(root, path), lines(401));
+  assert.match(run().stderr, /sample\.ts: new file at 401 lines/);
+  writeFileSync(join(root, path), lines(400));
+  git("update-ref", "refs/remotes/origin/main", main);
+  git("checkout", "--detach", accepted);
+
   // Uncommitted or committed changes after develop acceptance still face the new-file cap.
   writeFileSync(join(root, path), lines(401));
   const dirty = run();
