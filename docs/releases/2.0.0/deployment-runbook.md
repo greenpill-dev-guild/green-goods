@@ -1,6 +1,6 @@
 # Green Goods 2.0.0 deployment runbook
 
-Originally prepared for October 11, 2026; refreshed October 13. The replacement cut window is pending. Owner: Afo. This is an operator checklist, not broadcast authorization or a record of live deployment.
+Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. Production merge is approved once the applicable gates pass. Announcement follows post-merge verification at the owner's selected time. This checklist does not record a completed deployment or authorize onchain broadcasts.
 
 Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
 after the applicable gates pass; manual indexer deployment and environment updates remain
@@ -25,16 +25,18 @@ announcement claim alone is not containment, and this decision does not pause li
 
 Finish these gates in order:
 
-1. Verify containment, publish the scope PR against develop, merge after current-head CI and
-   review requirements pass, then sync the release branch. Keep every selected critical check.
+1. The containment scope merged through #1094 and release was synced to `c7d67eab`.
+   Finish #1095 after current-head CI/review, then sync and revalidate the release branch.
+   Keep every selected critical check.
 2. Record the owner's October 13 completed passkey, request and installed-PWA acceptance in the
    private release record. Match beta to the scoped candidate, verify its containment delta and
    bind the tested build to that acceptance; do not restart the completed suite by default.
 3. Before the production merge, finish the main-based source gate, verify the compatible Agent
-   API, record the consistent backup/restore rehearsal and name the rollback operator. Resolve
+   API, reference the completed [restoration receipt](operations-receipt.md) and Afo as rollback
+   operator. Resolve
    authority/compatibility decisions affecting included Work flows. The final indexer deployment
    and production environment changes are not pre-merge gates.
-4. At the separately approved cut, merge the release PR into main. Then deploy the final indexer,
+4. After the pre-merge gates pass, merge the release PR into main. Then deploy the final indexer,
    verify schema and sync, and update production environment variables. Rebuild Client/Admin
    after the update, then verify/promote the intended builds and production domains. Hold
    data-dependent app availability on the last verified compatible deployment until these reads
@@ -45,12 +47,15 @@ Finish these gates in order:
 
 October 13 preparation evidence: the local scope patch passed the 13 selected critical QA checks
 fresh, and Admin CI Playwright passed 12 cases with one skipped. This is local/clean-room proof,
-not authenticated acceptance or current-head CI for a published scope patch. The live Agent's
-compiled JavaScript and complete Shared source match the published candidate inputs, and read-only
-SQLite inspection confirms v8 and the per-kind pending-request index. The existing `e6edffd`
+not authenticated acceptance or current-head CI for the final release. Earlier Agent source
+inspection matched `56dfefd` inputs; the later observed v426 runtime retains SQLite v8 and the
+per-kind pending-request index. Its feature endpoint advertises both request kinds; no new runtime
+source SHA is asserted here. The existing `e6edffd`
 indexer serves pooling records and was current within the RPC sampling interval; final selection
 and included Work/claim reads remain post-merge PRD-1122 gates. The owner reports signed request
-and installed-PWA acceptance complete; restoration is still an operator gate.
+and installed-PWA acceptance complete. The [database-copy restoration](operations-receipt.md)
+also passed. Live failover and reconciliation of writes made after the backup remain untested;
+they are required safety steps if rollback becomes necessary, not a request to repeat this rehearsal.
 
 ## Freeze and preflight
 
@@ -95,14 +100,22 @@ The new request flow requires the candidate Agent API before the requester UI is
    flyctl volumes list --app green-goods
    ```
 
-3. Take a fresh volume snapshot, retain a consistent SQLite backup, and rehearse restoration into a separate volume before the cut. Supply the verified volume ID:
+3. The consistent backup, volume snapshot and separate-volume restoration rehearsal are complete
+   for this cut; use the [observed receipt](operations-receipt.md) and private recovery record.
+   Before changing the API, confirm the retained recovery inputs and their image/key pairing are
+   still available. Do not repeat the production-data rehearsal by default. If a new snapshot is
+   needed because the retained one expired or the recovery inputs changed, supply the verified
+   volume ID:
 
    ```sh
    flyctl volumes snapshots create <volume-id> --app green-goods
    flyctl volumes snapshots list <volume-id>
    ```
 
-   Do not copy only a live SQLite main file while its WAL is active. The recovery record must include the matching encryption keys in the existing secret store; never print or commit them. Production restore rehearsal is still an operator gate, not claimed complete by unit tests.
+   Do not copy only a live SQLite main file while its WAL is active. The recovery record must
+   retain the matching encryption keys in the existing secret store; never print or commit them.
+   The completed restoration was observed on an isolated machine, not inferred from unit tests.
+   An actual rollback must still quiesce, preserve and reconcile later writes as described below.
 4. Confirm `JOIN_REQUESTS_ENCRYPTION_KEY`, `JOIN_REQUESTS_PRODUCTION_READY`, the expected origin allowlist/trusted proxy settings, and the existing passkey directory configuration are available. Preserve existing keys and passkey records. Do not rotate keys during this cut.
 5. The candidate initializes SQLite schema version **8** at startup. Its transactional migration changes the pending-request uniqueness index to `(gardenAddress, accountAddressKey, kind)` and preserves existing encrypted rows and revisions. Verify the migration and idempotent restart using the SQLite test scope before deployment:
 
