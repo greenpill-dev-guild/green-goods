@@ -1,6 +1,6 @@
 # Green Goods 2.0.0 deployment runbook
 
-Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. The production merge and app deployment have occurred. The tag, GitHub Release and announcement remain pending. This runbook does not authorize onchain broadcasts.
+Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. The production merge, app deployment, signed tag, GitHub Release and back-merge are complete; the [release pack](README.md) records them. The announcement remains pending. This runbook does not authorize onchain broadcasts.
 
 Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
 after the applicable gates pass; manual indexer deployment and environment updates remain
