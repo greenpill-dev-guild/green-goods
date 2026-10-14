@@ -19,7 +19,12 @@ import {
   type PoolCommitmentScope,
   selectPoolCommitmentRows,
 } from "./poolCommitmentRows";
-import { commitmentStateChip, directionEdgeClass, directionLabel } from "./poolPresentation";
+import {
+  commitmentStateChip,
+  directionEdgeClass,
+  directionLabel,
+  queuedCreationChip,
+} from "./poolPresentation";
 import { dueDateText } from "./poolTime";
 
 export type { PoolCommitmentFocus, PoolCommitmentScope } from "./poolCommitmentRows";
@@ -235,107 +240,96 @@ export function PoolCommitmentsCard({
 
         {pendingCreates.length > 0 && scope === "open" && focus === null ? (
           <ul className="divide-y divide-stroke-soft" data-testid="pool-queued">
-            {pendingCreates.map((row) => (
-              <li
-                key={row.jobId}
-                className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
-              >
-                <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
-                  {row.title ??
-                    formatMessage({
-                      id: "cockpit.garden.pool.queued.untitled",
-                      defaultMessage: "New commitment",
-                    })}
-                </span>
-                <StatusBadge variant={row.failed ? "error" : "info"} size="sm">
-                  {row.settlementDeferred
-                    ? formatMessage({ id: "app.pool.queued.settlementDeferred" })
-                    : row.failed
-                      ? formatMessage({
-                          id: "cockpit.garden.pool.queued.failed",
-                          defaultMessage: "Failed to send",
-                        })
-                      : row.waitingForMembership
-                        ? formatMessage({
-                            id: "cockpit.garden.pool.queued.waiting",
-                            defaultMessage: "Waiting for membership",
-                          })
-                        : formatMessage({
-                            id: "cockpit.garden.pool.queued.queued",
-                            defaultMessage: "Queued",
-                          })}
-                </StatusBadge>
-                <span className="body-xs text-text-soft">
-                  {`${row.targetUnits} ${row.unitLabel}`}
-                </span>
-                <span className="ml-auto flex items-center gap-1.5">
-                  {row.discardable ? (
+            {pendingCreates.map((row) => {
+              const chip = queuedCreationChip(row, formatMessage);
+              return (
+                <li
+                  key={row.jobId}
+                  className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
+                >
+                  <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
+                    {row.title ??
+                      formatMessage({
+                        id: "cockpit.garden.pool.queued.untitled",
+                        defaultMessage: "New commitment",
+                      })}
+                  </span>
+                  <StatusBadge variant={chip.variant} size="sm">
+                    {chip.label}
+                  </StatusBadge>
+                  <span className="body-xs text-text-soft">
+                    {`${row.targetUnits} ${row.unitLabel}`}
+                  </span>
+                  <span className="ml-auto flex items-center gap-1.5">
+                    {row.discardable ? (
+                      <AdminButton
+                        type="button"
+                        variant="text"
+                        size="sm"
+                        disabled={busyJobId !== null}
+                        onClick={() => void runQueued(row.jobId, acts.discardQueued)}
+                      >
+                        {formatMessage({
+                          id: "cockpit.garden.pool.queued.discard",
+                          defaultMessage: "Discard",
+                        })}
+                      </AdminButton>
+                    ) : null}
                     <AdminButton
                       type="button"
-                      variant="text"
+                      variant="outlined"
                       size="sm"
-                      disabled={busyJobId !== null}
-                      onClick={() => void runQueued(row.jobId, acts.discardQueued)}
+                      disabled={
+                        row.settlementDeferred ||
+                        !isOnline ||
+                        busyJobId !== null ||
+                        (!row.hasRecordedSend &&
+                          isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now))
+                      }
+                      loading={busyJobId === row.jobId}
+                      onClick={() => void runQueued(row.jobId, acts.retryQueued)}
                     >
-                      {formatMessage({
-                        id: "cockpit.garden.pool.queued.discard",
-                        defaultMessage: "Discard",
-                      })}
+                      {/* A row that never tried has nothing to try again (A24). */}
+                      {row.failed
+                        ? formatMessage({
+                            id: "cockpit.garden.pool.queued.retry",
+                            defaultMessage: "Try Again",
+                          })
+                        : formatMessage({
+                            id: "cockpit.garden.pool.queued.sendNow",
+                            defaultMessage: "Send Now",
+                          })}
                     </AdminButton>
-                  ) : null}
-                  <AdminButton
-                    type="button"
-                    variant="outlined"
-                    size="sm"
-                    disabled={
-                      row.settlementDeferred ||
-                      !isOnline ||
-                      busyJobId !== null ||
-                      (!row.hasRecordedSend &&
-                        isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now))
-                    }
-                    loading={busyJobId === row.jobId}
-                    onClick={() => void runQueued(row.jobId, acts.retryQueued)}
-                  >
-                    {/* A row that never tried has nothing to try again (A24). */}
-                    {row.failed
-                      ? formatMessage({
-                          id: "cockpit.garden.pool.queued.retry",
-                          defaultMessage: "Try Again",
-                        })
-                      : formatMessage({
-                          id: "cockpit.garden.pool.queued.sendNow",
-                          defaultMessage: "Send Now",
+                  </span>
+                  <div className="basis-full">
+                    {row.settlementDeferred ? (
+                      <p className="body-xs text-text-soft">
+                        {formatMessage({ id: "app.pool.queued.settlementDeferredNote" })}
+                      </p>
+                    ) : null}
+                    {!row.hasRecordedSend &&
+                    isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
+                      <p className="body-xs text-text-soft">
+                        {formatMessage({
+                          id: "cockpit.garden.pool.add.expired",
+                          defaultMessage:
+                            "This group's deadline has passed, so nothing can join it. Start a new group instead.",
                         })}
-                  </AdminButton>
-                </span>
-                <div className="basis-full">
-                  {row.settlementDeferred ? (
-                    <p className="body-xs text-text-soft">
-                      {formatMessage({ id: "app.pool.queued.settlementDeferredNote" })}
-                    </p>
-                  ) : null}
-                  {!row.hasRecordedSend &&
-                  isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
-                    <p className="body-xs text-text-soft">
-                      {formatMessage({
-                        id: "cockpit.garden.pool.add.expired",
+                      </p>
+                    ) : null}
+                    <ActPhaseLine
+                      phase={pool.queuedPhase(row.jobId)}
+                      chainId={pool.chainId}
+                      confirmed={formatMessage({
+                        id: "cockpit.garden.pool.queued.sent",
                         defaultMessage:
-                          "This group's deadline has passed, so nothing can join it. Start a new group instead.",
+                          "Sent. This row leaves once the index shows the commitment.",
                       })}
-                    </p>
-                  ) : null}
-                  <ActPhaseLine
-                    phase={pool.queuedPhase(row.jobId)}
-                    chainId={pool.chainId}
-                    confirmed={formatMessage({
-                      id: "cockpit.garden.pool.queued.sent",
-                      defaultMessage: "Sent. This row leaves once the index shows the commitment.",
-                    })}
-                  />
-                </div>
-              </li>
-            ))}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : null}
 
