@@ -1,6 +1,6 @@
 # October 2026 — v2.0.0
 
-Prepared app-only copy for publication after production checks pass in the owner's approved replacement cut window. Scope narrowed October 13. Included features still require candidate-specific acceptance; remove any highlight whose gate does not pass. The original October 11 date is not a deployment receipt.
+Published October 14, 2026 as the curated section of the [v2.0.0 GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0), above the generated PR notes. Scope narrowed October 13 to the app-only cut. The original October 11 date is not a deployment receipt.
 
 Green Goods 2.0 brings a Garden's commitments, documented work, and review into one connected flow. It also rebuilds the steward workspace and improves the installed app for work in the field.
 
@@ -36,5 +36,3 @@ G$ settlement actions, contributor payouts, settlement-account configuration and
 - [Install or update the app](https://docs.greengoods.app/community/gardener-guide/installing-and-updating)
 - [Run a commitment pool](https://docs.greengoods.app/community/steward-guide/commitment-pooling)
 - [Passkey sign-in and recovery](https://docs.greengoods.app/builders/integrations/passkey)
-
-Release link, available after the cut: https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0.

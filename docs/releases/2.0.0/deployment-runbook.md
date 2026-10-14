@@ -1,6 +1,6 @@
 # Green Goods 2.0.0 deployment runbook
 
-Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. The production merge and app deployment have occurred. The tag, GitHub Release and announcement remain pending. This runbook does not authorize onchain broadcasts.
+Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. The production merge, app deployment, signed tag, GitHub Release and back-merge are complete; the [release pack](README.md) records them. The announcement remains pending. This runbook does not authorize onchain broadcasts.
 
 Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
 after the applicable gates pass; manual indexer deployment and environment updates remain
@@ -26,23 +26,27 @@ announcement claim alone is not containment, and this decision does not pause li
 The containment patch, #1095 preparation and #1057 release are merged. #1096 is merged at
 `377aba5e1590f47290d51095e2d18b363d130f49`; all main workflows pass, Client/Admin/Docs
 are READY at that commit and both source-map uploads pass. Both production app environments
-use the verified `de3e5df` indexer and were rebuilt. See [the observed rollout](README.md).
+use the verified `de3e5df` indexer and were rebuilt. The closeout #1098 then merged at the
+tagged commit `1b138dfba804d9db019a96d05675bbaa1a4162bc`. See [the observed rollout](README.md).
 
-Finish these remaining gates in order:
+The remaining gates closed in this order on October 14; only the announcement is still open:
 
-1. Integrate the final eight-reference indexer alignment and reconcile the release record.
-   Keep every check selected for the actual candidate and retain the uncached release gate.
-2. Confirm included app read-back and the bound hosted indexer source/deployment receipt.
-   Retain the owner's October 13 Android/Brave acceptance and completed restoration receipt;
-   do not repeat signed acceptance or the production-data rehearsal by default. Resolve any
-   compatibility decision affecting included Work flows without an unapproved onchain action.
-   The observed default-Arbitrum Work/review schemas and resolver bindings match the app
-   configuration, and sampled records decode. Retain existing authority for this app cut;
-   Celo review activation and settlement ceremonies are outside that read proof.
-3. Verify the final main SHA's CI, production deployments, API, Docs and source-map uploads.
-   Only then sign/tag that exact main commit and verify the tag-triggered GitHub Release.
-4. Add the curated notes and back-merge final main into develop through a temporary head branch.
-5. Check publishing links and cleared media, then announce at the owner's selected time.
+1. Done: #1098 integrated the eight-reference indexer alignment and reconciled the release
+   record. The uncached release gate passed 27 selected checks fresh; the local qualified PWA
+   preview could not launch, and the owner accepted the passing qualified PWA test in
+   current-head CI in its place.
+2. Done: the hosted indexer source/deployment receipt is bound to released main `d96e941`, and
+   a read-only authenticated Brave check rendered the included Garden, pooling season and Work
+   reads in production. The owner's October 13 Android/Brave acceptance and the restoration
+   receipt are retained, not repeated. The observed default-Arbitrum Work/review schemas and
+   resolver bindings match the app configuration, and sampled records decode. Retain existing
+   authority for this app cut; Celo review activation and settlement ceremonies are outside
+   that read proof.
+3. Done: CI, the production deployments and both source-map uploads passed at `1b138dfba`,
+   and the signed `v2.0.0` tag and its tag-triggered GitHub Release are published.
+4. Done: the curated notes are on the Release, and #1099 back-merged final main into develop
+   through the temporary head branch `chore/backmerge-main-2026-10-14`.
+5. Open: check publishing links and cleared media, then announce at the owner's selected time.
    The demo, Spanish localization and new preview artwork can follow separately.
 
 October 13 preparation evidence: the local scope patch passed the 13 selected critical QA checks
@@ -52,7 +56,8 @@ inspection matched `56dfefd` inputs; the later observed v426 runtime retains SQL
 per-kind pending-request index. Its feature endpoint advertises both request kinds; no new runtime
 source SHA is asserted here. The existing `e6edffd`
 indexer serves pooling records and was current within the RPC sampling interval; final selection
-and included Work/claim reads remain post-merge PRD-1122 gates. The owner reports signed request
+and included Work/claim reads were post-merge PRD-1122 gates, and PRD-1122 closed on October 14.
+The owner reports signed request
 and installed-PWA acceptance complete. The [database-copy restoration](operations-receipt.md)
 also passed. Live failover and reconciliation of writes made after the backup remain untested;
 they are required safety steps if rollback becomes necessary, not a request to repeat this rehearsal.
@@ -158,14 +163,16 @@ Keep `AGENT_REPORTING_SITE='beta'` as recorded unless a separate approved report
 
 ## Tag, release notes, and back-merge
 
-After production verification, tag the exact merged `main` SHA, not the release-branch head:
+Complete on October 14; do not repeat these steps for 2.0.0. The exact merged `main` SHA,
+`1b138dfba804d9db019a96d05675bbaa1a4162bc`, carries the signed annotated tag `v2.0.0` (tag object
+`532e6553d990a8971f8ed14ae5f01a77fbf84c24`, message `October 2026`). The tag-triggered
+[Release workflow](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38647023237)
+created the [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0),
+and [the curated notes](release-notes.md) sit above the generated PR notes.
+[#1099](https://github.com/greenpill-dev-guild/green-goods/pull/1099) merged `main` back into
+`develop` through a temporary head branch; `main` is never the head of a back-merge PR because
+automatic branch deletion is enabled.
 
-```sh
-git fetch origin main develop
-git tag -s v2.0.0 <verified-merged-main-sha> -m 'October 2026'
-git push origin v2.0.0
-```
-
-Verify the tag-triggered Release workflow creates **October 2026 — v2.0.0**. Add [the curated notes](release-notes.md) alongside generated PR notes. Merge `main` back into `develop` using the established procedure; never use `main` as the head of a back-merge PR because automatic branch deletion is enabled.
-
-Record production deployment IDs, the merged SHA/tag, source-map result, indexer sync, API/migration checks, authenticated acceptance, and rollback receipts. Release is complete only after those checks; announcement follows production verification at the owner's selected time.
+The [release pack](README.md) records the production deployments, merged SHA and tag, source-map
+results, indexer sync, API and migration checks, acceptance provenance and rollback receipts.
+The announcement follows at the owner's selected time.
