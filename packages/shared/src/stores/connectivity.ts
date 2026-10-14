@@ -10,6 +10,12 @@ export interface ConnectivitySnapshot {
 export const CONFIRMED_ONLINE_MAX_AGE_MS = 60_000;
 /** A send someone just asked for re-probes anything older than this. */
 const CONFIRM_ONLINE_MAX_AGE_MS = 15_000;
+/**
+ * A request that fails this close to a browser network change says nothing
+ * about the service it called. The browser can also report the change after
+ * the request it broke has already failed.
+ */
+export const NETWORK_SETTLE_MS = 5_000;
 
 const readOnline = () => typeof navigator === "undefined" || navigator.onLine;
 const serverSnapshot: ConnectivitySnapshot = { state: "online" };
@@ -20,6 +26,7 @@ let pending: Promise<void> | undefined;
 let generation = 0;
 let activeController: AbortController | undefined;
 let recheckTimer: ReturnType<typeof setTimeout> | undefined;
+let networkChangedAt: number | undefined;
 const isVisible = () => typeof document === "undefined" || document.visibilityState !== "hidden";
 
 function publish(state: ConnectivityState, checkedAt?: number) {
@@ -128,6 +135,7 @@ onlineManager.setOnline(snapshot.state !== "offline");
 onlineManager.setEventListener(() => undefined);
 if (typeof window !== "undefined") {
   const offline = () => {
+    networkChangedAt = Date.now();
     generation++;
     activeController?.abort();
     clearTimeout(recheckTimer);
@@ -141,7 +149,10 @@ if (typeof window !== "undefined") {
       activeController?.abort();
     }
   };
-  const online = () => void check();
+  const online = () => {
+    networkChangedAt = Date.now();
+    void check();
+  };
   window.addEventListener("online", online);
   window.addEventListener("offline", offline);
   window.addEventListener("pageshow", resume);
@@ -198,4 +209,18 @@ export const connectivityStore = {
     connectivityStore.confirmOnline({ maxAgeMs: CONFIRMED_ONLINE_MAX_AGE_MS }),
   // An individual API failure merely requests an independent origin check.
   reportNetworkFailure: () => (probeUrl ? check() : Promise.resolve()),
+  /**
+   * Whether a request that failed just now met a steady connection, and so
+   * points at the service. Resolves after the settle window, once a network
+   * change the browser reports late has had time to arrive.
+   */
+  failedOnSteadyConnection: async (): Promise<boolean> => {
+    const failedAt = Date.now();
+    await new Promise((resolve) => setTimeout(resolve, NETWORK_SETTLE_MS));
+    return (
+      readOnline() &&
+      snapshot.state !== "offline" &&
+      (networkChangedAt === undefined || networkChangedAt < failedAt - NETWORK_SETTLE_MS)
+    );
+  },
 };

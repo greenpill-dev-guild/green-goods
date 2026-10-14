@@ -1,8 +1,9 @@
 /** @vitest-environment happy-dom */
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 let connectivityStore: typeof import("../../stores/connectivity")["connectivityStore"];
+let NETWORK_SETTLE_MS: number;
 beforeAll(async () => {
-  ({ connectivityStore } = await import("../../stores/connectivity"));
+  ({ connectivityStore, NETWORK_SETTLE_MS } = await import("../../stores/connectivity"));
 });
 
 // A probe request that never answers but, like fetch, rejects once its signal aborts. Stopping the
@@ -195,4 +196,35 @@ it("leaves a degraded connection to its scheduled recovery instead of probing fo
 
   await expect(connectivityStore.confirmForBackgroundWork()).resolves.toBe(false);
   expect(request).toHaveBeenCalledTimes(2);
+});
+
+it.each([
+  { name: "a steady connection", before: undefined, after: undefined, steady: true },
+  {
+    name: "a reconnect just before the failure",
+    before: "online",
+    after: undefined,
+    steady: false,
+  },
+  {
+    name: "a disconnect the browser reports late",
+    before: undefined,
+    after: "offline",
+    steady: false,
+  },
+] as const)("classifies a request failure on $name", async ({ before, after, steady }) => {
+  vi.useFakeTimers();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  if (before) {
+    window.dispatchEvent(new Event(before));
+    await vi.advanceTimersByTimeAsync(1_000);
+  }
+  const result = connectivityStore.failedOnSteadyConnection();
+  if (after) {
+    await vi.advanceTimersByTimeAsync(100);
+    window.dispatchEvent(new Event(after));
+    window.dispatchEvent(new Event("online"));
+  }
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  await expect(result).resolves.toBe(steady);
 });
