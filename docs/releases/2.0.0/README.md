@@ -1,9 +1,9 @@
 # Green Goods 2.0.0 release pack
 
 Originally scheduled: release Sunday, October 11, 2026; announcement Monday, October 12.
-Preparation refreshed October 13, 2026. The production cut and announcement have not occurred;
+Preparation refreshed October 14, 2026. The production cut and announcement have not occurred;
 their replacement dates and times remain owner decisions. Dates use America/Los_Angeles.
-Release owner: Afo.
+Release owner and rollback operator: Afo, confirmed in the October 13 release conversation.
 
 This pack prepares the cut. It does not record a completed production release.
 
@@ -45,18 +45,25 @@ The [release project](https://linear.app/greenpill-dev-guild/project/green-goods
 - [x] Merge the builder and community documentation in [#795](https://github.com/greenpill-dev-guild/green-goods/pull/795) and [#896](https://github.com/greenpill-dev-guild/green-goods/pull/896). Community docs merged October 13 at `f98a3543acba084e997ebfa4f92f879cc8df3d0a`; its published-head CI and develop push checks passed.
 - [x] Defer settlement procedures and the 45-second demo from this cut.
 - [ ] Complete or disposition PRD-1156/PRD-727 procedures needed by the included promise/review flows.
-- [x] Publish the source integration at `56dfefd76ea2ef135226d60806e8c9861caeced6`; #1057 remains draft against `main` at `946dbc71d83606fac89ee343e4cac83f442b1ac1`. Its current-head CI passed; CodeQL #142 is fixed by #1093.
+- [x] Publish the app-scope candidate at `c7d67eab891058fea10d423fa1a2928969e0bebd`; #1057 is ready against `main` at `946dbc71d83606fac89ee343e4cac83f442b1ac1`. Its current-head CI passed. CodeQL #142 is fixed by #1093. The earlier `56dfefd` integration is superseded.
 - [x] Prepare the scope patch: block settlement writes and new G$ reward creation/edits, hide their app controls, and preserve queued reward jobs and submitted-job reconciliation. Local critical QA passed all 13 selected checks fresh; the Admin CI Playwright project passed 12 cases with one skipped. That browser proof is clean-room evidence.
-- [ ] Publish the scope patch into develop, sync the release candidate, and obtain fresh current-head CI. The published `56dfefd76ea2ef135226d60806e8c9861caeced6` does not include these local edits.
+- [x] Merge the scope patch through #1094 into develop at `1de48f900352498c802f0debeeb3ed23b89db2ff`, sync release to `c7d67eab891058fea10d423fa1a2928969e0bebd`, and obtain current-head CI.
+- [ ] Merge the release-preparation follow-up #1095 after current-head CI/review, then sync and revalidate the final release candidate. Its copy, public API regression proof, source-promotion classifier and operations receipt are not yet integrated into the release branch.
 - [ ] Complete the full main-based release gate on the final published candidate, including mined-log indexer proof and authenticated attestation. Resolve or record an accepted disposition for the historical main-range source findings; the passing scope-patch QA gate does not replace that cut gate.
 - [ ] Verify contract/schema compatibility and record the KarmaGAP authority disposition for included Work flows. No ownership transfer, bridge disable or other onchain action is authorized by this app scope decision.
-- [x] Serve the October 13 develop integration on beta Client and Admin: both deployment records are READY at `f98a3543acba084e997ebfa4f92f879cc8df3d0a`.
+- [x] Serve the scoped develop integration on beta Client and Admin: both deployment records are READY at `1de48f900352498c802f0debeeb3ed23b89db2ff`, rechecked October 14.
 - [x] Owner reports passkey, request and installed-PWA acceptance complete on October 13. Keep the detailed observations private.
-- [ ] Match beta to the final scoped candidate and verify the settlement containment delta. Bind the owner's acceptance record to the tested build; do not repeat the completed acceptance suite by default. The last observed beta build was `f98a3543acba084e997ebfa4f92f879cc8df3d0a`.
+- [ ] Match beta to the final scoped candidate and verify the settlement containment delta. Retain the owner's latest-beta Android/Brave acceptance dated October 13; do not repeat the completed suite by default. The last observed beta build is `1de48f900352498c802f0debeeb3ed23b89db2ff`.
 - [ ] After the approved production merge, deploy the final indexer, verify schema/sync, update production environment variables, rebuild Client/Admin and verify their production reads. This is a post-merge cut gate, not a prerequisite for the develop PR or release sync.
-- [x] Verify the live Agent's compiled JavaScript and complete Shared source match the published `56dfefd76ea2ef135226d60806e8c9861caeced6` inputs. Read-only checks confirm SQLite v8, pending-request uniqueness on `(gardenAddress, accountAddressKey, kind)`, and advertised `garden_membership`/`steward_access` support. No request lifecycle or restore rehearsal is claimed.
+- [x] Verify live Agent compatibility. Earlier source inspection matched `56dfefd` inputs; the later observed v426 runtime retains SQLite v8 and pending-request uniqueness on `(gardenAddress, accountAddressKey, kind)`. Its public feature endpoint advertises both `garden_membership` and `steward_access`. The owner's request acceptance and the separate restoration receipt provide the lifecycle and recovery evidence; this does not assert an unverified new runtime source SHA.
 - [x] Owner reports live request acceptance complete.
-- [ ] Record a consistent backup/restore rehearsal and the rollback operator. Existing snapshots alone do not establish restoration.
+- [x] Record Afo as rollback operator and complete the October 13 backup/restore rehearsal.
+  A consistent SQLite backup was restored into a separate encrypted volume and opened read-only
+  on a temporary machine with no services. The restored checksum matched, integrity was OK,
+  schema v8 and the per-kind pending-request index were intact. The [operational receipt](operations-receipt.md)
+  records the observed checks and their limits. The temporary resources were
+  removed; the backup and volume snapshot are retained privately. This proves restoration of
+  the database copy, not a live application failover or a blind rollback of later writes.
 
 The checked-in `e6edffd` fallback serves pooling schema and representative Garden/promise records;
 the October 13 simultaneous sample was current within two blocks of the Arbitrum/Celo RPC reads.
@@ -65,8 +72,8 @@ and environment updates. Final endpoint selection, included Work/claim read-back
 production configuration must pass before the cut is declared complete.
 
 The release PR is [#1057](https://github.com/greenpill-dev-guild/green-goods/pull/1057), targeting
-`main`. Its published head is the source integration recorded above; local scope edits are not
-a new published candidate or passing CI receipt. The documentation's CI
+`main`. Its published head is the scoped integration recorded above; #1095 remains a separate
+follow-up until merged and synced. The documentation's CI
 Playwright and Storybook evidence does not complete authenticated, physical-device, owner-visual,
 or unfamiliar-reader acceptance. The local closeout/archive preserves those limits.
 
@@ -84,4 +91,14 @@ its schema and sync, update production environment variables, rebuild/promote Cl
 and verify production domains, API compatibility and source maps. Then sign and tag the merged
 `main` commit, verify the GitHub Release, add the curated notes, and merge `main` back into `develop`.
 
-After production verification: Afo publishes the app-only announcement after confirming the production links and cleared media. English and Spanish draft copy is prepared; publishing channels, replacement posting time and cleared screenshots still need their final selection. The demo is optional follow-up material and does not block the announcement.
+After production verification: Afo publishes the approved [Telegram/WhatsApp, public-social and
+X-thread copy](announcement.md), with em dashes removed. The Spanish community translation
+needs localization review. Confirm production links, the posting time and cleared screenshots
+before sending. [MAR-42](https://linear.app/greenpill-dev-guild/issue/MAR-42/publish-the-green-goods-20-pilot-announcement)
+owns publication, [MAR-43](https://linear.app/greenpill-dev-guild/issue/MAR-43/clear-screenshots-for-the-green-goods-20-announcement)
+owns screenshot clearance and [MAR-44](https://linear.app/greenpill-dev-guild/issue/MAR-44/prepare-pilot-focused-social-preview-assets-for-green-goods)
+owns preview artwork and copy. The demo is optional follow-up material.
+
+Use [the indexer cut guide](indexer-cut-guide.md) for the post-main deployment and environment
+sequence, and [social preview readiness](social-preview-readiness.md) before sharing automatic
+link cards. Naming the rollback operator does not establish a completed backup/restore rehearsal.

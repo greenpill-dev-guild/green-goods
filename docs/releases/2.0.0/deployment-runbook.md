@@ -1,6 +1,19 @@
 # Green Goods 2.0.0 deployment runbook
 
-Originally prepared for October 11, 2026; refreshed October 13. The replacement cut window is pending. Owner: Afo. This is an operator checklist, not broadcast authorization or a record of live deployment.
+Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. Production merge is approved once the applicable gates pass. Announcement follows post-merge verification at the owner's selected time. This checklist does not record a completed deployment or authorize onchain broadcasts.
+
+Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
+after the applicable gates pass; manual indexer deployment and environment updates remain
+operator-guided steps. Follow [indexer-cut-guide.md](indexer-cut-guide.md) after that merge.
+
+October 13 closeout: Afo reports today's latest-beta passkey, request and installed-PWA
+acceptance passed on Android mobile and Brave desktop. Keep this as owner-reported evidence,
+with the private build binding and observations; do not relabel it as agent-observed signing.
+The consistent SQLite backup was restored into a separate encrypted volume on a temporary
+machine with no services. Its checksum matched, integrity was OK, schema v8 and per-kind
+pending-request uniqueness were preserved. Test resources were removed and the backup/snapshot
+retained privately. A live failover and reconciliation of writes made after that backup are
+not claimed.
 
 ## App-only scope and remaining gates
 
@@ -12,16 +25,18 @@ announcement claim alone is not containment, and this decision does not pause li
 
 Finish these gates in order:
 
-1. Verify containment, publish the scope PR against develop, merge after current-head CI and
-   review requirements pass, then sync the release branch. Keep every selected critical check.
+1. The containment scope merged through #1094 and release was synced to `c7d67eab`.
+   Finish #1095 after current-head CI/review, then sync and revalidate the release branch.
+   Keep every selected critical check.
 2. Record the owner's October 13 completed passkey, request and installed-PWA acceptance in the
    private release record. Match beta to the scoped candidate, verify its containment delta and
    bind the tested build to that acceptance; do not restart the completed suite by default.
 3. Before the production merge, finish the main-based source gate, verify the compatible Agent
-   API, record the consistent backup/restore rehearsal and name the rollback operator. Resolve
+   API, reference the completed [restoration receipt](operations-receipt.md) and Afo as rollback
+   operator. Resolve
    authority/compatibility decisions affecting included Work flows. The final indexer deployment
    and production environment changes are not pre-merge gates.
-4. At the separately approved cut, merge the release PR into main. Then deploy the final indexer,
+4. After the pre-merge gates pass, merge the release PR into main. Then deploy the final indexer,
    verify schema and sync, and update production environment variables. Rebuild Client/Admin
    after the update, then verify/promote the intended builds and production domains. Hold
    data-dependent app availability on the last verified compatible deployment until these reads
@@ -32,12 +47,15 @@ Finish these gates in order:
 
 October 13 preparation evidence: the local scope patch passed the 13 selected critical QA checks
 fresh, and Admin CI Playwright passed 12 cases with one skipped. This is local/clean-room proof,
-not authenticated acceptance or current-head CI for a published scope patch. The live Agent's
-compiled JavaScript and complete Shared source match the published candidate inputs, and read-only
-SQLite inspection confirms v8 and the per-kind pending-request index. The existing `e6edffd`
+not authenticated acceptance or current-head CI for the final release. Earlier Agent source
+inspection matched `56dfefd` inputs; the later observed v426 runtime retains SQLite v8 and the
+per-kind pending-request index. Its feature endpoint advertises both request kinds; no new runtime
+source SHA is asserted here. The existing `e6edffd`
 indexer serves pooling records and was current within the RPC sampling interval; final selection
 and included Work/claim reads remain post-merge PRD-1122 gates. The owner reports signed request
-and installed-PWA acceptance complete; restoration is still an operator gate.
+and installed-PWA acceptance complete. The [database-copy restoration](operations-receipt.md)
+also passed. Live failover and reconciliation of writes made after the backup remain untested;
+they are required safety steps if rollback becomes necessary, not a request to repeat this rehearsal.
 
 ## Freeze and preflight
 
@@ -66,7 +84,7 @@ The app release does not authorize contract upgrades, settlement activation, Saf
 - Keep settlement/value actions unavailable in the 2.0 app. Verify the shared send boundary rejects them without signing, and reward/funding/payout/delivery controls cannot invoke them. Do not advertise a successful cross-chain payout from a dispatch or pending receipt.
 - Defer new settlement activation, contributor/passkey payout canaries, phase-aware live verifier tooling and the settlement release-hash reconciliation to the existing release-ops lane. Recover existing receipts there rather than repeating the accepted Garden payout. These are not new 2.0 rollout actions; live authority/compatibility issues affecting included app flows still require a disposition.
 - [PRD-1122](https://linear.app/greenpill-dev-guild/issue/PRD-1122/point-every-indexer-url-at-the-final-deployment-when-it-goes-live) owns the final indexer switch. Since #1058 every checked-in fallback names `e6edffd`: the app configs, the three dev/smoke scripts, and the PM2 hosted-indexer fallback. The owner will deploy the final indexer and update production's `VITE_ENVIO_INDEXER_URL` after the approved main merge; `e6edffd` is not asserted here as the final deployment.
-- After the approved main merge, deploy the final indexer from that merged source. Confirm it is fully synced, has the expected pooling schema, and reads representative Gardens, Work, commitments, claims, and both chain records. Then set the production `VITE_ENVIO_INDEXER_URL` for Client and Admin and rebuild/promote them. Environment changes do not change an already-built app. Record the deployment, endpoint, schema and sampled block receipts in PRD-1122 before completing the cut.
+- After the approved main merge, deploy the final indexer from that merged source. Confirm it is fully synced, has the expected pooling schema, and reads representative Gardens, commitments, claims, and both chain records. Verify Work and review separately through the application's EAS data layer. Then set the production `VITE_ENVIO_INDEXER_URL` for Client and Admin and rebuild/promote them. Environment changes do not change an already-built app. Follow [the indexer cut guide](indexer-cut-guide.md) and record the deployment, endpoint, schema and sampled block receipts in PRD-1122 before completing the cut.
 - Keep the old indexer deployment available for rollback. Record its block/lag and schema limits. Never silently serve an older schema to a UI that requires new pooling fields.
 
 ## Agent API and SQLite migration
@@ -82,14 +100,22 @@ The new request flow requires the candidate Agent API before the requester UI is
    flyctl volumes list --app green-goods
    ```
 
-3. Take a fresh volume snapshot, retain a consistent SQLite backup, and rehearse restoration into a separate volume before the cut. Supply the verified volume ID:
+3. The consistent backup, volume snapshot and separate-volume restoration rehearsal are complete
+   for this cut; use the [observed receipt](operations-receipt.md) and private recovery record.
+   Before changing the API, confirm the retained recovery inputs and their image/key pairing are
+   still available. Do not repeat the production-data rehearsal by default. If a new snapshot is
+   needed because the retained one expired or the recovery inputs changed, supply the verified
+   volume ID:
 
    ```sh
    flyctl volumes snapshots create <volume-id> --app green-goods
    flyctl volumes snapshots list <volume-id>
    ```
 
-   Do not copy only a live SQLite main file while its WAL is active. The recovery record must include the matching encryption keys in the existing secret store; never print or commit them. Production restore rehearsal is still an operator gate, not claimed complete by unit tests.
+   Do not copy only a live SQLite main file while its WAL is active. The recovery record must
+   retain the matching encryption keys in the existing secret store; never print or commit them.
+   The completed restoration was observed on an isolated machine, not inferred from unit tests.
+   An actual rollback must still quiesce, preserve and reconcile later writes as described below.
 4. Confirm `JOIN_REQUESTS_ENCRYPTION_KEY`, `JOIN_REQUESTS_PRODUCTION_READY`, the expected origin allowlist/trusted proxy settings, and the existing passkey directory configuration are available. Preserve existing keys and passkey records. Do not rotate keys during this cut.
 5. The candidate initializes SQLite schema version **8** at startup. Its transactional migration changes the pending-request uniqueness index to `(gardenAddress, accountAddressKey, kind)` and preserves existing encrypted rows and revisions. Verify the migration and idempotent restart using the SQLite test scope before deployment:
 

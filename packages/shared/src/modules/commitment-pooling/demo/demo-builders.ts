@@ -54,8 +54,8 @@ export const ACTION_MAINTENANCE = 8n;
 export const ACTION_CLEANUP = 17n;
 
 // Noon UTC dates, so the rail reads the same day in every timezone.
-export const MAR_1 = 1_772_366_400n;
-export const MAY_31 = 1_780_228_800n;
+const MAR_1 = 1_772_366_400n;
+const MAY_31 = 1_780_228_800n;
 export const APR_12 = 1_775_995_200n;
 export const NOW = 1_771_800_000;
 
